@@ -30,7 +30,7 @@ jobs:
         if: steps.diff.outputs.bytes != '0'
         uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.N0WST4NDUP_ANTHROPIC_OAUTH_TOKEN }}
+          claude_code_oauth_token: ${{ secrets.N0WST4NDUP_ANTHROPIC_OAUTH_TOKEN }}
           github_token: ${{ github.token }}   # Claude GitHub App 대신 워크플로우 토큰 사용
           claude_args: |
             --allowedTools "Read,Glob,Grep,Bash(gh pr view:*),Bash(gh issue view:*),Bash(gh pr comment:*)"
