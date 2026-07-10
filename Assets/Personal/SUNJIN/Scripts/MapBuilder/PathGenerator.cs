@@ -3,25 +3,63 @@ using UnityEngine;
 
 public class PathGenerator
 {
+    private readonly PathSquareValidator squareValidator;
+
+    public PathGenerator(PathSquareValidator squareValidator)
+    {
+        this.squareValidator = squareValidator;
+    }
+
     public bool TryGeneratePath(
         Vector2Int startPoint,
         Vector2Int centerPoint,
         Vector2Int endPoint,
+        Vector2Int currentMapOffset,
+        int mapSize,
+        IReadOnlyCollection<Vector2Int> generatedRoadWorldPoints,
         List<Vector2Int> path)
     {
         path.Clear();
 
-        bool startToCenter = AddPath(startPoint, centerPoint, path);
-        bool centerToEnd = AddPath(centerPoint, endPoint, path);
+        bool startToCenter = AddPath(
+            startPoint,
+            centerPoint,
+            currentMapOffset,
+            mapSize,
+            generatedRoadWorldPoints,
+            path);
+
+        bool centerToEnd = AddPath(
+            centerPoint,
+            endPoint,
+            currentMapOffset,
+            mapSize,
+            generatedRoadWorldPoints,
+            path);
 
         return startToCenter && centerToEnd;
     }
 
-    private bool AddPath(Vector2Int from, Vector2Int to, List<Vector2Int> path)
+    private bool AddPath(
+        Vector2Int from,
+        Vector2Int to,
+        Vector2Int currentMapOffset,
+        int mapSize,
+        IReadOnlyCollection<Vector2Int> generatedRoadWorldPoints,
+        List<Vector2Int> path)
     {
         Vector2Int current = from;
 
         AddPointIfNotExists(current, path);
+        if (squareValidator.WouldMakeSquareWithCurrentPath(
+                current,
+                currentMapOffset,
+                mapSize,
+                generatedRoadWorldPoints,
+                path))
+        {
+            return false;
+        }
 
         while (current != to)
         {
@@ -32,7 +70,13 @@ public class PathGenerator
                 return false;
             }
 
-            if (!TryGetNextPoint(candidates, path, out Vector2Int nextPoint))
+            if (!TryGetNextPoint(
+                    candidates,
+                    currentMapOffset,
+                    mapSize,
+                    generatedRoadWorldPoints,
+                    path,
+                    out Vector2Int nextPoint))
             {
                 return false;
             }
@@ -75,6 +119,9 @@ public class PathGenerator
 
     private bool TryGetNextPoint(
         List<Vector2Int> candidates,
+        Vector2Int currentMapOffset,
+        int mapSize,
+        IReadOnlyCollection<Vector2Int> generatedRoadWorldPoints,
         List<Vector2Int> path,
         out Vector2Int nextPoint)
     {
@@ -83,7 +130,12 @@ public class PathGenerator
         foreach (Vector2Int candidate in candidates)
         {
             path.Add(candidate);
-            bool makesSquare = WouldMakeSquare(path);
+            bool makesSquare = squareValidator.WouldMakeSquareWithCurrentPath(
+                candidate,
+                currentMapOffset,
+                mapSize,
+                generatedRoadWorldPoints,
+                path);
             path.Remove(candidate);
 
             if (!makesSquare)
@@ -93,8 +145,8 @@ public class PathGenerator
             }
         }
 
-        nextPoint = Vector2Int.zero;
-        return false;
+        nextPoint = candidates[0];
+        return true;
     }
 
     private void AddPointIfNotExists(Vector2Int point, List<Vector2Int> path)
@@ -103,24 +155,5 @@ public class PathGenerator
         {
             path.Add(point);
         }
-    }
-
-    private bool WouldMakeSquare(List<Vector2Int> path)
-    {
-        foreach (Vector2Int point in path)
-        {
-            Vector2Int right = point + Vector2Int.right;
-            Vector2Int up = point + Vector2Int.up;
-            Vector2Int diagonal = point + Vector2Int.right + Vector2Int.up;
-
-            if (path.Contains(right) &&
-                path.Contains(up) &&
-                path.Contains(diagonal))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

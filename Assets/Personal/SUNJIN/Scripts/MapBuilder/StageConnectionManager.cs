@@ -12,41 +12,6 @@ public class StageConnectionManager
         this.waypoints = waypoints;
     }
 
-    public bool TryGetRandomEndPoint(
-        StageWaypointDirection startDirection,
-        Vector2Int mapOffset,
-        List<Vector2Int> occupiedMapOffsets,
-        out StageWaypoint endWaypoint)
-    {
-        List<StageWaypoint> candidates = new List<StageWaypoint>();
-
-        foreach (StageWaypoint waypoint in waypoints)
-        {
-            if (waypoint.direction == startDirection)
-            {
-                continue;
-            }
-
-            Vector2Int nextMapOffset = GetNextMapOffset(mapOffset, waypoint.direction);
-
-            if (occupiedMapOffsets.Contains(nextMapOffset))
-            {
-                continue;
-            }
-
-            candidates.Add(waypoint);
-        }
-
-        if (candidates.Count == 0)
-        {
-            endWaypoint = null;
-            return false;
-        }
-
-        endWaypoint = candidates[Random.Range(0, candidates.Count)];
-        return true;
-    }
-
     public bool TryGetEndPointByDirection(
         StageWaypointDirection startDirection,
         StageWaypointDirection endDirection,
@@ -90,23 +55,6 @@ public class StageConnectionManager
         return true;
     }
 
-    public Vector2Int GetNextMapOffset(Vector2Int mapOffset, StageWaypointDirection direction)
-    {
-        switch (direction)
-        {
-            case StageWaypointDirection.Top:
-                return mapOffset + Vector2Int.down;
-            case StageWaypointDirection.Bottom:
-                return mapOffset + Vector2Int.up;
-            case StageWaypointDirection.Left:
-                return mapOffset + Vector2Int.left;
-            case StageWaypointDirection.Right:
-                return mapOffset + Vector2Int.right;
-            default:
-                return mapOffset;
-        }
-    }
-
     public Vector2Int GetOppositeStartPoint(StageWaypoint endWaypoint)
     {
         StageWaypointDirection oppositeDirection = GetOppositeDirection(endWaypoint.direction);
@@ -137,6 +85,23 @@ public class StageConnectionManager
                 return StageWaypointDirection.Left;
             default:
                 return direction;
+        }
+    }
+
+    private Vector2Int GetNextMapOffset(Vector2Int mapOffset, StageWaypointDirection direction)
+    {
+        switch (direction)
+        {
+            case StageWaypointDirection.Top:
+                return mapOffset + Vector2Int.down;
+            case StageWaypointDirection.Bottom:
+                return mapOffset + Vector2Int.up;
+            case StageWaypointDirection.Left:
+                return mapOffset + Vector2Int.left;
+            case StageWaypointDirection.Right:
+                return mapOffset + Vector2Int.right;
+            default:
+                return mapOffset;
         }
     }
 
