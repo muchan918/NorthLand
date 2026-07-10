@@ -17,16 +17,24 @@ public class LocalizationTest : MonoBehaviour
 
     private void ChangeLocale(string code)
     {
-        LocalizationSettings.InitializationOperation.Completed += _ =>
+        if (!LocalizationSettings.InitializationOperation.IsDone)
         {
-            var locale = LocalizationSettings.AvailableLocales.GetLocale(code);
-            if (locale == null)
-            {
-                Debug.LogWarning($"Locale not found: {code}");
-                return;
-            }
+            LocalizationSettings.InitializationOperation.Completed += _ => ApplyLocale(code);
+            return;
+        }
 
-            LocalizationSettings.SelectedLocale = locale;
-        };
+        ApplyLocale(code);
+    }
+
+    private void ApplyLocale(string code)
+    {
+        var locale = LocalizationSettings.AvailableLocales.GetLocale(code);
+        if (locale == null)
+        {
+            Debug.LogWarning($"Locale not found: {code}");
+            return;
+        }
+
+        LocalizationSettings.SelectedLocale = locale;
     }
 }
