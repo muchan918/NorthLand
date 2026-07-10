@@ -16,7 +16,7 @@ public class ResourceTable : DataTable
             Debug.LogError($"CSV 파일을 찾을 수 없습니다: {path}");
             return;
         }
-        
+
         List<ResourceData> list = LoadCSV<ResourceData>(textAsset.text);
 
         foreach (var data in list)
