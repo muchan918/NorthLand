@@ -160,6 +160,7 @@ $RECYCLE.BIN/
 
 # Imported Assets
 Assets/Imported/
+Assets/Imported.meta
 
 # 클로드 관련
 /.claude/settings.local.json
