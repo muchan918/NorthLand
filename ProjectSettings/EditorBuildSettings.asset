@@ -12,5 +12,7 @@ EditorBuildSettings:
     path: Assets/Personal/SUNJIN/Scenes/Battle.unity
     guid: 60cf5f0273d130f4e98cac71cea34fb8
   m_configObjects:
+    com.unity.addressableassets: {fileID: 11400000, guid: 52b35fea748fd444692ae8110add9ae2, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+    com.unity.localization.settings: {fileID: 11400000, guid: 360c86aec2a80eb49be5a2d7eee1eb2f, type: 2}
   m_UseUCBPForAssetBundles: 0

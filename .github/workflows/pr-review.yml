@@ -1,0 +1,71 @@
+name: PR Auto Review
+on:
+  pull_request:
+    types: [opened, reopened]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build filtered diff
+        id: diff
+        run: |
+          BASE="origin/${{ github.base_ref }}"
+          git diff --name-status "$BASE"...HEAD > /tmp/changed_files.txt
+          git diff "$BASE"...HEAD -- . \
+            ':!*.meta' ':!*.unity' ':!*.prefab' ':!*.asset' \
+            ':!*.anim' ':!*.controller' ':!*.mat' > /tmp/review.diff
+          echo "bytes=$(wc -c < /tmp/review.diff)" >> "$GITHUB_OUTPUT"
+
+      - name: Claude review
+        if: steps.diff.outputs.bytes != '0'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.N0WST4NDUP_ANTHROPIC_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}   # Claude GitHub App 대신 워크플로우 토큰 사용
+          claude_args: |
+            --allowedTools "Read,Glob,Grep,Bash(gh pr view:*),Bash(gh issue view:*),Bash(gh pr comment:*)"
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            이 PR을 검토하고 한국어로 종합 리뷰 코멘트 하나를 작성해줘.
+
+            [입력 데이터]
+            - 리뷰 대상 diff: /tmp/review.diff 를 Read 도구로 읽어라.
+              Unity 직렬화 파일은 이미 제외돼 있다. 파일이 크면 offset/limit으로 나눠 읽어라.
+            - 전체 변경 파일 목록: /tmp/changed_files.txt
+              씬/프리팹/에셋 변경이 포함돼 있으면 구현 요약에 한 줄로만 언급한다.
+
+            [작업 순서]
+            1. `gh pr view` 로 PR 제목/본문을 읽고, 연결된 이슈(Closes/Fixes/Resolves #N)를
+               찾아 `gh issue view N` 으로 이슈 내용을 확인한다.
+            2. /tmp/review.diff 로 코드 변경을 확인한다.
+            3. 저장소 루트의 CLAUDE.md 와 Docs/ 폴더에서 변경된 코드와 관련된 문서만 읽는다.
+
+            [코멘트 구성]
+            ## 📋 구현 요약 / ## ✅ 컨벤션 점검 (CLAUDE.md) /
+            ## 🏛️ 설계 원칙 점검 (Docs/) / ## 💡 제안 (선택)
+            위배 지적 시 `파일:라인` 과 근거가 되는 CLAUDE.md/Docs 항목을 명시.
+            위배 없으면 각 섹션에 "위배 없음".
+
+            [규칙]
+            - 인라인 코멘트는 만들지 말고, `gh pr comment` 로 코멘트 하나만 게시한다.
+            - 확신 없는 지적이나 사소한 스타일은 언급하지 말 것.
+
+      - name: Asset-only skip note
+        if: steps.diff.outputs.bytes == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "🤖 코드 변경이 없는 에셋 전용 PR이라 자동 리뷰를 생략했습니다."
