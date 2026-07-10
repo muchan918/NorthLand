@@ -395,6 +395,7 @@ GameObject:
   - component: {fileID: 456706466}
   - component: {fileID: 456706465}
   - component: {fileID: 456706464}
+  - component: {fileID: 456706467}
   m_Layer: 5
   m_Name: Button
   m_TagString: Untagged
@@ -504,6 +505,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 456706462}
   m_CullTransparentMesh: 1
+--- !u!114 &456706467
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 456706462}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b3b74e86008a99442bc44525a70792e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlacementButton
+  _button: {fileID: 456706464}
+  _ghostPrefab: {fileID: 4934175772748812311, guid: f4feda85b6c4a8345838ee782f3b3af6, type: 3}
+  _placedPrefab: {fileID: 731238329364994665, guid: 00b7e47ad42bf5b4690945bd84114e45, type: 3}
 --- !u!1 &786160785
 GameObject:
   m_ObjectHideFlags: 0
@@ -806,9 +822,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 1313651600}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: af9c70de20272644596a26f6af9ec048, type: 3}
+  m_Script: {fileID: 11500000, guid: 649570270374f504c89c58a0dc20369e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TowerInfoPanel
+  m_EditorClassIdentifier: Assembly-CSharp::TowerInfoUI
   _towerInfoText: {fileID: 1405703637}
 --- !u!1 &1366554594
 GameObject:
@@ -1223,13 +1239,9 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 731238329364994665, guid: 00b7e47ad42bf5b4690945bd84114e45, type: 3}
-      propertyPath: _testInfo
-      value: Test3
-      objectReference: {fileID: 0}
-    - target: {fileID: 731238329364994665, guid: 00b7e47ad42bf5b4690945bd84114e45, type: 3}
       propertyPath: _infoPanel
       value: 
-      objectReference: {fileID: 1313651604}
+      objectReference: {fileID: 0}
     - target: {fileID: 4934175772748812311, guid: 00b7e47ad42bf5b4690945bd84114e45, type: 3}
       propertyPath: m_Name
       value: TestTower (1)
@@ -1294,7 +1306,7 @@ PrefabInstance:
     - target: {fileID: 731238329364994665, guid: 00b7e47ad42bf5b4690945bd84114e45, type: 3}
       propertyPath: _infoPanel
       value: 
-      objectReference: {fileID: 1313651604}
+      objectReference: {fileID: 0}
     - target: {fileID: 4934175772748812311, guid: 00b7e47ad42bf5b4690945bd84114e45, type: 3}
       propertyPath: m_Name
       value: TestTower
