@@ -11,6 +11,12 @@ public class ResourceTable : DataTable
 
         string path = string.Format(FormatPath, filename);
         TextAsset textAsset = Resources.Load<TextAsset>(path);
+        if (textAsset == null)
+        {
+            Debug.LogError($"CSV 파일을 찾을 수 없습니다: {path}");
+            return;
+        }
+
         List<ResourceData> list = LoadCSV<ResourceData>(textAsset.text);
 
         foreach (var data in list)
