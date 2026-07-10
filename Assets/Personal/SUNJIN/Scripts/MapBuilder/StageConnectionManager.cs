@@ -23,7 +23,7 @@ public class StageConnectionManager
 
         if (endDirection == startDirection)
         {
-            Debug.LogWarning($"ÀÔ±¸ ¹æÇâ°ú °°Àº ¹æÇâÀ¸·Î´Â Ãâ±¸¸¦ ¸¸µé ¼ö ¾ø½À´Ï´Ù. {endDirection}");
+            Debug.LogWarning($"ì…êµ¬ ë°©í–¥ê³¼ ê°™ì€ ë°©í–¥ìœ¼ë¡œëŠ” ì¶œêµ¬ë¥¼ ë§Œë“¤ ìˆ˜ ì—†ìŠµë‹ˆë‹¤. {endDirection}");
             return false;
         }
 
@@ -31,7 +31,7 @@ public class StageConnectionManager
 
         if (occupiedMapOffsets.Contains(nextMapOffset))
         {
-            Debug.LogWarning($"ÀÌ¹Ì ¸ÊÀÌ ÀÖ´Â ¹æÇâÀ¸·Î´Â ÀÌµ¿ÇÒ ¼ö ¾ø½À´Ï´Ù. {endDirection} {nextMapOffset}");
+            Debug.LogWarning($"ì´ë¯¸ ë§µì´ ìˆëŠ” ë°©í–¥ìœ¼ë¡œëŠ” ì´ë™í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤. {endDirection} {nextMapOffset}");
             return false;
         }
 
@@ -47,7 +47,7 @@ public class StageConnectionManager
 
         if (candidates.Count == 0)
         {
-            Debug.LogWarning($"¼³Á¤ÇÑ ¹æÇâ¿¡ »ç¿ëÇÒ ¼ö ÀÖ´Â Waypoint°¡ ¾ø½À´Ï´Ù. {endDirection}");
+            Debug.LogWarning($"ì„¤ì •í•œ ë°©í–¥ì— ì‚¬ìš©í•  ìˆ˜ ìˆëŠ” Waypointê°€ ì—†ìŠµë‹ˆë‹¤. {endDirection}");
             return false;
         }
 
@@ -67,7 +67,7 @@ public class StageConnectionManager
             }
         }
 
-        Debug.LogWarning($"¿¬°áµÇ´Â ¹İ´ë Waypoint¸¦ Ã£Áö ¸øÇß½À´Ï´Ù. {endWaypoint.direction} {endWaypoint.point}");
+        Debug.LogWarning($"ì—°ê²°ë˜ëŠ” ë°˜ëŒ€ Waypointë¥¼ ì°¾ì§€ ëª»í–ˆìŠµë‹ˆë‹¤. {endWaypoint.direction} {endWaypoint.point}");
         return GetMirroredPoint(endWaypoint.point, endWaypoint.direction);
     }
 

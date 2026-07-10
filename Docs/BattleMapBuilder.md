@@ -16,7 +16,7 @@
 ## 2. 경로(루트) 생성 규칙 — `StageMapRouteGenerator` / `StageRouteSettings`
 
 - 전체 블록 경로는 시작 블록 `(0,0)`에서 출발한다.
-- 그리드 범위는 `minMapX`~`maxMapX`, `minMapY`~`maxMapY`로 제한된다 (기본값: X `-5`~`-1`, Y `-3`~`3`).
+- 그리드 범위는 `minMapX`~`maxMapX`, `minMapY`~`maxMapY`로 제한된다 (기본값: X `-6`~`-1`, Y `-3`~`3`).
 - 매 단계마다 현재 블록에서 상/하/좌/우로 이동 가능한(그리드 범위 안이고 아직 지나지 않은) 블록 후보 중 하나를 무작위로 선택해 경로에 추가한다.
 - 전체 블록 수가 `maxMapCount`(기본값 30블록)에 도달할 때까지 이 과정을 반복한다.
 - 이동 가능한 후보가 없어 막히면 처음부터 다시 시도하며, 최대 `routeGenerateTryCount`(기본값 500)번까지 재시도한다.

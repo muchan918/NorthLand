@@ -113,7 +113,7 @@ public class StageBuilder : MonoBehaviour
     {
         if (currentMapCount >= routeSettings.MaxMapCount || currentMapCount >= generatedMapOffsets.Count)
         {
-            Debug.Log("¼³Á¤µÈ ¸Ê °³¼ö¸¦ ¸ğµÎ »ı¼ºÇß½À´Ï´Ù.");
+            Debug.Log("ì„¤ì •ëœ ë§µ ê°œìˆ˜ë¥¼ ëª¨ë‘ ìƒì„±í–ˆìŠµë‹ˆë‹¤.");
             return;
         }
 
@@ -121,7 +121,7 @@ public class StageBuilder : MonoBehaviour
 
         if (occupiedMapOffsets.Contains(currentMapOffset))
         {
-            Debug.LogWarning("ÀÌ¹Ì Å¸ÀÏÀÌ ÀÖ´Â À§Ä¡¿¡´Â »õ ½ºÅ×ÀÌÁö¸¦ ¸¸µé ¼ö ¾ø½À´Ï´Ù.");
+            Debug.LogWarning("ì´ë¯¸ íƒ€ì¼ì´ ìˆëŠ” ìœ„ì¹˜ì—ëŠ” ìƒˆ ìŠ¤í…Œì´ì§€ë¥¼ ë§Œë“¤ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.");
             return;
         }
 
@@ -161,7 +161,7 @@ public class StageBuilder : MonoBehaviour
                 return true;
             }
 
-            Debug.LogWarning($"¸¶Áö¸· ¸ÊÀÇ ¼¾ÅÍ °æ·Î »ı¼º¿¡ ½ÇÆĞÇß½À´Ï´Ù. {currentMapOffset}");
+            Debug.LogWarning($"ë§ˆì§€ë§‰ ë§µì˜ ì„¼í„° ê²½ë¡œ ìƒì„±ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤. {currentMapOffset}");
             return false;
         }
 
@@ -176,7 +176,7 @@ public class StageBuilder : MonoBehaviour
                 path,
                 tilePathBuildResult))
         {
-            Debug.LogWarning($"È®Á¤µÈ ¸Ê °æ·ÎÀÇ ±æ »ı¼º¿¡ ½ÇÆĞÇß½À´Ï´Ù. {currentMapOffset} -> {nextMapOffset}");
+            Debug.LogWarning($"í™•ì •ëœ ë§µ ê²½ë¡œì˜ ê¸¸ ìƒì„±ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤. {currentMapOffset} -> {nextMapOffset}");
             return false;
         }
 
@@ -218,11 +218,11 @@ public class StageBuilder : MonoBehaviour
                 routeSettings.RouteGenerateTryCount,
                 generatedMapOffsets))
         {
-            Debug.LogWarning("Á¶°Ç¿¡ ¸Â´Â ÀüÃ¼ ¸Ê °æ·Î¸¦ ¸¸µéÁö ¸øÇß½À´Ï´Ù.");
+            Debug.LogWarning("ì¡°ê±´ì— ë§ëŠ” ì „ì²´ ë§µ ê²½ë¡œë¥¼ ë§Œë“¤ì§€ ëª»í–ˆìŠµë‹ˆë‹¤.");
             return;
         }
 
-        Debug.Log($"È®Á¤µÈ ¸Ê °æ·Î: {string.Join(", ", generatedMapOffsets)}");
+        Debug.Log($"í™•ì •ëœ ë§µ ê²½ë¡œ: {string.Join(", ", generatedMapOffsets)}");
     }
 
     private void ResetStage()

@@ -812,7 +812,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &193762476
 Transform:
   m_ObjectHideFlags: 0
@@ -2118,7 +2118,7 @@ MonoBehaviour:
   routeSettings:
     maxMapCount: 30
     routeGenerateTryCount: 500
-    minMapX: -5
+    minMapX: -6
     maxMapX: -1
     minMapY: -3
     maxMapY: 3

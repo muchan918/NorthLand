@@ -1,4 +1,4 @@
-meta# ==========================================================================
+# ==========================================================================
 # Unity + Visual Studio .gitignore
 # ==========================================================================
 # Unity: https://github.com/github/gitignore/blob/main/Unity.gitignore
@@ -177,3 +177,6 @@ Assets/ExternalDependencyManager/
 Assets/ExternalDependencyManager.meta
 Assets/Firebase/
 Assets/Firebase.meta
+# Unity auto-recovery scene snapshots
+/[Aa]ssets/_Recovery/
+/[Aa]ssets/_Recovery.meta
