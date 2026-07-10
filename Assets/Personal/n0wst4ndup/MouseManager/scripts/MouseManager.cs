@@ -18,7 +18,12 @@ public class MouseManager : MonoBehaviour
     private Mode _mode = Mode.Idle;
 
     [SerializeField] Camera _camera;
-    [SerializeField] LayerMask _worldMask;
+
+    [Header("Raycast Layers")]
+    // 선택 후보 레이어(타워/건물/병사...). 최종 선택 여부는 ISelectable 유무로 판정하므로, 레이어는 굵은 필터일 뿐.
+    [SerializeField] LayerMask _selectableMask;
+    // 배치 표면 레이어(바닥/그리드). 고스트가 이 위에 올라간다.
+    [SerializeField] LayerMask _placementMask;
 
     private ISelectable _selected;
     private PlacementRequest _request;
@@ -39,7 +44,7 @@ public class MouseManager : MonoBehaviour
 
     private void Update()
     {
-        Vector2 screenPos = Mouse.current.position.ReadValue();
+        var screenPos = Mouse.current.position.ReadValue();
         bool overUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
 
         switch (_mode)
@@ -67,17 +72,17 @@ public class MouseManager : MonoBehaviour
     }
 
     // ── Idle: 선택 (요구사항 ②) ────────────────────────────────────
-    void UpdateIdle(Vector2 screenPos, bool overUI)
+    private void UpdateIdle(Vector2 screenPos, bool overUI)
     {
         if (overUI || !Mouse.current.leftButton.wasPressedThisFrame) return;
 
-        if (Raycast(screenPos, out var hit) && hit.collider.TryGetComponent(out ISelectable sel))
+        if (RaycastMask(screenPos, _selectableMask, out var hit) && hit.collider.TryGetComponent(out ISelectable sel))
             Select(sel);
         else
             Select(null); // 빈 곳 클릭 → 선택 해제
     }
 
-    void Select(ISelectable next)
+    private void Select(ISelectable next)
     {
         if (_selected == next) return;
         _selected?.OnDeselected();
@@ -87,7 +92,7 @@ public class MouseManager : MonoBehaviour
     }
 
     // ── Placement: 배치 (요구사항 ①) ──────────────────────────────
-    void UpdatePlacement(Vector2 screenPos, bool overUI)
+    private void UpdatePlacement(Vector2 screenPos, bool overUI)
     {
         // 우클릭/Esc 로 취소
         if (Mouse.current.rightButton.wasPressedThisFrame ||
@@ -97,7 +102,7 @@ public class MouseManager : MonoBehaviour
             return;
         }
 
-        if (!Raycast(screenPos, out var hit)) return;
+        if (!RaycastMask(screenPos, _placementMask, out var hit)) return;
 
         Vector3 pos = Snap(hit.point); // 그리드 스냅 (TBD)
         _ghost.transform.position = pos;
@@ -113,10 +118,10 @@ public class MouseManager : MonoBehaviour
     }
 
     // ── 레이캐스트 / 스냅 (구현 방식 TBD) ─────────────────────────
-    private bool Raycast(Vector2 screenPos, out RaycastHit hit) // 3D 기준. 2D면 Physics2D.Raycast로 교체
+    private bool RaycastMask(Vector2 screenPos, LayerMask mask, out RaycastHit hit)
     {
         var ray = _camera.ScreenPointToRay(screenPos);
-        return Physics.Raycast(ray, out hit, Mathf.Infinity, _worldMask);
+        return Physics.Raycast(ray, out hit, Mathf.Infinity, mask);
     }
 
     private Vector3 Snap(Vector3 world) => world; // TODO: 그리드 좌표로 스냅
