@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class DataTableManager : MonoBehaviour
+public static class DataTableManager
 {
     private static readonly Dictionary<string, DataTable> tables =
         new Dictionary<string, DataTable>();
@@ -13,7 +13,9 @@ public class DataTableManager : MonoBehaviour
 
     private static void Init()
     {
-    
+        var resourceTable = new ResourceTable();
+        resourceTable.Load("ResourceTable");
+        tables.Add("ResourceTable", resourceTable);
     }
 
     public static T Get<T>(string id)
