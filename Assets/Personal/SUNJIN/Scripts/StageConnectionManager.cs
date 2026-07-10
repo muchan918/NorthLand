@@ -47,6 +47,49 @@ public class StageConnectionManager
         return true;
     }
 
+    public bool TryGetEndPointByDirection(
+        StageWaypointDirection startDirection,
+        StageWaypointDirection endDirection,
+        Vector2Int mapOffset,
+        List<Vector2Int> occupiedMapOffsets,
+        out StageWaypoint endWaypoint)
+    {
+        endWaypoint = null;
+
+        if (endDirection == startDirection)
+        {
+            Debug.LogWarning($"ÀÔ±¸ ¹æÇâ°ú °°Àº ¹æÇâÀ¸·Î´Â Ãâ±¸¸¦ ¸¸µé ¼ö ¾ø½À´Ï´Ù. {endDirection}");
+            return false;
+        }
+
+        Vector2Int nextMapOffset = GetNextMapOffset(mapOffset, endDirection);
+
+        if (occupiedMapOffsets.Contains(nextMapOffset))
+        {
+            Debug.LogWarning($"ÀÌ¹Ì ¸ÊÀÌ ÀÖ´Â ¹æÇâÀ¸·Î´Â ÀÌµ¿ÇÒ ¼ö ¾ø½À´Ï´Ù. {endDirection} {nextMapOffset}");
+            return false;
+        }
+
+        List<StageWaypoint> candidates = new List<StageWaypoint>();
+
+        foreach (StageWaypoint waypoint in waypoints)
+        {
+            if (waypoint.direction == endDirection)
+            {
+                candidates.Add(waypoint);
+            }
+        }
+
+        if (candidates.Count == 0)
+        {
+            Debug.LogWarning($"¼³Á¤ÇÑ ¹æÇâ¿¡ »ç¿ëÇÒ ¼ö ÀÖ´Â Waypoint°¡ ¾ø½À´Ï´Ù. {endDirection}");
+            return false;
+        }
+
+        endWaypoint = candidates[Random.Range(0, candidates.Count)];
+        return true;
+    }
+
     public Vector2Int GetNextMapOffset(Vector2Int mapOffset, StageWaypointDirection direction)
     {
         switch (direction)
@@ -76,7 +119,7 @@ public class StageConnectionManager
             }
         }
 
-        Debug.LogWarning($"ì—°ê²°ë˜ëŠ” ë°˜ëŒ€í¸ Waypointë¥¼ ì°¾ì§€ ëª»í–ˆìŠµë‹ˆë‹¤. {endWaypoint.direction} {endWaypoint.point}");
+        Debug.LogWarning($"¿¬°áµÇ´Â ¹İ´ë Waypoint¸¦ Ã£Áö ¸øÇß½À´Ï´Ù. {endWaypoint.direction} {endWaypoint.point}");
         return GetMirroredPoint(endWaypoint.point, endWaypoint.direction);
     }
 

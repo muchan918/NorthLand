@@ -1,4 +1,4 @@
-# ==========================================================================
+meta# ==========================================================================
 # Unity + Visual Studio .gitignore
 # ==========================================================================
 # Unity: https://github.com/github/gitignore/blob/main/Unity.gitignore
@@ -160,6 +160,7 @@ $RECYCLE.BIN/
 
 # Imported Assets
 Assets/Imported/
+Assets/Imported.meta
 
 # 클로드 관련
 /.claude/settings.local.json

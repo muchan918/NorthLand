@@ -1,4 +1,4 @@
-ï»¿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -52,6 +52,16 @@ public class StageBuilder : MonoBehaviour
         new StageWaypoint { direction = StageWaypointDirection.Right, point = new Vector2Int(6, 5) },
     };
 
+    [SerializeField] private int maxMapCount = 10;
+
+    [SerializeField]
+    private List<Vector2Int> requiredMapOffsets = new List<Vector2Int>
+    {
+        new Vector2Int(2, -1),
+        new Vector2Int(1, 2),
+        new Vector2Int(3, 1),
+    };
+
     private const int MapSize = 7;
     private const int MaxPathGenerateTryCount = 100;
 
@@ -62,11 +72,21 @@ public class StageBuilder : MonoBehaviour
         new Vector2Int(2, 2),
     };
 
+    private readonly StageWaypointDirection[] allDirections =
+    {
+        StageWaypointDirection.Top,
+        StageWaypointDirection.Bottom,
+        StageWaypointDirection.Left,
+        StageWaypointDirection.Right,
+    };
+
     private readonly List<Vector2Int> path = new List<Vector2Int>();
     private readonly List<Vector2Int> lava = new List<Vector2Int>();
     private readonly List<Vector2Int> occupiedMapOffsets = new List<Vector2Int>();
     private readonly List<Vector3> totalWorldPath = new List<Vector3>();
     private readonly List<GameObject> spawnedTiles = new List<GameObject>();
+    private readonly List<StageWaypointDirection> generatedMapRoute = new List<StageWaypointDirection>();
+    private readonly List<Vector2Int> randomizedRequiredMapOffsets = new List<Vector2Int>();
 
     private PathGenerator pathGenerator;
     private LavaGenerator lavaGenerator;
@@ -76,6 +96,8 @@ public class StageBuilder : MonoBehaviour
     private Vector2Int currentMapOffset = Vector2Int.zero;
     private Vector2Int currentStartPoint = new Vector2Int(6, 3);
     private StageWaypointDirection currentStartDirection = StageWaypointDirection.Right;
+    private int currentMapCount;
+    private int currentRequiredMapIndex;
 
     private void Awake()
     {
@@ -84,6 +106,7 @@ public class StageBuilder : MonoBehaviour
         connectionManager = new StageConnectionManager(MapSize, waypoints);
         mapSpawner = new StageMapSpawner(MapSize, grassCube, roadCube, lavaCube, battlespace);
 
+        PrepareRequiredMapOffsets();
         GenerateNextStage();
     }
 
@@ -107,9 +130,23 @@ public class StageBuilder : MonoBehaviour
 
     private void GenerateNextStage()
     {
+        if (currentMapCount >= maxMapCount)
+        {
+            Debug.Log("¼³Á¤µÈ ¸Ê °³¼ö¸¦ ¸ğµÎ »ı¼ºÇß½À´Ï´Ù.");
+            return;
+        }
+
         if (occupiedMapOffsets.Contains(currentMapOffset))
         {
-            Debug.LogWarning("ì´ë¯¸ íƒ€ì¼ì´ ìˆëŠ” ìœ„ì¹˜ì—ëŠ” ìƒˆ ìŠ¤í…Œì´ì§€ë¥¼ ë§Œë“¤ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.");
+            Debug.LogWarning("ÀÌ¹Ì Å¸ÀÏÀÌ ÀÖ´Â À§Ä¡¿¡´Â »õ ½ºÅ×ÀÌÁö¸¦ ¸¸µé ¼ö ¾ø½À´Ï´Ù.");
+            return;
+        }
+
+        UpdateReachedRequiredMapOffsets();
+
+        if (!TryGetNextRouteDirection(out StageWaypointDirection nextDirection))
+        {
+            Debug.LogWarning("´ÙÀ½ ¸Ê ¹æÇâÀ» Á¤ÇÒ ¼ö ¾ø½À´Ï´Ù.");
             return;
         }
 
@@ -121,8 +158,9 @@ public class StageBuilder : MonoBehaviour
             path.Clear();
             lava.Clear();
 
-            if (!connectionManager.TryGetRandomEndPoint(
+            if (!connectionManager.TryGetEndPointByDirection(
                     currentStartDirection,
+                    nextDirection,
                     currentMapOffset,
                     occupiedMapOffsets,
                     out StageWaypoint endWaypoint))
@@ -148,7 +186,7 @@ public class StageBuilder : MonoBehaviour
 
         if (!success)
         {
-            Debug.LogWarning("ê¸¸ ìƒì„±ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤.");
+            Debug.LogWarning("±æ »ı¼º¿¡ ½ÇÆĞÇß½À´Ï´Ù.");
             return;
         }
 
@@ -158,6 +196,7 @@ public class StageBuilder : MonoBehaviour
         AddCurrentPathToTotalWorldPath(currentMapOffset);
 
         occupiedMapOffsets.Add(currentMapOffset);
+        currentMapCount++;
 
         currentMapOffset = connectionManager.GetNextMapOffset(
             currentMapOffset,
@@ -171,6 +210,98 @@ public class StageBuilder : MonoBehaviour
         currentStartPoint = connectionManager.GetOppositeStartPoint(
             selectedEndWaypoint
         );
+    }
+
+    private bool TryGetNextRouteDirection(out StageWaypointDirection direction)
+    {
+        List<StageWaypointDirection> candidates = GetValidRouteDirections();
+
+        if (candidates.Count == 0)
+        {
+            direction = currentStartDirection;
+            return false;
+        }
+
+        if (currentRequiredMapIndex < randomizedRequiredMapOffsets.Count)
+        {
+            KeepDirectionsClosestToRequiredMap(candidates, randomizedRequiredMapOffsets[currentRequiredMapIndex]);
+        }
+
+        direction = candidates[Random.Range(0, candidates.Count)];
+        generatedMapRoute.Add(direction);
+        return true;
+    }
+
+    private List<StageWaypointDirection> GetValidRouteDirections()
+    {
+        List<StageWaypointDirection> candidates = new List<StageWaypointDirection>();
+
+        foreach (StageWaypointDirection direction in allDirections)
+        {
+            if (direction == currentStartDirection)
+            {
+                continue;
+            }
+
+            Vector2Int nextMapOffset = connectionManager.GetNextMapOffset(currentMapOffset, direction);
+
+            if (occupiedMapOffsets.Contains(nextMapOffset))
+            {
+                continue;
+            }
+
+            candidates.Add(direction);
+        }
+
+        return candidates;
+    }
+
+    private void KeepDirectionsClosestToRequiredMap(
+        List<StageWaypointDirection> candidates,
+        Vector2Int requiredMapOffset)
+    {
+        int closestDistance = int.MaxValue;
+
+        foreach (StageWaypointDirection direction in candidates)
+        {
+            Vector2Int nextMapOffset = connectionManager.GetNextMapOffset(currentMapOffset, direction);
+            closestDistance = Mathf.Min(closestDistance, GetMapDistance(nextMapOffset, requiredMapOffset));
+        }
+
+        for (int i = candidates.Count - 1; i >= 0; i--)
+        {
+            Vector2Int nextMapOffset = connectionManager.GetNextMapOffset(currentMapOffset, candidates[i]);
+
+            if (GetMapDistance(nextMapOffset, requiredMapOffset) != closestDistance)
+            {
+                candidates.RemoveAt(i);
+            }
+        }
+    }
+
+    private void UpdateReachedRequiredMapOffsets()
+    {
+        while (currentRequiredMapIndex < randomizedRequiredMapOffsets.Count &&
+               currentMapOffset == randomizedRequiredMapOffsets[currentRequiredMapIndex])
+        {
+            Debug.Log($"ÇÊ¼ö ¸Ê À§Ä¡¿¡ µµÂøÇß½À´Ï´Ù. {currentMapOffset}");
+            currentRequiredMapIndex++;
+        }
+    }
+
+    private void PrepareRequiredMapOffsets()
+    {
+        randomizedRequiredMapOffsets.Clear();
+        randomizedRequiredMapOffsets.AddRange(requiredMapOffsets);
+        MapRandom.Shuffle(randomizedRequiredMapOffsets);
+        currentRequiredMapIndex = 0;
+
+        Debug.Log($"ÇÊ¼ö ¸Ê ¹æ¹® ¼ø¼­: {string.Join(", ", randomizedRequiredMapOffsets)}");
+    }
+
+    private int GetMapDistance(Vector2Int from, Vector2Int to)
+    {
+        return Mathf.Abs(from.x - to.x) + Mathf.Abs(from.y - to.y);
     }
 
     private void AddCurrentPathToTotalWorldPath(Vector2Int mapOffset)
@@ -192,6 +323,11 @@ public class StageBuilder : MonoBehaviour
         return totalWorldPath;
     }
 
+    public List<StageWaypointDirection> GetGeneratedMapRoute()
+    {
+        return generatedMapRoute;
+    }
+
     private void ResetStage()
     {
         foreach (GameObject tile in spawnedTiles)
@@ -205,11 +341,15 @@ public class StageBuilder : MonoBehaviour
         path.Clear();
         lava.Clear();
         totalWorldPath.Clear();
+        generatedMapRoute.Clear();
+        randomizedRequiredMapOffsets.Clear();
 
         currentMapOffset = Vector2Int.zero;
         currentStartPoint = new Vector2Int(6, 3);
         currentStartDirection = StageWaypointDirection.Right;
+        currentMapCount = 0;
 
+        PrepareRequiredMapOffsets();
         GenerateNextStage();
     }
 }
