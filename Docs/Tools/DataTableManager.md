@@ -113,7 +113,7 @@ private void Start()
 4. `Assets/Resources/ScriptableObjects/Resources/`에 CSV 행마다 `.asset` 파일 생성/갱신
 5. Console에 `ResourceTable Import 완료: N개` 로그 출력
 
-관련 코드: [`TableImporter.cs`](../Editor/TableImporter.cs)
+관련 코드: [`TableImporter.cs`](../../Assets/Personal/muchan/Editor/TableImporter.cs)
 
 ## 5. 신규 데이터 타입 추가할 때
 
@@ -133,8 +133,8 @@ CLI 빌드/테스트가 없는 프로젝트이므로 Unity Editor에서 직접 �
 
 1. `Tools > Table Importer` → `Resource` → `Import` → `Assets/Resources/ScriptableObjects/Resources/`에
    `wood.asset`, `iron.asset`, `food.asset`, `mana.asset` 4개 생성 확인
-2. 확인용 임시 스크립트 [`ResourceTableTest.cs`](../Data/ResourceTableTest.cs)를 씬의 빈
-   GameObject에 붙이고 Play → Console에 4개 자원의 `DisplayName`/`Kind`가 출력되는지 확인
+2. 확인용 임시 스크립트 [`ResourceTableTest.cs`](../../Assets/Personal/muchan/Data/ResourceTableTest.cs)를
+   씬의 빈 GameObject에 붙이고 Play → Console에 4개 자원의 `DisplayName`/`Kind`가 출력되는지 확인
 3. 확인 후 `ResourceTableTest.cs`와 테스트용 GameObject는 정리 (또는 데모용으로 유지)
 
 ## 7. 다음 계획
