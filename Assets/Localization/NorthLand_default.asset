@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5be51871efa6c3e4eae1703925c8f5ac, type: 3}
+  m_Name: NorthLand_default
+  m_EditorClassIdentifier: Unity.Localization.Editor::UnityEditor.Localization.StringTableCollection
+  m_SharedTableData: {fileID: 11400000, guid: 1d3165e14f060034fbf1f02d9888408b, type: 2}
+  m_Tables:
+  - {fileID: 11400000, guid: 199b00ae01f7b5642a1af661ec453fb2, type: 2}
+  - {fileID: 11400000, guid: 0518bd077f3f7d148ada418975054af1, type: 2}
+  - {fileID: 11400000, guid: 8d592139dda6a3d4a9dd235cd93263cf, type: 2}
+  m_Extensions: []
+  m_Group: String Table
+  references:
+    version: 2
+    RefIds: []
