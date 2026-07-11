@@ -7,6 +7,7 @@ public class TableImporter : EditorWindow
     private enum TableType
     {
         Resource,
+        Building,
     }
 
     private TableType selectedTable = TableType.Resource;
@@ -37,6 +38,9 @@ public class TableImporter : EditorWindow
         {
             case TableType.Resource:
                 ImportResource();
+                break;
+            case TableType.Building:
+                ImportBuilding();
                 break;
         }
     }
@@ -75,5 +79,43 @@ public class TableImporter : EditorWindow
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         Debug.Log($"ResourceTable Import 완료: {list.Count}개");
+    }
+
+    private void ImportBuilding()
+    {
+        string csvPath = "Assets/Resources/DataTables/BuildingTable.csv";
+        string csvText = File.ReadAllText(csvPath);
+        var list = DataTable.LoadCSV<BuildingData>(csvText);
+
+        string soFolder = "Assets/Resources/ScriptableObjects/Buildings";
+
+        if (!AssetDatabase.IsValidFolder("Assets/Resources/ScriptableObjects"))
+            AssetDatabase.CreateFolder("Assets/Resources", "ScriptableObjects");
+        if (!AssetDatabase.IsValidFolder(soFolder))
+            AssetDatabase.CreateFolder("Assets/Resources/ScriptableObjects", "Buildings");
+
+        foreach (var data in list)
+        {
+            string assetPath = $"{soFolder}/{data.BuildingID}.asset";
+            var existing = AssetDatabase.LoadAssetAtPath<BuildingAsset>(assetPath);
+
+            if (existing != null)
+            {
+                existing.BuildingID = data.BuildingID;
+                existing.BuildingType = data.BuildingType;
+                EditorUtility.SetDirty(existing);
+            }
+            else
+            {
+                var so = CreateInstance<BuildingAsset>();
+                so.BuildingID = data.BuildingID;
+                so.BuildingType = data.BuildingType;
+                AssetDatabase.CreateAsset(so, assetPath);
+            }
+        }
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log($"BuildingTable Import 완료: {list.Count}개");
     }
 }

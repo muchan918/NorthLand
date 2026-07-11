@@ -7,7 +7,7 @@
 > **형식**: WL-번호 | 상태(OPEN/RESOLVED) | 등록 PR | 내용 | 해소 조건
 
 - **WL-001** | OPEN | PR#29 | 스탯 데이터 이원화: Combat의 TowerData/EnemyData SO 직접 입력 vs DataTable CSV 파이프라인(문서 §7이 Tower 테이블 확장 예고) | Tower/Enemy 스탯의 단일 원본(CSV) 합의 및 마이그레이션
-- **WL-002** | OPEN | PR#31 | 매니저 수명주기 3종 난립(static/DontDestroyOnLoad/씬 싱글톤) + MouseManager._camera 씬 참조가 씬 전환 시 끊어짐 | 부트스트랩/매니저 규약 문서화
+- **WL-002** | OPEN | PR#31 | 매니저 수명주기 3종 난립(static/DontDestroyOnLoad/씬 싱글톤) + MouseManager.\_camera 씬 참조가 씬 전환 시 끊어짐 | 부트스트랩/매니저 규약 문서화
 - **WL-003** | OPEN | PR#32 | 몬스터 이동에 필요한 '순서 있는 경로' 미노출: StageBuilder.path private+Clear, RoadWorldPoints는 HashSet. 스폰 지점·최종 목표 좌표도 비공개 | MapBuilder에 순서 보존 경로 + 스폰/목표 공개 API 신설
 - **WL-004** | OPEN | PR#31/32 | 배치 검증 공백: CanPlaceAt 항상 true, Snap 항등, 타일 종류(도로/용암/잔디) 질의 API 없음 → 도로·용암 위 타워 설치 가능 | MapBuilder 타일 질의 API + MouseManager 연동
 - **WL-005** | OPEN | PR#29/31 | 레이어 규약 부재: Enemy/Selectable/Ground 레이어가 각자 SerializeField, TagManager 변경 무검토 이력 | 레이어 규약 문서화 + SystemMap 등재
@@ -20,3 +20,5 @@
 - **WL-012** | OPEN | - | GDD §9 미확정 항목 결합 주의: 병사/스킬 통합 여부, 몬스터 테마, 스테이지/보스 구성, 밸런싱 수치 → 관련 코드는 결합을 느슨하게 | GDD 확정 시 해제
 - **WL-013** | OPEN | PR#20/22 | 표시 문자열 소유권: ResourceData.DisplayName CSV 한글 하드코딩 vs Localization String Table | UI 노출 문자열의 키 이관 방침 결정
 - **WL-014** | OPEN | PR#22/29/31 | Get/Instance 계열 null 무가드 역참조 반복 (DataTableManager.Get, MouseManager.Instance 등) | 호출부 null 가드 관행 정착
+- **WL-015** | OPEN | PR#46 | 건물 밸런싱 수치(비용/주민당 생산량) 소유권 이원화: CSV 파이프라인(contract②) vs BuildingAsset SO 인스펙터. 현재 값 미기입 → #5/#8 소비 불가 | 수치 데이터 원본 합의 + 값 기입
+- **WL-016** | OPEN | PR#46 | BuildingAsset.Data 캐시가 건물 타입당 단일 SO — 인스턴스별 레벨/주민 상태(GDD §4.2 업그레이드) 도입 시 공유 SO 덮어쓰기 위험 | 정적 조회 데이터 vs per-instance 상태 경계 확정
