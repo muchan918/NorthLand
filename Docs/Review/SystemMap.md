@@ -21,6 +21,8 @@
 - `ResourceTable.Get(string id)` — null 반환 가능
 - `BuildingTable.Get(string id)` — null 반환 가능
 - `ResourceAsset.Data` / `BuildingAsset.Data` — **호출부가 Start()에서 직접 채우는 규약** (저장 안 됨)
+- `BuildingInfoUI.Instance.ShowInfo(string)` / `HideInfo()` — 경영 공간 전용 정보 패널. `TowerInfoUI`와
+  동일 구조의 별도 씬 싱글톤 (공간 분리 계약상 Combat의 `TowerInfoUI`와 공유하지 않음)
 - `IDamageable { Faction, IsDead, TakeDamage(DamageInfo) }`, `IAttacker`, `DamageInfo`,
   `Faction { Player, Enemy }` — namespace `NorthLand.Combat`
 - `MouseManager.Instance.BeginPlacement(PlacementRequest)` / `CancelPlacement()` / `event OnSelectionChanged`
@@ -38,6 +40,7 @@
 | MouseManager ↔ BattleMapBuilder | 그리드 스냅, CanPlaceAt·타일 종류 질의 API(WL-004), 좌표계(WL-007) |
 | MouseManager ↔ Combat | 타워 배치(PlacementRequest→Tower 프리팹), 선택(ISelectable), TowerInfoUI 데이터 연동(WL-011) |
 | DataTable ↔ Localization | 표시 문자열 소유권(CSV 한글 하드코딩 vs String Table 키 — WL-013) |
+| DataTable(Building) ↔ MouseManager | `BuildingInfo`가 `ISelectable` 구현 + `BuildingAsset` 보유 — 선택 시 `BuildingInfoUI` 직접 호출(이벤트 미구독, WL-011과 동일 패턴). `MouseManager`가 씬에 없으면 조용히 무반응(WL-002) — 씬마다 배치·`_camera` 재할당 필요 |
 | 모든 시스템 ↔ 전역 설정 | 레이어/태그(`ProjectSettings/TagManager.asset` — WL-005), URP 설정(`Assets/Settings`), 패키지(`Packages/manifest.json`) |
 
 ## 4. 팀 계약 (위반 = 🔴 후보)

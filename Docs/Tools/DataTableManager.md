@@ -21,7 +21,9 @@ XxxAsset : ScriptableObject    ─ CSV의 각 행을 실제 프로젝트 에셋�
 
 - CSV 원본 위치: `Assets/Resources/DataTables/*.csv`
 - SO 에셋 위치: `Assets/Resources/ScriptableObjects/<종류>/`
-- 코드 위치: `Assets/Personal/muchan/Data/` (런타임 코드), `Assets/Personal/muchan/Editor/` (에디터 전용 임포터)
+- 코드 위치: `Assets/Personal/muchan/Data/` (공통: `DataTable.cs`, `DataTableManager.cs`),
+  `Assets/Personal/muchan/Data/<종류>/` (타입별 `XxxData`/`XxxAsset`/`XxxTable`, 예: `Resource/`, `Building/`),
+  `Assets/Personal/muchan/Editor/` (에디터 전용 임포터)
 - CSV 파싱: `CsvHelper` (NuGetForUnity로 설치, `Assets/Packages/CsvHelper.33.1.0`) — 헤더 컬럼명과
   데이터 클래스 프로퍼티명을 대소문자 무시하고 자동 매칭
 - 존재하지 않는 Id 조회 시 `null` 반환 + 에러 로그 → 호출부는 항상 null 체크
