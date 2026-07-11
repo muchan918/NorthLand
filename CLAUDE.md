@@ -10,7 +10,7 @@ Core loop: day phase (경영 — gather resources, place villagers, build produc
 
 ## Project state
 
-This is an early-stage project scaffolded from Unity's URP Empty Template — there is no gameplay code yet (`Assets/Scripts` is empty). When adding code, check `Docs/GDD.md` first for the intended system design rather than inventing mechanics.
+Early-stage, pre-integration: each member is building their system in their own `Assets/Personal/<name>/` folder (shared `Assets/Scripts` is still empty). Current systems: DataTable CSV pipeline (`muchan`), Combat tower/enemy damage core (`SUNGSOO`), procedural battle-map builder (`SUNJIN`), mouse input/selection/placement manager + localization (`n0wst4ndup`). `Docs/Review/SystemMap.md` is the up-to-date map of systems, owners, public APIs, and integration contracts. When adding code, check `Docs/GDD.md` first for the intended system design rather than inventing mechanics.
 
 ## Tooling
 
@@ -22,6 +22,7 @@ This is an early-stage project scaffolded from Unity's URP Empty Template — th
 
 ## Repository conventions
 
-- `Assets/Personal/<name>/` — per-team-member scratch folders (currently `muchan`, `SUNJIN`, `SUNGSOO`). Work-in-progress or experimental assets belonging to one person go here rather than in shared folders.
+- `Assets/Personal/<name>/` — per-team-member scratch folders (currently `muchan`, `SUNJIN`, `SUNGSOO`, `n0wst4ndup`). Work-in-progress or experimental assets belonging to one person go here rather than in shared folders.
+- PR review (automated or manual): follow `Docs/Review/SystemMap.md` (system map, integration contracts, contact matrix) and `Docs/Review/WatchList.md` (recurring-issue ledger, WL-numbers) as the review baseline. Doc-code agreement is NOT a review criterion — the team updates docs to match code, so judge whether the doc+code set itself is the right direction.
 - `Assets/Imported/` — contains its own nested git repo; treat as a vendored/imported asset source, not something to edit as part of normal feature work.
 - `Assets/TutorialInfo/` and `Assets/Readme.asset` are leftovers from the URP template's default Readme window — not part of the game.
