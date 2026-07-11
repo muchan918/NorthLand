@@ -423,7 +423,7 @@ public static class SpawnTool
 
 - 등록된 커스텀 툴: (`unity-cli list`로 확인 — 여기에 주요 툴과 용도를 기록)
 - 건드리면 안 되는 에셋/폴더:
-- 씬 저장 정책 (자동 저장 허용 여부):
+- 씬 저장 정책 (자동 저장 허용 여부): No
 - 테스트 필수 영역:
-- 렌더 파이프라인: (URP / HDRP / Built-in)
-- Unity 버전:
+- 렌더 파이프라인: URP
+- Unity 버전: 6000.3.15f1
