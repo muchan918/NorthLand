@@ -1,0 +1,30 @@
+name: Claude Assistant
+# @claude 멘션 온디맨드 대응: 리뷰 후속 질의, 지적 반영 재확인, 설계 질문.
+# prompt를 주지 않으므로 태그 모드로 동작한다 (PR/이슈 컨텍스트 자동 포함, 트래킹 코멘트 갱신).
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+jobs:
+  claude:
+    if: contains(github.event.comment.body, '@claude')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.N0WST4NDUP_ANTHROPIC_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          claude_args: |
+            --max-turns 25
+            --allowedTools "Read,Glob,Grep,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh issue view:*),Bash(git log:*),Bash(git show:*),Bash(git diff:*)"
+            --append-system-prompt "항상 한국어로 답한다. 너는 NorthLand 프로젝트(4인 팀 Unity 타워 디펜스+마을 경영)의 기술 리드다. PR 리뷰·재리뷰·설계 질문에 답할 때는 먼저 Docs/Review/SystemMap.md 와 Docs/Review/WatchList.md 를 읽고 그 기준(시스템 지도, 접점 매트릭스, 팀 계약, WL-번호 추적 이슈)을 따른다. 재리뷰 요청이면 이전 자동 리뷰의 지적이 실제 코드에 반영됐는지 파일:라인으로 하나씩 확인하고 각 항목을 반영/부분 반영/미반영으로 판정한다. diff를 볼 때 Unity 직렬화 파일(meta, unity, prefab, asset, anim, controller, mat)은 무시하되 ProjectSettings/ 와 Packages/manifest.json 변경은 예외로 검토한다."
