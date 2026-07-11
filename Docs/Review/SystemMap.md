@@ -9,7 +9,7 @@
 
 | 시스템 | 소유자 | 경로 | 상태 |
 |---|---|---|---|
-| DataTable (CSV→static 레지스트리→SO) | muchan | `Assets/Personal/muchan` | Resource 1종 구현. Building/Tower/Skill/Reward 확장 예정 |
+| DataTable (CSV→static 레지스트리→SO) | muchan | `Assets/Personal/muchan` | Resource, Building 2종 구현. Territory/Tower/Skill/Reward 확장 예정 |
 | Combat (타워/몬스터 공격·데미지) | SUNGSOO | `Assets/Personal/SUNGSOO/Scirpts/Combat` (폴더명 오타 주의 — WL-010) | 공격/데미지 코어만. 이동·사망처리·투사체 없음 |
 | BattleMapBuilder (절차적 전투 맵) | SUNJIN | `Assets/Personal/SUNJIN/Scripts/MapBuilder` | 7×7 블록 경로 생성 구현. 싸이클 버그 해결이 다음 빌드 목표 |
 | MouseManager (입력/선택/배치) | n0wst4ndup | `Assets/Personal/n0wst4ndup/MouseManager` | 2상태 머신 구현. Snap 항등·CanPlaceAt 항상 true (TODO) |
@@ -19,7 +19,8 @@
 
 - `DataTableManager.Get<T>(string id)` — static. **null 반환 가능 → 호출부 null 체크 필수**
 - `ResourceTable.Get(string id)` — null 반환 가능
-- `ResourceAsset.Data` — **호출부가 Start()에서 직접 채우는 규약** (저장 안 됨)
+- `BuildingTable.Get(string id)` — null 반환 가능
+- `ResourceAsset.Data` / `BuildingAsset.Data` — **호출부가 Start()에서 직접 채우는 규약** (저장 안 됨)
 - `IDamageable { Faction, IsDead, TakeDamage(DamageInfo) }`, `IAttacker`, `DamageInfo`,
   `Faction { Player, Enemy }` — namespace `NorthLand.Combat`
 - `MouseManager.Instance.BeginPlacement(PlacementRequest)` / `CancelPlacement()` / `event OnSelectionChanged`

@@ -57,13 +57,14 @@ CSV에 `WoodCost`/`IronCost`/... 식으로 자원별 컬럼을 미리 다 정의
 
 ### ResourceTable (GDD 4.2 — 나무/철/식량/마나석)
 
-| 컬럼 | 타입 | 설명 |
-|---|---|---|
-| `ResourceID` | string (PK) | 자원 고유 키 (`wood`, `iron`, `food`, `mana`) |
-| `DisplayName` | string | 표시용 한글 이름 |
-| `Kind` | enum(`Wood`/`Iron`/`Food`/`Mana`) | 자원 종류 |
+| 컬럼          | 타입                              | 설명                                          |
+| ------------- | --------------------------------- | --------------------------------------------- |
+| `ResourceID`  | string (PK)                       | 자원 고유 키 (`wood`, `iron`, `food`, `mana`) |
+| `DisplayName` | string                            | 표시용 한글 이름                              |
+| `Kind`        | enum(`Wood`/`Iron`/`Food`/`Mana`) | 자원 종류                                     |
 
 CSV: `Assets/Resources/DataTables/ResourceTable.csv`
+
 ```
 ResourceID,DisplayName,Kind
 wood,나무,Wood
@@ -72,6 +73,49 @@ food,식량,Food
 mana,마나석,Mana
 ```
 
+### BuildingTable (GDD 6.2 — 본진 건물)
+
+| 컬럼           | 타입                                 | 설명                                                     |
+| -------------- | ------------------------------------ | -------------------------------------------------------- |
+| `BuildingID`   | string (PK)                          | 건물 고유 키 (`woodcutter_house`, `mine`, ...)           |
+| `DisplayName`  | string                               | 표시용 한글 이름                                         |
+| `BuildingType` | enum(`Production`/`General`/`Skill`) | 분류. 주민 배치로 뭔가 생산하는 건물은 전부 `Production` |
+| `Role`         | string                               | 역할 한 줄 요약                                          |
+| `Description`  | string                               | 기본 효과 설명 (UI 툴팁용)                               |
+
+CSV에는 위 공통 필드만 있고, 건물별 세부 수치(생산량, 입·출력 자원)는 CSV가 아니라
+`BuildingAsset`(SO)에 `BuildingType`별 필드 그룹으로 들어간다:
+
+- `Production` → `ProductionFields { BaseAmountPerVillager, OutputResource, ProducesSoldier }`.
+  나무꾼의 집/광산/농지는 `OutputResource`에 자원을 연결하고, 훈련장은 `ProducesSoldier = true`로
+  둔다. **병사는 ResourceTable에 넣지 않는다** — GDD상 자원은 나무/철/식량/마나석 4종으로
+  고정돼 있고(§3 팀 계약), 병사는 전투 스탯·교회 부활 등 화폐성 자원과 다른 생명주기를 가져
+  나중에 별도 `SoldierData`/`SoldierTable`이 생길 가능성이 높기 때문.
+- `Skill` → `SkillFields { InputResource }` (연금술사의 집/마법 연구소/군사학교)
+- `General`(교회/본진)은 추가 필드 없음
+- 건설 비용은 모든 타입 공통으로 `BuildingAsset.Cost : List<ResourceCost>` (2절 참고)
+- `BuildingType`에 따라 인스펙터에 관련 필드 그룹만 보이도록 `BuildingAssetEditor`
+  (`Assets/Personal/muchan/Editor/BuildingAssetEditor.cs`)가 커스텀 인스펙터를 그린다 —
+  프로젝트 최초의 `CustomEditor`/`SerializedProperty` 코드.
+
+CSV: `Assets/Resources/DataTables/BuildingTable.csv`
+
+```
+BuildingID,DisplayName,BuildingType,Role,Description
+woodcutter_house,나무꾼의 집,Production,나무 생산,배치된 주민 수만큼 나무 생산
+mine,광산,Production,철 생산,배치된 주민 수만큼 철 생산
+farm,농지,Production,식량 생산,배치된 주민 수만큼 식량 생산
+training_camp,훈련장,Production,병사 생산,배치된 주민 수만큼 병사 생성(해당 저녁 전투용)
+church,교회,General,병사 회복,"전투 중 HP 0 병사를 교회로 이동, 하루 동안 회복"
+headquarters,본진,General,마을 성장 핵심,건물 최대 레벨 제한. 업그레이드 시 모든 건물 최대 레벨 증가
+alchemist_house,연금술사의 집,Skill,비상 자원 공급,마나석을 나무/철/식량 중 선택해 교환
+magic_lab,마법 연구소,Skill,플레이어 성장,마나석으로 스킬 획득·강화
+military_school,군사학교,Skill,병사 강화,식량으로 병사 훈련 및 공격력·체력 증가
+```
+
+(참고: `church` 행처럼 필드 값에 쉼표가 들어가면 RFC4180 방식으로 큰따옴표로 감싸야 한다.
+CsvHelper가 자동으로 처리하지만 수기로 행을 추가할 때 빠뜨리기 쉽다.)
+
 ## 4. 사용 방법
 
 ### 4.1 CSV 수정 후 Import가 필요한 경우 / 필요 없는 경우
@@ -79,11 +123,11 @@ mana,마나석,Mana
 `DataTableManager`는 static 클래스라 도메인 리로드(에디터 스크립트 컴파일, Play 진입)마다
 CSV를 다시 읽는다. 그래서 반영 방식이 상황에 따라 다르다.
 
-| 상황 | Import 필요 여부 |
-|---|---|
-| 기존 행의 값만 수정 (`DisplayName`, `Kind` 등) | **불필요** — Play만 해도 바로 반영됨 |
-| 새 행 추가 (새 `ResourceID`) | **필요** — 인스펙터에서 참조할 `.asset`이 새로 생성되어야 함 |
-| 행 삭제 | Import를 눌러도 기존 `.asset`은 자동 삭제되지 않음 — 고아 에셋이 남으므로 수동으로 지워야 함. 지우지 않고 방치하면 그 SO를 참조하던 곳에서 `Get()` 호출 시 "ID 없음" 에러 발생 |
+| 상황                                           | Import 필요 여부                                                                                                                                                               |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 기존 행의 값만 수정 (`DisplayName`, `Kind` 등) | **불필요** — Play만 해도 바로 반영됨                                                                                                                                           |
+| 새 행 추가 (새 `ResourceID`)                   | **필요** — 인스펙터에서 참조할 `.asset`이 새로 생성되어야 함                                                                                                                   |
+| 행 삭제                                        | Import를 눌러도 기존 `.asset`은 자동 삭제되지 않음 — 고아 에셋이 남으므로 수동으로 지워야 함. 지우지 않고 방치하면 그 SO를 참조하던 곳에서 `Get()` 호출 시 "ID 없음" 에러 발생 |
 
 ### 4.2 코드에서 조회하기
 
@@ -136,9 +180,14 @@ CLI 빌드/테스트가 없는 프로젝트이므로 Unity Editor에서 직접 �
 2. 확인용 임시 스크립트 [`ResourceTableTest.cs`](../../Assets/Personal/muchan/Data/ResourceTableTest.cs)를
    씬의 빈 GameObject에 붙이고 Play → Console에 4개 자원의 `DisplayName`/`Kind`가 출력되는지 확인
 3. 확인 후 `ResourceTableTest.cs`와 테스트용 GameObject는 정리 (또는 데모용으로 유지)
+4. `Tools > Table Importer` → `Building` → `Import` → `Assets/Resources/ScriptableObjects/Buildings/`에
+   9개 건물 `.asset` 생성 확인. `BuildingType`별로 하나씩 인스펙터를 열어
+   `BuildingAssetEditor`가 해당 타입 필드 그룹만 보여주는지 확인
+5. [`BuildingTableTest.cs`](../../Assets/Personal/muchan/Data/BuildingTableTest.cs)로 Play 모드에서
+   9개 건물의 `DisplayName`/`BuildingType`/`Role`이 출력되는지 확인
 
 ## 7. 다음 계획
 
-- `BuildingData`/`BuildingAsset`/`BuildingTable` 추가, `BuildingAsset`에 2절에서 설명한
-  `List<ResourceCost>` 형태로 건설 비용을 연결 (GDD 4.2, 6.2)
-- 이후 영토(Territory), 타워(Tower), 스킬(Skill), 보상(Reward) 등도 같은 패턴으로 확장
+- 영토(Territory), 타워(Tower), 스킬(Skill), 보상(Reward) 등도 같은 패턴으로 확장
+- 병사(Soldier) 데이터 타입이 생기면 `BuildingAsset.ProductionFields.ProducesSoldier`(bool)를
+  `SoldierAsset` 참조로 교체 검토
