@@ -180,3 +180,5 @@ Assets/Firebase.meta
 # Unity auto-recovery scene snapshots
 /[Aa]ssets/_Recovery/
 /[Aa]ssets/_Recovery.meta
+# unity-cli 관련
+Screenshots/
