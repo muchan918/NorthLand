@@ -8,6 +8,7 @@ NorthLand: Last Stand (팀 유유아) 프로젝트 문서 모음.
 |---|---|
 | [GDD.md](GDD.md) | 게임 디자인 문서. **설계·게임플레이 결정 전에 먼저 읽기.** |
 | [Core/MouseManager.md](Core/MouseManager.md) | 마우스 입력/선택/배치 중앙 매니저 설계·구현 현황 (#9) |
+| [Core/DayNightManager.md](Core/DayNightManager.md) | 낮/밤 페이즈 전환 매니저·이벤트 훅 설계·구현 현황 (#6) |
 | [Tools/StringTable.md](Tools/StringTable.md) | 로컬라이제이션 String Table 사용법·현재 상태 (`ko-KR`/`en-US`/`ja-JP`) |
 | [Review/SystemMap.md](Review/SystemMap.md) | 시스템 지도·공개 API·접점 매트릭스·팀 계약 — **PR 리뷰(자동/수동) 판단 기준** |
 | [Review/WatchList.md](Review/WatchList.md) | 리뷰 간 누적 아키텍처 이슈 원장 (WL-번호) |
