@@ -25,6 +25,8 @@ public class DayNightLightingController : MonoBehaviour
 
     [SerializeField] private Light directionalLight;
 
+    private Material _runtimeSkybox;
+
     [SerializeField]
     private LightingPreset dayPreset = new LightingPreset
     {
@@ -51,10 +53,19 @@ public class DayNightLightingController : MonoBehaviour
 
     private void Awake()
     {
-        RenderSettings.skybox = new Material(RenderSettings.skybox);
         RenderSettings.ambientMode = AmbientMode.Trilight;
 
         Apply(dayPreset);
+    }
+
+    private void EnsureRuntimeSkybox()
+    {
+        if (_runtimeSkybox == null)
+        {
+            _runtimeSkybox = new Material(RenderSettings.skybox);
+        }
+
+        RenderSettings.skybox = _runtimeSkybox;
     }
 
     [ContextMenu("Preview Day Preset")]
@@ -77,9 +88,16 @@ public class DayNightLightingController : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (DayNightManager.Instance == null) return;
-        DayNightManager.Instance.OnDayToNight -= HandleDayToNight;
-        DayNightManager.Instance.OnNightToDay -= HandleNightToDay;
+        if (DayNightManager.Instance != null)
+        {
+            DayNightManager.Instance.OnDayToNight -= HandleDayToNight;
+            DayNightManager.Instance.OnNightToDay -= HandleNightToDay;
+        }
+
+        if (_runtimeSkybox == null) return;
+
+        if (Application.isPlaying) Destroy(_runtimeSkybox);
+        else DestroyImmediate(_runtimeSkybox);
     }
 
     private void HandleDayToNight() => Apply(nightPreset);
@@ -87,6 +105,14 @@ public class DayNightLightingController : MonoBehaviour
 
     private void Apply(LightingPreset preset)
     {
+        if (directionalLight == null)
+        {
+            Debug.LogError("Directional Light 미할당");
+            return;
+        }
+
+        EnsureRuntimeSkybox();
+
         directionalLight.intensity = preset.lightIntensity;
         directionalLight.color = preset.lightColor;
 
