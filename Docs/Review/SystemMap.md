@@ -14,6 +14,7 @@
 | BattleMapBuilder (절차적 전투 맵) | SUNJIN | `Assets/Personal/SUNJIN/Scripts/MapBuilder` | 7×7 블록 경로 생성 구현. 싸이클 버그 해결이 다음 빌드 목표 |
 | MouseManager (입력/선택/배치) | n0wst4ndup | `Assets/Personal/n0wst4ndup/MouseManager` | 2상태 머신 구현. Snap 항등·CanPlaceAt 항상 true (TODO) |
 | Localization | n0wst4ndup | `Assets/Personal/n0wst4ndup/Localization` | 로케일 전환 테스트만 (ko-KR/en-US/ja-JP) |
+| DayNightManager (낮/밤 상태·전환 이벤트 훅) | muchan | `Assets/Personal/muchan/DayNight` | 상태 관리 + 전환 이벤트 훅만 구현. 자원 정산/본진 회복/주민 배치 초기화는 미구현(각 소유 시스템 대기). 밤→낮 트리거는 임시 3초 코루틴(웨이브 클리어 로직으로 교체 예정) |
 
 ## 2. 공개 API (다른 시스템이 소비해도 되는 것)
 
@@ -28,6 +29,9 @@
 - `MouseManager.Instance.BeginPlacement(PlacementRequest)` / `CancelPlacement()` / `event OnSelectionChanged`
 - `ISelectable { OnSelected(), OnDeselected() }`,
   `PlacementRequest { GhostPrefab, CanPlaceAt, OnConfirmed, KeepPlacingAfterConfirm }`
+- `DayNightManager.Instance` — **null 반환 가능(씬에 없으면) → 호출부 null 체크 필수**.
+  `CurrentPhase` / `WaveCount` / `EndDay()` / `event OnDayStart, OnDayToNight, OnNightToDay`.
+  `OnDayStart`는 1일차 부트스트랩 포함 매 낮 시작마다 발생, `OnNightToDay`는 밤을 거친 전환에서만 발생(웨이브 종료 의미) — 구독 시 구분해서 사용할 것
 - `StageRoadTracker.RoadWorldPoints` — ⚠️ HashSet(순서 없음). **이동 경로로 사용 불가**
 - MapBuilder의 **순서 있는 경로·스폰 지점·최종 목표 좌표는 아직 공개 API가 없음** (WL-003)
 
@@ -72,7 +76,8 @@
   변환 유틸 없음.
 - **네임스페이스**: `NorthLand.Combat`만 존재, 나머지 전역. asmdef 없음(전부 Assembly-CSharp).
 - **매니저 수명주기**: static(DataTableManager) / DontDestroyOnLoad(MouseManager) / 씬 싱글톤
-  (TowerInfoUI) 3종 공존. 부트스트랩 미결정.
+  (TowerInfoUI) 3종 공존. 부트스트랩 미결정. DayNightManager는 씬 싱글톤(DontDestroyOnLoad 없음)
+  채택 — 경영/전투 공간이 한 씬에 공존해 씬 전환에 걸쳐 상태를 유지할 이유가 없다는 판단(WL-002 참고 사례).
 - **에셋 로딩**: Resources.Load(DataTable)와 Addressables(Localization) 공존.
 - **스탯 데이터 원본**: Combat의 TowerData/EnemyData(SO 직접 입력) vs DataTable CSV 파이프라인 —
   단일화 미결정 (WL-001).
