@@ -24,3 +24,4 @@
 - **WL-016** | OPEN | PR#46 | BuildingAsset.Data 캐시가 건물 타입당 단일 SO — 인스턴스별 레벨/주민 상태(GDD §4.2 업그레이드) 도입 시 공유 SO 덮어쓰기 위험 | 정적 조회 데이터 vs per-instance 상태 경계 확정
 - **WL-017** | OPEN | PR#48 | ResourceWallet 단일 인스턴스 소유권 미정: ManagementTest.Start()에서 new로 생성(하네스 로컬). 소비처·UI(OnChanged 구독)가 공유할 소유자 부재 — WL-002 수명주기와 연동 | 경영 씬 지갑 소유/노출 방식 확정
 - **WL-018** | OPEN | PR#49 | DayNightManager `EndNight()` 공개 API는 신설됐으나 현재는 테스트 버튼이 수동 호출 중 — Combat이 웨이브/사망 처리·이동을 아직 구현하지 않아 웨이브 클리어 시점에 자동 호출되도록 연결되지 않음 | Combat 웨이브 시스템 완성 후 웨이브 클리어 시 `EndNight()` 자동 호출로 연결
+- **WL-019** | OPEN | 이슈#7 | `DayNightLightingController`가 `RenderSettings.ambientMode`(Skybox→Trilight 전환)·`RenderSettings.skybox`(프라이빗 인스턴스 교체)를 씬 전역으로 변경 — 경영/전투 공간이 한 씬에 공존(SystemMap §5)해 전투 공간 조명·스카이박스도 함께 바뀜. 팀 계약 #4(공간 분리) 관련 Combat/BattleMapBuilder 조명 전제와 충돌 가능 | Combat/BattleMapBuilder 팀과 조명 영향 범위 합의, 필요 시 공간별 분리 방안 검토

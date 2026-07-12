@@ -15,6 +15,7 @@
 | MouseManager (입력/선택/배치)               | n0wst4ndup | `Assets/Personal/n0wst4ndup/MouseManager`                            | 2상태 머신 구현. Snap 항등·CanPlaceAt 항상 true (TODO)                                                                                                                  |
 | Localization                                | n0wst4ndup | `Assets/Personal/n0wst4ndup/Localization`                            | 로케일 전환 테스트만 (ko-KR/en-US/ja-JP)                                                                                                                                |
 | DayNightManager (낮/밤 상태·전환 이벤트 훅) | muchan     | `Assets/Personal/muchan/DayNight`                                    | 상태 관리 + 전환 이벤트 훅만 구현. 자원 정산/본진 회복/주민 배치 초기화는 미구현(각 소유 시스템 대기). 밤→낮 트리거는 임시 3초 코루틴(웨이브 클리어 로직으로 교체 예정) |
+| DayNightLighting (낮/밤 전환 조명·스카이박스 연출, #7) | muchan     | `Assets/Personal/muchan/DayNight`                                    | `OnDayToNight`/`OnNightToDay` 구독해 Directional Light·Ambient(Trilight)·Skybox를 즉시 전환(스냅). 부드러운 Lerp 전환은 미구현 — 밤 종료 자동화의 UniTask 전환 작업과 함께 후속 예정 |
 | Management(Resource) (자원 지갑·생산처)     | n0wst4ndup | `Assets/Personal/n0wst4ndup/Management`                              | 지갑·생산처 구현(#42). 주민 수·정산 트리거는 경계 심(주민/낮밤 시스템 부재). 소비처·UI 후속                                                                             |
 
 ## 2. 공개 API (다른 시스템이 소비해도 되는 것)

@@ -25,7 +25,7 @@
 | 현재 페이즈(`CurrentPhase`) 관리 | 본진 체력 회복 로직 → **본진/체력 시스템** |
 | 웨이브 카운트(`WaveCount`) 관리 | 주민 배치 기반 자원 정산 → **자원/경영 시스템** |
 | 전환 시점에 이벤트 발행 | 주민 배치 초기화 → **주민 시스템** |
-| | 낮/밤 전환 연출(비주얼) → **UI/연출 시스템** |
+| | 낮/밤 전환 연출(비주얼) → **UI/연출 시스템** (`DayNightLightingController.cs`, #7·§6) |
 
 ## 3. 상태 구조
 
@@ -101,6 +101,7 @@ private void OnDestroy()
 |---|---|
 | `DayNightManager.cs` | 중앙 매니저(씬 싱글톤 `Instance`, `DontDestroyOnLoad` 없음). 페이즈 관리·이벤트 발행. `EndDay()`/`EndNight()` 둘 다 public |
 | `DayNightManagerTest.cs` | (테스트) 세 이벤트를 구독해 Console에 로그 출력. null 가드 + `OnDestroy` 구독 해제 포함 |
+| `DayNightLightingController.cs` | (#7) `OnDayToNight`/`OnNightToDay` 구독, Directional Light·Ambient(Trilight)·Skybox를 프리셋 값으로 즉시 전환(스냅). Fog 제외 |
 
 - **생명주기**: 씬 싱글톤. 경영/전투 공간이 한 씬에 공존해 씬 전환에 걸쳐 상태를 유지할 이유가 없다는 판단(WL-002 참고 사례로 SystemMap §5에 기록).
 - **씬**: `Assets/Personal/muchan/Scene/ManageSpace.unity` (테스트용 버튼 배치: EndDay/EndNight 각각)
@@ -109,7 +110,8 @@ private void OnDestroy()
 
 - [ ] **밤 종료 자동화**: 지금은 `EndNight()`를 버튼으로 수동 호출. 실제로는 Combat 웨이브 클리어가 이 메서드를 호출해야 함. 자동 타이머로 되돌릴 일이 생기면 `DayNightManager.cs`에 주석 처리된 `NightTimerRoutine` 코루틴(UniTask로 교체 예정)을 참고
 - [ ] **본진 체력 회복 / 자원 정산 / 주민 배치 초기화**: 이벤트 훅만 존재, 실제 로직은 각 소유 시스템(미구현)이 구독해서 채워야 함
-- [ ] **낮/밤 전환 연출**: Build0 계획의 "버튼 클릭 시 낮 밤 전환 연출"은 미구현 — UI/연출 시스템 담당
+- [x] **낮/밤 전환 연출**: `DayNightLightingController.cs`로 구현 완료(#7, §6 참고). Directional Light·Ambient·Skybox를 즉시 전환
+- [ ] **부드러운 전환(Lerp)**: 지금은 프리셋 값을 즉시 스냅 적용. 밤 종료 자동화(§7 상단 항목)를 코루틴에서 UniTask로 교체할 때 같이 Lerp 전환을 붙일 예정 — 별도 코루틴 기반으로 먼저 만들지 않기로 결정(작업 이중화 방지)
 - [ ] **낮/밤 트리거 UI**: 지금은 테스트용 버튼 두 개(EndDay/EndNight). 실제 UI 버튼/디자인 확정 필요
 
 ## 8. 참고
