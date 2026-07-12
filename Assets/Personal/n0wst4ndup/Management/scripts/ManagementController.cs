@@ -15,13 +15,13 @@ using UnityEngine;
 public class ManagementController : MonoBehaviour
 {
     [Tooltip("생산 라인으로 만들 산출 자원들. ResourceID가 ResourceTable CSV(wood/iron/food/mana)와 일치해야 한다.")]
-    [SerializeField] private ResourceAsset[] _resourceAssets;
+    [SerializeField] ResourceAsset[] _resourceAssets;
 
     [Tooltip("주민 1명당 생산량 (모든 라인 공통, 임시값)")]
-    [SerializeField] private int _baseAmountPerVillager = 5;
+    [SerializeField] int _baseAmountPerVillager = 5;
 
     [Tooltip("총 보유(최대) 주민 수. 주민 시스템 부재로 임시 placeholder. 전 라인 배치 합계 상한.")]
-    [SerializeField] private int _maxVillagers = 5;
+    [SerializeField] int _maxVillagers = 5;
 
     /// <summary>상태(자원·주민 배치·페이즈)가 바뀔 때 발생. 뷰는 이걸 구독해 다시 렌더한다.</summary>
     public event Action OnChanged;

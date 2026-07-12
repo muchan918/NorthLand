@@ -13,24 +13,24 @@ using UnityEngine.UI;
 public class ManagementPanelView : MonoBehaviour
 {
     [Header("컨트롤러")]
-    [SerializeField] private ManagementController _controller;
+    [SerializeField] ManagementController _controller;
 
     [Header("자원 HUD")]
-    [SerializeField] private TMP_Text _woodText;
-    [SerializeField] private TMP_Text _ironText;
-    [SerializeField] private TMP_Text _foodText;
-    [SerializeField] private TMP_Text _manaText;
+    [SerializeField] TMP_Text _woodText;
+    [SerializeField] TMP_Text _ironText;
+    [SerializeField] TMP_Text _foodText;
+    [SerializeField] TMP_Text _manaText;
 
     [Header("주민 풀 / 페이즈")]
-    [SerializeField] private TMP_Text _villagerPoolText;
-    [SerializeField] private TMP_Text _phaseText;
-    [SerializeField] private Button _endDayButton;
+    [SerializeField] TMP_Text _villagerPoolText;
+    [SerializeField] TMP_Text _phaseText;
+    [SerializeField] Button _endDayButton;
 
     [Header("생산 라인")]
-    [SerializeField] private Transform _lineContainer;
-    [SerializeField] private ProductionLineView _linePrefab;
+    [SerializeField] Transform _lineContainer;
+    [SerializeField] ProductionLineView _linePrefab;
 
-    private readonly List<ProductionLineView> _lineViews = new List<ProductionLineView>();
+    private readonly List<ProductionLineView> _lineViews = new();
 
     private void Start()
     {
@@ -74,7 +74,7 @@ public class ManagementPanelView : MonoBehaviour
 
         for (int i = 0; i < _controller.LineCount; i++)
         {
-            ProductionLineView view = Instantiate(_linePrefab, _lineContainer);
+            var view = Instantiate(_linePrefab, _lineContainer);
             view.Bind(_controller, i);
             _lineViews.Add(view);
         }

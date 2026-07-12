@@ -10,11 +10,11 @@ using UnityEngine.UI;
 /// </summary>
 public class ProductionLineView : MonoBehaviour
 {
-    [SerializeField] private TMP_Text _nameText;
-    [SerializeField] private TMP_Text _villagerText;
-    [SerializeField] private TMP_Text _expectedText;
-    [SerializeField] private Button _plusButton;
-    [SerializeField] private Button _minusButton;
+    [SerializeField] TMP_Text _nameText;
+    [SerializeField] TMP_Text _villagerText;
+    [SerializeField] TMP_Text _expectedText;
+    [SerializeField] Button _plusButton;
+    [SerializeField] Button _minusButton;
 
     private ManagementController _controller;
     private int _lineIndex;
