@@ -46,7 +46,7 @@ public class ManagementTest : MonoBehaviour
 
     private void Start()
     {
-        _wallet = new();
+        _wallet = new(); // TODO: 나중에 게임플레이 코드에서 싱글톤 혹은 외부 주입으로 처리
         _wallet.OnChanged += (kind, value) => Debug.Log($"[지갑] {kind} = {value}");
 
         int count = _resourceAssets != null ? _resourceAssets.Length : 0;
