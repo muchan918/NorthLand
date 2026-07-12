@@ -16,6 +16,10 @@ public static class DataTableManager
         var resourceTable = new ResourceTable();
         resourceTable.Load("ResourceTable");
         tables.Add("ResourceTable", resourceTable);
+
+        var buildingTable = new BuildingTable();
+        buildingTable.Load("BuildingTable");
+        tables.Add("BuildingTable", buildingTable);
     }
 
     public static T Get<T>(string id)

@@ -1,0 +1,10 @@
+BuildingID,DisplayName,BuildingType,Role,Description
+woodcutter_house,나무꾼의 집,Production,나무 생산,배치된 주민 수만큼 나무 생산
+mine,광산,Production,철 생산,배치된 주민 수만큼 철 생산
+farm,농지,Production,식량 생산,배치된 주민 수만큼 식량 생산
+training_camp,훈련장,Production,병사 생산,배치된 주민 수만큼 병사 생성(해당 저녁 전투용)
+church,교회,General,병사 회복,"전투 중 HP 0 병사를 교회로 이동, 하루 동안 회복"
+headquarters,본진,General,마을 성장 핵심,건물 최대 레벨 제한. 업그레이드 시 모든 건물 최대 레벨 증가
+alchemist_house,연금술사의 집,Skill,비상 자원 공급,마나석을 나무/철/식량 중 선택해 교환
+magic_lab,마법 연구소,Skill,플레이어 성장,마나석으로 스킬 획득·강화
+military_school,군사학교,Skill,병사 강화,식량으로 병사 훈련 및 공격력·체력 증가
