@@ -15,6 +15,9 @@ namespace NorthLand.Combat
 
         float cooldownTimer;
 
+        // 타겟 탐색용 재사용 버퍼. 매 프레임 힙 할당을 피하기 위해 사용(최대 16개 감지).
+        readonly Collider[] hitBuffer = new Collider[16];
+
         public Faction Faction => Faction.Player;
         public float AttackDamage => data.attackDamage;
         public float AttackRange => data.attackRange;
@@ -37,22 +40,28 @@ namespace NorthLand.Combat
 
             // 즉시 데미지 대신 투사체를 발사한다. 실제 데미지는 투사체가 명중할 때 적용됨.
             var obj = Instantiate(data.projectilePrefab, transform.position, Quaternion.identity);
-            if (obj.TryGetComponent<Projectile>(out var projectile))
-                projectile.Init(target, AttackDamage, data.projectileSpeed, this);
+            if (!obj.TryGetComponent<Projectile>(out var projectile))
+            {
+                Destroy(obj);   // Projectile 컴포넌트가 없으면 스폰물을 제거하고 공격 실패 처리
+                return false;
+            }
 
+            projectile.Init(target, AttackDamage, data.projectileSpeed, this);
             return true;
         }
 
         // 사거리 내에서 가장 가까운 몬스터를 타겟으로 선정
         IDamageable FindTarget()
         {
-            var hits = Physics.OverlapSphere(transform.position, AttackRange, enemyLayerMask);
+            int count = Physics.OverlapSphereNonAlloc(
+                transform.position, AttackRange, hitBuffer, enemyLayerMask);
 
             IDamageable closest = null;
             float closestSqrDistance = float.MaxValue;
 
-            foreach (var hit in hits)
+            for (int i = 0; i < count; i++)
             {
+                var hit = hitBuffer[i];
                 // 콜라이더가 자식(모델)에 있고 Enemy 스크립트가 부모에 있어도 찾도록 부모까지 탐색
                 var damageable = hit.GetComponentInParent<IDamageable>();
                 if (damageable != null
