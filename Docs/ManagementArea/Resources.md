@@ -5,7 +5,7 @@
 > **경로(코드)**: `Assets/Personal/n0wst4ndup/Management/scripts`
 > **경로(씬)**: `Assets/Personal/n0wst4ndup/Management/scenes/ManagementSystem.unity`
 > **작성일**: 2026-07-12
-> **상태**: 구현 중 (지갑 코어 완료, 생산처 진행 예정)
+> **상태**: ✅ 구현 완료 — 지갑(`ResourceWallet`) + 생산처(`ResourceProductionSource`) + 통합 테스트 하네스(`ManagementTest`)
 
 이 문서는 **이번 이슈(#42)에서 무엇을 만드는지**(범위·설계·계약)와, 이후 **무엇이 만들어졌는지**를
 확인하는 기준선이다. 자원 시스템은 GDD의 경영 공간(§4.1)과 자원 흐름(§4.2)을 런타임에서
@@ -30,19 +30,27 @@
 자원의 **종류(Kind)** 는 muchan의 DataTable 정의(`ResourceKind`: `Wood`/`Iron`/`Food`/`Mana`)를
 그대로 식별자로 사용한다. 지갑은 자원 정의를 새로 만들지 않는다.
 
-### 1-B. 생산처 (Production Source) 코어 + 경계 심(seam)
+### 1-B. 생산처 (Production Source) 코어 + 경계 심(seam) — ✅ 구현 완료
 
-주민을 배치해 자원을 생산하는 건물(GDD §6.1)의 **런타임 생산 단위**. muchan의
-`BuildingAsset.ProductionFields`(`BaseAmountPerVillager`, `OutputResource`)를 입력 데이터로,
+주민을 배치해 자원을 생산하는 건물(GDD §6.1)의 **런타임 생산 단위**(`ResourceProductionSource`).
+muchan의 `BuildingAsset.ProductionFields`(`BaseAmountPerVillager`, `OutputResource`)를 입력 데이터로,
 배치된 주민 수를 곱해 생산량을 산출하고 그 결과를 **지갑에 `Add`** 한다.
 
 - **생산량 계산**: `BaseAmountPerVillager × 배치 주민 수` → 어떤 `ResourceKind`를 얼마 생산하는지 산출
 - **정산 실행**: 산출된 자원을 지갑에 넣는다 (지갑의 유일한 "위(생산)" 공급원)
 - **자원 매핑**: `OutputResource`(`ResourceAsset`) → `ResourceData.Kind` → 지갑 키로 변환
+- **건물 필터**: `TryCreate(BuildingAsset, ...)`가 자원 생산 건물이 아닌 것(비-Production 타입 /
+  훈련장(`ProducesSoldier`) / `OutputResource` 미지정)을 걸러낸다.
 
 > **의존이 아직 없으므로 경계는 심(seam)으로 둔다** (§3.5):
 > - **주민 수**는 생산처가 소유하지 않고 **외부에서 입력**받는다 (주민 시스템 부재 — 후속).
 > - **정산 시점**은 생산처가 스스로 정하지 않고 **외부 호출**로 트리거된다 (낮/밤 시스템 부재 — 후속).
+
+### 1-C. 통합 테스트 하네스 (`ManagementTest`) — ✅ 구현 완료
+
+없는 주민·낮/밤 시스템을 키 입력으로 흉내 내어 두 경계 심을 손으로 구동하는 개발 전용
+MonoBehaviour(`Management/scripts/Test/`). 자세한 내용은 §5. 실제 게임 코드가 아니라 **심 검증용**이며,
+주민·낮/밤 시스템이 생기면 이 하네스가 그 자리를 대체한다.
 
 ## 2. 이번 이슈에서 만들지 않는 것 (Out of Scope — 후속 이슈)
 
@@ -155,25 +163,34 @@
   시작하되 부트스트랩 확정 시 재검토.
 - **초기 보유량**: 게임 시작 시 기본 자원값 출처(하드코딩 vs 데이터) 미정 — 후속.
 
-## 5. 검증 방법 (테스트 규약)
+## 5. 검증 방법 (테스트 하네스)
 
-프로젝트에 유닛 테스트가 아직 없고 `unity-cli test`로 실행하는 구조다(CLAUDE.md). 지갑·생산처
-모두 정적 정의와 분리된 순수 로직이라 EditMode 유닛 테스트에 적합하다.
+지갑·생산처는 순수 로직이라 원래 EditMode 유닛 테스트에 이상적이지만, **이 프로젝트는 asmdef가
+전혀 없다**(전부 Assembly-CSharp — SystemMap §5). Unity의 EditMode 테스트는 test asmdef가 필수인데
+**asmdef는 Assembly-CSharp를 참조할 수 없어**, 유닛 테스트가 `ResourceWallet`·`ResourceKind`·
+`ResourceAsset` 등을 볼 수 없다. 진짜 유닛 테스트는 프로젝트가 asmdef를 도입(팀 합의)한 뒤에 가능하다.
 
-**지갑 — 검증할 동작(행동 계약)**:
+그래서 이번 이슈는 팀 관행(MonoBehaviour 테스트 + 씬 Play 확인, SystemMap §6)대로
+**`ManagementTest` 하네스**로 검증한다. `ManagementSystem` 씬의 `ManagementTester` 오브젝트에 붙어 있고,
+`_resourceAssets`에 `ResourceID`가 CSV(`wood`/`iron`/`food`/`mana`)와 일치하는 `ResourceAsset`을 할당한 뒤
+Play(또는 `unity-cli editor play`)로 실행한다.
 
-- 획득 후 보유량이 정확히 증가한다
-- 잔액보다 많은 소비 요청은 실패하고 보유량이 그대로 유지된다
-- 잔액 이하 소비 요청은 성공하고 보유량이 정확히 감소한다
-- 구매 가능 판정이 경계값(잔액과 정확히 같은 비용)에서 옳게 나온다
-- 보유량이 실제로 바뀔 때만 변경 통지가 발생한다
+**조작 / 심 구동**
 
-**생산처 — 검증할 동작(행동 계약)**:
+- **숫자키 1~N**: 해당 생산 라인에 주민 +1 (낮에만) — 주민 수 입력 심
+- **Shift + 숫자키**: 해당 라인 주민 -1 회수
+- **Space**: 낮/밤 전환 — 정산 트리거 심. 단, 배치 합계가 `maxVillagers`에 못 미치면(잉여 주민)
+  전환을 막고 로깅한다. 낮→밤에 각 라인 `Produce` 실행, 밤→낮에 배치 초기화(팀 계약 #5)
+- 모든 단계와 `[지갑 총액]`이 `Debug.Log`로 남아 흐름을 눈으로 확인한다.
+  `AssignVillager`/`UnassignVillager`는 public이라 후속 생산 라인 패널의 +/- 버튼이 그대로 호출 가능.
 
-- 생산량 = `주민당량 × 주민 수`가 정확히 산출된다 (주민 0명 → 생산 0)
-- 정산 트리거 시 산출량이 `OutputResource`에 해당하는 `ResourceKind`로 지갑에 정확히 더해진다
-- 정산을 호출하지 않으면 지갑이 변하지 않는다 (생산처가 스스로 정산하지 않음 — 심 검증)
+**하네스로 확인하는 행동 계약**
+
+- 지갑: 획득 시 정확히 증가 / 부족 소비 거부(잔액 불변) / 정상 소비 차감 / 값 변경 시에만 통지
+- 생산처: `주민당량 × 주민 수` 정확(주민 0 → 0) / 정산 시 올바른 `ResourceKind`로 지갑에 Add /
+  정산 미호출 시 지갑 불변(심 검증) / 비생산 건물·훈련장은 `TryCreate` 거부
 
 ---
 
-*이 문서는 구현이 진행되면 "만든 것" 기준으로 §1을 갱신하고, 확정된 공개 계약을 `Docs/Review/SystemMap.md` §2에 반영한다.*
+*확정된 공개 계약은 `Docs/Review/SystemMap.md` §1(소유자)·§2(공개 API)에 반영되어 있다.
+후속(주민·낮/밤·소비처·UI) 진행 시 §2 Out of Scope 항목을 옮겨 오며 갱신한다.*
