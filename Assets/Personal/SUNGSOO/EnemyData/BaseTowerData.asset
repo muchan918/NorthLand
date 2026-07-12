@@ -13,5 +13,7 @@ MonoBehaviour:
   m_Name: BaseTowerData
   m_EditorClassIdentifier: Assembly-CSharp::NorthLand.Combat.TowerData
   attackDamage: 10
-  attackRange: 5
+  attackRange: 10
   attackInterval: 1
+  projectilePrefab: {fileID: 1734245126228380, guid: c246c13351c285146b91ea26d3e4cda7, type: 3}
+  projectileSpeed: 10

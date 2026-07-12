@@ -1,10 +1,16 @@
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace NorthLand.Combat
 {
     public class Tower : MonoBehaviour, IAttacker
     {
         [SerializeField] TowerData data;
+
+        // TODO(TBD): 대상 탐지 필터링을 LayerMask로 할지 Tag로 할지 미확정.
+        //            현재는 임시로 LayerMask 방식 사용. 팀 컨벤션 회의 후 결정 및 수정 예정.
         [SerializeField] LayerMask enemyLayerMask;
 
         float cooldownTimer;
@@ -27,23 +33,52 @@ namespace NorthLand.Combat
         public bool TryAttack(IDamageable target)
         {
             if (target == null || target.IsDead) return false;
-            target.TakeDamage(new DamageInfo(AttackDamage, this));
+            if (data.projectilePrefab == null) return false;
+
+            // 즉시 데미지 대신 투사체를 발사한다. 실제 데미지는 투사체가 명중할 때 적용됨.
+            var obj = Instantiate(data.projectilePrefab, transform.position, Quaternion.identity);
+            if (obj.TryGetComponent<Projectile>(out var projectile))
+                projectile.Init(target, AttackDamage, data.projectileSpeed, this);
+
             return true;
         }
 
+        // 사거리 내에서 가장 가까운 몬스터를 타겟으로 선정
         IDamageable FindTarget()
         {
             var hits = Physics.OverlapSphere(transform.position, AttackRange, enemyLayerMask);
+
+            IDamageable closest = null;
+            float closestSqrDistance = float.MaxValue;
+
             foreach (var hit in hits)
             {
-                if (hit.TryGetComponent<IDamageable>(out var damageable)
+                // 콜라이더가 자식(모델)에 있고 Enemy 스크립트가 부모에 있어도 찾도록 부모까지 탐색
+                var damageable = hit.GetComponentInParent<IDamageable>();
+                if (damageable != null
                     && damageable.Faction != Faction
                     && !damageable.IsDead)
                 {
-                    return damageable;
+                    float sqrDistance = (hit.transform.position - transform.position).sqrMagnitude;
+                    if (sqrDistance < closestSqrDistance)
+                    {
+                        closestSqrDistance = sqrDistance;
+                        closest = damageable;
+                    }
                 }
             }
-            return null;
+
+            return closest;
         }
+
+#if UNITY_EDITOR
+        // Scene 뷰에서 타워를 선택하면 사거리를 바닥 평면(x,z) 원으로 표시
+        void OnDrawGizmosSelected()
+        {
+            if (data == null) return;
+            Handles.color = Color.red;
+            Handles.DrawWireDisc(transform.position, Vector3.up, data.attackRange);
+        }
+#endif
     }
 }
