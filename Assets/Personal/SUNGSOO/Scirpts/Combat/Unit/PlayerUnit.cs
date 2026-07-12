@@ -41,7 +41,16 @@ namespace NorthLand.Combat
         public void TakeDamage(DamageInfo info)
         {
             currentHp -= info.Amount;
-            Debug.Log($"{name} took {info.Amount} dmg, hp={currentHp}");
+            // Debug.Log($"{name} took {info.Amount} dmg, hp={currentHp}");
+
+            if (IsDead)
+                Die();
+        }
+
+        // 사망 처리. 추후 오브젝트 풀링 도입 시 이 메서드 내부만 "풀 반환"으로 교체하면 된다.
+        void Die()
+        {
+            Destroy(gameObject);
         }
 
         public bool TryAttack(IDamageable target)

@@ -19,7 +19,7 @@ namespace NorthLand.Combat
         public void TakeDamage(DamageInfo info)
         {
             currentHp -= info.Amount;
-            Debug.Log($"{name} took {info.Amount} dmg, hp={currentHp}");
+            // Debug.Log($"{name} took {info.Amount} dmg, hp={currentHp}");
 
             if (IsDead)
                 GameOver();
