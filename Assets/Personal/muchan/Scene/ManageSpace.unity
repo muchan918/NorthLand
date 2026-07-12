@@ -15703,6 +15703,7 @@ GameObject:
   - component: {fileID: 1331055766}
   - component: {fileID: 1331055765}
   - component: {fileID: 1331055764}
+  - component: {fileID: 1331055767}
   m_Layer: 0
   m_Name: DayNightManager
   m_TagString: Untagged
@@ -15749,6 +15750,35 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1331055767
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1331055763}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 269eeb6cfa3dc27479a7f8714ea2c306, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DayNightLightingController
+  directionalLight: {fileID: 153970564}
+  dayPreset:
+    lightIntensity: 1.2
+    lightColor: {r: 1, g: 0.957, b: 0.839, a: 1}
+    ambientSkyColor: {r: 0.6, g: 0.65, b: 0.75, a: 1}
+    ambientEquatorColor: {r: 0.45, g: 0.45, b: 0.4, a: 1}
+    ambientGroundColor: {r: 0.3, g: 0.28, b: 0.25, a: 1}
+    skyboxExposure: 1.3
+    skyboxTint: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  nightPreset:
+    lightIntensity: 0.4
+    lightColor: {r: 0.55, g: 0.6, b: 0.85, a: 1}
+    ambientSkyColor: {r: 0.18, g: 0.2, b: 0.28, a: 1}
+    ambientEquatorColor: {r: 0.14, g: 0.14, b: 0.2, a: 1}
+    ambientGroundColor: {r: 0.08, g: 0.08, b: 0.1, a: 1}
+    skyboxExposure: 0.55
+    skyboxTint: {r: 0.2, g: 0.2, b: 0.28, a: 1}
 --- !u!1001 &1342086351
 PrefabInstance:
   m_ObjectHideFlags: 0
