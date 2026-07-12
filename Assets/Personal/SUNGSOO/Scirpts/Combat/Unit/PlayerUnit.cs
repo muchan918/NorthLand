@@ -2,13 +2,13 @@ using UnityEngine;
 
 namespace NorthLand.Combat
 {
-    public class Enemy : MonoBehaviour, IAttacker, IDamageable
+    public class PlayerUnit : MonoBehaviour, IAttacker, IDamageable
     {
-        [SerializeField] EnemyData data;
+        [SerializeField] PlayerUnitData data;
 
         // TODO(TBD): 대상 탐지 필터링을 LayerMask로 할지 Tag로 할지 미확정.
         //            현재는 임시로 LayerMask 방식 사용. 팀 컨벤션 회의 후 결정 및 수정 예정.
-        [SerializeField] LayerMask targetLayerMask;   // 아군 유닛 + 본진 레이어
+        [SerializeField] LayerMask targetLayerMask;   // 적 레이어
 
         float currentHp;
         float cooldownTimer;
@@ -21,7 +21,7 @@ namespace NorthLand.Combat
             currentHp = data.maxHp;
         }
 
-        public Faction Faction => Faction.Enemy;
+        public Faction Faction => Faction.Player;
         public bool IsDead => currentHp <= 0f;
 
         public float AttackDamage => data.attackDamage;
@@ -51,7 +51,7 @@ namespace NorthLand.Combat
             return true;
         }
 
-        // 사거리 내에서 가장 가까운 아군 대상(유닛/본진)을 타겟으로 선정
+        // 사거리 내에서 가장 가까운 적을 타겟으로 선정
         IDamageable FindTarget()
         {
             int count = Physics.OverlapSphereNonAlloc(
