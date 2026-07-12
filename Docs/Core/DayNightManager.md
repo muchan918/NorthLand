@@ -7,7 +7,7 @@
 - 구현 위치: `Assets/Personal/muchan/DayNight/`
 - 이 문서는 **현재 구현된 구조**를 정리한 것이다. 코드를 바꾼 사람은 이 문서도 함께 갱신해 어긋나지 않게 유지한다. 미구현 항목은 [8. 미확정/TODO](#8-미확정--todo)에 모아둔다.
 
-> ⚠️ 밤→낮 전환 트리거가 **3초 고정 타이머(임시 테스트 코드)** 다. 실제로는 웨이브 클리어 시 전환돼야 하며, Combat 웨이브 시스템이 완성되면 교체된다.
+> ⚠️ 밤→낮 전환은 현재 **`EndNight()` 수동 호출(테스트 버튼)** 로만 일어난다. 실제로는 웨이브 클리어 시 Combat 시스템이 `EndNight()`를 호출해야 한다. 3초 자동 타이머 코드는 참고용으로 주석 처리해뒀다(§7 참고).
 
 ## 1. 목적 · 핵심 원칙
 
@@ -30,7 +30,7 @@
 ## 3. 상태 구조
 
 ```
-        EndDay()                    3초 경과(임시)
+        EndDay()                      EndNight()
    ┌───────────────────────►┐  ┌──────────────────────┐
    │                         │  │                      │
 ┌──┴───────────┐       ┌─────▼──┴─────┐                │
@@ -42,7 +42,7 @@
 ```
 
 - **Day**: `EndDay()` 호출(현재는 테스트 버튼) 전까지 유지.
-- **Night**: `NightTimerRoutine` 코루틴이 3초 대기 후 자동으로 Day로 복귀(임시 — 실제로는 웨이브 클리어가 트리거해야 함).
+- **Night**: `EndNight()` 호출(현재는 테스트 버튼) 전까지 유지. 두 메서드 모두 public이라 호출 주체가 버튼이든 향후 Combat 웨이브 클리어 로직이든 상관없다 — 대칭적인 진입점 계약.
 
 ## 4. 이벤트 훅
 
@@ -99,18 +99,18 @@ private void OnDestroy()
 
 | 파일 | 역할 |
 |---|---|
-| `DayNightManager.cs` | 중앙 매니저(씬 싱글톤 `Instance`, `DontDestroyOnLoad` 없음). 페이즈 관리·이벤트 발행 |
-| `DayNightManagerTest.cs` | (테스트) 세 이벤트를 구독해 Console에 로그 출력 |
+| `DayNightManager.cs` | 중앙 매니저(씬 싱글톤 `Instance`, `DontDestroyOnLoad` 없음). 페이즈 관리·이벤트 발행. `EndDay()`/`EndNight()` 둘 다 public |
+| `DayNightManagerTest.cs` | (테스트) 세 이벤트를 구독해 Console에 로그 출력. null 가드 + `OnDestroy` 구독 해제 포함 |
 
 - **생명주기**: 씬 싱글톤. 경영/전투 공간이 한 씬에 공존해 씬 전환에 걸쳐 상태를 유지할 이유가 없다는 판단(WL-002 참고 사례로 SystemMap §5에 기록).
-- **씬**: `Assets/Personal/muchan/Scene/ManageSpace.unity` (테스트용 버튼 배치)
+- **씬**: `Assets/Personal/muchan/Scene/ManageSpace.unity` (테스트용 버튼 배치: EndDay/EndNight 각각)
 
 ## 7. 미확정 / TODO
 
-- [ ] **밤 종료 트리거**: 현재 3초 고정 타이머(코루틴) placeholder. 실제로는 웨이브 클리어(Combat 시스템)가 트리거해야 하고, UniTask로 교체 검토
+- [ ] **밤 종료 자동화**: 지금은 `EndNight()`를 버튼으로 수동 호출. 실제로는 Combat 웨이브 클리어가 이 메서드를 호출해야 함. 자동 타이머로 되돌릴 일이 생기면 `DayNightManager.cs`에 주석 처리된 `NightTimerRoutine` 코루틴(UniTask로 교체 예정)을 참고
 - [ ] **본진 체력 회복 / 자원 정산 / 주민 배치 초기화**: 이벤트 훅만 존재, 실제 로직은 각 소유 시스템(미구현)이 구독해서 채워야 함
 - [ ] **낮/밤 전환 연출**: Build0 계획의 "버튼 클릭 시 낮 밤 전환 연출"은 미구현 — UI/연출 시스템 담당
-- [ ] **낮→밤 트리거 UI**: 지금은 테스트용 버튼 하나. 실제 UI 버튼/디자인 확정 필요
+- [ ] **낮/밤 트리거 UI**: 지금은 테스트용 버튼 두 개(EndDay/EndNight). 실제 UI 버튼/디자인 확정 필요
 
 ## 8. 참고
 

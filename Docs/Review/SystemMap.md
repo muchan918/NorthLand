@@ -37,8 +37,9 @@
 - `ISelectable { OnSelected(), OnDeselected() }`,
   `PlacementRequest { GhostPrefab, CanPlaceAt, OnConfirmed, KeepPlacingAfterConfirm }`
 - `DayNightManager.Instance` — **null 반환 가능(씬에 없으면) → 호출부 null 체크 필수**.
-  `CurrentPhase` / `WaveCount` / `EndDay()` / `event OnDayStart, OnDayToNight, OnNightToDay`.
-  `OnDayStart`는 1일차 부트스트랩 포함 매 낮 시작마다 발생, `OnNightToDay`는 밤을 거친 전환에서만 발생(웨이브 종료 의미) — 구독 시 구분해서 사용할 것
+  `CurrentPhase` / `WaveCount` / `EndDay()` / `EndNight()` / `event OnDayStart, OnDayToNight, OnNightToDay`.
+  `OnDayStart`는 1일차 부트스트랩 포함 매 낮 시작마다 발생, `OnNightToDay`는 밤을 거친 전환에서만 발생(웨이브 종료 의미) — 구독 시 구분해서 사용할 것.
+  `EndNight()`은 지금은 테스트 버튼이 호출하지만, Combat 웨이브 클리어 로직이 향후 이 메서드를 직접 호출하는 통합 지점이 될 예정(WL-018)
 - `StageRoadTracker.RoadWorldPoints` — ⚠️ HashSet(순서 없음). **이동 경로로 사용 불가**
 - MapBuilder의 **순서 있는 경로·스폰 지점·최종 목표 좌표는 아직 공개 API가 없음** (WL-003)
 

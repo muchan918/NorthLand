@@ -22,8 +22,6 @@ public class DayNightManager : MonoBehaviour
     // 밤 -> 낮 전환(웨이브 종료를 의미) 시 발생
     public event Action OnNightToDay;
 
-    private Coroutine _nightTimerRoutine;
-
     private void Awake()
     {
         if (Instance == null)
@@ -63,17 +61,28 @@ public class DayNightManager : MonoBehaviour
         CurrentPhase = Phase.Night;
         OnDayToNight?.Invoke();
 
-        _nightTimerRoutine = StartCoroutine(NightTimerRoutine());
+        // 임시 3초 자동 타이머 테스트는 비활성화 — EndNight()을 버튼으로 직접 호출해서 테스트
+        // _nightTimerRoutine = StartCoroutine(NightTimerRoutine());
     }
 
-    // 임시 테스트 코드: 정식 구현에서는 웨이브 클리어 시 종료되어야 하며, UniTask로 대체 예정
-    private IEnumerator NightTimerRoutine()
+    public void EndNight()
     {
-        yield return new WaitForSeconds(3f);
+        if (CurrentPhase != Phase.Night)
+        {
+            Debug.LogWarning("이미 낮입니다");
+            return;
+        }
 
         WaveCount++;
         CurrentPhase = Phase.Day;
         OnNightToDay?.Invoke();
         OnDayStart?.Invoke();
     }
+
+    // 임시 테스트 코드: 정식 구현에서는 웨이브 클리어 시 EndNight()를 호출해야 하며, UniTask로 대체 예정
+    // private IEnumerator NightTimerRoutine()
+    // {
+    //     yield return new WaitForSeconds(3f);
+    //     EndNight();
+    // }
 }

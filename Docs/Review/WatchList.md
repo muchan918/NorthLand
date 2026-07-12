@@ -23,4 +23,4 @@
 - **WL-015** | OPEN | PR#46 | 건물 밸런싱 수치(비용/주민당 생산량) 소유권 이원화: CSV 파이프라인(contract②) vs BuildingAsset SO 인스펙터. 현재 값 미기입 → #5/#8 소비 불가 | 수치 데이터 원본 합의 + 값 기입
 - **WL-016** | OPEN | PR#46 | BuildingAsset.Data 캐시가 건물 타입당 단일 SO — 인스턴스별 레벨/주민 상태(GDD §4.2 업그레이드) 도입 시 공유 SO 덮어쓰기 위험 | 정적 조회 데이터 vs per-instance 상태 경계 확정
 - **WL-017** | OPEN | PR#48 | ResourceWallet 단일 인스턴스 소유권 미정: ManagementTest.Start()에서 new로 생성(하네스 로컬). 소비처·UI(OnChanged 구독)가 공유할 소유자 부재 — WL-002 수명주기와 연동 | 경영 씬 지갑 소유/노출 방식 확정
-- **WL-018** | OPEN | PR#49 | DayNightManager 밤→낮 전환이 private 3초 타이머로만 발생 — Combat 웨이브 클리어가 붙을 공개 진입점(EndNight 등) 부재. day→night(EndDay)만 공개된 비대칭 계약 | 밤 종료 공개 API 신설 후 Combat 웨이브 시스템과 연결
+- **WL-018** | OPEN | PR#49 | DayNightManager `EndNight()` 공개 API는 신설됐으나 현재는 테스트 버튼이 수동 호출 중 — Combat이 웨이브/사망 처리·이동을 아직 구현하지 않아 웨이브 클리어 시점에 자동 호출되도록 연결되지 않음 | Combat 웨이브 시스템 완성 후 웨이브 클리어 시 `EndNight()` 자동 호출로 연결
