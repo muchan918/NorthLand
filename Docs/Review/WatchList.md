@@ -22,5 +22,5 @@
 - **WL-014** | OPEN | PR#22/29/31 | Get/Instance 계열 null 무가드 역참조 반복 (DataTableManager.Get, MouseManager.Instance 등) | 호출부 null 가드 관행 정착
 - **WL-015** | OPEN | PR#46 | 건물 밸런싱 수치(비용/주민당 생산량) 소유권 이원화: CSV 파이프라인(contract②) vs BuildingAsset SO 인스펙터. 현재 값 미기입 → #5/#8 소비 불가 | 수치 데이터 원본 합의 + 값 기입
 - **WL-016** | OPEN | PR#46 | BuildingAsset.Data 캐시가 건물 타입당 단일 SO — 인스턴스별 레벨/주민 상태(GDD §4.2 업그레이드) 도입 시 공유 SO 덮어쓰기 위험 | 정적 조회 데이터 vs per-instance 상태 경계 확정
-- **WL-017** | OPEN | PR#48 | ResourceWallet 단일 인스턴스 소유권 미정: ManagementTest.Start()에서 new로 생성(하네스 로컬). 소비처·UI(OnChanged 구독)가 공유할 소유자 부재 — WL-002 수명주기와 연동 | 경영 씬 지갑 소유/노출 방식 확정
-- **WL-018** | OPEN | PR#49 | DayNightManager `EndNight()` 공개 API는 신설됐으나 현재는 테스트 버튼이 수동 호출 중 — Combat이 웨이브/사망 처리·이동을 아직 구현하지 않아 웨이브 클리어 시점에 자동 호출되도록 연결되지 않음 | Combat 웨이브 시스템 완성 후 웨이브 클리어 시 `EndNight()` 자동 호출로 연결
+- **WL-017** | OPEN | PR#48/#43 | ResourceWallet 소유권: #43에서 `ManagementController`가 지갑을 소유·노출(씬 범위, `OnChanged`로 UI 갱신)하여 하네스 로컬 문제는 해소. 단 전역/씬 간 공유(다른 씬의 소비처 접근) 방식은 WL-002 수명주기와 함께 미확정 | 전역 매니저/부트스트랩 규약 확정 시 지갑 소유·노출 최종화
+- **WL-018** | OPEN | PR#49/#43 | 밤→낮 전환(`DayNightManager.EndNight()`) 자동 트리거 부재 — 현재 **경영 패널(#43 `ManagementController.RequestAdvancePhase`)이 밤에 `EndNight()`를 임시로 호출**. 정식으로는 밤을 끝내는 주체(Combat 웨이브 클리어/사망 처리 등)가 책임져야 하며, 경영 패널의 임시 호출은 그때 제거·이관해야 함 | 밤 종료 주체 확정 후 `EndNight()` 자동 호출로 연결하고 경영 패널의 임시 트리거 제거
