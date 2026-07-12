@@ -22,3 +22,4 @@
 - **WL-014** | OPEN | PR#22/29/31 | Get/Instance 계열 null 무가드 역참조 반복 (DataTableManager.Get, MouseManager.Instance 등) | 호출부 null 가드 관행 정착
 - **WL-015** | OPEN | PR#46 | 건물 밸런싱 수치(비용/주민당 생산량) 소유권 이원화: CSV 파이프라인(contract②) vs BuildingAsset SO 인스펙터. 현재 값 미기입 → #5/#8 소비 불가 | 수치 데이터 원본 합의 + 값 기입
 - **WL-016** | OPEN | PR#46 | BuildingAsset.Data 캐시가 건물 타입당 단일 SO — 인스턴스별 레벨/주민 상태(GDD §4.2 업그레이드) 도입 시 공유 SO 덮어쓰기 위험 | 정적 조회 데이터 vs per-instance 상태 경계 확정
+- **WL-017** | OPEN | PR#48 | ResourceWallet 단일 인스턴스 소유권 미정: ManagementTest.Start()에서 new로 생성(하네스 로컬). 소비처·UI(OnChanged 구독)가 공유할 소유자 부재 — WL-002 수명주기와 연동 | 경영 씬 지갑 소유/노출 방식 확정
