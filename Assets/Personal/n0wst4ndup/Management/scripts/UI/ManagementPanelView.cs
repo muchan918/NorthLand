@@ -49,7 +49,7 @@ public class ManagementPanelView : MonoBehaviour
         if (_endDayButton != null)
         {
             _endDayButton.onClick.RemoveAllListeners();
-            _endDayButton.onClick.AddListener(_controller.RequestEndDay);
+            _endDayButton.onClick.AddListener(_controller.RequestAdvancePhase);
         }
 
         _controller.OnChanged += Refresh;
@@ -109,7 +109,7 @@ public class ManagementPanelView : MonoBehaviour
         }
         if (_endDayButton != null)
         {
-            _endDayButton.interactable = _controller.CanEndDay;
+            _endDayButton.interactable = _controller.CanAdvancePhase;
         }
 
         for (int i = 0; i < _lineViews.Count; i++)

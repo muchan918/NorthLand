@@ -58,6 +58,9 @@ public class ManagementController : MonoBehaviour
     // 잉여 주민이 없어야(전원 배치) 밤으로 전환 가능.
     public bool CanEndDay => IsDay && AssignedTotal >= _maxVillagers;
 
+    // 페이즈 전환 버튼 활성 조건: 낮이면 전원 배치돼야, 밤이면 언제든 가능(웨이브 종료 대역).
+    public bool CanAdvancePhase => _dayNight != null && (!IsDay || CanEndDay);
+
     public int ResourceCount(ResourceKind kind) => _wallet != null ? _wallet.Get(kind) : 0;
 
     public string LineDisplayName(int index) => IsValidLine(index) ? _lineAssets[index].Data.DisplayName : "-";
@@ -170,21 +173,30 @@ public class ManagementController : MonoBehaviour
         OnChanged?.Invoke();
     }
 
-    // '밤으로' 버튼: 잉여 주민이 없을 때만 DayNightManager로 전환을 요청한다.
-    public void RequestEndDay()
+    // 페이즈 전환 버튼: 낮이면 밤으로(잉여 주민 게이트), 밤이면 낮으로.
+    // ※ 밤→낮(EndNight)은 실게임에선 Combat 웨이브 클리어가 호출하는 통합 지점(WL-018).
+    //   Combat 미연동인 경영 씬에서 루프를 돌리기 위해 패널이 임시로 트리거한다.
+    public void RequestAdvancePhase()
     {
-        if (!CanEndDay)
-        {
-            Debug.Log($"[경영] 잉여 주민이 있어 밤으로 전환할 수 없습니다. (배치 {AssignedTotal}/{_maxVillagers})");
-            return;
-        }
         if (_dayNight == null)
         {
-            Debug.LogWarning("[경영] DayNightManager가 없어 밤으로 전환할 수 없습니다.");
+            Debug.LogWarning("[경영] DayNightManager가 없어 페이즈를 전환할 수 없습니다.");
             return;
         }
 
-        _dayNight.EndDay();
+        if (IsDay)
+        {
+            if (!CanEndDay)
+            {
+                Debug.Log($"[경영] 잉여 주민이 있어 밤으로 전환할 수 없습니다. (배치 {AssignedTotal}/{_maxVillagers})");
+                return;
+            }
+            _dayNight.EndDay();
+        }
+        else
+        {
+            _dayNight.EndNight();
+        }
     }
 
     // ── DayNightManager 이벤트 훅 (팀 계약 #5) ──────────────────────────
