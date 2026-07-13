@@ -41,6 +41,7 @@ public class StageBuilder : MonoBehaviour
     };
 
     private const int MapSize = 7;
+    private const float TileSize = 5f;
     private const int MaxPathGenerateTryCount = 100;
 
     private readonly Vector2Int[] centerPoints =
@@ -77,7 +78,7 @@ public class StageBuilder : MonoBehaviour
         roadTracker = new StageRoadTracker(MapSize);
 
         lavaGenerator = new LavaGenerator(MapSize, 9, 12);
-        mapSpawner = new StageMapSpawner(MapSize, grassCube, roadCube, lavaCube, battlespace);
+        mapSpawner = new StageMapSpawner(MapSize, TileSize, grassCube, roadCube, lavaCube, battlespace);
         routeGenerator = new StageMapRouteGenerator();
         tilePathBuilder = new StageTilePathBuilder(
             pathGenerator,
@@ -196,9 +197,9 @@ public class StageBuilder : MonoBehaviour
 
         Vector2Int centerPoint = tilePathBuildResult.FinalCenterPoint;
         Vector3 tileCenterPosition = new Vector3(
-            centerPoint.x + currentMapOffset.x * MapSize,
+            (centerPoint.x + currentMapOffset.x * MapSize) * TileSize,
             0,
-            centerPoint.y + currentMapOffset.y * MapSize
+            (centerPoint.y + currentMapOffset.y * MapSize) * TileSize
         );
 
         GameObject spawnedObject = Object.Instantiate(finalCenterObject, battlespace);
