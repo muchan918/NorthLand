@@ -24,6 +24,10 @@ public static class DataTableManager
         var towerTable = new TowerTable();
         towerTable.Load("TowerTable");
         tables.Add("TowerTable", towerTable);
+
+        var enemyTable = new EnemyTable();
+        enemyTable.Load("EnemyTable");
+        tables.Add("EnemyTable", enemyTable);
     }
 
     public static T Get<T>(string id)
