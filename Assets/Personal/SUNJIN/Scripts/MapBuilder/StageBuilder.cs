@@ -10,8 +10,9 @@ public class StageBuilder : MonoBehaviour
     [SerializeField] private GameObject finalCenterObject;
     [SerializeField] private Vector3 finalCenterObjectOffset = Vector3.up;
     [SerializeField] private Transform battlespace;
+    [SerializeField] private MonsterSpawn monsterSpawn;
     [SerializeField] private StageRouteSettings routeSettings = new StageRouteSettings();
-
+    [SerializeField] private float TileSize = 5f;
     [SerializeField]
     private List<StageWaypoint> waypoints = new List<StageWaypoint>
     {
@@ -41,7 +42,6 @@ public class StageBuilder : MonoBehaviour
     };
 
     private const int MapSize = 7;
-    private const float TileSize = 5f;
     private const int MaxPathGenerateTryCount = 100;
 
     private readonly Vector2Int[] centerPoints =
@@ -88,8 +88,13 @@ public class StageBuilder : MonoBehaviour
             MaxPathGenerateTryCount
         );
 
+        if (monsterSpawn == null)
+        {
+            monsterSpawn = FindFirstObjectByType<MonsterSpawn>();
+        }
+
         PrepareRoute();
-        GenerateNextStage();
+        GenerateNextStage(false);
     }
 
     private void Update()
@@ -101,7 +106,7 @@ public class StageBuilder : MonoBehaviour
 
         if (Keyboard.current.nKey.wasPressedThisFrame)
         {
-            GenerateNextStage();
+            GenerateNextStage(true);
         }
 
         if (Keyboard.current.rKey.wasPressedThisFrame)
@@ -110,11 +115,10 @@ public class StageBuilder : MonoBehaviour
         }
     }
 
-    private void GenerateNextStage()
+    private void GenerateNextStage(bool startMonsterRound)
     {
         if (currentMapCount >= routeSettings.MaxMapCount || currentMapCount >= generatedMapOffsets.Count)
         {
-            Debug.Log("설정된 맵 개수를 모두 생성했습니다.");
             return;
         }
 
@@ -122,7 +126,6 @@ public class StageBuilder : MonoBehaviour
 
         if (occupiedMapOffsets.Contains(currentMapOffset))
         {
-            Debug.LogWarning("이미 타일이 있는 위치에는 새 스테이지를 만들 수 없습니다.");
             return;
         }
 
@@ -138,11 +141,17 @@ public class StageBuilder : MonoBehaviour
         lavaGenerator.Generate(path, lava);
 
         mapSpawner.CreateMap(currentMapOffset, path, lava, spawnedTiles);
+        UpdateMonsterSpawnPoint();
         SpawnFinalCenterObject(tilePathBuildResult);
         roadTracker.AddPath(currentMapOffset, path);
 
         occupiedMapOffsets.Add(currentMapOffset);
         currentMapCount++;
+
+        if (startMonsterRound)
+        {
+            StartMonsterRound(currentMapCount);
+        }
     }
 
 
@@ -162,7 +171,6 @@ public class StageBuilder : MonoBehaviour
                 return true;
             }
 
-            Debug.LogWarning($"마지막 맵의 센터 경로 생성에 실패했습니다. {currentMapOffset}");
             return false;
         }
 
@@ -177,13 +185,43 @@ public class StageBuilder : MonoBehaviour
                 path,
                 tilePathBuildResult))
         {
-            Debug.LogWarning($"확정된 맵 경로의 길 생성에 실패했습니다. {currentMapOffset} -> {nextMapOffset}");
             return false;
         }
 
         currentStartDirection = tilePathBuildResult.NextStartDirection;
         currentStartPoint = tilePathBuildResult.NextStartPoint;
         return true;
+    }
+
+    private void StartMonsterRound(int round)
+    {
+        if (monsterSpawn == null)
+        {
+            return;
+        }
+
+        monsterSpawn.StartRound(round);
+    }
+
+    private void UpdateMonsterSpawnPoint()
+    {
+        if (monsterSpawn == null || path.Count == 0)
+        {
+            return;
+        }
+
+        Vector2Int endPoint = path[path.Count - 1];
+        Vector3 localPosition = new Vector3(
+            (endPoint.x + currentMapOffset.x * MapSize) * TileSize,
+            0,
+            (endPoint.y + currentMapOffset.y * MapSize) * TileSize
+        );
+
+        Vector3 worldPosition = battlespace != null
+            ? battlespace.TransformPoint(localPosition)
+            : localPosition;
+
+        monsterSpawn.SetSpawnPoint(worldPosition, Quaternion.identity);
     }
 
     private void SpawnFinalCenterObject(StageTilePathBuildResult tilePathBuildResult)
@@ -219,11 +257,10 @@ public class StageBuilder : MonoBehaviour
                 routeSettings.RouteGenerateTryCount,
                 generatedMapOffsets))
         {
-            Debug.LogWarning("조건에 맞는 전체 맵 경로를 만들지 못했습니다.");
             return;
         }
 
-        Debug.Log($"확정된 맵 경로: {string.Join(", ", generatedMapOffsets)}");
+        Debug.Log($"Generated map route: {string.Join(", ", generatedMapOffsets)}");
     }
 
     private void ResetStage()
@@ -247,7 +284,7 @@ public class StageBuilder : MonoBehaviour
         currentMapCount = 0;
 
         PrepareRoute();
-        GenerateNextStage();
+        GenerateNextStage(false);
     }
 }
 
