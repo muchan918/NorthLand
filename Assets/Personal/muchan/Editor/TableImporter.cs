@@ -9,6 +9,7 @@ public class TableImporter : EditorWindow
         Resource,
         Building,
         Tower,
+        Enemy,
     }
 
     private TableType selectedTable = TableType.Resource;
@@ -45,6 +46,9 @@ public class TableImporter : EditorWindow
                 break;
             case TableType.Tower:
                 ImportTower();
+                break;
+            case TableType.Enemy:
+                ImportEnemy();
                 break;
         }
     }
@@ -161,5 +165,43 @@ public class TableImporter : EditorWindow
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         Debug.Log($"TowerTable Import 완료: {list.Count}개");
+    }
+
+    private void ImportEnemy()
+    {
+        string csvPath = "Assets/Resources/DataTables/EnemyTable.csv";
+        string csvText = File.ReadAllText(csvPath);
+        var list = DataTable.LoadCSV<EnemyData>(csvText);
+
+        string soFolder = "Assets/Resources/ScriptableObjects/Enemies";
+
+        if (!AssetDatabase.IsValidFolder("Assets/Resources/ScriptableObjects"))
+            AssetDatabase.CreateFolder("Assets/Resources", "ScriptableObjects");
+        if (!AssetDatabase.IsValidFolder(soFolder))
+            AssetDatabase.CreateFolder("Assets/Resources/ScriptableObjects", "Enemies");
+
+        foreach (var data in list)
+        {
+            string assetPath = $"{soFolder}/{data.EnemyID}.asset";
+            var existing = AssetDatabase.LoadAssetAtPath<EnemyAsset>(assetPath);
+
+            if (existing != null)
+            {
+                existing.EnemyID = data.EnemyID;
+                existing.EnemyType = data.EnemyType;
+                EditorUtility.SetDirty(existing);
+            }
+            else
+            {
+                var so = CreateInstance<EnemyAsset>();
+                so.EnemyID = data.EnemyID;
+                so.EnemyType = data.EnemyType;
+                AssetDatabase.CreateAsset(so, assetPath);
+            }
+        }
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log($"EnemyTable Import 완료: {list.Count}개");
     }
 }
