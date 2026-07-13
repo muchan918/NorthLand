@@ -343,8 +343,8 @@ MonoBehaviour:
   _settings:
     NodeCount: 20
     AreaRadius: 10
-    SectorCenterDegrees: 90
-    SectorAngleDegrees: 180
+    SectorCenterDegrees: 30
+    SectorAngleDegrees: 80
     MinNodeSpacing: 2
     OutwardBias: 1.5
     ExtraEdgeKeepRatio: 0.3

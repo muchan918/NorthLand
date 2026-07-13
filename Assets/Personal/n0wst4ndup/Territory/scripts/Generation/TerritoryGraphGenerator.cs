@@ -18,6 +18,24 @@ public static class TerritoryGraphGenerator
     private const int MaxAttemptsPerNode = 30;
 
     /// <summary>
+    /// 전체 파이프라인: ① 산포 → ② Delaunay → ③ 트리+프루닝. 외부 호출자는 이것만 쓰면 된다.<br/>
+    /// rng는 이 함수가 생성·소유하고 소비 순서(산포 → 트리 → 추가 엣지)를 고정한다 —
+    /// 외부에서 Random 인스턴스를 공유하면 "다른 시스템이 먼저 몇 번 뽑았는가"에 결과가
+    /// 좌우되어 재현성이 깨진다(WL-008이 지적한 전역 Random 문제의 재발 형태).
+    /// 향후 런 시드 시스템은 파생 정수 시드를 이 함수에 넘기는 방식으로 결합한다.
+    /// </summary>
+    public static TerritoryGraphLayout Generate(TerritoryGraphGenSettings settings, int seed)
+    {
+        var rng = new System.Random(seed);
+        List<Vector2> positions = ScatterPositions(settings, rng);
+        List<TerritoryEdge> delaunay = Triangulate(positions); // rng 미소비(순수)
+        List<TerritoryEdge> tree = BuildSpanningTree(delaunay, positions.Count, rng);
+        List<TerritoryEdge> pruned = Prune(delaunay, tree,
+            settings != null ? settings.ExtraEdgeKeepRatio : 0.3f, rng);
+        return new TerritoryGraphLayout(positions, pruned);
+    }
+
+    /// <summary>
     /// ① 위치 산포 — rejection sampling. 본진(index 0)은 원점 고정(rng 소비 없음),
     /// 나머지는 원 안에 최소 간격을 지키며 배치한다.<br/>
     /// 바깥 편향은 반지름 분포의 지수로 제어한다: 원 내부 '면적 균일'은 r = R·√u 인데,
@@ -344,5 +362,140 @@ public static class TerritoryGraphGenerator
         }
 
         edges.Sort();
+    }
+
+    // ── ③ 스패닝 트리 + 프루닝 ──────────────────────────────────────────
+
+    /// <summary>
+    /// ③-a 스패닝 트리 — 본진(0) 뿌리 <b>랜덤화 Prim</b>.<br/>
+    /// 방문 경계에 걸린 프론티어 엣지 중 하나를 균등 랜덤으로 뽑아 자란다.
+    /// BFS 트리(본진 중심 방사형 부채살)나 DFS 트리(극단적 외길)와 달리 유기적인 분기가 나온다.<br/>
+    /// 결과는 정확히 nodeCount-1개 엣지, 본진에서 전 노드 도달이 구조적으로 보장.<br/>
+    /// 결정성: 인접 목록은 입력 정렬 순서((A,B) 오름차순)로 쌓이고, 선택만 rng가 한다.
+    /// </summary>
+    public static List<TerritoryEdge> BuildSpanningTree(
+        IReadOnlyList<TerritoryEdge> delaunayEdges, int nodeCount, System.Random rng)
+    {
+        var treeEdges = new List<TerritoryEdge>();
+        if (nodeCount <= 1 || delaunayEdges == null || rng == null)
+        {
+            return treeEdges;
+        }
+
+        var adjacency = new List<TerritoryEdge>[nodeCount];
+        for (int i = 0; i < nodeCount; i++)
+        {
+            adjacency[i] = new List<TerritoryEdge>();
+        }
+        for (int i = 0; i < delaunayEdges.Count; i++)
+        {
+            adjacency[delaunayEdges[i].A].Add(delaunayEdges[i]);
+            adjacency[delaunayEdges[i].B].Add(delaunayEdges[i]);
+        }
+
+        var visited = new bool[nodeCount];
+        visited[0] = true;
+        int visitedCount = 1;
+        var frontier = new List<TerritoryEdge>(adjacency[0]);
+
+        while (visitedCount < nodeCount && frontier.Count > 0)
+        {
+            int pick = rng.Next(frontier.Count);
+            TerritoryEdge edge = frontier[pick];
+            // swap-remove가 순서를 흔들지만, 그 순서 변화 자체가 rng 선택에서 비롯되므로 여전히 결정적.
+            frontier[pick] = frontier[frontier.Count - 1];
+            frontier.RemoveAt(frontier.Count - 1);
+
+            bool aVisited = visited[edge.A];
+            bool bVisited = visited[edge.B];
+            if (aVisited && bVisited)
+            {
+                continue; // 이미 양끝 모두 방문 — 트리에 넣으면 사이클이 되므로 폐기
+            }
+
+            int newNode = aVisited ? edge.B : edge.A;
+            visited[newNode] = true;
+            visitedCount++;
+            treeEdges.Add(edge);
+
+            List<TerritoryEdge> newAdjacency = adjacency[newNode];
+            for (int i = 0; i < newAdjacency.Count; i++)
+            {
+                TerritoryEdge candidate = newAdjacency[i];
+                int other = candidate.A == newNode ? candidate.B : candidate.A;
+                if (!visited[other])
+                {
+                    frontier.Add(candidate);
+                }
+            }
+        }
+
+        if (visitedCount < nodeCount)
+        {
+            // Triangulate의 EnsureConnected가 연결을 보장하므로 사실상 도달 불가한 방어선.
+            Debug.LogError($"[영토생성] 스패닝 트리가 전 노드를 덮지 못했습니다 ({visitedCount}/{nodeCount}).");
+        }
+
+        treeEdges.Sort();
+        return treeEdges;
+    }
+
+    /// <summary>
+    /// ③-b 프루닝 — 트리는 전부 보존(도달성 유지), 나머지 Delaunay 엣지는 keepRatio 확률로만
+    /// 유지한다 → 사이클(되돌아 잇는 연결)이 성기게 남는 StS식 노드맵 밀도(TerritoryGraph.md §4.1).<br/>
+    /// 보정 규칙: 본진 차수가 2 미만이면 본진 인접 비트리 엣지 중 정렬 첫 번째를 강제 유지 —
+    /// 첫 프론티어에 선택지가 최소 2개는 있도록(GDD §6.3 "하나 선택"의 전제).<br/>
+    /// 결정성: delaunayEdges의 (A,B) 오름차순 그대로 순회하며 rng를 소비한다.
+    /// </summary>
+    public static List<TerritoryEdge> Prune(
+        IReadOnlyList<TerritoryEdge> delaunayEdges, IReadOnlyList<TerritoryEdge> treeEdges,
+        float keepRatio, System.Random rng)
+    {
+        if (delaunayEdges == null || treeEdges == null || rng == null)
+        {
+            Debug.LogError("[영토생성] 프루닝 입력이 null입니다.");
+            return new List<TerritoryEdge>();
+        }
+
+        var result = new List<TerritoryEdge>(treeEdges);
+        var inTree = new HashSet<TerritoryEdge>(treeEdges);
+
+        for (int i = 0; i < delaunayEdges.Count; i++)
+        {
+            if (inTree.Contains(delaunayEdges[i]))
+            {
+                continue;
+            }
+            if (rng.NextDouble() < keepRatio)
+            {
+                result.Add(delaunayEdges[i]);
+            }
+        }
+
+        // 본진 차수 보정 (정규화 규약상 본진(0)이 낀 엣지는 항상 A == 0)
+        int homeDegree = 0;
+        for (int i = 0; i < result.Count; i++)
+        {
+            if (result[i].A == 0)
+            {
+                homeDegree++;
+            }
+        }
+
+        if (homeDegree < 2)
+        {
+            for (int i = 0; i < delaunayEdges.Count; i++)
+            {
+                if (delaunayEdges[i].A == 0 && !result.Contains(delaunayEdges[i]))
+                {
+                    result.Add(delaunayEdges[i]);
+                    Debug.Log($"[영토생성] 본진 선택지 보정: {delaunayEdges[i]} 강제 유지 (첫 프론티어 최소 2개)");
+                    break;
+                }
+            }
+        }
+
+        result.Sort();
+        return result;
     }
 }

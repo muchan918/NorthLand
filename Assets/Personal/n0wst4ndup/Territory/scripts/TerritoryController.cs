@@ -49,25 +49,21 @@ public class TerritoryController : MonoBehaviour
 
     // 생성 파이프라인(형태) → 모델(상태) 조립. 생성기는 위치·엣지만 알고 모델을 모르므로
     // 여기서 Vector2(2D) → XZ 평면 Vector3 변환과 노드 연결을 수행한다.
-    // TODO(#18): 다음 단계에서 산포와 삼각분할 사이에 프루닝(스패닝 트리 보존 + 일부 엣지만 유지)이
-    //            들어간다 — 지금은 Delaunay 전체 엣지를 그대로 사용해 삼각망이 빽빽하게 보이는 게 정상.
     private static TerritoryGraph BuildGeneratedGraph(TerritoryGraphGenSettings settings, int seed)
     {
-        var rng = new System.Random(seed);
-        List<Vector2> positions = TerritoryGraphGenerator.ScatterPositions(settings, rng);
-        List<TerritoryEdge> edges = TerritoryGraphGenerator.Triangulate(positions);
+        TerritoryGraphLayout layout = TerritoryGraphGenerator.Generate(settings, seed);
 
-        var nodes = new TerritoryNode[positions.Count];
-        for (int i = 0; i < positions.Count; i++)
+        var nodes = new TerritoryNode[layout.Positions.Count];
+        for (int i = 0; i < nodes.Length; i++)
         {
-            nodes[i] = new TerritoryNode(i, new Vector3(positions[i].x, 0f, positions[i].y));
+            nodes[i] = new TerritoryNode(i, new Vector3(layout.Positions[i].x, 0f, layout.Positions[i].y));
         }
 
-        for (int i = 0; i < edges.Count; i++)
+        for (int i = 0; i < layout.Edges.Count; i++)
         {
-            TerritoryNode.Connect(nodes[edges[i].A], nodes[edges[i].B]);
+            TerritoryNode.Connect(nodes[layout.Edges[i].A], nodes[layout.Edges[i].B]);
         }
 
-        return new TerritoryGraph(nodes, homeNodeId: 0);
+        return new TerritoryGraph(nodes, layout.HomeNodeId);
     }
 }
