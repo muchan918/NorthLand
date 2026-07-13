@@ -18,7 +18,7 @@ public class TerritoryNode
     /// <summary>현재 상태. 전이는 <see cref="TerritoryGraph.TryClaim"/>만 수행한다.</summary>
     public TerritoryState State { get; internal set; } = TerritoryState.Locked;
 
-    private readonly List<int> _neighborIds = new List<int>();
+    private readonly List<int> _neighborIds = new();
 
     /// <summary>무방향 엣지로 연결된 이웃 노드 Id 목록.</summary>
     public IReadOnlyList<int> NeighborIds => _neighborIds;

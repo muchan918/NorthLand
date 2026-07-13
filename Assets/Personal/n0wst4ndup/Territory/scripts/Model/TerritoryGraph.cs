@@ -14,8 +14,8 @@ using UnityEngine;
 /// </summary>
 public class TerritoryGraph
 {
-    private readonly Dictionary<int, TerritoryNode> _nodesById = new Dictionary<int, TerritoryNode>();
-    private readonly List<TerritoryNode> _nodes = new List<TerritoryNode>();
+    private readonly Dictionary<int, TerritoryNode> _nodesById = new();
+    private readonly List<TerritoryNode> _nodes = new();
 
     /// <summary>그래프 상태가 바뀔 때마다 발행된다. 뷰는 이걸 구독해 다시 렌더한다.</summary>
     public event Action OnChanged;
@@ -39,7 +39,7 @@ public class TerritoryGraph
 
         for (int i = 0; i < nodes.Count; i++)
         {
-            TerritoryNode node = nodes[i];
+            var node = nodes[i];
             if (node == null)
             {
                 Debug.LogError($"[영토] {i}번 노드가 null이라 제외합니다.");
@@ -57,7 +57,7 @@ public class TerritoryGraph
             _nodes.Add(node);
         }
 
-        if (!_nodesById.TryGetValue(homeNodeId, out TerritoryNode home))
+        if (!_nodesById.TryGetValue(homeNodeId, out var home))
         {
             Debug.LogError($"[영토] 본진 노드를 찾을 수 없습니다: {homeNodeId}");
             return;
@@ -70,7 +70,7 @@ public class TerritoryGraph
 
     /// <summary>노드 질의. 없으면 null(호출부 체크 규약 — DataTableManager.Get과 동일).</summary>
     public TerritoryNode GetNode(int id) =>
-        _nodesById.TryGetValue(id, out TerritoryNode node) ? node : null;
+        _nodesById.TryGetValue(id, out var node) ? node : null;
 
     /// <summary>현재 프론티어(Selectable) 노드들.</summary>
     public IEnumerable<TerritoryNode> Frontier
@@ -106,7 +106,7 @@ public class TerritoryGraph
     /// <summary>플레이어에게 공개된 노드인가 (Owned 또는 Selectable — §4.2 점진 공개).</summary>
     public bool IsRevealed(int id)
     {
-        TerritoryNode node = GetNode(id);
+        var node = GetNode(id);
         return node != null && node.State != TerritoryState.Locked;
     }
 
@@ -117,7 +117,7 @@ public class TerritoryGraph
     /// </summary>
     public bool TryClaim(int nodeId)
     {
-        if (!_nodesById.TryGetValue(nodeId, out TerritoryNode node))
+        if (!_nodesById.TryGetValue(nodeId, out var node))
         {
             Debug.LogError($"[영토] 존재하지 않는 노드를 확보하려 했습니다: {nodeId}");
             return false;
@@ -141,10 +141,10 @@ public class TerritoryGraph
     // 새 보유 노드의 이웃 중 Locked를 Selectable로 승격 — 프론티어 갱신(§4.3-2).
     private void PromoteLockedNeighbors(TerritoryNode owned)
     {
-        IReadOnlyList<int> neighborIds = owned.NeighborIds;
+        var neighborIds = owned.NeighborIds;
         for (int i = 0; i < neighborIds.Count; i++)
         {
-            if (!_nodesById.TryGetValue(neighborIds[i], out TerritoryNode neighbor))
+            if (!_nodesById.TryGetValue(neighborIds[i], out var neighbor))
             {
                 Debug.LogError($"[영토] {owned.Id}번 노드가 존재하지 않는 이웃을 참조합니다: {neighborIds[i]}");
                 continue;
