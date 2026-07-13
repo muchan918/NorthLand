@@ -12,6 +12,7 @@ namespace NorthLand.Combat
 
         float currentHp;
         float cooldownTimer;
+        bool isDying;
 
         // 타겟 탐색용 재사용 버퍼. 매 프레임 힙 할당을 피하기 위해 사용(최대 16개 감지).
         readonly Collider[] hitBuffer = new Collider[16];
@@ -50,6 +51,8 @@ namespace NorthLand.Combat
         // 사망 처리. 추후 오브젝트 풀링 도입 시 이 메서드 내부만 "풀 반환"으로 교체하면 된다.
         void Die()
         {
+            if (isDying) return;   // 같은 프레임 다중 타격에 의한 이중 사망 처리 방지
+            isDying = true;
             Destroy(gameObject);
         }
 
