@@ -48,7 +48,7 @@ public class BuildingTooltipSource : MonoBehaviour, IHoverable
     {
         if (_palette != null)
         {
-            _palette.Resolve(_buildingAsset.BuildingType, out header, out background);
+            _palette.Resolve(_data.BuildingType, out header, out background);
             return;
         }
 

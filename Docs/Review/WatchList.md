@@ -7,7 +7,7 @@
 > **형식**: WL-번호 | 상태(OPEN/RESOLVED) | 등록 PR | 내용 | 해소 조건
 
 - **WL-001** | OPEN | PR#29/53 | 스탯 SO 손입력 이원화 심화: TowerData/EnemyData에 이어 PlayerUnitData(SO 직접 입력) 추가 — CSV 단일 원본 미결정 하 마이그레이션 표면 확대 | Tower/Enemy/PlayerUnit 스탯 단일 원본 합의
-- **WL-002** | OPEN | PR#31 | 매니저 수명주기 3종 난립(static/DontDestroyOnLoad/씬 싱글톤) + MouseManager.\_camera 씬 참조가 씬 전환 시 끊어짐 | 부트스트랩/매니저 규약 문서화
+- **WL-002** | OPEN | PR#31 | 매니저 수명주기 3종 난립(static/DontDestroyOnLoad/씬 싱글톤) + MouseManager.\_camera 씬 참조가 씬 전환 시 끊어짐 | 부트스트랩/매니저 규약 문서화 + TooltipUI(#38) 임시 싱글톤 추가 — UIManager 흡수 대상 3종째
 - **WL-003** | OPEN | PR#32 | 몬스터 이동에 필요한 '순서 있는 경로' 미노출: StageBuilder.path private+Clear, RoadWorldPoints는 HashSet. 스폰 지점·최종 목표 좌표도 비공개 | MapBuilder에 순서 보존 경로 + 스폰/목표 공개 API 신설
 - **WL-004** | OPEN | PR#31/32 | 배치 검증 공백: CanPlaceAt 항상 true, Snap 항등, 타일 종류(도로/용암/잔디) 질의 API 없음 → 도로·용암 위 타워 설치 가능 | MapBuilder 타일 질의 API + MouseManager 연동
 - **WL-005** | OPEN | PR#29/31/53 | 레이어 규약 부재: Enemy/Selectable/Ground에 더해 PR#53에서 PlayerUnit·PlayerBase·Enemy(targetLayerMask) 전투 탐지 3종이 각자 SerializeField로 추가됨 — 미설정 시 무증상(탐지 0) | 전투 레이어 3종 명명·번호 팀 확정 + TagManager 등재 + SystemMap §5

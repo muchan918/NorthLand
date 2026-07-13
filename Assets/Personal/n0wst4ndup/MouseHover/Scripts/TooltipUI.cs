@@ -39,6 +39,12 @@ public class TooltipUI : MonoBehaviour
         }
         Instance = this;
 
+        if (_panel == null || _panelRect == null || _headerText == null || _bodyText == null)
+        {
+            Debug.LogError("TooltipUI: 필수 슬롯(_panel/_panelRect/_headerText/_bodyText) 미할당", this);
+            enabled = false; // Start의 OnHoverChanged 구독도 건너뛰어 Show 경로 자체가 막힘
+            return; // Hide() 호출 전에 빠져 첫 프레임 NRE 방지
+        }
         Hide();
     }
 
