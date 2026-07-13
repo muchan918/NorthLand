@@ -28,3 +28,5 @@
 - **WL-020** | OPEN | 이슈#7 | `DayNightLightingController`가 `RenderSettings.ambientMode`(Skybox→Trilight 전환)·`RenderSettings.skybox`(프라이빗 인스턴스 교체)를 씬 전역으로 변경 — 경영/전투 공간이 한 씬에 공존(SystemMap §5)해 전투 공간 조명·스카이박스도 함께 바뀜. 팀 계약 #4(공간 분리) 관련 Combat/BattleMapBuilder 조명 전제와 충돌 가능 | Combat/BattleMapBuilder 팀과 조명 영향 범위 합의, 필요 시 공간별 분리 방안 검토
 - **WL-021** | OPEN | PR#52/#43 | 경영 생산 라인이 인스펙터 `ResourceAsset[]` + 단일 전역 `_baseAmountPerVillager`로 구성됨(ManagementController.BuildModel) — `ResourceProductionSource.TryCreate(BuildingAsset)`(건물별 주민당량·훈련장 필터) 경로 미사용. 건물 배치(#27) 통합 시 라인 생성원을 배치된 건물 인스턴스로 이관 필요. WL-015(밸런싱 수치 소유권)와 연동 | 건물 배치 시스템 연결 시 라인 생성원을 BuildingAsset 경로로 교체
 - **WL-022** | OPEN | PR#52/#43 | "전원 배치라야 밤 전환"(CanEndDay) 게이트가 자원 라인 배치만 셈 — GDD §6.1의 훈련장 배치처·잉여 주민 정상 플레이와 충돌 예정. 밤 전환 조건을 배치 강제와 분리 필요 | 주민/훈련장 시스템 도입 시 밤 전환 조건 재설계
+- **WL-023** | OPEN | PR#54 | 카메라 제어가 Mouse/Keyboard.current 직접 폴링(CameraController) — 입력 단일 창구(§4.1)와 배치 모드 충돌 우려. 카메라 입력을 MouseManager가 소유할지/예외로 명문화할지 미정 | 카메라 입력 소유권 합의 + SystemMap §4.1 반영
+- **WL-024** | OPEN | PR#54 | 줌이 Lens.OrthographicSize에 하드결합 — #28 구도(쿼터뷰=원근 가능성) 미확정 상태에서 투영 방식 변경 시 재작업 | #28 확정 후 줌 대상 격리(ApplyZoom) 또는 확정값 반영
