@@ -4,16 +4,21 @@ using NorthLand.UI;
 
 namespace NorthLand.Core
 {
-    public enum GameResult { Playing, GameOver, Victory }
+    public enum GameResult 
+    { 
+        Playing, 
+        GameOver, 
+        Victory 
+    }
 
     // 전투(게임) 씬의 승패 흐름을 판정·중계하는 매니저.
     // 본진 HP 0 → 게임오버 / 보스 처치 → 승리(GDD §4.4). 실제 트리거원(본진/보스)은
     // 아직 없어 지금은 외부에서 TriggerGameOver/TriggerVictory를 호출(임시). 판정 로직만
-    // 담당하고, 결과 화면 조립·표시는 UIManager에 위임한다(역할 분리).
+    // 담당하고, 결과 화면 조립·표시는 ResultUIManager에 위임한다(역할 분리).
     //
     // 수명주기: 결과는 Run(전투) 단위이므로 씬 스코프 싱글톤(DontDestroyOnLoad 없음) —
     // 씬을 벗어나면(메인/재시작) 새 씬에서 상태가 초기화된다. 씬 전환은 GameSceneManager 담당.
-    // (DayNightManager/UIManager와 동일한 씬 싱글톤 패턴 — WL-002 부채를 늘리지 않음)
+    // (DayNightManager/ResultUIManager와 동일한 씬 싱글톤 패턴 — WL-002 부채를 늘리지 않음)
     public class GameManager : MonoBehaviour
     {
         public static GameManager Instance { get; private set; }
@@ -50,12 +55,12 @@ namespace NorthLand.Core
             if (Result != GameResult.Playing) return;
             Result = result;
 
-            if (UIManager.Instance == null)
-                Debug.LogWarning("[GameManager] UIManager가 없어 결과 화면을 표시하지 못했습니다.");
+            if (ResultUIManager.Instance == null)
+                Debug.LogWarning("[GameManager] ResultUIManager가 없어 결과 화면을 표시하지 못했습니다.");
             else if (result == GameResult.GameOver)
-                UIManager.Instance.ShowGameOver();
+                ResultUIManager.Instance.ShowGameOver();
             else if (result == GameResult.Victory)
-                UIManager.Instance.ShowVictory();
+                ResultUIManager.Instance.ShowVictory();
 
             OnResultDecided?.Invoke(result);
         }

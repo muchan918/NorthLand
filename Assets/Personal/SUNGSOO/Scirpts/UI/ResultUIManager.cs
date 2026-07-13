@@ -9,9 +9,9 @@ namespace NorthLand.UI
     //
     // 수명주기: 결과 UI는 게임 씬에 종속되므로 씬 스코프 싱글톤으로 둔다
     // (DontDestroyOnLoad 없음 — 씬을 넘어 살아남을 이유가 없다). 씬 전환은 GameSceneManager 담당.
-    public class UIManager : MonoBehaviour
+    public class ResultUIManager : MonoBehaviour
     {
-        public static UIManager Instance { get; private set; }
+        public static ResultUIManager Instance { get; private set; }
 
         [SerializeField] GameObject gameOverPanel;
         [SerializeField] GameObject victoryPanel;
@@ -64,7 +64,7 @@ namespace NorthLand.UI
         {
             if (GameSceneManager.Instance == null)
             {
-                Debug.LogError("[UIManager] GameSceneManager 인스턴스가 없습니다. 씬 전환 불가.");
+                Debug.LogError("[ResultUIManager] GameSceneManager 인스턴스가 없습니다. 씬 전환 불가.");
                 return;
             }
             GameSceneManager.Instance.LoadMainMenu();
@@ -75,7 +75,7 @@ namespace NorthLand.UI
         {
             if (GameSceneManager.Instance == null)
             {
-                Debug.LogError("[UIManager] GameSceneManager 인스턴스가 없습니다. 씬 전환 불가.");
+                Debug.LogError("[ResultUIManager] GameSceneManager 인스턴스가 없습니다. 씬 전환 불가.");
                 return;
             }
             GameSceneManager.Instance.LoadManageSpace();
@@ -86,7 +86,7 @@ namespace NorthLand.UI
         {
             if (panel == null)
             {
-                Debug.LogWarning("[UIManager] 결과 패널 참조가 비어 있습니다. 인스펙터 배선을 확인하세요.");
+                Debug.LogWarning("[ResultUIManager] 결과 패널 참조가 비어 있습니다. 인스펙터 배선을 확인하세요.");
                 return;
             }
             panel.SetActive(active);
