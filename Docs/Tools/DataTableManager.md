@@ -126,6 +126,8 @@ CsvHelper가 자동으로 처리하지만 수기로 행을 추가할 때 빠뜨�
 | `DisplayName`     | string                              | 표시용 한글 이름                                     |
 | `TowerType`       | enum(`Single`/`Area`/`Chain`/`Magic`) | 공격 방식 분류                                     |
 | `MagicEffectType` | enum(`None`/`Buff`/`Debuff`)        | `TowerType=Magic`일 때만 의미 있음. 그 외는 `None` 고정 |
+| `GridWidth`       | int                                  | 배치 시 차지하는 그리드 칸수(가로). 공격 방식과 무관하게 모든 타워 공통 |
+| `GridHeight`      | int                                  | 배치 시 차지하는 그리드 칸수(세로). 공격 방식과 무관하게 모든 타워 공통 |
 | `Role`            | string                              | 역할 한 줄 요약                                      |
 | `Description`     | string                              | 기본 효과 설명 (UI 툴팁용)                          |
 
@@ -146,6 +148,10 @@ CSV에는 위 공통 필드(분류 정보 포함)만 있고, 타워별 세부 �
   — 버프/디버프도 데미지가 있을 수 있어 `OptionalDamage { HasDamage, DamageAmount, TickInterval }`를
   공통 재사용
 - 건설 비용은 모든 타입 공통으로 `TowerAsset.Cost : List<ResourceCost>` (2절, `ResourceCost` 재사용)
+- `GridWidth`/`GridHeight`는 `Role`/`Description`과 같은 성격의 공통 CSV 필드다 — 다른 에셋을
+  참조하지 않는 순수 수치라 `TowerAsset`(SO)에 별도 필드로 중복시키지 않고, `TowerData`(POCO)에만
+  존재하며 `TowerAsset.Data.GridWidth`/`GridHeight`로 런타임에 조회한다(4.2절 조회 패턴).
+  아직 MouseManager/BattleMapBuilder의 배치 검증(WL-004)이 이 값을 소비하진 않음 — 데이터만 우선 마련
 - `TowerType`(1차) + `MagicEffectType`(Magic일 때 2차)에 따라 인스펙터에 관련 필드 그룹만
   보이도록 `TowerAssetEditor`(`Assets/Personal/muchan/Editor/TowerAssetEditor.cs`)가
   `BuildingAssetEditor`와 동일한 패턴의 커스텀 인스펙터를 그린다
@@ -153,12 +159,12 @@ CSV에는 위 공통 필드(분류 정보 포함)만 있고, 타워별 세부 �
 CSV: `Assets/Resources/DataTables/TowerTable.csv`
 
 ```
-TowerID,DisplayName,TowerType,MagicEffectType,Role,Description
-archer_tower,궁수 타워,Single,None,단일 대상 공격,사거리 내 가장 가까운 적 하나를 지속 공격
-cannon_tower,대포,Area,None,광역 공격,착탄 지점 주변 범위 피해
-lightning_tower,번개 타워,Chain,None,연쇄 공격,적 하나를 맞히면 주변 적으로 번개가 튐
-haste_tower,가속의 탑,Magic,Buff,아군 공격속도 강화,범위 내 아군 타워 공격속도 증가
-slow_tower,서리의 탑,Magic,Debuff,적 이동속도 감소,범위 내 적 이동속도 감소
+TowerID,DisplayName,TowerType,MagicEffectType,GridWidth,GridHeight,Role,Description
+archer_tower,궁수 타워,Single,None,1,1,단일 대상 공격,사거리 내 가장 가까운 적 하나를 지속 공격
+cannon_tower,대포,Area,None,1,1,광역 공격,착탄 지점 주변 범위 피해
+lightning_tower,번개 타워,Chain,None,1,1,연쇄 공격,적 하나를 맞히면 주변 적으로 번개가 튐
+haste_tower,가속의 탑,Magic,Buff,1,1,아군 공격속도 강화,범위 내 아군 타워 공격속도 증가
+slow_tower,서리의 탑,Magic,Debuff,1,1,적 이동속도 감소,범위 내 적 이동속도 감소
 ```
 
 ## 4. 사용 방법
@@ -235,7 +241,8 @@ CLI 빌드/테스트가 없는 프로젝트이므로 Unity Editor에서 직접 �
    해당 타입 필드 그룹만 보여주는지, `Magic` 타입에서는 `MagicEffectType`(Buff/Debuff)에 따라
    `BuffAuraFields`/`DebuffAuraFields`가 올바르게 토글되는지 확인
 7. [`TowerTableTest.cs`](../../Assets/Personal/muchan/Data/Tower/TowerTableTest.cs)로 Play 모드에서
-   5개 타워의 `DisplayName`/`TowerType`/`MagicEffectType`이 출력되는지 확인
+   5개 타워의 `DisplayName`/`TowerType`/`MagicEffectType`/`GridWidth`/`GridHeight`가
+   출력되는지 확인
 
 ## 7. 다음 계획
 

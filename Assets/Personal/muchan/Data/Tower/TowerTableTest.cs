@@ -10,7 +10,7 @@ public class TowerTableTest : MonoBehaviour
         })
         {
             var data = DataTableManager.Get<TowerTable>("TowerTable").Get(id);
-            Debug.Log($"{data.TowerID} -> {data.DisplayName} ({data.TowerType}/{data.MagicEffectType}) : {data.Role}");
+            Debug.Log($"{data.TowerID} -> {data.DisplayName} ({data.TowerType}/{data.MagicEffectType}, {data.GridWidth}x{data.GridHeight}) : {data.Role}");
         }
     }
 }
