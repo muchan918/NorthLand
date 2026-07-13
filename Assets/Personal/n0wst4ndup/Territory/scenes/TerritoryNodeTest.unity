@@ -305,7 +305,7 @@ Transform:
   m_GameObject: {fileID: 1583543718}
   serializedVersion: 2
   m_LocalRotation: {x: 0.5, y: 0, z: 0, w: 0.8660254}
-  m_LocalPosition: {x: 4.5, y: 13, z: -7}
+  m_LocalPosition: {x: 0, y: 18, z: -5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -340,6 +340,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d3398d2c95fcf4c4b97f4c157bc9f71c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TerritoryController
+  _settings:
+    NodeCount: 20
+    AreaRadius: 10
+    SectorCenterDegrees: 90
+    SectorAngleDegrees: 180
+    MinNodeSpacing: 2
+    OutwardBias: 1.5
+    ExtraEdgeKeepRatio: 0.3
+  _seed: 0
 --- !u!4 &1743510867
 Transform:
   m_ObjectHideFlags: 0
