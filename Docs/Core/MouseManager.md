@@ -29,7 +29,9 @@
 | UI 위 클릭인지 월드 클릭인지 구분 | 어떤 정보 패널을 그릴지 → **UI (`TowerInfoUI`)** |
 | 월드 레이캐스트·히트 오브젝트 판별 | 타워/건물/병사의 생성·능력치 → **각 배치물 시스템** |
 | 현재 상호작용 모드(상태) 관리 | 자원 차감·해금 조건 → **경영/자원 시스템** |
-| 선택 결과를 `OnSelectionChanged`로 통지 | |
+| 선택 결과를 `OnSelectionChanged`로 통지 | 툴팁 내용·연출·색 → **툴팁 UI + 각 `IHoverable` 공급자** |
+| 커서 밑 호버 대상(`IHoverable`)을 `OnHoverChanged`로 통지 | 호버 하이라이트 연출(색 변경 등) → **미구현(TODO)** |
+| 포인터 화면 좌표를 `PointerPosition`으로 노출 | |
 
 ## 3. 상태 구조 (State Machine)
 
@@ -51,8 +53,8 @@
    └─ 좌클릭: 배치물 히트→선택 / 빈 곳 히트→선택 해제
 ```
 
-- **Idle (기본)**: 좌클릭으로 배치된 오브젝트를 선택/해제.
-- **Placement**: 고스트(프리뷰)가 마우스를 따라다니고, 유효 위치에서 좌클릭하면 배치.
+- **Idle (기본)**: 좌클릭으로 배치된 오브젝트를 선택/해제. **매 프레임 커서 밑 `IHoverable`을 추적**해 대상이 바뀔 때 `OnHoverChanged`로 통지(툴팁용).
+- **Placement**: 고스트(프리뷰)가 마우스를 따라다니고, 유효 위치에서 좌클릭하면 배치. (배치 중에는 호버 통지를 끈다 — `BeginPlacement`이 호버를 클리어)
 
 ## 4. 시나리오별 흐름
 
@@ -83,13 +85,26 @@
 - 입력 읽기는 `MouseManager`에서만. 클릭 반응은 `ISelectable` 구현, 배치는 `PlacementRequest` 전달로 참여.
 - 새 상호작용 모드(예: 야간 스킬 타겟팅)는 새 상태만 추가하면 되고 기존 코드 영향 최소화.
 
+### 4.4 호버 툴팁 (#38)
+
+1. `Idle`에서 매 프레임 커서 밑을 `_selectableMask`로 레이캐스트 → `TryGetComponent<IHoverable>`.
+2. 호버 대상이 **바뀔 때만** `OnHoverChanged(IHoverable)` 통지(같으면 무시, 없으면 `null`). UI 위/배치 모드에서는 대상을 `null`로 본다.
+3. `TooltipUI`(임시 싱글톤, `Assets/Personal/n0wst4ndup/MouseHover`)가 `OnHoverChanged`를 구독 →
+   대상이 있으면 `IHoverable.GetTooltipContent()`로 내용을 **pull**해 표시, 없으면 숨김.
+   `GetTooltipContent()`는 호버 시점마다 호출되므로 동적 값(버프 레벨·현재 생산량 등)도 그 순간 계산해 넘길 수 있다.
+4. 툴팁은 `MouseManager.PointerPosition`(→ `Mouse.current` 직접 폴링 금지, 계약 #1)을 따라 이동하며 화면 밖으로 나가지 않게 clamp한다.
+
+> `MouseManager`는 "무엇이 호버됐다"만 통지한다. 헤더/본문 문자열·색·포맷은 전적으로 각 `IHoverable` 공급자가 정한다
+> (건물=`BuildingTooltipSource`가 `이름 - 역할`+설명+타입별 색, 그래프형 버프 건물 등도 같은 인터페이스로 재사용).
+> 이 계보는 `TowerInfoUI`/`BuildingInfoUI`와 마찬가지로 **UIManager 도입 시 흡수**될 임시 싱글톤이다.
+
 ## 5. 레이캐스트 레이어 (선택 / 배치 분리)
 
 레이캐스트 목적이 둘이라 마스크도 둘로 나눈다.
 
 | 마스크 | 레이어 | 용도 |
 |---|---|---|
-| `_selectableMask` | `Selectable` | 선택 후보. 최종 선택 여부는 `ISelectable` 유무로 판정하므로 **레이어는 굵은 필터**일 뿐 |
+| `_selectableMask` | `Selectable` | 선택 후보. 최종 선택 여부는 `ISelectable` 유무로 판정하므로 **레이어는 굵은 필터**일 뿐. **호버 감지도 이 마스크를 재사용**(최종 판정은 `IHoverable` 유무) |
 | `_placementMask` | `Ground` | 배치 표면. 고스트가 이 위에 올라간다 |
 
 - "선택 가능한가"는 레이어가 아니라 **`ISelectable` 컴포넌트가 결정** → 타입(타워/건물/병사)마다 레이어를 팔 필요 없음.
@@ -109,10 +124,21 @@
 |---|---|
 | `scripts/MouseManager.cs` | 중앙 매니저(싱글톤 `Instance`). 상태 관리·레이캐스트·라우팅 |
 | `scripts/ISelectable.cs` | 선택 인터페이스(`OnSelected`/`OnDeselected`) |
+| `scripts/IHoverable.cs` | 호버 인터페이스(`GetTooltipContent()`). 호버 시 툴팁 내용을 pull 공급 |
 | `scripts/PlacementRequest.cs` | 배치 요청 데이터 |
 | `scripts/TowerInfoUI.cs` | 정보 패널(싱글톤 `Instance`, `ShowInfo`/`HideInfo`) |
 | `scripts/Helper/SelectableTest.cs` | (테스트) 선택 시 색 변경 + 패널 표시 |
 | `scripts/Helper/PlacementButton.cs` | (테스트) 버튼 클릭 → 배치 시작 |
+
+호버 툴팁 UI/어댑터는 별도 기능 폴더 `Assets/Personal/n0wst4ndup/MouseHover`에 있다:
+
+| 파일 | 역할 |
+|---|---|
+| `Scripts/TooltipContent.cs` | 툴팁 표시 데이터(헤더/본문/색). 구체 개념에 무지한 순수 struct |
+| `Scripts/TooltipUI.cs` | 커서 추적 범용 툴팁 뷰(임시 싱글톤 `Instance`, `Show`/`Hide`). `OnHoverChanged` 구독 |
+| `Scripts/BuildingTooltipSource.cs` | 건물용 `IHoverable` 어댑터. `BuildingAsset`/`BuildingData`를 읽어 `이름 - 역할`+설명 구성(muchan 코드는 읽기만) |
+| `Scripts/BuildingTooltipPalette.cs` + `BuildingTooltipPalette.asset` | `BuildingType`→(헤더색, 배경색) 팔레트 SO |
+| `Scenes/MouseHover.unity` | (테스트) 건물 5종(Production·General·Skill 3타입 모두 커버) + 툴팁 검증 씬 |
 
 - **레이어**: `Ground`(배치 표면), `Selectable`(선택 후보)
 - **프리팹**: `Ghost`(고스트, Collider 없음), `TestTower`(배치물, Collider + `SelectableTest`)
@@ -121,7 +147,7 @@
 
 ## 8. 미확정 / TODO
 
-- [ ] **하이라이트/연출**: 유효/무효 셀 표시, 호버 하이라이트, 선택 표시 (전부 미구현)
+- [ ] **하이라이트/연출**: 유효/무효 셀 표시, 호버 **하이라이트**(색 변경 등), 선택 표시 (미구현 — 호버 **툴팁**은 #38에서 구현됨. 하이라이트가 필요해지면 `IHoverable`에 `OnHoverEnter/OnHoverExit`를 추가하는 방향, TBD)
 - [ ] **그리드 스냅**: `Snap()`이 현재 좌표를 그대로 반환 → 그리드 좌표계·셀 크기 확정 후 스냅 구현
 - [ ] **배치 가능 셀 검사**: `CanPlaceAt`이 항상 `true` → 점유 여부·빌드 가능 영역 검사 연동
 - [ ] **선택 대상 탐색**: 콜라이더가 자식/부모에 있을 때 `GetComponentInParent` 등 탐색 규칙
