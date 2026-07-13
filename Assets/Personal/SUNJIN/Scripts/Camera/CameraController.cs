@@ -21,7 +21,7 @@ public class CameraController : MonoBehaviour
 
     [Header("Zoom")]
     [SerializeField] private float zoomSpeed = 2f;
-    [SerializeField] private float minZoomSize  = 3f;
+    [SerializeField] private float minZoomSize = 3f;
     [SerializeField] private float maxZoomSize = 20f;
 
     private void Awake()

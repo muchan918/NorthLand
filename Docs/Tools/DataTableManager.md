@@ -118,6 +118,55 @@ military_school,군사학교,Skill,병사 강화,식량으로 병사 훈련 및 
 (참고: `church` 행처럼 필드 값에 쉼표가 들어가면 RFC4180 방식으로 큰따옴표로 감싸야 한다.
 CsvHelper가 자동으로 처리하지만 수기로 행을 추가할 때 빠뜨리기 쉽다.)
 
+### TowerTable (GDD 5.1/6.2 — 전투 공간 타워)
+
+| 컬럼              | 타입                                | 설명                                                |
+| ----------------- | ----------------------------------- | --------------------------------------------------- |
+| `TowerID`         | string (PK)                         | 타워 고유 키 (`archer_tower`, `cannon_tower`, ...)  |
+| `DisplayName`     | string                              | 표시용 한글 이름                                     |
+| `TowerType`       | enum(`Single`/`Area`/`Chain`/`Magic`) | 공격 방식 분류                                     |
+| `MagicEffectType` | enum(`None`/`Buff`/`Debuff`)        | `TowerType=Magic`일 때만 의미 있음. 그 외는 `None` 고정 |
+| `GridWidth`       | int                                  | 배치 시 차지하는 그리드 칸수(가로). 공격 방식과 무관하게 모든 타워 공통 |
+| `GridHeight`      | int                                  | 배치 시 차지하는 그리드 칸수(세로). 공격 방식과 무관하게 모든 타워 공통 |
+| `Role`            | string                              | 역할 한 줄 요약                                      |
+| `Description`     | string                              | 기본 효과 설명 (UI 툴팁용)                          |
+
+CSV에는 위 공통 필드(분류 정보 포함)만 있고, 타워별 세부 수치(공격력/사거리/투사체,
+버프·디버프 효과량 등)는 CSV가 아니라 `TowerAsset`(SO)에 `TowerType`(+ Magic이면
+`MagicEffectType`)별 필드 그룹으로 들어간다. Building과 달리 타입 분기가 2단계다:
+
+- `Single` → `SingleFields { Attack }`
+- `Area` → `AreaFields { Attack, SplashRadius }`
+- `Chain` → `ChainFields { Attack, ChainRadius, MaxChainTargets, ChainDamageFalloff }`
+- `Magic` → `MagicFields { BuffAura, DebuffAura }`, 그중 `MagicEffectType`이 가리키는
+  쪽(`BuffAuraFields` 또는 `DebuffAuraFields`)만 실제로 사용
+- `Attack { AttackDamage, AttackRange, AttackInterval, ProjectilePrefab, ProjectileSpeed }`는
+  Single/Area/Chain이 공통으로 내장하는 nested 구조체(중복 필드 선언 방지). 필드 의미는
+  Combat의 기존 `TowerData`(`Assets/Personal/SUNGSOO/Scirpts/Combat/Tower/TowerData.cs`)와
+  대응되도록 맞춰뒀다 — 실제 Combat 마이그레이션은 아직 미착수(WL-001)
+- `BuffAuraFields`/`DebuffAuraFields { Radius, Interval, Modifiers: List<StatModifier>, Damage: OptionalDamage }`
+  — 버프/디버프도 데미지가 있을 수 있어 `OptionalDamage { HasDamage, DamageAmount, TickInterval }`를
+  공통 재사용
+- 건설 비용은 모든 타입 공통으로 `TowerAsset.Cost : List<ResourceCost>` (2절, `ResourceCost` 재사용)
+- `GridWidth`/`GridHeight`는 `Role`/`Description`과 같은 성격의 공통 CSV 필드다 — 다른 에셋을
+  참조하지 않는 순수 수치라 `TowerAsset`(SO)에 별도 필드로 중복시키지 않고, `TowerData`(POCO)에만
+  존재하며 `TowerAsset.Data.GridWidth`/`GridHeight`로 런타임에 조회한다(4.2절 조회 패턴).
+  아직 MouseManager/BattleMapBuilder의 배치 검증(WL-004)이 이 값을 소비하진 않음 — 데이터만 우선 마련
+- `TowerType`(1차) + `MagicEffectType`(Magic일 때 2차)에 따라 인스펙터에 관련 필드 그룹만
+  보이도록 `TowerAssetEditor`(`Assets/Personal/muchan/Editor/TowerAssetEditor.cs`)가
+  `BuildingAssetEditor`와 동일한 패턴의 커스텀 인스펙터를 그린다
+
+CSV: `Assets/Resources/DataTables/TowerTable.csv`
+
+```
+TowerID,DisplayName,TowerType,MagicEffectType,GridWidth,GridHeight,Role,Description
+archer_tower,궁수 타워,Single,None,1,1,단일 대상 공격,사거리 내 가장 가까운 적 하나를 지속 공격
+cannon_tower,대포,Area,None,1,1,광역 공격,착탄 지점 주변 범위 피해
+lightning_tower,번개 타워,Chain,None,1,1,연쇄 공격,적 하나를 맞히면 주변 적으로 번개가 튐
+haste_tower,가속의 탑,Magic,Buff,1,1,아군 공격속도 강화,범위 내 아군 타워 공격속도 증가
+slow_tower,서리의 탑,Magic,Debuff,1,1,적 이동속도 감소,범위 내 적 이동속도 감소
+```
+
 ## 4. 사용 방법
 
 ### 4.1 CSV 수정 후 Import가 필요한 경우 / 필요 없는 경우
@@ -154,10 +203,10 @@ private void Start()
 ### 4.3 `Tools > Table Importer` 사용법
 
 1. Unity 메뉴 `Tools > Table Importer` 실행
-2. `Table Type`에서 `Resource` 선택 (현재는 옵션 1개)
+2. `Table Type`에서 `Resource`/`Building`/`Tower` 중 선택
 3. `Import` 버튼 클릭
-4. `Assets/Resources/ScriptableObjects/Resources/`에 CSV 행마다 `.asset` 파일 생성/갱신
-5. Console에 `ResourceTable Import 완료: N개` 로그 출력
+4. `Assets/Resources/ScriptableObjects/<종류>/`에 CSV 행마다 `.asset` 파일 생성/갱신
+5. Console에 `XxxTable Import 완료: N개` 로그 출력
 
 관련 코드: [`TableImporter.cs`](../../Assets/Personal/muchan/Editor/TableImporter.cs)
 
@@ -185,11 +234,22 @@ CLI 빌드/테스트가 없는 프로젝트이므로 Unity Editor에서 직접 �
 4. `Tools > Table Importer` → `Building` → `Import` → `Assets/Resources/ScriptableObjects/Buildings/`에
    9개 건물 `.asset` 생성 확인. `BuildingType`별로 하나씩 인스펙터를 열어
    `BuildingAssetEditor`가 해당 타입 필드 그룹만 보여주는지 확인
-5. [`BuildingTableTest.cs`](../../Assets/Personal/muchan/Data/BuildingTableTest.cs)로 Play 모드에서
+5. [`BuildingTableTest.cs`](../../Assets/Personal/muchan/Data/Building/BuildingTableTest.cs)로 Play 모드에서
    9개 건물의 `DisplayName`/`BuildingType`/`Role`이 출력되는지 확인
+6. `Tools > Table Importer` → `Tower` → `Import` → `Assets/Resources/ScriptableObjects/Towers/`에
+   5개 타워 `.asset` 생성 확인. `TowerType`별로 하나씩 인스펙터를 열어 `TowerAssetEditor`가
+   해당 타입 필드 그룹만 보여주는지, `Magic` 타입에서는 `MagicEffectType`(Buff/Debuff)에 따라
+   `BuffAuraFields`/`DebuffAuraFields`가 올바르게 토글되는지 확인
+7. [`TowerTableTest.cs`](../../Assets/Personal/muchan/Data/Tower/TowerTableTest.cs)로 Play 모드에서
+   5개 타워의 `DisplayName`/`TowerType`/`MagicEffectType`/`GridWidth`/`GridHeight`가
+   출력되는지 확인
 
 ## 7. 다음 계획
 
-- 영토(Territory), 타워(Tower), 스킬(Skill), 보상(Reward) 등도 같은 패턴으로 확장
+- 영토(Territory), 스킬(Skill), 보상(Reward) 등도 같은 패턴으로 확장
 - 병사(Soldier) 데이터 타입이 생기면 `BuildingAsset.ProductionFields.ProducesSoldier`(bool)를
   `SoldierAsset` 참조로 교체 검토
+- 타워는 데이터 레이어(CSV/`TowerAsset`)까지만 구현됨 — Combat의 기존 `TowerData` SO/`Tower.cs`를
+  이 파이프라인으로 마이그레이션하는 작업은 SUNGSOO와 합의 후 별도 진행 (WL-001)
+- 타워 SO에 이펙트 프리팹(파티클/사운드) 등 시각 효과 참조 필드를 추가하는 확장 여지 있음
+  (SO 기반이라 타입별 필드 그룹에 필드만 추가하면 됨, §2 참고)
