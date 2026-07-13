@@ -25,11 +25,13 @@
 - `BuildingTable.Get(string id)` — null 반환 가능
 - `TowerTable.Get(string id)` — null 반환 가능. `TowerAsset`은 아직 muchan 폴더 데이터 레이어
   전용이며 Combat의 `Tower.cs`는 소비하지 않음(WL-001 — 마이그레이션 전)
-- `EnemyTable.Get(string id)` — null 반환 가능. `EnemyAsset`도 `TowerAsset`과 동일하게 아직
-  muchan 폴더 데이터 레이어 전용이며 Combat의 `EnemyData`(SO)는 소비하지 않음(WL-001 — 마이그레이션 전).
-  `EnemyType`(`Melee`/`Ranged`/`Boss`)별 필드 그룹(`MeleeFields`/`RangedFields`/`BossFields`)은
-  `TowerAsset`의 `TowerType`별 필드 그룹과 동일 패턴 — `BossFields.BehaviorTree`는 실제 BT 에셋
-  타입 미정 상태의 placeholder 필드
+- `EnemyTable.Get(string id)` — null 반환 가능. **스탯(체력/이동속도/공격력/사거리/공격주기)은
+  CSV/`EnemyData`에 없음** — `EnemyAsset`(SO)의 `EnemyType`별 필드 그룹(`MeleeFields`/`RangedFields`/
+  `BossFields`, `TowerAsset`의 `TowerType`별 필드 그룹과 동일 패턴)에만 존재. 이슈#26 원 스펙(스탯
+  CSV 컬럼 요구)과 다른 선택이며 WL-027로 추적 중 — 스탯이 필요한 소비처(#14/#15/#16)는
+  `EnemyTable.Get(id)`가 아니라 `EnemyAsset` 조회 경로를 써야 함. `EnemyAsset`도 `TowerAsset`과
+  동일하게 아직 muchan 폴더 데이터 레이어 전용이며 Combat의 `EnemyData`(SO)는 소비하지 않음
+  (WL-001 — 마이그레이션 전). `BossFields.BehaviorTree`는 실제 BT 에셋 타입 미정 상태의 placeholder 필드
 - `ResourceAsset.Data` / `BuildingAsset.Data` / `TowerAsset.Data` / `EnemyAsset.Data` — **호출부가
   Start()에서 직접 채우는 규약** (저장 안 됨)
 - `BuildingInfoUI.Instance.ShowInfo(string)` / `HideInfo()` — 경영 공간 전용 정보 패널. `TowerInfoUI`와

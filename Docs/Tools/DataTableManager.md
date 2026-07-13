@@ -180,7 +180,16 @@ slow_tower,서리의 탑,Magic,Debuff,1,1,적 이동속도 감소,범위 내 적
 CSV에는 위 공통 필드만 있고, 몬스터별 세부 스탯(체력/이동속도/공격력/사거리/공격주기,
 보스 전용 데이터)은 CSV가 아니라 `EnemyAsset`(SO)에 `EnemyType`별 필드 그룹으로 들어간다.
 Tower와 동일한 이유(§3 TowerTable 절 참고)로, `Boss`가 향후 BehaviorTree 참조 등 다른
-타입엔 없는 고유 필드를 가져야 해서 진짜 폴리모픽 구조다:
+타입엔 없는 고유 필드를 가져야 해서 진짜 폴리모픽 구조다.
+
+> **참고**: 이슈 [#26](https://github.com/muchan918/NorthLand/issues/26)의 원 스펙은
+> `MonsterData`에 `HP`/`MoveSpeed`/`AttackDamage`를 CSV 컬럼으로 직접 요구했다(계약 우선 —
+> #14/#15/#16이 이 데이터를 그대로 참조하는 전제). 실제 구현은 Tower의 밸런싱 수치 선례
+> (WL-015)를 따라 스탯을 SO로 뺐다 — CSV 직접 조회(`EnemyTable.Get(id)`)만으로는 스탯을 얻을
+> 수 없다는 뜻. 이 이원화는 **WL-027**로 추적 중이며, #14/#15/#16이 실제 스탯을 연동할 시점에
+> `EnemyAsset` 경로로 조회하도록 맞추거나 스탯을 CSV로 승격할지 재논의가 필요하다.
+
+타입별 필드 그룹:
 
 - `Melee` → `MeleeFields { Stat }`
 - `Ranged` → `RangedFields { Stat, ProjectilePrefab, ProjectileSpeed }`
