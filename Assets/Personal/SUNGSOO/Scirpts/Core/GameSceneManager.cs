@@ -10,7 +10,7 @@ namespace NorthLand.Core
         // 씬 이름은 Build Settings의 Scene List에 등록된 이름과 정확히 일치해야 한다.
         // 인덱스가 아니라 이름으로 로드하므로 리스트 순서가 바뀌어도 안전하다.
         const string MainMenuScene = "MainMenu";
-        const string ManageSpaceScene = "ManageSpace-Sungsoo";
+        const string ManageSpaceScene = "ManageSpace-Sungsoo"; //TODO: Integration 테스트로 이관시 실제 게임 씬 명으로 변경 할 예정
 
         // 첫 씬이 로드되기 전에 Unity가 자동 호출한다. 매니저를 여기서 부팅한다.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
