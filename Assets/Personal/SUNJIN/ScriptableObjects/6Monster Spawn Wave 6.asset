@@ -10,7 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 071f10ba2828d234da7cb51b46860a71, type: 3}
-  m_Name: Monster Spawn Wave
+  m_Name: 6Monster Spawn Wave 6
   m_EditorClassIdentifier: Assembly-CSharp::MonsterSpawnWave
-  round: 1
-  entries: []
+  round: 6
+  entries:
+  - monsterPrefab: {fileID: 4782494649810966508, guid: 7671023444494974185960f2f7821208, type: 3}
+    count: 6
+    startDelay: 1
+    spawnInterval: 0.3
+  - monsterPrefab: {fileID: 4229904492612586596, guid: e38044a6a5410a941b2a481ca5aed96d, type: 3}
+    count: 6
+    startDelay: 0.1
+    spawnInterval: 1

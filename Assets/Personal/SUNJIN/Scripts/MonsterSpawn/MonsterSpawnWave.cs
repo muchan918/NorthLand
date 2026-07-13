@@ -1,18 +1,26 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(menuName = "Monster/Spawn Wave")]
+[CreateAssetMenu(fileName = "MonsterSpawnWave", menuName = "Monster/Spawn Wave")]
 public class MonsterSpawnWave : ScriptableObject
 {
-    public int round;
-    public List<MonsterSpawnEntry> entries;
+    [SerializeField] private int round = 1;
+    [SerializeField] private List<MonsterSpawnEntry> entries = new List<MonsterSpawnEntry>();
+
+    public int Round => round;
+    public IReadOnlyList<MonsterSpawnEntry> Entries => entries;
 }
 
 [System.Serializable]
 public class MonsterSpawnEntry
 {
-    public GameObject monsterPrefab;
-    public int count;
-    public float startDelay;
-    public float spawnInterval;
+    [SerializeField] private GameObject monsterPrefab;
+    [SerializeField] private int count = 1;
+    [SerializeField] private float startDelay;
+    [SerializeField] private float spawnInterval = 1f;
+
+    public GameObject MonsterPrefab => monsterPrefab;
+    public int Count => count;
+    public float StartDelay => startDelay;
+    public float SpawnInterval => spawnInterval;
 }

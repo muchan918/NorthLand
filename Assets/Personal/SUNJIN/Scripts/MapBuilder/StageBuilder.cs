@@ -10,7 +10,7 @@ public class StageBuilder : MonoBehaviour
     [SerializeField] private GameObject finalCenterObject;
     [SerializeField] private Vector3 finalCenterObjectOffset = Vector3.up;
     [SerializeField] private Transform battlespace;
-    //[SerializeField] private MonsterSpawn monsterSpawn;
+    [SerializeField] private MonsterSpawn monsterSpawn;
     [SerializeField] private StageRouteSettings routeSettings = new StageRouteSettings();
     [SerializeField] private float TileSize = 5f;
     [SerializeField]
@@ -88,10 +88,10 @@ public class StageBuilder : MonoBehaviour
             MaxPathGenerateTryCount
         );
 
-        //if (monsterSpawn == null)
-        //{
-        //    monsterSpawn = FindFirstObjectByType<MonsterSpawn>();
-        //}
+        if (monsterSpawn == null)
+        {
+            monsterSpawn = FindFirstObjectByType<MonsterSpawn>();
+        }
 
         PrepareRoute();
         GenerateNextStage(false);
@@ -195,20 +195,20 @@ public class StageBuilder : MonoBehaviour
 
     private void StartMonsterRound(int round)
     {
-        //if (monsterSpawn == null)
-        //{
-        //    return;
-        //}
+        if (monsterSpawn == null)
+        {
+            return;
+        }
 
-        //monsterSpawn.StartRound(round);
+        monsterSpawn.StartRound(round);
     }
 
     private void UpdateMonsterSpawnPoint()
     {
-        //if (monsterSpawn == null || path.Count == 0)
-        //{
-        //    return;
-        //}
+        if (monsterSpawn == null || path.Count == 0)
+        {
+            return;
+        }
 
         Vector2Int endPoint = path[path.Count - 1];
         Vector3 localPosition = new Vector3(
@@ -221,7 +221,7 @@ public class StageBuilder : MonoBehaviour
             ? battlespace.TransformPoint(localPosition)
             : localPosition;
 
-        //monsterSpawn.SetSpawnPoint(worldPosition, Quaternion.identity);
+        monsterSpawn.SetSpawnPoint(worldPosition, Quaternion.identity);
     }
 
     private void SpawnFinalCenterObject(StageTilePathBuildResult tilePathBuildResult)
