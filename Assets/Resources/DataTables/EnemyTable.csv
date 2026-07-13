@@ -1,0 +1,4 @@
+EnemyID,DisplayName,EnemyType,Role,Description
+goblin_warrior,고블린 전사,Melee,근접 몬스터,본진까지 도달해 근접 공격을 가하는 기본 몬스터
+goblin_archer,고블린 궁수,Ranged,원거리 몬스터,사거리 밖에서 원거리 공격을 가하는 몬스터
+ogre_king,오우거 킹,Boss,보스 몬스터,강력한 스탯과 고유 행동 패턴(BehaviorTree)을 가진 보스 몬스터
