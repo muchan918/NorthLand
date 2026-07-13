@@ -12,7 +12,7 @@ public class MonsterSpawn : MonoBehaviour
     [SerializeField] private Transform monsterParent;
 
     [Header("ScriptableObject Data")]
-    [SerializeField] private List<MonsterSpawnWave> spawnWaves = new List<MonsterSpawnWave>();
+    [SerializeField] private MonsterSpawnWaveProvider waveProvider;
     [SerializeField] private bool playOnStart;
     [SerializeField] private int startRound = 1;
 
@@ -20,6 +20,14 @@ public class MonsterSpawn : MonoBehaviour
     private Vector3 generatedSpawnPosition;
     private Quaternion generatedSpawnRotation = Quaternion.identity;
     private CancellationTokenSource spawnCancellationTokenSource;
+
+    private void Awake()
+    {
+        if (waveProvider == null)
+        {
+            waveProvider = GetComponent<MonsterSpawnWaveProvider>();
+        }
+    }
 
     private void Start()
     {
@@ -56,30 +64,31 @@ public class MonsterSpawn : MonoBehaviour
         if (DayNightManager.Instance != null &&
             DayNightManager.Instance.CurrentPhase == DayNightManager.Phase.Day)
         {
-            Debug.LogWarning("MonsterSpawn: cannot start a monster round during the day.", this);
+            return;
+        }
+
+        if (waveProvider == null)
+        {
+            return;
+        }
+
+        if (!waveProvider.TryGetWave(round, out IReadOnlyList<MonsterSpawnEntry> entries))
+        {
             return;
         }
 
         CancellationToken cancellationToken = RestartSpawnTasks();
-        SpawnRoundAsync(round, cancellationToken).Forget();
+        SpawnRoundAsync(entries, cancellationToken).Forget();
     }
 
-    private async UniTaskVoid SpawnRoundAsync(int round, CancellationToken cancellationToken)
+    private async UniTaskVoid SpawnRoundAsync(IReadOnlyList<MonsterSpawnEntry> entries, CancellationToken cancellationToken)
     {
         try
         {
-            MonsterSpawnWave wave = spawnWaves.Find(w => w != null && w.Round == round);
-
-            if (wave == null)
-            {
-                Debug.LogWarning($"MonsterSpawn: round {round} wave data is missing.", this);
-                return;
-            }
-
             List<UniTask> groupTasks = new List<UniTask>();
             float elapsedDelay = 0f;
 
-            foreach (MonsterSpawnEntry entry in wave.Entries.OrderBy(e => e.StartDelay))
+            foreach (MonsterSpawnEntry entry in entries.OrderBy(e => e.StartDelay))
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -159,13 +168,11 @@ public class MonsterSpawn : MonoBehaviour
     {
         if (prefab == null)
         {
-            Debug.LogWarning("MonsterSpawn: monster prefab is missing.", this);
             return;
         }
 
         if (!TryGetSpawnPose(out Vector3 position, out Quaternion rotation))
         {
-            Debug.LogWarning("MonsterSpawn: spawn point is missing.", this);
             return;
         }
 

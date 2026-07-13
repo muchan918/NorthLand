@@ -1,0 +1,13 @@
+Round,MonsterId,Count,StartDelay,SpawnInterval
+1,capsule,1,1,0.3
+1,cube,1,0.1,1
+2,capsule,2,0.1,2
+2,cube,2,0.1,4
+3,capsule,3,0.1,2
+3,cube,3,0.1,4
+4,capsule,4,0.1,4
+4,cube,4,0.1,2
+5,capsule,5,1,0.3
+5,cube,5,0.1,1
+6,capsule,6,1,0.3
+6,cube,6,0.1,1

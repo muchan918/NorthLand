@@ -5872,6 +5872,7 @@ GameObject:
   m_Component:
   - component: {fileID: 960126891}
   - component: {fileID: 960126892}
+  - component: {fileID: 960126893}
   m_Layer: 0
   m_Name: MonsterSpawn
   m_TagString: Untagged
@@ -5908,15 +5909,27 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MonsterSpawn
   fallbackSpawnPoint: {fileID: 1875562406}
   monsterParent: {fileID: 1405165964}
-  spawnWaves:
-  - {fileID: 11400000, guid: e100f55cee2bd564bac387a2cea4563e, type: 2}
-  - {fileID: 11400000, guid: dad59b6d5fbfa4f46944f187502bd564, type: 2}
-  - {fileID: 11400000, guid: e0253bf4699333e40a597cb8fd0c2762, type: 2}
-  - {fileID: 11400000, guid: 3f2713d27c27ba14f8fde7090b668629, type: 2}
-  - {fileID: 11400000, guid: 0600f5663e956524690a09e538487651, type: 2}
-  - {fileID: 11400000, guid: 3688c06530d2fe0448331986d13c0916, type: 2}
+  waveProvider: {fileID: 960126893}
   playOnStart: 0
   startRound: 0
+--- !u!114 &960126893
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 960126889}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9813378b39bd43b42ab2d84923df3702, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterSpawnWaveProvider
+  spawnTableName: MonsterSpawnTable
+  monsterPrefabs:
+  - monsterId: capsule
+    monsterPrefab: {fileID: 4782494649810966508, guid: 7671023444494974185960f2f7821208, type: 3}
+  - monsterId: cube
+    monsterPrefab: {fileID: 4229904492612586596, guid: e38044a6a5410a941b2a481ca5aed96d, type: 3}
 --- !u!1001 &963556864
 PrefabInstance:
   m_ObjectHideFlags: 0
