@@ -5926,9 +5926,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MonsterSpawnWaveProvider
   spawnTableName: MonsterSpawnTable
   monsterPrefabs:
-  - monsterId: capsule
+  - monsterId: goblin_warrior
     monsterPrefab: {fileID: 4782494649810966508, guid: 7671023444494974185960f2f7821208, type: 3}
-  - monsterId: cube
+  - monsterId: goblin_archer
     monsterPrefab: {fileID: 4229904492612586596, guid: e38044a6a5410a941b2a481ca5aed96d, type: 3}
 --- !u!1001 &963556864
 PrefabInstance:
