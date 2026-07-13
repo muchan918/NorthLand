@@ -2,8 +2,8 @@ using UnityEngine;
 
 namespace NorthLand.Combat
 {
-    [CreateAssetMenu(fileName = "PlayerUnitData", menuName = "Combat/PlayerUnitData")]
-    public class PlayerUnitData : ScriptableObject
+    [CreateAssetMenu(fileName = "SoldierData", menuName = "Combat/SoldierData")]
+    public class SoldierData : ScriptableObject
     {
         public float maxHp;
         public float attackDamage;

@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6bc3991b4cfc773419197ef0990d0181, type: 3}
-  m_Name: PlayerUnitData
-  m_EditorClassIdentifier: Assembly-CSharp::NorthLand.Combat.PlayerUnitData
+  m_Name: SoldierData
+  m_EditorClassIdentifier: Assembly-CSharp::NorthLand.Combat.SoldierData
   maxHp: 100
   attackDamage: 5
   attackRange: 1

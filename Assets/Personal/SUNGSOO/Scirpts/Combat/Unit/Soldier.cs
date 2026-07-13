@@ -2,9 +2,9 @@ using UnityEngine;
 
 namespace NorthLand.Combat
 {
-    public class PlayerUnit : MonoBehaviour, IAttacker, IDamageable
+    public class Soldier : MonoBehaviour, IAttacker, IDamageable
     {
-        [SerializeField] PlayerUnitData data;
+        [SerializeField] SoldierData data;
 
         // TODO(TBD): 대상 탐지 필터링을 LayerMask로 할지 Tag로 할지 미확정.
         //            현재는 임시로 LayerMask 방식 사용. 팀 컨벤션 회의 후 결정 및 수정 예정.
