@@ -4,6 +4,7 @@ using UnityEngine;
 public class StageMapSpawner
 {
     private readonly int mapSize;
+    private readonly float tileSize;
     private readonly GameObject grassCube;
     private readonly GameObject roadCube;
     private readonly GameObject lavaCube;
@@ -11,12 +12,14 @@ public class StageMapSpawner
 
     public StageMapSpawner(
         int mapSize,
+        float tileSize,
         GameObject grassCube,
         GameObject roadCube,
         GameObject lavaCube,
         Transform parent)
     {
         this.mapSize = mapSize;
+        this.tileSize = tileSize;
         this.grassCube = grassCube;
         this.roadCube = roadCube;
         this.lavaCube = lavaCube;
@@ -39,9 +42,9 @@ public class StageMapSpawner
                 GameObject tile = Object.Instantiate(prefab, parent);
 
                 tile.transform.localPosition = new Vector3(
-                    x + mapOffset.x * mapSize,
+                    (x + mapOffset.x * mapSize) * tileSize,
                     0,
-                    z + mapOffset.y * mapSize
+                    (z + mapOffset.y * mapSize) * tileSize
                 );
 
                 spawnedTiles.Add(tile);
