@@ -43,7 +43,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9ed6450a7a2b1de419296f2a32f2f3ba, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NorthLand.UI.UIManager
+  m_EditorClassIdentifier: Assembly-CSharp::NorthLand.UI.ResultUIManager
   gameOverPanel: {fileID: 1193840344449827479}
   victoryPanel: {fileID: 3875492012365185277}
 --- !u!1 &1193840344449827479
@@ -383,7 +383,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 6410062570025609491}
-        m_TargetAssemblyTypeName: NorthLand.UI.UIManager, Assembly-CSharp
+        m_TargetAssemblyTypeName: NorthLand.UI.ResultUIManager, Assembly-CSharp
         m_MethodName: OnClickRetry
         m_Mode: 0
         m_Arguments:
@@ -1079,7 +1079,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 100
@@ -1383,7 +1383,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 6410062570025609491}
-        m_TargetAssemblyTypeName: NorthLand.UI.UIManager, Assembly-CSharp
+        m_TargetAssemblyTypeName: NorthLand.UI.ResultUIManager, Assembly-CSharp
         m_MethodName: OnClickMainMenu
         m_Mode: 0
         m_Arguments:
@@ -1516,7 +1516,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 6410062570025609491}
-        m_TargetAssemblyTypeName: NorthLand.UI.UIManager, Assembly-CSharp
+        m_TargetAssemblyTypeName: NorthLand.UI.ResultUIManager, Assembly-CSharp
         m_MethodName: OnClickMainMenu
         m_Mode: 0
         m_Arguments:
@@ -1649,7 +1649,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 6410062570025609491}
-        m_TargetAssemblyTypeName: NorthLand.UI.UIManager, Assembly-CSharp
+        m_TargetAssemblyTypeName: NorthLand.UI.ResultUIManager, Assembly-CSharp
         m_MethodName: OnClickRetry
         m_Mode: 0
         m_Arguments:
