@@ -20,6 +20,10 @@ public static class DataTableManager
         var buildingTable = new BuildingTable();
         buildingTable.Load("BuildingTable");
         tables.Add("BuildingTable", buildingTable);
+
+        var towerTable = new TowerTable();
+        towerTable.Load("TowerTable");
+        tables.Add("TowerTable", towerTable);
     }
 
     public static T Get<T>(string id)

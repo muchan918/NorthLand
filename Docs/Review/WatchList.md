@@ -6,7 +6,7 @@
 > **RESOLVED 항목은 삭제하지 않고 상태만 바꾼다** (재발 감지용). 해결 PR 번호를 상태에 남긴다.
 > **형식**: WL-번호 | 상태(OPEN/RESOLVED) | 등록 PR | 내용 | 해소 조건
 
-- **WL-001** | OPEN | PR#29/53 | 스탯 SO 손입력 이원화 심화: TowerData/EnemyData에 이어 PlayerUnitData(SO 직접 입력) 추가 — CSV 단일 원본 미결정 하 마이그레이션 표면 확대 | Tower/Enemy/PlayerUnit 스탯 단일 원본 합의
+- **WL-001** | OPEN | PR#29/53/59 | 스탯 SO 손입력 이원화 심화: TowerData/EnemyData/PlayerUnitData(SO 직접 입력) vs muchan 폴더 CSV 파이프라인. `TowerAsset`(CSV 기반 데이터 레이어)이 마련됐으나 Combat `Tower.cs`는 아직 미참조 — 마이그레이션은 SUNGSOO와 합의 후 별도 진행. PR#59 리뷰 메모: 공격 계약 정본을 `TowerAsset.*.Attack`로 확정할지 SUNGSOO와 합의 필요(이슈#25가 약속한 계약이 `TowerAsset`으로 옮겨감, `TowerAsset.AttackFields`가 Combat `TowerData` 필드를 이름까지 복제해 이중 표현). 또한 muchan의 전역 `TowerData`(POCO)와 `NorthLand.Combat.TowerData`(SO)가 동명 타입 — 지금은 네임스페이스가 달라 충돌 없지만 마이그레이션 시 혼동 우려, 한쪽 리네임 권장 | Tower/Enemy/PlayerUnit 스탯 단일 원본 합의 및 마이그레이션
 - **WL-002** | OPEN | PR#31 | 매니저 수명주기 3종 난립(static/DontDestroyOnLoad/씬 싱글톤) + MouseManager.\_camera 씬 참조가 씬 전환 시 끊어짐 | 부트스트랩/매니저 규약 문서화
 - **WL-003** | OPEN | PR#32 | 몬스터 이동에 필요한 '순서 있는 경로' 미노출: StageBuilder.path private+Clear, RoadWorldPoints는 HashSet. 스폰 지점·최종 목표 좌표도 비공개 | MapBuilder에 순서 보존 경로 + 스폰/목표 공개 API 신설
 - **WL-004** | OPEN | PR#31/32 | 배치 검증 공백: CanPlaceAt 항상 true, Snap 항등, 타일 종류(도로/용암/잔디) 질의 API 없음 → 도로·용암 위 타워 설치 가능 | MapBuilder 타일 질의 API + MouseManager 연동
@@ -20,7 +20,7 @@
 - **WL-012** | OPEN | - | GDD §9 미확정 항목 결합 주의: 병사/스킬 통합 여부, 몬스터 테마, 스테이지/보스 구성, 밸런싱 수치 → 관련 코드는 결합을 느슨하게 | GDD 확정 시 해제
 - **WL-013** | OPEN | PR#20/22 | 표시 문자열 소유권: ResourceData.DisplayName CSV 한글 하드코딩 vs Localization String Table | UI 노출 문자열의 키 이관 방침 결정
 - **WL-014** | OPEN | PR#22/29/31 | Get/Instance 계열 null 무가드 역참조 반복 (DataTableManager.Get, MouseManager.Instance 등) | 호출부 null 가드 관행 정착
-- **WL-015** | OPEN | PR#46 | 건물 밸런싱 수치(비용/주민당 생산량) 소유권 이원화: CSV 파이프라인(contract②) vs BuildingAsset SO 인스펙터. 현재 값 미기입 → #5/#8 소비 불가 | 수치 데이터 원본 합의 + 값 기입
+- **WL-015** | OPEN | PR#46/59 | 밸런싱 수치 소유권 이원화가 타워로 확대: 건물(주민당 생산량)에 이어 타워 공격 수치(damage/range/splash/chain/버프량)가 CSV가 아니라 TowerAsset SO 인스펙터 수기 입력(TowerAsset.*.Attack). 폴리모픽 필드라 평면 CSV에 담기 어려운 구조적 이유는 있으나 계약 #2(수치=CSV)와 긴장. 값 미기입 시 #21 소비 불가 | 폴리모픽 스탯의 데이터 원본 합의 + 값 기입
 - **WL-016** | OPEN | PR#46 | BuildingAsset.Data 캐시가 건물 타입당 단일 SO — 인스턴스별 레벨/주민 상태(GDD §4.2 업그레이드) 도입 시 공유 SO 덮어쓰기 위험 | 정적 조회 데이터 vs per-instance 상태 경계 확정
 - **WL-017** | OPEN | PR#48/#43 | ResourceWallet 소유권: #43에서 `ManagementController`가 지갑을 소유·노출(씬 범위, `OnChanged`로 UI 갱신)하여 하네스 로컬 문제는 해소. 단 전역/씬 간 공유(다른 씬의 소비처 접근) 방식은 WL-002 수명주기와 함께 미확정 | 전역 매니저/부트스트랩 규약 확정 시 지갑 소유·노출 최종화
 - **WL-018** | OPEN | PR#49/#43 | 밤→낮 전환(`DayNightManager.EndNight()`) 자동 트리거 부재 — 현재 **경영 패널(#43 `ManagementController.RequestAdvancePhase`)이 밤에 `EndNight()`를 임시로 호출**. 정식으로는 밤을 끝내는 주체(Combat 웨이브 클리어/사망 처리 등)가 책임져야 하며, 경영 패널의 임시 호출은 그때 제거·이관해야 함 | 밤 종료 주체 확정 후 `EndNight()` 자동 호출로 연결하고 경영 패널의 임시 트리거 제거
@@ -31,3 +31,4 @@
 - **WL-023** | OPEN | PR#54 | 카메라 제어가 Mouse/Keyboard.current 직접 폴링(CameraController) — 입력 단일 창구(§4.1)와 배치 모드 충돌 우려. 카메라 입력을 MouseManager가 소유할지/예외로 명문화할지 미정 | 카메라 입력 소유권 합의 + SystemMap §4.1 반영
 - **WL-024** | OPEN | PR#54 | 줌이 Lens.OrthographicSize에 하드결합 — #28 구도(쿼터뷰=원근 가능성) 미확정 상태에서 투영 방식 변경 시 재작업 | #28 확정 후 줌 대상 격리(ApplyZoom) 또는 확정값 반영
 - **WL-025** | OPEN | PR#53 | 콜라이더→IDamageable 해석·타겟 선정 방식 분기: Tower(OverlapSphere+첫매치+TryGetComponent) vs PlayerUnit/Enemy(NonAlloc+최근접+GetComponentInParent) | 신규 패턴으로 Tower 통일, 프리팹 콜라이더 배치 규약 확정
+- **WL-026** | OPEN | PR#59 | GDD 미기재 타워 택소노미 신규 도입: Single/Area/Chain/Magic(Buff/Debuff) 5종, 특히 haste_tower=타워가 타워를 버프하는 지원 타워. GDD §6.2/§8·보상(§6.6)·스킬 통합(§9)과 맞물릴 설계. 데이터 결합은 느슨 | GDD 반영 + 팀 합의(WL-012 연동)
