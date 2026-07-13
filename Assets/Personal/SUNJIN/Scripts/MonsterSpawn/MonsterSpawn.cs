@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -9,19 +11,30 @@ public class MonsterSpawn : MonoBehaviour
     [SerializeField] private Transform fallbackSpawnPoint;
     [SerializeField] private Transform monsterParent;
 
+    [Header("ScriptableObject Data")]
+    [SerializeField] private List<MonsterSpawnWave> spawnWaves = new List<MonsterSpawnWave>();
+    [SerializeField] private bool playOnStart;
+    [SerializeField] private int startRound = 1;
+
     private bool hasGeneratedSpawnPoint;
     private Vector3 generatedSpawnPosition;
     private Quaternion generatedSpawnRotation = Quaternion.identity;
-    protected CancellationTokenSource SpawnCancellationTokenSource { get; private set; }
+    private CancellationTokenSource spawnCancellationTokenSource;
 
-    protected Transform MonsterParent => monsterParent;
+    private void Start()
+    {
+        if (playOnStart)
+        {
+            StartRound(startRound);
+        }
+    }
 
-    protected virtual void OnDisable()
+    private void OnDisable()
     {
         CancelSpawnTasks();
     }
 
-    protected virtual void OnDestroy()
+    private void OnDestroy()
     {
         CancelSpawnTasks();
     }
@@ -33,23 +46,95 @@ public class MonsterSpawn : MonoBehaviour
         hasGeneratedSpawnPoint = true;
     }
 
-    public virtual void StartRound(int round)
+    public void StartRound(int round)
     {
-        Debug.LogWarning($"{GetType().Name}: StartRound is not implemented.", this);
+        if (!isActiveAndEnabled)
+        {
+            return;
+        }
+
+        if (DayNightManager.Instance != null &&
+            DayNightManager.Instance.CurrentPhase == DayNightManager.Phase.Day)
+        {
+            Debug.LogWarning("MonsterSpawn: cannot start a monster round during the day.", this);
+            return;
+        }
+
+        CancellationToken cancellationToken = RestartSpawnTasks();
+        SpawnRoundAsync(round, cancellationToken).Forget();
     }
 
-    protected CancellationToken RestartSpawnTasks()
+    private async UniTaskVoid SpawnRoundAsync(int round, CancellationToken cancellationToken)
+    {
+        try
+        {
+            MonsterSpawnWave wave = spawnWaves.Find(w => w != null && w.Round == round);
+
+            if (wave == null)
+            {
+                Debug.LogWarning($"MonsterSpawn: round {round} wave data is missing.", this);
+                return;
+            }
+
+            List<UniTask> groupTasks = new List<UniTask>();
+            float elapsedDelay = 0f;
+
+            foreach (MonsterSpawnEntry entry in wave.Entries.OrderBy(e => e.StartDelay))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                float waitTime = Mathf.Max(0f, entry.StartDelay - elapsedDelay);
+                if (waitTime > 0f)
+                {
+                    await UniTask.Delay(
+                        TimeSpan.FromSeconds(waitTime),
+                        cancellationToken: cancellationToken
+                    );
+
+                    elapsedDelay = entry.StartDelay;
+                }
+
+                groupTasks.Add(SpawnGroupAsync(entry, cancellationToken));
+            }
+
+            await UniTask.WhenAll(groupTasks);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async UniTask SpawnGroupAsync(MonsterSpawnEntry entry, CancellationToken cancellationToken)
+    {
+        int spawnCount = Mathf.Max(0, entry.Count);
+
+        for (int i = 0; i < spawnCount; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            SpawnPrefab(entry.MonsterPrefab);
+
+            if (i < spawnCount - 1 && entry.SpawnInterval > 0f)
+            {
+                await UniTask.Delay(
+                    TimeSpan.FromSeconds(entry.SpawnInterval),
+                    cancellationToken: cancellationToken
+                );
+            }
+        }
+    }
+
+    private CancellationToken RestartSpawnTasks()
     {
         CancelSpawnTasks();
 
-        SpawnCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
+        spawnCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
             this.GetCancellationTokenOnDestroy()
         );
 
-        return SpawnCancellationTokenSource.Token;
+        return spawnCancellationTokenSource.Token;
     }
 
-    protected bool TryGetSpawnPose(out Vector3 position, out Quaternion rotation)
+    private bool TryGetSpawnPose(out Vector3 position, out Quaternion rotation)
     {
         if (hasGeneratedSpawnPoint)
         {
@@ -70,32 +155,32 @@ public class MonsterSpawn : MonoBehaviour
         return false;
     }
 
-    protected void SpawnPrefab(GameObject prefab)
+    private void SpawnPrefab(GameObject prefab)
     {
         if (prefab == null)
         {
-            Debug.LogWarning($"{GetType().Name}: monster prefab is missing.", this);
+            Debug.LogWarning("MonsterSpawn: monster prefab is missing.", this);
             return;
         }
 
         if (!TryGetSpawnPose(out Vector3 position, out Quaternion rotation))
         {
-            Debug.LogWarning($"{GetType().Name}: spawn point is missing.", this);
+            Debug.LogWarning("MonsterSpawn: spawn point is missing.", this);
             return;
         }
 
         Instantiate(prefab, position, rotation, monsterParent);
     }
 
-    protected void CancelSpawnTasks()
+    private void CancelSpawnTasks()
     {
-        if (SpawnCancellationTokenSource == null)
+        if (spawnCancellationTokenSource == null)
         {
             return;
         }
 
-        SpawnCancellationTokenSource.Cancel();
-        SpawnCancellationTokenSource.Dispose();
-        SpawnCancellationTokenSource = null;
+        spawnCancellationTokenSource.Cancel();
+        spawnCancellationTokenSource.Dispose();
+        spawnCancellationTokenSource = null;
     }
 }

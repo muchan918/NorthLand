@@ -5903,9 +5903,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 960126889}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a097080ae14dc7f4e94a13cf246d5b67, type: 3}
+  m_Script: {fileID: 11500000, guid: e723700503c3a8b4c99fd3a046df2049, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MonsterSpawnScriptableObject
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterSpawn
   fallbackSpawnPoint: {fileID: 1875562406}
   monsterParent: {fileID: 1405165964}
   spawnWaves:
