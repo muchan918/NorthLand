@@ -32,3 +32,4 @@
 - **WL-024** | OPEN | PR#54 | 줌이 Lens.OrthographicSize에 하드결합 — #28 구도(쿼터뷰=원근 가능성) 미확정 상태에서 투영 방식 변경 시 재작업 | #28 확정 후 줌 대상 격리(ApplyZoom) 또는 확정값 반영
 - **WL-025** | OPEN | PR#53 | 콜라이더→IDamageable 해석·타겟 선정 방식 분기: Tower(OverlapSphere+첫매치+TryGetComponent) vs PlayerUnit/Enemy(NonAlloc+최근접+GetComponentInParent) | 신규 패턴으로 Tower 통일, 프리팹 콜라이더 배치 규약 확정
 - **WL-026** | OPEN | PR#59 | GDD 미기재 타워 택소노미 신규 도입: Single/Area/Chain/Magic(Buff/Debuff) 5종, 특히 haste_tower=타워가 타워를 버프하는 지원 타워. GDD §6.2/§8·보상(§6.6)·스킬 통합(§9)과 맞물릴 설계. 데이터 결합은 느슨 | GDD 반영 + 팀 합의(WL-012 연동)
+- **WL-027** | OPEN | PR#61 | 경영 공간 씬 정본 이원화: 게임 부트 씬 ManageSpace-Sungsoo.unity가 muchan/Scene/ManageSpace.unity의 복사본으로 출발했으나 main 머지로 157줄 divergence 발생(muchan 정본엔 TowerDataTest·ManageObjects 등 존재, 부트 복사본엔 없음). GameSceneManager가 복사본을 부팅해 muchan 후속 경영 씬 작업이 게임에 반영 안 됨, 25779줄 씬 재동기화 불가 | 경영 씬 정본 1개 확정 + GameSceneManager.ManageSpaceScene/EditorBuildSettings를 정본으로 지정 + 복사본 폐기
