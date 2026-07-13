@@ -14,6 +14,7 @@ public class CameraController : MonoBehaviour
 
     [Header("Move")]
     [SerializeField] private float moveSpeed = 15f;
+    [SerializeField] private float MouseMoveSpeed = 5f;
     [SerializeField] private float edgeSize = 20f;
     [SerializeField] private Vector2 xBounds = new Vector2(-40f, 10f);
     [SerializeField] private Vector2 zBounds = new Vector2(0f, 50f);
@@ -22,6 +23,28 @@ public class CameraController : MonoBehaviour
     [SerializeField] private float zoomSpeed = 2f;
     [SerializeField] private float minZoomSize  = 3f;
     [SerializeField] private float maxZoomSize = 20f;
+
+    private void Awake()
+    {
+        bool hasMissingReference = false;
+
+        if (cinemachineCamera == null)
+        {
+            Debug.LogError("CameraController: Cinemachine Camera 참조가 할당되지 않았습니다.", this);
+            hasMissingReference = true;
+        }
+
+        if (cameraTarget == null)
+        {
+            Debug.LogError("CameraController: Camera Target 참조가 할당되지 않았습니다.", this);
+            hasMissingReference = true;
+        }
+
+        if (hasMissingReference)
+        {
+            enabled = false;
+        }
+    }
 
     private void Update()
     {
@@ -44,13 +67,13 @@ public class CameraController : MonoBehaviour
             return;
         }
 
-        Transform mainCameraTransform = Camera.main.transform;
+        Transform cameraTransform = cinemachineCamera.transform;
 
-        Vector3 forward = mainCameraTransform.forward;
+        Vector3 forward = cameraTransform.forward;
         forward.y = 0f;
         forward.Normalize();
 
-        Vector3 right = mainCameraTransform.right;
+        Vector3 right = cameraTransform.right;
         right.y = 0f;
         right.Normalize();
 
@@ -104,7 +127,7 @@ public class CameraController : MonoBehaviour
             return;
         }
 
-        float currentMoveSpeed = isEdgeMoving ? moveSpeed + 5f : moveSpeed;
+        float currentMoveSpeed = isEdgeMoving ? moveSpeed + MouseMoveSpeed : moveSpeed;
 
         Vector3 nextPosition =
             cameraTarget.position + moveDirection.normalized * currentMoveSpeed * Time.deltaTime;
@@ -121,10 +144,15 @@ public class CameraController : MonoBehaviour
             return;
         }
 
+        ApplyZoom(scrollValue);
+    }
+
+    private void ApplyZoom(float delta)
+    {
         float before = cinemachineCamera.Lens.OrthographicSize;
 
         float nextSize = Mathf.Clamp(
-            before - scrollValue * zoomSpeed,
+            before - delta * zoomSpeed,
             minZoomSize,
             maxZoomSize
         );
