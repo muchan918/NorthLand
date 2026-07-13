@@ -9,7 +9,7 @@
 
 | 시스템                                      | 소유자     | 경로                                                                 | 상태                                                                                                                                                                    |
 | ------------------------------------------- | ---------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| DataTable (CSV→static 레지스트리→SO)        | muchan     | `Assets/Personal/muchan`                                             | Resource, Building 2종 구현. Territory/Tower/Skill/Reward 확장 예정                                                                                                     |
+| DataTable (CSV→static 레지스트리→SO)        | muchan     | `Assets/Personal/muchan`                                             | Resource, Building, Tower 3종 구현(Tower는 데이터 레이어만 — Combat 연동 미착수, WL-001). Territory/Skill/Reward 확장 예정                                             |
 | Combat (타워/몬스터 공격·데미지)            | SUNGSOO    | `Assets/Personal/SUNGSOO/Scirpts/Combat` (폴더명 오타 주의 — WL-010) | 공격/데미지 코어만. 이동·사망처리·투사체 없음                                                                                                                           |
 | BattleMapBuilder (절차적 전투 맵)           | SUNJIN     | `Assets/Personal/SUNJIN/Scripts/MapBuilder`                          | 7×7 블록 경로 생성 구현. 싸이클 버그 해결이 다음 빌드 목표                                                                                                              |
 | MouseManager (입력/선택/배치)               | n0wst4ndup | `Assets/Personal/n0wst4ndup/MouseManager`                            | 2상태 머신 구현. Snap 항등·CanPlaceAt 항상 true (TODO)                                                                                                                  |
@@ -23,7 +23,10 @@
 - `DataTableManager.Get<T>(string id)` — static. **null 반환 가능 → 호출부 null 체크 필수**
 - `ResourceTable.Get(string id)` — null 반환 가능
 - `BuildingTable.Get(string id)` — null 반환 가능
-- `ResourceAsset.Data` / `BuildingAsset.Data` — **호출부가 Start()에서 직접 채우는 규약** (저장 안 됨)
+- `TowerTable.Get(string id)` — null 반환 가능. `TowerAsset`은 아직 muchan 폴더 데이터 레이어
+  전용이며 Combat의 `Tower.cs`는 소비하지 않음(WL-001 — 마이그레이션 전)
+- `ResourceAsset.Data` / `BuildingAsset.Data` / `TowerAsset.Data` — **호출부가 Start()에서 직접
+  채우는 규약** (저장 안 됨)
 - `BuildingInfoUI.Instance.ShowInfo(string)` / `HideInfo()` — 경영 공간 전용 정보 패널. `TowerInfoUI`와
   동일 구조의 별도 씬 싱글톤 (공간 분리 계약상 Combat의 `TowerInfoUI`와 공유하지 않음)
 - `IDamageable { Faction, IsDead, TakeDamage(DamageInfo) }`, `IAttacker`, `DamageInfo`,
@@ -39,8 +42,16 @@
   질의 `ResourceCount`/`LineCount`/`LineKind`/`AssignedTotal`/`IsDay`/`CanAdvancePhase`, `event OnChanged`(뷰 갱신).
   UI(`ManagementPanelView`/`ProductionLineView`)는 이 컨트롤러만 구독·호출 — UI 아트 교체 시 뷰 참조만 재연결
 - `MouseManager.Instance.BeginPlacement(PlacementRequest)` / `CancelPlacement()` / `event OnSelectionChanged`
+- `MouseManager.Instance.PointerPosition`(포인터 화면 좌표 — Mouse.current 직접 폴링 대신 이걸 쓴다) /
+  `event OnHoverChanged(IHoverable)`(커서 밑 호버 대상, 없으면 null. Idle에서만 통지)
 - `ISelectable { OnSelected(), OnDeselected() }`,
   `PlacementRequest { GhostPrefab, CanPlaceAt, OnConfirmed, KeepPlacingAfterConfirm }`
+- `IHoverable { TooltipContent GetTooltipContent() }` — 호버 시 툴팁 내용을 pull 공급(호버 시점마다 호출 → 동적 값 가능)
+- `TooltipUI.Instance.Show(TooltipContent)` / `Hide()` — 커서 추적 범용 툴팁 뷰(#38). **임시 싱글톤(UIManager 흡수 예정)**,
+  `TowerInfoUI`/`BuildingInfoUI`와 동일 계보. `OnHoverChanged`를 자체 구독. `Assets/Personal/n0wst4ndup/MouseHover`
+- `TooltipContent { Header, Body, HeaderColor, BackgroundColor }` — 구체 개념 무지한 표시 데이터. 건물·버프 등 공급자가 채움
+- `BuildingTooltipSource`(건물용 `IHoverable` 어댑터, `BuildingAsset`/`BuildingData` **읽기 전용** 소비) +
+  `BuildingTooltipPalette`(`BuildingType`→색 SO). 클릭 선택 `BuildingInfo`와 **역할 분리**(호버=요약 툴팁, 클릭=기능 패널)
 - `DayNightManager.Instance` — **null 반환 가능(씬에 없으면) → 호출부 null 체크 필수**.
   `CurrentPhase` / `WaveCount` / `EndDay()` / `EndNight()` / `event OnDayStart, OnDayToNight, OnNightToDay`.
   `OnDayStart`는 1일차 부트스트랩 포함 매 낮 시작마다 발생, `OnNightToDay`는 밤을 거친 전환에서만 발생(웨이브 종료 의미) — 구독 시 구분해서 사용할 것.
@@ -60,7 +71,7 @@
 | Management(Resource) ↔ DataTable         | `ResourceKind`(지갑 키)·`BuildingAsset.ProductionFields`(생산처 입력)·`ResourceAsset.Data`(정산 시 `Kind` 해석, 호출부 `Start()` 채움 규약) 의존 — muchan이 이 구조 바꾸면 자원 시스템 깨짐                                |
 | Management(Resource) ↔ DayNightManager   | 정산=`OnDayToNight` 구독, 주민 초기화=`OnNightToDay` 구독, 전환=`EndDay`/`EndNight` 호출. **밤→낮(`EndNight`)은 패널이 임시 트리거 — 밤 종료 주체(Combat 웨이브 클리어 등)로 책임 이관 필요(WL-018)**. 주민 수는 여전히 placeholder(주민 시스템 부재)                |
 | Management(Resource) ↔ 주민(미존재)      | 주민 수 입력 심 — 현재 `_maxVillagers` placeholder + 패널 +/-. 주민 시스템 생기면 출처 이관                                                                                                                                |
-| DataTable(Building) ↔ MouseManager       | `BuildingInfo`가 `ISelectable` 구현 + `BuildingAsset` 보유 — 선택 시 `BuildingInfoUI` 직접 호출(이벤트 미구독, WL-011과 동일 패턴). `MouseManager`가 씬에 없으면 조용히 무반응(WL-002) — 씬마다 배치·`_camera` 재할당 필요 |
+| DataTable(Building) ↔ MouseManager       | `BuildingInfo`가 `ISelectable` 구현 + `BuildingAsset` 보유 — 선택 시 `BuildingInfoUI` 직접 호출(이벤트 미구독, WL-011과 동일 패턴). `BuildingTooltipSource`(#38)가 `IHoverable` 구현 + `BuildingAsset`/`BuildingData`/`BuildingType`을 **읽기 전용** 소비(muchan 구조 바뀌면 툴팁 깨짐 — 자체 `DataTableManager.Get` 조회, Data 채움 규약 의존). `MouseManager`가 씬에 없으면 조용히 무반응(WL-002) — 씬마다 배치·`_camera` 재할당 필요 |
 | 모든 시스템 ↔ 전역 설정                  | 레이어/태그(`ProjectSettings/TagManager.asset` — WL-005), URP 설정(`Assets/Settings`), 패키지(`Packages/manifest.json`)                                                                                                    |
 
 ## 4. 팀 계약 (위반 = 🔴 후보)
@@ -97,7 +108,8 @@
   채택 — 경영/전투 공간이 한 씬에 공존해 씬 전환에 걸쳐 상태를 유지할 이유가 없다는 판단(WL-002 참고 사례).
 - **에셋 로딩**: Resources.Load(DataTable)와 Addressables(Localization) 공존.
 - **스탯 데이터 원본**: Combat의 TowerData/EnemyData(SO 직접 입력) vs DataTable CSV 파이프라인 —
-  단일화 미결정 (WL-001).
+  단일화 미결정. muchan 폴더에 CSV 기반 `TowerAsset` 후보가 마련됐으나(1절 DataTable 상태 참고)
+  Combat/`Tower.cs` 마이그레이션은 아직 착수 전 (WL-001).
 - **용어 '웨이포인트'**: MapBuilder의 StageWaypoint(블록 경계 연결점) ≠ GDD §6.4 웨이포인트(병사
   배치 지점) (WL-009).
 - **용어 '스테이지'**: MapBuilder의 블록 단위 ≠ GDD의 런 단위 스테이지 (WL-009).

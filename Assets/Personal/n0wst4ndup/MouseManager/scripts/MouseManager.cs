@@ -15,6 +15,11 @@ public class MouseManager : MonoBehaviour
     public static MouseManager Instance { get; private set; }
 
     public event Action<ISelectable> OnSelectionChanged;
+    // 커서 밑 호버 대상이 바뀔 때만 통지(없으면 null). 툴팁 UI가 구독해 표시/숨김을 결정한다.
+    public event Action<IHoverable> OnHoverChanged;
+    // 현재 포인터 화면 좌표. 다른 시스템(툴팁 등)이 Mouse.current를 직접 읽지 않고 여기서 얻는다(입력 단일 창구 계약).
+    public Vector2 PointerPosition { get; private set; }
+
     private Mode _mode = Mode.Idle;
 
     [SerializeField] Camera _camera;
@@ -26,6 +31,7 @@ public class MouseManager : MonoBehaviour
     [SerializeField] LayerMask _placementMask;
 
     private ISelectable _selected;
+    private IHoverable _hovered;
     private PlacementRequest _request;
     private GameObject _ghost;
 
@@ -45,6 +51,7 @@ public class MouseManager : MonoBehaviour
     private void Update()
     {
         var screenPos = Mouse.current.position.ReadValue();
+        PointerPosition = screenPos;
         bool overUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
 
         switch (_mode)
@@ -58,6 +65,7 @@ public class MouseManager : MonoBehaviour
     public void BeginPlacement(PlacementRequest request)
     {
         CancelPlacement();
+        ClearHover(); // 배치 중에는 툴팁을 띄우지 않는다
         _request = request;
         _ghost = Instantiate(request.GhostPrefab);
         _mode = Mode.Placement;
@@ -74,6 +82,8 @@ public class MouseManager : MonoBehaviour
     // ── Idle: 선택 (요구사항 ②) ────────────────────────────────────
     private void UpdateIdle(Vector2 screenPos, bool overUI)
     {
+        UpdateHover(screenPos, overUI);
+
         if (overUI || !Mouse.current.leftButton.wasPressedThisFrame) return;
 
         if (RaycastMask(screenPos, _selectableMask, out var hit) && hit.collider.TryGetComponent(out ISelectable sel))
@@ -81,6 +91,27 @@ public class MouseManager : MonoBehaviour
         else
             Select(null); // 빈 곳 클릭 → 선택 해제
     }
+
+    // ── Idle: 호버 (툴팁) ─────────────────────────────────────────
+    // 커서 밑 IHoverable을 추적해 바뀔 때만 통지. 표시 여부·연출은 구독자(툴팁 UI) 책임.
+    // 호버 대상 레이어는 선택 후보와 같다고 보고 _selectableMask를 재사용(최종 판정은 IHoverable 유무).
+    private void UpdateHover(Vector2 screenPos, bool overUI)
+    {
+        IHoverable next = null;
+        if (!overUI && RaycastMask(screenPos, _selectableMask, out var hit))
+            hit.collider.TryGetComponent(out next); // 없으면 next는 null
+
+        SetHover(next);
+    }
+
+    private void SetHover(IHoverable next)
+    {
+        if (ReferenceEquals(_hovered, next)) return;
+        _hovered = next;
+        OnHoverChanged?.Invoke(_hovered);
+    }
+
+    private void ClearHover() => SetHover(null);
 
     private void Select(ISelectable next)
     {
