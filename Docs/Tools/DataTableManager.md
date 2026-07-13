@@ -167,6 +167,43 @@ haste_tower,가속의 탑,Magic,Buff,1,1,아군 공격속도 강화,범위 내 �
 slow_tower,서리의 탑,Magic,Debuff,1,1,적 이동속도 감소,범위 내 적 이동속도 감소
 ```
 
+### EnemyTable (GDD 5.2 — 전투 공간 몬스터)
+
+| 컬럼          | 타입                          | 설명                        |
+| ------------- | ----------------------------- | --------------------------- |
+| `EnemyID`     | string (PK)                   | 몬스터 고유 키 (`goblin_warrior`, `goblin_archer`, `ogre_king`) |
+| `DisplayName` | string                        | 표시용 한글 이름            |
+| `EnemyType`   | enum(`Melee`/`Ranged`/`Boss`) | 공격 방식 분류              |
+| `Role`        | string                         | 역할 한 줄 요약             |
+| `Description` | string                         | 기본 효과 설명 (UI 툴팁용)  |
+
+CSV에는 위 공통 필드만 있고, 몬스터별 세부 스탯(체력/이동속도/공격력/사거리/공격주기,
+보스 전용 데이터)은 CSV가 아니라 `EnemyAsset`(SO)에 `EnemyType`별 필드 그룹으로 들어간다.
+Tower와 동일한 이유(§3 TowerTable 절 참고)로, `Boss`가 향후 BehaviorTree 참조 등 다른
+타입엔 없는 고유 필드를 가져야 해서 진짜 폴리모픽 구조다:
+
+- `Melee` → `MeleeFields { Stat }`
+- `Ranged` → `RangedFields { Stat, ProjectilePrefab, ProjectileSpeed }`
+- `Boss` → `BossFields { Stat, BehaviorTree }` — `BehaviorTree`는 실제 BT 에셋 타입이
+  정해지기 전까지의 placeholder(`Object`). 정해지면 필드 타입만 교체하면 되고
+  CSV/`EnemyData`(POCO)/`EnemyTable`은 변경할 필요 없음
+- `Stat { MaxHp, MoveSpeed, AttackDamage, AttackRange, AttackInterval }`는 세 타입이
+  공통으로 내장하는 nested 구조체. 필드 의미는 Combat의 기존 `EnemyData`
+  (`Assets/Personal/SUNGSOO/Scirpts/Combat/Enemy/EnemyData.cs`)와 대응되도록 맞춰뒀다 —
+  실제 Combat 마이그레이션은 아직 미착수(WL-001). `MoveSpeed`는 Combat 쪽엔 없는 신규 필드
+- `EnemyType`에 따라 인스펙터에 관련 필드 그룹만 보이도록 `EnemyAssetEditor`
+  (`Assets/Personal/muchan/Editor/EnemyAssetEditor.cs`)가 `TowerAssetEditor`와 동일한
+  패턴의 커스텀 인스펙터를 그린다 (1단계 분기만, `MagicEffectType` 같은 2단계 분기 없음)
+
+CSV: `Assets/Resources/DataTables/EnemyTable.csv`
+
+```
+EnemyID,DisplayName,EnemyType,Role,Description
+goblin_warrior,고블린 전사,Melee,근접 몬스터,본진까지 도달해 근접 공격을 가하는 기본 몬스터
+goblin_archer,고블린 궁수,Ranged,원거리 몬스터,사거리 밖에서 원거리 공격을 가하는 몬스터
+ogre_king,오우거 킹,Boss,보스 몬스터,강력한 스탯과 고유 행동 패턴(BehaviorTree)을 가진 보스 몬스터
+```
+
 ## 4. 사용 방법
 
 ### 4.1 CSV 수정 후 Import가 필요한 경우 / 필요 없는 경우
@@ -243,6 +280,11 @@ CLI 빌드/테스트가 없는 프로젝트이므로 Unity Editor에서 직접 �
 7. [`TowerTableTest.cs`](../../Assets/Personal/muchan/Data/Tower/TowerTableTest.cs)로 Play 모드에서
    5개 타워의 `DisplayName`/`TowerType`/`MagicEffectType`/`GridWidth`/`GridHeight`가
    출력되는지 확인
+8. `Tools > Table Importer` → `Enemy` → `Import` → `Assets/Resources/ScriptableObjects/Enemies/`에
+   3개 몬스터 `.asset` 생성 확인. `EnemyType`별로 하나씩 인스펙터를 열어 `EnemyAssetEditor`가
+   해당 타입 필드 그룹만 보여주는지(`Boss`는 `BehaviorTree` placeholder 필드까지) 확인
+9. [`EnemyTableTest.cs`](../../Assets/Personal/muchan/Data/Enemy/EnemyTableTest.cs)로 Play 모드에서
+   3개 몬스터의 `DisplayName`/`EnemyType`/`Role`이 출력되는지 확인
 
 ## 7. 다음 계획
 
