@@ -26,9 +26,10 @@ namespace NorthLand.Combat
             _ => null,
         };
 
-        public float AttackDamage => Attack.AttackDamage;
-        public float AttackRange => Attack.AttackRange;
-        public float AttackInterval => Attack.AttackInterval;
+        // Magic 타워/미할당(Attack==null)에서도 안전하도록 null 가드(공개 IAttacker 계약).
+        public float AttackDamage => Attack != null ? Attack.AttackDamage : 0f;
+        public float AttackRange => Attack != null ? Attack.AttackRange : 0f;
+        public float AttackInterval => Attack != null ? Attack.AttackInterval : 0f;
 
         void Update()
         {

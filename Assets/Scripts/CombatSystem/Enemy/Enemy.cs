@@ -34,9 +34,10 @@ namespace NorthLand.Combat
         public Faction Faction => Faction.Enemy;
         public bool IsDead => currentHp <= 0f;
 
-        public float AttackDamage => Stat.AttackDamage;
-        public float AttackRange => Stat.AttackRange;
-        public float AttackInterval => Stat.AttackInterval;
+        // Stat 미설정(Stat==null)에서도 안전하도록 null 가드(공개 IAttacker 계약).
+        public float AttackDamage => Stat != null ? Stat.AttackDamage : 0f;
+        public float AttackRange => Stat != null ? Stat.AttackRange : 0f;
+        public float AttackInterval => Stat != null ? Stat.AttackInterval : 0f;
 
         void Update()
         {

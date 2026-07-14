@@ -15,7 +15,7 @@ EditorBuildSettings:
     path: Assets/Personal/SUNGSOO/Scene/MainMenu.unity
     guid: c5a503df99daa95438604ad2c18f283a
   - enabled: 1
-    path: Assets/Personal/SUNGSOO/Scene/TestSpace-Sungsoo.unity
+    path: Assets/Personal/SUNGSOO/Scene/ManageSpace-Sungsoo.unity
     guid: 4432b34c98fd171418e8fc1e999ad21d
   m_configObjects:
     com.unity.addressableassets: {fileID: 11400000, guid: 52b35fea748fd444692ae8110add9ae2, type: 2}
