@@ -53,7 +53,7 @@
 - `MouseManager.Instance.PointerPosition`(포인터 화면 좌표 — Mouse.current 직접 폴링 대신 이걸 쓴다) /
   `event OnHoverChanged(IHoverable)`(커서 밑 호버 대상, 없으면 null. Idle에서만 통지)
 - `ISelectable { OnSelected(), OnDeselected() }`,
-  `PlacementRequest { GhostPrefab, CanPlaceAt, OnConfirmed, KeepPlacingAfterConfirm }`
+  `PlacementRequest { GhostPrefab, Snap(RaycastHit→pos), CanPlaceAt(RaycastHit), OnConfirmed(RaycastHit,pos), OnEnded, KeepPlacingAfterConfirm }` — **히트 인지형**: 스냅/검증/확정을 요청 측이 소유(MouseManager는 그리드 규칙 무지), `OnEnded`로 취소/확정 시 프리뷰 정리(PR#81)
 - `IHoverable { TooltipContent GetTooltipContent() }` — 호버 시 툴팁 내용을 pull 공급(호버 시점마다 호출 → 동적 값 가능)
 - `TooltipUI.Instance.Show(TooltipContent)` / `Hide()` — 커서 추적 범용 툴팁 뷰(#38). **임시 싱글톤(UIManager 흡수 예정)**,
   `TowerInfoUI`/`BuildingInfoUI`와 동일 계보. `OnHoverChanged`를 자체 구독. `Assets/Scripts/GameManager/MouseHover`
