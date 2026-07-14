@@ -9,14 +9,14 @@
 
 | 시스템                                      | 소유자     | 경로                                                                 | 상태                                                                                                                                                                    |
 | ------------------------------------------- | ---------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| DataTable (CSV→static 레지스트리→SO)        | muchan     | `Assets/Personal/muchan`                                             | Resource, Building, Tower, Enemy 4종 구현(Tower/Enemy는 데이터 레이어만 — Combat 연동 미착수, WL-001). Territory/Skill/Reward 확장 예정                                |
-| Combat (타워/몬스터 공격·데미지)            | SUNGSOO    | `Assets/Personal/SUNGSOO/Scirpts/Combat` (폴더명 오타 주의 — WL-010) | 공격/데미지 코어만. 이동·사망처리·투사체 없음                                                                                                                           |
-| BattleMapBuilder (절차적 전투 맵)           | SUNJIN     | `Assets/Personal/SUNJIN/Scripts/MapBuilder`                          | 7×7 블록 경로 생성 구현. 싸이클 버그 해결이 다음 빌드 목표                                                                                                              |
-| MouseManager (입력/선택/배치)               | n0wst4ndup | `Assets/Personal/n0wst4ndup/MouseManager`                            | 2상태 머신 구현. Snap 항등·CanPlaceAt 항상 true (TODO)                                                                                                                  |
-| Localization                                | n0wst4ndup | `Assets/Personal/n0wst4ndup/Localization`                            | 로케일 전환 테스트만 (ko-KR/en-US/ja-JP)                                                                                                                                |
-| DayNightManager (낮/밤 상태·전환 이벤트 훅) | muchan     | `Assets/Personal/muchan/DayNight`                                    | 상태 관리 + 전환 이벤트 훅만 구현. 자원 정산/본진 회복/주민 배치 초기화는 미구현(각 소유 시스템 대기). 밤→낮 트리거는 임시 3초 코루틴(웨이브 클리어 로직으로 교체 예정) |
-| DayNightLighting (낮/밤 전환 조명·스카이박스 연출, #7) | muchan     | `Assets/Personal/muchan/DayNight`                                    | `OnDayToNight`/`OnNightToDay` 구독해 Directional Light·Ambient(Trilight)·Skybox를 즉시 전환(스냅). 부드러운 Lerp 전환은 미구현 — 밤 종료 자동화의 UniTask 전환 작업과 함께 후속 예정 |
-| Management(Resource) (자원 지갑·생산처)     | n0wst4ndup | `Assets/Personal/n0wst4ndup/Management`                              | 지갑·생산처(#42) + 경영 패널 UI·DayNightManager 낮/밤 루프 연동(#43). 정산=OnDayToNight, 초기화=OnNightToDay. **밤→낮 전환은 패널이 임시 트리거(WL-018)**. 주민 수는 placeholder(주민 시스템 부재). 소비처·마나석 생산 후속 |
+| DataTable (CSV→static 레지스트리→SO)        | muchan     | `Assets/Scripts/Data`                                             | Resource, Building, Tower, Enemy 4종 구현(Tower/Enemy는 데이터 레이어만 — Combat 연동 미착수, WL-001). Territory/Skill/Reward 확장 예정                                |
+| Combat (타워/몬스터 공격·데미지)            | SUNGSOO    | `Assets/Scripts/CombatSystem` | 공격/데미지 코어만. 이동·사망처리·투사체 없음                                                                                                                           |
+| BattleMapBuilder (절차적 전투 맵)           | SUNJIN     | `Assets/Scripts/CombatSpace/MapBuilder`                          | 7×7 블록 경로 생성 구현. 싸이클 버그 해결이 다음 빌드 목표                                                                                                              |
+| MouseManager (입력/선택/배치)               | n0wst4ndup | `Assets/Scripts/GameManager/MouseManager`                            | 2상태 머신 구현. Snap 항등·CanPlaceAt 항상 true (TODO)                                                                                                                  |
+| Localization                                | n0wst4ndup | `Assets/Scripts/Test/LocalizationTest.cs`                            | 로케일 전환 테스트만 (ko-KR/en-US/ja-JP)                                                                                                                                |
+| DayNightManager (낮/밤 상태·전환 이벤트 훅) | muchan     | `Assets/Scripts/DayNight`                                    | 상태 관리 + 전환 이벤트 훅만 구현. 자원 정산/본진 회복/주민 배치 초기화는 미구현(각 소유 시스템 대기). 밤→낮 트리거는 임시 3초 코루틴(웨이브 클리어 로직으로 교체 예정) |
+| DayNightLighting (낮/밤 전환 조명·스카이박스 연출, #7) | muchan     | `Assets/Scripts/DayNight`                                    | `OnDayToNight`/`OnNightToDay` 구독해 Directional Light·Ambient(Trilight)·Skybox를 즉시 전환(스냅). 부드러운 Lerp 전환은 미구현 — 밤 종료 자동화의 UniTask 전환 작업과 함께 후속 예정 |
+| Management(Resource) (자원 지갑·생산처)     | n0wst4ndup | `Assets/Scripts/ManagementSpace`                              | 지갑·생산처(#42) + 경영 패널 UI·DayNightManager 낮/밤 루프 연동(#43). 정산=OnDayToNight, 초기화=OnNightToDay. **밤→낮 전환은 패널이 임시 트리거(WL-018)**. 주민 수는 placeholder(주민 시스템 부재). 소비처·마나석 생산 후속 |
 
 ## 2. 공개 API (다른 시스템이 소비해도 되는 것)
 
@@ -55,7 +55,7 @@
   `PlacementRequest { GhostPrefab, CanPlaceAt, OnConfirmed, KeepPlacingAfterConfirm }`
 - `IHoverable { TooltipContent GetTooltipContent() }` — 호버 시 툴팁 내용을 pull 공급(호버 시점마다 호출 → 동적 값 가능)
 - `TooltipUI.Instance.Show(TooltipContent)` / `Hide()` — 커서 추적 범용 툴팁 뷰(#38). **임시 싱글톤(UIManager 흡수 예정)**,
-  `TowerInfoUI`/`BuildingInfoUI`와 동일 계보. `OnHoverChanged`를 자체 구독. `Assets/Personal/n0wst4ndup/MouseHover`
+  `TowerInfoUI`/`BuildingInfoUI`와 동일 계보. `OnHoverChanged`를 자체 구독. `Assets/Scripts/GameManager/MouseHover`
 - `TooltipContent { Header, Body, HeaderColor, BackgroundColor }` — 구체 개념 무지한 표시 데이터. 건물·버프 등 공급자가 채움
 - `BuildingTooltipSource`(건물용 `IHoverable` 어댑터, `BuildingAsset`/`BuildingData` **읽기 전용** 소비) +
   `BuildingTooltipPalette`(`BuildingType`→색 SO). 클릭 선택 `BuildingInfo`와 **역할 분리**(호버=요약 툴팁, 클릭=기능 패널)
@@ -101,7 +101,7 @@
    정보 표시=UI. MouseManager는 선택 사실만 통지.
 7. **문서-코드 동기화**: 시스템 구현·변경 PR은 해당 Docs/ 문서 갱신 포함 필수. (일치 여부 자체는
    설계 검증이 아님 — 갱신 포함 여부만 확인)
-8. **저장소 배치** (CLAUDE.md): WIP는 `Assets/Personal/<이름>/`, `Assets/Imported/` 수정 금지.
+8. **저장소 배치** (CLAUDE.md): 스크립트 정본은 `Assets/Scripts/`(공간/시스템 폴더), 씬 등 비-스크립트 WIP는 `Assets/Personal/<이름>/`, `Assets/Imported/` 수정 금지.
 
 ## 5. 미합의 전역 계약 (합의 없는 변경·점유 = 최소 🟠)
 
