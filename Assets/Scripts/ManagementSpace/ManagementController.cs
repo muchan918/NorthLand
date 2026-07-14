@@ -32,6 +32,7 @@ public class ManagementController : MonoBehaviour
     private int[] _villagerCounts;
 
     private DayNightManager _dayNight;
+    private TerritoryController _territory;
 
     public int LineCount => _sources != null ? _sources.Length : 0;
     public int MaxVillagers => _maxVillagers;
@@ -55,6 +56,9 @@ public class ManagementController : MonoBehaviour
     public bool IsDay => _dayNight == null || _dayNight.CurrentPhase == DayNightManager.Phase.Day;
     public int WaveCount => _dayNight != null ? _dayNight.WaveCount : 0;
 
+    // 영토가 씬에 없으면(null) 게이트 없이 배치 허용(permissive) — IsDay와 동일한 패턴.
+    public bool CanAssignVillagers => _territory == null || _territory.HasExpandedToday;
+
     // 잉여 주민이 없어야(전원 배치) 밤으로 전환 가능.
     public bool CanEndDay => IsDay && AssignedTotal >= _maxVillagers;
 
@@ -77,6 +81,7 @@ public class ManagementController : MonoBehaviour
     private void Start()
     {
         SubscribeDayNight();
+        SubscribeTerritory();
         OnChanged?.Invoke();
     }
 
@@ -85,6 +90,10 @@ public class ManagementController : MonoBehaviour
         if (_dayNight != null)
         {
             _dayNight.OnNightToDay -= HandleNightToDay;
+        }
+        if (_territory != null)
+        {
+            _territory.OnChanged -= HandleTerritoryChanged;
         }
     }
 
@@ -138,6 +147,20 @@ public class ManagementController : MonoBehaviour
 
         _dayNight.OnNightToDay += HandleNightToDay;
     }
+
+    private void SubscribeTerritory()
+    {
+        _territory = TerritoryController.Instance;
+        if (_territory == null)
+        {
+            Debug.LogWarning("[경영] TerritoryController가 씬에 없습니다. 영토 확장 없이도 주민을 배치할 수 있습니다.");
+            return;
+        }
+
+        _territory.OnChanged += HandleTerritoryChanged;
+    }
+
+    private void HandleTerritoryChanged() => OnChanged?.Invoke();
 
     // ── 뷰(또는 후속 패널 버튼)가 호출하는 진입점 ─────────────────────────
     public void AssignVillager(int index)
@@ -222,6 +245,11 @@ public class ManagementController : MonoBehaviour
         if (!IsDay)
         {
             Debug.Log("[경영] 밤에는 배치를 변경할 수 없습니다.");
+            return false;
+        }
+        if (!CanAssignVillagers)
+        {
+            Debug.Log("[경영] 오늘 아직 영토를 확장하지 않아 주민을 배치할 수 없습니다.");
             return false;
         }
         return IsValidLine(index);

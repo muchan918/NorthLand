@@ -132,7 +132,7 @@
 | **선택 입력** | 노드가 `ISelectable` 구현 → `MouseManager`가 Idle 클릭으로 선택 통지(팀 계약 #1 입력 단일 창구). 확정 판정은 모델(`Selectable`인가)이 담당 |
 | **호버 툴팁** | 노드가 `IHoverable` 구현 → `TooltipUI`(#38) 재사용. **표시명 + 효과 설명**을 pull 공급 — #38에서 "그래프형 버프 건물 재사용"으로 설계해 둔 바로 그 지점 |
 | **자원 보상** | 효과가 `ResourceWallet.Add`로 마나석 지급(GDD §4.2 / 팀 계약 #3 — 마나석은 영토 확장·전투 보상에서만. **정당한 마나 원천**). 주민 획득(§6.1)은 주민 시스템 부재로 placeholder 심 |
-| **낮/밤** | 확장은 **낮 행동**(GDD §5.1) → `DayNightManager`로 낮에만 허용 게이팅 고려(밤엔 선택 잠금). 확장 빈도(하루 1회? 비용?)는 §8 TBD |
+| **낮/밤** | 확장은 **낮 행동**(GDD §5.1). `TerritoryController`가 `DayNightManager.OnDayStart`를 구독해 `HasExpandedToday`를 매 낮 시작마다 초기화하고, `TryClaim`에서 하루 1회로 게이팅한다(이슈 #67). 확장을 마쳐야(`HasExpandedToday == true`) `ManagementController`의 주민 배치가 열린다(§6.1 연동, 아래 참고). 밤 잠금·자원 비용 게이팅은 여전히 TBD(§8) |
 | **공간 분리** | 경영 공간 전용. 전투 그리드(BattleMapBuilder)·좌표계와 **무관**(팀 계약 #4 — 한쪽 확장이 다른 쪽 상태에 의존 금지) |
 
 ---
@@ -161,7 +161,10 @@
       없음; 노드 간격·다리 표현만 뷰가 정함).
 - [x] **그래프 생성 방식**: **확정** — §4.1 런 시작 시 미리 전체 생성 + Delaunay 삼각분할 프루닝 + 프론티어 공개.
 - [ ] **노드 해금 조건·개수**: 최대 30 내에서 실제 활성/해금 개수와 "특정 조건마다 열림" 규칙 미정(TBD).
-- [ ] **확장 규칙**: 하루 1회 제한? 자원(마나 등) 비용? (GDD §5.1 "하나 선택"의 정확한 규칙 미정)
+- [x] **확장 규칙(하루 1회)**: **확정**(이슈 #67) — 낮 시작(`DayNightManager.OnDayStart`)마다
+      `TerritoryController.HasExpandedToday`를 초기화, `TryClaim`에서 하루 1회만 허용. 그 날 확장을
+      마쳐야 `ManagementController.CanAssignVillagers`가 열려 주민 배치가 가능해진다(GDD §6.1 "영토
+      확장을 통해 주민 획득"과 정합). 자원(마나 등) 비용 게이팅은 여전히 TBD.
 - [ ] **보상 구체 수치**: 마나량·주민 획득 수 출처(CSV 파이프라인? 계약 #2). 주민 획득은 주민 시스템 의존.
 - [ ] **좌표계**: 2D 캔버스(uGUI) vs 3D 월드 노드. 비그리드지만 공간 선택·호버가 필요 → 입력/레이캐스트 방식 결정.
 - [ ] **표시 문자열 소유권**: TerritoryDefinition 표시명/설명을 CSV→SO vs authored SO (WL-013 연동).
