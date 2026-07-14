@@ -18,11 +18,11 @@ MonoBehaviour:
   Cost: []
   Single:
     Attack:
-      AttackDamage: 0
-      AttackRange: 0
-      AttackInterval: 0
-      ProjectilePrefab: {fileID: 0}
-      ProjectileSpeed: 0
+      AttackDamage: 10
+      AttackRange: 10
+      AttackInterval: 1
+      ProjectilePrefab: {fileID: 1734245126228380, guid: 41c31c5e3f16cfa43ace39def9113a7a, type: 3}
+      ProjectileSpeed: 20
   Area:
     Attack:
       AttackDamage: 0
