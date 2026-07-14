@@ -5505,10 +5505,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9aacb376eb85fda458a0222fe1750255, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StageBuilder
-  grassCube: {fileID: 1821374989505724, guid: 1a51fe95cc8cc3a4ca8f62728430ca9f, type: 3}
-  roadCube: {fileID: 1985371176695494, guid: e743ac3c54ab21b47b8340fe84b65834, type: 3}
-  lavaCube: {fileID: 1943553811464758, guid: bfec0a21b0fbb5345a7a01580e91a320, type: 3}
-  finalCenterObject: {fileID: 1465482931592304, guid: 38919549c328efd4b85dd6920e915404, type: 3}
+  grassCube: {fileID: 4692752870796322662, guid: ed43d90ee48e54e4f8fd6fcb23aa3f66, type: 3}
+  roadCube: {fileID: 4487478223510309306, guid: d89ca38ea4bae854dab1c78fa7323572, type: 3}
+  lavaCube: {fileID: 5493073456165885573, guid: c9408da30a5b4504b861db4e0c9f490d, type: 3}
+  finalCenterObject: {fileID: 8559005515943241746, guid: 09a58e7d241df5045842f5551dccde0d, type: 3}
   finalCenterObjectOffset: {x: 0, y: 1, z: 0}
   battlespace: {fileID: 1875562406}
   monsterSpawn: {fileID: 0}
