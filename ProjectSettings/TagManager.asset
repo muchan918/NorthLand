@@ -12,9 +12,9 @@ TagManager:
   - Water
   - UI
   - Selectable
-  - 
-  - 
-  - 
+  - Enemy
+  - Soldier
+  - PlayerBase
   - 
   - 
   - 
