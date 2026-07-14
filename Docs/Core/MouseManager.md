@@ -124,7 +124,7 @@
 |---|---|
 | `MouseManager.cs` | 중앙 매니저(싱글톤 `Instance`). 상태 관리·레이캐스트·라우팅 |
 | `ISelectable.cs` | 선택 인터페이스(`OnSelected`/`OnDeselected`) |
-| `IHoverable.cs` | 호버 인터페이스(`GetTooltipContent()`). 호버 시 툴팁 내용을 pull 공급 |
+| `IHoverable.cs` | 호버 인터페이스(`GetTooltipContent()`/`OnHoverEnter()`/`OnHoverExit()`). 호버 시 툴팁 내용을 pull 공급(내용 없으면 `null` 반환 가능) + 호버 진입/이탈 훅(하이라이트 등 연출용, #67) |
 | `PlacementRequest.cs` | 배치 요청 데이터 |
 | `TowerInfoUI.cs` | 정보 패널(싱글톤 `Instance`, `ShowInfo`/`HideInfo`) |
 | `Helper/SelectableTest.cs` | (테스트) 선택 시 색 변경 + 패널 표시 |
@@ -147,7 +147,12 @@
 
 ## 8. 미확정 / TODO
 
-- [ ] **하이라이트/연출**: 유효/무효 셀 표시, 호버 **하이라이트**(색 변경 등), 선택 표시 (미구현 — 호버 **툴팁**은 #38에서 구현됨. 하이라이트가 필요해지면 `IHoverable`에 `OnHoverEnter/OnHoverExit`를 추가하는 방향, TBD)
+- [x] **호버 하이라이트**: **구현됨(#67)** — `IHoverable`에 `OnHoverEnter()`/`OnHoverExit()` 추가,
+      `MouseManager.SetHover`가 대상 전환 시 호출(`_hovered?.OnHoverExit()` → 재할당 →
+      `_hovered?.OnHoverEnter()`). 첫 구현체: `TerritoryNodeView`(영토 확장 가능 노드 호버 시 색
+      변경, 벗어나면 원래 색 복귀 — `Assets/Scripts/ManagementSpace/Territory/View`). 건물
+      쪽(`BuildingTooltipSource`)은 훅만 만족(빈 구현), 실제 하이라이트 연출은 후속.
+- [ ] **유효/무효 셀 표시, 선택 표시**: 배치 고스트의 유효/무효 표시, 선택된 오브젝트 표시는 여전히 미구현
 - [ ] **그리드 스냅**: `Snap()`이 현재 좌표를 그대로 반환 → 그리드 좌표계·셀 크기 확정 후 스냅 구현
 - [ ] **배치 가능 셀 검사**: `CanPlaceAt`이 항상 `true` → 점유 여부·빌드 가능 영역 검사 연동
 - [ ] **선택 대상 탐색**: 콜라이더가 자식/부모에 있을 때 `GetComponentInParent` 등 탐색 규칙
