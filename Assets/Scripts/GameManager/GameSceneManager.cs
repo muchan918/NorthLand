@@ -9,8 +9,9 @@ namespace NorthLand.Core
 
         // 씬 이름은 Build Settings의 Scene List에 등록된 이름과 정확히 일치해야 한다.
         // 인덱스가 아니라 이름으로 로드하므로 리스트 순서가 바뀌어도 안전하다.
-        const string MainMenuScene = "MainMenu";
-        const string ManageSpaceScene = "ManageSpace-Sungsoo"; //TODO: Integration 테스트로 이관시 실제 게임 씬 명으로 변경 할 예정
+        // 정본 씬 이름은 항상 고정(Docs/Core/SceneWorkflow.md §1) — 씬 병합 시에도 이 상수는 바뀌지 않는다.
+        const string TitleScene = "TitleScene";
+        const string GameScene = "GameScene";
 
         // 첫 씬이 로드되기 전에 Unity가 자동 호출한다. 매니저를 여기서 부팅한다.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -37,9 +38,9 @@ namespace NorthLand.Core
         }
 
         // 메인 메뉴로 전환한다. (게임 클리어/오버 패널의 "메인으로" 버튼 등에서 호출)
-        public void LoadMainMenu() => SceneManager.LoadScene(MainMenuScene);
+        public void LoadMainMenu() => SceneManager.LoadScene(TitleScene);
 
         // 경영 공간(게임 본편)으로 전환한다. (메인 메뉴의 "게임 시작" 버튼에서 호출)
-        public void LoadManageSpace() => SceneManager.LoadScene(ManageSpaceScene);
+        public void LoadManageSpace() => SceneManager.LoadScene(GameScene);
     }
 }
