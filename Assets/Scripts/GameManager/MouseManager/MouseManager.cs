@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;   // 프로젝트는 신규 Input System 사용
+using UnityEngine.SceneManagement;
 
 /// 클릭으로 선택 가능한 배치물(타워·건물 등)이 구현한다. (요구사항 ②)
 public class MouseManager : MonoBehaviour
@@ -41,11 +42,33 @@ public class MouseManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            SceneManager.sceneLoaded += HandleSceneLoaded;
+            SetCamera(Camera.main); // 최초 부트 씬은 sceneLoaded가 이미 지나간 뒤라 한 번 직접 호출 필요
         }
         else
         {
             Destroy(gameObject);
         }
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            SceneManager.sceneLoaded -= HandleSceneLoaded;
+        }
+    }
+
+    private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        SetCamera(Camera.main);
+
+        // 이전 씬의 선택/호버 대상은 이미 파괴됐을 수 있다. ISelectable/IHoverable은 인터페이스 타입이라
+        // Unity의 파괴 감지(오버로드된 ==)가 이 타입으로는 걸리지 않으므로, 알림 호출(OnDeselected 등) 없이
+        // 필드만 직접 리셋한다(WL-033) — _selected?.OnDeselected()를 거치면 죽은 참조를 그대로 호출해 터진다.
+        _selected = null;
+        _hovered = null;
+        CancelPlacement();
     }
 
     private void Update()
@@ -59,6 +82,15 @@ public class MouseManager : MonoBehaviour
             case Mode.Idle: UpdateIdle(screenPos, overUI); break;
             case Mode.Placement: UpdatePlacement(screenPos, overUI); break;
         }
+    }
+
+    public void SetCamera(Camera cam)
+    {
+        if (cam == null)
+        {
+            Debug.LogWarning("[MouseManager] MainCamera 태그가 붙은 카메라를 찾지 못했습니다.");
+        }
+        _camera = cam;
     }
 
     // ── 외부 진입점 ────────────────────────────────────────────────
@@ -153,6 +185,12 @@ public class MouseManager : MonoBehaviour
     // 그리드 스냅은 각 배치물이 PlacementRequest.Snap으로 제공한다(매니저는 배치 규칙을 모른다).
     private bool RaycastMask(Vector2 screenPos, LayerMask mask, out RaycastHit hit)
     {
+        hit = default;
+        if (_camera == null)
+        {
+            return false;
+        }
+
         var ray = _camera.ScreenPointToRay(screenPos);
         return Physics.Raycast(ray, out hit, Mathf.Infinity, mask);
     }

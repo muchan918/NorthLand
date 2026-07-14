@@ -14,9 +14,9 @@
 | BattleMapBuilder (절차적 전투 맵)           | SUNJIN     | `Assets/Scripts/CombatSpace/MapBuilder`                          | 7×7 블록 경로 생성 구현. 싸이클 버그 해결이 다음 빌드 목표                                                                                                              |
 | MouseManager (입력/선택/배치)               | n0wst4ndup | `Assets/Scripts/GameManager/MouseManager`                            | 2상태 머신 구현. Snap 항등·CanPlaceAt 항상 true (TODO)                                                                                                                  |
 | Localization                                | n0wst4ndup | `Assets/Scripts/Test/LocalizationTest.cs`                            | 로케일 전환 테스트만 (ko-KR/en-US/ja-JP)                                                                                                                                |
-| DayNightManager (낮/밤 상태·전환 이벤트 훅) | muchan     | `Assets/Scripts/DayNight`                                    | 상태 관리 + 전환 이벤트 훅만 구현. 자원 정산/본진 회복/주민 배치 초기화는 미구현(각 소유 시스템 대기). 밤→낮 트리거는 임시 3초 코루틴(웨이브 클리어 로직으로 교체 예정) |
+| DayNightManager (낮/밤 상태·전환 이벤트 훅) | muchan     | `Assets/Scripts/DayNight`                                    | 상태 관리 + 전환 이벤트 훅 구현. 자원 정산/주민 배치 초기화는 `Management(Resource)`가 구현(#66), 본진 회복은 미구현(소유 시스템 대기). 밤→낮 트리거는 임시 UI(`NightActionPanelView`의 "웨이브 성공" 버튼, #66)가 `EndNight()` 직접 호출(웨이브 클리어 로직으로 교체 예정, WL-018) |
 | DayNightLighting (낮/밤 전환 조명·스카이박스 연출, #7) | muchan     | `Assets/Scripts/DayNight`                                    | `OnDayToNight`/`OnNightToDay` 구독해 Directional Light·Ambient(Trilight)·Skybox를 즉시 전환(스냅). 부드러운 Lerp 전환은 미구현 — 밤 종료 자동화의 UniTask 전환 작업과 함께 후속 예정 |
-| Management(Resource) (자원 지갑·생산처)     | n0wst4ndup | `Assets/Scripts/ManagementSpace`                              | 지갑·생산처(#42) + 경영 패널 UI·DayNightManager 낮/밤 루프 연동(#43). 정산=OnDayToNight, 초기화=OnNightToDay. **밤→낮 전환은 패널이 임시 트리거(WL-018)**. 주민 수는 placeholder(주민 시스템 부재). 소비처·마나석 생산 후속 |
+| Management(Resource) (자원 지갑·생산처)     | n0wst4ndup | `Assets/Scripts/ManagementSpace`                              | 지갑·생산처(#42) + 경영 패널 UI·DayNightManager 낮/밤 루프 연동(#43, #66). 정산+주민 배치 초기화=OnNightToDay(정산 먼저). **밤→낮 전환은 이제 밤 전용 임시 UI(`NightActionPanelView`)의 "웨이브 성공" 버튼이 트리거(WL-018)** — 경영 패널(`RequestAdvancePhase`)은 낮→밤(`EndDay`)만 담당. 주민 수는 placeholder(주민 시스템 부재). 소비처·마나석 생산 후속 |
 
 ## 2. 공개 API (다른 시스템이 소비해도 되는 것)
 
@@ -45,7 +45,8 @@
   `int Produce(villagerCount)`(정산: 지갑에 Add, 넣은 양 반환), `static bool TryCreate(BuildingAsset, ResourceWallet, out)`.
   **주민 수는 인자로 받음**(주민 시스템 부재 — placeholder). 정산 트리거는 이제 `ManagementController`가 DayNightManager 이벤트로 호출. `OutputResource.Data.Kind`로 지갑 키 해석(→ Data 채움 규약 의존)
 - `ManagementController` (경영 로직/모델, MonoBehaviour) — 지갑·생산처·주민 배치 소유. `AssignVillager(int)`/
-  `UnassignVillager(int)`, `RequestAdvancePhase()`(낮→밤 EndDay·잉여 게이트 / 밤→낮 EndNight — **밤→낮은 임시, WL-018**),
+  `UnassignVillager(int)`, `RequestAdvancePhase()`(낮→밤 `EndDay()`·잉여 게이트 전용 — **밤→낮 `EndNight()`은 더 이상
+  이 메서드가 호출하지 않음, #66. 밤 전용 임시 UI `NightActionPanelView`의 "웨이브 성공" 버튼이 직접 호출, WL-018**),
   질의 `ResourceCount`/`LineCount`/`LineKind`/`AssignedTotal`/`IsDay`/`CanAdvancePhase`, `event OnChanged`(뷰 갱신).
   UI(`ManagementPanelView`/`ProductionLineView`)는 이 컨트롤러만 구독·호출 — UI 아트 교체 시 뷰 참조만 재연결
 - `MouseManager.Instance.BeginPlacement(PlacementRequest)` / `CancelPlacement()` / `event OnSelectionChanged`
@@ -62,7 +63,7 @@
 - `DayNightManager.Instance` — **null 반환 가능(씬에 없으면) → 호출부 null 체크 필수**.
   `CurrentPhase` / `WaveCount` / `EndDay()` / `EndNight()` / `event OnDayStart, OnDayToNight, OnNightToDay`.
   `OnDayStart`는 1일차 부트스트랩 포함 매 낮 시작마다 발생, `OnNightToDay`는 밤을 거친 전환에서만 발생(웨이브 종료 의미) — 구독 시 구분해서 사용할 것.
-  `EndNight()`은 지금은 테스트 버튼이 호출하지만, Combat 웨이브 클리어 로직이 향후 이 메서드를 직접 호출하는 통합 지점이 될 예정(WL-018)
+  `EndNight()`은 지금은 밤 전용 임시 UI(`NightActionPanelView`의 "웨이브 성공" 버튼, #66)가 호출하지만, Combat 웨이브 클리어 로직이 향후 이 메서드를 직접 호출하는 통합 지점이 될 예정(WL-018)
 - `StageRoadTracker.RoadWorldPoints` — ⚠️ HashSet(순서 없음). **이동 경로로 사용 불가**
 - MapBuilder의 **순서 있는 경로·스폰 지점·최종 목표 좌표는 아직 공개 API가 없음** (WL-003)
 
@@ -76,7 +77,7 @@
 | MouseManager ↔ Combat                    | 타워 배치(PlacementRequest→Tower 프리팹), 선택(ISelectable), TowerInfoUI 데이터 연동(WL-011)                                                                                                                               |
 | DataTable ↔ Localization                 | 표시 문자열 소유권(CSV 한글 하드코딩 vs String Table 키 — WL-013)                                                                                                                                                          |
 | Management(Resource) ↔ DataTable         | `ResourceKind`(지갑 키)·`BuildingAsset.ProductionFields`(생산처 입력)·`ResourceAsset.Data`(정산 시 `Kind` 해석, 호출부 `Start()` 채움 규약) 의존 — muchan이 이 구조 바꾸면 자원 시스템 깨짐                                |
-| Management(Resource) ↔ DayNightManager   | 정산=`OnDayToNight` 구독, 주민 초기화=`OnNightToDay` 구독, 전환=`EndDay`/`EndNight` 호출. **밤→낮(`EndNight`)은 패널이 임시 트리거 — 밤 종료 주체(Combat 웨이브 클리어 등)로 책임 이관 필요(WL-018)**. 주민 수는 여전히 placeholder(주민 시스템 부재)                |
+| Management(Resource) ↔ DayNightManager   | 정산+주민 초기화=`OnNightToDay` 구독(정산 먼저), 낮→밤 전환=`ManagementController.RequestAdvancePhase()`가 `EndDay()` 호출. **밤→낮(`EndNight`)은 이제 `NightActionPanelView`의 "웨이브 성공" 버튼이 임시 트리거 — 밤 종료 주체(Combat 웨이브 클리어 등)로 책임 이관 필요(WL-018)**. 주민 수는 여전히 placeholder(주민 시스템 부재)                |
 | Management(Resource) ↔ 주민(미존재)      | 주민 수 입력 심 — 현재 `_maxVillagers` placeholder + 패널 +/-. 주민 시스템 생기면 출처 이관                                                                                                                                |
 | DataTable(Building) ↔ MouseManager       | `BuildingInfo`가 `ISelectable` 구현 + `BuildingAsset` 보유 — 선택 시 `BuildingInfoUI` 직접 호출(이벤트 미구독, WL-011과 동일 패턴). `BuildingTooltipSource`(#38)가 `IHoverable` 구현 + `BuildingAsset`/`BuildingData`/`BuildingType`을 **읽기 전용** 소비(muchan 구조 바뀌면 툴팁 깨짐 — 자체 `DataTableManager.Get` 조회, Data 채움 규약 의존). `MouseManager`가 씬에 없으면 조용히 무반응(WL-002) — 씬마다 배치·`_camera` 재할당 필요 |
 | 모든 시스템 ↔ 전역 설정                  | 레이어/태그(`ProjectSettings/TagManager.asset` — WL-005), URP 설정(`Assets/Settings`), 패키지(`Packages/manifest.json`)                                                                                                    |
@@ -94,9 +95,9 @@
    보상에서만. 우회 경로 신설 금지.
 4. **공간 분리** (GDD §4.1/§6.2): 경영 공간 = 건물, 전투 공간 = 타워. 두 영토는 독립 관리 —
    한쪽 확장이 다른 쪽 상태에 의존 금지.
-5. **낮/밤 전환 계약** (GDD §5, Build0 계획): 낮 시작=본진 회복, 낮→밤=주민 배치 기반 자원 정산,
-   밤→낮=주민 배치 초기화+웨이브 증가. 페이즈에 반응하는 시스템은 전환 이벤트 훅 구조여야 한다.
-   (Docs/Core/DayNightManager.md)
+5. **낮/밤 전환 계약** (GDD §5, Build0 계획): 낮 시작=본진 회복, 밤→낮=주민 배치 기반 자원 정산(먼저)+
+   주민 배치 초기화(그 다음)+웨이브 증가(모두 `OnNightToDay` 시점, #66). 페이즈에 반응하는 시스템은
+   전환 이벤트 훅 구조여야 한다. (Docs/Core/DayNightManager.md)
 6. **책임 경계** (MouseManager.md §2): 배치 판정=그리드/검증 시스템, 자원 차감=경영 시스템,
    정보 표시=UI. MouseManager는 선택 사실만 통지.
 7. **문서-코드 동기화**: 시스템 구현·변경 PR은 해당 Docs/ 문서 갱신 포함 필수. (일치 여부 자체는
