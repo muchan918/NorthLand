@@ -971,6 +971,12 @@ MonoBehaviour:
   towerPrefab: {fileID: 8382595405633700309, guid: 0570743ad0140ca48afaca53859b225f, type: 3}
   ghostPrefab: {fileID: 5444850026358366194, guid: f5a25f70f742f60428d1a4cf54258850, type: 3}
   keepPlacing: 0
+  tileSize: 5
+  dummyGridWidth: 2
+  dummyGridHeight: 2
+  dummyAttackRange: 10
+  rangeColor: {r: 0.2, g: 0.8, b: 1, a: 0.9}
+  rangeSegments: 48
 --- !u!4 &1643932968
 Transform:
   m_ObjectHideFlags: 0

@@ -73,6 +73,7 @@ public class MouseManager : MonoBehaviour
 
     public void CancelPlacement()
     {
+        _request?.OnEnded?.Invoke(); // 배치 종료(취소/확정 복귀) 시 요청이 만든 프리뷰 등을 정리할 수 있게 통지
         if (_ghost != null) Destroy(_ghost);
         _ghost = null;
         _request = null;

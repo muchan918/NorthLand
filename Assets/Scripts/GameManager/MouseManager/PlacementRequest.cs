@@ -10,5 +10,6 @@ public class PlacementRequest
     public Func<RaycastHit, Vector3> Snap; // 히트 → 배치 기준 위치(그리드 스냅). null이면 hit.point 사용
     public Func<RaycastHit, bool> CanPlaceAt; // 배치 가능 여부 (그리드/검증 시스템이 제공)
     public Action<RaycastHit, Vector3> OnConfirmed; // (히트, 스냅 위치) 확정 시 실제 배치 수행
+    public Action OnEnded; // 배치 모드 종료(취소 또는 확정 후 복귀) 시 호출 — 프리뷰/고스트 부가물 정리용. 선택(null 허용)
     public bool KeepPlacingAfterConfirm; // 연속 배치 여부 (TBD)
 }
