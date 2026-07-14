@@ -56,7 +56,7 @@ public class MonsterSpawn : MonoBehaviour
         hasGeneratedSpawnPoint = true;
     }
 
-    public void SetRoute(List<Vector3> routePoints)
+    public void SetRoute(IReadOnlyList<Vector3> routePoints)
     {
         route.Clear();
 
@@ -86,7 +86,7 @@ public class MonsterSpawn : MonoBehaviour
             return;
         }
 
-        if (!waveProvider.TryGetWave(round, out List<MonsterSpawnEntry> entries))
+        if (!waveProvider.TryGetWave(round, out IReadOnlyList<MonsterSpawnEntry> entries))
         {
             return;
         }
@@ -95,7 +95,7 @@ public class MonsterSpawn : MonoBehaviour
         SpawnRoundAsync(entries, cancellationToken).Forget();
     }
 
-    private async UniTaskVoid SpawnRoundAsync(List<MonsterSpawnEntry> entries, CancellationToken cancellationToken)
+    private async UniTaskVoid SpawnRoundAsync(IReadOnlyList<MonsterSpawnEntry> entries, CancellationToken cancellationToken)
     {
         try
         {

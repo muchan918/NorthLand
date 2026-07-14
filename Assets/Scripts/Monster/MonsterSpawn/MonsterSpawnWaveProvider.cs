@@ -17,7 +17,7 @@ public class MonsterSpawnWaveProvider : MonoBehaviour
         Load();
     }
 
-    public bool TryGetWave(int round, out List<MonsterSpawnEntry> entries)
+    public bool TryGetWave(int round, out IReadOnlyList<MonsterSpawnEntry> entries)
     {
         cachedEntries.Clear();
 
@@ -25,6 +25,7 @@ public class MonsterSpawnWaveProvider : MonoBehaviour
         {
             if (!prefabById.TryGetValue(spawnData.MonsterId, out GameObject prefab))
             {
+                Debug.LogWarning($"MonsterSpawnWaveProvider: monster prefab is missing. monsterId={spawnData.MonsterId}", this);
                 continue;
             }
 

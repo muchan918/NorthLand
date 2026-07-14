@@ -71,6 +71,10 @@ public class StageBuilder : MonoBehaviour
     private StageWaypointDirection currentStartDirection = StageWaypointDirection.Right;
     private int currentMapCount;
 
+    public IReadOnlyList<Vector3> MonsterRoute => monsterRouteTracker != null
+        ? monsterRouteTracker.Route
+        : System.Array.Empty<Vector3>();
+
     private void Awake()
     {
         PathSquareValidator squareValidator = new PathSquareValidator();
@@ -240,14 +244,10 @@ public class StageBuilder : MonoBehaviour
         }
 
         Vector2Int centerPoint = tilePathBuildResult.FinalCenterPoint;
-        Vector3 tileCenterPosition = new Vector3(
-            (centerPoint.x + currentMapOffset.x * MapSize) * TileSize,
-            0,
-            (centerPoint.y + currentMapOffset.y * MapSize) * TileSize
-        );
+        Vector3 tileCenterPosition = monsterRouteTracker.GetWorldPosition(currentMapOffset, centerPoint);
 
         GameObject spawnedObject = Object.Instantiate(finalCenterObject, battlespace);
-        spawnedObject.transform.localPosition = tileCenterPosition + finalCenterObjectOffset;
+        spawnedObject.transform.position = tileCenterPosition + finalCenterObjectOffset;
         spawnedTiles.Add(spawnedObject);
     }
     private void PrepareRoute()

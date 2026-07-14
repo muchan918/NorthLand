@@ -27,7 +27,6 @@ public class MonsterMove : MonoBehaviour
     {
         if (currentRouteIndex >= route.Count)
         {
-            Destroy(gameObject);
             return;
         }
 
