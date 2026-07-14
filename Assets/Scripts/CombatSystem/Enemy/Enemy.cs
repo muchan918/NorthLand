@@ -4,7 +4,7 @@ namespace NorthLand.Combat
 {
     public class Enemy : MonoBehaviour, IAttacker, IDamageable
     {
-        [SerializeField] EnemyData data;
+        [SerializeField] EnemyAsset data;
 
         // TODO(TBD): 대상 탐지 필터링을 LayerMask로 할지 Tag로 할지 미확정.
         //            현재는 임시로 LayerMask 방식 사용. 팀 컨벤션 회의 후 결정 및 수정 예정.
@@ -17,20 +17,32 @@ namespace NorthLand.Combat
         // 타겟 탐색용 재사용 버퍼. 매 프레임 힙 할당을 피하기 위해 사용(최대 16개 감지).
         readonly Collider[] hitBuffer = new Collider[16];
 
+        // EnemyType에 맞는 공통 전투 스탯 해석. data 미할당 시 null.
+        EnemyAsset.CombatFields Stat => data == null ? null : data.EnemyType switch
+        {
+            EnemyType.Melee  => data.Melee.Stat,
+            EnemyType.Ranged => data.Ranged.Stat,
+            EnemyType.Boss   => data.Boss.Stat,
+            _ => null,
+        };
+
         void Awake()
         {
-            currentHp = data.maxHp;
+            currentHp = Stat != null ? Stat.MaxHp : 0f;
         }
 
         public Faction Faction => Faction.Enemy;
         public bool IsDead => currentHp <= 0f;
 
-        public float AttackDamage => data.attackDamage;
-        public float AttackRange => data.attackRange;
-        public float AttackInterval => data.attackInterval;
+        public float AttackDamage => Stat.AttackDamage;
+        public float AttackRange => Stat.AttackRange;
+        public float AttackInterval => Stat.AttackInterval;
 
         void Update()
         {
+            // 전투 스탯이 없는(미설정) 개체는 동작하지 않음
+            if (Stat == null) return;
+
             cooldownTimer -= Time.deltaTime;
             if (cooldownTimer > 0f) return;
 
@@ -59,7 +71,30 @@ namespace NorthLand.Combat
         public bool TryAttack(IDamageable target)
         {
             if (target == null || target.IsDead) return false;
+
+            // Ranged는 투사체 발사, 그 외(Melee/Boss)는 근접 즉시 데미지.
+            // (Boss의 BehaviorTree 기반 AI는 미착수 — WL-012. 현재는 근접 공격으로 임시 처리)
+            if (data.EnemyType == EnemyType.Ranged)
+                return TryRangedAttack(target);
+
             target.TakeDamage(new DamageInfo(AttackDamage, this));
+            return true;
+        }
+
+        // 원거리 공격: Tower와 동일한 Projectile을 단일 명중(Single)으로 발사한다.
+        bool TryRangedAttack(IDamageable target)
+        {
+            var ranged = data.Ranged;
+            if (ranged.ProjectilePrefab == null) return false;
+
+            var obj = Instantiate(ranged.ProjectilePrefab, transform.position, Quaternion.identity);
+            if (!obj.TryGetComponent<Projectile>(out var projectile))
+            {
+                Destroy(obj);   // Projectile 컴포넌트가 없으면 스폰물을 제거하고 공격 실패 처리
+                return false;
+            }
+
+            projectile.Init(target, AttackDamage, ranged.ProjectileSpeed, this, ProjectileImpact.MakeSingle());
             return true;
         }
 
