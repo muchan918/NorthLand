@@ -29,7 +29,16 @@ public class TerritoryGraphGenSettings
     [Tooltip("바깥 편향 지수. 1=면적 균일 분포, 클수록 본진에서 먼 바깥 고리에 몰린다")]
     public float OutwardBias = 1.5f;
 
+    [Tooltip("트리 성장 룰렛의 짧은 엣지 선호 지수 (가중치 = 1/길이^지수). " +
+             "0=균등 랜덤, 클수록 가까운 이웃 위주로 방사형 성장 — 본진→림 장거리 엣지 억제. " +
+             "시드 스윕 결과 3 근처가 방사형(깊이↔거리 상관)과 유기적 분기의 균형점")]
+    public float TreeShortEdgeBias = 3f;
+
     [Range(0f, 1f)]
     [Tooltip("스패닝 트리 외 Delaunay 엣지 유지 확률 — 사이클(되돌아 잇는 연결) 밀도. 프루닝 단계에서 사용")]
     public float ExtraEdgeKeepRatio = 0.3f;
+
+    [Tooltip("비트리 추가 엣지의 길이 상한 — 트리 엣지 평균 길이의 배수. " +
+             "맵을 가로지르는 장거리 되돌이 엣지를 차단한다. 0 이하 = 무제한")]
+    public float ExtraEdgeMaxLengthRatio = 1.6f;
 }

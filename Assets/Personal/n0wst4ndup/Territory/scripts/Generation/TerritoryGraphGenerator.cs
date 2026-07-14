@@ -29,9 +29,11 @@ public static class TerritoryGraphGenerator
         var rng = new System.Random(seed);
         List<Vector2> positions = ScatterPositions(settings, rng);
         List<TerritoryEdge> delaunay = Triangulate(positions); // rng 미소비(순수)
-        List<TerritoryEdge> tree = BuildSpanningTree(delaunay, positions.Count, rng);
-        List<TerritoryEdge> pruned = Prune(delaunay, tree,
-            settings != null ? settings.ExtraEdgeKeepRatio : 0.3f, rng);
+        List<TerritoryEdge> tree = BuildSpanningTree(delaunay, positions,
+            settings != null ? settings.TreeShortEdgeBias : 3f, rng);
+        List<TerritoryEdge> pruned = Prune(delaunay, tree, positions,
+            settings != null ? settings.ExtraEdgeKeepRatio : 0.3f,
+            settings != null ? settings.ExtraEdgeMaxLengthRatio : 1.6f, rng);
         return new TerritoryGraphLayout(positions, pruned);
     }
 
@@ -367,16 +369,20 @@ public static class TerritoryGraphGenerator
     // ── ③ 스패닝 트리 + 프루닝 ──────────────────────────────────────────
 
     /// <summary>
-    /// ③-a 스패닝 트리 — 본진(0) 뿌리 <b>랜덤화 Prim</b>.<br/>
-    /// 방문 경계에 걸린 프론티어 엣지 중 하나를 균등 랜덤으로 뽑아 자란다.
-    /// BFS 트리(본진 중심 방사형 부채살)나 DFS 트리(극단적 외길)와 달리 유기적인 분기가 나온다.<br/>
-    /// 결과는 정확히 nodeCount-1개 엣지, 본진에서 전 노드 도달이 구조적으로 보장.<br/>
-    /// 결정성: 인접 목록은 입력 정렬 순서((A,B) 오름차순)로 쌓이고, 선택만 rng가 한다.
+    /// ③-a 스패닝 트리 — 본진(0) 뿌리 <b>가중 랜덤화 Prim</b>.<br/>
+    /// 방문 경계에 걸린 프론티어 엣지 중 하나를 <b>짧은 엣지 가중 룰렛</b>(가중치 = 1/길이^shortEdgeBias)으로
+    /// 뽑아 자란다. bias 0이면 균등 랜덤(유기적이지만 hop 깊이와 거리가 무관 → 들쭉날쭉),
+    /// 클수록 가까운 이웃을 타고 자라 본진에서 바깥으로 퍼지는 방사형 구조가 된다 —
+    /// 본진→림 장거리 엣지가 트리에 들어가는 것을 억제한다.<br/>
+    /// 결과는 정확히 노드 수-1개 엣지, 본진에서 전 노드 도달이 구조적으로 보장.<br/>
+    /// 결정성: 인접 목록은 입력 정렬 순서((A,B) 오름차순)로 쌓이고, 선택만 rng가 한다(픽당 NextDouble 1회).
     /// </summary>
     public static List<TerritoryEdge> BuildSpanningTree(
-        IReadOnlyList<TerritoryEdge> delaunayEdges, int nodeCount, System.Random rng)
+        IReadOnlyList<TerritoryEdge> delaunayEdges, IReadOnlyList<Vector2> positions,
+        float shortEdgeBias, System.Random rng)
     {
         var treeEdges = new List<TerritoryEdge>();
+        int nodeCount = positions != null ? positions.Count : 0;
         if (nodeCount <= 1 || delaunayEdges == null || rng == null)
         {
             return treeEdges;
@@ -400,7 +406,7 @@ public static class TerritoryGraphGenerator
 
         while (visitedCount < nodeCount && frontier.Count > 0)
         {
-            int pick = rng.Next(frontier.Count);
+            int pick = PickShortBiased(frontier, positions, shortEdgeBias, rng);
             TerritoryEdge edge = frontier[pick];
             // swap-remove가 순서를 흔들지만, 그 순서 변화 자체가 rng 선택에서 비롯되므로 여전히 결정적.
             frontier[pick] = frontier[frontier.Count - 1];
@@ -440,18 +446,56 @@ public static class TerritoryGraphGenerator
         return treeEdges;
     }
 
+    // 프론티어에서 짧은 엣지 가중 룰렛으로 인덱스 1개를 뽑는다. bias ≤ 0이면 균등 랜덤과 동일.
+    // 간격 하드 플로어 폴백(간격 검사 없는 배치)에서 길이 ~0 엣지가 나올 수 있어 하한으로 막는다.
+    private static int PickShortBiased(
+        List<TerritoryEdge> frontier, IReadOnlyList<Vector2> positions,
+        float shortEdgeBias, System.Random rng)
+    {
+        if (shortEdgeBias <= 0f)
+        {
+            return rng.Next(frontier.Count);
+        }
+
+        var weights = new double[frontier.Count];
+        double total = 0;
+        for (int i = 0; i < frontier.Count; i++)
+        {
+            double length = (positions[frontier[i].A] - positions[frontier[i].B]).magnitude;
+            double weight = 1.0 / Math.Pow(Math.Max(length, 1e-3), shortEdgeBias);
+            weights[i] = weight;
+            total += weight;
+        }
+
+        double roll = rng.NextDouble() * total;
+        for (int i = 0; i < weights.Length; i++)
+        {
+            roll -= weights[i];
+            if (roll <= 0)
+            {
+                return i;
+            }
+        }
+
+        return weights.Length - 1; // 부동소수 잔여 오차 방어
+    }
+
     /// <summary>
-    /// ③-b 프루닝 — 트리는 전부 보존(도달성 유지), 나머지 Delaunay 엣지는 keepRatio 확률로만
-    /// 유지한다 → 사이클(되돌아 잇는 연결)이 성기게 남는 StS식 노드맵 밀도(TerritoryGraph.md §4.1).<br/>
-    /// 보정 규칙: 본진 차수가 2 미만이면 본진 인접 비트리 엣지 중 정렬 첫 번째를 강제 유지 —
-    /// 첫 프론티어에 선택지가 최소 2개는 있도록(GDD §6.3 "하나 선택"의 전제).<br/>
-    /// 결정성: delaunayEdges의 (A,B) 오름차순 그대로 순회하며 rng를 소비한다.
+    /// ③-b 프루닝 — 트리는 전부 보존(도달성 유지), 나머지 Delaunay 엣지는 <b>길이 상한을 통과한 것만</b>
+    /// keepRatio 확률로 유지한다 → 사이클(되돌아 잇는 연결)이 성기게 남는 StS식 노드맵 밀도(TerritoryGraph.md §4.1).<br/>
+    /// 길이 상한 = 트리 엣지 평균 길이 × maxLengthRatio(0 이하 = 무제한) — 맵을 가로질러 노드들을
+    /// 스치는 장거리 되돌이 엣지를 차단한다(에셋 엉킴 방지). 트리가 짧은 엣지 위주(가중 Prim)이므로
+    /// 평균이 "이웃 간 거리"의 안정적인 기준이 된다.<br/>
+    /// 보정 규칙: 본진 차수가 2 미만이면 본진 인접 비트리 엣지 중 <b>최단</b>을 강제 유지 —
+    /// 첫 프론티어에 선택지가 최소 2개는 있도록(GDD §6.3 "하나 선택"의 전제. 선택지 보장이 길이 상한보다 우선).<br/>
+    /// 결정성: delaunayEdges의 (A,B) 오름차순 그대로 순회하고, 길이 컷은 rng와 무관한 순수 계산이라
+    /// 통과한 엣지에서만 rng를 소비해도 순서가 고정된다.
     /// </summary>
     public static List<TerritoryEdge> Prune(
         IReadOnlyList<TerritoryEdge> delaunayEdges, IReadOnlyList<TerritoryEdge> treeEdges,
-        float keepRatio, System.Random rng)
+        IReadOnlyList<Vector2> positions, float keepRatio, float maxLengthRatio, System.Random rng)
     {
-        if (delaunayEdges == null || treeEdges == null || rng == null)
+        if (delaunayEdges == null || treeEdges == null || positions == null || rng == null)
         {
             Debug.LogError("[영토생성] 프루닝 입력이 null입니다.");
             return new List<TerritoryEdge>();
@@ -460,11 +504,26 @@ public static class TerritoryGraphGenerator
         var result = new List<TerritoryEdge>(treeEdges);
         var inTree = new HashSet<TerritoryEdge>(treeEdges);
 
+        float maxKeepLength = float.PositiveInfinity;
+        if (maxLengthRatio > 0f && treeEdges.Count > 0)
+        {
+            float lengthSum = 0f;
+            for (int i = 0; i < treeEdges.Count; i++)
+            {
+                lengthSum += (positions[treeEdges[i].A] - positions[treeEdges[i].B]).magnitude;
+            }
+            maxKeepLength = lengthSum / treeEdges.Count * maxLengthRatio;
+        }
+
         for (int i = 0; i < delaunayEdges.Count; i++)
         {
             if (inTree.Contains(delaunayEdges[i]))
             {
                 continue;
+            }
+            if ((positions[delaunayEdges[i].A] - positions[delaunayEdges[i].B]).magnitude > maxKeepLength)
+            {
+                continue; // 길이 컷 — rng 미소비
             }
             if (rng.NextDouble() < keepRatio)
             {
@@ -484,14 +543,29 @@ public static class TerritoryGraphGenerator
 
         if (homeDegree < 2)
         {
+            // 최단 후보를 고른다 — 부챗살 억제 취지에 맞게, 어차피 살릴 엣지면 가장 짧은 것.
+            // 선택지 보장이 우선이므로 길이 상한(maxKeepLength)은 여기 적용하지 않는다.
+            int shortest = -1;
+            float shortestLength = float.PositiveInfinity;
             for (int i = 0; i < delaunayEdges.Count; i++)
             {
-                if (delaunayEdges[i].A == 0 && !result.Contains(delaunayEdges[i]))
+                if (delaunayEdges[i].A != 0 || result.Contains(delaunayEdges[i]))
                 {
-                    result.Add(delaunayEdges[i]);
-                    Debug.Log($"[영토생성] 본진 선택지 보정: {delaunayEdges[i]} 강제 유지 (첫 프론티어 최소 2개)");
-                    break;
+                    continue;
                 }
+
+                float length = (positions[delaunayEdges[i].A] - positions[delaunayEdges[i].B]).magnitude;
+                if (length < shortestLength)
+                {
+                    shortestLength = length;
+                    shortest = i;
+                }
+            }
+
+            if (shortest >= 0)
+            {
+                result.Add(delaunayEdges[shortest]);
+                Debug.Log($"[영토생성] 본진 선택지 보정: {delaunayEdges[shortest]} 강제 유지 (첫 프론티어 최소 2개)");
             }
         }
 

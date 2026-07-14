@@ -179,8 +179,10 @@ public class TerritoryGraphDebugView : MonoBehaviour
         var rng = new System.Random(_seed);
         _positions = TerritoryGraphGenerator.ScatterPositions(_settings, rng);
         _delaunayEdges = TerritoryGraphGenerator.Triangulate(_positions);
-        _treeEdges = TerritoryGraphGenerator.BuildSpanningTree(_delaunayEdges, _positions.Count, rng);
-        _prunedEdges = TerritoryGraphGenerator.Prune(_delaunayEdges, _treeEdges, _settings.ExtraEdgeKeepRatio, rng);
+        _treeEdges = TerritoryGraphGenerator.BuildSpanningTree(
+            _delaunayEdges, _positions, _settings.TreeShortEdgeBias, rng);
+        _prunedEdges = TerritoryGraphGenerator.Prune(_delaunayEdges, _treeEdges, _positions,
+            _settings.ExtraEdgeKeepRatio, _settings.ExtraEdgeMaxLengthRatio, rng);
     }
 
     private float AverageDegree() =>
