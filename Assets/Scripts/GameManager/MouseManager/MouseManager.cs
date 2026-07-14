@@ -140,7 +140,9 @@ public class MouseManager : MonoBehaviour
     private void SetHover(IHoverable next)
     {
         if (ReferenceEquals(_hovered, next)) return;
+        _hovered?.OnHoverExit();
         _hovered = next;
+        _hovered?.OnHoverEnter();
         OnHoverChanged?.Invoke(_hovered);
     }
 

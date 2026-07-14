@@ -160,3 +160,4 @@ MonoBehaviour:
   _visual: {fileID: 4097117974496045919}
   _ownedColor: {r: 1, g: 0.85, b: 0.2, a: 1}
   _selectableColor: {r: 0.65, g: 0.65, b: 0.65, a: 1}
+  _hoverColor: {r: 0.3, g: 0.85, b: 0.35, a: 1}

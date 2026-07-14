@@ -73,8 +73,9 @@ public class TooltipUI : MonoBehaviour
 
     private void OnHoverChanged(IHoverable hoverable)
     {
-        if (hoverable == null) Hide();
-        else Show(hoverable.GetTooltipContent());
+        TooltipContent? content = hoverable?.GetTooltipContent();
+        if (content.HasValue) Show(content.Value);
+        else Hide();
     }
 
     // 클릭으로 뭔가 선택되면(호버 대상이 여전히 같은 오브젝트라도) 툴팁을 접고 상세 패널에 자리를
