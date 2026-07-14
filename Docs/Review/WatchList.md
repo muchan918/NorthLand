@@ -12,7 +12,7 @@
 - **WL-004** | OPEN | PR#31/32 | 배치 검증 공백: CanPlaceAt 항상 true, Snap 항등, 타일 종류(도로/용암/잔디) 질의 API 없음 → 도로·용암 위 타워 설치 가능 | MapBuilder 타일 질의 API + MouseManager 연동
 - **WL-005** | OPEN | PR#29/31/53 | 레이어 규약 부재: Enemy/Selectable/Ground에 더해 PR#53에서 PlayerUnit·PlayerBase·Enemy(targetLayerMask) 전투 탐지 3종이 각자 SerializeField로 추가됨 — 미설정 시 무증상(탐지 0) | 전투 레이어 3종 명명·번호 팀 확정 + TagManager 등재 + SystemMap §5
 - **WL-006** | OPEN | PR#22 | 에셋 로딩 이원화: Resources.Load(DataTable) vs Addressables(Localization) | 로딩 전략 단일화 결정
-- **WL-007** | OPEN | - | 좌표계 계약 부재: MapBuilder는 battlespace 로컬 그리드, MouseManager/Combat은 월드 좌표 — 변환 유틸 없음 | 좌표 변환 계약 정의 (배치·이동 착수 전)
+- **WL-007** | OPEN | PR#58 | (심화) TileSize가 public으로 열렸으나(StageBuilder.cs:15) 공개된 건 raw 값뿐 — grid→world 변환식은 StageBuilder 내부 2곳(UpdateMonsterSpawnPoint:214-218, SpawnFinalCenterObject:237-241)에 복제된 채. 공개 RoadWorldPoints는 여전히 grid×1로 시각/스폰(grid×TileSize)과 괴리. 소비처가 변환을 재구현하면 3중 복제 | TileSize raw 노출 대신 GridToWorld 변환 유틸을 export 지점 1곳으로 공개(내부 복제 제거 포함)
 - **WL-008** | OPEN | PR#32 | 로그라이크 시드 재현성: 전역 UnityEngine.Random 사용, 시드 주입 설계 없음 | Run 시드 설계 후 MapRandom에 주입
 - **WL-009** | OPEN | PR#32 | 용어 충돌: StageWaypoint(블록 연결점) vs GDD 웨이포인트(병사 배치 지점), '스테이지'(블록) vs GDD 스테이지(런 단위) | 병사 시스템 착수 전 리네임
 - **WL-010** | OPEN | PR#29/53 | 폴더명 오타 `Scirpts` — PR#53에서 Base/·Unit/ 하위 신규 파일로 meta GUID 참조 추가 심화 | 폴더 리네임(참조 더 늘기 전)
