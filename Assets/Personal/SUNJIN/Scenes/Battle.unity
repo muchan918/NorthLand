@@ -5511,6 +5511,7 @@ MonoBehaviour:
   finalCenterObject: {fileID: 1465482931592304, guid: 38919549c328efd4b85dd6920e915404, type: 3}
   finalCenterObjectOffset: {x: 0, y: 1, z: 0}
   battlespace: {fileID: 1875562406}
+  monsterSpawn: {fileID: 0}
   routeSettings:
     maxMapCount: 30
     routeGenerateTryCount: 500
@@ -5518,6 +5519,7 @@ MonoBehaviour:
     maxMapX: -1
     minMapY: -3
     maxMapY: 3
+  TileSize: 5
   waypoints:
   - direction: 0
     point: {x: 1, y: 0}
@@ -5860,6 +5862,74 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4028459722524686, guid: 1a51fe95cc8cc3a4ca8f62728430ca9f, type: 3}
   m_PrefabInstance: {fileID: 515964836}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &960126889
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 960126891}
+  - component: {fileID: 960126892}
+  - component: {fileID: 960126893}
+  m_Layer: 0
+  m_Name: MonsterSpawn
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &960126891
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 960126889}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 31.29975, y: -0, z: 50.03609}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &960126892
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 960126889}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e723700503c3a8b4c99fd3a046df2049, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterSpawn
+  fallbackSpawnPoint: {fileID: 1875562406}
+  monsterParent: {fileID: 1405165964}
+  waveProvider: {fileID: 960126893}
+  playOnStart: 0
+  startRound: 0
+--- !u!114 &960126893
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 960126889}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9813378b39bd43b42ab2d84923df3702, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterSpawnWaveProvider
+  spawnTableName: MonsterSpawnTable
+  monsterPrefabs:
+  - monsterId: goblin_warrior
+    monsterPrefab: {fileID: 4782494649810966508, guid: 7671023444494974185960f2f7821208, type: 3}
+  - monsterId: goblin_archer
+    monsterPrefab: {fileID: 4229904492612586596, guid: e38044a6a5410a941b2a481ca5aed96d, type: 3}
 --- !u!1001 &963556864
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8892,6 +8962,37 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1a51fe95cc8cc3a4ca8f62728430ca9f, type: 3}
+--- !u!1 &1405165963
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1405165964}
+  m_Layer: 0
+  m_Name: Monster
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1405165964
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1405165963}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 52.84946, y: 9.3, z: 18.75584}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1406919165
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -10027,8 +10128,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1669571937}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 72.1, y: 0.00001, z: 33.2}
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 85.1, y: 0.00001, z: -3.1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -10036,7 +10137,7 @@ Transform:
   - {fileID: 821602401}
   - {fileID: 1164882122}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!1001 &1702363881
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -11951,5 +12052,7 @@ SceneRoots:
   - {fileID: 9051474111357400812}
   - {fileID: 838129728}
   - {fileID: 2082588820}
+  - {fileID: 960126891}
   - {fileID: 1875562406}
+  - {fileID: 1405165964}
   - {fileID: 1669571938}
