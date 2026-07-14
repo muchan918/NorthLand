@@ -1,0 +1,13 @@
+Round,MonsterId,Count,StartDelay,SpawnInterval
+1,goblin_warrior,1,1,0.3
+1,goblin_archer,1,0.1,1
+2,goblin_warrior,2,0.1,2
+2,goblin_archer,2,0.1,4
+3,goblin_warrior,3,0.1,2
+3,goblin_archer,3,0.1,4
+4,goblin_warrior,4,0.1,4
+4,goblin_archer,4,0.1,2
+5,goblin_warrior,5,1,0.3
+5,goblin_archer,5,0.1,1
+6,goblin_warrior,6,1,0.3
+6,goblin_archer,6,0.1,1
