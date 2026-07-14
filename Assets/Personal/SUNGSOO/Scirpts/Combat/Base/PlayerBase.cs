@@ -19,6 +19,8 @@ namespace NorthLand.Combat
 
         public void TakeDamage(DamageInfo info)
         {
+            if (IsDead) return;   // 이미 파괴됨 — 추가 피해·중복 판정 차단
+
             currentHp -= info.Amount;
             Debug.Log($"{name} took {info.Amount} dmg, hp={currentHp}");
 
@@ -29,7 +31,13 @@ namespace NorthLand.Combat
         void GameOver()
         {
             Debug.Log("Game Over - 본진이 파괴되었습니다");
-            GameManager.Instance?.TriggerGameOver();
+
+            if (GameManager.Instance == null)
+            {
+                Debug.LogWarning("[PlayerBase] GameManager가 씬에 없어 게임오버가 통지되지 않았습니다.");
+                return;
+            }
+            GameManager.Instance.TriggerGameOver();
         }
     }
 }
