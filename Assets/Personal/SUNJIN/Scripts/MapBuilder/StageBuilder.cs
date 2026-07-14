@@ -12,7 +12,7 @@ public class StageBuilder : MonoBehaviour
     [SerializeField] private Transform battlespace;
     [SerializeField] private MonsterSpawn monsterSpawn;
     [SerializeField] private StageRouteSettings routeSettings = new StageRouteSettings();
-    [SerializeField] private float TileSize = 5f;
+    public float TileSize = 5f;
     [SerializeField]
     private List<StageWaypoint> waypoints = new List<StageWaypoint>
     {
