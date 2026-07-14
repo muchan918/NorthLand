@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 731943965560130230}
   - component: {fileID: 633470120004790990}
   - component: {fileID: 1102713487503342902}
+  - component: {fileID: 2916447267877812002}
   m_Layer: 0
   m_Name: Capsule
   m_TagString: Untagged
@@ -114,3 +115,17 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &2916447267877812002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4782494649810966508}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d4c66fe4c2005648909164d8c70b78c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterMove
+  moveSpeed: 3
+  arriveDistance: 0.05

@@ -7,8 +7,8 @@ using UnityEngine;
 /// DayNightManager 전환 이벤트에 반응해 정산/초기화한다. UI(<see cref="ManagementPanelView"/>)는
 /// 이 컨트롤러만 구독·호출하므로, 실제 UI 아트로 교체해도 이 클래스는 바뀌지 않는다.<br/>
 /// <br/>
-/// - 낮→밤(OnDayToNight): 각 생산처 Produce로 자원 정산 (팀 계약 #5)<br/>
-/// - 밤→낮(OnNightToDay): 주민 배치 초기화 (팀 계약 #5)<br/>
+/// - 낮→밤(OnDayToNight): 주민 배치 확정 (자원 정산 없음, 팀 계약 #5)<br/>
+/// - 밤→낮(OnNightToDay): 각 생산처 Produce로 자원 정산(먼저) + 주민 배치 초기화(그 다음) (팀 계약 #5)<br/>
 /// - 주민 수·풀(maxVillagers)은 주민 시스템 부재로 임시 placeholder — 주민 시스템이 생기면 이 부분만 교체.<br/>
 /// (Docs/ManagementArea/Resources.md — 이슈 #43)
 /// </summary>
@@ -84,7 +84,6 @@ public class ManagementController : MonoBehaviour
     {
         if (_dayNight != null)
         {
-            _dayNight.OnDayToNight -= HandleDayToNight;
             _dayNight.OnNightToDay -= HandleNightToDay;
         }
     }
@@ -137,7 +136,6 @@ public class ManagementController : MonoBehaviour
             return;
         }
 
-        _dayNight.OnDayToNight += HandleDayToNight;
         _dayNight.OnNightToDay += HandleNightToDay;
     }
 
@@ -173,9 +171,8 @@ public class ManagementController : MonoBehaviour
         OnChanged?.Invoke();
     }
 
-    // 페이즈 전환 버튼: 낮이면 밤으로(잉여 주민 게이트), 밤이면 낮으로.
-    // ※ 밤→낮(EndNight)은 실게임에선 Combat 웨이브 클리어가 호출하는 통합 지점(WL-018).
-    //   Combat 미연동인 경영 씬에서 루프를 돌리기 위해 패널이 임시로 트리거한다.
+    // 페이즈 전환 버튼: 낮이면 밤으로(잉여 주민 게이트). 밤→낮(EndNight)은 이제 웨이브 성공
+    // 버튼이 전담한다(WL-018) — 이 버튼은 밤에는 아무 동작도 하지 않는다.
     public void RequestAdvancePhase()
     {
         if (_dayNight == null)
@@ -184,25 +181,22 @@ public class ManagementController : MonoBehaviour
             return;
         }
 
-        if (IsDay)
+        if (!IsDay)
         {
-            if (!CanEndDay)
-            {
-                Debug.Log($"[경영] 잉여 주민이 있어 밤으로 전환할 수 없습니다. (배치 {AssignedTotal}/{_maxVillagers})");
-                return;
-            }
-            _dayNight.EndDay();
+            return;
         }
-        else
+
+        if (!CanEndDay)
         {
-            _dayNight.EndNight();
+            Debug.Log($"[경영] 잉여 주민이 있어 밤으로 전환할 수 없습니다. (배치 {AssignedTotal}/{_maxVillagers})");
+            return;
         }
+        _dayNight.EndDay();
     }
 
     // ── DayNightManager 이벤트 훅 (팀 계약 #5) ──────────────────────────
-    private void HandleDayToNight()
+    private void HandleNightToDay()
     {
-        Debug.Log("[경영] 낮 → 밤: 자원 정산");
         for (int i = 0; i < _sources.Length; i++)
         {
             if (_sources[i] == null)
@@ -214,17 +208,12 @@ public class ManagementController : MonoBehaviour
             Debug.Log($"[정산] {_lineAssets[i].Data.DisplayName}: 주민 {_villagerCounts[i]}명 → +{produced}");
         }
 
-        OnChanged?.Invoke();
-    }
-
-    private void HandleNightToDay()
-    {
         for (int i = 0; i < _villagerCounts.Length; i++)
         {
             _villagerCounts[i] = 0;
         }
 
-        Debug.Log($"[경영] 밤 → 낮 (Wave {WaveCount}): 주민 배치 초기화");
+        Debug.Log($"[경영] 밤 → 낮 (Wave {WaveCount}): 자원 정산 + 주민 배치 초기화");
         OnChanged?.Invoke();
     }
 
