@@ -61,6 +61,11 @@ public class MouseManager : MonoBehaviour
         }
     }
 
+    public void SetCamera(Camera cam)
+    {
+        _camera = cam;
+    }
+
     // ── 외부 진입점 ────────────────────────────────────────────────
     public void BeginPlacement(PlacementRequest request)
     {
