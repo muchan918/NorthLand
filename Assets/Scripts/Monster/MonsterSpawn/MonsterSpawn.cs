@@ -19,6 +19,8 @@ public class MonsterSpawn : MonoBehaviour
     private bool hasGeneratedSpawnPoint;
     private Vector3 generatedSpawnPosition;
     private Quaternion generatedSpawnRotation = Quaternion.identity;
+    private readonly List<Vector3> route = new List<Vector3>();
+    private readonly List<Vector3> spawnRoute = new List<Vector3>();
     private CancellationTokenSource spawnCancellationTokenSource;
 
     private void Awake()
@@ -54,6 +56,18 @@ public class MonsterSpawn : MonoBehaviour
         hasGeneratedSpawnPoint = true;
     }
 
+    public void SetRoute(List<Vector3> routePoints)
+    {
+        route.Clear();
+
+        if (routePoints == null)
+        {
+            return;
+        }
+
+        route.AddRange(routePoints);
+    }
+
     public void StartRound(int round)
     {
         if (!isActiveAndEnabled)
@@ -72,7 +86,7 @@ public class MonsterSpawn : MonoBehaviour
             return;
         }
 
-        if (!waveProvider.TryGetWave(round, out IReadOnlyList<MonsterSpawnEntry> entries))
+        if (!waveProvider.TryGetWave(round, out List<MonsterSpawnEntry> entries))
         {
             return;
         }
@@ -81,7 +95,7 @@ public class MonsterSpawn : MonoBehaviour
         SpawnRoundAsync(entries, cancellationToken).Forget();
     }
 
-    private async UniTaskVoid SpawnRoundAsync(IReadOnlyList<MonsterSpawnEntry> entries, CancellationToken cancellationToken)
+    private async UniTaskVoid SpawnRoundAsync(List<MonsterSpawnEntry> entries, CancellationToken cancellationToken)
     {
         try
         {
@@ -176,7 +190,30 @@ public class MonsterSpawn : MonoBehaviour
             return;
         }
 
-        Instantiate(prefab, position, rotation, monsterParent);
+        GameObject monster = Instantiate(prefab, position, rotation, monsterParent);
+        MonsterMove monsterMove = monster.GetComponent<MonsterMove>();
+
+        if (monsterMove == null)
+        {
+            monsterMove = monster.GetComponentInChildren<MonsterMove>();
+        }
+
+        if (monsterMove != null)
+        {
+            monsterMove.SetRoute(GetSpawnRoute());
+        }
+    }
+
+    private List<Vector3> GetSpawnRoute()
+    {
+        spawnRoute.Clear();
+
+        for (int i = route.Count - 1; i >= 0; i--)
+        {
+            spawnRoute.Add(route[i]);
+        }
+
+        return spawnRoute;
     }
 
     private void CancelSpawnTasks()

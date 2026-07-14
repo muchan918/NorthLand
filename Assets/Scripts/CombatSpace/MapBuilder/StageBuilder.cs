@@ -49,8 +49,8 @@ public class StageBuilder : MonoBehaviour
         new Vector2Int(4, 3),
         new Vector2Int(3, 3),
         new Vector2Int(2, 3),
-               new Vector2Int(3, 4),
-                         new Vector2Int(3, 2),
+        new Vector2Int(3, 4),
+        new Vector2Int(3, 2),
     };
 
     private readonly List<Vector2Int> path = new List<Vector2Int>();
@@ -64,6 +64,7 @@ public class StageBuilder : MonoBehaviour
     private StageMapRouteGenerator routeGenerator;
     private StageTilePathBuilder tilePathBuilder;
     private StageRoadTracker roadTracker;
+    private StageMonsterRouteTracker monsterRouteTracker;
 
     private Vector2Int currentMapOffset = Vector2Int.zero;
     private Vector2Int currentStartPoint = new Vector2Int(6, 3);
@@ -76,6 +77,7 @@ public class StageBuilder : MonoBehaviour
         PathGenerator pathGenerator = new PathGenerator(squareValidator);
         StageConnectionManager connectionManager = new StageConnectionManager(MapSize, waypoints);
         roadTracker = new StageRoadTracker(MapSize);
+        monsterRouteTracker = new StageMonsterRouteTracker(MapSize, TileSize, battlespace);
 
         lavaGenerator = new LavaGenerator(MapSize, 9, 12);
         mapSpawner = new StageMapSpawner(MapSize, TileSize, grassCube, roadCube, lavaCube, battlespace);
@@ -141,6 +143,8 @@ public class StageBuilder : MonoBehaviour
         lavaGenerator.Generate(path, lava);
 
         mapSpawner.CreateMap(currentMapOffset, path, lava, spawnedTiles);
+        monsterRouteTracker.AddPath(currentMapOffset, path);
+        UpdateMonsterRoute();
         UpdateMonsterSpawnPoint();
         SpawnFinalCenterObject(tilePathBuildResult);
         roadTracker.AddPath(currentMapOffset, path);
@@ -211,17 +215,19 @@ public class StageBuilder : MonoBehaviour
         }
 
         Vector2Int endPoint = path[path.Count - 1];
-        Vector3 localPosition = new Vector3(
-            (endPoint.x + currentMapOffset.x * MapSize) * TileSize,
-            0,
-            (endPoint.y + currentMapOffset.y * MapSize) * TileSize
-        );
-
-        Vector3 worldPosition = battlespace != null
-            ? battlespace.TransformPoint(localPosition)
-            : localPosition;
+        Vector3 worldPosition = monsterRouteTracker.GetWorldPosition(currentMapOffset, endPoint);
 
         monsterSpawn.SetSpawnPoint(worldPosition, Quaternion.identity);
+    }
+
+    private void UpdateMonsterRoute()
+    {
+        if (monsterSpawn == null)
+        {
+            return;
+        }
+
+        monsterSpawn.SetRoute(monsterRouteTracker.Route);
     }
 
     private void SpawnFinalCenterObject(StageTilePathBuildResult tilePathBuildResult)
@@ -273,6 +279,7 @@ public class StageBuilder : MonoBehaviour
         spawnedTiles.Clear();
         occupiedMapOffsets.Clear();
         roadTracker.Clear();
+        monsterRouteTracker.Clear();
 
         path.Clear();
         lava.Clear();
