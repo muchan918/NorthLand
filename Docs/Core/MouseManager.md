@@ -5,7 +5,7 @@
 
 - 관련 이슈: **#9**
 - 프로젝트는 신규 Input System(`InputSystem_Actions.inputactions`)을 사용한다.
-- 구현 위치: `Assets/Personal/n0wst4ndup/MouseManager/`
+- 구현 위치: `Assets/Scripts/GameManager/MouseManager/`
 - 이 문서는 **현재 구현된 구조**를 정리한 것이다. 코드를 바꾼 사람은 이 문서도 함께 갱신해 어긋나지 않게 유지한다. 미구현 항목은 [8. 미확정/TODO](#8-미확정--todo)에 모아둔다.
 
 > ⚠️ 하이라이트 연출, 그리드 스냅, 배치 가능 셀 검사 등 일부 세부는 **아직 미구현(TODO)**이다.
@@ -89,7 +89,7 @@
 
 1. `Idle`에서 매 프레임 커서 밑을 `_selectableMask`로 레이캐스트 → `TryGetComponent<IHoverable>`.
 2. 호버 대상이 **바뀔 때만** `OnHoverChanged(IHoverable)` 통지(같으면 무시, 없으면 `null`). UI 위/배치 모드에서는 대상을 `null`로 본다.
-3. `TooltipUI`(임시 싱글톤, `Assets/Personal/n0wst4ndup/MouseHover`)가 `OnHoverChanged`를 구독 →
+3. `TooltipUI`(임시 싱글톤, `Assets/Scripts/GameManager/MouseHover`)가 `OnHoverChanged`를 구독 →
    대상이 있으면 `IHoverable.GetTooltipContent()`로 내용을 **pull**해 표시, 없으면 숨김.
    `GetTooltipContent()`는 호버 시점마다 호출되므로 동적 값(버프 레벨·현재 생산량 등)도 그 순간 계산해 넘길 수 있다.
 4. 툴팁은 `MouseManager.PointerPosition`(→ `Mouse.current` 직접 폴링 금지, 계약 #1)을 따라 이동하며 화면 밖으로 나가지 않게 clamp한다.
@@ -122,27 +122,27 @@
 
 | 파일 | 역할 |
 |---|---|
-| `scripts/MouseManager.cs` | 중앙 매니저(싱글톤 `Instance`). 상태 관리·레이캐스트·라우팅 |
-| `scripts/ISelectable.cs` | 선택 인터페이스(`OnSelected`/`OnDeselected`) |
-| `scripts/IHoverable.cs` | 호버 인터페이스(`GetTooltipContent()`). 호버 시 툴팁 내용을 pull 공급 |
-| `scripts/PlacementRequest.cs` | 배치 요청 데이터 |
-| `scripts/TowerInfoUI.cs` | 정보 패널(싱글톤 `Instance`, `ShowInfo`/`HideInfo`) |
-| `scripts/Helper/SelectableTest.cs` | (테스트) 선택 시 색 변경 + 패널 표시 |
-| `scripts/Helper/PlacementButton.cs` | (테스트) 버튼 클릭 → 배치 시작 |
+| `MouseManager.cs` | 중앙 매니저(싱글톤 `Instance`). 상태 관리·레이캐스트·라우팅 |
+| `ISelectable.cs` | 선택 인터페이스(`OnSelected`/`OnDeselected`) |
+| `IHoverable.cs` | 호버 인터페이스(`GetTooltipContent()`). 호버 시 툴팁 내용을 pull 공급 |
+| `PlacementRequest.cs` | 배치 요청 데이터 |
+| `TowerInfoUI.cs` | 정보 패널(싱글톤 `Instance`, `ShowInfo`/`HideInfo`) |
+| `Helper/SelectableTest.cs` | (테스트) 선택 시 색 변경 + 패널 표시 |
+| `Helper/PlacementButton.cs` | (테스트) 버튼 클릭 → 배치 시작 |
 
-호버 툴팁 UI/어댑터는 별도 기능 폴더 `Assets/Personal/n0wst4ndup/MouseHover`에 있다:
+호버 툴팁 UI/어댑터는 `Assets/Scripts/GameManager/MouseHover`에 있다:
 
 | 파일 | 역할 |
 |---|---|
-| `Scripts/TooltipContent.cs` | 툴팁 표시 데이터(헤더/본문/색). 구체 개념에 무지한 순수 struct |
-| `Scripts/TooltipUI.cs` | 커서 추적 범용 툴팁 뷰(임시 싱글톤 `Instance`, `Show`/`Hide`). `OnHoverChanged` 구독 |
-| `Scripts/BuildingTooltipSource.cs` | 건물용 `IHoverable` 어댑터. `BuildingAsset`/`BuildingData`를 읽어 `이름 - 역할`+설명 구성(muchan 코드는 읽기만) |
-| `Scripts/BuildingTooltipPalette.cs` + `BuildingTooltipPalette.asset` | `BuildingType`→(헤더색, 배경색) 팔레트 SO |
-| `Scenes/MouseHover.unity` | (테스트) 건물 5종(Production·General·Skill 3타입 모두 커버) + 툴팁 검증 씬 |
+| `TooltipContent.cs` | 툴팁 표시 데이터(헤더/본문/색). 구체 개념에 무지한 순수 struct |
+| `TooltipUI.cs` | 커서 추적 범용 툴팁 뷰(임시 싱글톤 `Instance`, `Show`/`Hide`). `OnHoverChanged` 구독 |
+| `BuildingTooltipSource.cs` | 건물용 `IHoverable` 어댑터. `BuildingAsset`/`BuildingData`를 읽어 `이름 - 역할`+설명 구성(muchan 코드는 읽기만) |
+| `BuildingTooltipPalette.cs` + `BuildingTooltipPalette.asset` | `BuildingType`→(헤더색, 배경색) 팔레트 SO |
+| `Assets/Personal/n0wst4ndup/MouseHover/Scenes/MouseHover.unity` | (테스트) 건물 5종(Production·General·Skill 3타입 모두 커버) + 툴팁 검증 씬 |
 
 - **레이어**: `Ground`(배치 표면), `Selectable`(선택 후보)
 - **프리팹**: `Ghost`(고스트, Collider 없음), `TestTower`(배치물, Collider + `SelectableTest`)
-- **씬**: `scenes/MouseEventTest.unity`
+- **씬**: `Assets/Personal/n0wst4ndup/MouseManager/scenes/MouseEventTest.unity`
 - ※ `Helper/*`, `Ghost`/`TestTower`, 테스트 씬은 **검증용**이다. 실제 게임 배치물·빌드 패널로 교체 예정.
 
 ## 8. 미확정 / TODO

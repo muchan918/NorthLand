@@ -15,7 +15,7 @@
 - **WL-007** | OPEN | PR#58 | (심화) TileSize가 public으로 열렸으나(StageBuilder.cs:15) 공개된 건 raw 값뿐 — grid→world 변환식은 StageBuilder 내부 2곳(UpdateMonsterSpawnPoint:214-218, SpawnFinalCenterObject:237-241)에 복제된 채. 공개 RoadWorldPoints는 여전히 grid×1로 시각/스폰(grid×TileSize)과 괴리. 소비처가 변환을 재구현하면 3중 복제 | TileSize raw 노출 대신 GridToWorld 변환 유틸을 export 지점 1곳으로 공개(내부 복제 제거 포함)
 - **WL-008** | OPEN | PR#32 | 로그라이크 시드 재현성: 전역 UnityEngine.Random 사용, 시드 주입 설계 없음. PR#75(영토 생성기)가 요구 해법(System.Random 주입 + 소비 순서 고정)을 선구현 — MapBuilder 적용 시 참조 패턴 | Run 시드 설계 후 MapRandom에 주입
 - **WL-009** | OPEN | PR#32 | 용어 충돌: StageWaypoint(블록 연결점) vs GDD 웨이포인트(병사 배치 지점), '스테이지'(블록) vs GDD 스테이지(런 단위) | 병사 시스템 착수 전 리네임
-- **WL-010** | OPEN | PR#29/53 | 폴더명 오타 `Scirpts` — PR#53에서 Base/·Unit/ 하위 신규 파일로 meta GUID 참조 추가 심화 | 폴더 리네임(참조 더 늘기 전)
+- **WL-010** | RESOLVED(스크립트 통합 PR) | PR#29/53 | 폴더명 오타 `Scirpts` — PR#53에서 Base/·Unit/ 하위 신규 파일로 meta GUID 참조 추가 심화 | `Assets/Personal/*` → `Assets/Scripts/` 통합 이동 시 `Scirpts` 오타 폴더 자체가 사라지고 `Assets/Scripts/CombatSystem`으로 대체되며 해소됨
 - **WL-011** | OPEN | PR#31 | 선택 통지 이중 경로: OnSelectionChanged 이벤트(구독자 0) vs SelectableTest→TowerInfoUI 직접 호출 | 정본 경로 결정
 - **WL-012** | OPEN | - | GDD §9 미확정 항목 결합 주의: 병사/스킬 통합 여부, 몬스터 테마, 스테이지/보스 구성, 밸런싱 수치 → 관련 코드는 결합을 느슨하게 | GDD 확정 시 해제
 - **WL-013** | OPEN | PR#20/22 | 표시 문자열 소유권: ResourceData.DisplayName CSV 한글 하드코딩 vs Localization String Table | UI 노출 문자열의 키 이관 방침 결정
@@ -36,3 +36,4 @@
 - **WL-028** | OPEN | PR#61 | 경영 공간 씬 정본 이원화: 게임 부트 씬 ManageSpace-Sungsoo.unity가 muchan/Scene/ManageSpace.unity의 복사본으로 출발했으나 main 머지로 157줄 divergence 발생(muchan 정본엔 TowerDataTest·ManageObjects 등 존재, 부트 복사본엔 없음). GameSceneManager가 복사본을 부팅해 muchan 후속 경영 씬 작업이 게임에 반영 안 됨, 25779줄 씬 재동기화 불가 | 경영 씬 정본 1개 확정 + GameSceneManager.ManageSpaceScene/EditorBuildSettings를 정본으로 지정 + 복사본 폐기
 - **WL-029** | OPEN | PR#75 | 경영 영토(#18) 모델 12종(TerritoryGraph/Node/State/Edge/Controller 등)이 네임스페이스 없이 전역 진입 — 이슈#18이 요구한 전투 영토 확장(#1)과의 데이터 구조 공유 검토 미결. #1 착수 시 일반명 전역 충돌 예약 | #1과 모델 공유/분리 합의 + Territory 네임스페이스 격리
 - **WL-030** | OPEN | PR#75 | 영토 확보 효과·마나석 지급 미연결: OnNodeClaimed 훅만 존재, 더미 효과조차 플레이 경로에 없음(이슈#18 완료기준③ 훅 수준만 충족). 효과 SO(TerritoryGraph.md §5)·ResourceWallet 연결 시 계약2(수치=CSV)·계약3(마나석 흐름) 준수 필요 | OnNodeClaimed→ResourceWallet.Add + DataTable 효과 경로 연결
+- **WL-031** | RESOLVED(PR#77 문서 수정) | PR#77 | 씬 병합 규약(SceneWorkflow.md)의 "번호 누적 파일 + GameSceneManager 활성 씬 상수 수동 갱신"이 WL-028 실패 모드(부트 씬이 옛 버전 지목) 재생산 위험. GameSceneManager.cs:12-13이 활성 씬을 하드코딩 const로 보유 → 병합마다 소스 편집·재컴파일 강제 | `Docs/Core/SceneWorkflow.md` §4를 재작성 — 정본 파일 이름(`TitleScene`/`GameScene`)을 절대 바꾸지 않고, 병합은 번호 스냅샷 추가 후 "정본 확정" 단계에서 스냅샷 내용을 정본 파일명에 덮어쓰는 방식으로 변경. `GameSceneManager`/Build Settings가 항상 고정 이름만 참조하므로 병합마다 소스 편집·재컴파일이 필요 없어짐

@@ -21,9 +21,9 @@ XxxAsset : ScriptableObject    ─ CSV의 각 행을 실제 프로젝트 에셋�
 
 - CSV 원본 위치: `Assets/Resources/DataTables/*.csv`
 - SO 에셋 위치: `Assets/Resources/ScriptableObjects/<종류>/`
-- 코드 위치: `Assets/Personal/muchan/Data/` (공통: `DataTable.cs`, `DataTableManager.cs`),
-  `Assets/Personal/muchan/Data/<종류>/` (타입별 `XxxData`/`XxxAsset`/`XxxTable`, 예: `Resource/`, `Building/`),
-  `Assets/Personal/muchan/Editor/` (에디터 전용 임포터)
+- 코드 위치: `Assets/Scripts/Data/` (공통: `DataTable.cs`, `DataTableManager.cs`),
+  `Assets/Scripts/Data/<종류>/` (타입별 `XxxData`/`XxxAsset`/`XxxTable`, 예: `Resource/`, `Building/`),
+  `Assets/Scripts/Editor/` (에디터 전용 임포터)
 - CSV 파싱: `CsvHelper` (NuGetForUnity로 설치, `Assets/Packages/CsvHelper.33.1.0`) — 헤더 컬럼명과
   데이터 클래스 프로퍼티명을 대소문자 무시하고 자동 매칭
 - 존재하지 않는 Id 조회 시 `null` 반환 + 에러 로그 → 호출부는 항상 null 체크
@@ -97,7 +97,7 @@ CSV에는 위 공통 필드만 있고, 건물별 세부 수치(생산량, 입·�
 - `General`(교회/본진)은 추가 필드 없음
 - 건설 비용은 모든 타입 공통으로 `BuildingAsset.Cost : List<ResourceCost>` (2절 참고)
 - `BuildingType`에 따라 인스펙터에 관련 필드 그룹만 보이도록 `BuildingAssetEditor`
-  (`Assets/Personal/muchan/Editor/BuildingAssetEditor.cs`)가 커스텀 인스펙터를 그린다 —
+  (`Assets/Scripts/Editor/BuildingAssetEditor.cs`)가 커스텀 인스펙터를 그린다 —
   프로젝트 최초의 `CustomEditor`/`SerializedProperty` 코드.
 
 CSV: `Assets/Resources/DataTables/BuildingTable.csv`
@@ -142,7 +142,7 @@ CSV에는 위 공통 필드(분류 정보 포함)만 있고, 타워별 세부 �
   쪽(`BuffAuraFields` 또는 `DebuffAuraFields`)만 실제로 사용
 - `Attack { AttackDamage, AttackRange, AttackInterval, ProjectilePrefab, ProjectileSpeed }`는
   Single/Area/Chain이 공통으로 내장하는 nested 구조체(중복 필드 선언 방지). 필드 의미는
-  Combat의 기존 `TowerData`(`Assets/Personal/SUNGSOO/Scirpts/Combat/Tower/TowerData.cs`)와
+  Combat의 기존 `TowerData`(`Assets/Scripts/CombatSystem/Tower/TowerData.cs`)와
   대응되도록 맞춰뒀다 — 실제 Combat 마이그레이션은 아직 미착수(WL-001)
 - `BuffAuraFields`/`DebuffAuraFields { Radius, Interval, Modifiers: List<StatModifier>, Damage: OptionalDamage }`
   — 버프/디버프도 데미지가 있을 수 있어 `OptionalDamage { HasDamage, DamageAmount, TickInterval }`를
@@ -153,7 +153,7 @@ CSV에는 위 공통 필드(분류 정보 포함)만 있고, 타워별 세부 �
   존재하며 `TowerAsset.Data.GridWidth`/`GridHeight`로 런타임에 조회한다(4.2절 조회 패턴).
   아직 MouseManager/BattleMapBuilder의 배치 검증(WL-004)이 이 값을 소비하진 않음 — 데이터만 우선 마련
 - `TowerType`(1차) + `MagicEffectType`(Magic일 때 2차)에 따라 인스펙터에 관련 필드 그룹만
-  보이도록 `TowerAssetEditor`(`Assets/Personal/muchan/Editor/TowerAssetEditor.cs`)가
+  보이도록 `TowerAssetEditor`(`Assets/Scripts/Editor/TowerAssetEditor.cs`)가
   `BuildingAssetEditor`와 동일한 패턴의 커스텀 인스펙터를 그린다
 
 CSV: `Assets/Resources/DataTables/TowerTable.csv`
@@ -198,10 +198,10 @@ Tower와 동일한 이유(§3 TowerTable 절 참고)로, `Boss`가 향후 Behavi
   CSV/`EnemyData`(POCO)/`EnemyTable`은 변경할 필요 없음
 - `Stat { MaxHp, MoveSpeed, AttackDamage, AttackRange, AttackInterval }`는 세 타입이
   공통으로 내장하는 nested 구조체. 필드 의미는 Combat의 기존 `EnemyData`
-  (`Assets/Personal/SUNGSOO/Scirpts/Combat/Enemy/EnemyData.cs`)와 대응되도록 맞춰뒀다 —
+  (`Assets/Scripts/CombatSystem/Enemy/EnemyData.cs`)와 대응되도록 맞춰뒀다 —
   실제 Combat 마이그레이션은 아직 미착수(WL-001). `MoveSpeed`는 Combat 쪽엔 없는 신규 필드
 - `EnemyType`에 따라 인스펙터에 관련 필드 그룹만 보이도록 `EnemyAssetEditor`
-  (`Assets/Personal/muchan/Editor/EnemyAssetEditor.cs`)가 `TowerAssetEditor`와 동일한
+  (`Assets/Scripts/Editor/EnemyAssetEditor.cs`)가 `TowerAssetEditor`와 동일한
   패턴의 커스텀 인스펙터를 그린다 (1단계 분기만, `MagicEffectType` 같은 2단계 분기 없음)
 
 CSV: `Assets/Resources/DataTables/EnemyTable.csv`
@@ -254,7 +254,7 @@ private void Start()
 4. `Assets/Resources/ScriptableObjects/<종류>/`에 CSV 행마다 `.asset` 파일 생성/갱신
 5. Console에 `XxxTable Import 완료: N개` 로그 출력
 
-관련 코드: [`TableImporter.cs`](../../Assets/Personal/muchan/Editor/TableImporter.cs)
+관련 코드: [`TableImporter.cs`](../../Assets/Scripts/Editor/TableImporter.cs)
 
 ## 5. 신규 데이터 타입 추가할 때
 
@@ -274,25 +274,25 @@ CLI 빌드/테스트가 없는 프로젝트이므로 Unity Editor에서 직접 �
 
 1. `Tools > Table Importer` → `Resource` → `Import` → `Assets/Resources/ScriptableObjects/Resources/`에
    `wood.asset`, `iron.asset`, `food.asset`, `mana.asset` 4개 생성 확인
-2. 확인용 임시 스크립트 [`ResourceTableTest.cs`](../../Assets/Personal/muchan/Data/ResourceTableTest.cs)를
+2. 확인용 임시 스크립트 [`ResourceTableTest.cs`](../../Assets/Scripts/Data/Resource/ResourceTableTest.cs)를
    씬의 빈 GameObject에 붙이고 Play → Console에 4개 자원의 `DisplayName`/`Kind`가 출력되는지 확인
 3. 확인 후 `ResourceTableTest.cs`와 테스트용 GameObject는 정리 (또는 데모용으로 유지)
 4. `Tools > Table Importer` → `Building` → `Import` → `Assets/Resources/ScriptableObjects/Buildings/`에
    9개 건물 `.asset` 생성 확인. `BuildingType`별로 하나씩 인스펙터를 열어
    `BuildingAssetEditor`가 해당 타입 필드 그룹만 보여주는지 확인
-5. [`BuildingTableTest.cs`](../../Assets/Personal/muchan/Data/Building/BuildingTableTest.cs)로 Play 모드에서
+5. [`BuildingTableTest.cs`](../../Assets/Scripts/Data/Building/BuildingTableTest.cs)로 Play 모드에서
    9개 건물의 `DisplayName`/`BuildingType`/`Role`이 출력되는지 확인
 6. `Tools > Table Importer` → `Tower` → `Import` → `Assets/Resources/ScriptableObjects/Towers/`에
    5개 타워 `.asset` 생성 확인. `TowerType`별로 하나씩 인스펙터를 열어 `TowerAssetEditor`가
    해당 타입 필드 그룹만 보여주는지, `Magic` 타입에서는 `MagicEffectType`(Buff/Debuff)에 따라
    `BuffAuraFields`/`DebuffAuraFields`가 올바르게 토글되는지 확인
-7. [`TowerTableTest.cs`](../../Assets/Personal/muchan/Data/Tower/TowerTableTest.cs)로 Play 모드에서
+7. [`TowerTableTest.cs`](../../Assets/Scripts/Data/Tower/TowerTableTest.cs)로 Play 모드에서
    5개 타워의 `DisplayName`/`TowerType`/`MagicEffectType`/`GridWidth`/`GridHeight`가
    출력되는지 확인
 8. `Tools > Table Importer` → `Enemy` → `Import` → `Assets/Resources/ScriptableObjects/Enemies/`에
    3개 몬스터 `.asset` 생성 확인. `EnemyType`별로 하나씩 인스펙터를 열어 `EnemyAssetEditor`가
    해당 타입 필드 그룹만 보여주는지(`Boss`는 `BehaviorTree` placeholder 필드까지) 확인
-9. [`EnemyTableTest.cs`](../../Assets/Personal/muchan/Data/Enemy/EnemyTableTest.cs)로 Play 모드에서
+9. [`EnemyTableTest.cs`](../../Assets/Scripts/Data/Enemy/EnemyTableTest.cs)로 Play 모드에서
    3개 몬스터의 `DisplayName`/`EnemyType`/`Role`이 출력되는지 확인
 
 ## 7. 다음 계획

@@ -5,7 +5,7 @@ Unity 공식 Localization 패키지(`com.unity.localization`)의 String Table �
 
 - 패키지: `com.unity.localization` (설치됨), 내부적으로 Addressables 사용
 - 에셋 위치: `Assets/Localization/`
-- 언어 전환 테스트 스크립트: `Assets/Personal/n0wst4ndup/Localization/scripts/LocalizationTest.cs`
+- 언어 전환 테스트 스크립트: `Assets/Scripts/Test/LocalizationTest.cs`
 
 > 실제로 테이블/키를 만들거나 바꾼 사람은 이 문서도 함께 갱신해 문서와 에셋이 어긋나지 않게 유지한다.
 
