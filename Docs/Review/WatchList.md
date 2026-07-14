@@ -15,7 +15,7 @@
 - **WL-007** | OPEN | PR#58 | (심화) TileSize가 public으로 열렸으나(StageBuilder.cs:15) 공개된 건 raw 값뿐 — grid→world 변환식은 StageBuilder 내부 2곳(UpdateMonsterSpawnPoint:214-218, SpawnFinalCenterObject:237-241)에 복제된 채. 공개 RoadWorldPoints는 여전히 grid×1로 시각/스폰(grid×TileSize)과 괴리. 소비처가 변환을 재구현하면 3중 복제 | TileSize raw 노출 대신 GridToWorld 변환 유틸을 export 지점 1곳으로 공개(내부 복제 제거 포함)
 - **WL-008** | OPEN | PR#32 | 로그라이크 시드 재현성: 전역 UnityEngine.Random 사용, 시드 주입 설계 없음. PR#75(영토 생성기)가 요구 해법(System.Random 주입 + 소비 순서 고정)을 선구현 — MapBuilder 적용 시 참조 패턴 | Run 시드 설계 후 MapRandom에 주입
 - **WL-009** | OPEN | PR#32 | 용어 충돌: StageWaypoint(블록 연결점) vs GDD 웨이포인트(병사 배치 지점), '스테이지'(블록) vs GDD 스테이지(런 단위) | 병사 시스템 착수 전 리네임
-- **WL-010** | OPEN | PR#29/53 | 폴더명 오타 `Scirpts` — PR#53에서 Base/·Unit/ 하위 신규 파일로 meta GUID 참조 추가 심화 | 폴더 리네임(참조 더 늘기 전)
+- **WL-010** | RESOLVED(스크립트 통합 PR) | PR#29/53 | 폴더명 오타 `Scirpts` — PR#53에서 Base/·Unit/ 하위 신규 파일로 meta GUID 참조 추가 심화 | `Assets/Personal/*` → `Assets/Scripts/` 통합 이동 시 `Scirpts` 오타 폴더 자체가 사라지고 `Assets/Scripts/CombatSystem`으로 대체되며 해소됨
 - **WL-011** | OPEN | PR#31 | 선택 통지 이중 경로: OnSelectionChanged 이벤트(구독자 0) vs SelectableTest→TowerInfoUI 직접 호출 | 정본 경로 결정
 - **WL-012** | OPEN | - | GDD §9 미확정 항목 결합 주의: 병사/스킬 통합 여부, 몬스터 테마, 스테이지/보스 구성, 밸런싱 수치 → 관련 코드는 결합을 느슨하게 | GDD 확정 시 해제
 - **WL-013** | OPEN | PR#20/22 | 표시 문자열 소유권: ResourceData.DisplayName CSV 한글 하드코딩 vs Localization String Table | UI 노출 문자열의 키 이관 방침 결정

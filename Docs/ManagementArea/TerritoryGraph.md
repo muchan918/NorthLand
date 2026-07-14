@@ -2,7 +2,7 @@
 
 > **담당**: n0wst4ndup
 > **이슈**: #TBD
-> **경로(코드)**: `Assets/Personal/n0wst4ndup/Territory` (예정)
+> **경로(코드)**: `Assets/Scripts/ManagementSpace/Territory`
 > **상태**: 🚧 **설계 단계 — 미구현.** 이 문서는 구현 착수 전 아키텍처 합의용이다.
 > 확정되지 않은 항목은 본문에서 **TBD / TODO**로 명시한다(docs-are-dev-reference 규약).
 > **GDD 근거**: §4.1(두 공간) · §5.1(낮 경영—영토 확장) · §6.3(경영 영토 확장) ·

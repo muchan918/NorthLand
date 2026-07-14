@@ -10,7 +10,7 @@ NorthLand: Last Stand(팀 유유아)는 Unity로 개발 중인 그리드 기반 
 
 ## 프로젝트 현재 상태
 
-초기 단계, 통합 전: 각 팀원이 자신의 `Assets/Personal/<이름>/` 폴더에서 각자의 시스템을 개발 중이다(공용 `Assets/Scripts`는 아직 비어 있음). 현재 시스템: DataTable CSV 파이프라인(`muchan`), 전투 타워/적 데미지 코어(`SUNGSOO`), 절차적 전투맵 빌더(`SUNJIN`), 마우스 입력/선택/배치 매니저 + 로컬라이제이션(`n0wst4ndup`). `Docs/Review/SystemMap.md`가 시스템, 담당자, 공개 API, 통합 계약의 최신 지도다. 코드를 추가할 때는 메커니즘을 임의로 고안하지 말고 먼저 `Docs/GDD.md`에서 의도된 시스템 설계를 확인할 것.
+1차 통합 완료: 각 팀원의 `Assets/Personal/<이름>/`에 흩어져 있던 스크립트가 공용 `Assets/Scripts/`로 합쳐졌고, 담당자 이름이 아니라 **공간/시스템 단위** 폴더로 재편됐다(`CombatSystem`, `CombatSpace`, `ManagementSpace`, `GameManager`, `Data`, `DayNight`, `Camera`, `Monster`, `Editor`, `Test` 등). 현재 시스템: DataTable CSV 파이프라인, 전투 타워/적 데미지 코어(CombatSystem), 절차적 전투맵 빌더(CombatSpace/MapBuilder), 마우스 입력/선택/배치 매니저 + 로컬라이제이션(GameManager/MouseManager 등). `Docs/Review/SystemMap.md`가 시스템, 담당자, 공개 API, 통합 계약, 정확한 경로의 최신 지도다. 코드를 추가할 때는 메커니즘을 임의로 고안하지 말고 먼저 `Docs/GDD.md`에서 의도된 시스템 설계를 확인할 것.
 
 ## 툴링
 
@@ -25,7 +25,8 @@ NorthLand: Last Stand(팀 유유아)는 Unity로 개발 중인 그리드 기반 
 
 ## 저장소 컨벤션
 
-- `Assets/Personal/<이름>/` — 팀원별 개인 작업 폴더(현재 `muchan`, `SUNJIN`, `SUNGSOO`, `n0wst4ndup`). 특정 개인에게 속한 진행 중/실험적 에셋은 공용 폴더가 아니라 여기에 둔다. **에이전트도 동일 규칙 적용**: 새 코드/에셋은 작업을 지시한 팀원의 폴더에 생성하고, 공용 폴더(`Assets/Scripts` 등)에는 통합 합의 전까지 파일을 만들지 말 것. 대상 폴더가 불명확하면 사용자에게 확인할 것.
+- `Assets/Scripts/` — 스크립트 정본 위치. 담당자 이름이 아니라 공간/시스템 폴더(`CombatSystem`, `CombatSpace`, `ManagementSpace`, `GameManager`, `Data`, `DayNight`, `Camera`, `Monster`, `Editor`, `Test` 등, 정확한 목록은 `Docs/Review/SystemMap.md`)로 구성된다. 새 스크립트는 여기서 직접 작업하며, 통합 합의를 기다릴 필요 없이 해당 시스템 폴더에 바로 생성한다. **에이전트도 동일 규칙 적용**: 새 코드는 대상 시스템 폴더에 생성하고, 어느 폴더인지 불명확하면 사용자에게 확인할 것.
+- `Assets/Personal/<이름>/` — 팀원별 개인 작업 폴더(현재 `muchan`, `SUNJIN`, `SUNGSOO`, `n0wst4ndup`). 스크립트가 아닌 **씬(Scene) 등 WIP 에셋** 전용으로 계속 쓰인다. 씬 작업 시 정본 위치·개인 복사·버전 누적 병합·주간 정리 규칙은 `Docs/Core/SceneWorkflow.md`를 따를 것.
 - PR 리뷰(자동/수동): `Docs/Review/SystemMap.md`(시스템 맵, 통합 계약, 담당자 매트릭스)와 `Docs/Review/WatchList.md`(반복 이슈 대장, WL-번호)를 리뷰 기준선으로 따른다. 문서-코드 일치 여부는 리뷰 기준이 **아니다** — 팀은 코드에 맞춰 문서를 갱신하므로, 문서+코드 세트 자체가 올바른 방향인지를 판단할 것.
 - `Assets/Imported/` — 내부에 자체 중첩 git 저장소를 포함한다. 벤더링된 외부 에셋 소스로 취급하고, 일반 기능 작업의 일부로 편집하지 말 것.
 - `Assets/TutorialInfo/`와 `Assets/Readme.asset`은 URP 템플릿 기본 Readme 창의 잔재 — 게임의 일부가 아니다.

@@ -2,7 +2,7 @@
 
 > **담당**: n0wst4ndup
 > **이슈**: #42(지갑·생산처 코어), #43(패널 UI·DayNightManager 연동)
-> **경로(코드)**: `Assets/Personal/n0wst4ndup/Management/scripts`
+> **경로(코드)**: `Assets/Scripts/ManagementSpace`
 > **경로(씬)**: `Assets/Personal/n0wst4ndup/Management/scenes/ManagementSystem.unity`
 > **상태**: ✅ 구현 완료 — 지갑·생산처 코어 + 경영 패널 UI + DayNightManager 낮/밤 루프 연동
 
