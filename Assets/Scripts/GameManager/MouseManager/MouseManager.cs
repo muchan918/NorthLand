@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;   // 프로젝트는 신규 Input System 사용
+using UnityEngine.SceneManagement;
 
 /// 클릭으로 선택 가능한 배치물(타워·건물 등)이 구현한다. (요구사항 ②)
 public class MouseManager : MonoBehaviour
@@ -41,11 +42,26 @@ public class MouseManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            SceneManager.sceneLoaded += HandleSceneLoaded;
+            SetCamera(Camera.main); // 최초 부트 씬은 sceneLoaded가 이미 지나간 뒤라 한 번 직접 호출 필요
         }
         else
         {
             Destroy(gameObject);
         }
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            SceneManager.sceneLoaded -= HandleSceneLoaded;
+        }
+    }
+
+    private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        SetCamera(Camera.main);
     }
 
     private void Update()
@@ -63,6 +79,10 @@ public class MouseManager : MonoBehaviour
 
     public void SetCamera(Camera cam)
     {
+        if (cam == null)
+        {
+            Debug.LogWarning("[MouseManager] MainCamera 태그가 붙은 카메라를 찾지 못했습니다.");
+        }
         _camera = cam;
     }
 
@@ -156,6 +176,12 @@ public class MouseManager : MonoBehaviour
     // ── 레이캐스트 / 스냅 (구현 방식 TBD) ─────────────────────────
     private bool RaycastMask(Vector2 screenPos, LayerMask mask, out RaycastHit hit)
     {
+        hit = default;
+        if (_camera == null)
+        {
+            return false;
+        }
+
         var ray = _camera.ScreenPointToRay(screenPos);
         return Physics.Raycast(ray, out hit, Mathf.Infinity, mask);
     }
