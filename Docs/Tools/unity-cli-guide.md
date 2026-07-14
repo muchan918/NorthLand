@@ -16,13 +16,15 @@
 3. **`.prefab` / `.unity` / `.asset` / `.mat` 파일을 텍스트로 편집했다면** 반드시 직후에 `unity-cli reserialize <경로>`를 실행한다. 이 단계를 생략하면 에셋이 조용히 깨질 수 있다.
 4. **exec로 씬/에셋을 변경하는 코드에는 저장 처리를 반드시 포함한다.** (§5.2 저장 시맨틱)
 5. **10개 이상 파일·오브젝트를 건드리는 일괄 작업 전에는 git 커밋 상태를 사용자에게 확인받는다.** exec와 텍스트 편집은 **Undo 스택을 타지 않는다** — git이 유일한 되돌리기 수단이다.
-6. **"완료" 보고 전에 검증 명령을 실행한다.** (console / test / screenshot 중 해당되는 것) 검증 출력이 보고의 근거여야 한다. 추측으로 완료를 주장하지 않는다.
+6. **"완료" 보고 전에 검증 명령을 실행한다.** 기본 검증은 저비용 명령(`console --type error`, 컴파일 확인, 필요 시 `reserialize`)이다. 검증 출력이 보고의 근거여야 하며 추측으로 완료를 주장하지 않는다. `test`·`editor play`·`profiler`는 규칙 A8을 따른다(사용자 요청 시에만).
 7. **2줄 이상의 C# 코드는 stdin 파이프로 exec에 전달한다.** 인라인 문자열은 셸 이스케이프로 깨지기 쉽다.
+8. **비용이 큰 명령(`test`, `editor play`, `profiler`)은 사용자가 요청했을 때만 실행한다.** 도메인 리로드·플레이 모드 대기·긴 실행으로 턴 비용이 크다. 기본 검증 루프는 `refresh --compile` + `console --type error`로 끝내고, 이 세 명령은 (a) 사용자가 명시적으로 요청했거나 (b) 저비용 검증만으로 판단이 불가능해 사용자에게 실행을 제안·합의한 경우에만 쓴다. (커스텀 툴로 승격하거나 자동화할 때도 이 게이트를 우회하지 않는다.)
+   - **비주얼 작업 예외 — `screenshot`은 게이트 대상이 아니라 권장 도구다.** 사용자가 포스트프로세싱·셰이더·파티클·라이팅 튜닝 등 비주얼 작업을 요청한 순간, 그 요청 자체가 스크린샷 반복 루프의 승인이다("보고 → 고치고 → 다시 보는" 것이 곧 작업, §4.J). 자유롭게 캡처한다. 단 시간 기반 이펙트라도 플레이 모드가 꼭 필요한 게 아니면 §4.J·§5.8의 **결정론적 편집모드 프리뷰**(`Simulate`/스크럽 + 씬 뷰 캡처)를 우선하고, `editor play`는 그것으로 재현 불가능할 때만 쓴다.
 
 ### NEVER
 
 1. 에디터 스크립트에서 프리팹 배치에 `Object.Instantiate`를 쓰지 않는다 → `PrefabUtility.InstantiatePrefab` 사용. (프리팹 연결이 끊긴 일반 오브젝트가 된다)
-2. `.shadergraph` 파일을 직접 편집하지 않는다. (프로그래밍용 공개 API 없음, JSON 포맷 비공식·버전 의존) → §4.G의 우회 경로 사용.
+2. **`.shadergraph` · `.vfx`(VFX Graph) 파일을 직접 편집하지 않는다.** (프로그래밍용 공개 저작 API 없음, JSON 포맷 비공식·버전 의존) → §4.G의 우회 경로 사용. 예외: 이미 노출된 프로퍼티 **값만** 바꾸는 것 — ShaderGraph는 머티리얼 파라미터로, VFX Graph는 `VisualEffect.SetFloat/SetVector4/SetTexture`로.
 3. 씬/프리팹 YAML에 **새** GameObject·Component 블록을 텍스트로 추가하지 않는다. (fileID/GUID 수동 발급은 reserialize를 통과하고도 missing reference로 조용히 깨진다) → 구조 변경은 exec로.
 4. 플레이 모드 중 `editor refresh`를 실행하지 않는다. (`--force`는 사용자가 명시적으로 요청한 경우에만)
 5. exec에 async / 코루틴 / 지연 콜백 코드를 넣지 않는다. (기본 차단됨. 지연 완료가 의도된 경우에만 `--allow-async` + 사유를 사용자에게 설명)
@@ -42,9 +44,12 @@
 | 같은 exec 패턴을 3회 이상 반복할 것 같을 때 | `[UnityCliTool]` 커스텀 툴로 승격 (§6) |
 | 씬에 프리팹 대량 배치 | `exec` + `PrefabUtility.InstantiatePrefab` |
 | C# 수정 후 컴파일 검증 | `editor refresh --compile` + `console --type error` |
-| 기능 동작 검증 | `test` (EditMode/PlayMode) |
-| 시각 결과 확인 (UI, 이펙트, 배치) | `screenshot` |
-| 프레임 비용/병목 분석 | `profiler` |
+| 기능 동작 검증 | `test` (EditMode/PlayMode) — **사용자 요청 시에만** (규칙 A8) |
+| 시각 결과 확인 (UI, 이펙트, 배치) | `screenshot` — 비주얼 반복 루프의 핵심(§4.J). 비주얼 작업 요청 시 자유 사용, 비시각 작업엔 투기적 캡처 금지 |
+| 파티클 이펙트 제작·튜닝 | `exec` (Shuriken `ParticleSystem`, 전부 코드) + `Simulate` 정지 프리뷰 — §4.K |
+| 라이팅·환경 무드 (앰비언트/포그/광원) | `exec` (`RenderSettings`, `Light`) — §4.L |
+| 비주얼 결과 정량 확인 (휘도/색) | `exec` + 스크린샷 PNG `ReadPixels` — §4.J |
+| 프레임 비용/병목 분석 | `profiler` — **사용자 요청 시에만** (규칙 A8) |
 | 사용 가능한 도구 파악 | `list` |
 
 ---
@@ -57,7 +62,7 @@
 status 확인
   → 작업 실행 (exec 또는 파일 편집)
   → 후처리 (.cs 수정 시 refresh --compile / YAML 편집 시 reserialize)
-  → 검증 (console --type error → 필요 시 test / screenshot)
+  → 검증 (console --type error 가 기본 / test·play·profiler 는 사용자 요청 시에만 — 규칙 A8)
   → 저장 확인 (§5.2)
   → 검증 출력을 근거로 보고
 ```
@@ -91,7 +96,7 @@ unity-cli editor refresh          # 에셋 리프레시 (플레이 모드 중엔
 unity-cli editor refresh --compile  # 리프레시 + 스크립트 재컴파일 ← .cs 수정 후 필수
 ```
 
-**사용 시점**: `.cs` 수정 후 `refresh --compile`은 필수 절차. 플레이 테스트는 반드시 `--wait`로 진입 완료를 보장한 뒤 다음 명령 실행.
+**사용 시점**: `.cs` 수정 후 `refresh --compile`은 필수 절차(저비용). **플레이 모드 진입(`play`)은 비용이 크므로 사용자 요청 시에만**(규칙 A8) — 진입할 때는 반드시 `--wait`로 완료를 보장한 뒤 다음 명령을 실행한다.
 
 ### 3.3 `console` — 로그 읽기 (핵심 검증 도구)
 
@@ -128,6 +133,7 @@ unity-cli exec "return World.All.Count;" --usings Unity.Entities
 - 컴파일 에러가 반환되면 **먼저 `--usings` 누락을 의심**하고, 다음으로 API 오타를 확인한다.
 - 씬을 바꿨으면 씬 저장, 에셋을 바꿨으면 에셋 저장 코드를 같은 exec 안에 포함한다. (§5.2)
 - async/코루틴은 기본 차단 (규칙 N5).
+- **`Object`를 bare로 쓰지 않는다.** exec 컨텍스트는 `using System`과 `using UnityEngine`을 함께 포함해 bare `Object`가 `System.Object`와 모호(CS 컴파일 에러)해진다. **`UnityEngine.Object.Instantiate` / `UnityEngine.Object.FindFirstObjectByType`처럼 정규화**하거나 구체 타입(`GameObject.FindObjectsByType<T>()`)을 쓴다. (이 모호성은 exec 전용 — §6의 컴파일된 커스텀 툴은 `using System`이 없으면 해당 없음.)
 
 ### 3.5 `test` — Unity Test Framework 실행
 
@@ -137,7 +143,7 @@ unity-cli test --mode PlayMode          # PlayMode 테스트 (도메인 리로�
 unity-cli test --filter MyTestClass     # 이름 부분 일치 필터
 ```
 
-**사용 시점**: 기능 구현·수정 완료 후, 리팩토링 후. 테스트가 존재하는 영역을 수정했다면 실행이 기본값이다.
+**사용 시점**: **사용자가 명시적으로 요청했을 때만 실행한다**(규칙 A8) — 테스트 실행은 턴 비용이 크므로 기본 검증 루프에 포함하지 않는다. 저비용 검증(컴파일 + `console`)만으로 판단이 불가능할 때는 실행 전 사용자에게 제안·합의한다. (현재 이 프로젝트에는 테스트가 하나도 없다 — CLAUDE.md 참고.)
 
 ### 3.6 `menu` — 메뉴 아이템 실행
 
@@ -160,13 +166,23 @@ unity-cli reserialize                                           # 프로젝트 �
 **동작**: 에셋을 Unity가 메모리로 로드했다가 자체 시리얼라이저로 다시 기록 → 인스펙터로 편집한 것과 같은 유효한 YAML이 된다.
 **사용 시점**: `.prefab` `.unity` `.asset` `.mat`을 텍스트로 수정한 **직후 반드시** (규칙 A3).
 
-### 3.8 `screenshot` — 씬/게임 뷰 캡처
+### 3.8 `screenshot` — 씬/게임 뷰 캡처 (비주얼 작업의 눈)
 
 ```bash
-unity-cli screenshot        # PNG 캡처. 저장 경로는 명령 출력 확인. 옵션: --help
+unity-cli screenshot                                   # 씬 뷰(기본) 1920×1080 → Screenshots/screenshot.png
+unity-cli screenshot --view game                       # 게임 뷰(플레이 중 게임 카메라 결과)
+unity-cli screenshot --width 3840 --height 2160        # 슈퍼샘플 — 디테일/에일리어싱 검사
+unity-cli screenshot --output_path captures/after.png  # 경로 지정 (기본 경로는 매번 덮어씀!)
 ```
 
-**사용 시점**: UI 배치, 이펙트, 오브젝트 배치 등 시각 결과 검증. **피드백 루프**: 수정 → screenshot → 이미지 확인 → 재수정. 단, UI 레이아웃 캡처 전 §5.5 참고.
+**옵션(실측)**: `--view scene|game` · `--width`(기본 1920) · `--height`(기본 1080) · `--output_path`(기본 `Screenshots/screenshot.png`). 카메라 위치 지정 플래그는 **없다** → 프레이밍은 exec로 씬 뷰/게임 카메라를 고정한다(§4.J).
+
+**사용 시점**: 비주얼 작업의 핵심 반복 도구. 사용자가 비주얼 작업을 요청했으면 자유롭게 캡처한다(규칙 A8의 비주얼 예외). 비시각 작업에선 투기적 캡처 금지.
+
+**철칙**:
+- **씬 뷰 캡처는 플레이 모드가 필요 없다** — 편집 모드의 머티리얼·포스트프로세싱·라이팅·`Simulate`된 파티클을 그대로 찍는다(§5.8). 게임 뷰 캡처가 플레이 모드를 요구하면 A8이 함께 적용.
+- **before/after는 반드시 다른 `--output_path`로.** 기본 경로는 덮어써서 비교가 사라진다.
+- 결정론적 비교 규율은 §5.8, UI 레이아웃 캡처 전 강제 리빌드는 §5.5.
 
 ### 3.9 `profiler` — 성능 분석
 
@@ -179,7 +195,7 @@ unity-cli profiler hierarchy --sort self --max 10  # self time 상위 10개
 unity-cli profiler disable && unity-cli profiler clear
 ```
 
-**사용 시점**: "느리다"는 이슈 조사, 최적화 전후 비교. **원칙**: 최적화 전에 반드시 측정으로 병목을 특정하고, 최적화 후 같은 조건으로 재측정해 수치로 보고한다.
+**사용 시점**: "느리다"는 이슈 조사, 최적화 전후 비교 — **플레이 모드를 요구하므로 사용자 요청 시에만**(규칙 A8). **원칙**: 최적화 전에 반드시 측정으로 병목을 특정하고, 최적화 후 같은 조건으로 재측정해 수치로 보고한다.
 
 ### 3.10 `list` — 도구 발견
 
@@ -205,8 +221,8 @@ unity-cli <tool_name> --key value
 unity-cli console --clear
 unity-cli editor refresh --compile
 unity-cli console --type error
-# 에러 있으면: 수정 → 이 루프 반복. 에러 0 확인 후에만 다음 단계.
-unity-cli test --filter <관련테스트>   # 해당 영역에 테스트가 있으면
+# 에러 있으면: 수정 → 이 루프 반복. 에러 0 확인이 이 루프의 완료 조건.
+# test는 이 루프에 넣지 않는다 — 사용자가 요청했을 때만 (규칙 A8).
 ```
 
 ### B. UI 생성·와이어링
@@ -217,8 +233,8 @@ unity-cli test --filter <관련테스트>   # 해당 영역에 테스트가 있�
 
 ```bash
 echo '
-var mgr = Object.FindFirstObjectByType<UIManager>();
-foreach (var btn in Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None))
+var mgr = UnityEngine.Object.FindFirstObjectByType<UIManager>();   // bare Object 금지 (§3.4 규칙)
+foreach (var btn in UnityEngine.Object.FindObjectsByType<UnityEngine.UI.Button>(FindObjectsSortMode.None))
     UnityEditor.Events.UnityEventTools.AddPersistentListener(btn.onClick, mgr.OnAnyButton);
 
 var so = new SerializedObject(mgr);
@@ -230,7 +246,7 @@ EditorSceneManager.SaveOpenScenes();
 return "wired";' | unity-cli exec
 ```
 
-검증: `screenshot`으로 배치 확인 + 플레이 모드 스모크 테스트(§I). 픽셀 단위 레이아웃 폴리싱은 근사까지만 하고 최종 판단은 사용자에게 넘긴다.
+검증: `screenshot`으로 배치 확인. (플레이 모드 스모크 테스트 §I는 사용자 요청 시에만 — 규칙 A8.) 픽셀 단위 레이아웃 폴리싱은 근사까지만 하고 최종 판단은 사용자에게 넘긴다.
 
 ### C. 프리팹 일괄 작업 (컴포넌트 추가/구조 변경)
 
@@ -302,11 +318,14 @@ return "ok";' | unity-cli exec --usings UnityEngine.Rendering --usings UnityEngi
 
 (HDRP면 `UnityEngine.Rendering.HighDefinition`으로 교체.) 검증: `screenshot` 전후 비교.
 
-### G. 셰이더 작업
+### G. 셰이더 / VFX Graph 작업 (그래프 저작물의 한계)
+
+원칙: **그래프 저작물(.shadergraph/.vfx)은 값만 조정, 로직/구조 저작은 코드로.** AI는 코드를 네이티브로 다루므로 반복이 빠르다.
 
 - **Shader Graph(.shadergraph) 수정 요청** → 직접 편집 불가(규칙 N2)를 사용자에게 알리고 대안 제시:
   1. 실체가 "머티리얼 파라미터 변경"이면 → `.mat` 편집+reserialize 또는 exec에서 `material.SetFloat/SetColor` 루프 (쉬움)
   2. 셰이더 로직 자체 작성/수정이면 → **HLSL/ShaderLab 코드 셰이더**로 작성. 텍스트 파일이라 정상 작업 가능하고, 컴파일 에러는 `refresh` 후 `console`로 확인하는 표준 루프가 그대로 돌아간다.
+- **VFX Graph(.vfx) 수정 요청** → 그래프 구조 저작 API 없음(N2). 노출 프로퍼티 값은 `VisualEffect.SetFloat/SetVector4/SetTexture`로 조정 가능하나 노드 추가·연결은 불가. **AI가 이펙트를 새로 저작해야 하면 VFX Graph 대신 Shuriken `ParticleSystem`(§4.K)으로 유도** — 전부 코드라 반복이 빠르다. (GPU 수십만 파티클 등 VFX Graph가 꼭 필요한 경우만 사용자가 에디터에서 직접 저작.)
 
 ### H. 성능 진단
 
@@ -320,9 +339,9 @@ unity-cli editor stop && unity-cli profiler disable
 
 보고 형식: "병목 = X (self N ms/frame, 60프레임 평균)" → 수정 → 동일 조건 재측정 → 전후 수치 비교.
 
-### I. 플레이 모드 스모크 테스트
+### I. 플레이 모드 스모크 테스트 (사용자 요청 시에만 — 규칙 A8)
 
-큰 변경 후 최소 검증:
+플레이 모드는 턴 비용이 크므로 기본 루프에 넣지 않는다. 사용자가 요청했거나, 저비용 검증(console/컴파일)만으로는 확인이 불가능해 사용자에게 제안·합의한 경우에만 다음 최소 검증을 수행한다:
 
 ```bash
 unity-cli console --clear
@@ -332,6 +351,109 @@ unity-cli editor stop
 ```
 
 진입 직후 에러/경고 0이면 통과. 에러가 있으면 stop 후 수정하고 반복.
+
+### J. 비주얼 반복 루프 (결정론적 캡처 — 모든 비주얼 작업의 뼈대)
+
+포스트프로세싱(§4.F)·셰이더(§4.G)·파티클(§4.K)·라이팅(§4.L)은 전부 이 루프를 공유한다. 핵심은 **매번 동일 조건으로 찍어 변경분만 눈에 남기는 것**. (플레이 모드 불필요 — §5.8.)
+
+```
+① 캡처 리그 고정 (카메라 포즈·해상도) — 1회
+  → ② 파라미터 변경 (exec, 한 번에 한 축만)
+  → ③ 캡처 (before/after 다른 파일)
+  → ④ 평가 (이미지 + 필요 시 정량 지표)
+  → ⑤ 조정 → ②로
+```
+
+**① 캡처 리그 — 씬 뷰 카메라를 스크립트로 고정** (검증됨: 편집 모드에서 그대로 캡처됨):
+
+```bash
+echo '
+var sv = SceneView.lastActiveSceneView;
+sv.pivot = new Vector3(0f, 1f, 0f);            // 바라볼 지점
+sv.rotation = Quaternion.Euler(15f, 135f, 0f); // 각도
+sv.size = 5f;                                   // 줌(작을수록 확대)
+sv.Repaint();
+return "rig set";' | unity-cli exec
+```
+게임 카메라 기준으로 봐야 하면 씬의 `Camera`를 exec로 포즈 고정 후 `screenshot --view game`.
+
+**②~③ 변경 + 캡처** — 한 번에 **한 축만** 바꾼다(블룸이면 intensity만). 그래야 스크린샷 차이의 원인이 특정된다.
+```bash
+unity-cli screenshot --output_path captures/before.png
+# ... exec로 파라미터 1개 변경 + 저장(§5.2) ...
+unity-cli screenshot --output_path captures/after.png
+```
+
+**④ 정량 검증(선택, 눈을 보조)** — 방금 저장한 스크린샷 PNG를 다시 읽어 평균 휘도/지배색을 숫자로 확인(검증됨). URP 파이프라인 결과를 그대로 분석하므로 파이프라인 종류와 무관:
+```bash
+echo '
+var bytes = System.IO.File.ReadAllBytes("captures/after.png");   // 프로젝트 루트 기준 경로
+var tex = new Texture2D(2, 2);
+UnityEngine.ImageConversion.LoadImage(tex, bytes);
+var px = tex.GetPixels();
+float lum = 0, r = 0, g = 0, b = 0;
+foreach (var c in px) { lum += 0.2126f*c.r + 0.7152f*c.g + 0.0722f*c.b; r += c.r; g += c.g; b += c.b; }
+int n = px.Length;
+UnityEngine.Object.DestroyImmediate(tex);        // bare Object 금지 (§3.4)
+return $"avgLum={lum/n:F3} avgRGB=({r/n:F2},{g/n:F2},{b/n:F2})";' | unity-cli exec
+```
+예: 야간 룩인데 `avgRGB`의 R이 B보다 높으면 "차갑지 않다"는 객관 신호. 블룸 전후 `avgLum` 상승 확인 등. 최종 미적 판단은 사용자에게 넘긴다.
+
+### K. 파티클 이펙트 (Shuriken `ParticleSystem` — 전부 코드)
+
+VFX Graph와 달리 Shuriken은 모든 모듈이 C# API라 AI 저작에 최적이다. 눈보라·불티·마법 등을 코드로 조립하고 `Simulate`로 정지 프리뷰한다.
+
+**필수 함정 1 — 모듈은 구조체다.** `ps.main.startSize = 1f;`는 컴파일 에러(CS1612). 반드시 로컬에 받아서 설정한다(핸들이라 대입만으로 원본에 써진다):
+```csharp
+var main = ps.main;            // ✅ 로컬에 받는다
+main.startLifetime = 2.0f;
+main.startSpeed = 1.5f;
+main.startColor = new Color(0.7f, 0.85f, 1f);   // 차가운 눈빛
+var emission = ps.emission; emission.rateOverTime = 40f;
+var shape = ps.shape; shape.shapeType = ParticleSystemShapeType.Cone;
+```
+**필수 함정 2 — 렌더러 머티리얼.** `AddComponent<ParticleSystem>()`만 하면 렌더러에 머티리얼이 없어 **마젠타**로 찍힌다. `GetComponent<ParticleSystemRenderer>().material`에 프로젝트의 파티클/스프라이트 머티리얼(URP Particles 셰이더 기반)을 지정한다.
+
+**결정론적 편집모드 프리뷰 — 플레이 모드 불필요**(검증됨): `Simulate(t)`로 특정 시각 상태로 고정 후 씬 뷰 캡처.
+```bash
+echo '
+var ps = UnityEngine.Object.FindFirstObjectByType<ParticleSystem>();
+ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+ps.Simulate(1.5f, true, true);   // 방출 1.5초 경과 상태로 정지 (결정론적)
+ps.Pause();
+SceneView.RepaintAll();
+return ps.particleCount + " particles @ t=1.5s";' | unity-cli exec
+# → unity-cli screenshot --view scene --output_path captures/fx_t1.5.png   (§4.J 루프)
+```
+새 파티클 GameObject 생성은 구조 변경(exec: `new GameObject` + `AddComponent`), 씬 오브젝트면 저장(§5.2), 프리팹화는 §4.C. 튜닝 축(수명/속도/방출률/색/노이즈)은 한 번에 하나씩(§4.J).
+
+### L. 라이팅 / 환경 무드 (`RenderSettings` · `Light` — 전부 코드)
+
+무드의 8할은 라이팅이다. 앰비언트·포그·스카이박스·광원은 전부 공개 API라 exec로 룩을 통째로 갈아끼우고 §4.J로 비교한다. 이 값들은 **씬**에 저장된다(→ `SaveOpenScenes`).
+
+```bash
+echo '
+// NorthLand 야간 한랭 무드 예시
+RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+RenderSettings.ambientSkyColor     = new Color(0.15f, 0.20f, 0.32f);
+RenderSettings.ambientEquatorColor = new Color(0.10f, 0.12f, 0.18f);
+RenderSettings.ambientGroundColor  = new Color(0.04f, 0.05f, 0.07f);
+RenderSettings.fog = true;
+RenderSettings.fogColor = new Color(0.12f, 0.16f, 0.24f);
+RenderSettings.fogMode = FogMode.ExponentialSquared;
+RenderSettings.fogDensity = 0.02f;
+var sun = UnityEngine.Object.FindFirstObjectByType<Light>();
+if (sun != null && sun.type == LightType.Directional) {
+    sun.color = new Color(0.6f, 0.7f, 1.0f);   // 차가운 달빛
+    sun.intensity = 0.5f;
+}
+EditorSceneManager.MarkAllScenesDirty();
+EditorSceneManager.SaveOpenScenes();
+return "night mood applied";' | unity-cli exec
+```
+- 실시간 값(위 전부)은 **즉시 반영** → 베이크 불필요, §4.J로 바로 캡처.
+- **베이크드 GI(`Lightmapping.Bake`/`BakeAsync`)는 비용이 크다 → 규칙 A8**(사용자 요청 시에만). 반사 프로브(`ReflectionProbe`) 굽기도 동일.
+- 광원/반사 프로브를 **새로** 만드는 건 구조 변경(exec 생성 + 저장).
 
 ---
 
@@ -372,7 +494,13 @@ YAML의 오브젝트 참조는 fileID(파일 내)와 GUID(파일 간, .meta에 �
 ### 5.7 플레이 모드 상태
 - 플레이 모드 중 씬 오브젝트 변경은 stop 시 사라진다. (예외: VolumeProfile 같은 **에셋** 변경은 유지 — 튜닝 루프에 활용 가능)
 - 플레이 모드 진입/종료는 도메인 리로드를 유발할 수 있다. CLI가 자동 대기하지만, 상태가 의심되면 `status`.
-- `FindFirstObjectByType` / `FindObjectsByType`은 Unity 2023.1+ API. 구버전 프로젝트면 `FindObjectOfType` 계열로 대체.
+- `FindFirstObjectByType` / `FindObjectsByType`은 Unity 2023.1+ API. 구버전 프로젝트면 `FindObjectOfType` 계열로 대체. (exec에선 `UnityEngine.Object.` 정규화 필수 — §3.4.)
+
+### 5.8 결정론적 캡처 (비주얼 before/after의 전제)
+- **씬 뷰 캡처는 플레이 모드가 필요 없다.** 편집 모드 상태(머티리얼·포스트프로세싱·라이팅·`Simulate`된 파티클)를 그대로 찍는다 → 대부분의 비주얼 반복이 A8의 play 게이트 **밖**에서 가능하다. (검증됨: `ParticleSystem.Simulate(t)` 후 씬 뷰 스크린샷에 해당 프레임이 그대로 캡처됨.)
+- **캡처 조건을 고정하라.** 카메라 포즈·해상도·시간(파티클은 `Simulate(t)`)이 매번 같아야 before/after 차이가 "내 변경" 때문임이 보장된다. 카메라가 움직였거나 이펙트가 애니메이션 중이면 비교가 무의미.
+- **before/after는 다른 `--output_path`로.** 기본 경로(`Screenshots/screenshot.png`)는 덮어쓴다.
+- **한 번에 한 축만 변경.** 여러 축을 동시에 바꾸면 어느 변경이 효과를 냈는지 스크린샷으로 분리 불가.
 
 ---
 
@@ -415,13 +543,16 @@ public static class SpawnTool
 
 호출: `unity-cli spawn --x 1 --z 5 --prefab Goblin`
 
+**이 프로젝트에서 먼저 만들면 좋은 툴**: 비주얼 반복이 잦으므로 `capture`(고정 카메라 포즈 + 해상도로 결정론적 프레임 1장, before/after 자동 네이밍)를 §4.J 루프의 **원커맨드 버전**으로 승격하는 것을 권장한다. 그러면 캡처 리그 고정 + 캡처가 exec 여러 줄이 아니라 `unity-cli capture --tag after` 한 줄이 된다.
+
 ---
 
 ## 7. 이 프로젝트 전용 규칙
 
 > 에이전트는 이 섹션의 내용을 §0~6보다 우선 적용한다.
 
-- 등록된 커스텀 툴: (`unity-cli list`로 확인 — 여기에 주요 툴과 용도를 기록)
+- 등록된 커스텀 툴: **현재 없음**(내장 툴만 — `unity-cli list`로 확인). 비주얼 반복이 잦으니 `capture`(§4.J·§6)를 첫 커스텀 툴로 권장.
+- 비주얼 저작 방침: **Shuriken 파티클(§4.K) · 코드 포스트프로세싱(§4.F) · HLSL 셰이더(§4.G)** 우선. VFX Graph/Shader Graph는 값 조정만, 신규 저작은 코드 경로로(그래프는 AI 저작 API가 막혀 있음 — N2).
 - 건드리면 안 되는 에셋/폴더:
 - 씬 저장 정책 (자동 저장 허용 여부): No
 - 테스트 필수 영역:
