@@ -12,6 +12,8 @@ using UnityEngine;
 /// 2. 확보 — Selectable → Owned 전이 후 이웃 Locked를 Selectable로 승격(프론티어 갱신).<br/>
 /// 3. 전이 시 이벤트 발행 → 뷰가 구독해 갱신(ResourceWallet과 동일한 순수 C# 모델 계보).
 /// </summary>
+// TODO: 전투 영토 확장(#1)과 모델 공유/분리 합의 후 Territory* 타입군을 네임스페이스로 격리할 것 (WL-029) —
+//       현재 전역(Assembly-CSharp) 진입이라 #1이 TerritoryNode/State/Edge 같은 일반명을 쓰면 충돌 예약.
 public class TerritoryGraph
 {
     private readonly Dictionary<int, TerritoryNode> _nodesById = new();
@@ -21,6 +23,9 @@ public class TerritoryGraph
     public event Action OnChanged;
 
     /// <summary>노드를 확보(Owned 전이)했을 때 정확히 1회 발행된다 — 효과 1회 적용 지점(§4.3).</summary>
+    // TODO: 효과 연결 (WL-030) — 현재 훅만 존재. 후속 효과 SO(§5) 연결 시 반드시
+    //       OnNodeClaimed → 효과.Apply → ResourceWallet.Add 경로로만 지급(계약 #3 마나석 흐름)하고,
+    //       수치는 DataTable/CSV 파이프라인에서 가져올 것(계약 #2). 인스펙터/코드 하드코딩 지급 금지.
     public event Action<TerritoryNode> OnNodeClaimed;
 
     /// <summary>본진 노드 Id. 초기화 실패 시 -1.</summary>

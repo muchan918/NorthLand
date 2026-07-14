@@ -13,7 +13,7 @@
 - **WL-005** | OPEN | PR#29/31/53 | 레이어 규약 부재: Enemy/Selectable/Ground에 더해 PR#53에서 PlayerUnit·PlayerBase·Enemy(targetLayerMask) 전투 탐지 3종이 각자 SerializeField로 추가됨 — 미설정 시 무증상(탐지 0) | 전투 레이어 3종 명명·번호 팀 확정 + TagManager 등재 + SystemMap §5
 - **WL-006** | OPEN | PR#22 | 에셋 로딩 이원화: Resources.Load(DataTable) vs Addressables(Localization) | 로딩 전략 단일화 결정
 - **WL-007** | OPEN | PR#58 | (심화) TileSize가 public으로 열렸으나(StageBuilder.cs:15) 공개된 건 raw 값뿐 — grid→world 변환식은 StageBuilder 내부 2곳(UpdateMonsterSpawnPoint:214-218, SpawnFinalCenterObject:237-241)에 복제된 채. 공개 RoadWorldPoints는 여전히 grid×1로 시각/스폰(grid×TileSize)과 괴리. 소비처가 변환을 재구현하면 3중 복제 | TileSize raw 노출 대신 GridToWorld 변환 유틸을 export 지점 1곳으로 공개(내부 복제 제거 포함)
-- **WL-008** | OPEN | PR#32 | 로그라이크 시드 재현성: 전역 UnityEngine.Random 사용, 시드 주입 설계 없음 | Run 시드 설계 후 MapRandom에 주입
+- **WL-008** | OPEN | PR#32 | 로그라이크 시드 재현성: 전역 UnityEngine.Random 사용, 시드 주입 설계 없음. PR#75(영토 생성기)가 요구 해법(System.Random 주입 + 소비 순서 고정)을 선구현 — MapBuilder 적용 시 참조 패턴 | Run 시드 설계 후 MapRandom에 주입
 - **WL-009** | OPEN | PR#32 | 용어 충돌: StageWaypoint(블록 연결점) vs GDD 웨이포인트(병사 배치 지점), '스테이지'(블록) vs GDD 스테이지(런 단위) | 병사 시스템 착수 전 리네임
 - **WL-010** | OPEN | PR#29/53 | 폴더명 오타 `Scirpts` — PR#53에서 Base/·Unit/ 하위 신규 파일로 meta GUID 참조 추가 심화 | 폴더 리네임(참조 더 늘기 전)
 - **WL-011** | OPEN | PR#31 | 선택 통지 이중 경로: OnSelectionChanged 이벤트(구독자 0) vs SelectableTest→TowerInfoUI 직접 호출 | 정본 경로 결정
@@ -34,3 +34,5 @@
 - **WL-026** | OPEN | PR#59 | GDD 미기재 타워 택소노미 신규 도입: Single/Area/Chain/Magic(Buff/Debuff) 5종, 특히 haste_tower=타워가 타워를 버프하는 지원 타워. GDD §6.2/§8·보상(§6.6)·스킬 통합(§9)과 맞물릴 설계. 데이터 결합은 느슨 | GDD 반영 + 팀 합의(WL-012 연동)
 - **WL-027** | OPEN | PR#62 | 밸런싱 수치 SO화가 Enemy로 확대(WL-015 연동): 몬스터 공통 스탯(MaxHp/MoveSpeed/AttackDamage/AttackRange/AttackInterval)이 CSV가 아니라 EnemyAsset.CombatFields(SO) 인스펙터 입력. 공통 스탯은 세 타입 전부 공유해 평면 CSV 가능하나 전부 SO로 감 — 이슈#26의 '스탯 CSV 정의 + 계약-우선 MonsterData' 미충족, 다운스트림 #14/#15/#16이 EnemyTable로 스탯 조회 불가 | 공통 스탯 CSV 승격 여부 + 타입 고유 필드만 SO 유지 합의(SUNGSOO·#26 오너)
 - **WL-028** | OPEN | PR#61 | 경영 공간 씬 정본 이원화: 게임 부트 씬 ManageSpace-Sungsoo.unity가 muchan/Scene/ManageSpace.unity의 복사본으로 출발했으나 main 머지로 157줄 divergence 발생(muchan 정본엔 TowerDataTest·ManageObjects 등 존재, 부트 복사본엔 없음). GameSceneManager가 복사본을 부팅해 muchan 후속 경영 씬 작업이 게임에 반영 안 됨, 25779줄 씬 재동기화 불가 | 경영 씬 정본 1개 확정 + GameSceneManager.ManageSpaceScene/EditorBuildSettings를 정본으로 지정 + 복사본 폐기
+- **WL-029** | OPEN | PR#75 | 경영 영토(#18) 모델 12종(TerritoryGraph/Node/State/Edge/Controller 등)이 네임스페이스 없이 전역 진입 — 이슈#18이 요구한 전투 영토 확장(#1)과의 데이터 구조 공유 검토 미결. #1 착수 시 일반명 전역 충돌 예약 | #1과 모델 공유/분리 합의 + Territory 네임스페이스 격리
+- **WL-030** | OPEN | PR#75 | 영토 확보 효과·마나석 지급 미연결: OnNodeClaimed 훅만 존재, 더미 효과조차 플레이 경로에 없음(이슈#18 완료기준③ 훅 수준만 충족). 효과 SO(TerritoryGraph.md §5)·ResourceWallet 연결 시 계약2(수치=CSV)·계약3(마나석 흐름) 준수 필요 | OnNodeClaimed→ResourceWallet.Add + DataTable 효과 경로 연결

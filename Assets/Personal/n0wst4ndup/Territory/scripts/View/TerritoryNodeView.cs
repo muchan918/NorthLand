@@ -7,6 +7,8 @@ using UnityEngine;
 /// 콜라이더는 반드시 이 컴포넌트와 <b>같은 GameObject(프리팹 루트)</b>에 있어야 한다 —
 /// MouseManager의 <c>hit.collider.TryGetComponent</c> 판정이 부모를 탐색하지 않기 때문(입력 통합 단계에서 사용).
 /// </summary>
+// TODO: 입력 통합 시 노드 프리팹을 팀 확정 Selectable 레이어에 배정할 것 (WL-005) —
+//       MouseManager._selectableMask가 1차 필터라 레이어 미설정 시 클릭이 조용히 무반응(WL-002 패턴).
 [RequireComponent(typeof(Collider))]
 public class TerritoryNodeView : MonoBehaviour, ISelectable
 {
@@ -34,6 +36,9 @@ public class TerritoryNodeView : MonoBehaviour, ISelectable
 
     public void OnDeselected() => Refresh();
 
+    // TODO: 지금은 클릭 1회 = 즉시 확보(비가역)라 ISelectable의 "가역적 조회" 시맨틱을 오버로드한다.
+    //       비용(GDD §4.2 마나석)·낮/밤 게이팅(§5.1) 도입 시 호버=미리보기 / 클릭=확정(또는 확정 버튼)
+    //       분리를 검토할 것 (WL-011 선택 통지 이중 경로와 인접).
     public void OnSelected()
     {
         if (_controller == null || _controller.Graph == null)
