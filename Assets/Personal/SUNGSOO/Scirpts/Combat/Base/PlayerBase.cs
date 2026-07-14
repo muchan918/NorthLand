@@ -1,3 +1,4 @@
+using NorthLand.Core;
 using UnityEngine;
 
 namespace NorthLand.Combat
@@ -19,7 +20,7 @@ namespace NorthLand.Combat
         public void TakeDamage(DamageInfo info)
         {
             currentHp -= info.Amount;
-            // Debug.Log($"{name} took {info.Amount} dmg, hp={currentHp}");
+            Debug.Log($"{name} took {info.Amount} dmg, hp={currentHp}");
 
             if (IsDead)
                 GameOver();
@@ -28,7 +29,7 @@ namespace NorthLand.Combat
         void GameOver()
         {
             Debug.Log("Game Over - 본진이 파괴되었습니다");
-            // TODO: 실제 게임오버 처리(씬 전환 / UI 등) 연결
+            GameManager.Instance?.TriggerGameOver();
         }
     }
 }
