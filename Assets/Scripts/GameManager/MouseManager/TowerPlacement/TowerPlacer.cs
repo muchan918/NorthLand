@@ -30,6 +30,7 @@ public class TowerPlacer : MonoBehaviour
     [SerializeField] private bool keepPlacing;       // 연속 배치 여부
 
     [Header("그리드")]
+    // WL-032: StageBuilder.TileSize와 수동 동기화(단일 출처 아님). 불일치 시 Awake에서 경고한다.
     [Tooltip("셀 간격. StageBuilder.TileSize(=5)와 일치해야 풋프린트 셀 조회가 맞는다.")]
     [SerializeField] private float tileSize = 5f;
 
@@ -51,9 +52,39 @@ public class TowerPlacer : MonoBehaviour
 
     private GameObject _rangeIndicator;
     private readonly List<GameObject> _cellHighlights = new List<GameObject>();
+    private Material _rangeMat;
     private Material _cellMatValid;
     private Material _cellMatInvalid;
     private TowerPlacementData _activeData; // 현재 배치 중인 타워의 데이터(주입 또는 더미)
+
+    // 프레임당 풋프린트를 1회만 계산해 캐시(스냅에서 채우고, 검증·하이라이트가 공유).
+    // MouseManager는 매 프레임 Snap → CanPlaceAt 순으로 호출하므로 CanPlaceAt은 이 캐시를 신뢰한다.
+    private readonly List<(Vector3 pos, BattleTile tile)> _footprint = new List<(Vector3, BattleTile)>();
+    // OverlapSphere 재사용 버퍼(배치 중 매 프레임 힙 할당 방지). 셀 하나에 겹치는 콜라이더는 소수.
+    private readonly Collider[] _overlap = new Collider[8];
+
+    private void Awake()
+    {
+        // WL-032 방어: tileSize가 StageBuilder.TileSize와 다르면 풋프린트 셀 조회가 어긋나
+        // 조용한 오배치가 된다. 씬에 StageBuilder가 있으면 값 불일치를 경고한다.
+        StageBuilder stage = FindFirstObjectByType<StageBuilder>();
+        if (stage != null && !Mathf.Approximately(stage.TileSize, tileSize))
+        {
+            Debug.LogWarning(
+                $"[TowerPlacer] tileSize({tileSize})가 StageBuilder.TileSize({stage.TileSize})와 다릅니다. " +
+                "풋프린트 셀 조회가 어긋날 수 있습니다.");
+        }
+    }
+
+    private void OnDestroy()
+    {
+        // 런타임 생성물·머티리얼 정리(누수 방지).
+        if (_rangeIndicator != null) Destroy(_rangeIndicator);
+        ClearCellHighlights();
+        if (_rangeMat != null) Destroy(_rangeMat);
+        if (_cellMatValid != null) Destroy(_cellMatValid);
+        if (_cellMatInvalid != null) Destroy(_cellMatInvalid);
+    }
 
     // ── 진입점 ─────────────────────────────────────────────────────────────────────
     /// 더미 데이터 + 인스펙터 프리팹으로 배치 시작. UI 버튼 OnClick에 연결(현재 테스트 경로).
@@ -108,6 +139,8 @@ public class TowerPlacer : MonoBehaviour
     private Vector3 SnapToFootprintCenter(RaycastHit hit)
     {
         BattleTile anchor = hit.collider.GetComponentInParent<BattleTile>();
+        RebuildFootprint(anchor); // 이번 프레임 풋프린트 1회 계산(검증·하이라이트가 공유)
+
         Vector3 result = anchor != null
             ? new Vector3(
                 anchor.transform.position.x + (_activeData.GridWidth - 1) * 0.5f * tileSize,
@@ -116,17 +149,16 @@ public class TowerPlacer : MonoBehaviour
             : hit.point;
 
         if (_rangeIndicator != null) _rangeIndicator.transform.position = result;
-        UpdateCellHighlights(anchor);
+        UpdateCellHighlights();
         return result;
     }
 
     // ── 유효성: 풋프린트 전 셀이 건설 가능(Grass) & 미점유여야 함 (Docs §4) ────────────
+    // Snap이 이번 프레임 _footprint를 채운 뒤 호출된다(MouseManager 호출 순서) → 캐시 신뢰.
     private bool CanPlaceFootprint(RaycastHit hit)
     {
-        BattleTile anchor = hit.collider.GetComponentInParent<BattleTile>();
-        if (anchor == null) return false;
-
-        foreach ((Vector3 _, BattleTile tile) in FootprintCells(anchor))
+        if (_footprint.Count == 0) return false; // 앵커 없음(맵 밖) 등
+        foreach ((Vector3 _, BattleTile tile) in _footprint)
         {
             if (!IsBuildable(tile)) return false;
         }
@@ -138,37 +170,39 @@ public class TowerPlacer : MonoBehaviour
     // ── 확정: 풋프린트 전 셀 점유 + 중심에 타워 생성 ──────────────────────────────────
     private void PlaceTower(RaycastHit hit, Vector3 snappedPos)
     {
+        // 확정은 프레임당 1회 → 캐시에 의존하지 않고 신선하게 재확인(방어).
         BattleTile anchor = hit.collider.GetComponentInParent<BattleTile>();
         if (anchor == null) return;
+        RebuildFootprint(anchor);
 
-        // 방어적 재확인 후 점유 대상 수집(하나라도 무효면 중단)
-        var footprint = new List<BattleTile>();
-        foreach ((Vector3 _, BattleTile tile) in FootprintCells(anchor))
+        foreach ((Vector3 _, BattleTile tile) in _footprint)
         {
             if (!IsBuildable(tile)) return;
-            footprint.Add(tile);
         }
 
         // TODO(훅): ResourceWallet.TrySpend(cost) 실패 시 return — Docs/Core/TowerPlacement.md §8
 
         Instantiate(towerPrefab, snappedPos, Quaternion.identity);
-        foreach (BattleTile tile in footprint) tile.Occupied = true;
+        foreach ((Vector3 _, BattleTile tile) in _footprint) tile.Occupied = true;
     }
 
     private static bool IsBuildable(BattleTile tile)
         => tile != null && tile.Kind == TileKind.Grass && !tile.Occupied;
 
-    // 앵커 기준 W×H 각 셀의 (중심 위치, BattleTile)을 공간 질의로 수집(타일 없으면 null).
+    // 앵커 기준 W×H 각 셀의 (중심 위치, BattleTile)을 _footprint에 채운다(재사용 버퍼로 할당 없이 질의).
     // 셀→타일 레지스트리가 없으므로 좌표(tileSize 간격)로 그 지점을 OverlapSphere해서 찾는다.
-    private IEnumerable<(Vector3 pos, BattleTile tile)> FootprintCells(BattleTile anchor)
+    private void RebuildFootprint(BattleTile anchor)
     {
+        _footprint.Clear();
+        if (anchor == null) return;
+
         Vector3 a = anchor.transform.position;
         for (int i = 0; i < _activeData.GridWidth; i++)
         {
             for (int j = 0; j < _activeData.GridHeight; j++)
             {
                 Vector3 cell = new Vector3(a.x + i * tileSize, a.y, a.z + j * tileSize);
-                yield return (cell, TileAt(cell));
+                _footprint.Add((cell, TileAt(cell)));
             }
         }
     }
@@ -176,10 +210,10 @@ public class TowerPlacer : MonoBehaviour
     private BattleTile TileAt(Vector3 worldCell)
     {
         // 반경은 셀 간격의 절반 미만이어야 인접 셀을 잘못 잡지 않는다.
-        Collider[] hits = Physics.OverlapSphere(worldCell, tileSize * 0.4f);
-        foreach (Collider c in hits)
+        int count = Physics.OverlapSphereNonAlloc(worldCell, tileSize * 0.4f, _overlap);
+        for (int i = 0; i < count; i++)
         {
-            BattleTile tile = c.GetComponentInParent<BattleTile>();
+            BattleTile tile = _overlap[i].GetComponentInParent<BattleTile>();
             if (tile != null) return tile;
         }
         return null;
@@ -189,13 +223,14 @@ public class TowerPlacer : MonoBehaviour
     private void CreateRangeIndicator(float range)
     {
         if (_rangeIndicator != null) Destroy(_rangeIndicator);
+        if (_rangeMat == null) _rangeMat = new Material(Shader.Find("Sprites/Default")); // 언릿, 정점색으로 tint
 
         _rangeIndicator = new GameObject("TowerRangePreview");
         LineRenderer lr = _rangeIndicator.AddComponent<LineRenderer>();
         lr.useWorldSpace = false; // 원을 로컬로 그리고 오브젝트를 이동시켜 중심 추적
         lr.loop = true;
         lr.widthMultiplier = 0.15f;
-        lr.material = new Material(Shader.Find("Sprites/Default")); // 언릿 컬러 라인(URP에서 동작)
+        lr.sharedMaterial = _rangeMat; // 공유 머티리얼(매 배치 새로 만들지 않음 — 누수 방지)
         lr.startColor = lr.endColor = rangeColor;
 
         lr.positionCount = rangeSegments;
@@ -224,15 +259,13 @@ public class TowerPlacer : MonoBehaviour
         }
     }
 
-    private void UpdateCellHighlights(BattleTile anchor)
+    // _footprint(스냅에서 계산됨)를 그대로 사용해 각 셀 하이라이트를 배치·색칠한다.
+    private void UpdateCellHighlights()
     {
-        if (anchor == null) return;
-
-        int idx = 0;
-        foreach ((Vector3 pos, BattleTile tile) in FootprintCells(anchor))
+        for (int i = 0; i < _footprint.Count && i < _cellHighlights.Count; i++)
         {
-            if (idx >= _cellHighlights.Count) break;
-            GameObject q = _cellHighlights[idx++];
+            (Vector3 pos, BattleTile tile) = _footprint[i];
+            GameObject q = _cellHighlights[i];
             q.transform.position = new Vector3(pos.x, pos.y + 0.03f, pos.z); // z-파이팅 방지 살짝 위로
             q.GetComponent<Renderer>().sharedMaterial = IsBuildable(tile) ? _cellMatValid : _cellMatInvalid;
         }
@@ -260,5 +293,6 @@ public class TowerPlacer : MonoBehaviour
         if (_rangeIndicator != null) Destroy(_rangeIndicator);
         _rangeIndicator = null;
         ClearCellHighlights();
+        _footprint.Clear();
     }
 }

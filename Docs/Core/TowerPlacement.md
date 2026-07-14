@@ -97,7 +97,7 @@
 - 배치 히트에서 `hit.collider.GetComponentInParent<BattleTile>()`로 타일을 얻는다. 셀 중심 = `tile.transform.position`, 점유 = `tile.Occupied`.
 - 풋프린트 이웃 셀은 앵커 위치에서 `tileSize` 간격으로 계산한 지점을 `Physics.OverlapSphere(cell, tileSize*0.4f)`로 조회해 각 `BattleTile`을 찾는다.
 
-**타일 태깅 의존 (와이어링)**: 타워를 놓으려면 타일이 `BattleTile`(Kind 설정)을 가져야 한다. 소스 타일 프리팹이 **`Assets/Imported/`(벤더링, 편집 금지)**에 있으므로 Imported를 직접 편집하지 않고 태깅한다 — 로컬 프리팹 복사본 / 스폰 시 태깅 / 런타임 태깅 중 택1. (실제 프리팹: grass=`TB_Env_GroundA`, road=`TB_Env_GroundDC_plain`, lava=`TB_Env_River_Water`.)
+**타일 태깅 (완료)**: 전투 타일 프리팹에 `BattleTile`(Kind 설정)이 **부착돼 있다** — 인스턴스는 `Instantiate` 시 이를 그대로 가지므로 `StageMapSpawner`의 별도 태깅이 필요 없다. 단 프리팹이 **`Assets/Imported/`(벤더링, 별도 git 저장소)**에 있어 **메인 repo diff·자동 리뷰에는 이 부착이 보이지 않는다**(팀은 Imported를 별도 git로 공유). → `StageBuilder`의 grass/road/lava 필드가 이 태깅된 프리팹을 가리켜야 한다는 것이 유일한 전제.
 
 ### 6.2 데이터 게이트웨이 (더미 → SO 주입)
 TowerPlacer가 배치에 쓰는 값은 `TowerPlacementData { GridWidth, GridHeight, AttackRange }` + 프리팹(tower/ghost)이다. TowerPlacer는 특정 SO에 결합하지 않고, **진입 방식과 무관한 코어 `StartPlacement(TowerPlacementData)`** 를 둔다.
@@ -156,7 +156,7 @@ TowerPlacer가 배치에 쓰는 값은 `TowerPlacementData { GridWidth, GridHeig
 
 ## 10. 인수 조건 (Acceptance Criteria)
 
-> 전제: 타일에 `BattleTile`이 부착됨(§6 와이어링).
+> 전제: 전투 타일 프리팹에 `BattleTile` 부착됨(§6.1 — 완료).
 
 - [x] 고스트가 풋프린트 중심으로 스냅된다.
 - [x] road·lava·타일없음·점유 셀이 풋프린트에 포함되면 무효(빨강 하이라이트), 좌클릭 무반응.
@@ -174,9 +174,10 @@ TowerPlacer가 배치에 쓰는 값은 `TowerPlacementData { GridWidth, GridHeig
 
 - **SO 게이트웨이(예정)**: tower/ghost 프리팹 + 풋프린트/사거리를 담은 SO + `BeginTowerPlacement(SO)` 오버로드(§6.2). SO는 후속 작성.
 - **자원·페이즈 훅**(§8): 통합 #71에서 연결.
-- **타일 `BattleTile` 태깅**(§6.1): Imported 직접편집 금지 → 로컬 복사본/스폰태깅/런타임태깅.
-- ~~WL-004 (BattleMapBuilder 그리드 API)~~ — **불요**(타일 마커로 대체).
-- ~~WL-007 (좌표 이원화)~~ — **회피**(배치 측 변환 안 함). 단 그리드가 월드 X/Z축 정렬이라는 가정에 의존.
+- **타일 `BattleTile` 태깅 — 완료**(§6.1): 전투 타일 프리팹에 부착됨(Imported·별도 git이라 메인 repo diff엔 안 보임). `StageBuilder`가 태깅된 프리팹을 가리키는 것이 전제.
+- **WL-004 (배치 검증 공백) — 해소**(이 PR): CanPlaceAt/Snap/타일 종류 판정을 TowerPlacer + BattleTile로 구현. MapBuilder 그리드 API는 불요.
+- **WL-032 (신규 — `tileSize` 이중화)**: `TowerPlacer.tileSize`가 `StageBuilder.TileSize`와 독립(수동 동기화). 불일치 시 풋프린트 조회 어긋남 → Awake 경고로 방어, 근본 해소는 WL-007과 함께.
+- ~~WL-007 (좌표 이원화)~~ — **회피**(배치 측 변환 안 함). 단 그리드 축 정렬 가정 + `tileSize` 동기화(WL-032)에 의존.
 - **WL-005 (레이어)**: 타일이 `_placementMask`(Ground) + Collider, 타워 배치물은 `Selectable`, 타워 레이어는 `_placementMask` 제외.
 - **WL-001**: 타워 비용/스탯 출처(`TowerAsset`) — 자원 훅 전제.
 - **WL-009**: 용어 — 본 문서 '셀/타일'은 배틀맵 기준, GDD 병사 '웨이포인트'와 무관.
