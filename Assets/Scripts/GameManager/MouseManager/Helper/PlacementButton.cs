@@ -25,9 +25,10 @@ public class PlacementButton : MonoBehaviour
 
             // TODO: 해당 위치가 실제로 배치 가능한 셀인지(점유 여부·빌드 가능 영역 등) 검사 필요.
             //       현재는 배치 표면(_placementMask = Ground)에만 고스트가 올라가므로, Ground이면 무조건 배치 허용.
-            CanPlaceAt = pos => true,
+            //       실제 타워 배치의 그리드 검증은 TowerPlacer 참고.
+            CanPlaceAt = hit => true,
 
-            OnConfirmed = pos =>
+            OnConfirmed = (hit, pos) =>
             {
                 var placed = Instantiate(_placedPrefab, pos, Quaternion.identity);
                 placed.Initialize($"배치된 타워", Color.green); // TODO: 실제 타워 데이터로 변경

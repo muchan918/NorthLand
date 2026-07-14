@@ -135,25 +135,24 @@ public class MouseManager : MonoBehaviour
 
         if (!RaycastMask(screenPos, _placementMask, out var hit)) return;
 
-        Vector3 pos = Snap(hit.point); // 그리드 스냅 (TBD)
+        Vector3 pos = _request.Snap != null ? _request.Snap(hit) : hit.point; // 스냅은 요청이 결정(그리드 스냅)
         _ghost.transform.position = pos;
 
-        bool valid = _request.CanPlaceAt(pos);
+        bool valid = _request.CanPlaceAt(hit);
         // TODO(하이라이트/연출 미확정): 고스트를 유효=초록/무효=빨강 등으로 표시
 
         if (!overUI && valid && Mouse.current.leftButton.wasPressedThisFrame)
         {
-            _request.OnConfirmed(pos);
+            _request.OnConfirmed(hit, pos);
             if (!_request.KeepPlacingAfterConfirm) CancelPlacement();
         }
     }
 
-    // ── 레이캐스트 / 스냅 (구현 방식 TBD) ─────────────────────────
+    // ── 레이캐스트 ────────────────────────────────────────────────
+    // 그리드 스냅은 각 배치물이 PlacementRequest.Snap으로 제공한다(매니저는 배치 규칙을 모른다).
     private bool RaycastMask(Vector2 screenPos, LayerMask mask, out RaycastHit hit)
     {
         var ray = _camera.ScreenPointToRay(screenPos);
         return Physics.Raycast(ray, out hit, Mathf.Infinity, mask);
     }
-
-    private Vector3 Snap(Vector3 world) => world; // TODO: 그리드 좌표로 스냅
 }
