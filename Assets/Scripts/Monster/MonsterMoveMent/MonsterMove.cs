@@ -27,6 +27,9 @@ public class MonsterMove : MonoBehaviour
     {
         if (currentRouteIndex >= route.Count)
         {
+            // 경로 끝(본진) 도달 → 디스폰. 스포너의 웨이브 클리어 판정(살아있는 몬스터 수)에서 빠진다.
+            // 본진 데미지는 전투 통합 시 별도 처리(TODO) — 지금은 디스폰만.
+            Destroy(gameObject);
             return;
         }
 

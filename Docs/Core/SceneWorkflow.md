@@ -29,6 +29,7 @@
 
 - `Assets/Scenes/TitleScene.unity`, `Assets/Scenes/GameScene.unity` 두 파일만 정본이다.
 - 개인 폴더(`Assets/Personal/<이름>/Scene/` 등)에 새 정본 씬을 만들지 않는다.
+- 병합용 스냅샷·브랜치 작업 씬(번호 파일)은 정본과 섞이지 않게 `Assets/Scenes/Branches/`에 모아 둔다(§4·§5) — 정리 시 폴더째 비울 수 있도록.
 
 ## 3. 개인 작업 시작
 
@@ -43,9 +44,11 @@
 정본 파일 이름(`GameScene.unity`/`TitleScene.unity`)은 이 과정 내내 그대로 유지되고,
 `GameSceneManager`/Build Settings가 참조하는 대상도 바뀌지 않는다 — 코드 수정은 없다.
 
-1. **스냅샷 추가**: `Assets/Scenes/`에 번호를 붙인 새 파일로 그 시점 작업 결과를 추가한다:
+1. **스냅샷 추가**: `Assets/Scenes/Branches/`에 번호를 붙인 새 파일로 그 시점 작업 결과를 추가한다:
    `GameScene_1.unity`, `GameScene_2.unity`, `TitleScene_1.unity` … (번호는 그 씬 종류의 이전
-   최고 번호 + 1). 이 시점에는 아직 게임이 이 파일을 로드하지 않는다 — 리뷰·비교용 히스토리다.
+   최고 번호 + 1). 스냅샷·브랜치 작업 씬은 정본(`Assets/Scenes/` 직하)과 섞이지 않도록 전용 하위
+   폴더 `Branches/`에 모아 둔다 — 정리 시 폴더째 비울 수 있다(§5). 이 시점에는 아직 게임이 이
+   파일을 로드하지 않는다 — 리뷰·비교용 히스토리다.
 2. **정본 확정**: 리뷰 후 이 스냅샷을 반영하기로 하면, 스냅샷 파일의 내용을 정본 파일 이름
    (`GameScene.unity`/`TitleScene.unity`)에 **그대로 덮어쓴다**(번호 없는 정본 파일을 스냅샷
    내용으로 교체). 정본 파일 이름 자체는 바뀌지 않으므로 `GameSceneManager`/Build Settings는
@@ -59,7 +62,9 @@
 
 1. 정본 파일(`TitleScene.unity`/`GameScene.unity`)은 이미 §4②(정본 확정)에서 매번 최신 상태로
    갱신돼 있으므로 별도로 확정할 것이 없다.
-2. 그 주에 쌓인 번호 붙은 스냅샷 파일(`*_1`, `*_2`, …)은 모두 삭제한다.
+2. 그 주에 쌓인 스냅샷·브랜치 작업 씬은 `Assets/Scenes/Branches/` 폴더를 통째로 비워 삭제한다
+   (개별 파일을 골라 지우지 않아도 되도록 이 폴더에 모아 둔다). 정본(`Assets/Scenes/` 직하
+   `GameScene.unity`/`TitleScene.unity`)은 그대로 둔다.
 3. 다음 주 병합은 다시 `_1`부터 시작한다.
 
 ## 6. WL-028과의 관계

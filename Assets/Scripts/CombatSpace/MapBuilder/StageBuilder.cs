@@ -100,28 +100,26 @@ public class StageBuilder : MonoBehaviour
         }
 
         PrepareRoute();
-        GenerateNextStage(false);
+        GenerateNextStage();
     }
 
-    private void Update()
+    private void Start()
     {
-        if (Keyboard.current == null)
+        if (DayNightManager.Instance != null)
         {
-            return;
-        }
-
-        if (Keyboard.current.nKey.wasPressedThisFrame)
-        {
-            GenerateNextStage(true);
-        }
-
-        if (Keyboard.current.rKey.wasPressedThisFrame)
-        {
-            ResetStage();
+            DayNightManager.Instance.OnDayToNight += GenerateNextStage;
         }
     }
 
-    private void GenerateNextStage(bool startMonsterRound)
+    private void OnDestroy()
+    {
+        if (DayNightManager.Instance != null)
+        {
+            DayNightManager.Instance.OnDayToNight -= GenerateNextStage;
+        }
+    }
+
+    private void GenerateNextStage()
     {
         if (currentMapCount >= routeSettings.MaxMapCount || currentMapCount >= generatedMapOffsets.Count)
         {
@@ -156,7 +154,8 @@ public class StageBuilder : MonoBehaviour
         occupiedMapOffsets.Add(currentMapOffset);
         currentMapCount++;
 
-        if (startMonsterRound)
+        Debug.Log("[StageBuilder] 생성 완료: " + currentMapOffset + ", 현재 맵 수: " + currentMapCount);
+        if (currentMapCount > 1)
         {
             StartMonsterRound(currentMapCount);
         }
@@ -291,7 +290,7 @@ public class StageBuilder : MonoBehaviour
         currentMapCount = 0;
 
         PrepareRoute();
-        GenerateNextStage(false);
+        GenerateNextStage();
     }
 }
 

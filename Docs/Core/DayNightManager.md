@@ -7,7 +7,7 @@
 - 구현 위치: `Assets/Scripts/DayNight/`
 - 이 문서는 **현재 구현된 구조**를 정리한 것이다. 코드를 바꾼 사람은 이 문서도 함께 갱신해 어긋나지 않게 유지한다. 미구현 항목은 [8. 미확정/TODO](#8-미확정--todo)에 모아둔다.
 
-> ⚠️ 밤→낮 전환은 현재 **좌측 하단 "웨이브 성공" 버튼(`NightActionPanelView`, 임시 UI, #66)이 `EndNight()`를 직접 호출**하는 것으로만 일어난다. 실제로는 웨이브 클리어 시 Combat 시스템이 `EndNight()`를 호출해야 한다(WL-018). 3초 자동 타이머 코드는 참고용으로 주석 처리해뒀다(§7 참고).
+> ⚠️ 밤→낮 전환(`EndNight()`)은 현재 두 경로로 일어난다: (1) `MonsterSpawn`이 웨이브 클리어(스폰 완료 후 생존 몬스터 0) 시 자동 호출(#17), (2) 좌측 하단 "웨이브 성공" 버튼(`NightActionPanelView`, 임시 UI, #66) 수동 호출. 단 (1)의 "클리어"는 아직 처치가 아니라 몬스터의 본진 도달-디스폰 기준이다(처치 기반은 Enemy 병합 후 — WL-038). "웨이브 실패/보스 처치" 정식 판정 연동과 임시 버튼 제거는 WL-018 잔여. 3초 자동 타이머 코드는 참고용으로 주석 처리해뒀다(§7 참고).
 
 ## 1. 목적 · 핵심 원칙
 
@@ -49,7 +49,7 @@
 | 이벤트 | 발생 시점 | 구독 예시 |
 |---|---|---|
 | `OnDayStart` | 낮이 시작되는 **모든** 시점 (1일차 부트스트랩 포함) | 본진 체력 회복 |
-| `OnDayToNight` | 낮→밤 전환 순간 | 주민 배치 확정(자원 정산 없음) |
+| `OnDayToNight` | 낮→밤 전환 순간 | 전투 스테이지 확장 + 몬스터 스폰(`StageBuilder`, #17) |
 | `OnNightToDay` | 밤→낮 전환 순간 (웨이브 종료를 의미) | 주민 배치 기반 자원 정산(먼저) + 주민 배치 초기화(그 다음) |
 
 `OnNightToDay`와 `OnDayStart`는 2일차부터 항상 같이(순서: `OnNightToDay` → `OnDayStart`) 발생하지만,
@@ -105,13 +105,15 @@ private void OnDestroy()
 | `DayNightLightingController.cs` | (#7) `OnDayToNight`/`OnNightToDay` 구독, Directional Light·Ambient(Trilight)·Skybox를 프리셋 값으로 즉시 전환(스냅). Fog 제외 |
 | `ManagementController.cs`(`HandleNightToDay`) | (#66) `OnNightToDay` 구독 — 자원 정산(먼저) + 주민 배치 초기화(그 다음) 실제 로직 구현. `OnDayToNight`은 더 이상 구독하지 않음 |
 | `NightActionPanelView.cs` | (#66, 임시) 밤에만 좌측 하단에 노출되는 "웨이브 성공/실패/보스 처치" + "낮 종료" 버튼 4개. "웨이브 성공"이 `EndNight()`를 직접 호출(WL-018 임시 트리거) |
+| `StageBuilder.cs`(`OnDayToNight` 구독) | (#17) 밤 진입 시 다음 스테이지 생성(전투영역 확장) + `MonsterSpawn.StartRound`로 몬스터 스폰(`currentMapCount > 1`). `Start()`에서 구독, `OnDestroy()`에서 해제 |
+| `MonsterSpawn.cs` | (#17) 밤에 스테이지 몬스터 스폰(`StartRound`). 스폰 완료 후 생존 0이 되면 `EndNight()` 호출(웨이브 클리어; 도달-디스폰 기준, 처치는 Enemy 병합 후 WL-038). 낮엔 스폰 스킵(경고 로그) |
 
 - **생명주기**: 씬 싱글톤. 경영/전투 공간이 한 씬에 공존해 씬 전환에 걸쳐 상태를 유지할 이유가 없다는 판단(WL-002 참고 사례로 SystemMap §5에 기록).
 - **씬**: `Assets/Scenes/GameScene.unity` (정본, `Docs/Core/SceneWorkflow.md`). 낮/밤 전환 버튼은 `NightActionPanelView`(밤 전용 3개) + `ManagementPanelView`의 낮 종료 버튼(낮 전용 1개)로 구성
 
 ## 7. 미확정 / TODO
 
-- [ ] **밤 종료 자동화**: 지금은 `EndNight()`를 "웨이브 성공" 버튼(`NightActionPanelView`, #66)으로 수동 호출. 실제로는 Combat 웨이브 클리어가 이 메서드를 호출해야 함(WL-018). 자동 타이머로 되돌릴 일이 생기면 `DayNightManager.cs`에 주석 처리된 `NightTimerRoutine` 코루틴(UniTask로 교체 예정)을 참고
+- [ ] **밤 종료 자동화** (부분 착수, #17): `MonsterSpawn`이 웨이브 클리어(스폰 완료 후 생존 0) 시 `EndNight()`를 자동 호출하도록 연결. 단 "클리어"가 아직 처치가 아니라 본진 도달-디스폰 기준(처치 기반은 Enemy 병합 후 — WL-038)이고, "웨이브 실패/보스 처치" 판정 연동과 임시 버튼(`NightActionPanelView`) 제거는 WL-018 잔여. 자동 타이머로 되돌릴 일이 생기면 `DayNightManager.cs`에 주석 처리된 `NightTimerRoutine` 코루틴(UniTask로 교체 예정)을 참고
 - [x] **자원 정산 / 주민 배치 초기화**: `ManagementController.HandleNightToDay()`로 구현 완료(#66). `OnNightToDay` 시점에 정산(먼저)→초기화(그 다음) 순서로 실행
 - [ ] **본진 체력 회복**: 이벤트 훅(`OnDayStart`)만 존재, 실제 로직은 본진/체력 소유 시스템(미구현)이 구독해서 채워야 함
 - [x] **낮/밤 전환 연출**: `DayNightLightingController.cs`로 구현 완료(#7, §6 참고). Directional Light·Ambient·Skybox를 즉시 전환
