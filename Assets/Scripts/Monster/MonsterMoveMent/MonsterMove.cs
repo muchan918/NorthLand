@@ -1,16 +1,25 @@
 using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 public class MonsterMove : MonoBehaviour
 {
     [SerializeField] private float moveSpeed = 3f;
     [SerializeField] private float arriveDistance = 0.05f;
 
+    [SerializeField] private MonsterAnimation monsterAnimation;
+
+    private bool canMove = true;
+
     private readonly List<Vector3> route = new List<Vector3>();
     private int currentRouteIndex;
-    
+
+    private void Awake()
+    {
+        if (monsterAnimation == null)
+        {
+            monsterAnimation = GetComponentInChildren<MonsterAnimation>();
+        }
+    }
 
     public void SetRoute(List<Vector3> routePoints)
     {
@@ -30,16 +39,19 @@ public class MonsterMove : MonoBehaviour
     {
         if (currentRouteIndex >= route.Count)
         {
+            monsterAnimation?.SetMoveAnimation(false);
             return;
         }
 
-        Vector3 targetPosition = route[currentRouteIndex];
-        transform.position = Vector3.MoveTowards(
-            transform.position,
-            targetPosition,
-            moveSpeed * Time.deltaTime
-        );
+        if (!canMove)
+        {
+            monsterAnimation?.SetMoveAnimation(false);
+            return;
+        }
 
+        monsterAnimation?.SetMoveAnimation(true);
+
+        Vector3 targetPosition = route[currentRouteIndex];
 
         Vector3 direction = targetPosition - transform.position;
         direction.y = 0f;
@@ -49,11 +61,21 @@ public class MonsterMove : MonoBehaviour
             transform.rotation = Quaternion.LookRotation(direction);
         }
 
+        transform.position = Vector3.MoveTowards(
+            transform.position,
+            targetPosition,
+            moveSpeed * Time.deltaTime
+        );
 
         if (Vector3.Distance(transform.position, targetPosition) <= arriveDistance)
         {
             currentRouteIndex++;
             SkipReachedPoints();
+
+            if (currentRouteIndex >= route.Count)
+            {
+                monsterAnimation?.SetMoveAnimation(false);
+            }
         }
     }
 
@@ -64,5 +86,11 @@ public class MonsterMove : MonoBehaviour
         {
             currentRouteIndex++;
         }
+    }
+
+    public void SetMoveEnabled(bool enabled)
+    {
+        canMove = enabled;
+        monsterAnimation?.SetMoveAnimation(enabled && currentRouteIndex < route.Count);
     }
 }
