@@ -1,102 +1,314 @@
-# 몬스터 이동 시스템 (Issue #15: 몬스터 이동 시스템 - 웨이포인트)
+# 몬스터 애니메이션/FSM 시스템
 
-## 1. 이슈 원문
+## 개요
 
-**기능 설명**
-스폰된 몬스터가 정해진 웨이포인트 경로를 따라 이동하는 시스템 구현.
+몬스터의 이동, 공격, 사망 애니메이션은 `MonsterAnimation`과 `MonsterStateMachine`이 함께 관리한다.
 
-**상세 내용**
-- 웨이포인트 경로 데이터 정의
-- 경로를 따라가는 이동 로직
-- 더미로 시작 가능: 더미 몬스터 + 씬에 수동으로 배치한 웨이포인트 몇 개로 이동 로직을 먼저 검증할 수 있다.
+현재 책임은 다음처럼 나뉜다.
 
-**완료 기준**
-1. 몬스터가 스폰 후 지정된 웨이포인트를 순서대로 따라간다
-2. 경로 끝(본진)에 도달한다
-3. (더미 몬스터/웨이포인트로 시작했다면) 실제 몬스터 데이터([#26](https://github.com/muchan918/NorthLand/issues/26))·스폰 시스템([#14](https://github.com/muchan918/NorthLand/issues/14)) 결과물로 교체해 확인했다
+```text
+MonsterStateMachine
+-> 상태 결정과 상태 진입/종료 처리
 
-## 2. 개요
+MonsterMove
+-> 실제 경로 이동
 
-몬스터가 스테이지 타일맵 위에 생성된 경로(웨이포인트)를 따라 이동하다가 종착점(본진)에서 사라지는 기능. 신규로 `MonsterMove`, `StageMonsterRouteTracker` 두 클래스를 추가했고, 기존 `StageBuilder`가 스테이지를 생성할 때 이 둘을 이용해 몬스터 스폰 쪽(`MonsterSpawn`)에 경로/스폰 위치를 넘겨주는 구조.
+MonsterAnimation
+-> Animator 파라미터 변경
 
-## 3. 구성 요소
-
-### MonsterMove (신규)
-몬스터 오브젝트에 붙는 `MonoBehaviour`.
-
-- `SetRoute(List<Vector3> routePoints)`: 외부(스폰 로직)에서 월드 좌표 경로를 주입받는다. 내부 `route` 리스트를 갱신하고 인덱스를 0으로 리셋한 뒤, 이미 도달 거리 안에 들어와 있는 선두 포인트들은 `SkipReachedPoints()`로 건너뛴다.
-- `Update()`: 매 프레임 `Vector3.MoveTowards`로 현재 목표 지점(`route[currentRouteIndex]`)을 향해 `moveSpeed`만큼 이동. `arriveDistance` 이내로 도달하면 다음 인덱스로 넘어간다.
-- 경로를 다 소진하면(`currentRouteIndex >= route.Count`) 오브젝트를 `Destroy` — 종착점(본진 방향 마지막 지점)에 도달하면 몬스터가 사라진다. 데미지 처리는 이 클래스에 없음.
-
-### StageMonsterRouteTracker (신규)
-`MonoBehaviour`가 아닌 순수 C# 클래스. `StageBuilder`가 맵 청크를 생성할 때마다 몬스터가 지나갈 월드 좌표 경로를 누적 관리한다.
-
-- 생성자에서 `mapSize`, `tileSize`, 기준이 되는 `parent`(Transform, `battlespace`)를 받는다.
-- `AddPath(Vector2Int mapOffset, List<Vector2Int> localPath)`: 맵 오프셋 기준 로컬 그리드 좌표를 월드 좌표로 변환해 `route`에 순서대로(베이스 → 외곽 방향) 추가. 직전 좌표와 동일하면 중복 추가 안 함.
-- `GetWorldPosition`: 특정 맵 오프셋/로컬 좌표 하나를 월드 좌표로 변환(스폰 지점 계산용).
-- `Route` (get only): 지금까지 누적된 전체 경로.
-- `Clear()`: 스테이지 리셋 시 경로 초기화.
-
-### StageBuilder (기존, 경로 생성 주체)
-스테이지(타일 맵) 생성을 총괄하는 `MonoBehaviour`. 관련 부분:
-
-- `Awake()`에서 `monsterRouteTracker = new StageMonsterRouteTracker(MapSize, TileSize, battlespace)` 생성.
-- `GenerateNextStage()`가 새 맵 청크의 타일 경로(`path`)를 만들면:
-  1. `monsterRouteTracker.AddPath(currentMapOffset, path)` — 누적 경로에 이번 청크 경로 추가
-  2. `UpdateMonsterRoute()` → `monsterSpawn.SetRoute(monsterRouteTracker.Route)` — 누적 월드 경로 전체를 `MonsterSpawn`에 전달
-  3. `UpdateMonsterSpawnPoint()` → 이번 청크 경로의 마지막 지점을 월드 좌표로 변환해 `monsterSpawn.SetSpawnPoint(worldPosition, Quaternion.identity)` 호출
-  4. `startMonsterRound`가 true면(N키 등으로 트리거 시) `monsterSpawn.StartRound(currentMapCount)` 호출
-- `ResetStage()` 시 `monsterRouteTracker.Clear()`도 함께 호출.
-
-### MonsterSpawnWaveProvider (기존)
-이동 경로를 주는 클래스가 아니라 **라운드별 스폰 구성(어떤 몬스터를 몇 마리, 어떤 딜레이/간격으로)** 을 제공하는 클래스.
-
-- `monsterPrefabs`(`MonsterId` ↔ `GameObject`)와 `spawnTableName`을 인스펙터에서 설정.
-- `Awake()` → `Load()`: `spawnTable.Load(spawnTableName)`로 테이블 로드, `monsterPrefabs`를 `Dictionary<string, GameObject>`로 변환.
-- `TryGetWave(int round, out List<MonsterSpawnEntry> entries)`: 해당 라운드의 `MonsterSpawnData`(MonsterId, Count, StartDelay, SpawnInterval)를 가져와 실제 프리팹과 묶어 반환.
-
-### MonsterSpawn (기존, 실제 스폰 주체)
-몬스터를 실제로 스폰하고 `MonsterMove`에 경로를 꽂아주는 클래스.
-
-- `SetSpawnPoint`/`SetRoute`: `StageBuilder`가 호출해주는 스폰 위치·누적 경로 저장.
-- `StartRound(round)`: `DayNightManager`가 낮이면 스폰 안 함. `waveProvider.TryGetWave(round, ...)`로 스폰 구성을 가져와 `SpawnRoundAsync` 실행(UniTask 기반, 취소 가능).
-- `SpawnRoundAsync`/`SpawnGroupAsync`: `StartDelay` 순 정렬 후 대기, 그룹 내 `SpawnInterval` 간격으로 순차 `Instantiate`.
-- `SpawnPrefab`: 스폰 위치는 `generatedSpawnPosition` 우선(없으면 `fallbackSpawnPoint`). 생성된 몬스터의 `MonsterMove.SetRoute(GetSpawnRoute())` 호출.
-- **`GetSpawnRoute()`가 핵심**: 누적 경로(베이스→외곽)를 **역순으로 뒤집어** 반환 → 몬스터는 외곽 스폰 지점에서 시작해 본진 방향으로 이동.
-- `OnDisable`/`OnDestroy`/재시작 시 `CancellationTokenSource`로 스폰 태스크 취소.
-
-## 4. 동작 흐름
-
-```
-StageBuilder.GenerateNextStage()
-  └─ 타일 경로(path) 생성
-  └─ StageMonsterRouteTracker.AddPath(경로 누적, 베이스→외곽 순)
-  └─ MonsterSpawn.SetRoute(누적 경로 전체)
-  └─ MonsterSpawn.SetSpawnPoint(이번 청크 종점 = 가장 바깥쪽 지점)
-  └─ (N키 등으로 라운드 시작 시) MonsterSpawn.StartRound(round)
-       └─ DayNightManager가 낮이면 스폰 안 함
-       └─ MonsterSpawnWaveProvider.TryGetWave(round) → 라운드별 스폰 구성 조회
-       └─ SpawnRoundAsync: StartDelay 순 대기 → SpawnGroupAsync: SpawnInterval 간격 Instantiate
-       └─ SpawnPrefab: 스폰 위치에 Instantiate → MonsterMove.SetRoute(역순 경로)
-            └─ MonsterMove.Update(): 외곽 → 베이스 방향으로 MoveTowards 이동
-            └─ 경로 소진 시 Destroy(gameObject)
+Animator
+-> 실제 애니메이션 클립 재생
 ```
 
-## 5. Issue #15 완료 기준 대조
+## 주요 컴포넌트
 
-| 완료 기준 | 결과 | 근거 |
-|---|---|---|
-| 1. 웨이포인트를 순서대로 따라간다 | ✅ 충족 | `MonsterMove.Update()`가 누적 경로를 인덱스 순서대로 `MoveTowards`로 이동. 경로 자체는 `StageWaypoint`(Top/Left/Bottom/Right) 정의 + `StageMonsterRouteTracker`가 스테이지 생성마다 누적한 월드 좌표. |
-| 2. 경로 끝(본진)에 도달한다 | ✅ 충족(문구 기준) | `MonsterSpawn.GetSpawnRoute()`가 경로를 역순으로 넘겨 외곽→본진 방향 이동, 도달 시 `Destroy`. 본진 피해/이펙트는 이 기준에 명시돼 있지 않아 범위 밖으로 판단. |
-| 3. 더미 → 실제 데이터/스폰 시스템 교체 확인 | #72 에서 같이 진행 | 처음부터 더미가 아니라 `MonsterSpawnWaveProvider`(실제 `MonsterSpawnTable`)와 `MonsterSpawn`(실제 UniTask 스폰 로직)을 사용 중. 다음 작업(근접 몬스터 프리팹 적용)에서 실제 몬스터 프리팹을 끼워 넣으면서 #26·#14 결과물 교체 확인까지 같이 진행할 예정. |
+### MonsterStateMachine
 
-**결론**: 이슈 #15 기준으로 어긴 사항 없음. 1·2번 충족, 3번은 다음 작업(몬스터 프리팹 적용)에서 함께 확인 예정 — 이번 PR 범위에서는 보류.
+몬스터 상태를 관리한다.
 
-## 6. 확인이 필요한 부분
+현재 상태:
 
-- **#26(몬스터 데이터 설계)·#14(몬스터 스폰 시스템) 완료 여부**: 완료 기준 3번은 다음 작업(근접 몬스터 프리팹 적용)에서 실제 몬스터 프리팹 교체와 함께 확인 예정.
-- **본진 도달 시 데미지 처리**: `MonsterMove`는 도달 시 `Destroy`만 함. 본진 HP 감소 등은 다른 이슈(본진 체력 시스템 등) 소관인지 확인 필요.
-- **Enemy.cs FSM과의 연동**: `MonsterMove`에 이동 정지 API가 없어, 추후 `Enemy.cs`를 Idle/Move/Attack/Death FSM으로 개편할 때 Attack 상태에서 이동을 멈추는 처리(`SetPaused` 훅 또는 컴포넌트 `enabled` 토글)를 추가해야 함.
-- **MonsterSpawnTable / MonsterSpawnData / MonsterSpawnEntry**: 원본 코드 미확인(CSV 기반 EnemyTable류로 추정). 필요 시 추가 문서화 가능.
-- **DayNightManager 의존성**: 밤에만 스폰되도록 하드코딩돼 있어, 테스트 시 낮/밤 상태를 맞춰야 재현 가능.
-No newline at end of file
+```csharp
+public enum MonsterState
+{
+    Idle,
+    Move,
+    Attack,
+    Death
+}
+```
+
+상태 전환 API:
+
+```csharp
+public void ChangeState(MonsterState nextState)
+```
+
+상태별 처리:
+
+```text
+Idle
+-> 이동 비활성화
+-> Move 애니메이션 Off
+-> Attack 애니메이션 Off
+
+Move
+-> Attack 애니메이션 Off
+-> 이동 활성화
+-> Move 애니메이션 On
+
+Attack
+-> 이동 비활성화
+-> Move 애니메이션 Off
+-> Attack 애니메이션 On
+
+Death
+-> 이동 비활성화
+-> Death 애니메이션 On
+-> destroyDelay 이후 Destroy
+```
+
+현재 `Update()`에서는 공격/사망 상태가 아닐 때 `MonsterMove`의 상태를 보고 자동으로 Idle/Move를 맞춘다.
+
+```csharp
+if (monsterMove != null && monsterMove.CanMove && monsterMove.HasRouteRemaining)
+{
+    ChangeState(MonsterState.Move);
+    return;
+}
+
+ChangeState(MonsterState.Idle);
+```
+
+에디터 테스트 입력:
+
+```text
+F: Move 상태
+G: Attack 상태 토글
+H: Death 상태
+```
+
+### MonsterMove
+
+실제 위치 이동을 담당한다.
+
+`MonsterMove`는 Animator 파라미터를 직접 바꾸지 않는다.
+
+제공 정보:
+
+```csharp
+public bool HasRouteRemaining => currentRouteIndex < route.Count;
+public bool CanMove => canMove;
+```
+
+이동 제어:
+
+```csharp
+public void SetMoveEnabled(bool enabled)
+{
+    canMove = enabled;
+}
+```
+
+공격 상태에서는 `MonsterStateMachine`이 `SetMoveEnabled(false)`를 호출해 실제 위치 이동을 멈춘다.
+
+### MonsterAnimation
+
+Animator 파라미터만 변경한다.
+
+제공 API:
+
+```csharp
+SetMoveAnimation(bool isMoving)
+SetAttackAnimation(bool isAttacking)
+PlayDeathAnimation()
+```
+
+`MonsterAnimation`은 `MonsterMove`를 직접 참조하지 않는다.  
+이동 정지, 공격 시작, 사망 삭제 같은 상태 처리 책임은 `MonsterStateMachine`에 있다.
+
+## Animator 파라미터
+
+### IsMove
+
+타입: `Bool`
+
+```text
+true  = Walk
+false = Idle
+```
+
+### IsAttack
+
+타입: `Bool`
+
+```text
+true  = Attack
+false = Idle 또는 Move 가능 상태
+```
+
+### IsDie
+
+타입: `Bool`
+
+```text
+true = Die
+```
+
+사망 후에는 다시 `false`로 돌리지 않는다.
+
+## Animator 구조
+
+```text
+Entry
+ ↓
+Idle
+
+Idle <-> Walk
+
+Any State -> Attack
+Attack -> Idle
+
+Any State -> Die
+```
+
+## Transition 권장 설정
+
+### Idle -> Walk
+
+```text
+Condition: IsMove == true
+Has Exit Time: Off
+```
+
+### Walk -> Idle
+
+```text
+Condition: IsMove == false
+Has Exit Time: Off
+```
+
+### Any State -> Attack
+
+```text
+Condition: IsAttack == true
+Has Exit Time: Off
+```
+
+### Attack -> Idle
+
+```text
+Condition: IsAttack == false
+Has Exit Time: On
+```
+
+공격 애니메이션을 반복해야 한다면 Attack 클립의 `Loop Time`을 켠다.
+
+### Any State -> Die
+
+```text
+Condition: IsDie == true
+Has Exit Time: Off
+```
+
+## 사용 예시
+
+### 이동 상태로 전환
+
+```csharp
+monsterStateMachine.ChangeState(MonsterState.Move);
+```
+
+결과:
+
+```text
+MonsterMove.SetMoveEnabled(true)
+MonsterAnimation.SetMoveAnimation(true)
+```
+
+### 공격 상태로 전환
+
+```csharp
+monsterStateMachine.ChangeState(MonsterState.Attack);
+```
+
+결과:
+
+```text
+MonsterMove.SetMoveEnabled(false)
+MonsterAnimation.SetMoveAnimation(false)
+MonsterAnimation.SetAttackAnimation(true)
+```
+
+### 공격 종료
+
+```csharp
+monsterStateMachine.ChangeState(MonsterState.Move);
+```
+
+또는 공격 대상이 사라졌다면:
+
+```csharp
+monsterStateMachine.ChangeState(MonsterState.Idle);
+```
+
+### 사망 상태로 전환
+
+```csharp
+monsterStateMachine.ChangeState(MonsterState.Death);
+```
+
+결과:
+
+```text
+MonsterMove.SetMoveEnabled(false)
+MonsterAnimation.PlayDeathAnimation()
+Destroy(gameObject, destroyDelay)
+```
+
+## 주의사항
+
+공격 상태로 들어가면 `MonsterStateMachine.Update()`는 자동 Move/Idle 전환을 하지 않는다.
+
+```csharp
+if (currentState == MonsterState.Attack || currentState == MonsterState.Death)
+{
+    return;
+}
+```
+
+따라서 공격이 끝났을 때는 반드시 다른 상태로 전환해야 한다.
+
+```csharp
+monsterStateMachine.ChangeState(MonsterState.Move);
+```
+
+또는:
+
+```csharp
+monsterStateMachine.ChangeState(MonsterState.Idle);
+```
+
+`MonsterAnimation.SetAttackAnimation(false)`만 직접 호출하면 FSM 상태는 여전히 `Attack`일 수 있다.  
+상태 변경은 `MonsterStateMachine.ChangeState()`를 통해 처리하는 것이 안전하다.
+
+## 프리팹 구성 체크리스트
+
+몬스터 프리팹 또는 몬스터 루트 오브젝트에 다음 컴포넌트가 필요하다.
+
+```text
+MonsterMove
+MonsterAnimation
+MonsterStateMachine
+Animator
+```
+
+`MonsterStateMachine`은 `MonsterMove`와 `MonsterAnimation`을 자식에서 자동으로 찾는다.
+
+```csharp
+monsterMove = GetComponentInChildren<MonsterMove>();
+monsterAnimation = GetComponentInChildren<MonsterAnimation>();
+```
+
+Animator의 `Apply Root Motion`은 꺼두는 것이 좋다.  
+켜져 있으면 공격 애니메이션 클립이 실제 위치를 움직일 수 있다.
