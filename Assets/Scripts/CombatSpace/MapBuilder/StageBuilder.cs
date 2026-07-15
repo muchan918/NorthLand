@@ -108,7 +108,14 @@ public class StageBuilder : MonoBehaviour
         if (DayNightManager.Instance != null)
         {
             DayNightManager.Instance.OnDayToNight += GenerateNextStage;
-            Debug.Log("[StageBuilder] DayNightManager.OnDayToNight 이벤트 구독 완료");
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (DayNightManager.Instance != null)
+        {
+            DayNightManager.Instance.OnDayToNight -= GenerateNextStage;
         }
     }
 
