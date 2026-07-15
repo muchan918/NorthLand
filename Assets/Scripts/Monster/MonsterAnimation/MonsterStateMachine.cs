@@ -1,4 +1,7 @@
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEngine.InputSystem;
+#endif
 
 public enum MonsterState
 {
@@ -52,19 +55,25 @@ public class MonsterStateMachine : MonoBehaviour
 #if UNITY_EDITOR
     private void LateUpdate()
     {
-        if (Input.GetKeyDown(KeyCode.F))
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard == null)
+        {
+            return;
+        }
+
+        if (keyboard.fKey.wasPressedThisFrame)
         {
             ChangeState(MonsterState.Move);
         }
 
-        if (Input.GetKeyDown(KeyCode.G))
+        if (keyboard.gKey.wasPressedThisFrame)
         {
             ChangeState(currentState == MonsterState.Attack
                 ? MonsterState.Move
                 : MonsterState.Attack);
         }
 
-        if (Input.GetKeyDown(KeyCode.H))
+        if (keyboard.hKey.wasPressedThisFrame)
         {
             ChangeState(MonsterState.Death);
         }
