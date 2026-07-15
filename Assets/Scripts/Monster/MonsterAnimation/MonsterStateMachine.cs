@@ -43,7 +43,7 @@ public class MonsterStateMachine : MonoBehaviour
             return;
         }
 
-        if (monsterMove != null && monsterMove.CanMove && monsterMove.HasRouteRemaining)
+        if (monsterMove != null && !monsterMove.IsStopped)
         {
             ChangeState(MonsterState.Move);
             return;
