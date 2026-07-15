@@ -35,6 +35,8 @@ namespace NorthLand.Combat
         {
             // 공격 스탯이 없는 타입(Magic 등)은 이 컴포넌트가 처리하지 않음
             if (Attack == null) return;
+            if (DayNightManager.Instance != null &&
+                DayNightManager.Instance.CurrentPhase != DayNightManager.Phase.Night) return;
 
             cooldownTimer -= Time.deltaTime;
             if (cooldownTimer > 0f) return;
@@ -57,6 +59,8 @@ namespace NorthLand.Combat
                 Destroy(obj);   // Projectile 컴포넌트 없으면 스폰물 제거 후 실패
                 return false;
             }
+
+            Debug.Log("공격");
 
             // 타입별 명중 동작(단일/스플래시/체인)을 구성해 투사체에 전달
             projectile.Init(target, atk.AttackDamage, atk.ProjectileSpeed, this, BuildImpact());
