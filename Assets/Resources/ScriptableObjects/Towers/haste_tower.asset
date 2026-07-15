@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: haste_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
   TowerID: haste_tower
+  TowerPrefab: {fileID: 0}
+  GhostPrefab: {fileID: 0}
   TowerType: 3
   MagicEffectType: 1
   Cost: []

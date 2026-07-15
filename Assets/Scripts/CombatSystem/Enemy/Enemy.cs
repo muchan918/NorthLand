@@ -14,6 +14,10 @@ namespace NorthLand.Combat
         float cooldownTimer;
         bool isDying;
 
+        // 이동 액추에이터(선택적). 대상이 사거리에 들면 멈추도록 이 컴포넌트가 구동한다.
+        // 구체 타입이 아니라 계약(IMovementAgent)에 의존 — 이동 구현에 결합하지 않는다.
+        IMovementAgent movement;
+
         // 타겟 탐색용 재사용 버퍼. 매 프레임 힙 할당을 피하기 위해 사용(최대 16개 감지).
         readonly Collider[] hitBuffer = new Collider[16];
 
@@ -29,6 +33,7 @@ namespace NorthLand.Combat
         void Awake()
         {
             currentHp = Stat != null ? Stat.MaxHp : 0f;
+            movement = GetComponent<IMovementAgent>();
         }
 
         public Faction Faction => Faction.Enemy;
@@ -44,10 +49,19 @@ namespace NorthLand.Combat
             // 전투 스탯이 없는(미설정) 개체는 동작하지 않음
             if (Stat == null) return;
 
+            // 대상 탐색은 매 프레임(쿨다운과 무관) — IsStopped(멈춰서 공격) 판정에 최신 위치가 필요하기 때문.
+            // 정지 위치 정밀도 때문에 매 프레임 유지한다. 몬스터 수가 많아지면 N프레임 스로틀+캐시로
+            // 최적화 여지가 있다(PR#104 리뷰 지적) — 단 스로틀 간격만큼 정지 지점이 밀리는 트레이드오프.
+            var target = FindTarget();
+
+            // 사거리 안에 대상(본진/아군 유닛)이 있으면 멈춰서 공격, 없으면 전진.
+            // MonsterMove 등 IMovementAgent 구현체를 NavMeshAgent처럼 구동한다.
+            if (movement != null)
+                movement.IsStopped = target != null;
+
             cooldownTimer -= Time.deltaTime;
             if (cooldownTimer > 0f) return;
 
-            var target = FindTarget();
             if (target != null && TryAttack(target))
                 cooldownTimer = AttackInterval;
         }
