@@ -16,6 +16,11 @@ public class MonsterSpawn : MonoBehaviour
     [SerializeField] private bool playOnStart;
     [SerializeField] private int startRound = 1;
 
+    [Header("Gate (성문)")]
+    [Tooltip("몬스터가 도달해 제거되는 경로 끝점에 생성할 성문 프리팹. 비워두면 생성하지 않는다.")]
+    [SerializeField] private GameObject gatePrefab;
+
+    private GameObject gateInstance;
     private bool hasGeneratedSpawnPoint;
     private Vector3 generatedSpawnPosition;
     private Quaternion generatedSpawnRotation = Quaternion.identity;
@@ -66,6 +71,31 @@ public class MonsterSpawn : MonoBehaviour
         }
 
         route.AddRange(routePoints);
+
+        UpdateGate();
+    }
+
+    // 성문(gatePrefab)을 경로 끝점 — 몬스터가 도달해 제거되는 지점 — 에 배치한다.
+    // 몬스터는 GetSpawnRoute()(route를 뒤집은 경로)를 따라가다 마지막 지점에서 MonsterMove에 의해
+    // 제거되며, 그 지점은 route[0]에 해당한다. 경로가 갱신되면(스테이지 재생성 등) 위치를 옮긴다.
+    // monsterParent에 붙이지 않는다 — 웨이브 클리어는 monsterParent.childCount로 판정하므로(WL-037).
+    private void UpdateGate()
+    {
+        if (gatePrefab == null || route.Count == 0)
+        {
+            return;
+        }
+
+        Vector3 endPoint = route[0];
+
+        if (gateInstance == null)
+        {
+            gateInstance = Instantiate(gatePrefab, endPoint, Quaternion.identity);
+        }
+        else
+        {
+            gateInstance.transform.position = endPoint;
+        }
     }
 
     public void StartRound(int round)

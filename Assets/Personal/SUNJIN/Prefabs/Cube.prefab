@@ -140,7 +140,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8950d5607d26b4b43bdd3df1578cac4e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NorthLand.Combat.Enemy
-  data: {fileID: 11400000, guid: 8ed5bb2849f78af46afccdfeb916934f, type: 2}
+  data: {fileID: 11400000, guid: 13d0608ed3d6fae4480128cbd57442c8, type: 2}
   targetLayerMask:
     serializedVersion: 2
-    m_Bits: 512
+    m_Bits: 768
