@@ -82,13 +82,19 @@ public class MonsterSpawn : MonoBehaviour
             return;
         }
 
+        // 스폰할 웨이브가 없으면(스포너 미설정 또는 이 라운드 데이터 없음) 그 밤이 EndNight에
+        // 닿지 못해 소프트락된다 → "즉시 클리어"로 간주해 밤을 끝낸다(WL-037).
         if (waveProvider == null)
         {
+            Debug.LogWarning("[몬스터 스포너] waveProvider 미설정 — 스폰 없이 즉시 웨이브 클리어(밤 종료) 처리합니다.");
+            EndNightIfNight();
             return;
         }
 
         if (!waveProvider.TryGetWave(round, out IReadOnlyList<MonsterSpawnEntry> entries))
         {
+            Debug.LogWarning($"[몬스터 스포너] 라운드 {round} 웨이브 데이터 없음 — 스폰 없이 즉시 웨이브 클리어(밤 종료) 처리합니다.");
+            EndNightIfNight();
             return;
         }
 
@@ -226,6 +232,11 @@ public class MonsterSpawn : MonoBehaviour
         if (monsterMove != null)
         {
             monsterMove.SetRoute(GetSpawnRoute());
+        }
+        else
+        {
+            // MonsterMove가 없으면 이동·본진 도달 디스폰이 없어 웨이브 클리어(childCount 0)에 닿지 못한다(WL-037).
+            Debug.LogWarning($"[몬스터 스포너] '{monster.name}'에 MonsterMove가 없어 이동/디스폰하지 않습니다 — 웨이브가 끝나지 않을 수 있습니다.", monster);
         }
     }
 
