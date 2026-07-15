@@ -7,6 +7,9 @@ public class MonsterMove : MonoBehaviour, IMovementAgent
     [SerializeField] private float moveSpeed = 3f;
     [SerializeField] private float arriveDistance = 0.05f;
 
+    // 외부(애니메이션 FSM 등)가 SetMoveEnabled로 제어하는 정지 게이트.
+    // IsStopped(전투 AI 지시)와 별개인 두 번째 정지 경로이며 Update에서 둘 다 검사한다.
+    // 향후 정지 소유권을 IsStopped 하나로 수렴하면 단순화 가능(PR#104 리뷰 🔵).
     private bool canMove = true;
 
     private readonly List<Vector3> route = new List<Vector3>();

@@ -60,8 +60,6 @@ namespace NorthLand.Combat
                 return false;
             }
 
-            Debug.Log("공격");
-
             // 타입별 명중 동작(단일/스플래시/체인)을 구성해 투사체에 전달
             projectile.Init(target, atk.AttackDamage, atk.ProjectileSpeed, this, BuildImpact());
             return true;

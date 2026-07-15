@@ -17,6 +17,9 @@ public class MonsterSpawn : MonoBehaviour
     [SerializeField] private int startRound = 1;
 
     [Header("Gate (성문)")]
+    // 통합 계약(팀 규칙 #8): 성문 프리팹(현재 BaseGate)은 Assets/Imported(중첩 git repo) 소재다.
+    //  · 팀원은 Imported repo를 함께 동기화해야 이 참조(GUID)가 살아있다 — 안 하면 성문 미생성 → GameOver 미동작.
+    //  · 프리팹은 반드시 PlayerBase 컴포넌트 + PlayerBase 레이어(9)를 가져야 몬스터 교전·본진 파괴 판정이 성립한다.
     [Tooltip("몬스터가 도달해 제거되는 경로 끝점에 생성할 성문 프리팹. 비워두면 생성하지 않는다.")]
     [SerializeField] private GameObject gatePrefab;
 
@@ -160,7 +163,11 @@ public class MonsterSpawn : MonoBehaviour
             await UniTask.WhenAll(groupTasks);
 
             // 스폰이 모두 끝난 뒤, 살아있는 몬스터(monsterParent의 자식)가 0이 되면 웨이브 클리어.
-            // 몬스터는 처치(Enemy.Die) 또는 본진 도달(MonsterMove) 시 Destroy되어 자식에서 빠진다.
+            // WL-037 주의: 몬스터가 성문 사거리에서 IsStopped로 멈춰 공격하도록 바뀌면서(Enemy가 이동 구동),
+            // 기존 "경로 끝 도달→디스폰" 경로가 성문 교전으로 대체됐다. 따라서 childCount==0은 이제
+            // '전원 처치' 또는 '성문 파괴(=GameOver)'로만 도달한다 — 타워 사거리 밖에서 성문을 두들기는
+            // 몬스터가 남으면 '웨이브 성공' 경로로는 종료 불가(GameOver로만 수렴). 밤 종료 판정을
+            // childCount에서 분리하는 것은 WL-037 후속 과제.
             if (monsterParent == null)
             {
                 Debug.LogWarning("[몬스터 스포너] monsterParent 미할당 — 웨이브 클리어 자동 감지를 건너뜁니다.");

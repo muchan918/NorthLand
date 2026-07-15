@@ -107,7 +107,6 @@ public class TowerPlacer : MonoBehaviour
         ghostPrefab = so.GhostPrefab;
 
         TowerType type = so.TowerType;
-        Debug.Log(type);
         switch (type)
         {
             case TowerType.Single:

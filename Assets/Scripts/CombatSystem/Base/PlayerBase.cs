@@ -22,7 +22,7 @@ namespace NorthLand.Combat
             if (IsDead) return;   // 이미 파괴됨 — 추가 피해·중복 판정 차단
 
             currentHp -= info.Amount;
-            Debug.Log($"{name} took {info.Amount} dmg, hp={currentHp}");
+            // Debug.Log($"{name} took {info.Amount} dmg, hp={currentHp}");   // 디버그용 — 전투 중 로그 스팸 방지 위해 비활성
 
             if (IsDead)
                 GameOver();
