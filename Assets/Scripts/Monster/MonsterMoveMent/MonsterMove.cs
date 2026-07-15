@@ -6,20 +6,13 @@ public class MonsterMove : MonoBehaviour
     [SerializeField] private float moveSpeed = 3f;
     [SerializeField] private float arriveDistance = 0.05f;
 
-    [SerializeField] private MonsterAnimation monsterAnimation;
-
     private bool canMove = true;
 
     private readonly List<Vector3> route = new List<Vector3>();
     private int currentRouteIndex;
 
-    private void Awake()
-    {
-        if (monsterAnimation == null)
-        {
-            monsterAnimation = GetComponentInChildren<MonsterAnimation>();
-        }
-    }
+    public bool HasRouteRemaining => currentRouteIndex < route.Count;
+    public bool CanMove => canMove;
 
     public void SetRoute(List<Vector3> routePoints)
     {
@@ -39,17 +32,13 @@ public class MonsterMove : MonoBehaviour
     {
         if (currentRouteIndex >= route.Count)
         {
-            monsterAnimation?.SetMoveAnimation(false);
             return;
         }
 
         if (!canMove)
         {
-            monsterAnimation?.SetMoveAnimation(false);
             return;
         }
-
-        monsterAnimation?.SetMoveAnimation(true);
 
         Vector3 targetPosition = route[currentRouteIndex];
 
@@ -71,11 +60,6 @@ public class MonsterMove : MonoBehaviour
         {
             currentRouteIndex++;
             SkipReachedPoints();
-
-            if (currentRouteIndex >= route.Count)
-            {
-                monsterAnimation?.SetMoveAnimation(false);
-            }
         }
     }
 
@@ -91,6 +75,5 @@ public class MonsterMove : MonoBehaviour
     public void SetMoveEnabled(bool enabled)
     {
         canMove = enabled;
-        monsterAnimation?.SetMoveAnimation(enabled && currentRouteIndex < route.Count);
     }
 }
