@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: cannon_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
   TowerID: cannon_tower
+  TowerPrefab: {fileID: 0}
+  GhostPrefab: {fileID: 0}
   TowerType: 1
   MagicEffectType: 0
   Cost: []

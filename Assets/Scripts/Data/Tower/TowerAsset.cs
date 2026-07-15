@@ -5,6 +5,8 @@ using UnityEngine;
 public class TowerAsset : ScriptableObject
 {
     public string TowerID;
+    public GameObject TowerPrefab;
+    public GameObject GhostPrefab; // 배치 전 미리보기용 투명 타워 프리팹. TowerPrefab과 동일한 구조를 가져야 한다.
 
     // BuildingAsset과 동일한 이유로 Data 캐시가 아닌 일반 필드로 노출한다
     // (TowerAssetEditor가 Play 이전 편집 모드에서 타입별 필드 그룹을 골라 보여줘야 함).

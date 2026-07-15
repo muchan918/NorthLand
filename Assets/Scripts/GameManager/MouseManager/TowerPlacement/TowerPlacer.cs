@@ -88,9 +88,44 @@ public class TowerPlacer : MonoBehaviour
 
     // ── 진입점 ─────────────────────────────────────────────────────────────────────
     /// 더미 데이터 + 인스펙터 프리팹으로 배치 시작. UI 버튼 OnClick에 연결(현재 테스트 경로).
-    public void BeginTowerPlacement()
+    public void BeginTowerPlacement(TowerAsset so)
     {
-        StartPlacement(new TowerPlacementData(dummyGridWidth, dummyGridHeight, dummyAttackRange));
+        if (so == null)
+        {
+            Debug.LogError("[TowerPlacer] null TowerAsset은 배치할 수 없습니다.");
+            return;
+        }
+
+        // Data는 패널(TowerSelectPanelView)이 SO 주입 시 채운다 — 여기선 방어만.
+        if (so.Data == null)
+        {
+            Debug.LogError($"[TowerPlacer] TowerData 미주입(TowerID={so.TowerID}) — 패널에서 SO 주입 시 Data를 채웠는지 확인하세요.");
+            return;
+        }
+
+        towerPrefab = so.TowerPrefab;
+        ghostPrefab = so.GhostPrefab;
+
+        TowerType type = so.TowerType;
+        Debug.Log(type);
+        switch (type)
+        {
+            case TowerType.Single:
+                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Single.Attack.AttackRange));
+                break;
+            case TowerType.Area:
+                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Area.Attack.AttackRange));
+                break;
+            case TowerType.Chain:
+                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Chain.Attack.AttackRange));
+                break;
+            case TowerType.Magic:
+                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, 0f)); // 마법 타입은 사거리 없음
+                break;
+            default:
+                Debug.LogError($"[TowerPlacer] 알 수 없는 TowerType={type}입니다.");
+                return;
+        }
     }
 
     // 게이트웨이(예정): tower/ghost 프리팹 + footprint/range를 담은 SO가 생기면 아래 오버로드를 추가한다.

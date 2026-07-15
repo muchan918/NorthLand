@@ -11637,7 +11637,7 @@ GameObject:
   - component: {fileID: 743270833}
   - component: {fileID: 743270832}
   m_Layer: 0
-  m_Name: MapBlilder
+  m_Name: MapBuilder
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -11720,7 +11720,7 @@ Transform:
   m_GameObject: {fileID: 743270831}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 2, y: -0, z: -83}
+  m_LocalPosition: {x: 2, y: -0, z: -87}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -19837,7 +19837,7 @@ MonoBehaviour:
     m_Bits: 64
   _placementMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 8
 --- !u!4 &1318080317
 Transform:
   m_ObjectHideFlags: 0
@@ -19847,7 +19847,7 @@ Transform:
   m_GameObject: {fileID: 1318080315}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.17033, y: 0, z: 6.5263}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -23933,6 +23933,7 @@ GameObject:
   - component: {fileID: 1645270243}
   - component: {fileID: 1645270242}
   - component: {fileID: 1645270241}
+  - component: {fileID: 1645270244}
   m_Layer: 0
   m_Name: TowerPanel
   m_TagString: Untagged
@@ -23976,10 +23977,6 @@ MonoBehaviour:
   _buttonPrefab: {fileID: 2502935727608881747, guid: 0d1e90c0dba9d3d498868c8bd1a4897e, type: 3}
   _towers:
   - {fileID: 11400000, guid: 7ecd80d44165e644591aafb428cf5efe, type: 2}
-  - {fileID: 11400000, guid: a752545bbde5030438f8995ae4ee0849, type: 2}
-  - {fileID: 11400000, guid: 76dc473896fb1b642ba2c5e5eb22104f, type: 2}
-  - {fileID: 11400000, guid: ff152a9cabaa0ca4cacd2eb9ae3f4805, type: 2}
-  - {fileID: 11400000, guid: 4f959bf9290ec7046ac4d5bfbe4f25dd, type: 2}
 --- !u!114 &1645270242
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -24018,6 +24015,29 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1645270239}
   m_CullTransparentMesh: 1
+--- !u!114 &1645270244
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1645270239}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bab236e5f7f761b448c8a88ef1ba39d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TowerPlacer
+  towerPrefab: {fileID: 0}
+  ghostPrefab: {fileID: 0}
+  keepPlacing: 0
+  tileSize: 5
+  dummyGridWidth: 1
+  dummyGridHeight: 1
+  dummyAttackRange: 3
+  rangeColor: {r: 0.2, g: 0.8, b: 1, a: 0.9}
+  rangeSegments: 48
+  validCellColor: {r: 0.2, g: 1, b: 0.3, a: 0.35}
+  invalidCellColor: {r: 1, g: 0.25, b: 0.2, a: 0.35}
 --- !u!1001 &1645915702
 PrefabInstance:
   m_ObjectHideFlags: 0
