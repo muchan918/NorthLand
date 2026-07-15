@@ -57,7 +57,7 @@ public class ProductionLineView : MonoBehaviour
             _expectedText.text = $"+{_controller.LineExpectedProduction(_lineIndex)}";
         }
 
-        bool editable = _controller.IsDay;
+        bool editable = _controller.IsDay && _controller.CanAssignVillagers;
         if (_plusButton != null)
         {
             _plusButton.interactable = editable;

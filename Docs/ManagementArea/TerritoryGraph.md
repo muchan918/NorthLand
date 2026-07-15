@@ -3,7 +3,10 @@
 > **담당**: n0wst4ndup
 > **이슈**: #TBD
 > **경로(코드)**: `Assets/Scripts/ManagementSpace/Territory`
-> **상태**: 🚧 **설계 단계 — 미구현.** 이 문서는 구현 착수 전 아키텍처 합의용이다.
+> **상태**: ✅ **씬 통합 완료(이슈 #67)** — `TerritoryController`/`TerritoryGraphView`가 실제
+> `Assets/Scenes/GameScene.unity`에 배치돼 그래프 생성·확보(`ISelectable`)·호버 하이라이트
+> (`IHoverable`)까지 플레이 가능. 효과 카탈로그(§5)·보상 수치(§8) 등 일부는 여전히 미착수 —
+> 남은 TBD는 §8에서 계속 추적한다.
 > 확정되지 않은 항목은 본문에서 **TBD / TODO**로 명시한다(docs-are-dev-reference 규약).
 > **GDD 근거**: §4.1(두 공간) · §5.1(낮 경영—영토 확장) · §6.3(경영 영토 확장) ·
 > §4.2(마나석=영토 확장 보상) · §6.1(주민 획득) · §3(Slay the Spire 노드 선택 응용) · §7(랜덤 리플레이)
@@ -130,9 +133,12 @@
 | 접점 | 방식 |
 |---|---|
 | **선택 입력** | 노드가 `ISelectable` 구현 → `MouseManager`가 Idle 클릭으로 선택 통지(팀 계약 #1 입력 단일 창구). 확정 판정은 모델(`Selectable`인가)이 담당 |
-| **호버 툴팁** | 노드가 `IHoverable` 구현 → `TooltipUI`(#38) 재사용. **표시명 + 효과 설명**을 pull 공급 — #38에서 "그래프형 버프 건물 재사용"으로 설계해 둔 바로 그 지점 |
+| **호버** | **확정(이슈 #67, 최초 설계에서 변경)** — 노드가 `IHoverable`을 구현하지만 `GetTooltipContent()`는
+`null`을 반환해 `TooltipUI` 툴팁은 띄우지 않는다(건물 호버 툴팁 경로와 독립). 대신 `OnHoverEnter`/
+`OnHoverExit`(`MouseManager.md` §8 호버 하이라이트)로 Selectable 노드만 색 변경 — "표시명+효과 설명
+pull 공급"으로 예정했던 원래 설계는 효과 카탈로그(§5)가 아직 없어 보류, 필요해지면 후속 |
 | **자원 보상** | 효과가 `ResourceWallet.Add`로 마나석 지급(GDD §4.2 / 팀 계약 #3 — 마나석은 영토 확장·전투 보상에서만. **정당한 마나 원천**). 주민 획득(§6.1)은 주민 시스템 부재로 placeholder 심 |
-| **낮/밤** | 확장은 **낮 행동**(GDD §5.1) → `DayNightManager`로 낮에만 허용 게이팅 고려(밤엔 선택 잠금). 확장 빈도(하루 1회? 비용?)는 §8 TBD |
+| **낮/밤** | 확장은 **낮 행동**(GDD §5.1). `TerritoryController`가 `DayNightManager.OnDayStart`를 구독해 `HasExpandedToday`를 매 낮 시작마다 초기화하고, `TryClaim`에서 하루 1회로 게이팅한다(이슈 #67). 확장을 마쳐야(`HasExpandedToday == true`) `ManagementController`의 주민 배치가 열린다(§6.1 연동, 아래 참고). 밤 잠금·자원 비용 게이팅은 여전히 TBD(§8) |
 | **공간 분리** | 경영 공간 전용. 전투 그리드(BattleMapBuilder)·좌표계와 **무관**(팀 계약 #4 — 한쪽 확장이 다른 쪽 상태에 의존 금지) |
 
 ---
@@ -152,16 +158,20 @@
 - [ ] **효과 연결 경로 고정** (WL-030, PR#75 리뷰): 현재 `OnNodeClaimed` 훅만 존재(더미 효과도 미연결).
       연결 시 `OnNodeClaimed → 효과 SO.Apply → ResourceWallet.Add`로만 지급(계약 #3), 수치는
       DataTable/CSV(계약 #2) — 인스펙터/코드 하드코딩 지급 금지.
-- [ ] **입력 연결 선결 조건** (WL-005, PR#75 리뷰): 노드 프리팹을 팀 확정 `Selectable` 레이어에 명시 배정
-      (미설정 시 `MouseManager._selectableMask` 필터에 걸려 조용히 무반응). 또한 클릭 1회=즉시 확보(비가역)가
-      `ISelectable`의 조회 시맨틱을 오버로드 중 — 비용·게이팅 도입 시 미리보기/확정 단계 분리 검토.
+- [x] **입력 연결 선결 조건(레이어)** (WL-005): **해소(이슈 #67)** — `TerritoryNode.prefab`이 Layer 6
+      (`Selectable`)이고 `GameScene`의 `MouseManager._selectableMask`도 이 비트를 포함해 클릭·호버
+      모두 정상 동작함을 실제 씬에서 확인. 클릭 1회=즉시 확보(비가역)가 `ISelectable`의 "조회" 시맨틱을
+      오버로드하는 점은 여전히 유효 — 비용·게이팅 도입 시 미리보기/확정 단계 분리 검토는 계속 TBD.
 - [ ] **전투 영토 확장(#1)과 모델 공유/분리 판정** (WL-029, PR#75 리뷰): 이슈 #18이 요구한 데이터 구조 공유
       검토 미결. 합의 후 `Territory*` 타입군(현재 전역 12종)을 네임스페이스로 격리해 일반명 충돌 예방.
 - [ ] **인접 형태** (요구사항 3): 밀집 vs 섬+다리 — **뷰 결정, 모델 영향 없음**(Delaunay 평면이라 엣지 교차는
       없음; 노드 간격·다리 표현만 뷰가 정함).
 - [x] **그래프 생성 방식**: **확정** — §4.1 런 시작 시 미리 전체 생성 + Delaunay 삼각분할 프루닝 + 프론티어 공개.
 - [ ] **노드 해금 조건·개수**: 최대 30 내에서 실제 활성/해금 개수와 "특정 조건마다 열림" 규칙 미정(TBD).
-- [ ] **확장 규칙**: 하루 1회 제한? 자원(마나 등) 비용? (GDD §5.1 "하나 선택"의 정확한 규칙 미정)
+- [x] **확장 규칙(하루 1회)**: **확정**(이슈 #67) — 낮 시작(`DayNightManager.OnDayStart`)마다
+      `TerritoryController.HasExpandedToday`를 초기화, `TryClaim`에서 하루 1회만 허용. 그 날 확장을
+      마쳐야 `ManagementController.CanAssignVillagers`가 열려 주민 배치가 가능해진다(GDD §6.1 "영토
+      확장을 통해 주민 획득"과 정합). 자원(마나 등) 비용 게이팅은 여전히 TBD.
 - [ ] **보상 구체 수치**: 마나량·주민 획득 수 출처(CSV 파이프라인? 계약 #2). 주민 획득은 주민 시스템 의존.
 - [ ] **좌표계**: 2D 캔버스(uGUI) vs 3D 월드 노드. 비그리드지만 공간 선택·호버가 필요 → 입력/레이캐스트 방식 결정.
 - [ ] **표시 문자열 소유권**: TerritoryDefinition 표시명/설명을 CSV→SO vs authored SO (WL-013 연동).

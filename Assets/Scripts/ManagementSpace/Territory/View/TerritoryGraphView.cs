@@ -68,12 +68,16 @@ public class TerritoryGraphView : MonoBehaviour
         }
     }
 
+    // 노드 좌표(TerritoryNode.Position)는 그래프 로컬 공간(본진=원점)이다. 이 뷰의 transform을
+    // 씬에서 옮기면 그래프 전체가 그만큼 이동해 보이도록 TransformPoint로 월드 좌표를 계산한다
+    // (본진 근처 배치는 뷰 오브젝트 위치만으로 결정 — 모델은 배치를 모른다, §7 로직/뷰 분리).
     private void BuildNodeViews()
     {
         var nodes = _controller.Graph.Nodes;
         for (int i = 0; i < nodes.Count; i++)
         {
-            var view = Instantiate(_nodePrefab, nodes[i].Position, Quaternion.identity, transform);
+            var worldPos = transform.TransformPoint(nodes[i].Position);
+            var view = Instantiate(_nodePrefab, worldPos, transform.rotation, transform);
             view.name = $"Node_{nodes[i].Id}";
             view.Bind(_controller, nodes[i].Id);
             _nodeViews.Add(view);
@@ -114,8 +118,8 @@ public class TerritoryGraphView : MonoBehaviour
         var line = go.AddComponent<LineRenderer>();
         line.useWorldSpace = true;
         line.positionCount = 2;
-        line.SetPosition(0, a.Position);
-        line.SetPosition(1, b.Position);
+        line.SetPosition(0, transform.TransformPoint(a.Position));
+        line.SetPosition(1, transform.TransformPoint(b.Position));
         line.startWidth = _edgeWidth;
         line.endWidth = _edgeWidth;
         line.material = _edgeMaterial != null ? _edgeMaterial : new Material(Shader.Find("Sprites/Default"));
@@ -155,7 +159,7 @@ public class TerritoryGraphView : MonoBehaviour
         var nodes = _controller.Graph.Nodes;
         for (int i = 0; i < nodes.Count; i++)
         {
-            Gizmos.DrawWireSphere(nodes[i].Position, 0.55f);
+            Gizmos.DrawWireSphere(transform.TransformPoint(nodes[i].Position), 0.55f);
 
             var neighborIds = nodes[i].NeighborIds;
             for (int n = 0; n < neighborIds.Count; n++)
@@ -168,7 +172,7 @@ public class TerritoryGraphView : MonoBehaviour
                 var other = _controller.Graph.GetNode(neighborIds[n]);
                 if (other != null)
                 {
-                    Gizmos.DrawLine(nodes[i].Position, other.Position);
+                    Gizmos.DrawLine(transform.TransformPoint(nodes[i].Position), transform.TransformPoint(other.Position));
                 }
             }
         }

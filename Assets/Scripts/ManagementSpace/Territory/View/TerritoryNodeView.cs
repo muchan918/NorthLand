@@ -7,10 +7,10 @@ using UnityEngine;
 /// 콜라이더는 반드시 이 컴포넌트와 <b>같은 GameObject(프리팹 루트)</b>에 있어야 한다 —
 /// MouseManager의 <c>hit.collider.TryGetComponent</c> 판정이 부모를 탐색하지 않기 때문(입력 통합 단계에서 사용).
 /// </summary>
-// TODO: 입력 통합 시 노드 프리팹을 팀 확정 Selectable 레이어에 배정할 것 (WL-005) —
-//       MouseManager._selectableMask가 1차 필터라 레이어 미설정 시 클릭이 조용히 무반응(WL-002 패턴).
+// 레이어 확인 완료(WL-005 해소, #67): 프리팹은 Layer 6(Selectable)이고 MouseManager._selectableMask도
+// 이 비트를 포함해 클릭/호버 모두 정상 동작함을 실제 씬에서 확인함.
 [RequireComponent(typeof(Collider))]
-public class TerritoryNodeView : MonoBehaviour, ISelectable
+public class TerritoryNodeView : MonoBehaviour, ISelectable, IHoverable
 {
     [Tooltip("상태색을 입힐 자식 Visual의 렌더러")]
     [SerializeField] Renderer _visual;
@@ -21,8 +21,12 @@ public class TerritoryNodeView : MonoBehaviour, ISelectable
     [Tooltip("프론티어(선택 가능) 색 (GDD §6.3 회색)")]
     [SerializeField] Color _selectableColor = new(0.65f, 0.65f, 0.65f);
 
+    [Tooltip("호버 시 색 (#67 호버 하이라이트)")]
+    [SerializeField] Color _hoverColor = new(0.9f, 0.85f, 0.4f);
+
     private TerritoryController _controller;
     private int _nodeId = -1;
+    private bool _isHovered;
 
     public int NodeId => _nodeId;
 
@@ -53,6 +57,20 @@ public class TerritoryNodeView : MonoBehaviour, ISelectable
         }
     }
 
+    // 영토 노드는 툴팁 없음 — 호버는 색 변경 전용(BuildingTooltipSource 경로와 독립, #67).
+    public TooltipContent? GetTooltipContent() => null;
+
+    public void OnHoverEnter()
+    {
+        _isHovered = true;
+        Refresh();
+    }
+
+    public void OnHoverExit()
+    {
+        _isHovered = false;
+        Refresh();
+    }
 
     /// <summary>모델 상태를 시각에 반영한다. Locked는 완전 숨김(GDD §4.2 점진 공개 — 스펙 확정).</summary>
     public void Refresh()
@@ -76,7 +94,14 @@ public class TerritoryNodeView : MonoBehaviour, ISelectable
             return;
         }
 
-        _visual.material.color =
-            node.State == TerritoryState.Owned ? _ownedColor : _selectableColor;
+        // Refresh()는 Bind/OnDeselected/컨트롤러 OnChanged(다른 노드 클레임·낮 시작으로 인한 그래프
+        // 전체 갱신) 세 경로에서 재진입되므로, 호버 중 갱신이 호버 틴트를 덮어쓰지 않도록 색 결정
+        // 마지막에 _isHovered를 우선한다. 단, 하이라이트는 "지금 선택 가능함"을 알리는 용도이므로
+        // Selectable 상태이면서 오늘 아직 확장하지 않은 경우(HasExpandedToday == false)에만 적용한다
+        // — 이미 확보한(Owned) 영토는 물론, 오늘 확장을 다 쓴 뒤의 회색 노드도 호버해도 색이 그대로다.
+        Color stateColor = node.State == TerritoryState.Owned ? _ownedColor : _selectableColor;
+        bool canClaimNow = node.State == TerritoryState.Selectable && !_controller.HasExpandedToday;
+        bool applyHover = _isHovered && canClaimNow;
+        _visual.material.color = applyHover ? _hoverColor : stateColor;
     }
 }

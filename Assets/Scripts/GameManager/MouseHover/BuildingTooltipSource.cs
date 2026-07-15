@@ -29,20 +29,24 @@ public class BuildingTooltipSource : MonoBehaviour, IHoverable
         }
     }
 
-    public TooltipContent GetTooltipContent()
+    public TooltipContent? GetTooltipContent()
     {
         // 데이터 조회 실패 시에도 최소한의 식별 정보는 보여준다.
         if (_data == null)
         {
             string fallbackHeader = _buildingAsset != null ? _buildingAsset.BuildingID : "?";
-            return new(fallbackHeader, string.Empty, Color.gray, Color.black);
+            return new TooltipContent(fallbackHeader, string.Empty, Color.gray, Color.black);
         }
 
         Color header, background;
         ResolveColors(out header, out background);
 
-        return new($"{_data.DisplayName} - {_data.Role}", _data.Description, header, background);
+        return new TooltipContent($"{_data.DisplayName} - {_data.Role}", _data.Description, header, background);
     }
+
+    // 건물 하이라이트는 이번 범위 밖 — 훅만 만족(#67).
+    public void OnHoverEnter() { }
+    public void OnHoverExit() { }
 
     private void ResolveColors(out Color header, out Color background)
     {

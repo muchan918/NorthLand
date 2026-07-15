@@ -58,18 +58,31 @@ public class TooltipUI : MonoBehaviour
             return;
         }
         _mouse.OnHoverChanged += OnHoverChanged;
+        _mouse.OnSelectionChanged += OnSelectionChanged;
     }
 
     private void OnDestroy()
     {
-        if (_mouse != null) _mouse.OnHoverChanged -= OnHoverChanged;
+        if (_mouse != null)
+        {
+            _mouse.OnHoverChanged -= OnHoverChanged;
+            _mouse.OnSelectionChanged -= OnSelectionChanged;
+        }
         if (Instance == this) Instance = null;
     }
 
     private void OnHoverChanged(IHoverable hoverable)
     {
-        if (hoverable == null) Hide();
-        else Show(hoverable.GetTooltipContent());
+        TooltipContent? content = hoverable?.GetTooltipContent();
+        if (content.HasValue) Show(content.Value);
+        else Hide();
+    }
+
+    // 클릭으로 뭔가 선택되면(호버 대상이 여전히 같은 오브젝트라도) 툴팁을 접고 상세 패널에 자리를
+    // 내준다 — 건물 Hover 툴팁→Click 패널 전환(이슈 #67)에 필요.
+    private void OnSelectionChanged(ISelectable selected)
+    {
+        if (selected != null) Hide();
     }
 
     public void Show(TooltipContent content)
