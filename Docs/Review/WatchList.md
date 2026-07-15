@@ -42,3 +42,4 @@
 - **WL-034** | OPEN | PR#81 | tileSize 상수 이중화(WL-007 계열): `TowerPlacer.tileSize`(=5f)가 `StageBuilder.TileSize`(=5f)와 독립 존재, 풋프린트 이웃 셀을 tileSize 간격으로 재구성 → 변환식 사본. 수동 동기화 의존(불일치 시 조용한 오배치, 현재 `TowerPlacer.Awake` 경고로만 방어) | WL-007 변환 유틸 단일화에 흡수하거나 `TowerPlacer`가 `StageBuilder.TileSize`를 단일 출처로 참조하도록 변경
 - **WL-035** | OPEN | PR#84 | 경영 주민 배치 불리언 게이트(CanAssignVillagers=HasExpandedToday) + CanEndDay 결합 프론티어 소진 소프트락 (직전 버전 원복)
 - **WL-036** | OPEN | PR#83 | MonsterMove.cs:6 moveSpeed 하드코딩, EnemyAsset.CombatFields.MoveSpeed 미연결 (이번 PR의 새 항목을 여기로)
+- **WL-037** | OPEN | PR#86 | 타워 "선택 → 배치" 데이터 계약 공백: TowerSelectPanelView.OnTowerSelected가 TowerAsset을 발행하나, TowerPlacer 예정 게이트웨이(BeginTowerPlacement(SO), TowerPlacement.md §6.2)는 TowerPrefab/GhostPrefab/GridWidth/Height/Range를 요구 — TowerAsset엔 이 필드들이 없음(사거리는 .Attack 안, Magic엔 없음). 배치 툴 구독 시 재작업 확정 | TowerAsset에 배치 필드 추가(muchan) or 별도 레지스트리 합의 후 OnTowerSelected 소비 경로 확정(muchan·n0wst4ndup·SUNGSOO)
