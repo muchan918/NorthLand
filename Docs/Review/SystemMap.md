@@ -65,7 +65,7 @@
 - `DayNightManager.Instance` — **null 반환 가능(씬에 없으면) → 호출부 null 체크 필수**.
   `CurrentPhase` / `WaveCount` / `EndDay()` / `EndNight()` / `event OnDayStart, OnDayToNight, OnNightToDay`.
   `OnDayStart`는 1일차 부트스트랩 포함 매 낮 시작마다 발생, `OnNightToDay`는 밤을 거친 전환에서만 발생(웨이브 종료 의미) — 구독 시 구분해서 사용할 것.
-  `EndNight()`은 지금은 밤 전용 임시 UI(`NightActionPanelView`의 "웨이브 성공" 버튼, #66)가 호출하지만, Combat 웨이브 클리어 로직이 향후 이 메서드를 직접 호출하는 통합 지점이 될 예정(WL-018)
+  `EndNight()`은 이제 `MonsterSpawn`이 웨이브 클리어(스폰 완료 후 생존 0) 시 자동 호출(#17)하며, 밤 전용 임시 UI(`NightActionPanelView`의 "웨이브 성공" 버튼, #66) 수동 호출도 병존한다. 단 클리어가 아직 처치가 아닌 본진 도달-디스폰 기준(처치 기반은 Enemy 병합 후 — WL-005); 실패/보스 판정 연동·임시 버튼 제거는 WL-018 잔여
 - `TerritoryController.Instance` — 씬 싱글톤(`DayNightManager`와 동일 패턴, `DontDestroyOnLoad` 없음).
   `Graph`(읽기 전용 질의), `bool TryClaim(int nodeId)`(유일한 변경 진입점 — 구조 불변식은 `Graph`,
   하루 1회 게이팅 정책은 이 레이어), `bool HasExpandedToday`(오늘 확장 완료 여부, `OnDayStart`마다
@@ -87,6 +87,7 @@
 | DataTable ↔ Localization                 | 표시 문자열 소유권(CSV 한글 하드코딩 vs String Table 키 — WL-013)                                                                                                                                                          |
 | Management(Resource) ↔ DataTable         | `ResourceKind`(지갑 키)·`BuildingAsset.ProductionFields`(생산처 입력)·`ResourceAsset.Data`(정산 시 `Kind` 해석, 호출부 `Start()` 채움 규약) 의존 — muchan이 이 구조 바꾸면 자원 시스템 깨짐                                |
 | Management(Resource) ↔ DayNightManager   | 정산+주민 초기화=`OnNightToDay` 구독(정산 먼저), 낮→밤 전환=`ManagementController.RequestAdvancePhase()`가 `EndDay()` 호출. **밤→낮(`EndNight`)은 이제 `NightActionPanelView`의 "웨이브 성공" 버튼이 임시 트리거 — 밤 종료 주체(Combat 웨이브 클리어 등)로 책임 이관 필요(WL-018)**. 주민 수는 여전히 placeholder(주민 시스템 부재)                |
+| BattleMapBuilder/Monster ↔ DayNightManager | 밤 시작(`OnDayToNight`)에 `StageBuilder`가 구독 → 다음 스테이지 생성(전투영역 확장) + `MonsterSpawn.StartRound`로 몬스터 스폰(`currentMapCount > 1`, #17). `MonsterSpawn`은 낮이면 스폰 스킵(경고 로그). 웨이브 클리어(스폰 완료 후 생존 0) 시 `MonsterSpawn`이 `EndNight()` 호출로 낮 복귀(#17) — 단 본진 도달-디스폰 기준(처치 기반은 Enemy 병합 후 WL-005); 실패/보스 판정·임시 버튼 제거는 WL-018 잔여 |
 | Management(Resource) ↔ 주민(미존재)      | 주민 수 입력 심 — 현재 `_maxVillagers` placeholder + 패널 +/-. 주민 시스템 생기면 출처 이관                                                                                                                                |
 | Management(Resource) ↔ Territory         | `TerritoryController.HasExpandedToday`(하루 1회 확장 완료 여부, `OnDayStart`마다 초기화)가 `ManagementController.CanAssignVillagers`를 게이팅 — 확장 전엔 `AssignVillager`/`UnassignVillager` 불가(이슈 #67, GDD §6.1). `ManagementController`가 `TerritoryController.OnChanged` 구독해 확장/낮 시작 시 패널 즉시 갱신(`ProductionLineView`의 `+`/`-` `interactable`도 함께 반영). `TerritoryController`가 씬에 없으면(null) 게이트 없이 배치 허용(permissive, WL-002와 동일 완화 패턴) |
 | DataTable(Building) ↔ MouseManager       | `BuildingInfo`가 `ISelectable` 구현 + `BuildingAsset` 보유 — 선택 시 `BuildingInfoUI` 직접 호출(이벤트 미구독, WL-011과 동일 패턴). `BuildingTooltipSource`(#38)가 `IHoverable` 구현 + `BuildingAsset`/`BuildingData`/`BuildingType`을 **읽기 전용** 소비(muchan 구조 바뀌면 툴팁 깨짐 — 자체 `DataTableManager.Get` 조회, Data 채움 규약 의존). `MouseManager`가 씬에 없으면 조용히 무반응(WL-002) — 씬마다 배치·`_camera` 재할당 필요 |
@@ -106,7 +107,7 @@
    보상에서만. 우회 경로 신설 금지.
 4. **공간 분리** (GDD §4.1/§6.2): 경영 공간 = 건물, 전투 공간 = 타워. 두 영토는 독립 관리 —
    한쪽 확장이 다른 쪽 상태에 의존 금지.
-5. **낮/밤 전환 계약** (GDD §5, Build0 계획): 낮 시작=본진 회복, 밤→낮=주민 배치 기반 자원 정산(먼저)+
+5. **낮/밤 전환 계약** (GDD §5, Build0 계획): 낮 시작=본진 회복, 밤 시작(`OnDayToNight`)=전투 스테이지 확장+몬스터 스폰(#17), 밤→낮=주민 배치 기반 자원 정산(먼저)+
    주민 배치 초기화(그 다음)+웨이브 증가(모두 `OnNightToDay` 시점, #66). 페이즈에 반응하는 시스템은
    전환 이벤트 훅 구조여야 한다. (Docs/Core/DayNightManager.md)
 6. **책임 경계** (MouseManager.md §2): 배치 판정=그리드/검증 시스템, 자원 차감=경영 시스템,
