@@ -78,6 +78,7 @@ public class MonsterSpawn : MonoBehaviour
         if (DayNightManager.Instance != null &&
             DayNightManager.Instance.CurrentPhase == DayNightManager.Phase.Day)
         {
+            Debug.LogWarning($"[몬스터 스포너] 낮에는 몬스터를 소환하지 않습니다. 라운드 {round} 소환을 건너뜁니다.");
             return;
         }
 
@@ -121,10 +122,34 @@ public class MonsterSpawn : MonoBehaviour
             }
 
             await UniTask.WhenAll(groupTasks);
+
+            // 스폰이 모두 끝난 뒤, 살아있는 몬스터(monsterParent의 자식)가 0이 되면 웨이브 클리어.
+            // 몬스터는 처치(Enemy.Die) 또는 본진 도달(MonsterMove) 시 Destroy되어 자식에서 빠진다.
+            if (monsterParent == null)
+            {
+                Debug.LogWarning("[몬스터 스포너] monsterParent 미할당 — 웨이브 클리어 자동 감지를 건너뜁니다.");
+                return;
+            }
+
+            await UniTask.WaitUntil(() => monsterParent.childCount == 0, cancellationToken: cancellationToken);
+            EndNightIfNight();
         }
         catch (OperationCanceledException)
         {
         }
+    }
+
+    // 웨이브 클리어 시 밤을 종료한다. 밤이 아닐 때(수동으로 이미 낮 전환 등) 호출은 무시한다.
+    // DayNightManager는 StartRound에서 이미 참조하는 의존이라 새 결합을 늘리지 않는다.
+    private void EndNightIfNight()
+    {
+        DayNightManager dayNight = DayNightManager.Instance;
+        if (dayNight == null || dayNight.CurrentPhase != DayNightManager.Phase.Night)
+        {
+            return;
+        }
+
+        dayNight.EndNight();
     }
 
     private async UniTask SpawnGroupAsync(MonsterSpawnEntry entry, CancellationToken cancellationToken)
