@@ -5927,9 +5927,9 @@ MonoBehaviour:
   spawnTableName: MonsterSpawnTable
   monsterPrefabs:
   - monsterId: goblin_warrior
-    monsterPrefab: {fileID: 4782494649810966508, guid: 7671023444494974185960f2f7821208, type: 3}
+    monsterPrefab: {fileID: 2829118851254710498, guid: 14082e7b329c64b4b8a92cc5df099b78, type: 3}
   - monsterId: goblin_archer
-    monsterPrefab: {fileID: 4229904492612586596, guid: e38044a6a5410a941b2a481ca5aed96d, type: 3}
+    monsterPrefab: {fileID: 7987534744054934123, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
 --- !u!1001 &963556864
 PrefabInstance:
   m_ObjectHideFlags: 0

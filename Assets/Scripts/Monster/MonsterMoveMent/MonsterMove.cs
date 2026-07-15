@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class MonsterMove : MonoBehaviour
 {
@@ -8,6 +10,7 @@ public class MonsterMove : MonoBehaviour
 
     private readonly List<Vector3> route = new List<Vector3>();
     private int currentRouteIndex;
+    
 
     public void SetRoute(List<Vector3> routePoints)
     {
@@ -36,6 +39,16 @@ public class MonsterMove : MonoBehaviour
             targetPosition,
             moveSpeed * Time.deltaTime
         );
+
+
+        Vector3 direction = targetPosition - transform.position;
+        direction.y = 0f;
+
+        if (direction.sqrMagnitude > 0.001f)
+        {
+            transform.rotation = Quaternion.LookRotation(direction);
+        }
+
 
         if (Vector3.Distance(transform.position, targetPosition) <= arriveDistance)
         {
