@@ -9,7 +9,7 @@
 
 | 시스템                                      | 소유자     | 경로                                                                 | 상태                                                                                                                                                                    |
 | ------------------------------------------- | ---------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| DataTable (CSV→static 레지스트리→SO)        | muchan     | `Assets/Scripts/Data`                                             | Resource, Building, Tower, Enemy 4종 구현(Tower/Enemy는 데이터 레이어만 — Combat 연동 미착수, WL-001). Territory/Skill/Reward 확장 예정                                |
+| DataTable (CSV→static 레지스트리→SO)        | muchan     | `Assets/Scripts/Data`                                             | Resource, Building, Tower, Enemy 4종 구현. Tower/Enemy는 Combat(`Tower.cs`/`Enemy.cs`)이 `TowerAsset`/`EnemyAsset`을 직접 소비하도록 이관 완료(PR#80) — 잔여 종류 값 채움 + Soldier 이관은 진행 중(WL-001, 부분 착수). Territory/Skill/Reward 확장 예정                                |
 | Combat (타워/몬스터 공격·데미지)            | SUNGSOO    | `Assets/Scripts/CombatSystem` | 공격/데미지 코어만. 이동·사망처리·투사체 없음                                                                                                                           |
 | BattleMapBuilder (절차적 전투 맵)           | SUNJIN     | `Assets/Scripts/CombatSpace/MapBuilder`                          | 7×7 블록 경로 생성 구현. 싸이클 버그 해결이 다음 빌드 목표                                                                                                              |
 | MouseManager (입력/선택/배치)               | n0wst4ndup | `Assets/Scripts/GameManager/MouseManager`                            | 2상태 머신 구현. Snap 항등·CanPlaceAt 항상 true (TODO)                                                                                                                  |
@@ -24,15 +24,15 @@
 - `DataTableManager.Get<T>(string id)` — static. **null 반환 가능 → 호출부 null 체크 필수**
 - `ResourceTable.Get(string id)` — null 반환 가능
 - `BuildingTable.Get(string id)` — null 반환 가능
-- `TowerTable.Get(string id)` — null 반환 가능. `TowerAsset`은 아직 muchan 폴더 데이터 레이어
-  전용이며 Combat의 `Tower.cs`는 소비하지 않음(WL-001 — 마이그레이션 전)
+- `TowerTable.Get(string id)` — null 반환 가능. `TowerAsset`은 Combat의 `Tower.cs`가 직접 소비함
+  (PR#80으로 이관 완료) — 잔여 타워 종류의 값 채움은 WL-001 참고
 - `EnemyTable.Get(string id)` — null 반환 가능. **스탯(체력/이동속도/공격력/사거리/공격주기)은
   CSV/`EnemyData`에 없음** — `EnemyAsset`(SO)의 `EnemyType`별 필드 그룹(`MeleeFields`/`RangedFields`/
   `BossFields`, `TowerAsset`의 `TowerType`별 필드 그룹과 동일 패턴)에만 존재. 이슈#26 원 스펙(스탯
   CSV 컬럼 요구)과 다른 선택이며 WL-027로 추적 중 — 스탯이 필요한 소비처(#14/#15/#16)는
   `EnemyTable.Get(id)`가 아니라 `EnemyAsset` 조회 경로를 써야 함. `EnemyAsset`도 `TowerAsset`과
-  동일하게 아직 muchan 폴더 데이터 레이어 전용이며 Combat의 `EnemyData`(SO)는 소비하지 않음
-  (WL-001 — 마이그레이션 전). `BossFields.BehaviorTree`는 실제 BT 에셋 타입 미정 상태의 placeholder 필드
+  동일하게 Combat의 `Enemy.cs`가 직접 소비함(PR#80으로 이관 완료, 옛 Combat 자체 `EnemyData`는
+  삭제됨) — 잔여 종류 값 채움은 WL-001 참고. `BossFields.BehaviorTree`는 실제 BT 에셋 타입 미정 상태의 placeholder 필드
 - `ResourceAsset.Data` / `BuildingAsset.Data` / `TowerAsset.Data` / `EnemyAsset.Data` — **호출부가
   Start()에서 직접 채우는 규약** (저장 안 됨)
 - `BuildingInfoUI.Instance.ShowInfo(string)` / `HideInfo()` — 경영 공간 전용 정보 패널. `TowerInfoUI`와
@@ -117,8 +117,9 @@
 
 ## 5. 미합의 전역 계약 (합의 없는 변경·점유 = 최소 🟠)
 
-- **레이어**: Selectable, Ground(MouseManager), Enemy(Tower.enemyLayerMask)가 각자 SerializeField로만
-  존재. 프로젝트 레이어 규약 미확정. `TagManager.asset` 변경은 반드시 리뷰 대상.
+- **레이어**: Enemy(7)/Soldier(8)/PlayerBase(9)가 `TagManager.asset`에 등재 완료(PR#80, WL-005 해소).
+  단 각 스크립트(Tower/Soldier/Enemy)의 LayerMask vs Tag 방식 최종 확정은 TODO(TBD)로 남음.
+  `TagManager.asset` 변경은 반드시 리뷰 대상.
 - **좌표계**: MapBuilder는 battlespace 로컬 정수 그리드(MapSize=7), MouseManager/Combat은 월드 좌표.
   변환 유틸 없음.
 - **네임스페이스**: `NorthLand.Combat`만 존재, 나머지 전역. asmdef 없음(전부 Assembly-CSharp).
@@ -126,9 +127,9 @@
   (TowerInfoUI) 3종 공존. 부트스트랩 미결정. DayNightManager는 씬 싱글톤(DontDestroyOnLoad 없음)
   채택 — 경영/전투 공간이 한 씬에 공존해 씬 전환에 걸쳐 상태를 유지할 이유가 없다는 판단(WL-002 참고 사례).
 - **에셋 로딩**: Resources.Load(DataTable)와 Addressables(Localization) 공존.
-- **스탯 데이터 원본**: Combat의 TowerData/EnemyData(SO 직접 입력) vs DataTable CSV 파이프라인 —
-  단일화 미결정. muchan 폴더에 CSV 기반 `TowerAsset`/`EnemyAsset` 후보가 마련됐으나(1절 DataTable
-  상태 참고) Combat/`Tower.cs`·`EnemyData` 마이그레이션은 아직 착수 전 (WL-001).
+- **스탯 데이터 원본**: Combat의 `Tower.cs`/`Enemy.cs`가 `TowerAsset`/`EnemyAsset`(CSV 기반, 1절
+  DataTable 상태 참고)을 직접 소비하도록 PR#80에서 이관 완료 — 옛 Combat 자체 SO는 삭제됨.
+  잔여: 전 타워/적 종류 값 채움 + Soldier(`SoldierData`, 아직 Combat 자체 SO) 이관 (WL-001).
 - **용어 '웨이포인트'**: MapBuilder의 StageWaypoint(블록 경계 연결점) ≠ GDD §6.4 웨이포인트(병사
   배치 지점) (WL-009).
 - **용어 '스테이지'**: MapBuilder의 블록 단위 ≠ GDD의 런 단위 스테이지 (WL-009).
