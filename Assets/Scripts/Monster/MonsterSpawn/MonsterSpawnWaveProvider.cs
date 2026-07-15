@@ -12,6 +12,7 @@ public class MonsterSpawnWaveProvider : MonoBehaviour
     private readonly List<MonsterSpawnEntry> cachedEntries = new List<MonsterSpawnEntry>();
     private Dictionary<string, GameObject> prefabById = new Dictionary<string, GameObject>();
 
+
     private void Awake()
     {
         Load();
