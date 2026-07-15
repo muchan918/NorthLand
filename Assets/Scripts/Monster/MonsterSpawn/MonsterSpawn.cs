@@ -78,6 +78,7 @@ public class MonsterSpawn : MonoBehaviour
         if (DayNightManager.Instance != null &&
             DayNightManager.Instance.CurrentPhase == DayNightManager.Phase.Day)
         {
+            Debug.LogWarning($"[몬스터 스포너] 낮에는 몬스터를 소환하지 않습니다. 라운드 {round} 소환을 건너뜁니다.");
             return;
         }
 

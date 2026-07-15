@@ -5034,7 +5034,7 @@ GameObject:
   - component: {fileID: 315114511}
   - component: {fileID: 315114510}
   m_Layer: 0
-  m_Name: MonsterSpawn
+  m_Name: MonsterSpawner
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -11660,7 +11660,7 @@ MonoBehaviour:
   finalCenterObject: {fileID: 8559005515943241746, guid: 09a58e7d241df5045842f5551dccde0d, type: 3}
   finalCenterObjectOffset: {x: 0, y: 1, z: 0}
   battlespace: {fileID: 743270833}
-  monsterSpawn: {fileID: 0}
+  monsterSpawn: {fileID: 315114511}
   routeSettings:
     maxMapCount: 30
     routeGenerateTryCount: 500
