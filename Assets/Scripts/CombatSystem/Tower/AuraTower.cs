@@ -7,7 +7,7 @@ using NorthLand.Combat;
 using UnityEditor;
 #endif
 
-namespace NorthLand.Sungsoo
+namespace NorthLand.Combat
 {
     // 마법 타워 공통 컴포넌트. TowerAsset(Magic)을 참조하고 사거리 내 대상에게 오라 효과를
     // UniTask 루프로 주기적(Interval)으로 갱신한다. MagicEffectType으로 Buff/Debuff 분기:
@@ -37,13 +37,16 @@ namespace NorthLand.Sungsoo
         bool IsDebuff => IsMagic && data.MagicEffectType == MagicEffectType.Debuff;
         bool IsBuff => IsMagic && data.MagicEffectType == MagicEffectType.Buff;
 
-        // 현재 활성 오라의 공통 파라미터 (Buff/Debuff의 서로 다른 필드 클래스를 공통값으로 해석)
-        float Radius => IsDebuff ? data.Magic.DebuffAura.Radius : IsBuff ? data.Magic.BuffAura.Radius : 0f;
-        float Interval => IsDebuff ? data.Magic.DebuffAura.Interval : IsBuff ? data.Magic.BuffAura.Interval : 0f;
+        // 현재 활성 오라 데이터 (null-safe). data.Magic 미할당 시에도 NRE 없이 null.
+        TowerAsset.DebuffAuraFields DebuffAura => IsDebuff ? data.Magic?.DebuffAura : null;
+        TowerAsset.BuffAuraFields BuffAura => IsBuff ? data.Magic?.BuffAura : null;
+
+        // Buff/Debuff의 서로 다른 필드 클래스를 공통값으로 해석
+        float Radius => DebuffAura?.Radius ?? BuffAura?.Radius ?? 0f;
+        float Interval => DebuffAura?.Interval ?? BuffAura?.Interval ?? 0f;
 
         // IAttacker 계약(공개 스탯). 오라 타워라 값이 없으면 0 가드.
-        public float AttackDamage =>
-            IsDebuff && data.Magic.DebuffAura.Damage != null ? data.Magic.DebuffAura.Damage.DamageAmount : 0f;
+        public float AttackDamage => DebuffAura?.Damage != null ? DebuffAura.Damage.DamageAmount : 0f;
         public float AttackRange => Radius;
         public float AttackInterval => Interval;
 
@@ -52,7 +55,7 @@ namespace NorthLand.Sungsoo
 
         void OnEnable()
         {
-            if (!IsMagic) return;   // 마법 타워가 아니면 루프를 시작하지 않음
+            if (!IsMagic || data.Magic == null) return;   // 마법 타워가 아니거나 Magic 데이터 미할당이면 루프 미시작
 
             // 같은 TowerID끼리는 하나의 효과를 공유·갱신, 다른 종류는 별도.
             effectId = !string.IsNullOrEmpty(data.TowerID) ? data.TowerID.GetHashCode() : GetInstanceID();
@@ -85,8 +88,13 @@ namespace NorthLand.Sungsoo
 
         void Tick()
         {
-            if (IsDebuff) ApplyDebuff(data.Magic.DebuffAura);
-            // else if (IsBuff) ApplyBuff(data.Magic.BuffAura);   // TODO(확장): 버프 미구현
+            // 낮/밤 게이팅: Tower.cs와 동일하게 밤 페이즈에만 동작 (WL-019, 두 타워 규칙 일치)
+            if (DayNightManager.Instance != null &&
+                DayNightManager.Instance.CurrentPhase != DayNightManager.Phase.Night) return;
+
+            var aura = DebuffAura;
+            if (aura != null) ApplyDebuff(aura);
+            // else if (BuffAura != null) ApplyBuff(BuffAura);   // TODO(확장): 버프 미구현
         }
 
         // 사거리 내 적군에게 DoT 디버프를 갱신. 상태 소유는 대상의 StatusEffectHandler.

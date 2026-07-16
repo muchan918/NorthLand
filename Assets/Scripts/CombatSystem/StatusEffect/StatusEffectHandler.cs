@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using NorthLand.Combat;
 
-namespace NorthLand.Sungsoo
+namespace NorthLand.Combat
 {
     // IDamageable(몬스터 등)에 부착되어 지속시간형 상태이상(현재 DoT)을 "소유"하고 소진한다.
     // 타워는 사거리 안에서 ApplyOrRefresh만 호출하고, 실제 지속시간 카운트다운과 틱 데미지는
