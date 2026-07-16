@@ -78,6 +78,7 @@ public class TowerAsset : ScriptableObject
     {
         public float Radius;
         public float Interval;
+        public float Duration;
         public List<StatModifier> Modifiers;
         public OptionalDamage Damage;
     }
