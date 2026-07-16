@@ -1,7 +1,8 @@
 using System.Collections.Generic;
+using NorthLand.Combat;
 using UnityEngine;
 
-public class MonsterMove : MonoBehaviour
+public class MonsterMove : MonoBehaviour, IMovementAgent
 {
     [SerializeField] private float moveSpeed = 3f;
     [SerializeField] private float arriveDistance = 0.05f;
@@ -13,6 +14,8 @@ public class MonsterMove : MonoBehaviour
 
     public bool HasRouteRemaining => currentRouteIndex < route.Count;
     public bool CanMove => canMove;
+    public bool IsStopped { get; set; }
+
 
     public void SetRoute(List<Vector3> routePoints)
     {
@@ -30,10 +33,13 @@ public class MonsterMove : MonoBehaviour
 
     private void Update()
     {
+        if (IsStopped)
+        {
+            return;
+        }
+
         if (currentRouteIndex >= route.Count)
         {
-            // 경로 끝(본진)에 도달하면 디스폰한다.
-            // 본진 데미지는 전투 통합 시 별도 처리한다.
             Destroy(gameObject);
             return;
         }

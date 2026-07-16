@@ -35,6 +35,8 @@ namespace NorthLand.Combat
         {
             // 공격 스탯이 없는 타입(Magic 등)은 이 컴포넌트가 처리하지 않음
             if (Attack == null) return;
+            if (DayNightManager.Instance != null &&
+                DayNightManager.Instance.CurrentPhase != DayNightManager.Phase.Night) return;
 
             cooldownTimer -= Time.deltaTime;
             if (cooldownTimer > 0f) return;

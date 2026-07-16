@@ -1,5 +1,6 @@
 using Unity.Cinemachine;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 // 영토 확장 구조(#67) 확인용 쿼터뷰 카메라. 기존 CameraController(다른 공간 정본)는 건드리지 않고
@@ -94,6 +95,11 @@ public class CameraController2 : MonoBehaviour
     {
         if (Mouse.current.leftButton.wasPressedThisFrame)
         {
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+            {
+                return;
+            }
+
             _isDragging = true;
             _dragStartScreenPos = Mouse.current.position.ReadValue();
             _dragStartTargetPos = cameraTarget.position;
@@ -117,6 +123,11 @@ public class CameraController2 : MonoBehaviour
 
     private void ZoomMouseWheel()
     {
+        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+        {
+            return;
+        }
+
         float scrollValue = Mouse.current.scroll.ReadValue().y;
 
         if (Mathf.Approximately(scrollValue, 0f))

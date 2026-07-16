@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: archer_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
   TowerID: archer_tower
+  TowerPrefab: {fileID: 4828097712758218341, guid: 20d807b0a7cea9147bb69ff9c3c95951, type: 3}
+  GhostPrefab: {fileID: 4828097712758218341, guid: 1c4fe65468dd4524a90ebe19c3110df8, type: 3}
   TowerType: 0
   MagicEffectType: 0
   Cost: []
