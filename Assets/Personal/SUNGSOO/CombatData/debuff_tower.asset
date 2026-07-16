@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
-  m_Name: cannon_tower
+  m_Name: debuff_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
-  TowerID: cannon_tower
+  TowerID: debuff_tower
   TowerPrefab: {fileID: 0}
   GhostPrefab: {fileID: 0}
-  TowerType: 1
-  MagicEffectType: 0
+  TowerType: 3
+  MagicEffectType: 2
   Cost: []
   Single:
     Attack:
@@ -27,12 +27,12 @@ MonoBehaviour:
       ProjectileSpeed: 0
   Area:
     Attack:
-      AttackDamage: 30
-      AttackRange: 10
-      AttackInterval: 2
-      ProjectilePrefab: {fileID: 1298584887169390, guid: 1997ca286936bb74385cadaebce86cff, type: 3}
-      ProjectileSpeed: 10
-    SplashRadius: 4
+      AttackDamage: 0
+      AttackRange: 0
+      AttackInterval: 0
+      ProjectilePrefab: {fileID: 0}
+      ProjectileSpeed: 0
+    SplashRadius: 0
   Chain:
     Attack:
       AttackDamage: 0
@@ -53,10 +53,11 @@ MonoBehaviour:
         DamageAmount: 0
         TickInterval: 0
     DebuffAura:
-      Radius: 0
-      Interval: 0
+      Radius: 5
+      Interval: 1
+      Duration: 3
       Modifiers: []
       Damage:
-        HasDamage: 0
-        DamageAmount: 0
-        TickInterval: 0
+        HasDamage: 1
+        DamageAmount: 3
+        TickInterval: 1
