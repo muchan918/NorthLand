@@ -12,6 +12,7 @@ using UnityEngine.UI;
 /// 버튼 배치·스크롤 범위는 Content의 Horizontal Layout Group + Content Size Fitter가 담당하므로
 /// 이 스크립트는 좌표를 계산하지 않는다.
 /// </summary>
+[RequireComponent(typeof(TowerPlacer))]
 public class TowerSelectPanelView : MonoBehaviour
 {
     [Header("스크롤뷰")]
@@ -24,14 +25,21 @@ public class TowerSelectPanelView : MonoBehaviour
     /// <summary>버튼 클릭 시 선택된 TowerAsset을 발행. 추후 배치 툴이 구독한다.</summary>
     public event Action<TowerAsset> OnTowerSelected;
 
-    private void Start()
+    private TowerPlacer _towerPlacer;
+
+    private void Awake()
     {
+        _towerPlacer = GetComponent<TowerPlacer>();
+
         if (_content == null || _buttonPrefab == null)
         {
             Debug.LogError("[타워선택패널] content/buttonPrefab이 연결되지 않았습니다.");
             return;
         }
+    }
 
+    private void Start()
+    {
         foreach (var tower in _towers)
         {
             AddTowerButton(tower);
@@ -47,6 +55,15 @@ public class TowerSelectPanelView : MonoBehaviour
             return;
         }
 
+        // SO를 버튼에 주입하는 시점에 Data(에셋에 저장 안 되는 런타임 캐시)를 CSV에서 채운다.
+        // (Building/Resource와 동일한 Data 채움 규약 — SystemMap §2. 실제 소비는 TowerPlacer)
+        if (tower.Data == null)
+        {
+            tower.Data = DataTableManager.Get<TowerTable>("TowerTable")?.Get(tower.TowerID);
+            if (tower.Data == null)
+                Debug.LogWarning($"[타워선택패널] TowerData 없음(TowerID={tower.TowerID}) — TowerTable.csv 행을 확인하세요.");
+        }
+
         var button = Instantiate(_buttonPrefab, _content);
 
         var label = button.GetComponentInChildren<TMP_Text>();
@@ -60,28 +77,14 @@ public class TowerSelectPanelView : MonoBehaviour
 
     private void HandleClick(TowerAsset tower)
     {
-        var attack = GetAttack(tower);
-        if (attack != null)
+        if (_towerPlacer == null)
         {
-            Debug.Log($"[타워선택패널] {tower.TowerID} | 데미지={attack.AttackDamage}, 공격주기={attack.AttackInterval}s, 사거리={attack.AttackRange}");
+            Debug.LogError("[타워선택패널] TowerPlacer가 연결되지 않았습니다.");
+            return;
         }
-        else
-        {
-            Debug.Log($"[타워선택패널] {tower.TowerID} (type={tower.TowerType}) — 공격 스탯 없음(마법 타입)");
-        }
+
+        _towerPlacer.BeginTowerPlacement(tower);
 
         OnTowerSelected?.Invoke(tower);
-    }
-
-    // Single/Area/Chain은 각 타입 그룹의 Attack에 공격 스탯이 있고, Magic은 없다(null).
-    private static TowerAsset.AttackFields GetAttack(TowerAsset tower)
-    {
-        switch (tower.TowerType)
-        {
-            case TowerType.Single: return tower.Single?.Attack;
-            case TowerType.Area: return tower.Area?.Attack;
-            case TowerType.Chain: return tower.Chain?.Attack;
-            default: return null;
-        }
     }
 }

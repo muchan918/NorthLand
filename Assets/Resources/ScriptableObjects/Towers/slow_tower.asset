@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: slow_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
   TowerID: slow_tower
+  TowerPrefab: {fileID: 0}
+  GhostPrefab: {fileID: 0}
   TowerType: 3
   MagicEffectType: 2
   Cost: []

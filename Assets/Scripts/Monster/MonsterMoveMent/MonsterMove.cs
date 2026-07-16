@@ -1,13 +1,21 @@
 using System.Collections.Generic;
+using NorthLand.Combat;
 using UnityEngine;
 
-public class MonsterMove : MonoBehaviour
+public class MonsterMove : MonoBehaviour, IMovementAgent
 {
     [SerializeField] private float moveSpeed = 3f;
     [SerializeField] private float arriveDistance = 0.05f;
 
+    private bool canMove = true;
+
     private readonly List<Vector3> route = new List<Vector3>();
     private int currentRouteIndex;
+
+    public bool HasRouteRemaining => currentRouteIndex < route.Count;
+    public bool CanMove => canMove;
+    public bool IsStopped { get; set; }
+
 
     public void SetRoute(List<Vector3> routePoints)
     {
@@ -25,15 +33,32 @@ public class MonsterMove : MonoBehaviour
 
     private void Update()
     {
+        if (IsStopped)
+        {
+            return;
+        }
+
         if (currentRouteIndex >= route.Count)
         {
-            // 경로 끝(본진) 도달 → 디스폰. 스포너의 웨이브 클리어 판정(살아있는 몬스터 수)에서 빠진다.
-            // 본진 데미지는 전투 통합 시 별도 처리(TODO) — 지금은 디스폰만.
             Destroy(gameObject);
             return;
         }
 
+        if (!canMove)
+        {
+            return;
+        }
+
         Vector3 targetPosition = route[currentRouteIndex];
+
+        Vector3 direction = targetPosition - transform.position;
+        direction.y = 0f;
+
+        if (direction.sqrMagnitude > 0.001f)
+        {
+            transform.rotation = Quaternion.LookRotation(direction);
+        }
+
         transform.position = Vector3.MoveTowards(
             transform.position,
             targetPosition,
@@ -54,5 +79,10 @@ public class MonsterMove : MonoBehaviour
         {
             currentRouteIndex++;
         }
+    }
+
+    public void SetMoveEnabled(bool enabled)
+    {
+        canMove = enabled;
     }
 }

@@ -12,6 +12,8 @@ public class TowerAssetEditor : Editor
         var magicEffectTypeProp = serializedObject.FindProperty("MagicEffectType");
 
         EditorGUILayout.PropertyField(serializedObject.FindProperty("TowerID"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("TowerPrefab"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("GhostPrefab"));
         EditorGUILayout.PropertyField(towerTypeProp);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("Cost"), true);
         EditorGUILayout.Space();
