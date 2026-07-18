@@ -35,6 +35,10 @@ namespace NorthLand.Combat
             buffCts?.Cancel();
             buffCts?.Dispose();
             buffCts = null;
+            // 취소된 BuffRoutine은 원복 코드를 지나지 않고 바로 return하므로 여기서 직접 리셋해야
+            // 풀링 등으로 재활성화됐을 때 버프가 고착되지 않는다(PR#115 리뷰 지적).
+            damageMultiplier = 1f;
+            attackSpeedMultiplier = 1f;
         }
 
         public Faction Faction => Faction.Player;
