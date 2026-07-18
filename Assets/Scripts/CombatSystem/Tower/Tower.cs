@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -15,6 +19,24 @@ namespace NorthLand.Combat
         float cooldownTimer;
         readonly Collider[] hitBuffer = new Collider[16];
 
+        // 버프 스킬(#103)이 이 배율만 조작한다 — 공유 TowerAsset 값은 건드리지 않음(타입 전체가 아니라
+        // 이 인스턴스만 일시적으로 강화됨). AuraTower(Magic)는 AttackFields 자체가 없어 버프 대상 아님.
+        float damageMultiplier = 1f;
+        float attackSpeedMultiplier = 1f;
+        CancellationTokenSource buffCts;
+
+        // 씬에 존재하는 모든 Tower를 스킬 등에서 순회할 수 있게 자가 등록(FindObjectsByType 대체).
+        public static readonly List<Tower> Active = new();
+        void OnEnable() => Active.Add(this);
+
+        void OnDisable()
+        {
+            Active.Remove(this);
+            buffCts?.Cancel();
+            buffCts?.Dispose();
+            buffCts = null;
+        }
+
         public Faction Faction => Faction.Player;
 
         // TowerType에 맞는 공통 공격 스탯 해석. Magic(또는 data 미할당)은 Attack 없음 → null.
@@ -27,9 +49,34 @@ namespace NorthLand.Combat
         };
 
         // Magic 타워/미할당(Attack==null)에서도 안전하도록 null 가드(공개 IAttacker 계약).
-        public float AttackDamage => Attack != null ? Attack.AttackDamage : 0f;
+        public float AttackDamage => Attack != null ? Attack.AttackDamage * damageMultiplier : 0f;
         public float AttackRange => Attack != null ? Attack.AttackRange : 0f;
-        public float AttackInterval => Attack != null ? Attack.AttackInterval : 0f;
+        // 공격속도 배율이 클수록 더 빠르게(간격이 짧아짐) 공격하도록 나눗셈으로 적용.
+        public float AttackInterval => Attack != null ? Attack.AttackInterval / attackSpeedMultiplier : 0f;
+
+        // 버프 스킬(#103) 진입점. 지속시간 동안 배율 적용 후 자동 원복. 재시전 시 남은 지속시간을 새 값으로 갱신.
+        // AuraTower.AuraLoop와 동일한 UniTask+CancellationTokenSource 패턴(코루틴 대신).
+        public void ApplyBuff(float damageMul, float attackSpeedMul, float duration)
+        {
+            buffCts?.Cancel();
+            buffCts?.Dispose();
+            buffCts = new CancellationTokenSource();
+            BuffRoutine(damageMul, attackSpeedMul, duration, buffCts.Token).Forget();
+        }
+
+        async UniTaskVoid BuffRoutine(float damageMul, float attackSpeedMul, float duration, CancellationToken ct)
+        {
+            damageMultiplier = damageMul;
+            attackSpeedMultiplier = attackSpeedMul;
+
+            bool canceled = await UniTask
+                .Delay(TimeSpan.FromSeconds(duration), cancellationToken: ct)
+                .SuppressCancellationThrow();
+            if (canceled) return;
+
+            damageMultiplier = 1f;
+            attackSpeedMultiplier = 1f;
+        }
 
         void Update()
         {
