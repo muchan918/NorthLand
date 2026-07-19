@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace CombatSpace
 {
-    // Å¸ÀÏ ÇÏ³ªÀÇ ³í¸® Á¤º¸¸¦ ½ÇÁ¦ GameObject¿Í ¿¬°á
+    // íƒ€ì¼ í•˜ë‚˜ì˜ ë…¼ë¦¬ ì •ë³´ë¥¼ ì‹¤ì œ GameObjectì™€ ì—°ê²°
     public sealed class CombatMapTileView : MonoBehaviour
     {
         [SerializeField]

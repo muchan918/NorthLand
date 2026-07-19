@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace CombatSpace
 {
-    // ¶ó¿îµå¿¡ µû¶ó ¸Ê °ø°³ ¹üÀ§¿Í ¸ó½ºÅÍ ½ºÆù À§Ä¡¸¦ °ü¸®
+    // ë¼ìš´ë“œì— ë”°ë¼ ë§µ ê³µê°œ ë²”ìœ„ì™€ ëª¬ìŠ¤í„° ìŠ¤í° ìœ„ì¹˜ë¥¼ ê´€ë¦¬
     public sealed class CombatMapRevealController : MonoBehaviour
     {
         [SerializeField]
@@ -23,10 +23,10 @@ namespace CombatSpace
         [Min(0)]
         private int testRound = 1;
 
-        // °¢ Å¸ÀÏÀÌ ¾î´À Road ÀÎµ¦½º¿Í ÇÔ²² °ø°³µÇ´ÂÁö ÀúÀå
+        // ê° íƒ€ì¼ì´ ì–´ëŠ Road ì¸ë±ìŠ¤ì™€ í•¨ê»˜ ê³µê°œë˜ëŠ”ì§€ ì €ì¥
         private int[,] tileRevealIndices;
 
-        // Å¸ÀÏº° °ø°³ ¿©ºÎ
+        // íƒ€ì¼ë³„ ê³µê°œ ì—¬ë¶€
         public CombatMapRevealData RevealData
         {
             get;
@@ -39,18 +39,18 @@ namespace CombatSpace
             private set;
         }
 
-        // ¸¶Áö¸·À¸·Î °ø°³µÈ Road ÀÎµ¦½º
+        // ë§ˆì§€ë§‰ìœ¼ë¡œ ê³µê°œëœ Road ì¸ë±ìŠ¤
         public int LastRevealedRouteIndex
         {
             get;
             private set;
         } = -1;
 
-        // ¸ó½ºÅÍ°¡ ½ºÆùµÉ Road ÀÎµ¦½º
+        // ëª¬ìŠ¤í„°ê°€ ìŠ¤í°ë  Road ì¸ë±ìŠ¤
         public int CurrentSpawnRouteIndex =>
             LastRevealedRouteIndex;
 
-        // ¸ó½ºÅÍ°¡ ½ºÆùµÉ ±×¸®µå ÁÂÇ¥
+        // ëª¬ìŠ¤í„°ê°€ ìŠ¤í°ë  ê·¸ë¦¬ë“œ ì¢Œí‘œ
         public Vector2Int CurrentSpawnPosition
         {
             get;
@@ -60,13 +60,13 @@ namespace CombatSpace
         public bool HasSpawnPosition =>
             LastRevealedRouteIndex >= 0;
 
-        // Å¸ÀÏ ÇÏ³ª°¡ Ã³À½ °ø°³µÆÀ» ¶§ ¾Ë¸²
+        // íƒ€ì¼ í•˜ë‚˜ê°€ ì²˜ìŒ ê³µê°œëì„ ë•Œ ì•Œë¦¼
         public event Action<Vector2Int> TileRevealed;
 
-        // ÀüÃ¼ °ø°³ »óÅÂ°¡ º¯°æµÆÀ» ¶§ ¾Ë¸²
+        // ì „ì²´ ê³µê°œ ìƒíƒœê°€ ë³€ê²½ëì„ ë•Œ ì•Œë¦¼
         public event Action RevealChanged;
 
-        // °ø°³ µ¥ÀÌÅÍ ÃÊ±âÈ­
+        // ê³µê°œ ë°ì´í„° ì´ˆê¸°í™”
         [ContextMenu("Initialize Reveal")]
         public void InitializeReveal()
         {
@@ -78,7 +78,7 @@ namespace CombatSpace
             if (map.EnemyRoute.Count == 0)
             {
                 Debug.LogError(
-                    "»ı¼ºµÈ Road °æ·Î°¡ ¾ø½À´Ï´Ù.",
+                    "ìƒì„±ëœ Road ê²½ë¡œê°€ ì—†ìŠµë‹ˆë‹¤.",
                     this);
 
                 return;
@@ -89,7 +89,7 @@ namespace CombatSpace
                     map.Width,
                     map.Height);
 
-            // ¸ğµç Å¸ÀÏÀ» °¡Àå °¡±î¿î Road¿¡ ¼Ò¼Ó½ÃÅ´
+            // ëª¨ë“  íƒ€ì¼ì„ ê°€ì¥ ê°€ê¹Œìš´ Roadì— ì†Œì†ì‹œí‚´
             tileRevealIndices =
                 BuildTileRevealIndices(map);
 
@@ -97,19 +97,19 @@ namespace CombatSpace
             LastRevealedRouteIndex = -1;
             CurrentSpawnPosition = default;
 
-            // 0¶ó¿îµå ±âÁØ ÃÊ±â ¹üÀ§ °ø°³
+            // 0ë¼ìš´ë“œ ê¸°ì¤€ ì´ˆê¸° ë²”ìœ„ ê³µê°œ
             RevealForRound(0);
 
             Debug.Log(
-                "¸Ê °ø°³ µ¥ÀÌÅÍ ÃÊ±âÈ­ ¿Ï·á\n" +
+                "ë§µ ê³µê°œ ë°ì´í„° ì´ˆê¸°í™” ì™„ë£Œ\n" +
                 $"RouteIndex " +
-                $"{LastRevealedRouteIndex}±îÁö °ø°³\n" +
-                $"¸ó½ºÅÍ ½ºÆù ÁÂÇ¥: " +
+                $"{LastRevealedRouteIndex}ê¹Œì§€ ê³µê°œ\n" +
+                $"ëª¬ìŠ¤í„° ìŠ¤í° ì¢Œí‘œ: " +
                 $"{CurrentSpawnPosition}",
                 this);
         }
 
-        // ÇöÀç ¶ó¿îµå¿¡ ¸Â´Â ¹üÀ§ °ø°³
+        // í˜„ì¬ ë¼ìš´ë“œì— ë§ëŠ” ë²”ìœ„ ê³µê°œ
         public void RevealForRound(
             int currentRound)
         {
@@ -122,7 +122,7 @@ namespace CombatSpace
                 tileRevealIndices == null)
             {
                 Debug.LogError(
-                    "¸ÕÀú °ø°³ µ¥ÀÌÅÍ¸¦ ÃÊ±âÈ­ÇØ¾ß ÇÕ´Ï´Ù.",
+                    "ë¨¼ì € ê³µê°œ ë°ì´í„°ë¥¼ ì´ˆê¸°í™”í•´ì•¼ í•©ë‹ˆë‹¤.",
                     this);
 
                 return;
@@ -131,7 +131,7 @@ namespace CombatSpace
             if (map.EnemyRoute.Count == 0)
             {
                 Debug.LogError(
-                    "°ø°³ÇÒ Road °æ·Î°¡ ¾ø½À´Ï´Ù.",
+                    "ê³µê°œí•  Road ê²½ë¡œê°€ ì—†ìŠµë‹ˆë‹¤.",
                     this);
 
                 return;
@@ -143,7 +143,7 @@ namespace CombatSpace
                     0,
                     totalRounds);
 
-            // ÇöÀç ¶ó¿îµåº¸´Ù ÀÏÁ¤ ¶ó¿îµå ¾Õ±îÁö ¹Ì¸® °ø°³
+            // í˜„ì¬ ë¼ìš´ë“œë³´ë‹¤ ì¼ì • ë¼ìš´ë“œ ì•ê¹Œì§€ ë¯¸ë¦¬ ê³µê°œ
             int revealRound =
                 Mathf.Clamp(
                     CurrentRound + previewRounds,
@@ -159,7 +159,7 @@ namespace CombatSpace
                     progress *
                     (map.EnemyRoute.Count - 1));
 
-            // ÇØ´ç Road ÀÎµ¦½º±îÁö ¼Ò¼ÓµÈ Å¸ÀÏ °ø°³
+            // í•´ë‹¹ Road ì¸ë±ìŠ¤ê¹Œì§€ ì†Œì†ëœ íƒ€ì¼ ê³µê°œ
             RevealTilesToRouteIndex(
                 map,
                 targetRouteIndex);
@@ -169,16 +169,16 @@ namespace CombatSpace
                     LastRevealedRouteIndex,
                     targetRouteIndex);
 
-            // ¸¶Áö¸· °ø°³ Road¸¦ ½ºÆù ÁÂÇ¥·Î »ç¿ë
+            // ë§ˆì§€ë§‰ ê³µê°œ Roadë¥¼ ìŠ¤í° ì¢Œí‘œë¡œ ì‚¬ìš©
             CurrentSpawnPosition =
                 map.EnemyRoute[
                     LastRevealedRouteIndex];
 
-            // ½ÇÁ¦ Å¸ÀÏ Ç¥½Ã¸¦ °»½ÅÇÏµµ·Ï ¾Ë¸²
+            // ì‹¤ì œ íƒ€ì¼ í‘œì‹œë¥¼ ê°±ì‹ í•˜ë„ë¡ ì•Œë¦¼
             RevealChanged?.Invoke();
         }
 
-        // °¢ Å¸ÀÏÀ» °¡Àå °¡±î¿î Road ÀÎµ¦½º¿¡ ¹èÁ¤
+        // ê° íƒ€ì¼ì„ ê°€ì¥ ê°€ê¹Œìš´ Road ì¸ë±ìŠ¤ì— ë°°ì •
         private int[,] BuildTileRevealIndices(
             CombatMapData map)
         {
@@ -197,7 +197,7 @@ namespace CombatSpace
                     CombatTileData tile =
                         map.GetTile(position);
 
-                    // Empty´Â °ø°³ ´ë»óÀÌ ¾Æ´Ô
+                    // EmptyëŠ” ê³µê°œ ëŒ€ìƒì´ ì•„ë‹˜
                     if (tile.Type ==
                         CombatTileType.Empty)
                     {
@@ -205,7 +205,7 @@ namespace CombatSpace
                         continue;
                     }
 
-                    // Road´Â ÀÚ½ÅÀÇ RouteIndex »ç¿ë
+                    // RoadëŠ” ìì‹ ì˜ RouteIndex ì‚¬ìš©
                     if (tile.IsRoad)
                     {
                         result[x, y] =
@@ -214,8 +214,8 @@ namespace CombatSpace
                         continue;
                     }
 
-                    // Grass¿Í Water´Â
-                    // °¡Àå °¡±î¿î Road ÀÎµ¦½º¸¦ »ç¿ë
+                    // Grassì™€ WaterëŠ”
+                    // ê°€ì¥ ê°€ê¹Œìš´ Road ì¸ë±ìŠ¤ë¥¼ ì‚¬ìš©
                     result[x, y] =
                         FindNearestRouteIndex(
                             map,
@@ -226,7 +226,7 @@ namespace CombatSpace
             return result;
         }
 
-        // ÇØ´ç Å¸ÀÏ¿¡¼­ °¡Àå °¡±î¿î Road ÀÎµ¦½º °Ë»ö
+        // í•´ë‹¹ íƒ€ì¼ì—ì„œ ê°€ì¥ ê°€ê¹Œìš´ Road ì¸ë±ìŠ¤ ê²€ìƒ‰
         private int FindNearestRouteIndex(
             CombatMapData map,
             Vector2Int position)
@@ -258,7 +258,7 @@ namespace CombatSpace
             return nearestRouteIndex;
         }
 
-        // ¸ñÇ¥ Road ÀÎµ¦½º±îÁö ¼Ò¼ÓµÈ Å¸ÀÏ °ø°³
+        // ëª©í‘œ Road ì¸ë±ìŠ¤ê¹Œì§€ ì†Œì†ëœ íƒ€ì¼ ê³µê°œ
         private void RevealTilesToRouteIndex(
             CombatMapData map,
             int targetRouteIndex)
@@ -280,7 +280,7 @@ namespace CombatSpace
                     Vector2Int position =
                         new Vector2Int(x, y);
 
-                    // Ã³À½ °ø°³µÈ Å¸ÀÏ¸¸ ÀÌº¥Æ® È£Ãâ
+                    // ì²˜ìŒ ê³µê°œëœ íƒ€ì¼ë§Œ ì´ë²¤íŠ¸ í˜¸ì¶œ
                     if (RevealData.Reveal(position))
                     {
                         TileRevealed?.Invoke(position);
@@ -289,7 +289,7 @@ namespace CombatSpace
             }
         }
 
-        // ¸ó½ºÅÍ ½Ã½ºÅÛ¿¡¼­ ½ºÆù ÁÂÇ¥ ¿äÃ»
+        // ëª¬ìŠ¤í„° ì‹œìŠ¤í…œì—ì„œ ìŠ¤í° ì¢Œí‘œ ìš”ì²­
         public bool TryGetSpawnPosition(
             out Vector2Int spawnPosition)
         {
@@ -299,14 +299,14 @@ namespace CombatSpace
             return HasSpawnPosition;
         }
 
-        // InspectorÀÇ Test Round °ªÀ¸·Î °ø°³ Å×½ºÆ®
+        // Inspectorì˜ Test Round ê°’ìœ¼ë¡œ ê³µê°œ í…ŒìŠ¤íŠ¸
         [ContextMenu("Reveal Test Round")]
         private void RevealTestRound()
         {
             if (RevealData == null)
             {
                 Debug.LogError(
-                    "¸ÕÀú Initialize RevealÀ» ½ÇÇàÇÏ¼¼¿ä.",
+                    "ë¨¼ì € Initialize Revealì„ ì‹¤í–‰í•˜ì„¸ìš”.",
                     this);
 
                 return;
@@ -315,13 +315,13 @@ namespace CombatSpace
             RevealForRound(testRound);
 
             Debug.Log(
-                $"Round {CurrentRound} °ø°³ ¿Ï·á\n" +
+                $"Round {CurrentRound} ê³µê°œ ì™„ë£Œ\n" +
                 $"RouteIndex " +
-                $"{LastRevealedRouteIndex}±îÁö °ø°³\n" +
-                $"¸ó½ºÅÍ ½ºÆù ÁÂÇ¥: " +
+                $"{LastRevealedRouteIndex}ê¹Œì§€ ê³µê°œ\n" +
+                $"ëª¬ìŠ¤í„° ìŠ¤í° ì¢Œí‘œ: " +
                 $"{CurrentSpawnPosition}\n" +
-                $"°ø°³ Å¸ÀÏ: " +
-                $"{RevealData.RevealedTileCount}°³",
+                $"ê³µê°œ íƒ€ì¼: " +
+                $"{RevealData.RevealedTileCount}ê°œ",
                 this);
         }
 
@@ -334,7 +334,7 @@ namespace CombatSpace
                 mapGenerator.CurrentMap == null)
             {
                 Debug.LogError(
-                    "¸ÕÀú ÀüÅõ¸ÊÀ» »ı¼ºÇØ¾ß ÇÕ´Ï´Ù.",
+                    "ë¨¼ì € ì „íˆ¬ë§µì„ ìƒì„±í•´ì•¼ í•©ë‹ˆë‹¤.",
                     this);
 
                 return false;
@@ -357,7 +357,7 @@ namespace CombatSpace
                 tileRevealIndices == null)
             {
                 Debug.LogError(
-                    "¸ÕÀú °ø°³ µ¥ÀÌÅÍ¸¦ ÃÊ±âÈ­ÇØ¾ß ÇÕ´Ï´Ù.",
+                    "ë¨¼ì € ê³µê°œ ë°ì´í„°ë¥¼ ì´ˆê¸°í™”í•´ì•¼ í•©ë‹ˆë‹¤.",
                     this);
 
                 return;
@@ -368,7 +368,7 @@ namespace CombatSpace
                 map.EnemyRoute.Count)
             {
                 Debug.LogError(
-                    "¸¶Áö¸· °ø°³ Road ÀÎµ¦½º°¡ Àß¸øµÆ½À´Ï´Ù.",
+                    "ë§ˆì§€ë§‰ ê³µê°œ Road ì¸ë±ìŠ¤ê°€ ì˜ëª»ëìŠµë‹ˆë‹¤.",
                     this);
 
                 return;
@@ -440,22 +440,22 @@ namespace CombatSpace
             if (!isValid)
             {
                 Debug.LogError(
-                    "¸Ê °ø°³ »óÅÂ °ËÁõ ½ÇÆĞ\n" +
-                    $"ÇöÀç ¶ó¿îµå: " +
+                    "ë§µ ê³µê°œ ìƒíƒœ ê²€ì¦ ì‹¤íŒ¨\n" +
+                    $"í˜„ì¬ ë¼ìš´ë“œ: " +
                     $"{CurrentRound}/{totalRounds}\n" +
-                    $"¸¶Áö¸· RouteIndex: " +
+                    $"ë§ˆì§€ë§‰ RouteIndex: " +
                     $"{LastRevealedRouteIndex}\n" +
-                    $"¿¹»ó °ø°³ Å¸ÀÏ: " +
-                    $"{expectedRevealedCount}°³\n" +
-                    $"½ÇÁ¦ °ø°³ Å¸ÀÏ: " +
-                    $"{RevealData.RevealedTileCount}°³\n" +
-                    $"°ø°³ ´©¶ô: " +
-                    $"{missingRevealCount}°³\n" +
-                    $"¹Ì·¡ Å¸ÀÏ Á¶±â °ø°³: " +
-                    $"{earlyRevealCount}°³\n" +
-                    $"½ºÆù ÁÂÇ¥ ÀÏÄ¡: " +
+                    $"ì˜ˆìƒ ê³µê°œ íƒ€ì¼: " +
+                    $"{expectedRevealedCount}ê°œ\n" +
+                    $"ì‹¤ì œ ê³µê°œ íƒ€ì¼: " +
+                    $"{RevealData.RevealedTileCount}ê°œ\n" +
+                    $"ê³µê°œ ëˆ„ë½: " +
+                    $"{missingRevealCount}ê°œ\n" +
+                    $"ë¯¸ë˜ íƒ€ì¼ ì¡°ê¸° ê³µê°œ: " +
+                    $"{earlyRevealCount}ê°œ\n" +
+                    $"ìŠ¤í° ì¢Œí‘œ ì¼ì¹˜: " +
                     $"{spawnPositionMatches}\n" +
-                    $"ÃÖÁ¾ ¶ó¿îµå ÀüÃ¼ °ø°³: " +
+                    $"ìµœì¢… ë¼ìš´ë“œ ì „ì²´ ê³µê°œ: " +
                     $"{finalRoundComplete}",
                     this);
 
@@ -463,14 +463,14 @@ namespace CombatSpace
             }
 
             Debug.Log(
-                "¸Ê °ø°³ »óÅÂ °ËÁõ ¿Ï·á\n" +
-                $"ÇöÀç ¶ó¿îµå: " +
+                "ë§µ ê³µê°œ ìƒíƒœ ê²€ì¦ ì™„ë£Œ\n" +
+                $"í˜„ì¬ ë¼ìš´ë“œ: " +
                 $"{CurrentRound}/{totalRounds}\n" +
-                $"¸¶Áö¸· RouteIndex: " +
+                $"ë§ˆì§€ë§‰ RouteIndex: " +
                 $"{LastRevealedRouteIndex}\n" +
-                $"°ø°³ Å¸ÀÏ: " +
-                $"{RevealData.RevealedTileCount}°³\n" +
-                $"¸ó½ºÅÍ ½ºÆù ÁÂÇ¥: " +
+                $"ê³µê°œ íƒ€ì¼: " +
+                $"{RevealData.RevealedTileCount}ê°œ\n" +
+                $"ëª¬ìŠ¤í„° ìŠ¤í° ì¢Œí‘œ: " +
                 $"{CurrentSpawnPosition}",
                 this);
         }

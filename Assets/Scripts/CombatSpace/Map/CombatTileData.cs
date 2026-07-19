@@ -3,19 +3,19 @@ using UnityEngine;
 
 namespace CombatSpace
 {
-    // ÀüÅõ¸Ê Å¸ÀÏ ÇÑ Ä­ÀÇ µ¥ÀÌÅÍ
+    // ì „íˆ¬ë§µ íƒ€ì¼ í•œ ì¹¸ì˜ ë°ì´í„°
     public sealed class CombatTileData
     {
-        // ±×¸®µå ÁÂÇ¥
+        // ê·¸ë¦¬ë“œ ì¢Œí‘œ
         public Vector2Int Position { get; }
 
-        // ÇöÀç Å¸ÀÏ Á¾·ù
+        // í˜„ìž¬ íƒ€ì¼ ì¢…ë¥˜
         public CombatTileType Type { get; private set; }
 
-        // Àû ÀÌµ¿ °æ·Î ¼ø¼­
+        // ì  ì´ë™ ê²½ë¡œ ìˆœì„œ
         public int RouteIndex { get; private set; }
 
-        // Road ¿©ºÎ
+        // Road ì—¬ë¶€
         public bool IsRoad =>
             Type == CombatTileType.Road;
 
@@ -27,14 +27,14 @@ namespace CombatSpace
             RouteIndex = -1;
         }
 
-        // ºó °ø°£À¸·Î º¯°æ
+        // ë¹ˆ ê³µê°„ìœ¼ë¡œ ë³€ê²½
         public void SetEmpty()
         {
             Type = CombatTileType.Empty;
             RouteIndex = -1;
         }
 
-        // ±æ·Î º¯°æ
+        // ê¸¸ë¡œ ë³€ê²½
         public void SetRoad(int routeIndex)
         {
             if (routeIndex < 0)
@@ -46,14 +46,14 @@ namespace CombatSpace
             RouteIndex = routeIndex;
         }
 
-        // ÀÜµð·Î º¯°æ
+        // ìž”ë””ë¡œ ë³€ê²½
         public void SetGrass()
         {
             Type = CombatTileType.Grass;
             RouteIndex = -1;
         }
 
-        // ¹°·Î º¯°æ
+        // ë¬¼ë¡œ ë³€ê²½
         public void SetWater()
         {
             Type = CombatTileType.Water;

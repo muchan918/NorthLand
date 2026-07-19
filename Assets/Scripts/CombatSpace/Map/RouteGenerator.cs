@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace CombatSpace
 {
-    // ½ÃÀÛÁ¡°ú ¿şÀÌÆ÷ÀÎÆ®¸¦ Æø 1Ä­ Road·Î ¿¬°á
+    // ì‹œì‘ì ê³¼ ì›¨ì´í¬ì¸íŠ¸ë¥¼ í­ 1ì¹¸ Roadë¡œ ì—°ê²°
     public sealed class RouteGenerator
     {
         private static readonly Vector2Int[] Directions =
@@ -14,7 +14,7 @@ namespace CombatSpace
             Vector2Int.right
         };
 
-        // A* Å½»ö »óÅÂ
+        // A* íƒìƒ‰ ìƒíƒœ
         private readonly struct SearchState : System.IEquatable<SearchState>
         {
             public Vector2Int Position { get; }
@@ -88,7 +88,7 @@ namespace CombatSpace
             return true;
         }
 
-        // ½ÃÀÛÁ¡°ú ¿şÀÌÆ÷ÀÎÆ®¸¦ ¿¬°á ´ë»ó¿¡ Ãß°¡
+        // ì‹œì‘ì ê³¼ ì›¨ì´í¬ì¸íŠ¸ë¥¼ ì—°ê²° ëŒ€ìƒì— ì¶”ê°€
         private List<Vector2Int> CreateRouteTargets( CombatMapData map)
         {
             List<Vector2Int> targets = new List<Vector2Int>(  map.MajorWaypoints.Count + 1);
@@ -100,10 +100,10 @@ namespace CombatSpace
             return targets;
         }
 
-        // »ı¼ºµÈ ±¸°£À» ÀüÃ¼ °æ·Î¿¡ Ãß°¡
+        // ìƒì„±ëœ êµ¬ê°„ì„ ì „ì²´ ê²½ë¡œì— ì¶”ê°€
         private void AppendSegment( List<Vector2Int> enemyRoute, HashSet<Vector2Int> occupiedRoute, List<Vector2Int> segment)
         {
-            // Ã¹ ±¸°£ÀÌ ¾Æ´Ï¸é ½ÃÀÛ ÁÂÇ¥ Áßº¹ Á¦¿Ü
+            // ì²« êµ¬ê°„ì´ ì•„ë‹ˆë©´ ì‹œì‘ ì¢Œí‘œ ì¤‘ë³µ ì œì™¸
             int startIndex =  enemyRoute.Count == 0  ? 0 : 1;
 
             for (int i = startIndex; i < segment.Count; i++)
@@ -115,7 +115,7 @@ namespace CombatSpace
             }
         }
 
-        // ÀüÃ¼ °æ·Î¸¦ Road Å¸ÀÏ·Î º¯°æ
+        // ì „ì²´ ê²½ë¡œë¥¼ Road íƒ€ì¼ë¡œ ë³€ê²½
         private void ApplyRoadTiles(CombatMapData map)
         {
             for (int i = 0; i < map.EnemyRoute.Count; i++)
@@ -128,7 +128,7 @@ namespace CombatSpace
             }
         }
 
-        // ³ëÀÌÁî °¡Áß A*·Î ÇÑ ±¸°£ »ı¼º
+        // ë…¸ì´ì¦ˆ ê°€ì¤‘ A*ë¡œ í•œ êµ¬ê°„ ìƒì„±
         private List<Vector2Int> FindSegmentPath( CombatMapData map, CombatMapGenerationSettings settings, System.Random random, Vector2Int start,
                                                   Vector2Int goal, HashSet<Vector2Int> occupiedRoute)
         {
@@ -181,19 +181,19 @@ namespace CombatSpace
                         continue;
                     }
 
-                    // ±âÁ¸ Road¿Í °ãÄ¡´Â °Í ¹æÁö
+                    // ê¸°ì¡´ Roadì™€ ê²¹ì¹˜ëŠ” ê²ƒ ë°©ì§€
                     if (occupiedRoute.Contains( nextPosition) && nextPosition != goal)
                     {
                         continue;
                     }
 
                     /*
-                     * »õ ±¸°£ÀÇ Ã¹ Ä­Àº ÀÌÀü ±¸°£ÀÇ
-                     * ¸¶Áö¸· Road¿Í ºÙ´Â °ÍÀ» Çã¿ë
+                     * ìƒˆ êµ¬ê°„ì˜ ì²« ì¹¸ì€ ì´ì „ êµ¬ê°„ì˜
+                     * ë§ˆì§€ë§‰ Roadì™€ ë¶™ëŠ” ê²ƒì„ í—ˆìš©
                      */
                     bool leavingStart = current.Position == start;
 
-                    // ±âÁ¸ Road ¿·À¸·Î ºÙ´Â °Í ¹æÁö
+                    // ê¸°ì¡´ Road ì˜†ìœ¼ë¡œ ë¶™ëŠ” ê²ƒ ë°©ì§€
                     if (IsAdjacentToOccupiedRoute(nextPosition,occupiedRoute, leavingStart ? start: (Vector2Int?)null))
                     {
                         continue;
@@ -208,7 +208,7 @@ namespace CombatSpace
 
                     float movementCost = 1f;
 
-                    // ¹æÇâÀÌ ¹Ù²î¸é Ãß°¡ ºñ¿ë
+                    // ë°©í–¥ì´ ë°”ë€Œë©´ ì¶”ê°€ ë¹„ìš©
                     if (current.Direction != Vector2Int.zero &&current.Direction != direction)
                     {
                         movementCost += settings.TurnPenalty;
@@ -217,7 +217,7 @@ namespace CombatSpace
                     float noise =  Mathf.PerlinNoise((nextPosition.x +noiseOffsetX) *settings.RouteNoiseScale,
                                                     (nextPosition.y + noiseOffsetY) * settings.RouteNoiseScale);
 
-                    // ³ôÀº ³ëÀÌÁî ¿µ¿ªÀ» ¼±È£
+                    // ë†’ì€ ë…¸ì´ì¦ˆ ì˜ì—­ì„ ì„ í˜¸
                     float noiseCost =(1f - noise) * settings.RouteNoiseWeight;
 
                     float tentativeGScore =gScore[current] +movementCost + noiseCost;
@@ -243,7 +243,7 @@ namespace CombatSpace
             return null;
         }
 
-        // ÈÄº¸ ÁÂÇ¥°¡ ±âÁ¸ Road ¿·ÀÎÁö °Ë»ç
+        // í›„ë³´ ì¢Œí‘œê°€ ê¸°ì¡´ Road ì˜†ì¸ì§€ ê²€ì‚¬
         private bool IsAdjacentToOccupiedRoute( Vector2Int candidate, HashSet<Vector2Int> occupiedRoute, Vector2Int? allowedNeighbor)
         {
             foreach (Vector2Int direction in Directions)
@@ -255,7 +255,7 @@ namespace CombatSpace
                     continue;
                 }
 
-                // ±¸°£ ½ÃÀÛ ¿¬°áÀº Çã¿ë
+                // êµ¬ê°„ ì‹œì‘ ì—°ê²°ì€ í—ˆìš©
                 if (allowedNeighbor.HasValue && neighbor == allowedNeighbor.Value)
                 {
                     continue;
@@ -267,7 +267,7 @@ namespace CombatSpace
             return false;
         }
 
-        // ¸ñÇ¥±îÁöÀÇ ¸ÇÇØÆ° °Å¸®
+        // ëª©í‘œê¹Œì§€ì˜ ë§¨í•´íŠ¼ ê±°ë¦¬
         private float GetHeuristic(  Vector2Int current,  Vector2Int goal)
         {
             return
@@ -277,7 +277,7 @@ namespace CombatSpace
                     current.y - goal.y);
         }
 
-        // °¡Àå ³·Àº ¿¹»ó ºñ¿ëÀ» °¡Áø »óÅÂ °Ë»ö
+        // ê°€ì¥ ë‚®ì€ ì˜ˆìƒ ë¹„ìš©ì„ ê°€ì§„ ìƒíƒœ ê²€ìƒ‰
         private int FindLowestScoreIndex( List<SearchState> openSet, Dictionary<SearchState, float> fScore)
         {
             int bestIndex = 0;
@@ -298,7 +298,7 @@ namespace CombatSpace
             return bestIndex;
         }
 
-        // A* °á°ú¸¦ ÁÂÇ¥ ¸ñ·ÏÀ¸·Î º¹¿ø
+        // A* ê²°ê³¼ë¥¼ ì¢Œí‘œ ëª©ë¡ìœ¼ë¡œ ë³µì›
         private List<Vector2Int> ReconstructPath( SearchState goalState,Dictionary<SearchState, SearchState>cameFrom)
         {
             List<Vector2Int> path = new List<Vector2Int>

@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace CombatSpace
 {
-    // ¿şÀÌÆ÷ÀÎÆ®ÀÇ ¿¬°á ¼ø¼­¸¦ °áÁ¤
+    // ì›¨ì´í¬ì¸íŠ¸ì˜ ì—°ê²° ìˆœì„œë¥¼ ê²°ì •
     public sealed class WaypointOrderer
     {
         public bool Order(CombatMapData map)
@@ -24,7 +24,7 @@ namespace CombatSpace
             return true;
         }
 
-        // ½ÃÀÛÁ¡°ú °¡Àå °¡±î¿î ¿şÀÌÆ÷ÀÎÆ® °Ë»ö
+        // ì‹œì‘ì ê³¼ ê°€ì¥ ê°€ê¹Œìš´ ì›¨ì´í¬ì¸íŠ¸ ê²€ìƒ‰
         private int FindStartIndex(List<Vector2Int> waypoints,  Vector2Int routeStartPosition)
         {
             int bestIndex = 0;
@@ -45,7 +45,7 @@ namespace CombatSpace
             return bestIndex;
         }
 
-        // ÇöÀç À§Ä¡¿¡¼­ °¡Àå °¡±î¿î ³ëµå¸¦ ¹İº¹ ¼±ÅÃ
+        // í˜„ì¬ ìœ„ì¹˜ì—ì„œ ê°€ì¥ ê°€ê¹Œìš´ ë…¸ë“œë¥¼ ë°˜ë³µ ì„ íƒ
         private List<Vector2Int> CreateNearestNeighborOrder(List<Vector2Int> waypoints, Vector2Int routeStartPosition)
         {
             List<Vector2Int> remaining =  new List<Vector2Int>(waypoints);
@@ -74,7 +74,7 @@ namespace CombatSpace
             return ordered;
         }
 
-        // ÈÄº¸ Áß ÇöÀç ÁÂÇ¥¿Í °¡Àå °¡±î¿î ÁÂÇ¥ °Ë»ö
+        // í›„ë³´ ì¤‘ í˜„ì¬ ì¢Œí‘œì™€ ê°€ì¥ ê°€ê¹Œìš´ ì¢Œí‘œ ê²€ìƒ‰
         private int FindNearestIndex( Vector2Int current, List<Vector2Int> candidates)
         {
             int nearestIndex = 0;
@@ -95,7 +95,7 @@ namespace CombatSpace
             return nearestIndex;
         }
 
-        // 2-opt·Î ºÒÇÊ¿äÇÏ°Ô ±ä ¿¬°á°ú ±³Â÷ °³¼±
+        // 2-optë¡œ ë¶ˆí•„ìš”í•˜ê²Œ ê¸´ ì—°ê²°ê³¼ êµì°¨ ê°œì„ 
         private void ImproveWithTwoOpt( List<Vector2Int> route)
         {
             if (route.Count < 4)
@@ -136,7 +136,7 @@ namespace CombatSpace
             }
         }
 
-        // ÁöÁ¤µÈ ±¸°£ÀÇ ¼ø¼­¸¦ µÚÁıÀ½
+        // ì§€ì •ëœ êµ¬ê°„ì˜ ìˆœì„œë¥¼ ë’¤ì§‘ìŒ
         private void ReverseRange( List<Vector2Int> route, int startIndex, int endIndex)
         {
             while (startIndex < endIndex)

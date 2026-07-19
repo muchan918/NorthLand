@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace CombatSpace
 {
-    // Road ÁÖº¯¿¡ Grass ¿µÅä¸¦ »ı¼º
+    // Road ì£¼ë³€ì— Grass ì˜í† ë¥¼ ìƒì„±
     public sealed class GrassGenerator
     {
         public bool Generate( CombatMapData map,CombatMapGenerationSettings settings)
@@ -20,14 +20,14 @@ namespace CombatSpace
             return true;
         }
 
-        // Road ÇÑ Ä­À» Áß½ÉÀ¸·Î ÀÏÁ¤ ¹üÀ§¿¡ Grass »ı¼º
+        // Road í•œ ì¹¸ì„ ì¤‘ì‹¬ìœ¼ë¡œ ì¼ì • ë²”ìœ„ì— Grass ìƒì„±
         private void FillGrassAroundRoad(CombatMapData map,Vector2Int roadPosition,int radius)
         {
             for (int offsetX = -radius;offsetX <= radius;offsetX++)
             {
                 for (int offsetY = -radius;offsetY <= radius;offsetY++)
                 {
-                    // ¿øÇü ¹üÀ§ ¹ÛÀÇ Å¸ÀÏÀº Á¦¿Ü
+                    // ì›í˜• ë²”ìœ„ ë°–ì˜ íƒ€ì¼ì€ ì œì™¸
                     int squaredDistance =offsetX * offsetX +offsetY * offsetY;
 
                     if (squaredDistance >radius * radius)
@@ -44,7 +44,7 @@ namespace CombatSpace
 
                     CombatTileData tile =map.GetTile(position);
 
-                    // Road µî ÀÌ¹Ì »ç¿ë ÁßÀÎ Å¸ÀÏÀº º¯°æÇÏÁö ¾ÊÀ½
+                    // Road ë“± ì´ë¯¸ ì‚¬ìš© ì¤‘ì¸ íƒ€ì¼ì€ ë³€ê²½í•˜ì§€ ì•ŠìŒ
                     if (tile.Type !=CombatTileType.Empty)
                     {
                         continue;

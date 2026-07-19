@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace CombatSpace
 {
-    // »ı¼ºµÈ Road °æ·Î °ËÁõ
+    // ìƒì„±ëœ Road ê²½ë¡œ ê²€ì¦
     public sealed class RouteValidator
     {
         private static readonly Vector2Int[] FourDirections =
@@ -18,14 +18,14 @@ namespace CombatSpace
         {
             if (map.EnemyRoute.Count == 0)
             {
-                errorMessage = "EnemyRoute°¡ ºñ¾î ÀÖ½À´Ï´Ù.";
+                errorMessage = "EnemyRouteê°€ ë¹„ì–´ ìˆìŠµë‹ˆë‹¤.";
 
                 return false;
             }
 
             if (map.EnemyRoute[0] != map.RouteStartPosition)
             {
-                errorMessage = "Road°¡ °íÁ¤ ½ÃÀÛÁ¡¿¡¼­ ½ÃÀÛÇÏÁö ¾Ê½À´Ï´Ù.";
+                errorMessage = "Roadê°€ ê³ ì • ì‹œì‘ì ì—ì„œ ì‹œì‘í•˜ì§€ ì•ŠìŠµë‹ˆë‹¤.";
 
                 return false;
             }
@@ -36,63 +36,63 @@ namespace CombatSpace
             {
                 Vector2Int position = map.EnemyRoute[i];
 
-                // Road ÁÂÇ¥°¡ ¸Ê ³»ºÎÀÎÁö °Ë»ç
+                // Road ì¢Œí‘œê°€ ë§µ ë‚´ë¶€ì¸ì§€ ê²€ì‚¬
                 if (!map.IsInside(position))
                 {
-                    errorMessage = $"{i}¹ø Road°¡ ¸Ê ¹ÛÀÔ´Ï´Ù:{position}";
+                    errorMessage = $"{i}ë²ˆ Roadê°€ ë§µ ë°–ì…ë‹ˆë‹¤:{position}";
 
                     return false;
                 }
 
-                // µ¿ÀÏÇÑ ÁÂÇ¥¸¦ µÎ ¹ø »ç¿ëÇß´ÂÁö °Ë»ç
+                // ë™ì¼í•œ ì¢Œí‘œë¥¼ ë‘ ë²ˆ ì‚¬ìš©í–ˆëŠ”ì§€ ê²€ì‚¬
                 if (!visited.Add(position))
                 {
-                    errorMessage = $"Áßº¹ Road ÁÂÇ¥°¡ ÀÖ½À´Ï´Ù:{position}";
+                    errorMessage = $"ì¤‘ë³µ Road ì¢Œí‘œê°€ ìˆìŠµë‹ˆë‹¤:{position}";
 
                     return false;
                 }
 
                 CombatTileData tile = map.GetTile(position);
 
-                // EnemyRoute ÁÂÇ¥°¡ ½ÇÁ¦ RoadÀÎÁö °Ë»ç
+                // EnemyRoute ì¢Œí‘œê°€ ì‹¤ì œ Roadì¸ì§€ ê²€ì‚¬
                 if (!tile.IsRoad)
                 {
-                    errorMessage = $"{position}ÀÌ Road°¡ ¾Æ´Õ´Ï´Ù.";
+                    errorMessage = $"{position}ì´ Roadê°€ ì•„ë‹™ë‹ˆë‹¤.";
 
                     return false;
                 }
 
-                // Å¸ÀÏÀÇ ÀÌµ¿ ¼ø¼­°¡ ¸ñ·Ï ¼ø¼­¿Í °°ÀºÁö °Ë»ç
+                // íƒ€ì¼ì˜ ì´ë™ ìˆœì„œê°€ ëª©ë¡ ìˆœì„œì™€ ê°™ì€ì§€ ê²€ì‚¬
                 if (tile.RouteIndex != i)
                 {
-                    errorMessage = $"{position}ÀÇ RouteIndex°¡ ÀÏÄ¡ÇÏÁö ¾Ê½À´Ï´Ù:{tile.RouteIndex}/{i}";
+                    errorMessage = $"{position}ì˜ RouteIndexê°€ ì¼ì¹˜í•˜ì§€ ì•ŠìŠµë‹ˆë‹¤:{tile.RouteIndex}/{i}";
 
                     return false;
                 }
 
-                // ÀÌÀü Road¿Í »óÇÏÁÂ¿ì ÇÑ Ä­À¸·Î ¿¬°áµÆ´ÂÁö °Ë»ç
+                // ì´ì „ Roadì™€ ìƒí•˜ì¢Œìš° í•œ ì¹¸ìœ¼ë¡œ ì—°ê²°ëëŠ”ì§€ ê²€ì‚¬
                 if (i > 0 && !AreAdjacent( map.EnemyRoute[i - 1], position))
                 {
-                    errorMessage = $"{i - 1}¹ø°ú {i}¹ø Road°¡ÀÌ¾îÁ® ÀÖÁö ¾Ê½À´Ï´Ù.";
+                    errorMessage = $"{i - 1}ë²ˆê³¼ {i}ë²ˆ Roadê°€ì´ì–´ì ¸ ìˆì§€ ì•ŠìŠµë‹ˆë‹¤.";
 
                     return false;
                 }
 
-                // ¼ø¼­»ó ¾ÕµÚ°¡ ¾Æ´Ñ Road¿Í ºÙ¾ú´ÂÁö °Ë»ç
+                // ìˆœì„œìƒ ì•ë’¤ê°€ ì•„ë‹Œ Roadì™€ ë¶™ì—ˆëŠ”ì§€ ê²€ì‚¬
                 if (HasUnexpectedRoadNeighbor( map,i, out Vector2Int unexpectedNeighbor))
                 {
-                    errorMessage = $"{i}¹ø Road {position}ÀÌ ¼ø¼­»ó ÀÌ¿ôÀÌ ¾Æ´Ñ Road {unexpectedNeighbor}¿Í ºÙ¾î ÀÖ½À´Ï´Ù.";
+                    errorMessage = $"{i}ë²ˆ Road {position}ì´ ìˆœì„œìƒ ì´ì›ƒì´ ì•„ë‹Œ Road {unexpectedNeighbor}ì™€ ë¶™ì–´ ìˆìŠµë‹ˆë‹¤.";
 
                     return false;
                 }
             }
 
-            // ¸ğµç ¿şÀÌÆ÷ÀÎÆ®¸¦ Road°¡ Åë°úÇÏ´ÂÁö °Ë»ç
+            // ëª¨ë“  ì›¨ì´í¬ì¸íŠ¸ë¥¼ Roadê°€ í†µê³¼í•˜ëŠ”ì§€ ê²€ì‚¬
             foreach (Vector2Int waypoint in map.MajorWaypoints)
             {
                 if (!visited.Contains(waypoint))
                 {
-                    errorMessage = $"Road°¡ Åë°úÇÏÁö ¾ÊÀº ¿şÀÌÆ÷ÀÎÆ®°¡ ÀÖ½À´Ï´Ù:{waypoint}";
+                    errorMessage = $"Roadê°€ í†µê³¼í•˜ì§€ ì•Šì€ ì›¨ì´í¬ì¸íŠ¸ê°€ ìˆìŠµë‹ˆë‹¤:{waypoint}";
 
                     return false;
                 }
@@ -102,7 +102,7 @@ namespace CombatSpace
             return true;
         }
 
-        // ¼ø¼­»ó ¾ÕµÚ°¡ ¾Æ´Ñ Road¿Í ºÙ¾ú´ÂÁö °Ë»ç
+        // ìˆœì„œìƒ ì•ë’¤ê°€ ì•„ë‹Œ Roadì™€ ë¶™ì—ˆëŠ”ì§€ ê²€ì‚¬
         private bool HasUnexpectedRoadNeighbor( CombatMapData map, int routeIndex, out Vector2Int unexpectedNeighbor)
         {
             Vector2Int position = map.EnemyRoute[routeIndex];
@@ -127,13 +127,13 @@ namespace CombatSpace
                     continue;
                 }
 
-                // ¼ø¼­»ó ¹Ù·Î ÀÌÀü Road´Â Çã¿ë
+                // ìˆœì„œìƒ ë°”ë¡œ ì´ì „ RoadëŠ” í—ˆìš©
                 if (previous.HasValue &&neighborPosition ==previous.Value)
                 {
                     continue;
                 }
 
-                // ¼ø¼­»ó ¹Ù·Î ´ÙÀ½ Road´Â Çã¿ë
+                // ìˆœì„œìƒ ë°”ë¡œ ë‹¤ìŒ RoadëŠ” í—ˆìš©
                 if (next.HasValue &&neighborPosition ==next.Value)
                 {
                     continue;
@@ -148,7 +148,7 @@ namespace CombatSpace
             return false;
         }
 
-        // µÎ ÁÂÇ¥°¡ »óÇÏÁÂ¿ì ÇÑ Ä­ Â÷ÀÌÀÎÁö °Ë»ç
+        // ë‘ ì¢Œí‘œê°€ ìƒí•˜ì¢Œìš° í•œ ì¹¸ ì°¨ì´ì¸ì§€ ê²€ì‚¬
         private bool AreAdjacent(Vector2Int first,Vector2Int second)
         {
             int distance =Mathf.Abs(first.x - second.x) +Mathf.Abs(first.y - second.y);

@@ -4,27 +4,27 @@ using UnityEngine;
 
 namespace CombatSpace
 {
-    // ÀüÅõ¸Ê ÀüÃ¼ÀÇ ³í¸® µ¥ÀÌÅÍ
+    // ì „íˆ¬ë§µ ì „ì²´ì˜ ë…¼ë¦¬ ë°ì´í„°
     public sealed class CombatMapData
     {
-        // ¸Ê Å©±â
+        // ë§µ í¬ê¸°
         public int Width { get; }
 
         public int Height { get; }
 
-        // »ı¼º¿¡ »ç¿ëµÈ ½Ãµå
+        // ìƒì„±ì— ì‚¬ìš©ëœ ì‹œë“œ
         public int Seed { get; }
 
-        // Àû °æ·Î ½ÃÀÛ ÁÂÇ¥
+        // ì  ê²½ë¡œ ì‹œì‘ ì¢Œí‘œ
         public Vector2Int RouteStartPosition { get; }
 
-        // ÀüÃ¼ Å¸ÀÏ µ¥ÀÌÅÍ
+        // ì „ì²´ íƒ€ì¼ ë°ì´í„°
         public CombatTileData[,] Tiles { get; }
 
-        // ÁÖ¿ä ¿şÀÌÆ÷ÀÎÆ®
+        // ì£¼ìš” ì›¨ì´í¬ì¸íŠ¸
         public List<Vector2Int> MajorWaypoints { get; }
 
-        // ÀûÀÌ ÀÌµ¿ÇÒ Road ÀüÃ¼ °æ·Î
+        // ì ì´ ì´ë™í•  Road ì „ì²´ ê²½ë¡œ
         public List<Vector2Int> EnemyRoute { get; }
 
         public CombatMapData( int width, int height,int seed, Vector2Int routeStartPosition)
@@ -53,7 +53,7 @@ namespace CombatSpace
             InitializeTiles();
         }
 
-        // ¸ğµç Å¸ÀÏÀ» »ı¼º
+        // ëª¨ë“  íƒ€ì¼ì„ ìƒì„±
         private void InitializeTiles()
         {
             for (int x = 0;  x < Width; x++)
@@ -67,7 +67,7 @@ namespace CombatSpace
             }
         }
 
-        // ÁÂÇ¥°¡ ¸Ê ³»ºÎÀÎÁö È®ÀÎ
+        // ì¢Œí‘œê°€ ë§µ ë‚´ë¶€ì¸ì§€ í™•ì¸
         public bool IsInside( Vector2Int position)
         {
             return
@@ -77,7 +77,7 @@ namespace CombatSpace
                 position.y < Height;
         }
 
-        // ÇØ´ç ÁÂÇ¥ÀÇ Å¸ÀÏ ¹İÈ¯
+        // í•´ë‹¹ ì¢Œí‘œì˜ íƒ€ì¼ ë°˜í™˜
         public CombatTileData GetTile(    Vector2Int position)
         {
             if (!IsInside(position))

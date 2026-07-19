@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace CombatSpace
 {
-    // ÀüÅõ¸Ê Å¸ÀÏÀÇ °ø°³ »óÅÂ¸¦ ÀúÀå
+    // ì „íˆ¬ë§µ íƒ€ì¼ì˜ ê³µê°œ ìƒíƒœë¥¼ ì €ì¥
     public sealed class CombatMapRevealData
     {
         private readonly bool[,] revealedTiles;

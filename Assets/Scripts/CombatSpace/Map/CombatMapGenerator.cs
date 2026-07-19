@@ -3,12 +3,15 @@ using UnityEngine;
 
 namespace CombatSpace
 {
-    // ÀüÅõ¸Ê »ı¼º °úÁ¤ ÀüÃ¼¸¦ °ü¸®
+    // ì „íˆ¬ë§µ ìƒì„± ê³¼ì • ì „ì²´ë¥¼ ê´€ë¦¬
     public sealed class CombatMapGenerator : MonoBehaviour
     {
         [Header("Settings")]
         [SerializeField]
         private CombatMapGenerationSettings settings;
+
+        public CombatMapGenerationSettings Settings =>
+            settings;
 
         [Header("Seed")]
         [SerializeField]
@@ -87,17 +90,17 @@ namespace CombatSpace
             TryGenerate();
         }
 
-        // Àç½Ãµµ¸¦ Æ÷ÇÔÇÑ ÀüÃ¼ ¸Ê »ı¼º
+        // ì¬ì‹œë„ë¥¼ í¬í•¨í•œ ì „ì²´ ë§µ ìƒì„±
         public bool TryGenerate()
         {
             CurrentMap = null;
             LastGenerationSucceeded = false;
             LastGenerationError = null;
 
-            if (settings == null)
+            if (Settings == null)
             {
                 LastGenerationError =
-                    "¸Ê »ı¼º ¼³Á¤ÀÌ ÁöÁ¤µÇÁö ¾Ê¾Ò½À´Ï´Ù.";
+                    "ë§µ ìƒì„± ì„¤ì •ì´ ì§€ì •ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.";
 
                 Debug.LogError(
                     LastGenerationError,
@@ -106,11 +109,11 @@ namespace CombatSpace
                 return false;
             }
 
-            if (!settings.Validate(
+            if (!Settings.Validate(
                     out string settingsError))
             {
                 LastGenerationError =
-                    $"¸Ê »ı¼º ¼³Á¤ ¿À·ù: {settingsError}";
+                    $"ë§µ ìƒì„± ì„¤ì • ì˜¤ë¥˜: {settingsError}";
 
                 Debug.LogError(
                     LastGenerationError,
@@ -122,7 +125,7 @@ namespace CombatSpace
             HashSet<int> attemptedSeeds =
                 new HashSet<int>();
 
-            // ±âº» ½ÃµåºÎÅÍ ¼ø¼­´ë·Î Àç½Ãµµ
+            // ê¸°ë³¸ ì‹œë“œë¶€í„° ìˆœì„œëŒ€ë¡œ ì¬ì‹œë„
             for (int attempt = 0;
                  attempt < maxGenerationAttempts;
                  attempt++)
@@ -150,8 +153,8 @@ namespace CombatSpace
                     errorMessage;
             }
 
-            // ÀÏ¹İ Àç½Ãµµ°¡ ¸ğµÎ ½ÇÆĞÇÏ¸é
-            // °ËÁõµÈ ¿¹ºñ ½Ãµå »ç¿ë
+            // ì¼ë°˜ ì¬ì‹œë„ê°€ ëª¨ë‘ ì‹¤íŒ¨í•˜ë©´
+            // ê²€ì¦ëœ ì˜ˆë¹„ ì‹œë“œ ì‚¬ìš©
             if (TryGenerateWithValidatedSeeds(
                     attemptedSeeds,
                     out CombatMapData fallbackMap,
@@ -168,8 +171,8 @@ namespace CombatSpace
             }
 
             LastGenerationError =
-                "¸ğµç ¸Ê »ı¼º ½Ãµµ°¡ ½ÇÆĞÇß½À´Ï´Ù.\n" +
-                $"¸¶Áö¸· ¿À·ù: " +
+                "ëª¨ë“  ë§µ ìƒì„± ì‹œë„ê°€ ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤.\n" +
+                $"ë§ˆì§€ë§‰ ì˜¤ë¥˜: " +
                 $"{fallbackError ?? LastGenerationError}";
 
             Debug.LogError(
@@ -179,7 +182,7 @@ namespace CombatSpace
             return false;
         }
 
-        // ÇÏ³ªÀÇ ½Ãµå·Î ¸Ê »ı¼º ½Ãµµ
+        // í•˜ë‚˜ì˜ ì‹œë“œë¡œ ë§µ ìƒì„± ì‹œë„
         private bool TryGenerateWithSeed(
             int generationSeed,
             out CombatMapData generatedMap,
@@ -193,18 +196,18 @@ namespace CombatSpace
 
             CombatMapData candidateMap =
                 new CombatMapData(
-                    settings.Width,
-                    settings.Height,
+                    Settings.Width,
+                    Settings.Height,
                     generationSeed,
-                    settings.RouteStartPosition);
+                    Settings.RouteStartPosition);
 
             if (!waypointGenerator.Generate(
                     candidateMap,
-                    settings,
+                    Settings,
                     random))
             {
                 errorMessage =
-                    "¿şÀÌÆ÷ÀÎÆ® »ı¼º ½ÇÆĞ";
+                    "ì›¨ì´í¬ì¸íŠ¸ ìƒì„± ì‹¤íŒ¨";
 
                 return false;
             }
@@ -213,18 +216,18 @@ namespace CombatSpace
                     candidateMap))
             {
                 errorMessage =
-                    "¿şÀÌÆ÷ÀÎÆ® ¼ø¼­ °áÁ¤ ½ÇÆĞ";
+                    "ì›¨ì´í¬ì¸íŠ¸ ìˆœì„œ ê²°ì • ì‹¤íŒ¨";
 
                 return false;
             }
 
             if (!routeGenerator.Generate(
                     candidateMap,
-                    settings,
+                    Settings,
                     random))
             {
                 errorMessage =
-                    "Road °æ·Î »ı¼º ½ÇÆĞ";
+                    "Road ê²½ë¡œ ìƒì„± ì‹¤íŒ¨";
 
                 return false;
             }
@@ -234,39 +237,39 @@ namespace CombatSpace
                     out string routeError))
             {
                 errorMessage =
-                    $"Road °ËÁõ ½ÇÆĞ: {routeError}";
+                    $"Road ê²€ì¦ ì‹¤íŒ¨: {routeError}";
 
                 return false;
             }
 
             if (!grassGenerator.Generate(
                     candidateMap,
-                    settings))
+                    Settings))
             {
                 errorMessage =
-                    "Grass »ı¼º ½ÇÆĞ";
+                    "Grass ìƒì„± ì‹¤íŒ¨";
 
                 return false;
             }
 
             if (!grassEroder.Erode(
                     candidateMap,
-                    settings,
+                    Settings,
                     random))
             {
                 errorMessage =
-                    "Grass Ä§½Ä ½ÇÆĞ";
+                    "Grass ì¹¨ì‹ ì‹¤íŒ¨";
 
                 return false;
             }
 
             if (!waterGenerator.Generate(
                     candidateMap,
-                    settings,
+                    Settings,
                     random))
             {
                 errorMessage =
-                    "Water »ı¼º ½ÇÆĞ";
+                    "Water ìƒì„± ì‹¤íŒ¨";
 
                 return false;
             }
@@ -276,7 +279,7 @@ namespace CombatSpace
                     out string finalRouteError))
             {
                 errorMessage =
-                    $"ÃÖÁ¾ Road °ËÁõ ½ÇÆĞ: " +
+                    $"ìµœì¢… Road ê²€ì¦ ì‹¤íŒ¨: " +
                     $"{finalRouteError}";
 
                 return false;
@@ -287,7 +290,7 @@ namespace CombatSpace
             return true;
         }
 
-        // °ËÁõµÈ ¿¹ºñ ½Ãµå¸¦ °áÁ¤ÀûÀÎ ¼ø¼­·Î ½Ãµµ
+        // ê²€ì¦ëœ ì˜ˆë¹„ ì‹œë“œë¥¼ ê²°ì •ì ì¸ ìˆœì„œë¡œ ì‹œë„
         private bool TryGenerateWithValidatedSeeds(
             HashSet<int> attemptedSeeds,
             out CombatMapData generatedMap,
@@ -302,13 +305,13 @@ namespace CombatSpace
                 validatedSeeds.Count == 0)
             {
                 errorMessage =
-                    "µî·ÏµÈ °ËÁõ ½Ãµå°¡ ¾ø½À´Ï´Ù.";
+                    "ë“±ë¡ëœ ê²€ì¦ ì‹œë“œê°€ ì—†ìŠµë‹ˆë‹¤.";
 
                 return false;
             }
 
-            // °°Àº ±âº» ½Ãµå¿¡¼­´Â
-            // °°Àº ¿¹ºñ ½ÃµåºÎÅÍ °Ë»ç
+            // ê°™ì€ ê¸°ë³¸ ì‹œë“œì—ì„œëŠ”
+            // ê°™ì€ ì˜ˆë¹„ ì‹œë“œë¶€í„° ê²€ì‚¬
             System.Random fallbackRandom =
                 new System.Random(
                     unchecked(seed ^ 1597463007));
@@ -363,16 +366,16 @@ namespace CombatSpace
             if (usedFallbackSeed)
             {
                 Debug.LogWarning(
-                    "±âº» ½Ãµå »ı¼º¿¡ ½ÇÆĞÇÏ¿© " +
-                    $"°ËÁõµÈ ¿¹ºñ ½Ãµå " +
-                    $"{generationSeed}¸¦ »ç¿ëÇß½À´Ï´Ù.",
+                    "ê¸°ë³¸ ì‹œë“œ ìƒì„±ì— ì‹¤íŒ¨í•˜ì—¬ " +
+                    $"ê²€ì¦ëœ ì˜ˆë¹„ ì‹œë“œ " +
+                    $"{generationSeed}ë¥¼ ì‚¬ìš©í–ˆìŠµë‹ˆë‹¤.",
                     this);
             }
             else if (generationSeed != seed)
             {
                 Debug.LogWarning(
-                    $"±âº» ½Ãµå {seed} »ı¼º¿¡ ½ÇÆĞÇÏ¿© " +
-                    $"½Ãµå {generationSeed}¸¦ »ç¿ëÇß½À´Ï´Ù.",
+                    $"ê¸°ë³¸ ì‹œë“œ {seed} ìƒì„±ì— ì‹¤íŒ¨í•˜ì—¬ " +
+                    $"ì‹œë“œ {generationSeed}ë¥¼ ì‚¬ìš©í–ˆìŠµë‹ˆë‹¤.",
                     this);
             }
 
@@ -398,17 +401,17 @@ namespace CombatSpace
                     CombatTileType.Water);
 
             Debug.Log(
-                "ÀüÅõ¸Ê »ı¼º ¿Ï·á\n" +
-                $"¿äÃ» Seed: {seed}\n" +
-                $"»ç¿ë Seed: {UsedSeed}\n" +
-                $"»ı¼º ½Ãµµ: {attemptCount}È¸\n" +
-                $"¿¹ºñ Seed »ç¿ë: " +
+                "ì „íˆ¬ë§µ ìƒì„± ì™„ë£Œ\n" +
+                $"ìš”ì²­ Seed: {seed}\n" +
+                $"ì‚¬ìš© Seed: {UsedSeed}\n" +
+                $"ìƒì„± ì‹œë„: {attemptCount}íšŒ\n" +
+                $"ì˜ˆë¹„ Seed ì‚¬ìš©: " +
                 $"{usedFallbackSeed}\n" +
                 $"Waypoints: " +
-                $"{CurrentMap.MajorWaypoints.Count}°³\n" +
-                $"Road: {roadCount}Ä­\n" +
-                $"Grass: {grassCount}Ä­\n" +
-                $"Water: {waterCount}Ä­",
+                $"{CurrentMap.MajorWaypoints.Count}ê°œ\n" +
+                $"Road: {roadCount}ì¹¸\n" +
+                $"Grass: {grassCount}ì¹¸\n" +
+                $"Water: {waterCount}ì¹¸",
                 this);
         }
 
@@ -442,20 +445,20 @@ namespace CombatSpace
         [ContextMenu("Run Stability Test")]
         public void RunStabilityTest()
         {
-            if (settings == null)
+            if (Settings == null)
             {
                 Debug.LogError(
-                    "¸Ê »ı¼º ¼³Á¤ÀÌ ÁöÁ¤µÇÁö ¾Ê¾Ò½À´Ï´Ù.",
+                    "ë§µ ìƒì„± ì„¤ì •ì´ ì§€ì •ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.",
                     this);
 
                 return;
             }
 
-            if (!settings.Validate(
+            if (!Settings.Validate(
                     out string settingsError))
             {
                 Debug.LogError(
-                    $"¸Ê »ı¼º ¼³Á¤ ¿À·ù: {settingsError}",
+                    $"ë§µ ìƒì„± ì„¤ì • ì˜¤ë¥˜: {settingsError}",
                     this);
 
                 return;
@@ -464,7 +467,7 @@ namespace CombatSpace
             if (stabilityTestCount < 1)
             {
                 Debug.LogError(
-                    "¾ÈÁ¤¼º Å×½ºÆ® °³¼ö´Â 1 ÀÌ»óÀÌ¾î¾ß ÇÕ´Ï´Ù.",
+                    "ì•ˆì •ì„± í…ŒìŠ¤íŠ¸ ê°œìˆ˜ëŠ” 1 ì´ìƒì´ì–´ì•¼ í•©ë‹ˆë‹¤.",
                     this);
 
                 return;
@@ -504,14 +507,14 @@ namespace CombatSpace
                 {
                     failureCount++;
 
-                    // ½ÇÆĞ°¡ ³Ê¹« ¸¹¾Æµµ ConsoleÀÌ µµ¹èµÇÁö ¾Êµµ·Ï
-                    // Ã³À½ 10°³¸¸ °³º° Ãâ·Â
+                    // ì‹¤íŒ¨ê°€ ë„ˆë¬´ ë§ì•„ë„ Consoleì´ ë„ë°°ë˜ì§€ ì•Šë„ë¡
+                    // ì²˜ìŒ 10ê°œë§Œ ê°œë³„ ì¶œë ¥
                     if (failureCount <= 10)
                     {
                         Debug.LogWarning(
-                            $"¾ÈÁ¤¼º Å×½ºÆ® ½ÇÆĞ\n" +
+                            $"ì•ˆì •ì„± í…ŒìŠ¤íŠ¸ ì‹¤íŒ¨\n" +
                             $"Seed: {testSeed}\n" +
-                            $"¿øÀÎ: {errorMessage}",
+                            $"ì›ì¸: {errorMessage}",
                             this);
                     }
 
@@ -597,25 +600,25 @@ namespace CombatSpace
                     ? string.Join(
                         ", ",
                         successfulSeedExamples)
-                    : "¾øÀ½";
+                    : "ì—†ìŒ";
 
             Debug.Log(
-                "¾ÈÁ¤¼º Å×½ºÆ® ¿Ï·á\n" +
-                $"Å×½ºÆ® ½Ãµå: " +
-                $"{stabilityTestCount}°³\n" +
-                $"¼º°ø: {successCount}°³\n" +
-                $"½ÇÆĞ: {failureCount}°³\n" +
-                $"¼º°ø·ü: {successRate:F1}%\n" +
-                $"Road ÃÖ¼Ò: {minimumRoadCount}Ä­\n" +
-                $"Road ÃÖ´ë: {maximumRoadCount}Ä­\n" +
-                $"Road Æò±Õ: {averageRoadCount:F1}Ä­\n" +
-                $"Grass Æò±Õ: {averageGrassCount:F1}Ä­\n" +
-                $"Water Æò±Õ: {averageWaterCount:F1}Ä­\n" +
-                $"ÀüÃ¼ ½Ã°£: " +
+                "ì•ˆì •ì„± í…ŒìŠ¤íŠ¸ ì™„ë£Œ\n" +
+                $"í…ŒìŠ¤íŠ¸ ì‹œë“œ: " +
+                $"{stabilityTestCount}ê°œ\n" +
+                $"ì„±ê³µ: {successCount}ê°œ\n" +
+                $"ì‹¤íŒ¨: {failureCount}ê°œ\n" +
+                $"ì„±ê³µë¥ : {successRate:F1}%\n" +
+                $"Road ìµœì†Œ: {minimumRoadCount}ì¹¸\n" +
+                $"Road ìµœëŒ€: {maximumRoadCount}ì¹¸\n" +
+                $"Road í‰ê· : {averageRoadCount:F1}ì¹¸\n" +
+                $"Grass í‰ê· : {averageGrassCount:F1}ì¹¸\n" +
+                $"Water í‰ê· : {averageWaterCount:F1}ì¹¸\n" +
+                $"ì „ì²´ ì‹œê°„: " +
                 $"{stopwatch.Elapsed.TotalMilliseconds:F0}ms\n" +
-                $"¸Ê´ç Æò±Õ: " +
+                $"ë§µë‹¹ í‰ê· : " +
                 $"{averageMilliseconds:F1}ms\n" +
-                $"°ËÁõ Åë°ú ½Ãµå ¿¹½Ã: " +
+                $"ê²€ì¦ í†µê³¼ ì‹œë“œ ì˜ˆì‹œ: " +
                 $"{seedExamples}",
                 this);
         }

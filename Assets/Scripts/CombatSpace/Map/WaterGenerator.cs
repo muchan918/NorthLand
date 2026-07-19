@@ -4,7 +4,7 @@ using Random = System.Random;
 
 namespace CombatSpace
 {
-    // Grass ¿µ¿ª¿¡ ³ëÀÌÁî ±â¹İ Water ÁöÇüÀ» »ı¼º
+    // Grass ì˜ì—­ì— ë…¸ì´ì¦ˆ ê¸°ë°˜ Water ì§€í˜•ì„ ìƒì„±
     public sealed class WaterGenerator
     {
         private static readonly Vector2Int[] FourDirections =
@@ -32,17 +32,17 @@ namespace CombatSpace
 
             SmoothWater(map,settings);
 
-            // ½º¹«µùÀ¸·Î »ı±ä ÀÛÀº ¹° ¿µ¿ª Á¤¸®
+            // ìŠ¤ë¬´ë”©ìœ¼ë¡œ ìƒê¸´ ì‘ì€ ë¬¼ ì˜ì—­ ì •ë¦¬
             RemoveSmallWaterAreas(map,settings.MinWaterArea);
 
             LimitWaterRatio(map,settings.MaxWaterRatio,random);
 
-            // ºñÀ² Á¦ÇÑ ÀÌÈÄ ´Ù½Ã Á¤¸®
+            // ë¹„ìœ¨ ì œí•œ ì´í›„ ë‹¤ì‹œ ì •ë¦¬
             RemoveSmallWaterAreas(map,settings.MinWaterArea);
 
             return true;
         }
-        // ÁÖº¯ Water °³¼ö¸¦ ÀÌ¿ëÇØ ¿Ü°û ÇüÅÂ Á¤¸®
+        // ì£¼ë³€ Water ê°œìˆ˜ë¥¼ ì´ìš©í•´ ì™¸ê³½ í˜•íƒœ ì •ë¦¬
         private void SmoothWater(CombatMapData map,CombatMapGenerationSettings settings)
         {
             for (int iteration = 0;iteration < settings.WaterSmoothingIterations;iteration++)
@@ -61,14 +61,14 @@ namespace CombatSpace
 
                         int waterNeighborCount =CountWaterNeighbors(map,position);
 
-                        // ÁÖº¯ Water°¡ ³Ê¹« ÀûÀº µ¹Ãâ ºÎºĞ Á¦°Å
+                        // ì£¼ë³€ Waterê°€ ë„ˆë¬´ ì ì€ ëŒì¶œ ë¶€ë¶„ ì œê±°
                         if (tile.Type ==CombatTileType.Water &&waterNeighborCount <= 2)
                         {
                             waterToGrass.Add(position);
                             continue;
                         }
 
-                        // Water¿¡ µÑ·¯½ÎÀÎ Grass °ø°£ Ã¤¿ì±â
+                        // Waterì— ë‘˜ëŸ¬ì‹¸ì¸ Grass ê³µê°„ ì±„ìš°ê¸°
                         if (tile.Type ==CombatTileType.Grass &&waterNeighborCount >= 5 && 
                             !IsNearRoad(map,position,settings.WaterRoadClearance))
                         {
@@ -77,8 +77,8 @@ namespace CombatSpace
                     }
                 }
 
-                // °Ë»ç µµÁß¿¡´Â Å¸ÀÏÀ» º¯°æÇÏÁö ¾Ê°í
-                // ¸ğµç °Ë»ç°¡ ³¡³­ ÈÄ ÇÑ²¨¹ø¿¡ Àû¿ë
+                // ê²€ì‚¬ ë„ì¤‘ì—ëŠ” íƒ€ì¼ì„ ë³€ê²½í•˜ì§€ ì•Šê³ 
+                // ëª¨ë“  ê²€ì‚¬ê°€ ëë‚œ í›„ í•œêº¼ë²ˆì— ì ìš©
                 foreach (Vector2Int position in waterToGrass)
                 {
                     map.GetTile(position).SetGrass();
@@ -91,7 +91,7 @@ namespace CombatSpace
             }
         }
 
-        // ÁÖº¯ 8Ä­ÀÇ Water °³¼ö °è»ê
+        // ì£¼ë³€ 8ì¹¸ì˜ Water ê°œìˆ˜ ê³„ì‚°
         private int CountWaterNeighbors(CombatMapData map,Vector2Int position)
         {
             int count = 0;
@@ -123,7 +123,7 @@ namespace CombatSpace
 
             return count;
         }
-        // ÆÛ¸° ³ëÀÌÁî¸¦ ÀÌ¿ëÇØ Water ÈÄº¸ »ı¼º
+        // í¼ë¦° ë…¸ì´ì¦ˆë¥¼ ì´ìš©í•´ Water í›„ë³´ ìƒì„±
         private void GenerateWaterCandidates(CombatMapData map,CombatMapGenerationSettings settings,float noiseOffsetX,float noiseOffsetY)
         {
             for (int x = 0; x < map.Width; x++)
@@ -160,7 +160,7 @@ namespace CombatSpace
             }
         }
 
-        // ÁöÁ¤ÇÑ ¹İ°æ ¾È¿¡ Road°¡ ÀÖ´ÂÁö °Ë»ç
+        // ì§€ì •í•œ ë°˜ê²½ ì•ˆì— Roadê°€ ìˆëŠ”ì§€ ê²€ì‚¬
         private bool IsNearRoad(CombatMapData map,Vector2Int position, int clearance)
         {
             int squaredClearance = clearance * clearance;
@@ -195,7 +195,7 @@ namespace CombatSpace
             return false;
         }
 
-        // ÃÖ¼Ò Å©±âº¸´Ù ÀÛÀº Water ¿µ¿ª Á¦°Å
+        // ìµœì†Œ í¬ê¸°ë³´ë‹¤ ì‘ì€ Water ì˜ì—­ ì œê±°
         private void RemoveSmallWaterAreas(CombatMapData map,int minimumArea)
         {
             HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
@@ -230,7 +230,7 @@ namespace CombatSpace
             }
         }
 
-        // ÇÏ³ª·Î ¿¬°áµÈ Water ¿µ¿ªÀ» BFS·Î ¼öÁı
+        // í•˜ë‚˜ë¡œ ì—°ê²°ëœ Water ì˜ì—­ì„ BFSë¡œ ìˆ˜ì§‘
         private List<Vector2Int> CollectWaterArea(CombatMapData map,Vector2Int startPosition,HashSet<Vector2Int> visited)
         {
             List<Vector2Int> area = new List<Vector2Int>();
@@ -270,7 +270,7 @@ namespace CombatSpace
             return area;
         }
 
-        // ÀÛÀº Water ¿µ¿ªÀ» Grass·Î º¹±¸
+        // ì‘ì€ Water ì˜ì—­ì„ Grassë¡œ ë³µêµ¬
         private void RestoreAreaToGrass(CombatMapData map,List<Vector2Int> area)
         {
             foreach (Vector2Int position in area)
@@ -279,7 +279,7 @@ namespace CombatSpace
             }
         }
 
-        // Water°¡ ÃÖ´ë ºñÀ²À» ³ÑÁö ¾Êµµ·Ï Á¦ÇÑ
+        // Waterê°€ ìµœëŒ€ ë¹„ìœ¨ì„ ë„˜ì§€ ì•Šë„ë¡ ì œí•œ
         private void LimitWaterRatio(CombatMapData map,float maximumRatio,Random random)
         {
             int playableTileCount = CountPlayableTiles(map);
@@ -310,7 +310,7 @@ namespace CombatSpace
             }
         }
 
-        // Road, Grass, Water¸¦ ÀüÃ¼ ÇÃ·¹ÀÌ ¿µ¿ªÀ¸·Î °è»ê
+        // Road, Grass, Waterë¥¼ ì „ì²´ í”Œë ˆì´ ì˜ì—­ìœ¼ë¡œ ê³„ì‚°
         private int CountPlayableTiles(CombatMapData map)
         {
             int count = 0;
@@ -353,7 +353,7 @@ namespace CombatSpace
             return count;
         }
 
-        // Grass ¶Ç´Â ¸Ê ¹Ù±ù°ú ¸Â´êÀº Water °Ë»ö
+        // Grass ë˜ëŠ” ë§µ ë°”ê¹¥ê³¼ ë§ë‹¿ì€ Water ê²€ìƒ‰
         private List<Vector2Int> FindWaterBoundaryTiles(CombatMapData map)
         {
             List<Vector2Int> boundaries = new List<Vector2Int>();

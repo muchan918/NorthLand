@@ -2,15 +2,11 @@ using UnityEngine;
 
 namespace CombatSpace
 {
-    // »ı¼ºµÈ ÀüÅõ¸ÊÀ» Gizmo·Î Ç¥½Ã
+    // ìƒì„±ëœ ì „íˆ¬ë§µì„ Gizmoë¡œ í‘œì‹œ
     public sealed class CombatMapDebugView : MonoBehaviour
     {
         [SerializeField]
         private CombatMapGenerator mapGenerator;
-
-        [SerializeField]
-        [Min(0.01f)]
-        private float tileSize = 0.2f;
 
         [Header("Colors")]
         [SerializeField]
@@ -39,7 +35,7 @@ namespace CombatSpace
             CombatMapData map =
                 mapGenerator.CurrentMap;
 
-            // ÀÌ °ÔÀÓ ¿ÀºêÁ§Æ®ÀÇ À§Ä¡¿Í È¸ÀüÀ» ±âÁØÀ¸·Î Ç¥½Ã
+            // ì´ ê²Œì„ ì˜¤ë¸Œì íŠ¸ì˜ ìœ„ì¹˜ì™€ íšŒì „ì„ ê¸°ì¤€ìœ¼ë¡œ í‘œì‹œ
             Gizmos.matrix =transform.localToWorldMatrix;
 
             DrawTiles(map);
@@ -47,6 +43,19 @@ namespace CombatSpace
             DrawStartPosition(map);
         }
 
+        private float TileSize
+        {
+            get
+            {
+                if (mapGenerator == null ||
+                    mapGenerator.Settings == null)
+                {
+                    return 1f;
+                }
+
+                return mapGenerator.Settings.TileSize;
+            }
+        }
         private void DrawTiles(
             CombatMapData map)
         {
@@ -67,7 +76,7 @@ namespace CombatSpace
 
                     Vector3 center =GridToLocal(position);
 
-                    Vector3 size =new Vector3(tileSize * 0.9f,0.05f,tileSize * 0.9f);
+                    Vector3 size =new Vector3(TileSize * 0.9f,0.05f, TileSize * 0.9f);
 
                     Gizmos.DrawCube(center, size);
                 }
@@ -85,7 +94,7 @@ namespace CombatSpace
 
                 center.y = 0.15f;
 
-                Gizmos.DrawSphere(center,tileSize * 0.4f);
+                Gizmos.DrawSphere(center, TileSize * 0.4f);
             }
         }
 
@@ -97,7 +106,7 @@ namespace CombatSpace
 
             center.y = 0.2f;
 
-            Gizmos.DrawSphere(center,tileSize * 0.55f);
+            Gizmos.DrawSphere(center, TileSize * 0.55f);
         }
 
         private Color GetTileColor(CombatTileType type)
@@ -116,7 +125,9 @@ namespace CombatSpace
 
         private Vector3 GridToLocal(Vector2Int position)
         {
-            return new Vector3((position.x + 0.5f) * tileSize,0f,(position.y + 0.5f) * tileSize);
+            float tileHeight =mapGenerator != null &&mapGenerator.Settings != null? mapGenerator.Settings.TileHeight: 0f;
+
+            return new Vector3((position.x + 0.5f) * TileSize,tileHeight,(position.y + 0.5f) * TileSize);
         }
     }
 }

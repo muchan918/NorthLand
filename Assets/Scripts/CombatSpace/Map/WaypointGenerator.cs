@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace CombatSpace
 {
-    // ÁÖ¿ä ¿şÀÌÆ÷ÀÎÆ®¸¦ ±ÕµîÇÏ°Ô »ı¼º
+    // ì£¼ìš” ì›¨ì´í¬ì¸íŠ¸ë¥¼ ê· ë“±í•˜ê²Œ ìƒì„±
     public sealed class WaypointGenerator
     {
         public bool Generate( CombatMapData map,CombatMapGenerationSettings settings, System.Random random)
@@ -36,7 +36,7 @@ namespace CombatSpace
             return true;
         }
 
-        // ¸Ê ³»ºÎ¸¦ ¿şÀÌÆ÷ÀÎÆ® »ı¼º ¼¿·Î ºĞÇÒ
+        // ë§µ ë‚´ë¶€ë¥¼ ì›¨ì´í¬ì¸íŠ¸ ìƒì„± ì…€ë¡œ ë¶„í• 
         private List<RectInt> CreateCells(int mapWidth, int mapHeight,int margin, int waypointCount)
         {
             int columns = waypointCount <= 9 ? 3 : 4;
@@ -72,7 +72,7 @@ namespace CombatSpace
             return cells;
         }
 
-        // »ç¿ëÇÒ ¼¿ ¼ø¼­¸¦ ¹«ÀÛÀ§·Î ¼¯À½
+        // ì‚¬ìš©í•  ì…€ ìˆœì„œë¥¼ ë¬´ì‘ìœ„ë¡œ ì„ìŒ
         private void ShuffleCells( List<RectInt> cells,System.Random random)
         {
             for (int i = cells.Count - 1;i > 0;  i--)
@@ -83,7 +83,7 @@ namespace CombatSpace
             }
         }
 
-        // ÇÑ ¼¿ ¾È¿¡¼­ ¿şÀÌÆ÷ÀÎÆ® »ı¼º ½Ãµµ
+        // í•œ ì…€ ì•ˆì—ì„œ ì›¨ì´í¬ì¸íŠ¸ ìƒì„± ì‹œë„
         private bool TryCreateWaypoint( RectInt cell,  List<Vector2Int> existingWaypoints, float initialMinimumDistance,
                                        int maxAttempts, System.Random random, out Vector2Int waypoint)
         {
@@ -105,7 +105,7 @@ namespace CombatSpace
                     }
                 }
 
-                // ¹İº¹ ½ÇÆĞ ½Ã ÃÖ¼Ò °Å¸®¸¦ ÇÑ Ä­ ¿ÏÈ­
+                // ë°˜ë³µ ì‹¤íŒ¨ ì‹œ ìµœì†Œ ê±°ë¦¬ë¥¼ í•œ ì¹¸ ì™„í™”
                 minimumDistance -= 1f;
             }
 
@@ -114,7 +114,7 @@ namespace CombatSpace
             return false;
         }
 
-        // ±âÁ¸ ¿şÀÌÆ÷ÀÎÆ®¿Í ÃÖ¼Ò °Å¸® È®ÀÎ
+        // ê¸°ì¡´ ì›¨ì´í¬ì¸íŠ¸ì™€ ìµœì†Œ ê±°ë¦¬ í™•ì¸
         private bool IsFarEnough( Vector2Int candidate, List<Vector2Int> existingWaypoints, float minimumDistance)
         {
             float minimumDistanceSquared =  minimumDistance *  minimumDistance;

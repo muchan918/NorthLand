@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace CombatSpace
 {
-    // ÀüÅõ¸Ê µ¥ÀÌÅÍ »ı¼º, Å¸ÀÏ »ı¼º, ÃÊ±â °ø°³¸¦ ¼ø¼­´ë·Î ½ÇÇà
+    // ì „íˆ¬ë§µ ë°ì´í„° ìƒì„±, íƒ€ì¼ ìƒì„±, ì´ˆê¸° ê³µê°œë¥¼ ìˆœì„œëŒ€ë¡œ ì‹¤í–‰
     public sealed class CombatMapInitializer : MonoBehaviour
     {
         [Header("References")]
@@ -35,50 +35,50 @@ namespace CombatSpace
                 return;
             }
 
-            // 1. Àç½Ãµµ¸¦ Æ÷ÇÔÇÑ ³í¸® ¸Ê »ı¼º
+            // 1. ì¬ì‹œë„ë¥¼ í¬í•¨í•œ ë…¼ë¦¬ ë§µ ìƒì„±
             if (!mapGenerator.TryGenerate())
             {
                 Debug.LogError(
-                    "ÀüÅõ¸Ê µ¥ÀÌÅÍ »ı¼º¿¡ ½ÇÆĞÇß½À´Ï´Ù.\n" +
+                    "ì „íˆ¬ë§µ ë°ì´í„° ìƒì„±ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤.\n" +
                     mapGenerator.LastGenerationError,
                     this);
 
                 return;
             }
 
-            // 2. ½ÇÁ¦ Å¸ÀÏ GameObject »ı¼º
+            // 2. ì‹¤ì œ íƒ€ì¼ GameObject ìƒì„±
             tileSpawner.SpawnTiles();
 
             if (tileSpawner.SpawnedTileCount == 0)
             {
                 Debug.LogError(
-                    "Å¸ÀÏ GameObject »ı¼º¿¡ ½ÇÆĞÇß½À´Ï´Ù.",
+                    "íƒ€ì¼ GameObject ìƒì„±ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤.",
                     this);
 
                 return;
             }
 
-            // 3. 0¶ó¿îµå ±âÁØ ÃÊ±â ¹üÀ§ °ø°³
+            // 3. 0ë¼ìš´ë“œ ê¸°ì¤€ ì´ˆê¸° ë²”ìœ„ ê³µê°œ
             revealController.InitializeReveal();
 
             if (revealController.RevealData == null)
             {
                 Debug.LogError(
-                    "¸Ê °ø°³ µ¥ÀÌÅÍ ÃÊ±âÈ­¿¡ ½ÇÆĞÇß½À´Ï´Ù.",
+                    "ë§µ ê³µê°œ ë°ì´í„° ì´ˆê¸°í™”ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤.",
                     this);
 
                 return;
             }
 
             Debug.Log(
-                "ÀüÅõ¸Ê ÃÊ±âÈ­ ¿Ï·á\n" +
+                "ì „íˆ¬ë§µ ì´ˆê¸°í™” ì™„ë£Œ\n" +
                 $"Seed: " +
                 $"{mapGenerator.CurrentMap.Seed}\n" +
-                $"Å¸ÀÏ: " +
-                $"{tileSpawner.SpawnedTileCount}°³\n" +
-                $"ÃÊ±â °ø°³ Å¸ÀÏ: " +
-                $"{revealController.RevealData.RevealedTileCount}°³\n" +
-                $"ÃÊ±â ½ºÆù ÁÂÇ¥: " +
+                $"íƒ€ì¼: " +
+                $"{tileSpawner.SpawnedTileCount}ê°œ\n" +
+                $"ì´ˆê¸° ê³µê°œ íƒ€ì¼: " +
+                $"{revealController.RevealData.RevealedTileCount}ê°œ\n" +
+                $"ì´ˆê¸° ìŠ¤í° ì¢Œí‘œ: " +
                 $"{revealController.CurrentSpawnPosition}",
                 this);
         }
@@ -88,7 +88,7 @@ namespace CombatSpace
             if (mapGenerator == null)
             {
                 Debug.LogError(
-                    "Map Generator°¡ ÁöÁ¤µÇÁö ¾Ê¾Ò½À´Ï´Ù.",
+                    "Map Generatorê°€ ì§€ì •ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.",
                     this);
 
                 return false;
@@ -97,7 +97,7 @@ namespace CombatSpace
             if (tileSpawner == null)
             {
                 Debug.LogError(
-                    "Tile Spawner°¡ ÁöÁ¤µÇÁö ¾Ê¾Ò½À´Ï´Ù.",
+                    "Tile Spawnerê°€ ì§€ì •ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.",
                     this);
 
                 return false;
@@ -106,7 +106,7 @@ namespace CombatSpace
             if (revealController == null)
             {
                 Debug.LogError(
-                    "Reveal Controller°¡ ÁöÁ¤µÇÁö ¾Ê¾Ò½À´Ï´Ù.",
+                    "Reveal Controllerê°€ ì§€ì •ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.",
                     this);
 
                 return false;

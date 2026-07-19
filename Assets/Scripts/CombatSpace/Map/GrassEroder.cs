@@ -3,7 +3,7 @@ using UnityEngine;
 using Random = System.Random;
 namespace CombatSpace
 {
-    // Grass °æ°è¸¦ Ä§½ÄÇÏ¿© ÀÚ¿¬½º·¯¿î ¿µÅä ÇüÅÂ¸¦ »ı¼º
+    // Grass ê²½ê³„ë¥¼ ì¹¨ì‹í•˜ì—¬ ìì—°ìŠ¤ëŸ¬ìš´ ì˜í†  í˜•íƒœë¥¼ ìƒì„±
     public sealed class GrassEroder
     {
         private static readonly Vector2Int[] FourDirections =
@@ -36,7 +36,7 @@ namespace CombatSpace
                         continue;
                     }
 
-                    // ÁÖº¯ ¿µÅä°¡ ³Ê¹« ÀûÀ¸¸é Á¦°ÅÇÏÁö ¾ÊÀ½
+                    // ì£¼ë³€ ì˜í† ê°€ ë„ˆë¬´ ì ìœ¼ë©´ ì œê±°í•˜ì§€ ì•ŠìŒ
                     if (CountTerritoryNeighbors(map,position) < 2)
                     {
                         continue;
@@ -46,7 +46,7 @@ namespace CombatSpace
 
                     tile.SetEmpty();
 
-                    // ¿¬°áÀÌ ²÷¾îÁö¸é Grass·Î º¹±¸
+                    // ì—°ê²°ì´ ëŠì–´ì§€ë©´ Grassë¡œ ë³µêµ¬
                     if (!IsTerritoryConnected(map))
                     {
                         tile.SetGrass();
@@ -57,7 +57,7 @@ namespace CombatSpace
             return true;
         }
 
-        // Empty¿Í ¸Â´êÀº Grass °æ°è Å¸ÀÏ °Ë»ö
+        // Emptyì™€ ë§ë‹¿ì€ Grass ê²½ê³„ íƒ€ì¼ ê²€ìƒ‰
         private List<Vector2Int> FindBoundaryGrassTiles(CombatMapData map)
         {
             List<Vector2Int> boundaries = new List<Vector2Int>();
@@ -85,7 +85,7 @@ namespace CombatSpace
             return boundaries;
         }
 
-        // ÀÎÁ¢ÇÑ 4Ä­ Áß Empty ¶Ç´Â ¸Ê ¹Ù±ùÀÌ ÀÖ´ÂÁö °Ë»ç
+        // ì¸ì ‘í•œ 4ì¹¸ ì¤‘ Empty ë˜ëŠ” ë§µ ë°”ê¹¥ì´ ìˆëŠ”ì§€ ê²€ì‚¬
         private bool IsBoundaryGrass(CombatMapData map,Vector2Int position)
         {
             foreach (Vector2Int direction in FourDirections)
@@ -108,7 +108,7 @@ namespace CombatSpace
             return false;
         }
 
-        // ÁÖº¯ 8Ä­ÀÇ Road ¶Ç´Â Grass °³¼ö °è»ê
+        // ì£¼ë³€ 8ì¹¸ì˜ Road ë˜ëŠ” Grass ê°œìˆ˜ ê³„ì‚°
         private int CountTerritoryNeighbors(CombatMapData map,Vector2Int position)
         {
             int count = 0;
@@ -142,7 +142,7 @@ namespace CombatSpace
             return count;
         }
 
-        // BFS·Î ÀüÃ¼ ¿µÅäÀÇ ¿¬°á »óÅÂ °Ë»ç
+        // BFSë¡œ ì „ì²´ ì˜í† ì˜ ì—°ê²° ìƒíƒœ ê²€ì‚¬
         private bool IsTerritoryConnected(CombatMapData map)
         {
             Vector2Int? startPosition =FindFirstTerritory(map);
@@ -234,7 +234,7 @@ namespace CombatSpace
                 tile.Type == CombatTileType.Grass;
         }
 
-        // Ä§½Ä ¼ø¼­°¡ ÇÑÂÊÀ¸·Î Ä¡¿ìÄ¡Áö ¾Êµµ·Ï ¼¯À½
+        // ì¹¨ì‹ ìˆœì„œê°€ í•œìª½ìœ¼ë¡œ ì¹˜ìš°ì¹˜ì§€ ì•Šë„ë¡ ì„ìŒ
         private void Shuffle(List<Vector2Int> positions,Random random)
         {
             for (int i = positions.Count - 1;

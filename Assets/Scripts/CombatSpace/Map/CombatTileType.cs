@@ -1,6 +1,6 @@
 namespace CombatSpace
 {
-    // ÀüÅõ¸Ê Å¸ÀÏÀÇ ÁöÇü Á¾·ù
+    // ì „íˆ¬ë§µ íƒ€ì¼ì˜ ì§€í˜• ì¢…ë¥˜
     public enum CombatTileType
     {
         Empty,

@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace CombatSpace
 {
-    // ÀüÅõ¸Ê »ı¼º¿¡ »ç¿ëÇÏ´Â ¼³Á¤°ª
+    // ì „íˆ¬ë§µ ìƒì„±ì— ì‚¬ìš©í•˜ëŠ” ì„¤ì •ê°’
     [CreateAssetMenu( fileName = "CombatMapGenerationSettings", menuName = "Combat Space/Map Generation Settings")]
     public sealed class CombatMapGenerationSettings :  ScriptableObject
     {
@@ -15,6 +15,13 @@ namespace CombatSpace
 
         [Min(0)]
         public int MapMargin = 7;
+
+        // ê·¸ë¦¬ë“œ í•œ ì¹¸ì˜ ì›”ë“œ í¬ê¸°
+        [Min(0.01f)]
+        public float TileSize = 5f;
+
+        // íƒ€ì¼ì„ ë°°ì¹˜í•  ë¡œì»¬ Y ë†’ì´
+        public float TileHeight = 0f;
 
         [Header("Waypoints")]
         [Min(2)]
@@ -74,19 +81,26 @@ namespace CombatSpace
         [Range(0, 5)]
         public int WaterSmoothingIterations = 0;
 
-        // ¼³Á¤°ªÀÌ ¸Ê »ı¼º¿¡ »ç¿ë °¡´ÉÇÑÁö °Ë»ç
+        // ì„¤ì •ê°’ì´ ë§µ ìƒì„±ì— ì‚¬ìš© ê°€ëŠ¥í•œì§€ ê²€ì‚¬
         public bool Validate( out string errorMessage)
         {
             if (Width < 1 ||  Height < 1)
             {
-                errorMessage = "Width¿Í Height´Â 1 ÀÌ»óÀÌ¾î¾ß ÇÕ´Ï´Ù.";
+                errorMessage = "Widthì™€ HeightëŠ” 1 ì´ìƒì´ì–´ì•¼ í•©ë‹ˆë‹¤.";
 
                 return false;
             }
 
             if (MapMargin < 0)
             {
-                errorMessage =  "MapMarginÀº 0º¸´Ù ÀÛÀ» ¼ö ¾ø½À´Ï´Ù.";
+                errorMessage =  "MapMarginì€ 0ë³´ë‹¤ ì‘ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.";
+
+                return false;
+            }
+            if (TileSize <= 0f)
+            {
+                errorMessage =
+                    "TileSizeëŠ” 0ë³´ë‹¤ ì»¤ì•¼ í•©ë‹ˆë‹¤.";
 
                 return false;
             }
@@ -97,23 +111,23 @@ namespace CombatSpace
 
             if (usableWidth <= 0 || usableHeight <= 0)
             {
-                errorMessage = "MapMargin ¶§¹®¿¡ »ç¿ëÇÒ ¼ö ÀÖ´Â ¿µ¿ªÀÌ ¾ø½À´Ï´Ù.";
+                errorMessage = "MapMargin ë•Œë¬¸ì— ì‚¬ìš©í•  ìˆ˜ ìˆëŠ” ì˜ì—­ì´ ì—†ìŠµë‹ˆë‹¤.";
 
                 return false;
             }
 
             if (MinWaypointCount < 2 ||   MaxWaypointCount < MinWaypointCount)
             {
-                errorMessage = "¿şÀÌÆ÷ÀÎÆ® ÃÖ¼Ò¡¤ÃÖ´ë °³¼ö°¡ Àß¸øµÆ½À´Ï´Ù.";
+                errorMessage = "ì›¨ì´í¬ì¸íŠ¸ ìµœì†ŒÂ·ìµœëŒ€ ê°œìˆ˜ê°€ ì˜ëª»ëìŠµë‹ˆë‹¤.";
 
                 return false;
             }
 
-            // ÇöÀç ¼¿ ±¸Á¶´Â ÃÖ´ë 4¡¿3
+            // í˜„ì¬ ì…€ êµ¬ì¡°ëŠ” ìµœëŒ€ 4Ã—3
             if (MaxWaypointCount > 12)
             {
                 errorMessage =
-                    "¿şÀÌÆ÷ÀÎÆ®´Â ÃÖ´ë 12°³±îÁö »ç¿ëÇÒ ¼ö ÀÖ½À´Ï´Ù.";
+                    "ì›¨ì´í¬ì¸íŠ¸ëŠ” ìµœëŒ€ 12ê°œê¹Œì§€ ì‚¬ìš©í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.";
 
                 return false;
             }
@@ -124,21 +138,21 @@ namespace CombatSpace
 
             if (usableWidth < requiredColumns || usableHeight < requiredRows)
             {
-                errorMessage =  "¿şÀÌÆ÷ÀÎÆ® ¼¿À» ¸¸µé±â¿¡ ¸ÊÀÌ ³Ê¹« ÀÛ½À´Ï´Ù.";
+                errorMessage =  "ì›¨ì´í¬ì¸íŠ¸ ì…€ì„ ë§Œë“¤ê¸°ì— ë§µì´ ë„ˆë¬´ ì‘ìŠµë‹ˆë‹¤.";
 
                 return false;
             }
 
             if (MinWaypointDistance < 1)
             {
-                errorMessage =  "¿şÀÌÆ÷ÀÎÆ® ÃÖ¼Ò °Å¸®´Â 1 ÀÌ»óÀÌ¾î¾ß ÇÕ´Ï´Ù.";
+                errorMessage =  "ì›¨ì´í¬ì¸íŠ¸ ìµœì†Œ ê±°ë¦¬ëŠ” 1 ì´ìƒì´ì–´ì•¼ í•©ë‹ˆë‹¤.";
 
                 return false;
             }
 
             if (MaxWaypointPlacementAttempts < 1)
             {
-                errorMessage = "¿şÀÌÆ÷ÀÎÆ® ¹èÄ¡ ½Ãµµ È½¼ö´Â 1 ÀÌ»óÀÌ¾î¾ß ÇÕ´Ï´Ù.";
+                errorMessage = "ì›¨ì´í¬ì¸íŠ¸ ë°°ì¹˜ ì‹œë„ íšŸìˆ˜ëŠ” 1 ì´ìƒì´ì–´ì•¼ í•©ë‹ˆë‹¤.";
 
                 return false;
             }
@@ -148,56 +162,56 @@ namespace CombatSpace
 
             if (!startInside)
             {
-                errorMessage = $"½ÃÀÛ ÁÂÇ¥ {RouteStartPosition}°¡ " +  $"¸Ê {Width}¡¿{Height} ¹üÀ§¸¦ ¹ş¾î³µ½À´Ï´Ù.";
+                errorMessage = $"ì‹œì‘ ì¢Œí‘œ {RouteStartPosition}ê°€ " +  $"ë§µ {Width}Ã—{Height} ë²”ìœ„ë¥¼ ë²—ì–´ë‚¬ìŠµë‹ˆë‹¤.";
 
                 return false;
             }
 
             if (RouteNoiseScale < 0f ||  RouteNoiseWeight < 0f ||  TurnPenalty < 0f)
             {
-                errorMessage = "Road °ü·Ã ¼öÄ¡´Â 0º¸´Ù ÀÛÀ» ¼ö ¾ø½À´Ï´Ù.";
+                errorMessage = "Road ê´€ë ¨ ìˆ˜ì¹˜ëŠ” 0ë³´ë‹¤ ì‘ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.";
 
                 return false;
             }
 
             if (GrassRadius < 1)
             {
-                errorMessage =  "GrassRadius´Â 1 ÀÌ»óÀÌ¾î¾ß ÇÕ´Ï´Ù.";
+                errorMessage =  "GrassRadiusëŠ” 1 ì´ìƒì´ì–´ì•¼ í•©ë‹ˆë‹¤.";
 
                 return false;
             }
 
             if (ErosionProbability < 0f ||  ErosionProbability > 1f)
             {
-                errorMessage = "Ä§½Ä È®·üÀº 0~1ÀÌ¾î¾ß ÇÕ´Ï´Ù.";
+                errorMessage = "ì¹¨ì‹ í™•ë¥ ì€ 0~1ì´ì–´ì•¼ í•©ë‹ˆë‹¤.";
 
                 return false;
             }
 
             if (MinErosionIterations < 0 ||  MaxErosionIterations < MinErosionIterations)
             {
-                errorMessage =  "Ä§½Ä ÃÖ¼Ò¡¤ÃÖ´ë ¹İº¹ È½¼ö°¡ Àß¸øµÆ½À´Ï´Ù.";
+                errorMessage =  "ì¹¨ì‹ ìµœì†ŒÂ·ìµœëŒ€ ë°˜ë³µ íšŸìˆ˜ê°€ ì˜ëª»ëìŠµë‹ˆë‹¤.";
 
                 return false;
             }
 
             if (WaterNoiseScale < 0f)
             {
-                errorMessage =  "WaterNoiseScaleÀº 0º¸´Ù ÀÛÀ» ¼ö ¾ø½À´Ï´Ù.";
+                errorMessage =  "WaterNoiseScaleì€ 0ë³´ë‹¤ ì‘ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.";
 
                 return false;
             }
 
             if (WaterThreshold < 0f ||  WaterThreshold > 1f ||  MaxWaterRatio < 0f || MaxWaterRatio > 1f)
             {
-                errorMessage =   "Water È®·ü °ü·Ã ¼öÄ¡´Â 0~1ÀÌ¾î¾ß ÇÕ´Ï´Ù.";
+                errorMessage =   "Water í™•ë¥  ê´€ë ¨ ìˆ˜ì¹˜ëŠ” 0~1ì´ì–´ì•¼ í•©ë‹ˆë‹¤.";
 
                 return false;
             }
 
             if (WaterRoadClearance < 0 ||  MinWaterArea < 1 ||   WaterSmoothingIterations < 0)
             {
-                errorMessage = "Water °ü·Ã ¼³Á¤°ªÀÌ Àß¸øµÆ½À´Ï´Ù.";
+                errorMessage = "Water ê´€ë ¨ ì„¤ì •ê°’ì´ ì˜ëª»ëìŠµë‹ˆë‹¤.";
 
                 return false;
             }

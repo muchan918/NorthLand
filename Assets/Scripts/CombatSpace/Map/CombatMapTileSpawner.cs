@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace CombatSpace
 {
-    // ³í¸® ¸Ê µ¥ÀÌÅÍ¸¦ ½ÇÁ¦ Å¸ÀÏ GameObject·Î »ı¼º
+    // ë…¼ë¦¬ ë§µ ë°ì´í„°ë¥¼ ì‹¤ì œ íƒ€ì¼ GameObjectë¡œ ìƒì„±
     public sealed class CombatMapTileSpawner : MonoBehaviour
     {
         [Header("References")]
@@ -26,21 +26,18 @@ namespace CombatSpace
         [SerializeField]
         private GameObject waterTilePrefab;
 
-        [Header("Tile")]
-        [SerializeField]
-        [Min(0.01f)]
-        private float tileSize = 1f;
+   
 
-        [SerializeField]
-        private float tileHeight = 0f;
+        private readonly Dictionary<Vector2Int,CombatMapTileView> spawnedTiles = new Dictionary<Vector2Int, CombatMapTileView>();
 
-        private readonly Dictionary<
-            Vector2Int,
-            CombatMapTileView> spawnedTiles =
-            new Dictionary<Vector2Int, CombatMapTileView>();
+        // í˜„ì¬ ê³µê°œëœ Roadì˜ ì›”ë“œ ì¢Œí‘œ ê²½ë¡œ
+        private readonly List<Vector3> currentWorldEnemyRoute =new List<Vector3>();
 
-        public int SpawnedTileCount =>
-            spawnedTiles.Count;
+        public IReadOnlyList<Vector3> CurrentWorldEnemyRoute =>currentWorldEnemyRoute;
+
+        public float TileSize =>mapGenerator != null &&mapGenerator.Settings != null? mapGenerator.Settings.TileSize: 1f;
+
+        public int SpawnedTileCount =>spawnedTiles.Count;
 
         private void OnEnable()
         {
@@ -60,7 +57,7 @@ namespace CombatSpace
                 return;
             }
 
-            // Áßº¹ µî·Ï ¹æÁö
+            // ì¤‘ë³µ ë“±ë¡ ë°©ì§€
             revealController.RevealChanged -=
                 RefreshTileVisibility;
 
@@ -78,8 +75,9 @@ namespace CombatSpace
             revealController.RevealChanged -=
                 RefreshTileVisibility;
         }
+     
 
-        // »ı¼ºµÈ Å¸ÀÏÀ» ÁÂÇ¥·Î °Ë»ö
+        // ìƒì„±ëœ íƒ€ì¼ì„ ì¢Œí‘œë¡œ ê²€ìƒ‰
         public bool TryGetTileView(
             Vector2Int position,
             out CombatMapTileView tileView)
@@ -101,7 +99,7 @@ namespace CombatSpace
                 mapGenerator.CurrentMap == null)
             {
                 Debug.LogError(
-                    "¸ÕÀú ÀüÅõ¸Ê µ¥ÀÌÅÍ¸¦ »ı¼ºÇØ¾ß ÇÕ´Ï´Ù.",
+                    "ë¨¼ì € ì „íˆ¬ë§µ ë°ì´í„°ë¥¼ ìƒì„±í•´ì•¼ í•©ë‹ˆë‹¤.",
                     this);
 
                 return;
@@ -139,7 +137,7 @@ namespace CombatSpace
                 }
             }
 
-            // °ø°³ µ¥ÀÌÅÍ°¡ ÀÌ¹Ì ÀÖ´Ù¸é Áï½Ã Àû¿ë
+            // ê³µê°œ ë°ì´í„°ê°€ ì´ë¯¸ ìˆë‹¤ë©´ ì¦‰ì‹œ ì ìš©
             if (revealController != null &&
                 revealController.RevealData != null)
             {
@@ -147,8 +145,8 @@ namespace CombatSpace
             }
 
             Debug.Log(
-                $"Å¸ÀÏ GameObject »ı¼º ¿Ï·á: " +
-                $"{spawnedTiles.Count}°³",
+                $"íƒ€ì¼ GameObject ìƒì„± ì™„ë£Œ: " +
+                $"{spawnedTiles.Count}ê°œ",
                 this);
         }
 
@@ -161,8 +159,8 @@ namespace CombatSpace
             if (prefab == null)
             {
                 Debug.LogError(
-                    $"{tileData.Type}¿¡ »ç¿ëÇÒ " +
-                    "ÇÁ¸®ÆÕÀÌ ¾ø½À´Ï´Ù.",
+                    $"{tileData.Type}ì— ì‚¬ìš©í•  " +
+                    "í”„ë¦¬íŒ¹ì´ ì—†ìŠµë‹ˆë‹¤.",
                     this);
 
                 return;
@@ -192,8 +190,8 @@ namespace CombatSpace
             if (tileView == null)
             {
                 Debug.LogError(
-                    $"{prefab.name}¿¡ " +
-                    "CombatMapTileView°¡ ¾ø½À´Ï´Ù.",
+                    $"{prefab.name}ì— " +
+                    "CombatMapTileViewê°€ ì—†ìŠµë‹ˆë‹¤.",
                     prefab);
 
                 DestroyTileObject(instance);
@@ -227,15 +225,32 @@ namespace CombatSpace
         }
 
         private Vector3 GridToLocalPosition(
-            Vector2Int position)
+         Vector2Int position)
         {
+            CombatMapGenerationSettings settings =
+                mapGenerator.Settings;
+
             return new Vector3(
                 (position.x + 0.5f) *
-                tileSize,
-                tileHeight,
+                settings.TileSize,
+
+                settings.TileHeight,
+
                 (position.y + 0.5f) *
-                tileSize);
+                settings.TileSize);
         }
+
+
+        // ê·¸ë¦¬ë“œ ì¢Œí‘œë¥¼ ì‹¤ì œ ì›”ë“œ ì¢Œí‘œë¡œ ë³€í™˜
+        public Vector3 GridToWorldPosition(Vector2Int gridPosition)
+        {
+            Transform coordinateRoot =tileRoot != null? tileRoot: transform;
+
+            Vector3 localPosition =GridToLocalPosition(gridPosition);
+
+            return coordinateRoot.TransformPoint(localPosition);
+        }
+
 
         private bool ValidatePrefabs()
         {
@@ -244,8 +259,8 @@ namespace CombatSpace
                 waterTilePrefab == null)
             {
                 Debug.LogError(
-                    "Road, Grass, Water ÇÁ¸®ÆÕÀ» " +
-                    "¸ğµÎ ÁöÁ¤ÇØ¾ß ÇÕ´Ï´Ù.",
+                    "Road, Grass, Water í”„ë¦¬íŒ¹ì„ " +
+                    "ëª¨ë‘ ì§€ì •í•´ì•¼ í•©ë‹ˆë‹¤.",
                     this);
 
                 return false;
@@ -254,7 +269,7 @@ namespace CombatSpace
             return true;
         }
 
-        // ÀÚ½Ä Å¸ÀÏÀ» °Ë»öÇÏ¿© µñ¼Å³Ê¸® º¹±¸
+        // ìì‹ íƒ€ì¼ì„ ê²€ìƒ‰í•˜ì—¬ ë”•ì…”ë„ˆë¦¬ ë³µêµ¬
         [ContextMenu("Rebuild Spawned Tile Cache")]
         public void RebuildSpawnedTileCache()
         {
@@ -287,7 +302,7 @@ namespace CombatSpace
                     duplicateCount++;
 
                     Debug.LogWarning(
-                        $"Áßº¹ Å¸ÀÏ ÁÂÇ¥ ¹ß°ß: " +
+                        $"ì¤‘ë³µ íƒ€ì¼ ì¢Œí‘œ ë°œê²¬: " +
                         $"{position}",
                         tileView);
 
@@ -300,22 +315,22 @@ namespace CombatSpace
             }
 
             Debug.Log(
-                "Å¸ÀÏ Ä³½Ã º¹±¸ ¿Ï·á\n" +
-                $"º¹±¸µÈ Å¸ÀÏ: " +
-                $"{spawnedTiles.Count}°³\n" +
-                $"Áßº¹ ÁÂÇ¥: " +
-                $"{duplicateCount}°³",
+                "íƒ€ì¼ ìºì‹œ ë³µêµ¬ ì™„ë£Œ\n" +
+                $"ë³µêµ¬ëœ íƒ€ì¼: " +
+                $"{spawnedTiles.Count}ê°œ\n" +
+                $"ì¤‘ë³µ ì¢Œí‘œ: " +
+                $"{duplicateCount}ê°œ",
                 this);
         }
 
-        // °ø°³ µ¥ÀÌÅÍ¿¡ µû¶ó Å¸ÀÏ GameObject È°¼ºÈ­
+        // ê³µê°œ ë°ì´í„°ì— ë”°ë¼ íƒ€ì¼ GameObject í™œì„±í™”
         [ContextMenu("Refresh Tile Visibility")]
         public void RefreshTileVisibility()
         {
             if (revealController == null)
             {
                 Debug.LogError(
-                    "Reveal Controller°¡ ÁöÁ¤µÇÁö ¾Ê¾Ò½À´Ï´Ù.",
+                    "Reveal Controllerê°€ ì§€ì •ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.",
                     this);
 
                 return;
@@ -324,7 +339,7 @@ namespace CombatSpace
             if (revealController.RevealData == null)
             {
                 Debug.LogError(
-                    "°ø°³ µ¥ÀÌÅÍ°¡ ÃÊ±âÈ­µÇÁö ¾Ê¾Ò½À´Ï´Ù.",
+                    "ê³µê°œ ë°ì´í„°ê°€ ì´ˆê¸°í™”ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.",
                     this);
 
                 return;
@@ -337,9 +352,7 @@ namespace CombatSpace
 
             int visibleTileCount = 0;
 
-            foreach (KeyValuePair<
-                         Vector2Int,
-                         CombatMapTileView> pair
+            foreach (KeyValuePair<Vector2Int, CombatMapTileView> pair
                      in spawnedTiles)
             {
                 if (pair.Value == null)
@@ -348,11 +361,9 @@ namespace CombatSpace
                 }
 
                 bool isRevealed =
-                    revealController.RevealData
-                        .IsRevealed(pair.Key);
+                    revealController.RevealData.IsRevealed(pair.Key);
 
-                pair.Value.gameObject.SetActive(
-                    isRevealed);
+                pair.Value.gameObject.SetActive(isRevealed);
 
                 if (isRevealed)
                 {
@@ -360,10 +371,15 @@ namespace CombatSpace
                 }
             }
 
+            // í˜„ì¬ ê³µê°œëœ ë²”ìœ„ì— ë§ì¶° ëª¬ìŠ¤í„°ìš© ì›”ë“œ ê²½ë¡œ ê°±ì‹ 
+            RebuildCurrentWorldEnemyRoute();
+
             Debug.Log(
-                $"Å¸ÀÏ Ç¥½Ã °»½Å ¿Ï·á: " +
+                $"íƒ€ì¼ í‘œì‹œ ê°±ì‹  ì™„ë£Œ: " +
                 $"{visibleTileCount}/" +
-                $"{spawnedTiles.Count}°³ °ø°³",
+                $"{spawnedTiles.Count}ê°œ ê³µê°œ\n" +
+                $"ëª¬ìŠ¤í„° ì›”ë“œ ê²½ë¡œ: " +
+                $"{currentWorldEnemyRoute.Count}ê°œ",
                 this);
         }
 
@@ -384,6 +400,7 @@ namespace CombatSpace
             }
 
             spawnedTiles.Clear();
+            currentWorldEnemyRoute.Clear();
         }
 
         private void DestroyTileObject(
@@ -406,7 +423,7 @@ namespace CombatSpace
                 mapGenerator.CurrentMap == null)
             {
                 Debug.LogError(
-                    "°Ë»çÇÒ ¸Ê µ¥ÀÌÅÍ°¡ ¾ø½À´Ï´Ù.",
+                    "ê²€ì‚¬í•  ë§µ ë°ì´í„°ê°€ ì—†ìŠµë‹ˆë‹¤.",
                     this);
 
                 return;
@@ -480,28 +497,136 @@ namespace CombatSpace
             if (!isValid)
             {
                 Debug.LogError(
-                    "Å¸ÀÏ ½Ã°¢È­ °ËÁõ ½ÇÆĞ\n" +
-                    $"¸Ê µ¥ÀÌÅÍ Å¸ÀÏ: " +
-                    $"{mapTileCount}°³\n" +
-                    $"»ı¼ºµÈ ¿ÀºêÁ§Æ®: " +
-                    $"{spawnedTiles.Count}°³\n" +
-                    $"´©¶ô: {missingTileCount}°³\n" +
-                    $"Å¸ÀÔ ºÒÀÏÄ¡: " +
-                    $"{wrongTypeCount}°³\n" +
-                    $"ºÒÇÊ¿äÇÑ ¿ÀºêÁ§Æ®: " +
-                    $"{unnecessaryTileCount}°³",
+                    "íƒ€ì¼ ì‹œê°í™” ê²€ì¦ ì‹¤íŒ¨\n" +
+                    $"ë§µ ë°ì´í„° íƒ€ì¼: " +
+                    $"{mapTileCount}ê°œ\n" +
+                    $"ìƒì„±ëœ ì˜¤ë¸Œì íŠ¸: " +
+                    $"{spawnedTiles.Count}ê°œ\n" +
+                    $"ëˆ„ë½: {missingTileCount}ê°œ\n" +
+                    $"íƒ€ì… ë¶ˆì¼ì¹˜: " +
+                    $"{wrongTypeCount}ê°œ\n" +
+                    $"ë¶ˆí•„ìš”í•œ ì˜¤ë¸Œì íŠ¸: " +
+                    $"{unnecessaryTileCount}ê°œ",
                     this);
 
                 return;
             }
 
             Debug.Log(
-                "Å¸ÀÏ ½Ã°¢È­ °ËÁõ ¿Ï·á\n" +
-                $"¸Ê µ¥ÀÌÅÍ Å¸ÀÏ: " +
-                $"{mapTileCount}°³\n" +
-                $"»ı¼ºµÈ ¿ÀºêÁ§Æ®: " +
-                $"{spawnedTiles.Count}°³",
+                "íƒ€ì¼ ì‹œê°í™” ê²€ì¦ ì™„ë£Œ\n" +
+                $"ë§µ ë°ì´í„° íƒ€ì¼: " +
+                $"{mapTileCount}ê°œ\n" +
+                $"ìƒì„±ëœ ì˜¤ë¸Œì íŠ¸: " +
+                $"{spawnedTiles.Count}ê°œ",
                 this);
+        }
+
+        // ì‹œì‘ì ë¶€í„° í˜„ì¬ ìŠ¤í° ìœ„ì¹˜ê¹Œì§€ ì›”ë“œ ê²½ë¡œ ìƒì„±
+        private void RebuildCurrentWorldEnemyRoute()
+        {
+            currentWorldEnemyRoute.Clear();
+            if (mapGenerator == null ||
+                mapGenerator.CurrentMap == null ||
+                mapGenerator.CurrentMap.EnemyRoute.Count == 0 ||
+                revealController == null ||
+                !revealController.HasSpawnPosition)
+            {
+                return;
+            }
+
+            CombatMapData map =
+                mapGenerator.CurrentMap;
+
+            int finalRouteIndex =
+                Mathf.Clamp(
+                    revealController
+                        .CurrentSpawnRouteIndex,
+                    0,
+                    map.EnemyRoute.Count - 1);
+
+            for (int routeIndex = 0;
+                 routeIndex <= finalRouteIndex;
+                 routeIndex++)
+            {
+                Vector2Int gridPosition =
+                    map.EnemyRoute[routeIndex];
+
+                Vector3 worldPosition =
+                    GridToWorldPosition(
+                        gridPosition);
+
+                currentWorldEnemyRoute.Add(
+                    worldPosition);
+            }
+        }
+        // í˜„ì¬ ê³µê°œëœ ë§ˆì§€ë§‰ Roadì˜ ì›”ë“œ ìŠ¤í° Pose ì œê³µ
+        public bool TryGetCurrentSpawnPose(
+            out Vector3 position,
+            out Quaternion rotation)
+        {
+            position = default;
+            rotation = Quaternion.identity;
+
+            if (mapGenerator == null ||
+      mapGenerator.CurrentMap == null ||
+      mapGenerator.CurrentMap.EnemyRoute.Count == 0 ||
+      revealController == null ||
+      !revealController.HasSpawnPosition)
+            {
+                return false;
+            }
+
+            CombatMapData map =
+                mapGenerator.CurrentMap;
+
+            int spawnRouteIndex =
+                revealController
+                    .CurrentSpawnRouteIndex;
+
+            if (spawnRouteIndex < 0 ||
+                spawnRouteIndex >=
+                map.EnemyRoute.Count)
+            {
+                return false;
+            }
+
+            position =
+                GridToWorldPosition(
+                    map.EnemyRoute[
+                        spawnRouteIndex]);
+
+            Transform coordinateRoot =
+                tileRoot != null
+                    ? tileRoot
+                    : transform;
+
+            // ì´ì „ Road ë°©í–¥, ì¦‰ ì„±ë¬¸ ë°©í–¥ì„ ë°”ë¼ë´„
+            if (spawnRouteIndex > 0)
+            {
+                Vector3 nextPosition =
+                    GridToWorldPosition(
+                        map.EnemyRoute[
+                            spawnRouteIndex - 1]);
+
+                Vector3 direction =
+                    nextPosition - position;
+
+                if (direction.sqrMagnitude >
+                    0.0001f)
+                {
+                    rotation =
+                        Quaternion.LookRotation(
+                            direction.normalized,
+                            coordinateRoot.up);
+
+                    return true;
+                }
+            }
+
+            rotation =
+                coordinateRoot.rotation;
+
+            return true;
         }
     }
 }
