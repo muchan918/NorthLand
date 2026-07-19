@@ -10,7 +10,7 @@
 | 시스템                                      | 소유자     | 경로                                                                 | 상태                                                                                                                                                                    |
 | ------------------------------------------- | ---------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | DataTable (CSV→static 레지스트리→SO)        | muchan     | `Assets/Scripts/Data`                                             | Resource, Building, Tower, Enemy 4종 구현. Tower/Enemy는 Combat(`Tower.cs`/`Enemy.cs`)이 `TowerAsset`/`EnemyAsset`을 직접 소비하도록 이관 완료(PR#80) — 잔여 종류 값 채움 + Soldier 이관은 진행 중(WL-001, 부분 착수). Territory/Reward 확장 예정. **Skill(#103)은 CSV 파이프라인을 쓰지 않기로 확정** — 밸런싱 수치 미정 + 스킬 1~2개뿐이라 과설계로 판단, `PlayerSkill` 시스템 행 참고                                |
-| Combat (타워/몬스터 공격·데미지)            | SUNGSOO    | `Assets/Scripts/CombatSystem` | 공격/데미지 코어만. 이동·사망처리·투사체 없음. `Tower.cs`에 PlayerSkill(#103, muchan)이 버프 배율 필드(`damageMultiplier`/`attackSpeedMultiplier`)와 자가 등록 정적 리스트 `Tower.Active`를 추가함 — 기존 공격 로직·필드는 무수정 |
+| Combat (타워/몬스터 공격·데미지)            | SUNGSOO    | `Assets/Scripts/CombatSystem` | 공격/데미지 코어만. 이동·사망처리·투사체 없음. HP 조회 공개 API(`CurrentHp`/`MaxHp`/`OnHpChanged`) + `PlayerBase` 씬 싱글톤(`Instance`/`OnBaseSpawned`) 추가(#100, HP UI 연동용). `Tower.cs`에 PlayerSkill(#103, muchan)이 버프 배율 필드(`damageMultiplier`/`attackSpeedMultiplier`)와 자가 등록 정적 리스트 `Tower.Active`를 추가함 — 기존 공격 로직·필드는 무수정 |
 | BattleMapBuilder (절차적 전투 맵)           | SUNJIN     | `Assets/Scripts/CombatSpace/MapBuilder`                          | 7×7 블록 경로 생성 구현. 싸이클 버그 해결이 다음 빌드 목표                                                                                                              |
 | MouseManager (입력/선택/배치)               | n0wst4ndup | `Assets/Scripts/GameManager/MouseManager`                            | 3상태 머신 구현(Idle/Placement/SkillTargeting, #103에서 SkillTargeting 추가). Snap 항등·CanPlaceAt 항상 true (TODO)                                                                                                                  |
 | PlayerSkill (플레이어 스킬, #103)           | muchan     | `Assets/Scripts/Skill`                                                | 클릭 시전 감전 스킬(기본 스킬 1종). 밤 게이팅(`Tower.cs`와 동일하게 `DayNightManager.CurrentPhase` 직접 폴링)·쿨다운·범위 데미지(`IDamageable`/`DamageInfo` 재사용, 새 데미지 경로 없음). 수치는 CSV가 아니라 `SkillManager` 인스펙터 직접 입력(WL-015와 같은 축). **버프 스킬 구현 완료**(2번째 스킬, `BuffSkillManager`) — 타겟팅 없이 클릭 즉시 발동, `Tower.Active` 순회해 씬의 모든 Tower에 공격력/공격속도 배율을 일정 시간 부여(`Tower.ApplyBuff`). AuraTower(Magic 타입)는 `AttackFields` 자체가 없어 버프 대상 아님. 보상 기반 특수효과 업그레이드(감전→퍼지는→다단히트)는 미착수 — WL-043(3택1 보상 구조 미착수)이 먼저 해결돼야 착수 가능 |
@@ -40,6 +40,11 @@
   동일 구조의 별도 씬 싱글톤 (공간 분리 계약상 Combat의 `TowerInfoUI`와 공유하지 않음)
 - `IDamageable { Faction, IsDead, TakeDamage(DamageInfo) }`, `IAttacker`, `DamageInfo`,
   `Faction { Player, Enemy }` — namespace `NorthLand.Combat`
+- `Enemy.CurrentHp` / `MaxHp` / `event Action<float,float> OnHpChanged`, `PlayerBase.CurrentHp` /
+  `MaxHp` / `event OnHpChanged` / `static Instance` / `static event Action<PlayerBase> OnBaseSpawned`
+  — HP UI(`Assets/Scripts/UI/HealthUI`, #100)가 구독하는 공개 계약. `PlayerBase.Instance`는 성문
+  (BaseGate) 런타임 스폰 시점(`MonsterSpawn.UpdateGate`)에 설정됨 — `TowerInfoUI`/`DayNightManager`와
+  동일한 씬 싱글톤 계보
 - `ResourceWallet` (경영 자원 상태 저장소, 순수 C#) — `Get(ResourceKind)`, `CanAfford(kind, amount)`,
   `Add(kind, amount)`, `bool TrySpend(kind, amount)`(부족 시 false+로그, 차감 안 함),
   `event Action<ResourceKind,int> OnChanged`(종류, 변경 후 값). 자원 획득/차감은 이 창구로만(팀 계약 #3·#6)
