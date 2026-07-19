@@ -41,8 +41,8 @@ namespace NorthLand.Combat
         TowerAsset.DebuffAuraFields DebuffAura => IsDebuff ? data.Magic?.DebuffAura : null;
         TowerAsset.BuffAuraFields BuffAura => IsBuff ? data.Magic?.BuffAura : null;
 
-        // Buff/Debuff의 서로 다른 필드 클래스를 공통값으로 해석
-        float Radius => DebuffAura?.Radius ?? BuffAura?.Radius ?? 0f;
+        // 반경은 TowerAsset.MagicRadius 단일 출처를 사용(WL-056) — TowerPlacer 프리뷰와 규칙 공유.
+        float Radius => data != null ? data.MagicRadius : 0f;
         float Interval => DebuffAura?.Interval ?? BuffAura?.Interval ?? 0f;
 
         // IAttacker 계약(공개 스탯). 오라 타워라 값이 없으면 0 가드.

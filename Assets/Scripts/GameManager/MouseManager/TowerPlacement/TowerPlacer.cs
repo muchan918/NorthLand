@@ -125,26 +125,14 @@ public class TowerPlacer : MonoBehaviour
                 StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Chain.Attack.AttackRange));
                 break;
             case TowerType.Magic:
-                // 마법 타워는 오라 반경(DebuffAura/BuffAura.Radius)을 사거리 미리보기로 사용(#111 완료기준 #4).
-                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, MagicRange(so)));
+                // 마법 타워는 오라 반경을 사거리 미리보기로 사용(#111 완료기준 #4).
+                // 반경 규칙은 TowerAsset.MagicRadius 단일 출처(WL-056) — AuraTower 실효과와 공유.
+                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.MagicRadius));
                 break;
             default:
                 Debug.LogError($"[TowerPlacer] 알 수 없는 TowerType={type}입니다.");
                 return;
         }
-    }
-
-    // 마법 타워의 오라 반경을 사거리 미리보기 값으로 해석한다(#111 완료기준 #4).
-    // AuraTower.Radius와 동일하게 MagicEffectType으로 분기 — Debuff→DebuffAura, Buff→BuffAura.
-    private static float MagicRange(TowerAsset so)
-    {
-        if (so.Magic == null) return 0f;
-        return so.MagicEffectType switch
-        {
-            MagicEffectType.Debuff => so.Magic.DebuffAura != null ? so.Magic.DebuffAura.Radius : 0f,
-            MagicEffectType.Buff   => so.Magic.BuffAura   != null ? so.Magic.BuffAura.Radius   : 0f,
-            _ => 0f,
-        };
     }
 
     // 게이트웨이(예정): tower/ghost 프리팹 + footprint/range를 담은 SO가 생기면 아래 오버로드를 추가한다.
