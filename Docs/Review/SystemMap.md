@@ -9,10 +9,11 @@
 
 | 시스템                                      | 소유자     | 경로                                                                 | 상태                                                                                                                                                                    |
 | ------------------------------------------- | ---------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| DataTable (CSV→static 레지스트리→SO)        | muchan     | `Assets/Scripts/Data`                                             | Resource, Building, Tower, Enemy 4종 구현. Tower/Enemy는 Combat(`Tower.cs`/`Enemy.cs`)이 `TowerAsset`/`EnemyAsset`을 직접 소비하도록 이관 완료(PR#80) — 잔여 종류 값 채움 + Soldier 이관은 진행 중(WL-001, 부분 착수). Territory/Skill/Reward 확장 예정                                |
-| Combat (타워/몬스터 공격·데미지)            | SUNGSOO    | `Assets/Scripts/CombatSystem` | 공격/데미지 코어만. 이동·사망처리·투사체 없음. HP 조회 공개 API(`CurrentHp`/`MaxHp`/`OnHpChanged`) + `PlayerBase` 씬 싱글톤(`Instance`/`OnBaseSpawned`) 추가(#100, HP UI 연동용)     |
+| DataTable (CSV→static 레지스트리→SO)        | muchan     | `Assets/Scripts/Data`                                             | Resource, Building, Tower, Enemy 4종 구현. Tower/Enemy는 Combat(`Tower.cs`/`Enemy.cs`)이 `TowerAsset`/`EnemyAsset`을 직접 소비하도록 이관 완료(PR#80) — 잔여 종류 값 채움 + Soldier 이관은 진행 중(WL-001, 부분 착수). Territory/Reward 확장 예정. **Skill(#103)은 CSV 파이프라인을 쓰지 않기로 확정** — 밸런싱 수치 미정 + 스킬 1~2개뿐이라 과설계로 판단, `PlayerSkill` 시스템 행 참고                                |
+| Combat (타워/몬스터 공격·데미지)            | SUNGSOO    | `Assets/Scripts/CombatSystem` | 공격/데미지 코어만. 이동·사망처리·투사체 없음. HP 조회 공개 API(`CurrentHp`/`MaxHp`/`OnHpChanged`) + `PlayerBase` 씬 싱글톤(`Instance`/`OnBaseSpawned`) 추가(#100, HP UI 연동용). `Tower.cs`에 PlayerSkill(#103, muchan)이 버프 배율 필드(`damageMultiplier`/`attackSpeedMultiplier`)와 자가 등록 정적 리스트 `Tower.Active`를 추가함 — 기존 공격 로직·필드는 무수정 |
 | BattleMapBuilder (절차적 전투 맵)           | SUNJIN     | `Assets/Scripts/CombatSpace/MapBuilder`                          | 7×7 블록 경로 생성 구현. 싸이클 버그 해결이 다음 빌드 목표                                                                                                              |
-| MouseManager (입력/선택/배치)               | n0wst4ndup | `Assets/Scripts/GameManager/MouseManager`                            | 2상태 머신 구현. Snap 항등·CanPlaceAt 항상 true (TODO)                                                                                                                  |
+| MouseManager (입력/선택/배치)               | n0wst4ndup | `Assets/Scripts/GameManager/MouseManager`                            | 3상태 머신 구현(Idle/Placement/SkillTargeting, #103에서 SkillTargeting 추가). Snap 항등·CanPlaceAt 항상 true (TODO)                                                                                                                  |
+| PlayerSkill (플레이어 스킬, #103)           | muchan     | `Assets/Scripts/Skill`                                                | 클릭 시전 감전 스킬(기본 스킬 1종). 밤 게이팅(`Tower.cs`와 동일하게 `DayNightManager.CurrentPhase` 직접 폴링)·쿨다운·범위 데미지(`IDamageable`/`DamageInfo` 재사용, 새 데미지 경로 없음). 수치는 CSV가 아니라 `SkillManager` 인스펙터 직접 입력(WL-015와 같은 축). **버프 스킬 구현 완료**(2번째 스킬, `BuffSkillManager`) — 타겟팅 없이 클릭 즉시 발동, `Tower.Active` 순회해 씬의 모든 Tower에 공격력/공격속도 배율을 일정 시간 부여(`Tower.ApplyBuff`). AuraTower(Magic 타입)는 `AttackFields` 자체가 없어 버프 대상 아님. 보상 기반 특수효과 업그레이드(감전→퍼지는→다단히트)는 미착수 — WL-043(3택1 보상 구조 미착수)이 먼저 해결돼야 착수 가능 |
 | Localization                                | n0wst4ndup | `Assets/Scripts/Test/LocalizationTest.cs`                            | 로케일 전환 테스트만 (ko-KR/en-US/ja-JP)                                                                                                                                |
 | DayNightManager (낮/밤 상태·전환 이벤트 훅) | muchan     | `Assets/Scripts/DayNight`                                    | 상태 관리 + 전환 이벤트 훅 구현. 자원 정산/주민 배치 초기화는 `Management(Resource)`가 구현(#66), 본진 회복은 미구현(소유 시스템 대기). 밤→낮 트리거는 임시 UI(`NightActionPanelView`의 "웨이브 성공" 버튼, #66)가 `EndNight()` 직접 호출(웨이브 클리어 로직으로 교체 예정, WL-018) |
 | DayNightLighting (낮/밤 전환 조명·스카이박스 연출, #7) | muchan     | `Assets/Scripts/DayNight`                                    | `OnDayToNight`/`OnNightToDay` 구독해 Directional Light·Ambient(Trilight)·Skybox를 즉시 전환(스냅). 부드러운 Lerp 전환은 미구현 — 밤 종료 자동화의 UniTask 전환 작업과 함께 후속 예정 |
@@ -60,6 +61,19 @@
   `event OnHoverChanged(IHoverable)`(커서 밑 호버 대상, 없으면 null. Idle에서만 통지)
 - `ISelectable { OnSelected(), OnDeselected() }`,
   `PlacementRequest { GhostPrefab, Snap(RaycastHit→pos), CanPlaceAt(RaycastHit), OnConfirmed(RaycastHit,pos), OnEnded, KeepPlacingAfterConfirm }` — **히트 인지형**: 스냅/검증/확정을 요청 측이 소유(MouseManager는 그리드 규칙 무지), `OnEnded`로 취소/확정 시 프리뷰 정리(PR#81)
+- `MouseManager.Instance.BeginSkillTargeting(SkillTargetRequest)` / `CancelSkillTargeting()`(#103) —
+  `SkillTargetRequest { GhostPrefab, OnConfirmed(Vector3), OnEnded }`. `PlacementRequest`의 경량 버전 —
+  그리드 스냅·점유 검증(`Snap`/`CanPlaceAt`) 없이 `_placementMask` 히트 지점을 그대로 확정 콜백에 넘긴다
+- `SkillManager.Instance` — **null 반환 가능(씬에 없으면) → 호출부 null 체크 필수**(#103).
+  `CastAt(Vector3)`(범위 내 적에게 데미지, 밤+쿨다운 게이팅 통과 못하면 false), `CanCast()`,
+  `IsReady`, `CooldownRemaining01`(0~1, UI 바인딩용), `Radius`
+- `BuffSkillManager.Instance` — **null 반환 가능 → 호출부 null 체크 필수**(#103). `Activate()`(타겟팅 없이
+  즉시 발동, 밤+쿨다운 게이팅 통과 못하면 false), `CanCast()`, `IsReady`, `CooldownRemaining01`
+- `Tower.Active`(`static List<Tower>`, `NorthLand.Combat`) — 씬에 활성화된 모든 Tower가 `OnEnable`/`OnDisable`로
+  자가 등록/해제(#103). `FindObjectsByType<Tower>()` 대체용 — 소비처가 씬을 훑지 않고 순회만 하면 됨
+- `Tower.ApplyBuff(float damageMul, float attackSpeedMul, float duration)` — 지속시간 동안 공격력/공격속도
+  배율 적용 후 자동 원복(UniTask, `AuraTower.AuraLoop`와 동일한 `CancellationTokenSource` 패턴). 공유 `TowerAsset`
+  값은 건드리지 않음 — 인스턴스별 런타임 배율만 조작
 - `IHoverable { TooltipContent? GetTooltipContent(), void OnHoverEnter(), void OnHoverExit() }` — 호버 시 툴팁 내용을 pull 공급(호버 시점마다 호출 → 동적 값 가능, `null`이면 툴팁 없음)
   + 호버 진입/이탈 훅(하이라이트 등 연출, `MouseManager.SetHover`가 대상 전환 시 호출, #67)
 - `TooltipUI.Instance.Show(TooltipContent)` / `Hide()` — 커서 추적 범용 툴팁 뷰(#38). **임시 싱글톤(UIManager 흡수 예정)**,
@@ -97,6 +111,8 @@
 | Management(Resource) ↔ Territory         | `TerritoryController.HasExpandedToday`(하루 1회 확장 완료 여부, `OnDayStart`마다 초기화)가 `ManagementController.CanAssignVillagers`를 게이팅 — 확장 전엔 `AssignVillager`/`UnassignVillager` 불가(이슈 #67, GDD §6.1). `ManagementController`가 `TerritoryController.OnChanged` 구독해 확장/낮 시작 시 패널 즉시 갱신(`ProductionLineView`의 `+`/`-` `interactable`도 함께 반영). `TerritoryController`가 씬에 없으면(null) 게이트 없이 배치 허용(permissive, WL-002와 동일 완화 패턴) |
 | DataTable(Building) ↔ MouseManager       | `BuildingInfo`가 `ISelectable` 구현 + `BuildingAsset` 보유 — 선택 시 `BuildingInfoUI` 직접 호출(이벤트 미구독, WL-011과 동일 패턴). `BuildingTooltipSource`(#38)가 `IHoverable` 구현 + `BuildingAsset`/`BuildingData`/`BuildingType`을 **읽기 전용** 소비(muchan 구조 바뀌면 툴팁 깨짐 — 자체 `DataTableManager.Get` 조회, Data 채움 규약 의존). `MouseManager`가 씬에 없으면 조용히 무반응(WL-002) — 씬마다 배치·`_camera` 재할당 필요 |
 | MouseManager ↔ TerritoryGraph            | `TerritoryNodeView`가 `ISelectable`(클릭=즉시 `TerritoryController.TryClaim`) + `IHoverable`(호버 시 색 변경, `GetTooltipContent()`는 `null`이라 `TooltipUI`와는 무관) 둘 다 구현 — 같은 콜라이더에 두 인터페이스 공존이 이미 지원되는 경로임을 실증(#67, `BuildingInfo`+`BuildingTooltipSource` 조합과 동일 패턴). Layer 6(`Selectable`) 배정 확인됨(WL-005 해소) |
+| PlayerSkill ↔ MouseManager               | 스킬 버튼 클릭 → `BeginSkillTargeting(SkillTargetRequest)` → 확정 시 `OnConfirmed(Vector3)`로 `SkillManager.CastAt` 호출(#103). `PlacementRequest`와 별개 타입 — 그리드 개념 없음                                                                                                            |
+| PlayerSkill ↔ Combat                     | (감전) 새 데미지 파이프라인 없이 `IDamageable`/`DamageInfo`/`Faction`을 그대로 소비(`Tower.FindTarget()`/`Projectile.ApplyArea()`와 동일한 `OverlapSphereNonAlloc`+Faction 필터링 패턴). `DamageInfo.Source`는 스킬 시전 시 `null`(IAttacker 개체가 아님 — 현재 아무도 역참조 안 해 안전). (버프) `Tower.Active` 순회 + `Tower.ApplyBuff` 호출 — `Tower.cs`에 직접 필드를 추가한 형태라 SUNGSOO의 Combat 코드와 결합도가 감전보다 높음(WL 후보로 지켜볼 것) |
 | 모든 시스템 ↔ 전역 설정                  | 레이어/태그(`ProjectSettings/TagManager.asset` — WL-005), URP 설정(`Assets/Settings`), 패키지(`Packages/manifest.json`)                                                                                                    |
 
 ## 4. 팀 계약 (위반 = 🔴 후보)
