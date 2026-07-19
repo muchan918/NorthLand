@@ -71,6 +71,7 @@ public class ManagementController : MonoBehaviour
     /// <summary>Cost 리스트를 감당할 수 있는지 판정한다. null/빈 리스트는 무료(true).</summary>
     public bool CanAfford(IReadOnlyList<ResourceCost> costs)
     {
+        if (costs == null || costs.Count == 0) return true; // 무료 — 매 프레임 조회 시 할당 회피
         if (_wallet == null) return false;
         foreach (KeyValuePair<ResourceKind, int> need in AggregateCost(costs))
         {
