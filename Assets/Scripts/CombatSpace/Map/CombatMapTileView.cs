@@ -6,27 +6,49 @@ namespace CombatSpace
     // 타일 하나의 논리 정보를 실제 GameObject와 연결
     public sealed class CombatMapTileView : MonoBehaviour
     {
-        public Vector2Int GridPosition {get;private set;}
+        [SerializeField]
+        [HideInInspector]
+        private Vector2Int gridPosition;
 
-        public CombatTileType TileType {get;private set;}
+        [SerializeField]
+        [HideInInspector]
+        private CombatTileType tileType;
 
-        public int RouteIndex {get;private set;}
+        [SerializeField]
+        [HideInInspector]
+        private int routeIndex = -1;
 
-        public void Initialize(CombatTileData tileData)
+        public Vector2Int GridPosition =>
+            gridPosition;
+
+        public CombatTileType TileType =>
+            tileType;
+
+        public int RouteIndex =>
+            routeIndex;
+
+        public void Initialize(
+            CombatTileData tileData)
         {
             if (tileData == null)
             {
                 throw new ArgumentNullException(
-                nameof(tileData));
+                    nameof(tileData));
             }
 
-            GridPosition =tileData.Position;
+            gridPosition =
+                tileData.Position;
 
-            TileType =tileData.Type;
+            tileType =
+                tileData.Type;
 
-            RouteIndex =tileData.RouteIndex;
+            routeIndex =
+                tileData.RouteIndex;
 
-            gameObject.name =$"Tile_{TileType}_{GridPosition.x}_{GridPosition.y}";
+            gameObject.name =
+                $"Tile_{tileType}_" +
+                $"{gridPosition.x}_" +
+                $"{gridPosition.y}";
         }
     }
 }

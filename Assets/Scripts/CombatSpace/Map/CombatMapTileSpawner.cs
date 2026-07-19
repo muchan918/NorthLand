@@ -44,6 +44,7 @@ namespace CombatSpace
 
         private void OnEnable()
         {
+            RebuildSpawnedTileCache();
             SubscribeRevealEvent();
         }
 
@@ -83,6 +84,11 @@ namespace CombatSpace
             Vector2Int position,
             out CombatMapTileView tileView)
         {
+            if (spawnedTiles.Count == 0)
+            {
+                RebuildSpawnedTileCache();
+            }
+
             return spawnedTiles.TryGetValue(
                 position,
                 out tileView);
@@ -248,6 +254,60 @@ namespace CombatSpace
             return true;
         }
 
+        // 자식 타일을 검색하여 딕셔너리 복구
+        [ContextMenu("Rebuild Spawned Tile Cache")]
+        public void RebuildSpawnedTileCache()
+        {
+            spawnedTiles.Clear();
+
+            Transform parent =
+                tileRoot != null
+                    ? tileRoot
+                    : transform;
+
+            CombatMapTileView[] tileViews =
+                parent.GetComponentsInChildren<
+                    CombatMapTileView>(true);
+
+            int duplicateCount = 0;
+
+            foreach (CombatMapTileView tileView
+                     in tileViews)
+            {
+                if (tileView == null)
+                {
+                    continue;
+                }
+
+                Vector2Int position =
+                    tileView.GridPosition;
+
+                if (spawnedTiles.ContainsKey(position))
+                {
+                    duplicateCount++;
+
+                    Debug.LogWarning(
+                        $"중복 타일 좌표 발견: " +
+                        $"{position}",
+                        tileView);
+
+                    continue;
+                }
+
+                spawnedTiles.Add(
+                    position,
+                    tileView);
+            }
+
+            Debug.Log(
+                "타일 캐시 복구 완료\n" +
+                $"복구된 타일: " +
+                $"{spawnedTiles.Count}개\n" +
+                $"중복 좌표: " +
+                $"{duplicateCount}개",
+                this);
+        }
+
         // 공개 데이터에 따라 타일 GameObject 활성화
         [ContextMenu("Refresh Tile Visibility")]
         public void RefreshTileVisibility()
@@ -268,6 +328,11 @@ namespace CombatSpace
                     this);
 
                 return;
+            }
+
+            if (spawnedTiles.Count == 0)
+            {
+                RebuildSpawnedTileCache();
             }
 
             int visibleTileCount = 0;
@@ -345,6 +410,11 @@ namespace CombatSpace
                     this);
 
                 return;
+            }
+
+            if (spawnedTiles.Count == 0)
+            {
+                RebuildSpawnedTileCache();
             }
 
             CombatMapData map =
