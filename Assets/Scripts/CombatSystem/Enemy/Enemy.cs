@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace NorthLand.Combat
@@ -34,10 +35,16 @@ namespace NorthLand.Combat
         {
             currentHp = Stat != null ? Stat.MaxHp : 0f;
             movement = GetComponent<IMovementAgent>();
+            OnHpChanged?.Invoke(currentHp, MaxHp);
         }
 
         public Faction Faction => Faction.Enemy;
         public bool IsDead => currentHp <= 0f;
+
+        // HP UI(월드 스페이스 체력바 등)가 구독하는 공개 계약. Awake와 TakeDamage에서 통지.
+        public float CurrentHp => currentHp;
+        public float MaxHp => Stat != null ? Stat.MaxHp : 0f;
+        public event Action<float, float> OnHpChanged;
 
         // Stat 미설정(Stat==null)에서도 안전하도록 null 가드(공개 IAttacker 계약).
         public float AttackDamage => Stat != null ? Stat.AttackDamage : 0f;
@@ -70,6 +77,7 @@ namespace NorthLand.Combat
         {
             currentHp -= info.Amount;
             // Debug.Log($"{name} took {info.Amount} dmg, hp={currentHp}");
+            OnHpChanged?.Invoke(currentHp, MaxHp);
 
             if (IsDead)
                 Die();
