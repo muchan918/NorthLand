@@ -13,7 +13,7 @@ namespace CombatSpace
                 return false;
             }
 
-            List<Vector2Int> ordered = CreateNearestNeighborOrder( map.MajorWaypoints, map.RouteStartPosition);
+            List<Vector2Int> ordered = CreateNearestNeighborOrder(map.MajorWaypoints, map.RouteStartPosition);
 
             ImproveWithTwoOpt(ordered);
 
@@ -25,7 +25,7 @@ namespace CombatSpace
         }
 
         // 시작점과 가장 가까운 웨이포인트 검색
-        private int FindStartIndex( List<Vector2Int> waypoints,  Vector2Int routeStartPosition)
+        private int FindStartIndex(List<Vector2Int> waypoints,  Vector2Int routeStartPosition)
         {
             int bestIndex = 0;
 
@@ -81,9 +81,7 @@ namespace CombatSpace
 
             int nearestDistance = (candidates[0] - current).sqrMagnitude;
 
-            for (int i = 1;
-                 i < candidates.Count;
-                 i++)
+            for (int i = 1; i < candidates.Count; i++)
             {
                 int distance = (candidates[i] - current) .sqrMagnitude;
 
@@ -111,41 +109,25 @@ namespace CombatSpace
             {
                 improved = false;
 
-                for (int i = 1;
-                     i < route.Count - 2;
-                     i++)
+                for (int i = 1;  i < route.Count - 2;i++)
                 {
-                    for (int k = i + 1;
-                         k < route.Count - 1;
-                         k++)
+                    for (int k = i + 1; k < route.Count - 1; k++)
                     {
-                        Vector2Int a =
-                            route[i - 1];
+                        Vector2Int a =route[i - 1];
 
-                        Vector2Int b =
-                            route[i];
+                        Vector2Int b =route[i];
 
-                        Vector2Int c =
-                            route[k];
+                        Vector2Int c =route[k];
 
-                        Vector2Int d =
-                            route[k + 1];
+                        Vector2Int d =route[k + 1];
 
-                        int currentDistance =
-                            (a - b).sqrMagnitude +
-                            (c - d).sqrMagnitude;
+                        int currentDistance =(a - b).sqrMagnitude + (c - d).sqrMagnitude;
 
-                        int changedDistance =
-                            (a - c).sqrMagnitude +
-                            (b - d).sqrMagnitude;
+                        int changedDistance = (a - c).sqrMagnitude + (b - d).sqrMagnitude;
 
-                        if (changedDistance <
-                            currentDistance)
+                        if (changedDistance <currentDistance)
                         {
-                            ReverseRange(
-                                route,
-                                i,
-                                k);
+                            ReverseRange(route, i, k);
 
                             improved = true;
                         }
