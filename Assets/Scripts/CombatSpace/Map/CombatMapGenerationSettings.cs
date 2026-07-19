@@ -3,11 +3,8 @@ using UnityEngine;
 namespace CombatSpace
 {
     // 전투맵 생성에 사용하는 설정값
-    [CreateAssetMenu(
-        fileName = "CombatMapGenerationSettings",
-        menuName = "Combat Space/Map Generation Settings")]
-    public sealed class CombatMapGenerationSettings :
-        ScriptableObject
+    [CreateAssetMenu( fileName = "CombatMapGenerationSettings", menuName = "Combat Space/Map Generation Settings")]
+    public sealed class CombatMapGenerationSettings :  ScriptableObject
     {
         [Header("Grid")]
         [Min(1)]
@@ -42,8 +39,7 @@ namespace CombatSpace
         [Min(0f)]
         public float TurnPenalty = 0.5f;
 
-        public Vector2Int RouteStartPosition =
-            new Vector2Int(0, 35);
+        public Vector2Int RouteStartPosition =  new Vector2Int(0, 35);
 
         [Header("Grass")]
         [Min(1)]
@@ -79,47 +75,36 @@ namespace CombatSpace
         public int WaterSmoothingIterations = 0;
 
         // 설정값이 맵 생성에 사용 가능한지 검사
-        public bool Validate(
-            out string errorMessage)
+        public bool Validate( out string errorMessage)
         {
-            if (Width < 1 ||
-                Height < 1)
+            if (Width < 1 ||  Height < 1)
             {
-                errorMessage =
-                    "Width와 Height는 1 이상이어야 합니다.";
+                errorMessage = "Width와 Height는 1 이상이어야 합니다.";
 
                 return false;
             }
 
             if (MapMargin < 0)
             {
-                errorMessage =
-                    "MapMargin은 0보다 작을 수 없습니다.";
+                errorMessage =  "MapMargin은 0보다 작을 수 없습니다.";
 
                 return false;
             }
 
-            int usableWidth =
-                Width - MapMargin * 2;
+            int usableWidth =  Width - MapMargin * 2;
 
-            int usableHeight =
-                Height - MapMargin * 2;
+            int usableHeight = Height - MapMargin * 2;
 
-            if (usableWidth <= 0 ||
-                usableHeight <= 0)
+            if (usableWidth <= 0 || usableHeight <= 0)
             {
-                errorMessage =
-                    "MapMargin 때문에 사용할 수 있는 영역이 없습니다.";
+                errorMessage = "MapMargin 때문에 사용할 수 있는 영역이 없습니다.";
 
                 return false;
             }
 
-            if (MinWaypointCount < 2 ||
-                MaxWaypointCount <
-                MinWaypointCount)
+            if (MinWaypointCount < 2 ||   MaxWaypointCount < MinWaypointCount)
             {
-                errorMessage =
-                    "웨이포인트 최소·최대 개수가 잘못됐습니다.";
+                errorMessage = "웨이포인트 최소·최대 개수가 잘못됐습니다.";
 
                 return false;
             }
@@ -133,115 +118,86 @@ namespace CombatSpace
                 return false;
             }
 
-            int requiredColumns =
-                MaxWaypointCount <= 9
-                    ? 3
-                    : 4;
+            int requiredColumns = MaxWaypointCount <= 9  ? 3 : 4;
 
             const int requiredRows = 3;
 
-            if (usableWidth < requiredColumns ||
-                usableHeight < requiredRows)
+            if (usableWidth < requiredColumns || usableHeight < requiredRows)
             {
-                errorMessage =
-                    "웨이포인트 셀을 만들기에 맵이 너무 작습니다.";
+                errorMessage =  "웨이포인트 셀을 만들기에 맵이 너무 작습니다.";
 
                 return false;
             }
 
             if (MinWaypointDistance < 1)
             {
-                errorMessage =
-                    "웨이포인트 최소 거리는 1 이상이어야 합니다.";
+                errorMessage =  "웨이포인트 최소 거리는 1 이상이어야 합니다.";
 
                 return false;
             }
 
             if (MaxWaypointPlacementAttempts < 1)
             {
-                errorMessage =
-                    "웨이포인트 배치 시도 횟수는 1 이상이어야 합니다.";
+                errorMessage = "웨이포인트 배치 시도 횟수는 1 이상이어야 합니다.";
 
                 return false;
             }
 
-            bool startInside =
-                RouteStartPosition.x >= 0 &&
-                RouteStartPosition.x < Width &&
-                RouteStartPosition.y >= 0 &&
-                RouteStartPosition.y < Height;
+            bool startInside =  RouteStartPosition.x >= 0 && RouteStartPosition.x < Width &&  RouteStartPosition.y >= 0 &&
+                                 RouteStartPosition.y < Height;
 
             if (!startInside)
             {
-                errorMessage =
-                    $"시작 좌표 {RouteStartPosition}가 " +
-                    $"맵 {Width}×{Height} 범위를 벗어났습니다.";
+                errorMessage = $"시작 좌표 {RouteStartPosition}가 " +  $"맵 {Width}×{Height} 범위를 벗어났습니다.";
 
                 return false;
             }
 
-            if (RouteNoiseScale < 0f ||
-                RouteNoiseWeight < 0f ||
-                TurnPenalty < 0f)
+            if (RouteNoiseScale < 0f ||  RouteNoiseWeight < 0f ||  TurnPenalty < 0f)
             {
-                errorMessage =
-                    "Road 관련 수치는 0보다 작을 수 없습니다.";
+                errorMessage = "Road 관련 수치는 0보다 작을 수 없습니다.";
 
                 return false;
             }
 
             if (GrassRadius < 1)
             {
-                errorMessage =
-                    "GrassRadius는 1 이상이어야 합니다.";
+                errorMessage =  "GrassRadius는 1 이상이어야 합니다.";
 
                 return false;
             }
 
-            if (ErosionProbability < 0f ||
-                ErosionProbability > 1f)
+            if (ErosionProbability < 0f ||  ErosionProbability > 1f)
             {
-                errorMessage =
-                    "침식 확률은 0~1이어야 합니다.";
+                errorMessage = "침식 확률은 0~1이어야 합니다.";
 
                 return false;
             }
 
-            if (MinErosionIterations < 0 ||
-                MaxErosionIterations <
-                MinErosionIterations)
+            if (MinErosionIterations < 0 ||  MaxErosionIterations < MinErosionIterations)
             {
-                errorMessage =
-                    "침식 최소·최대 반복 횟수가 잘못됐습니다.";
+                errorMessage =  "침식 최소·최대 반복 횟수가 잘못됐습니다.";
 
                 return false;
             }
 
             if (WaterNoiseScale < 0f)
             {
-                errorMessage =
-                    "WaterNoiseScale은 0보다 작을 수 없습니다.";
+                errorMessage =  "WaterNoiseScale은 0보다 작을 수 없습니다.";
 
                 return false;
             }
 
-            if (WaterThreshold < 0f ||
-                WaterThreshold > 1f ||
-                MaxWaterRatio < 0f ||
-                MaxWaterRatio > 1f)
+            if (WaterThreshold < 0f ||  WaterThreshold > 1f ||  MaxWaterRatio < 0f || MaxWaterRatio > 1f)
             {
-                errorMessage =
-                    "Water 확률 관련 수치는 0~1이어야 합니다.";
+                errorMessage =   "Water 확률 관련 수치는 0~1이어야 합니다.";
 
                 return false;
             }
 
-            if (WaterRoadClearance < 0 ||
-                MinWaterArea < 1 ||
-                WaterSmoothingIterations < 0)
+            if (WaterRoadClearance < 0 ||  MinWaterArea < 1 ||   WaterSmoothingIterations < 0)
             {
-                errorMessage =
-                    "Water 관련 설정값이 잘못됐습니다.";
+                errorMessage = "Water 관련 설정값이 잘못됐습니다.";
 
                 return false;
             }
