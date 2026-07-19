@@ -345,5 +345,134 @@ namespace CombatSpace
 
             return true;
         }
+        [ContextMenu("Validate Reveal State")]
+        public void ValidateRevealState()
+        {
+            if (!TryGetMap(out CombatMapData map))
+            {
+                return;
+            }
+
+            if (RevealData == null ||
+                tileRevealIndices == null)
+            {
+                Debug.LogError(
+                    "먼저 공개 데이터를 초기화해야 합니다.",
+                    this);
+
+                return;
+            }
+
+            if (LastRevealedRouteIndex < 0 ||
+                LastRevealedRouteIndex >=
+                map.EnemyRoute.Count)
+            {
+                Debug.LogError(
+                    "마지막 공개 Road 인덱스가 잘못됐습니다.",
+                    this);
+
+                return;
+            }
+
+            int expectedRevealedCount = 0;
+            int missingRevealCount = 0;
+            int earlyRevealCount = 0;
+
+            for (int x = 0; x < map.Width; x++)
+            {
+                for (int y = 0; y < map.Height; y++)
+                {
+                    int revealIndex =
+                        tileRevealIndices[x, y];
+
+                    if (revealIndex < 0)
+                    {
+                        continue;
+                    }
+
+                    Vector2Int position =
+                        new Vector2Int(x, y);
+
+                    bool shouldBeRevealed =
+                        revealIndex <=
+                        LastRevealedRouteIndex;
+
+                    bool isRevealed =
+                        RevealData.IsRevealed(position);
+
+                    if (shouldBeRevealed)
+                    {
+                        expectedRevealedCount++;
+
+                        if (!isRevealed)
+                        {
+                            missingRevealCount++;
+                        }
+                    }
+                    else if (isRevealed)
+                    {
+                        earlyRevealCount++;
+                    }
+                }
+            }
+
+            Vector2Int expectedSpawnPosition =
+                map.EnemyRoute[
+                    LastRevealedRouteIndex];
+
+            bool spawnPositionMatches =
+                CurrentSpawnPosition ==
+                expectedSpawnPosition;
+
+            bool finalRoundComplete =
+                CurrentRound < totalRounds ||
+                LastRevealedRouteIndex ==
+                map.EnemyRoute.Count - 1;
+
+            bool isValid =
+                missingRevealCount == 0 &&
+                earlyRevealCount == 0 &&
+                spawnPositionMatches &&
+                finalRoundComplete &&
+                RevealData.RevealedTileCount ==
+                expectedRevealedCount;
+
+            if (!isValid)
+            {
+                Debug.LogError(
+                    "맵 공개 상태 검증 실패\n" +
+                    $"현재 라운드: " +
+                    $"{CurrentRound}/{totalRounds}\n" +
+                    $"마지막 RouteIndex: " +
+                    $"{LastRevealedRouteIndex}\n" +
+                    $"예상 공개 타일: " +
+                    $"{expectedRevealedCount}개\n" +
+                    $"실제 공개 타일: " +
+                    $"{RevealData.RevealedTileCount}개\n" +
+                    $"공개 누락: " +
+                    $"{missingRevealCount}개\n" +
+                    $"미래 타일 조기 공개: " +
+                    $"{earlyRevealCount}개\n" +
+                    $"스폰 좌표 일치: " +
+                    $"{spawnPositionMatches}\n" +
+                    $"최종 라운드 전체 공개: " +
+                    $"{finalRoundComplete}",
+                    this);
+
+                return;
+            }
+
+            Debug.Log(
+                "맵 공개 상태 검증 완료\n" +
+                $"현재 라운드: " +
+                $"{CurrentRound}/{totalRounds}\n" +
+                $"마지막 RouteIndex: " +
+                $"{LastRevealedRouteIndex}\n" +
+                $"공개 타일: " +
+                $"{RevealData.RevealedTileCount}개\n" +
+                $"몬스터 스폰 좌표: " +
+                $"{CurrentSpawnPosition}",
+                this);
+        }
     }
 }

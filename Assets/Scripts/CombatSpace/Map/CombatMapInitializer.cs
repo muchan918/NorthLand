@@ -35,14 +35,12 @@ namespace CombatSpace
                 return;
             }
 
-            // 1. 논리 맵 생성
-            mapGenerator.Generate();
-
-            if (mapGenerator.CurrentMap == null ||
-                mapGenerator.CurrentMap.EnemyRoute.Count == 0)
+            // 1. 재시도를 포함한 논리 맵 생성
+            if (!mapGenerator.TryGenerate())
             {
                 Debug.LogError(
-                    "전투맵 데이터 생성에 실패했습니다.",
+                    "전투맵 데이터 생성에 실패했습니다.\n" +
+                    mapGenerator.LastGenerationError,
                     this);
 
                 return;

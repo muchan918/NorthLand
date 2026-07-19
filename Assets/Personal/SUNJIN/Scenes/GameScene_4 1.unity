@@ -11640,6 +11640,7 @@ GameObject:
   - component: {fileID: 743270836}
   - component: {fileID: 743270837}
   - component: {fileID: 743270838}
+  - component: {fileID: 743270839}
   m_Layer: 0
   m_Name: MapBuilder
   m_TagString: Untagged
@@ -11731,6 +11732,22 @@ MonoBehaviour:
   totalRounds: 30
   previewRounds: 2
   testRound: 1
+--- !u!114 &743270839
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 743270831}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4905be42a7f829d45ab866fdbeb82e0c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapInitializer
+  mapGenerator: {fileID: 743270835}
+  tileSpawner: {fileID: 743270837}
+  revealController: {fileID: 743270838}
+  initializeOnStart: 1
 --- !u!1001 &743754156
 PrefabInstance:
   m_ObjectHideFlags: 0
