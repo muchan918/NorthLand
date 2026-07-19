@@ -11638,6 +11638,7 @@ GameObject:
   - component: {fileID: 743270833}
   - component: {fileID: 743270835}
   - component: {fileID: 743270836}
+  - component: {fileID: 743270837}
   m_Layer: 0
   m_Name: MapBuilder
   m_TagString: Untagged
@@ -11687,12 +11688,31 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapDebugView
   mapGenerator: {fileID: 743270835}
-  tileSize: 0.2
+  tileSize: 10
   roadColor: {r: 0.55, g: 0.3, b: 0.1, a: 1}
   grassColor: {r: 0.2, g: 0.65, b: 0.2, a: 1}
   waterColor: {r: 0.15, g: 0.45, b: 0.9, a: 1}
   waypointColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   startColor: {r: 1, g: 0, b: 0, a: 1}
+--- !u!114 &743270837
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 743270831}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5db95a4b0ce62e04b9500fbaff55e712, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapTileSpawner
+  mapGenerator: {fileID: 743270835}
+  tileRoot: {fileID: 743270833}
+  roadTilePrefab: {fileID: 4487478223510309306, guid: d89ca38ea4bae854dab1c78fa7323572, type: 3}
+  grassTilePrefab: {fileID: 4692752870796322662, guid: ed43d90ee48e54e4f8fd6fcb23aa3f66, type: 3}
+  waterTilePrefab: {fileID: 5493073456165885573, guid: c9408da30a5b4504b861db4e0c9f490d, type: 3}
+  tileSize: 10
+  tileHeight: 0
 --- !u!1001 &743754156
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -18479,84 +18499,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4028459722524686, guid: 1a51fe95cc8cc3a4ca8f62728430ca9f, type: 3}
   m_PrefabInstance: {fileID: 1213415832}
   m_PrefabAsset: {fileID: 0}
---- !u!1001 &1214129621
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 4487478223510309306, guid: d89ca38ea4bae854dab1c78fa7323572, type: 3}
-      propertyPath: m_Name
-      value: road
-      objectReference: {fileID: 0}
-    - target: {fileID: 4823733747244251734, guid: d89ca38ea4bae854dab1c78fa7323572, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 180.92322
-      objectReference: {fileID: 0}
-    - target: {fileID: 4823733747244251734, guid: d89ca38ea4bae854dab1c78fa7323572, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4823733747244251734, guid: d89ca38ea4bae854dab1c78fa7323572, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -333.8063
-      objectReference: {fileID: 0}
-    - target: {fileID: 4823733747244251734, guid: d89ca38ea4bae854dab1c78fa7323572, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4823733747244251734, guid: d89ca38ea4bae854dab1c78fa7323572, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4823733747244251734, guid: d89ca38ea4bae854dab1c78fa7323572, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4823733747244251734, guid: d89ca38ea4bae854dab1c78fa7323572, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4823733747244251734, guid: d89ca38ea4bae854dab1c78fa7323572, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4823733747244251734, guid: d89ca38ea4bae854dab1c78fa7323572, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4823733747244251734, guid: d89ca38ea4bae854dab1c78fa7323572, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 2342625554885270731, guid: d89ca38ea4bae854dab1c78fa7323572, type: 3}
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 4487478223510309306, guid: d89ca38ea4bae854dab1c78fa7323572, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1214129623}
-  m_SourcePrefab: {fileID: 100100000, guid: d89ca38ea4bae854dab1c78fa7323572, type: 3}
---- !u!1 &1214129622 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 4487478223510309306, guid: d89ca38ea4bae854dab1c78fa7323572, type: 3}
-  m_PrefabInstance: {fileID: 1214129621}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1214129623
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1214129622}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9af631c624b695342a7f7637f32e1197, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapTileView
 --- !u!1 &1214859013
 GameObject:
   m_ObjectHideFlags: 0
@@ -24870,84 +24812,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4289620092115366, guid: 6b3a0a8d72b6b4b4aa7b2a26fc174c1d, type: 3}
   m_PrefabInstance: {fileID: 1686591832}
   m_PrefabAsset: {fileID: 0}
---- !u!1001 &1695487334
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 463719400109192362, guid: c9408da30a5b4504b861db4e0c9f490d, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 180.92322
-      objectReference: {fileID: 0}
-    - target: {fileID: 463719400109192362, guid: c9408da30a5b4504b861db4e0c9f490d, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 463719400109192362, guid: c9408da30a5b4504b861db4e0c9f490d, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -333.8063
-      objectReference: {fileID: 0}
-    - target: {fileID: 463719400109192362, guid: c9408da30a5b4504b861db4e0c9f490d, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 463719400109192362, guid: c9408da30a5b4504b861db4e0c9f490d, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 463719400109192362, guid: c9408da30a5b4504b861db4e0c9f490d, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 463719400109192362, guid: c9408da30a5b4504b861db4e0c9f490d, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 463719400109192362, guid: c9408da30a5b4504b861db4e0c9f490d, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 463719400109192362, guid: c9408da30a5b4504b861db4e0c9f490d, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 463719400109192362, guid: c9408da30a5b4504b861db4e0c9f490d, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5493073456165885573, guid: c9408da30a5b4504b861db4e0c9f490d, type: 3}
-      propertyPath: m_Name
-      value: Water
-      objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 1157878533706409928, guid: c9408da30a5b4504b861db4e0c9f490d, type: 3}
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 5493073456165885573, guid: c9408da30a5b4504b861db4e0c9f490d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1695487336}
-  m_SourcePrefab: {fileID: 100100000, guid: c9408da30a5b4504b861db4e0c9f490d, type: 3}
---- !u!1 &1695487335 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 5493073456165885573, guid: c9408da30a5b4504b861db4e0c9f490d, type: 3}
-  m_PrefabInstance: {fileID: 1695487334}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1695487336
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1695487335}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9af631c624b695342a7f7637f32e1197, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapTileView
 --- !u!1001 &1700444203
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -27876,84 +27740,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1858614551}
   m_CullTransparentMesh: 1
---- !u!1001 &1861172691
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 1112560327074193699, guid: ed43d90ee48e54e4f8fd6fcb23aa3f66, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 180.92322
-      objectReference: {fileID: 0}
-    - target: {fileID: 1112560327074193699, guid: ed43d90ee48e54e4f8fd6fcb23aa3f66, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1112560327074193699, guid: ed43d90ee48e54e4f8fd6fcb23aa3f66, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -333.8063
-      objectReference: {fileID: 0}
-    - target: {fileID: 1112560327074193699, guid: ed43d90ee48e54e4f8fd6fcb23aa3f66, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 1112560327074193699, guid: ed43d90ee48e54e4f8fd6fcb23aa3f66, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1112560327074193699, guid: ed43d90ee48e54e4f8fd6fcb23aa3f66, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1112560327074193699, guid: ed43d90ee48e54e4f8fd6fcb23aa3f66, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1112560327074193699, guid: ed43d90ee48e54e4f8fd6fcb23aa3f66, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1112560327074193699, guid: ed43d90ee48e54e4f8fd6fcb23aa3f66, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1112560327074193699, guid: ed43d90ee48e54e4f8fd6fcb23aa3f66, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4692752870796322662, guid: ed43d90ee48e54e4f8fd6fcb23aa3f66, type: 3}
-      propertyPath: m_Name
-      value: grass
-      objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 3002302956492666449, guid: ed43d90ee48e54e4f8fd6fcb23aa3f66, type: 3}
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 4692752870796322662, guid: ed43d90ee48e54e4f8fd6fcb23aa3f66, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1861172693}
-  m_SourcePrefab: {fileID: 100100000, guid: ed43d90ee48e54e4f8fd6fcb23aa3f66, type: 3}
---- !u!1 &1861172692 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 4692752870796322662, guid: ed43d90ee48e54e4f8fd6fcb23aa3f66, type: 3}
-  m_PrefabInstance: {fileID: 1861172691}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1861172693
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1861172692}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9af631c624b695342a7f7637f32e1197, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapTileView
 --- !u!1001 &1861306534
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -31615,6 +31401,3 @@ SceneRoots:
   - {fileID: 1384901248}
   - {fileID: 1551337336}
   - {fileID: 1318080317}
-  - {fileID: 1861172691}
-  - {fileID: 1214129621}
-  - {fileID: 1695487334}
