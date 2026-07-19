@@ -43,18 +43,27 @@
    │                                 │
 ┌──┴───────────┐               ┌─────▼────────┐
 │     Idle     │               │  Placement   │
-│  (선택 모드) │               │  (배치 모드) │
-└──┬───────────┘               └─────┬────────┘
+│  (선택 모드) │◄──────────────┤  (배치 모드) │
+└──┬───────────┘               └──────────────┘
    │  ▲                               │
    │  └───────────────────────────────┘
    │    · 유효 셀 좌클릭 → 배치 후 복귀
    │    · 우클릭 / Esc  → 취소 후 복귀
    │
-   └─ 좌클릭: 배치물 히트→선택 / 빈 곳 히트→선택 해제
+   │         BeginSkillTargeting(request)
+   │  ┌───────────────────────────────►┐
+   │  │                                 │
+   └──┴───────────┐               ┌─────▼──────────┐
+                   │               │ SkillTargeting │
+                   │◄──────────────┤ (스킬 조준 모드)│
+                   └───────────────└────────────────┘
+      · 좌클릭 → OnConfirmed(pos) 후 복귀
+      · 우클릭 / Esc → 취소 후 복귀
 ```
 
 - **Idle (기본)**: 좌클릭으로 배치된 오브젝트를 선택/해제. **매 프레임 커서 밑 `IHoverable`을 추적**해 대상이 바뀔 때 `OnHoverChanged`로 통지(툴팁용).
 - **Placement**: 고스트(프리뷰)가 마우스를 따라다니고, 유효 위치에서 좌클릭하면 배치. (배치 중에는 호버 통지를 끈다 — `BeginPlacement`이 호버를 클리어)
+- **SkillTargeting** (#103): 스킬 범위 인디케이터(고스트)가 마우스를 따라다니고, 좌클릭 시 그 위치를 그대로 확정 콜백에 넘긴다. `Placement`와 구조는 비슷하지만 그리드 스냅·점유 검증이 없는 더 단순한 상태 — §4.5 참고.
 
 ## 4. 시나리오별 흐름
 
@@ -98,6 +107,19 @@
 > (건물=`BuildingTooltipSource`가 `이름 - 역할`+설명+타입별 색, 그래프형 버프 건물 등도 같은 인터페이스로 재사용).
 > 이 계보는 `TowerInfoUI`/`BuildingInfoUI`와 마찬가지로 **UIManager 도입 시 흡수**될 임시 싱글톤이다.
 
+### 4.5 스킬 타겟팅 (#103, GDD §5.5)
+
+1. 스킬 버튼(`SkillButtonView`)의 OnClick → `SkillManager.CanCast()`(밤 여부+쿨다운) 확인 후
+   `MouseManager.BeginSkillTargeting(request)` 호출. `request`(`SkillTargetRequest`)에는 **범위 인디케이터 프리팹**,
+   **확정 콜백(`OnConfirmed(Vector3)`)**만 담긴다 — `PlacementRequest`와 달리 `Snap`/`CanPlaceAt` 없음(그리드 개념 불필요).
+2. `SkillTargeting` 상태로 전환, 인디케이터(`SkillRangeIndicator`) 생성.
+3. 매 프레임: 포인터 → `_placementMask`(Ground) 레이캐스트 → 히트 지점 그대로 인디케이터 이동(스냅 없음).
+4. **좌클릭**: UI 위면 무시 / 그 외엔 `OnConfirmed(hit.point)` 호출(보통 `SkillManager.CastAt(pos)` 연결) 후 `Idle` 복귀.
+5. **우클릭 / Esc**: 취소, 인디케이터 제거, `Idle` 복귀.
+
+> `Placement`와 상태 흐름은 같지만, 배치 결과가 영구 오브젝트가 아니라 즉발 효과라 `CanPlaceAt` 검증이나
+> `KeepPlacingAfterConfirm`(연속 배치) 개념이 없다.
+
 ## 5. 레이캐스트 레이어 (선택 / 배치 분리)
 
 레이캐스트 목적이 둘이라 마스크도 둘로 나눈다.
@@ -112,9 +134,10 @@
 
 ## 6. 확장 포인트
 
-- **새 상호작용 모드**: 지금은 `enum Mode { Idle, Placement }`. 모드가 늘면 `IMouseState`(Enter/Update/Exit) 기반 State 패턴으로 승격.
-  - 스킬 타겟팅(GDD 6.5): "스킬 선택 → 위치 지정 → 사용"도 배치와 같은 구조.
-  - 병사 배치(GDD 6.4): 웨이포인트 위에서만 유효한 `PlacementRequest`로 재사용.
+- **새 상호작용 모드**: 지금은 `enum Mode { Idle, Placement, SkillTargeting }`(#103에서 `SkillTargeting` 추가).
+  모드가 더 늘면 `IMouseState`(Enter/Update/Exit) 기반 State 패턴으로 승격 검토.
+  - 스킬 타겟팅(GDD §5.5): **구현 완료(#103)** — `BeginSkillTargeting(SkillTargetRequest)`, §4.5 참고.
+  - 병사 배치(GDD §5.4): 웨이포인트 위에서만 유효한 `PlacementRequest`로 재사용 예정(미착수).
 - **배치물 종류 확장**: `PlacementRequest`의 `CanPlaceAt`/`OnConfirmed`만 다르게 구성. 매니저 본체는 그대로.
 - **선택 반응 확장**: 새 배치물은 `ISelectable`만 구현하면 선택·패널 흐름에 자동 편입.
 
@@ -126,6 +149,7 @@
 | `ISelectable.cs` | 선택 인터페이스(`OnSelected`/`OnDeselected`) |
 | `IHoverable.cs` | 호버 인터페이스(`GetTooltipContent()`/`OnHoverEnter()`/`OnHoverExit()`). 호버 시 툴팁 내용을 pull 공급(내용 없으면 `null` 반환 가능) + 호버 진입/이탈 훅(하이라이트 등 연출용, #67) |
 | `PlacementRequest.cs` | 배치 요청 데이터 |
+| `SkillTargetRequest.cs` | 스킬 타겟팅 요청 데이터(#103) — `GhostPrefab`/`OnConfirmed(Vector3)`/`OnEnded`만 있는 `PlacementRequest`의 경량 버전 |
 | `TowerInfoUI.cs` | 정보 패널(싱글톤 `Instance`, `ShowInfo`/`HideInfo`) |
 | `Helper/SelectableTest.cs` | (테스트) 선택 시 색 변경 + 패널 표시 |
 | `Helper/PlacementButton.cs` | (테스트) 버튼 클릭 → 배치 시작 |
@@ -162,4 +186,4 @@
 ## 9. 참고
 
 - 신규 Input System 매뉴얼: https://docs.unity3d.com/Packages/com.unity.inputsystem@latest
-- GDD 관련 시스템: `Docs/GDD.md` 6.2(타워 배치) · 6.4(병사 배치) · 6.5(스킬)
+- GDD 관련 시스템: `Docs/GDD.md` §5.2(타워 배치) · §5.4(병사 배치) · §5.5(스킬, #103에서 구현 완료)
