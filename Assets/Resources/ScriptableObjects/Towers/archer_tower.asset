@@ -17,7 +17,9 @@ MonoBehaviour:
   GhostPrefab: {fileID: 4828097712758218341, guid: 1c4fe65468dd4524a90ebe19c3110df8, type: 3}
   TowerType: 0
   MagicEffectType: 0
-  Cost: []
+  Cost:
+  - Resource: {fileID: 0}
+    Amount: 0
   Single:
     Attack:
       AttackDamage: 10
@@ -55,6 +57,7 @@ MonoBehaviour:
     DebuffAura:
       Radius: 0
       Interval: 0
+      Duration: 0
       Modifiers: []
       Damage:
         HasDamage: 0
