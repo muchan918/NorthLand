@@ -10,7 +10,7 @@
 | 시스템                                      | 소유자     | 경로                                                                 | 상태                                                                                                                                                                    |
 | ------------------------------------------- | ---------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | DataTable (CSV→static 레지스트리→SO)        | muchan     | `Assets/Scripts/Data`                                             | Resource, Building, Tower, Enemy 4종 구현. Tower/Enemy는 Combat(`Tower.cs`/`Enemy.cs`)이 `TowerAsset`/`EnemyAsset`을 직접 소비하도록 이관 완료(PR#80) — 잔여 종류 값 채움 + Soldier 이관은 진행 중(WL-001, 부분 착수). Territory/Skill/Reward 확장 예정                                |
-| Combat (타워/몬스터 공격·데미지)            | SUNGSOO    | `Assets/Scripts/CombatSystem` | 공격/데미지 코어만. 이동·사망처리·투사체 없음                                                                                                                           |
+| Combat (타워/몬스터 공격·데미지)            | SUNGSOO    | `Assets/Scripts/CombatSystem` | 공격/데미지 코어만. 이동·사망처리·투사체 없음. HP 조회 공개 API(`CurrentHp`/`MaxHp`/`OnHpChanged`) + `PlayerBase` 씬 싱글톤(`Instance`/`OnBaseSpawned`) 추가(#100, HP UI 연동용)     |
 | BattleMapBuilder (절차적 전투 맵)           | SUNJIN     | `Assets/Scripts/CombatSpace/MapBuilder`                          | 7×7 블록 경로 생성 구현. 싸이클 버그 해결이 다음 빌드 목표                                                                                                              |
 | MouseManager (입력/선택/배치)               | n0wst4ndup | `Assets/Scripts/GameManager/MouseManager`                            | 2상태 머신 구현. Snap 항등·CanPlaceAt 항상 true (TODO)                                                                                                                  |
 | Localization                                | n0wst4ndup | `Assets/Scripts/Test/LocalizationTest.cs`                            | 로케일 전환 테스트만 (ko-KR/en-US/ja-JP)                                                                                                                                |
@@ -39,6 +39,11 @@
   동일 구조의 별도 씬 싱글톤 (공간 분리 계약상 Combat의 `TowerInfoUI`와 공유하지 않음)
 - `IDamageable { Faction, IsDead, TakeDamage(DamageInfo) }`, `IAttacker`, `DamageInfo`,
   `Faction { Player, Enemy }` — namespace `NorthLand.Combat`
+- `Enemy.CurrentHp` / `MaxHp` / `event Action<float,float> OnHpChanged`, `PlayerBase.CurrentHp` /
+  `MaxHp` / `event OnHpChanged` / `static Instance` / `static event Action<PlayerBase> OnBaseSpawned`
+  — HP UI(`Assets/Scripts/UI/HealthUI`, #100)가 구독하는 공개 계약. `PlayerBase.Instance`는 성문
+  (BaseGate) 런타임 스폰 시점(`MonsterSpawn.UpdateGate`)에 설정됨 — `TowerInfoUI`/`DayNightManager`와
+  동일한 씬 싱글톤 계보
 - `ResourceWallet` (경영 자원 상태 저장소, 순수 C#) — `Get(ResourceKind)`, `CanAfford(kind, amount)`,
   `Add(kind, amount)`, `bool TrySpend(kind, amount)`(부족 시 false+로그, 차감 안 함),
   `event Action<ResourceKind,int> OnChanged`(종류, 변경 후 값). 자원 획득/차감은 이 창구로만(팀 계약 #3·#6)
