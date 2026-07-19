@@ -11639,6 +11639,7 @@ GameObject:
   - component: {fileID: 743270835}
   - component: {fileID: 743270836}
   - component: {fileID: 743270837}
+  - component: {fileID: 743270838}
   m_Layer: 0
   m_Name: MapBuilder
   m_TagString: Untagged
@@ -11707,12 +11708,29 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapTileSpawner
   mapGenerator: {fileID: 743270835}
+  revealController: {fileID: 743270838}
   tileRoot: {fileID: 743270833}
   roadTilePrefab: {fileID: 4487478223510309306, guid: d89ca38ea4bae854dab1c78fa7323572, type: 3}
   grassTilePrefab: {fileID: 4692752870796322662, guid: ed43d90ee48e54e4f8fd6fcb23aa3f66, type: 3}
   waterTilePrefab: {fileID: 5493073456165885573, guid: c9408da30a5b4504b861db4e0c9f490d, type: 3}
   tileSize: 10
   tileHeight: 0
+--- !u!114 &743270838
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 743270831}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cbca0022bfcdedb4bb27ae85e3e8891e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapRevealController
+  mapGenerator: {fileID: 743270835}
+  totalRounds: 30
+  previewRounds: 2
+  testRound: 1
 --- !u!1001 &743754156
 PrefabInstance:
   m_ObjectHideFlags: 0
