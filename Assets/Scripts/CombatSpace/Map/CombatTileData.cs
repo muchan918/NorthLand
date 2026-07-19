@@ -35,13 +35,11 @@ namespace CombatSpace
         }
 
         // 길로 변경
-        public void SetRoad(
-            int routeIndex)
+        public void SetRoad(int routeIndex)
         {
             if (routeIndex < 0)
             {
-                throw new ArgumentOutOfRangeException(
-                    nameof(routeIndex));
+                throw new ArgumentOutOfRangeException(nameof(routeIndex));
             }
 
             Type = CombatTileType.Road;
