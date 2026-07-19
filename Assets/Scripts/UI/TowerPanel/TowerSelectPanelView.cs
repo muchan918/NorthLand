@@ -26,10 +26,13 @@ public class TowerSelectPanelView : MonoBehaviour
     public event Action<TowerAsset> OnTowerSelected;
 
     private TowerPlacer _towerPlacer;
+    private ManagementController _management; // 자원 조회용(소비처는 컨트롤러 경유 — WL-017). null이면 permissive.
+    private readonly List<(Button button, TowerAsset tower)> _buttons = new(); // 버튼별 감당가능 갱신용
 
     private void Awake()
     {
         _towerPlacer = GetComponent<TowerPlacer>();
+        _management = FindFirstObjectByType<ManagementController>(); // 없으면(테스트 씬) 자원 게이트 없이 permissive
 
         if (_content == null || _buttonPrefab == null)
         {
@@ -44,6 +47,15 @@ public class TowerSelectPanelView : MonoBehaviour
         {
             AddTowerButton(tower);
         }
+
+        // 자원 변동 시 버튼 활성/비활성 갱신 — 못 사는 타워는 버튼이 죽어 고스트 진입 자체가 막힌다.
+        if (_management != null) _management.OnChanged += RefreshAffordability;
+        RefreshAffordability();
+    }
+
+    private void OnDestroy()
+    {
+        if (_management != null) _management.OnChanged -= RefreshAffordability;
     }
 
     /// <summary>타워 버튼 하나를 스크롤뷰에 추가한다. 런타임에 반복 호출해도 된다.</summary>
@@ -73,6 +85,23 @@ public class TowerSelectPanelView : MonoBehaviour
         }
 
         button.onClick.AddListener(() => HandleClick(tower));
+        _buttons.Add((button, tower));
+        RefreshButton(button, tower); // 초기 활성 상태 반영
+    }
+
+    /// <summary>보유 자원으로 감당 가능한 타워만 버튼을 활성화한다. (자원 변동 시 재호출)</summary>
+    private void RefreshAffordability()
+    {
+        foreach ((Button button, TowerAsset tower) in _buttons)
+        {
+            RefreshButton(button, tower);
+        }
+    }
+
+    private void RefreshButton(Button button, TowerAsset tower)
+    {
+        if (button == null) return;
+        button.interactable = _management == null || _management.CanAfford(tower.Cost);
     }
 
     private void HandleClick(TowerAsset tower)
@@ -80,6 +109,13 @@ public class TowerSelectPanelView : MonoBehaviour
         if (_towerPlacer == null)
         {
             Debug.LogError("[타워선택패널] TowerPlacer가 연결되지 않았습니다.");
+            return;
+        }
+
+        // 방어: interactable 우회로 클릭돼도 자원 부족이면 배치 진입 차단.
+        if (_management != null && !_management.CanAfford(tower.Cost))
+        {
+            Debug.Log($"[타워선택패널] 자원이 부족해 '{tower.TowerID}'를 배치할 수 없습니다.");
             return;
         }
 

@@ -56,6 +56,8 @@ public class TowerPlacer : MonoBehaviour
     private Material _cellMatValid;
     private Material _cellMatInvalid;
     private TowerPlacementData _activeData; // 현재 배치 중인 타워의 데이터(주입 또는 더미)
+    private List<ResourceCost> _activeCost; // 현재 배치 중인 타워의 비용(확정 시 차감)
+    private ManagementController _management; // 자원 차감 게이트웨이(WL-017). null이면 무료 배치(테스트 씬).
 
     // 프레임당 풋프린트를 1회만 계산해 캐시(스냅에서 채우고, 검증·하이라이트가 공유).
     // MouseManager는 매 프레임 Snap → CanPlaceAt 순으로 호출하므로 CanPlaceAt은 이 캐시를 신뢰한다.
@@ -74,6 +76,9 @@ public class TowerPlacer : MonoBehaviour
                 $"[TowerPlacer] tileSize({tileSize})가 StageBuilder.TileSize({stage.TileSize})와 다릅니다. " +
                 "풋프린트 셀 조회가 어긋날 수 있습니다.");
         }
+
+        // 자원 차감 게이트웨이(경영 시스템). 씬에 없으면 무료 배치 — 경영 없는 테스트 씬 지원.
+        _management = FindFirstObjectByType<ManagementController>();
     }
 
     private void OnDestroy()
@@ -105,6 +110,7 @@ public class TowerPlacer : MonoBehaviour
 
         towerPrefab = so.TowerPrefab;
         ghostPrefab = so.GhostPrefab;
+        _activeCost = so.Cost;
 
         TowerType type = so.TowerType;
         switch (type)
@@ -214,7 +220,9 @@ public class TowerPlacer : MonoBehaviour
             if (!IsBuildable(tile)) return;
         }
 
-        // TODO(훅): ResourceWallet.TrySpend(cost) 실패 시 return — Docs/Core/TowerPlacement.md §8
+        // 자원 차감(경영 게이트웨이 경유 — TowerPlacement.md §8). 성공 시에만 생성·점유한다.
+        // 부족하면 배치 취소. 경영이 씬에 없으면(null) 무료 배치(테스트 씬).
+        if (_management != null && !_management.TrySpend(_activeCost)) return;
 
         Instantiate(towerPrefab, snappedPos, Quaternion.identity);
         foreach ((Vector3 _, BattleTile tile) in _footprint) tile.Occupied = true;

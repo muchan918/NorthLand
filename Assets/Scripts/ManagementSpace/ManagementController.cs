@@ -67,6 +67,67 @@ public class ManagementController : MonoBehaviour
 
     public int ResourceCount(ResourceKind kind) => _wallet != null ? _wallet.Get(kind) : 0;
 
+    // ── 비용 소비 게이트웨이 (소비처는 지갑에 직접 접근하지 않고 컨트롤러 경유 — WL-017) ──
+    /// <summary>Cost 리스트를 감당할 수 있는지 판정한다. null/빈 리스트는 무료(true).</summary>
+    public bool CanAfford(IReadOnlyList<ResourceCost> costs)
+    {
+        if (_wallet == null) return false;
+        foreach (KeyValuePair<ResourceKind, int> need in AggregateCost(costs))
+        {
+            if (!_wallet.CanAfford(need.Key, need.Value)) return false;
+        }
+        return true;
+    }
+
+    /// <summary>Cost 리스트를 차감한다. 전부 감당 가능할 때만 전부 차감하고 true,
+    /// 하나라도 부족하면 아무것도 쓰지 않고 false를 반환한다(원자적).</summary>
+    public bool TrySpend(IReadOnlyList<ResourceCost> costs)
+    {
+        if (_wallet == null) return false;
+
+        Dictionary<ResourceKind, int> needs = AggregateCost(costs);
+        foreach (KeyValuePair<ResourceKind, int> need in needs)
+        {
+            if (!_wallet.CanAfford(need.Key, need.Value)) return false;
+        }
+        foreach (KeyValuePair<ResourceKind, int> need in needs)
+        {
+            _wallet.TrySpend(need.Key, need.Value);
+        }
+        return true;
+    }
+
+    // Cost 리스트를 (ResourceKind → 합산 수량)으로 해석한다. Resource 미지정·수량 0 항목은 스킵.
+    // ResourceAsset.Data는 호출부 채움 규약(SystemMap §2) — null이면 ResourceTable에서 채운다.
+    private Dictionary<ResourceKind, int> AggregateCost(IReadOnlyList<ResourceCost> costs)
+    {
+        var totals = new Dictionary<ResourceKind, int>();
+        if (costs == null) return totals;
+
+        ResourceTable table = null;
+        for (int i = 0; i < costs.Count; i++)
+        {
+            ResourceCost cost = costs[i];
+            if (cost == null || cost.Resource == null || cost.Amount <= 0) continue;
+
+            if (cost.Resource.Data == null)
+            {
+                table ??= DataTableManager.Get<ResourceTable>("ResourceTable");
+                if (table != null) cost.Resource.Data = table.Get(cost.Resource.ResourceID);
+            }
+            if (cost.Resource.Data == null)
+            {
+                Debug.LogError($"[경영] 비용 자원 '{cost.Resource.ResourceID}' Data를 채우지 못했습니다.");
+                continue;
+            }
+
+            ResourceKind kind = cost.Resource.Data.Kind;
+            totals.TryGetValue(kind, out int cur);
+            totals[kind] = cur + cost.Amount;
+        }
+        return totals;
+    }
+
     public string LineDisplayName(int index) => IsValidLine(index) ? _lineAssets[index].Data.DisplayName : "-";
     public ResourceKind LineKind(int index) => IsValidLine(index) ? _lineAssets[index].Data.Kind : default;
     public int LineVillagers(int index) => IsValidLine(index) ? _villagerCounts[index] : 0;
@@ -100,6 +161,9 @@ public class ManagementController : MonoBehaviour
     private void BuildModel()
     {
         _wallet = new ResourceWallet();
+        // 지갑 잔액이 바뀌면(획득·차감) 컨트롤러 OnChanged로 재발화 → 패널/HUD가 갱신된다.
+        // (지갑 직접 변경엔 원래 OnChanged가 안 돌던 지점을 여기서 메운다)
+        _wallet.OnChanged += (_, _) => OnChanged?.Invoke();
 
         ResourceTable table = DataTableManager.Get<ResourceTable>("ResourceTable");
 
