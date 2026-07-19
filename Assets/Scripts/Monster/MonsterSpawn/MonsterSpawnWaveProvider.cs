@@ -1,64 +1,100 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
-public class MonsterSpawnWaveProvider : MonoBehaviour
+// Wave SO를 MonsterSpawnEntry로 변환하여 제공
+public sealed class MonsterSpawnWaveProvider :
+    MonoBehaviour
 {
-    [SerializeField] private string spawnTableName = "MonsterSpawnTable";
-    [SerializeField] private List<MonsterPrefabEntry> monsterPrefabs = new List<MonsterPrefabEntry>();
+    [Header("Wave Assets")]
+    [SerializeField]
+    private List<MonsterWaveAsset> waves = new List<MonsterWaveAsset>();
 
-    private readonly MonsterSpawnTable spawnTable = new MonsterSpawnTable();
+    private readonly Dictionary<int, MonsterWaveAsset> waveByNumber = new Dictionary<int, MonsterWaveAsset>();
+
     private readonly List<MonsterSpawnEntry> cachedEntries = new List<MonsterSpawnEntry>();
-    private Dictionary<string, GameObject> prefabById = new Dictionary<string, GameObject>();
-
 
     private void Awake()
     {
-        Load();
+        BuildWaveLookup();
     }
 
-    public bool TryGetWave(int round, out IReadOnlyList<MonsterSpawnEntry> entries)
+    // 웨이브 번호에 해당하는 스폰 목록 제공
+    public bool TryGetWave(int waveNumber, out IReadOnlyList<MonsterSpawnEntry> entries)
     {
         cachedEntries.Clear();
 
-        foreach (MonsterSpawnData spawnData in spawnTable.GetRound(round))
+        if (!waveByNumber.TryGetValue(waveNumber, out MonsterWaveAsset wave))
         {
-            if (!prefabById.TryGetValue(spawnData.MonsterId, out GameObject prefab))
+            entries = cachedEntries;
+            return false;
+        }
+
+        float nextGroupStartDelay = 0f;
+        float spawnInterval =
+            Mathf.Max(0f, wave.SpawnInterval);
+
+        foreach (MonsterWaveGroup group in wave.Groups)
+        {
+            if (group == null)
             {
-                Debug.LogWarning($"MonsterSpawnWaveProvider: monster prefab is missing. monsterId={spawnData.MonsterId}", this);
                 continue;
             }
 
-            cachedEntries.Add(new MonsterSpawnEntry(
-                prefab,
-                spawnData.Count,
-                spawnData.StartDelay,
-                spawnData.SpawnInterval
-            ));
+            if (group.MonsterPrefab == null)
+            {
+                Debug.LogWarning($"Wave {waveNumber}에 몬스터 프리팹이 지정되지 않은 항목이 있습니다.", wave);
+
+                continue;
+            }
+
+            int spawnCount = Mathf.Max(0, group.Count);
+
+            if (spawnCount == 0)
+            {
+                continue;
+            }
+
+            cachedEntries.Add(new MonsterSpawnEntry(group.MonsterPrefab, spawnCount, nextGroupStartDelay, spawnInterval));
+
+            // 이전 그룹이 모두 생성된 다음
+            // 동일한 간격으로 다음 그룹 생성 시작
+            nextGroupStartDelay += spawnCount * spawnInterval;
         }
 
         entries = cachedEntries;
         return cachedEntries.Count > 0;
     }
 
-    private void Load()
+    // 웨이브 번호로 빠르게 찾을 수 있도록 Dictionary 생성
+    private void BuildWaveLookup()
     {
-        spawnTable.Load(spawnTableName);
+        waveByNumber.Clear();
 
-        prefabById = monsterPrefabs
-            .Where(entry => !string.IsNullOrWhiteSpace(entry.MonsterId) && entry.MonsterPrefab != null)
-            .GroupBy(entry => entry.MonsterId)
-            .ToDictionary(group => group.Key, group => group.First().MonsterPrefab);
+        foreach (MonsterWaveAsset wave in waves)
+        {
+            if (wave == null)
+            {
+                continue;
+            }
+
+            int waveNumber = wave.WaveNumber;
+
+            if (waveNumber < 1)
+            {
+                Debug.LogWarning($"{wave.name}의 Wave Number는 1 이상이어야 합니다.", wave);
+
+                continue;
+            }
+
+            if (waveByNumber.ContainsKey(waveNumber))
+            {
+                Debug.LogWarning($"Wave Number {waveNumber}가 중복되었습니다. 먼저 등록된 SO를 사용합니다.", this);
+
+                continue;
+            }
+
+            waveByNumber.Add(waveNumber, wave);
+        }
     }
-}
 
-[Serializable]
-public class MonsterPrefabEntry
-{
-    [SerializeField] private string monsterId;
-    [SerializeField] private GameObject monsterPrefab;
-
-    public string MonsterId => monsterId;
-    public GameObject MonsterPrefab => monsterPrefab;
 }

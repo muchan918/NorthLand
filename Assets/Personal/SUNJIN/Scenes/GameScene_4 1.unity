@@ -5033,6 +5033,7 @@ GameObject:
   - component: {fileID: 315114512}
   - component: {fileID: 315114511}
   - component: {fileID: 315114510}
+  - component: {fileID: 315114513}
   m_Layer: 0
   m_Name: MonsterSpawner
   m_TagString: Untagged
@@ -5052,12 +5053,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9813378b39bd43b42ab2d84923df3702, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterSpawnWaveProvider
-  spawnTableName: MonsterSpawnTable
-  monsterPrefabs:
-  - monsterId: goblin_warrior
-    monsterPrefab: {fileID: 7987534744054934123, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
-  - monsterId: goblin_archer
-    monsterPrefab: {fileID: 2829118851254710498, guid: 14082e7b329c64b4b8a92cc5df099b78, type: 3}
+  waves:
+  - {fileID: 11400000, guid: a5fbdb74804bc794d8a9fb61b84a55f8, type: 2}
+  - {fileID: 11400000, guid: 40a711574a6a3a7498811530abcde0b4, type: 2}
+  - {fileID: 11400000, guid: 72b61fd7206a3a34daa374550ec32b5f, type: 2}
+  - {fileID: 11400000, guid: 4f677ed7963a95041b0dc37a1a0712c9, type: 2}
 --- !u!114 &315114511
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5091,6 +5091,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &315114513
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 315114509}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 880c7491b01e651419e6e49f311de2f4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapMonsterConnector
+  tileSpawner: {fileID: 743270837}
+  revealController: {fileID: 743270838}
+  monsterSpawn: {fileID: 315114511}
 --- !u!1001 &319034290
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -11677,6 +11692,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapGenerator
   settings: {fileID: 11400000, guid: 55271131c48cc86498c6c7303fa95f80, type: 2}
   seed: 12345
+  maxGenerationAttempts: 5
+  validatedSeeds: 0100000002000000030000000400000005000000
+  stabilityTestStartSeed: 1
+  stabilityTestCount: 100
 --- !u!114 &743270836
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11690,7 +11709,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapDebugView
   mapGenerator: {fileID: 743270835}
-  tileSize: 10
   roadColor: {r: 0.55, g: 0.3, b: 0.1, a: 1}
   grassColor: {r: 0.2, g: 0.65, b: 0.2, a: 1}
   waterColor: {r: 0.15, g: 0.45, b: 0.9, a: 1}
@@ -11714,8 +11732,6 @@ MonoBehaviour:
   roadTilePrefab: {fileID: 4487478223510309306, guid: d89ca38ea4bae854dab1c78fa7323572, type: 3}
   grassTilePrefab: {fileID: 4692752870796322662, guid: ed43d90ee48e54e4f8fd6fcb23aa3f66, type: 3}
   waterTilePrefab: {fileID: 5493073456165885573, guid: c9408da30a5b4504b861db4e0c9f490d, type: 3}
-  tileSize: 10
-  tileHeight: 0
 --- !u!114 &743270838
 MonoBehaviour:
   m_ObjectHideFlags: 0
