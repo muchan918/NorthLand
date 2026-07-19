@@ -121,9 +121,9 @@ namespace CombatSpace
 
                         Vector2Int d =route[k + 1];
 
-                        int currentDistance =(a - b).sqrMagnitude + (c - d).sqrMagnitude;
+                        float currentDistance =  Vector2Int.Distance(a, b) + Vector2Int.Distance(c, d);
 
-                        int changedDistance = (a - c).sqrMagnitude + (b - d).sqrMagnitude;
+                        float changedDistance =Vector2Int.Distance(a, c) + Vector2Int.Distance(b, d);
 
                         if (changedDistance <currentDistance)
                         {
