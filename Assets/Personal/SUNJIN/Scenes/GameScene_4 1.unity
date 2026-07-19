@@ -11638,10 +11638,6 @@ GameObject:
   - component: {fileID: 743270833}
   - component: {fileID: 743270835}
   - component: {fileID: 743270836}
-  - component: {fileID: 743270837}
-  - component: {fileID: 743270838}
-  - component: {fileID: 743270839}
-  - component: {fileID: 743270840}
   m_Layer: 0
   m_Name: MapBuilder
   m_TagString: Untagged
@@ -11676,15 +11672,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b586790311f28c94ebb86b4452943243, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapGenerator
-  settings: {fileID: 11400000, guid: 657d78dfbb4392a4eb31711844fb21ce, type: 2}
-  seed: 2222
-  seedSearchStart: 1
-  seedSearchCount: 100
-  requiredValidSeedCount: 10
-  stabilityTestStartSeed: 1
-  stabilityTestCount: 100
-  validatedSeeds: c60400002d0100007b00000076c91200ae080000
-  maxGenerationAttempts: 5
+  settings: {fileID: 11400000, guid: 55271131c48cc86498c6c7303fa95f80, type: 2}
+  seed: 12345
 --- !u!114 &743270836
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11698,98 +11687,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapDebugView
   mapGenerator: {fileID: 743270835}
-  revealController: {fileID: 743270837}
-  gridConverter: {fileID: 743270838}
-  roadColor:
-    r: 0.55
-    g: 0.3
-    b: 0.1
-    a: 1
-  grassColor:
-    r: 0.2
-    g: 0.65
-    b: 0.2
-    a: 1
-  waterColor:
-    r: 0.15
-    g: 0.45
-    b: 0.9
-    a: 1
-  waypointColor:
-    r: 1
-    g: 0.92156863
-    b: 0.015686275
-    a: 1
-  startColor:
-    r: 1
-    g: 0
-    b: 0
-    a: 1
---- !u!114 &743270837
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 743270831}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cbca0022bfcdedb4bb27ae85e3e8891e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapRevealController
-  mapGenerator: {fileID: 743270835}
-  totalRounds: 32
-  previewRounds: 2
-  testRound: 1
-  <LastRevealedRouteIndex>k__BackingField: -1
---- !u!114 &743270838
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 743270831}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6a70755966e0edb4f8f4fdba81653b34, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatGridConverter
-  tileSize: 10
---- !u!114 &743270839
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 743270831}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5db95a4b0ce62e04b9500fbaff55e712, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapTileSpawner
-  mapGenerator: {fileID: 743270835}
-  revealController: {fileID: 743270837}
-  gridConverter: {fileID: 743270838}
-  tileParent: {fileID: 743270833}
-  roadPrefab: {fileID: 2342625554885270731, guid: d89ca38ea4bae854dab1c78fa7323572, type: 3}
-  grassPrefab: {fileID: 3002302956492666449, guid: ed43d90ee48e54e4f8fd6fcb23aa3f66, type: 3}
-  waterPrefab: {fileID: 1157878533706409928, guid: c9408da30a5b4504b861db4e0c9f490d, type: 3}
---- !u!114 &743270840
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 743270831}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c38155909704ecf499764ca65681c1ac, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapRuntimeController
-  mapGenerator: {fileID: 743270835}
-  revealController: {fileID: 743270837}
-  tileSpawner: {fileID: 743270839}
-  <CurrentRound>k__BackingField: 0
+  tileSize: 0.2
+  roadColor: {r: 0.55, g: 0.3, b: 0.1, a: 1}
+  grassColor: {r: 0.2, g: 0.65, b: 0.2, a: 1}
+  waterColor: {r: 0.15, g: 0.45, b: 0.9, a: 1}
+  waypointColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  startColor: {r: 1, g: 0, b: 0, a: 1}
 --- !u!1001 &743754156
 PrefabInstance:
   m_ObjectHideFlags: 0
