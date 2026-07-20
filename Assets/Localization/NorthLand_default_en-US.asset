@@ -19,7 +19,67 @@ MonoBehaviour:
     m_Items: []
   m_TableData:
   - m_Id: 742551334912
-    m_Localized: Test-en
+    m_Localized: Game Start
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3604866412982272
+    m_Localized: Settings
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3604902953758720
+    m_Localized: Exit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3710819598741504
+    m_Localized: Wood
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3710894051831808
+    m_Localized: Iron
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3710897180782592
+    m_Localized: Food
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3710962737754112
+    m_Localized: Mana
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3712710684585984
+    m_Localized: Villager
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3714865646678016
+    m_Localized: Day
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3714997519790080
+    m_Localized: Night
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3715012954828800
+    m_Localized: Wave
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3715207469871104
+    m_Localized: Defense
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3720979469709312
+    m_Localized: Next
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3725309203591168
+    m_Localized: Production
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3727708706189312
+    m_Localized: Retry
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3727803027697664
+    m_Localized: Title
     m_Metadata:
       m_Items: []
   references:

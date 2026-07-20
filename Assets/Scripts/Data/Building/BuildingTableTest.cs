@@ -6,12 +6,14 @@ public class BuildingTableTest : MonoBehaviour
     {
         foreach (var id in new[]
         {
-            "woodcutter_house", "mine", "farm", "training_camp",
-            "church", "headquarters", "alchemist_house", "magic_lab", "military_school",
+            "woodcutter_house", "mine", "farm",
+            "castle", "alchemist_house", "magic_lab",
         })
         {
             var data = DataTableManager.Get<BuildingTable>("BuildingTable").Get(id);
-            Debug.Log($"{data.BuildingID} -> {data.DisplayName} ({data.BuildingType}) : {data.Role}");
+            if (data == null) continue;
+
+            Debug.Log($"{data.BuildingID} -> {data.NameKey} ({data.BuildingType}) : {data.RoleKey} / {data.DescriptionKey}");
         }
     }
 }

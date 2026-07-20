@@ -16,7 +16,67 @@ MonoBehaviour:
   m_TableCollectionNameGuidString: 1d3165e14f060034fbf1f02d9888408b
   m_Entries:
   - m_Id: 742551334912
-    m_Key: 
+    m_Key: title.btn.start
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3604866412982272
+    m_Key: title.btn.option
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3604902953758720
+    m_Key: title.btn.exit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3710819598741504
+    m_Key: game.resources.wood
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3710894051831808
+    m_Key: game.resources.iron
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3710897180782592
+    m_Key: game.resources.food
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3710962737754112
+    m_Key: game.resources.mana
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3712710684585984
+    m_Key: game.resources.villager
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3714865646678016
+    m_Key: game.system.day
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3714997519790080
+    m_Key: game.system.night
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3715012954828800
+    m_Key: game.system.wave
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3715207469871104
+    m_Key: game.system.defense
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3720979469709312
+    m_Key: game.btn.next
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3725309203591168
+    m_Key: game.system.production
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3727708706189312
+    m_Key: game.btn.retry
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3727803027697664
+    m_Key: game.btn.title
     m_Metadata:
       m_Items: []
   m_Metadata:

@@ -22,6 +22,24 @@ MonoBehaviour:
     - Locale-ko-KR
     - Preload
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cbec9aa52145fb540becd6b35894e681
+    m_Address: NorthLand_Enemies_ko-KR
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-ko-KR
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e5395e17219608f4988fbeaf75847865
+    m_Address: NorthLand_buildings_ko-KR
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-ko-KR
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: fd8ba1f252c802240ac6bd752b5303b1
+    m_Address: NorthLand_Towers_ko-KR
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-ko-KR
+    FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 1
   m_Settings: {fileID: 11400000, guid: abf5d22285b9d174786176fc6fc53279, type: 2}
   m_SchemaSet:

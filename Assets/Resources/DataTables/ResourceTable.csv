@@ -1,5 +1,5 @@
-ResourceID,DisplayName,Kind
-wood,나무,Wood
-iron,철,Iron
-food,식량,Food
-mana,마나석,Mana
+ResourceID,NameKey,Kind
+wood,game.resources.wood,Wood
+iron,game.resources.iron,Iron
+food,game.resources.food,Food
+mana,game.resources.mana,Mana

@@ -16,11 +16,11 @@ public enum MagicEffectType
 public class TowerData
 {
     public string TowerID { get; set; }
-    public string DisplayName { get; set; }
+    public string NameKey { get; set; }
     public TowerType TowerType { get; set; }
     public MagicEffectType MagicEffectType { get; set; }
     public int GridWidth { get; set; }
     public int GridHeight { get; set; }
-    public string Role { get; set; }
-    public string Description { get; set; }
+    public string RoleKey { get; set; }
+    public string DescriptionKey { get; set; }
 }
