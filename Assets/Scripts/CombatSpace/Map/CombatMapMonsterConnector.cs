@@ -2,8 +2,8 @@ using UnityEngine;
 
 namespace CombatSpace
 {
-    // ½Å±Ô ÀüÅõ¸ÊÀÇ °æ·Î¡¤½ºÆù À§Ä¡¡¤¿şÀÌºê ÁøÇàÀ»
-    // ±âÁ¸ MonsterSpawn ½Ã½ºÅÛ¿¡ ¿¬°á
+    // ì‹ ê·œ ì „íˆ¬ë§µì˜ ê²½ë¡œÂ·ìŠ¤í° ìœ„ì¹˜Â·ì›¨ì´ë¸Œ ì§„í–‰ì„
+    // ê¸°ì¡´ MonsterSpawn ì‹œìŠ¤í…œì— ì—°ê²°
     public sealed class CombatMapMonsterConnector :
         MonoBehaviour
     {
@@ -27,7 +27,7 @@ namespace CombatSpace
 
         private void Start()
         {
-            // ´Ù¸¥ ¿ÀºêÁ§Æ®ÀÇ Awake ÀÌÈÄ ´Ù½Ã ¿¬°á ½Ãµµ
+            // ë‹¤ë¥¸ ì˜¤ë¸Œì íŠ¸ì˜ Awake ì´í›„ ë‹¤ì‹œ ì—°ê²° ì‹œë„
             TrySubscribeDayNightEvent();
         }
 
@@ -44,7 +44,7 @@ namespace CombatSpace
                 return;
             }
 
-            // Áßº¹ µî·Ï ¹æÁö
+            // ì¤‘ë³µ ë“±ë¡ ë°©ì§€
             revealController.RevealChanged -=RefreshMonsterMapData;
 
             revealController.RevealChanged +=RefreshMonsterMapData;
@@ -94,7 +94,7 @@ namespace CombatSpace
             subscribedDayNightManager = null;
         }
 
-        // ³·¿¡¼­ ¹ãÀ¸·Î ¹Ù²î¸é ¸ÊÀ» °ø°³ÇÏ°í ÇØ´ç ¿şÀÌºê ½ÃÀÛ
+        // ë‚®ì—ì„œ ë°¤ìœ¼ë¡œ ë°”ë€Œë©´ ë§µì„ ê³µê°œí•˜ê³  í•´ë‹¹ ì›¨ì´ë¸Œ ì‹œì‘
         private void HandleDayToNight()
         {
             if (!ValidateReferences())
@@ -108,30 +108,30 @@ namespace CombatSpace
             if (dayNightManager == null)
             {
                 Debug.LogError(
-                    "DayNightManager°¡ ¾ø½À´Ï´Ù.",
+                    "DayNightManagerê°€ ì—†ìŠµë‹ˆë‹¤.",
                     this);
 
                 return;
             }
 
-            // WaveCount´Â ¿Ï·áµÈ ¿şÀÌºê ¼öÀÌ¹Ç·Î
-            // »õ·Î ½ÃÀÛÇÒ ¿şÀÌºê´Â +1
+            // WaveCountëŠ” ì™„ë£Œëœ ì›¨ì´ë¸Œ ìˆ˜ì´ë¯€ë¡œ
+            // ìƒˆë¡œ ì‹œì‘í•  ì›¨ì´ë¸ŒëŠ” +1
             int waveNumber = dayNightManager.WaveCount + 1;
 
-            // ÇöÀç´Â ±âÁ¸ RevealForRound API¸¦ »ç¿ë
-            // ÃßÈÄ ÁøÇàµµ ±â¹İ API·Î ±³Ã¼ °¡´É
+            // í˜„ì¬ëŠ” ê¸°ì¡´ RevealForRound APIë¥¼ ì‚¬ìš©
+            // ì¶”í›„ ì§„í–‰ë„ ê¸°ë°˜ APIë¡œ êµì²´ ê°€ëŠ¥
             revealController.RevealForRound(waveNumber);
 
-            // ÀÌº¥Æ® È£Ãâ ¼ø¼­¿Í °ü°è¾øÀÌ
-            // ÃÖ½Å °æ·Î°¡ Àü´ŞµÇµµ·Ï ´Ù½Ã °»½Å
+            // ì´ë²¤íŠ¸ í˜¸ì¶œ ìˆœì„œì™€ ê´€ê³„ì—†ì´
+            // ìµœì‹  ê²½ë¡œê°€ ì „ë‹¬ë˜ë„ë¡ ë‹¤ì‹œ ê°±ì‹ 
             RefreshMonsterMapData();
 
             monsterSpawn.StartRound(waveNumber);
 
-            Debug.Log($"Wave {waveNumber} ¸ó½ºÅÍ ½ºÆù ½ÃÀÛ",this);
+            Debug.Log($"Wave {waveNumber} ëª¬ìŠ¤í„° ìŠ¤í° ì‹œì‘",this);
         }
 
-        // ÇöÀç °ø°³µÈ ¿ùµå °æ·Î¿Í ½ºÆù Pose Àü´Ş
+        // í˜„ì¬ ê³µê°œëœ ì›”ë“œ ê²½ë¡œì™€ ìŠ¤í° Pose ì „ë‹¬
         [ContextMenu("Refresh Monster Map Data")]
         public void RefreshMonsterMapData()
         {
@@ -145,7 +145,7 @@ namespace CombatSpace
             if (tileSpawner.CurrentWorldEnemyRoute == null ||
                 tileSpawner.CurrentWorldEnemyRoute.Count == 0)
             {
-                Debug.LogWarning("¸ó½ºÅÍ¿¡°Ô Àü´ŞÇÒ ¿ùµå °æ·Î°¡ ¾ø½À´Ï´Ù.",this);
+                Debug.LogWarning("ëª¬ìŠ¤í„°ì—ê²Œ ì „ë‹¬í•  ì›”ë“œ ê²½ë¡œê°€ ì—†ìŠµë‹ˆë‹¤.",this);
 
                 return;
             }
@@ -153,7 +153,7 @@ namespace CombatSpace
             if (!tileSpawner.TryGetCurrentSpawnPose(out Vector3 spawnPosition,out Quaternion spawnRotation))
             {
                 Debug.LogWarning(
-                    "¸ó½ºÅÍ ½ºÆù Pose¸¦ °¡Á®¿ÀÁö ¸øÇß½À´Ï´Ù.",
+                    "ëª¬ìŠ¤í„° ìŠ¤í° Poseë¥¼ ê°€ì ¸ì˜¤ì§€ ëª»í–ˆìŠµë‹ˆë‹¤.",
                     this);
 
                 return;
@@ -163,28 +163,28 @@ namespace CombatSpace
 
             monsterSpawn.SetSpawnPoint(spawnPosition,spawnRotation);
 
-            Debug.Log("¸ó½ºÅÍ ¸Ê µ¥ÀÌÅÍ °»½Å ¿Ï·á\n°æ·Î ÁÂÇ¥: {tileSpawner.CurrentWorldEnemyRoute.Count}°³\n½ºÆù À§Ä¡: {spawnPosition}",this);
+            Debug.Log("ëª¬ìŠ¤í„° ë§µ ë°ì´í„° ê°±ì‹  ì™„ë£Œ\nê²½ë¡œ ì¢Œí‘œ: {tileSpawner.CurrentWorldEnemyRoute.Count}ê°œ\nìŠ¤í° ìœ„ì¹˜: {spawnPosition}",this);
         }
 
         private bool ValidateReferences()
         {
             if (tileSpawner == null)
             {
-                Debug.LogError("Tile Spawner°¡ ÁöÁ¤µÇÁö ¾Ê¾Ò½À´Ï´Ù.",this);
+                Debug.LogError("Tile Spawnerê°€ ì§€ì •ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.",this);
 
                 return false;
             }
 
             if (revealController == null)
             {
-                Debug.LogError("Reveal Controller°¡ ÁöÁ¤µÇÁö ¾Ê¾Ò½À´Ï´Ù.",this);
+                Debug.LogError("Reveal Controllerê°€ ì§€ì •ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.",this);
 
                 return false;
             }
 
             if (monsterSpawn == null)
             {
-                Debug.LogError("Monster SpawnÀÌ ÁöÁ¤µÇÁö ¾Ê¾Ò½À´Ï´Ù.",this);
+                Debug.LogError("Monster Spawnì´ ì§€ì •ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.",this);
 
                 return false;
             }
