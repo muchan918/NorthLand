@@ -15,8 +15,8 @@ public static class LocalizationHelper
     // 테이블 컬렉션 이름 상수 — 문자열 하드코딩/오타 방지. 새 테이블이 생기면 여기에 추가한다.
     public const string k_DefaultTable = "NorthLand_default";
     public const string k_BuildingsTable = "NorthLand_buildings";
-    public const string k_TowersTable = "NorthLand_towers";
-    public const string k_EnemiesTable = "NorthLand_enemies";
+    public const string k_TowersTable = "NorthLand_Towers";
+    public const string k_EnemiesTable = "NorthLand_Enemies";
 
     /// <summary>
     /// 현재 로케일 기준으로 (테이블, 키)를 동기 해석한다. 내부적으로 로드를 강제 완료하므로

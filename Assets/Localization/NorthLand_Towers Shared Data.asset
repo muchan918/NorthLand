@@ -75,6 +75,18 @@ MonoBehaviour:
     m_Key: towers.slow.desc
     m_Metadata:
       m_Items: []
+  - m_Id: 77423716192256
+    m_Key: towers.poison.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 77423783301120
+    m_Key: towers.poison.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 77423783301121
+    m_Key: towers.poison.desc
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

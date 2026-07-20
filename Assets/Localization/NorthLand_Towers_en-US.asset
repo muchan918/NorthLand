@@ -78,6 +78,18 @@ MonoBehaviour:
     m_Localized: Reduce the speed of movement of enemies in range
     m_Metadata:
       m_Items: []
+  - m_Id: 77423716192256
+    m_Localized: Poison Tower
+    m_Metadata:
+      m_Items: []
+  - m_Id: 77423783301120
+    m_Localized: Apply Poison
+    m_Metadata:
+      m_Items: []
+  - m_Id: 77423783301121
+    m_Localized: Deal poison damage to enemies in range over time
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []
