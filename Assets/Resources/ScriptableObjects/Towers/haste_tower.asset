@@ -55,6 +55,7 @@ MonoBehaviour:
     DebuffAura:
       Radius: 0
       Interval: 0
+      Duration: 0
       Modifiers: []
       Damage:
         HasDamage: 0

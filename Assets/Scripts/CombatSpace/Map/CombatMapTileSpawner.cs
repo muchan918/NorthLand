@@ -521,12 +521,6 @@ namespace CombatSpace
                 this);
         }
 
-        // 현재 공개 범위에 맞춰 몬스터용 월드 경로 갱신
-        public void RefreshWorldEnemyRoute()
-        {
-            RebuildCurrentWorldEnemyRoute();
-        }
-
         // 시작점부터 현재 스폰 위치까지 월드 경로 생성
         private void RebuildCurrentWorldEnemyRoute()
         {

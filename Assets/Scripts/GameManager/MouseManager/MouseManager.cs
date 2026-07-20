@@ -10,7 +10,8 @@ public class MouseManager : MonoBehaviour
     enum Mode
     {
         Idle,
-        Placement
+        Placement,
+        SkillTargeting
     }
 
     public static MouseManager Instance { get; private set; }
@@ -34,6 +35,7 @@ public class MouseManager : MonoBehaviour
     private ISelectable _selected;
     private IHoverable _hovered;
     private PlacementRequest _request;
+    private SkillTargetRequest _skillRequest;
     private GameObject _ghost;
 
     private void Awake()
@@ -69,6 +71,7 @@ public class MouseManager : MonoBehaviour
         _selected = null;
         _hovered = null;
         CancelPlacement();
+        CancelSkillTargeting();
     }
 
     private void Update()
@@ -81,6 +84,7 @@ public class MouseManager : MonoBehaviour
         {
             case Mode.Idle: UpdateIdle(screenPos, overUI); break;
             case Mode.Placement: UpdatePlacement(screenPos, overUI); break;
+            case Mode.SkillTargeting: UpdateSkillTargeting(screenPos, overUI); break;
         }
     }
 
@@ -97,6 +101,7 @@ public class MouseManager : MonoBehaviour
     public void BeginPlacement(PlacementRequest request)
     {
         CancelPlacement();
+        CancelSkillTargeting();
         ClearHover(); // 배치 중에는 툴팁을 띄우지 않는다
         _request = request;
         _ghost = Instantiate(request.GhostPrefab);
@@ -109,6 +114,27 @@ public class MouseManager : MonoBehaviour
         if (_ghost != null) Destroy(_ghost);
         _ghost = null;
         _request = null;
+        _mode = Mode.Idle;
+    }
+
+    // 스킬 타겟팅(#103): 그리드 스냅·점유 검증이 필요 없는 PlacementRequest의 경량 버전.
+    // 클릭한 위치를 그대로 SkillTargetRequest.OnConfirmed로 넘긴다(요구사항: SystemMap §4 계약).
+    public void BeginSkillTargeting(SkillTargetRequest request)
+    {
+        CancelPlacement();
+        CancelSkillTargeting();
+        ClearHover(); // 타겟팅 중에는 툴팁을 띄우지 않는다
+        _skillRequest = request;
+        _ghost = Instantiate(request.GhostPrefab);
+        _mode = Mode.SkillTargeting;
+    }
+
+    public void CancelSkillTargeting()
+    {
+        _skillRequest?.OnEnded?.Invoke();
+        if (_ghost != null) Destroy(_ghost);
+        _ghost = null;
+        _skillRequest = null;
         _mode = Mode.Idle;
     }
 
@@ -180,6 +206,29 @@ public class MouseManager : MonoBehaviour
         {
             _request.OnConfirmed(hit, pos);
             if (!_request.KeepPlacingAfterConfirm) CancelPlacement();
+        }
+    }
+
+    // ── SkillTargeting: 스킬 범위 지정 (요구사항 ③, #103) ─────────
+    // 스냅/점유 검증 없이 _placementMask 히트 지점을 그대로 사용한다(그리드 개념이 필요 없는 자유 조준).
+    private void UpdateSkillTargeting(Vector2 screenPos, bool overUI)
+    {
+        // 우클릭/Esc 로 취소
+        if (Mouse.current.rightButton.wasPressedThisFrame ||
+            (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame))
+        {
+            CancelSkillTargeting();
+            return;
+        }
+
+        if (!RaycastMask(screenPos, _placementMask, out var hit)) return;
+
+        _ghost.transform.position = hit.point;
+
+        if (!overUI && Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            _skillRequest.OnConfirmed(hit.point);
+            CancelSkillTargeting(); // 한 번 시전하면 조준 모드 종료(연속 시전 불필요)
         }
     }
 

@@ -15,8 +15,6 @@ MonoBehaviour:
   Width: 70
   Height: 70
   MapMargin: 7
-  TileSize: 10
-  TileHeight: 0
   MinWaypointCount: 8
   MaxWaypointCount: 12
   MinWaypointDistance: 15

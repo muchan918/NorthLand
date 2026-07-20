@@ -4,3 +4,4 @@ cannon_tower,대포,Area,None,1,1,광역 공격,착탄 지점 주변 범위 피�
 lightning_tower,번개 타워,Chain,None,1,1,연쇄 공격,적 하나를 맞히면 주변 적으로 번개가 튐
 haste_tower,가속의 탑,Magic,Buff,1,1,아군 공격속도 강화,범위 내 아군 타워 공격속도 증가
 slow_tower,서리의 탑,Magic,Debuff,1,1,적 이동속도 감소,범위 내 적 이동속도 감소
+poison_tower,독마법 타워,Magic,Debuff,1,1,적 독상태이상 적용,범위 내 적 에게 일정시간 동안  독데미지 부여

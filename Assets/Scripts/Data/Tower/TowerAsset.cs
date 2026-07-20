@@ -23,6 +23,16 @@ public class TowerAsset : ScriptableObject
     public ChainFields Chain;
     public MagicFields Magic;
 
+    // 마법 타워의 오라 반경(=사거리) 단일 출처(WL-056). MagicEffectType으로 분기.
+    // 실효과 반경(AuraTower)과 배치 프리뷰 반경(TowerPlacer)이 공통으로 이 값을 읽어
+    // 두 곳에 규칙이 중복돼 조용히 어긋나는 것을 막는다.
+    public float MagicRadius => Magic == null ? 0f : MagicEffectType switch
+    {
+        MagicEffectType.Debuff => Magic.DebuffAura != null ? Magic.DebuffAura.Radius : 0f,
+        MagicEffectType.Buff   => Magic.BuffAura   != null ? Magic.BuffAura.Radius   : 0f,
+        _ => 0f,
+    };
+
     // Single/Area/Chain 공통 공격 스탯. Combat/TowerData.cs(SUNGSOO)의 필드와 의미 대응되도록
     // 맞춰서, 추후 Combat이 이 파이프라인으로 옮겨올 때 매핑이 쉽도록 한다.
     [System.Serializable]

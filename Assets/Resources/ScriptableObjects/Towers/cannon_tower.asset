@@ -13,11 +13,15 @@ MonoBehaviour:
   m_Name: cannon_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
   TowerID: cannon_tower
-  TowerPrefab: {fileID: 0}
-  GhostPrefab: {fileID: 0}
+  TowerPrefab: {fileID: 4828097712758218341, guid: 636f4af038af9e24587ada74cfd0fa37, type: 3}
+  GhostPrefab: {fileID: 4828097712758218341, guid: 62d99dd24d9ca7847a2c535b948e209e, type: 3}
   TowerType: 1
   MagicEffectType: 0
-  Cost: []
+  Cost:
+  - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
+    Amount: 10
+  - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+    Amount: 10
   Single:
     Attack:
       AttackDamage: 0
@@ -55,6 +59,7 @@ MonoBehaviour:
     DebuffAura:
       Radius: 0
       Interval: 0
+      Duration: 0
       Modifiers: []
       Damage:
         HasDamage: 0
