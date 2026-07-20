@@ -204,6 +204,90 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!1 &111725155
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 111725159}
+  - component: {fileID: 111725158}
+  - component: {fileID: 111725157}
+  - component: {fileID: 111725156}
+  m_Layer: 0
+  m_Name: 'MonsterSpawner '
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &111725156
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 111725155}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 880c7491b01e651419e6e49f311de2f4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapMonsterConnector
+  tileSpawner: {fileID: 1175259920}
+  revealController: {fileID: 1175259919}
+  monsterSpawn: {fileID: 111725158}
+--- !u!114 &111725157
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 111725155}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9813378b39bd43b42ab2d84923df3702, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterSpawnWaveProvider
+  waves:
+  - {fileID: 11400000, guid: a5fbdb74804bc794d8a9fb61b84a55f8, type: 2}
+  - {fileID: 11400000, guid: 40a711574a6a3a7498811530abcde0b4, type: 2}
+  - {fileID: 11400000, guid: 72b61fd7206a3a34daa374550ec32b5f, type: 2}
+  - {fileID: 11400000, guid: 4f677ed7963a95041b0dc37a1a0712c9, type: 2}
+--- !u!114 &111725158
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 111725155}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e723700503c3a8b4c99fd3a046df2049, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MonsterSpawn
+  fallbackSpawnPoint: {fileID: 0}
+  monsterParent: {fileID: 111725159}
+  waveProvider: {fileID: 111725157}
+  playOnStart: 0
+  startRound: 0
+  gatePrefab: {fileID: 1575376242241284251, guid: 788faa61af890a34190abb04b7b8b8f9, type: 3}
+--- !u!4 &111725159
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 111725155}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 31.29975, y: -0, z: 50.03609}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &126074427
 GameObject:
   m_ObjectHideFlags: 0
@@ -839,75 +923,6 @@ MonoBehaviour:
   m_FlexibleWidth: -1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
---- !u!1 &315114509
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 315114512}
-  - component: {fileID: 315114511}
-  - component: {fileID: 315114510}
-  m_Layer: 0
-  m_Name: MonsterSpawner
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &315114510
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 315114509}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9813378b39bd43b42ab2d84923df3702, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MonsterSpawnWaveProvider
-  spawnTableName: MonsterSpawnTable
-  monsterPrefabs:
-  - monsterId: goblin_warrior
-    monsterPrefab: {fileID: 7987534744054934123, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
-  - monsterId: goblin_archer
-    monsterPrefab: {fileID: 2829118851254710498, guid: 14082e7b329c64b4b8a92cc5df099b78, type: 3}
---- !u!114 &315114511
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 315114509}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e723700503c3a8b4c99fd3a046df2049, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MonsterSpawn
-  fallbackSpawnPoint: {fileID: 743270833}
-  monsterParent: {fileID: 643313088}
-  waveProvider: {fileID: 315114510}
-  playOnStart: 0
-  startRound: 0
-  gatePrefab: {fileID: 1575376242241284251, guid: 788faa61af890a34190abb04b7b8b8f9, type: 3}
---- !u!4 &315114512
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 315114509}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 31.29975, y: -0, z: 50.03609}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &340814260
 GameObject:
   m_ObjectHideFlags: 0
@@ -2555,106 +2570,6 @@ MonoBehaviour:
   m_FlexibleWidth: -1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
---- !u!1 &743270831
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 743270833}
-  - component: {fileID: 743270832}
-  m_Layer: 0
-  m_Name: MapBuilder
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &743270832
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 743270831}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9aacb376eb85fda458a0222fe1750255, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::StageBuilder
-  grassCube: {fileID: 4692752870796322662, guid: ed43d90ee48e54e4f8fd6fcb23aa3f66, type: 3}
-  roadCube: {fileID: 4487478223510309306, guid: d89ca38ea4bae854dab1c78fa7323572, type: 3}
-  lavaCube: {fileID: 5493073456165885573, guid: c9408da30a5b4504b861db4e0c9f490d, type: 3}
-  finalCenterObject: {fileID: 8559005515943241746, guid: 09a58e7d241df5045842f5551dccde0d, type: 3}
-  finalCenterObjectOffset: {x: 0, y: 1, z: 0}
-  battlespace: {fileID: 743270833}
-  monsterSpawn: {fileID: 315114511}
-  routeSettings:
-    maxMapCount: 30
-    routeGenerateTryCount: 500
-    minMapX: -6
-    maxMapX: -1
-    minMapY: -3
-    maxMapY: 3
-  TileSize: 5
-  waypoints:
-  - direction: 0
-    point: {x: 1, y: 0}
-  - direction: 0
-    point: {x: 2, y: 0}
-  - direction: 0
-    point: {x: 3, y: 0}
-  - direction: 0
-    point: {x: 4, y: 0}
-  - direction: 0
-    point: {x: 5, y: 0}
-  - direction: 2
-    point: {x: 0, y: 1}
-  - direction: 2
-    point: {x: 0, y: 2}
-  - direction: 2
-    point: {x: 0, y: 3}
-  - direction: 2
-    point: {x: 0, y: 4}
-  - direction: 2
-    point: {x: 0, y: 5}
-  - direction: 1
-    point: {x: 1, y: 6}
-  - direction: 1
-    point: {x: 2, y: 6}
-  - direction: 1
-    point: {x: 3, y: 6}
-  - direction: 1
-    point: {x: 4, y: 6}
-  - direction: 1
-    point: {x: 5, y: 6}
-  - direction: 3
-    point: {x: 6, y: 1}
-  - direction: 3
-    point: {x: 6, y: 2}
-  - direction: 3
-    point: {x: 6, y: 3}
-  - direction: 3
-    point: {x: 6, y: 4}
-  - direction: 3
-    point: {x: 6, y: 5}
---- !u!4 &743270833
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 743270831}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 2, y: -0, z: -87}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
 --- !u!1 &769424153
 GameObject:
   m_ObjectHideFlags: 0
@@ -3089,14 +3004,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 863015836}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: -100, y: 0, z: -150}
+  m_LocalRotation: {x: 0, y: 0.30070576, z: 0, w: 0.953717}
+  m_LocalPosition: {x: 150, y: 0, z: -50}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1228655713}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 35, z: 0}
 --- !u!1001 &879316586
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4043,6 +3958,128 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!1 &1175259917
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1175259923}
+  - component: {fileID: 1175259922}
+  - component: {fileID: 1175259921}
+  - component: {fileID: 1175259920}
+  - component: {fileID: 1175259919}
+  - component: {fileID: 1175259918}
+  m_Layer: 0
+  m_Name: MapBuilder
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1175259918
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1175259917}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4905be42a7f829d45ab866fdbeb82e0c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapInitializer
+  mapGenerator: {fileID: 1175259922}
+  tileSpawner: {fileID: 1175259920}
+  revealController: {fileID: 1175259919}
+  initializeOnStart: 1
+--- !u!114 &1175259919
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1175259917}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cbca0022bfcdedb4bb27ae85e3e8891e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapRevealController
+  mapGenerator: {fileID: 1175259922}
+  totalRounds: 30
+  previewRounds: 2
+  testRound: 1
+--- !u!114 &1175259920
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1175259917}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5db95a4b0ce62e04b9500fbaff55e712, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapTileSpawner
+  mapGenerator: {fileID: 1175259922}
+  revealController: {fileID: 1175259919}
+  tileRoot: {fileID: 1175259923}
+  roadTilePrefab: {fileID: 376632769588615151, guid: bcc97aac1203837468bb300b99cb732e, type: 3}
+  grassTilePrefab: {fileID: 4056655319366159548, guid: 01a0e59758422c6469a1f537bb0d4bcd, type: 3}
+  waterTilePrefab: {fileID: 7429171252680331435, guid: a16cd64f59ec9054ea4a8aa9652cdd76, type: 3}
+--- !u!114 &1175259921
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1175259917}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c0573714409d534ea6e1fa00cda25b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapDebugView
+  mapGenerator: {fileID: 1175259922}
+  roadColor: {r: 0.55, g: 0.3, b: 0.1, a: 1}
+  grassColor: {r: 0.2, g: 0.65, b: 0.2, a: 1}
+  waterColor: {r: 0.15, g: 0.45, b: 0.9, a: 1}
+  waypointColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  startColor: {r: 1, g: 0, b: 0, a: 1}
+--- !u!114 &1175259922
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1175259917}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b586790311f28c94ebb86b4452943243, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapGenerator
+  settings: {fileID: 11400000, guid: 55271131c48cc86498c6c7303fa95f80, type: 2}
+  seed: 12345
+  maxGenerationAttempts: 5
+  validatedSeeds: 0100000002000000030000000400000005000000
+  stabilityTestStartSeed: 1
+  stabilityTestCount: 100
+--- !u!4 &1175259923
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1175259917}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 250, y: -0, z: -550}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1228655712
 GameObject:
   m_ObjectHideFlags: 0
@@ -4100,7 +4137,7 @@ MonoBehaviour:
     CustomLookAtTarget: 0
   Lens:
     FieldOfView: 40
-    OrthographicSize: 100
+    OrthographicSize: 125
     NearClipPlane: 0.1
     FarClipPlane: 5000
     Dutch: 0
@@ -4668,7 +4705,7 @@ Camera:
   far clip plane: 5000
   field of view: 40
   orthographic: 1
-  orthographic size: 100
+  orthographic size: 125
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -4692,8 +4729,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1459800173}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.37686956, y: 0.16043012, z: -0.0664523, w: 0.90984374}
-  m_LocalPosition: {x: -140, y: 200, z: -150}
+  m_LocalRotation: {x: 0.36497167, y: -0.27781597, z: 0.115075104, w: 0.8811196}
+  m_LocalPosition: {x: 127.056946, y: 200, z: -82.76608}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -8118,8 +8155,8 @@ SceneRoots:
   - {fileID: 544968474}
   - {fileID: 340814263}
   - {fileID: 523299073}
-  - {fileID: 743270833}
-  - {fileID: 315114512}
+  - {fileID: 1175259923}
+  - {fileID: 111725159}
   - {fileID: 643313088}
   - {fileID: 1823682327}
   - {fileID: 1384901248}

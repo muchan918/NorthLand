@@ -4,3 +4,4 @@ cannon_tower,towers.cannon.name,Area,None,1,1,towers.cannon.role,towers.cannon.d
 lightning_tower,towers.lightning.name,Chain,None,1,1,towers.lightning.role,towers.lightning.desc
 haste_tower,towers.haste.name,Magic,Buff,1,1,towers.haste.role,towers.haste.desc
 slow_tower,towers.slow.name,Magic,Debuff,1,1,towers.slow.role,towers.slow.desc
+poison_tower,독마법 타워,Magic,Debuff,1,1,적 독상태이상 적용,범위 내 적 에게 일정시간 동안  독데미지 부여

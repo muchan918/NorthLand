@@ -100,66 +100,66 @@ public class StageBuilder : MonoBehaviour
         }
 
         PrepareRoute();
-        GenerateNextStage();
+        //GenerateNextStage();
     }
 
-    private void Start()
-    {
-        if (DayNightManager.Instance != null)
-        {
-            DayNightManager.Instance.OnDayToNight += GenerateNextStage;
-        }
-    }
+    //private void Start()
+    //{
+    //    if (DayNightManager.Instance != null)
+    //    {
+    //        DayNightManager.Instance.OnDayToNight += GenerateNextStage;
+    //    }
+    //}
 
-    private void OnDestroy()
-    {
-        if (DayNightManager.Instance != null)
-        {
-            DayNightManager.Instance.OnDayToNight -= GenerateNextStage;
-        }
-    }
+    //private void OnDestroy()
+    //{
+    //    if (DayNightManager.Instance != null)
+    //    {
+    //        DayNightManager.Instance.OnDayToNight -= GenerateNextStage;
+    //    }
+    //}
 
-    private void GenerateNextStage()
-    {
-        if (currentMapCount >= routeSettings.MaxMapCount || currentMapCount >= generatedMapOffsets.Count)
-        {
-            return;
-        }
+    //private void GenerateNextStage()
+    //{
+    //    if (currentMapCount >= routeSettings.MaxMapCount || currentMapCount >= generatedMapOffsets.Count)
+    //    {
+    //        return;
+    //    }
 
-        currentMapOffset = generatedMapOffsets[currentMapCount];
+    //    currentMapOffset = generatedMapOffsets[currentMapCount];
 
-        if (occupiedMapOffsets.Contains(currentMapOffset))
-        {
-            return;
-        }
+    //    if (occupiedMapOffsets.Contains(currentMapOffset))
+    //    {
+    //        return;
+    //    }
 
-        lava.Clear();
+    //    lava.Clear();
 
-        StageTilePathBuildResult tilePathBuildResult = new StageTilePathBuildResult();
+    //    StageTilePathBuildResult tilePathBuildResult = new StageTilePathBuildResult();
 
-        if (!TryBuildCurrentStagePath(tilePathBuildResult))
-        {
-            return;
-        }
+    //    if (!TryBuildCurrentStagePath(tilePathBuildResult))
+    //    {
+    //        return;
+    //    }
 
-        lavaGenerator.Generate(path, lava);
+    //    lavaGenerator.Generate(path, lava);
 
-        mapSpawner.CreateMap(currentMapOffset, path, lava, spawnedTiles);
-        monsterRouteTracker.AddPath(currentMapOffset, path);
-        UpdateMonsterRoute();
-        UpdateMonsterSpawnPoint();
-        SpawnFinalCenterObject(tilePathBuildResult);
-        roadTracker.AddPath(currentMapOffset, path);
+    //    mapSpawner.CreateMap(currentMapOffset, path, lava, spawnedTiles);
+    //    monsterRouteTracker.AddPath(currentMapOffset, path);
+    //    UpdateMonsterRoute();
+    //    UpdateMonsterSpawnPoint();
+    //    SpawnFinalCenterObject(tilePathBuildResult);
+    //    roadTracker.AddPath(currentMapOffset, path);
 
-        occupiedMapOffsets.Add(currentMapOffset);
-        currentMapCount++;
+    //    occupiedMapOffsets.Add(currentMapOffset);
+    //    currentMapCount++;
 
-        Debug.Log("[StageBuilder] 생성 완료: " + currentMapOffset + ", 현재 맵 수: " + currentMapCount);
-        if (currentMapCount > 1)
-        {
-            StartMonsterRound(currentMapCount);
-        }
-    }
+    //    Debug.Log("[StageBuilder] 생성 완료: " + currentMapOffset + ", 현재 맵 수: " + currentMapCount);
+    //    if (currentMapCount > 1)
+    //    {
+    //        StartMonsterRound(currentMapCount);
+    //    }
+    //}
 
 
     private bool TryBuildCurrentStagePath(StageTilePathBuildResult tilePathBuildResult)
@@ -290,7 +290,7 @@ public class StageBuilder : MonoBehaviour
         currentMapCount = 0;
 
         PrepareRoute();
-        GenerateNextStage();
+        //GenerateNextStage();
     }
 }
 

@@ -56,6 +56,8 @@ public class TowerPlacer : MonoBehaviour
     private Material _cellMatValid;
     private Material _cellMatInvalid;
     private TowerPlacementData _activeData; // 현재 배치 중인 타워의 데이터(주입 또는 더미)
+    private List<ResourceCost> _activeCost; // 현재 배치 중인 타워의 비용(확정 시 차감)
+    private ManagementController _management; // 자원 차감 게이트웨이(WL-017). null이면 무료 배치(테스트 씬).
 
     // 프레임당 풋프린트를 1회만 계산해 캐시(스냅에서 채우고, 검증·하이라이트가 공유).
     // MouseManager는 매 프레임 Snap → CanPlaceAt 순으로 호출하므로 CanPlaceAt은 이 캐시를 신뢰한다.
@@ -74,6 +76,9 @@ public class TowerPlacer : MonoBehaviour
                 $"[TowerPlacer] tileSize({tileSize})가 StageBuilder.TileSize({stage.TileSize})와 다릅니다. " +
                 "풋프린트 셀 조회가 어긋날 수 있습니다.");
         }
+
+        // 자원 차감 게이트웨이(경영 시스템). 씬에 없으면 무료 배치 — 경영 없는 테스트 씬 지원.
+        _management = FindFirstObjectByType<ManagementController>();
     }
 
     private void OnDestroy()
@@ -105,6 +110,7 @@ public class TowerPlacer : MonoBehaviour
 
         towerPrefab = so.TowerPrefab;
         ghostPrefab = so.GhostPrefab;
+        _activeCost = so.Cost;
 
         TowerType type = so.TowerType;
         switch (type)
@@ -119,7 +125,9 @@ public class TowerPlacer : MonoBehaviour
                 StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Chain.Attack.AttackRange));
                 break;
             case TowerType.Magic:
-                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, 0f)); // 마법 타입은 사거리 없음
+                // 마법 타워는 오라 반경을 사거리 미리보기로 사용(#111 완료기준 #4).
+                // 반경 규칙은 TowerAsset.MagicRadius 단일 출처(WL-056) — AuraTower 실효과와 공유.
+                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.MagicRadius));
                 break;
             default:
                 Debug.LogError($"[TowerPlacer] 알 수 없는 TowerType={type}입니다.");
@@ -197,7 +205,9 @@ public class TowerPlacer : MonoBehaviour
             if (!IsBuildable(tile)) return false;
         }
 
-        // TODO(훅): 자원 충분 여부(ResourceWallet) / 낮 페이즈 여부 — Docs/Core/TowerPlacement.md §8
+        // 자원 부족 시 배치 불가(고스트 빨강) — 연속 배치(keepPlacing) 중 소진돼도 즉시 피드백.
+        // (낮 페이즈 게이팅은 여전히 §8 후속 훅)
+        if (_management != null && !_management.CanAfford(_activeCost)) return false;
         return true;
     }
 
@@ -214,7 +224,14 @@ public class TowerPlacer : MonoBehaviour
             if (!IsBuildable(tile)) return;
         }
 
-        // TODO(훅): ResourceWallet.TrySpend(cost) 실패 시 return — Docs/Core/TowerPlacement.md §8
+        // 자원 차감(경영 게이트웨이 경유 — TowerPlacement.md §8). 성공 시에만 생성·점유한다.
+        // 부족하면 배치 취소. 경영이 씬에 없으면(null) 무료 배치(테스트 씬).
+        if (_management != null && !_management.TrySpend(_activeCost))
+        {
+            // CanPlaceFootprint가 이미 자원 부족을 걸러 여기 도달은 드묾(방어) — 조용한 실패 방지.
+            Debug.Log("[TowerPlacer] 자원이 부족해 배치를 취소합니다.");
+            return;
+        }
 
         Instantiate(towerPrefab, snappedPos, Quaternion.identity);
         foreach ((Vector3 _, BattleTile tile) in _footprint) tile.Occupied = true;
