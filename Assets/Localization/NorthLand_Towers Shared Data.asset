@@ -10,83 +10,79 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
-  m_Name: NorthLand_default Shared Data
+  m_Name: NorthLand_Towers Shared Data
   m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
-  m_TableCollectionName: NorthLand_default
-  m_TableCollectionNameGuidString: 1d3165e14f060034fbf1f02d9888408b
+  m_TableCollectionName: NorthLand_Towers
+  m_TableCollectionNameGuidString: 94ff895bea0fd3a4e9e010db2f0cee78
   m_Entries:
-  - m_Id: 742551334912
-    m_Key: title.btn.start
+  - m_Id: 1852796186624
+    m_Key: towers.archer.name
     m_Metadata:
       m_Items: []
-  - m_Id: 3604866412982272
-    m_Key: title.btn.option
+  - m_Id: 1976142278656
+    m_Key: towers.archer.role
     m_Metadata:
       m_Items: []
-  - m_Id: 3604902953758720
-    m_Key: title.btn.exit
+  - m_Id: 1989530497024
+    m_Key: towers.archer.desc
     m_Metadata:
       m_Items: []
-  - m_Id: 3710819598741504
-    m_Key: game.resources.wood
+  - m_Id: 2598207893504
+    m_Key: towers.cannon.name
     m_Metadata:
       m_Items: []
-  - m_Id: 3710894051831808
-    m_Key: game.resources.iron
+  - m_Id: 2601362010112
+    m_Key: towers.cannon.role
     m_Metadata:
       m_Items: []
-  - m_Id: 3710897180782592
-    m_Key: game.resources.food
+  - m_Id: 2603442384896
+    m_Key: towers.cannon.desc
     m_Metadata:
       m_Items: []
-  - m_Id: 3710962737754112
-    m_Key: game.resources.mana
+  - m_Id: 2724070567936
+    m_Key: towers.lightning.name
     m_Metadata:
       m_Items: []
-  - m_Id: 3712710684585984
-    m_Key: game.resources.villager
+  - m_Id: 2726385823744
+    m_Key: towers.lightning.role
     m_Metadata:
       m_Items: []
-  - m_Id: 3714865646678016
-    m_Key: game.system.day
+  - m_Id: 2727056912384
+    m_Key: towers.lightning.desc
     m_Metadata:
       m_Items: []
-  - m_Id: 3714997519790080
-    m_Key: game.system.night
+  - m_Id: 2921097998336
+    m_Key: towers.haste.name
     m_Metadata:
       m_Items: []
-  - m_Id: 3715012954828800
-    m_Key: game.system.wave
+  - m_Id: 2921639063552
+    m_Key: towers.haste.role
     m_Metadata:
       m_Items: []
-  - m_Id: 3715207469871104
-    m_Key: game.system.defense
+  - m_Id: 2923149012992
+    m_Key: towers.haste.desc
     m_Metadata:
       m_Items: []
-  - m_Id: 3720979469709312
-    m_Key: game.btn.next
+  - m_Id: 3010218569728
+    m_Key: towers.slow.name
     m_Metadata:
       m_Items: []
-  - m_Id: 3725309203591168
-    m_Key: game.system.production
+  - m_Id: 3011833376768
+    m_Key: towers.slow.role
     m_Metadata:
       m_Items: []
-  - m_Id: 3727708706189312
-    m_Key: game.btn.retry
-    m_Metadata:
-      m_Items: []
-  - m_Id: 3727803027697664
-    m_Key: game.btn.title
+  - m_Id: 3012533825536
+    m_Key: towers.slow.desc
     m_Metadata:
       m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
-    rid: 853242141344006357
+    rid: 853242367454478454
   references:
     version: 2
     RefIds:
-    - rid: 853242141344006357
+    - rid: 853242367454478454
       type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
       data:
-        m_CustomEpoch: 1783648197094
+        m_CustomEpoch: 1784527206690

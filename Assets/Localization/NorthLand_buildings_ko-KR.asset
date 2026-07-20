@@ -1,0 +1,99 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: NorthLand_buildings_ko-KR
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: ko-KR
+  m_SharedData: {fileID: 11400000, guid: fd515eea95e07f54586d0fb2bc53acb7, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 663232851968
+    m_Localized: "\uB098\uBB34\uAFBC\uC758 \uC9D1"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 850768572416
+    m_Localized: "\uB098\uBB34 \uC0DD\uC0B0"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 938781847552
+    m_Localized: "\uBC30\uCE58\uB41C \uC8FC\uBBFC \uC218\uB9CC\uD07C \uB098\uBB34
+      \uC0DD\uC0B0"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1026795122688
+    m_Localized: "\uAD11\uC0B0"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1090347216896
+    m_Localized: "\uCCA0 \uC0DD\uC0B0"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1152288698368
+    m_Localized: "\uBC30\uCE58\uB41C \uC8FC\uBBFC \uC218\uB9CC\uD07C \uCCA0 \uC0DD\uC0B0"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1321805688832
+    m_Localized: "\uB18D\uC7A5"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1352474439680
+    m_Localized: "\uC2DD\uB7C9 \uC0DD\uC0B0"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1380861489152
+    m_Localized: "\uBC30\uCE58\uB41C \uC8FC\uBBFC \uC218\uB9CC\uD07C \uC2DD\uB7C9
+      \uC0DD\uC0B0"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1914511175680
+    m_Localized: "\uCE90\uC2AC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2796522975232
+    m_Localized: "\uB9C8\uC744 \uC131\uC7A5 \uD575\uC2EC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3326582337536
+    m_Localized: "\uAC74\uBB3C \uCD5C\uB300 \uB808\uBCA8 \uC81C\uD55C. \uC5C5\uADF8\uB808\uC774\uB4DC
+      \uC2DC \uBAA8\uB4E0 \uAC74\uBB3C \uCD5C\uB300 \uB808\uBCA8 \uC99D\uAC00"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7663790469120
+    m_Localized: "\uC5F0\uAE08\uC220\uC0AC\uC758 \uC9D1"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7754253217792
+    m_Localized: "\uC790\uC6D0 \uACF5\uAE09"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7796770877440
+    m_Localized: "\uB9C8\uB098\uC11D\uC744 \uB098\uBB34/\uCCA0/\uC2DD\uB7C9 \uC911
+      \uC120\uD0DD\uD574 \uAD50\uD658"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8647807741952
+    m_Localized: "\uB9C8\uBC95 \uC5F0\uAD6C\uC18C"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8695924797440
+    m_Localized: "\uC2A4\uD0AC \uAD00\uB828"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8711661826048
+    m_Localized: "\uB9C8\uB098\uC11D\uC73C\uB85C \uC2A4\uD0AC \uD574\uAE08\xB7\uAC15\uD654"
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []

@@ -1,0 +1,86 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: NorthLand_Towers_ko-KR
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: ko-KR
+  m_SharedData: {fileID: 11400000, guid: 94ff895bea0fd3a4e9e010db2f0cee78, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 1852796186624
+    m_Localized: "\uAD81\uC218 \uD0C0\uC6CC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1976142278656
+    m_Localized: "\uB2E8\uC77C \uB300\uC0C1 \uACF5\uACA9"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1989530497024
+    m_Localized: "\uC0AC\uAC70\uB9AC \uB0B4 \uAC00\uC7A5 \uAC00\uAE4C\uC6B4 \uC801
+      \uD558\uB098\uB97C \uC9C0\uC18D \uACF5\uACA9"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2598207893504
+    m_Localized: "\uB300\uD3EC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2601362010112
+    m_Localized: "\uAD11\uC5ED \uACF5\uACA9"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2603442384896
+    m_Localized: "\uCC29\uD0C4 \uC9C0\uC810 \uC8FC\uBCC0 \uBC94\uC704 \uD53C\uD574"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2724070567936
+    m_Localized: "\uBC88\uAC1C \uD0C0\uC6CC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2726385823744
+    m_Localized: "\uCCB4\uC774\uB2DD \uACF5\uACA9"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2727056912384
+    m_Localized: "\uC801 \uD558\uB098\uB97C \uB9DE\uD788\uBA74 \uC8FC\uBCC0 \uC801\uC73C\uB85C
+      \uBC88\uAC1C\uAC00 \uD290"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2921097998336
+    m_Localized: "\uAC00\uC18D\uC758 \uD0D1"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2921639063552
+    m_Localized: "\uC544\uAD70 \uACF5\uACA9\uC18D\uB3C4 \uAC15\uD654"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2923149012992
+    m_Localized: "\uBC94\uC704 \uB0B4 \uC544\uAD70 \uD0C0\uC6CC \uACF5\uACA9\uC18D\uB3C4
+      \uC99D\uAC00"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3010218569728
+    m_Localized: "\uC11C\uB9AC\uC758 \uD0D1"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3011833376768
+    m_Localized: "\uC801 \uC774\uB3D9\uC18D\uB3C4 \uAC10\uC18C"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3012533825536
+    m_Localized: "\uBC94\uC704 \uB0B4 \uC801 \uC774\uB3D9\uC18D\uB3C4 \uAC10\uC18C"
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []
