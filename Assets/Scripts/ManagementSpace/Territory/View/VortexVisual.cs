@@ -1,4 +1,5 @@
-using System.Collections;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 /// <summary>
@@ -75,10 +76,11 @@ public class VortexVisual : MonoBehaviour
     }
 
     /// <summary>
-    /// 확보 연출 1단계: 스핀업하며 0으로 축소. 파괴는 호출자(<see cref="TerritoryNodeStateVisual"/>) 몫 —
-    /// 이 오브젝트가 곧 사라지므로 코루틴은 호출자 쪽에서 중첩 실행해야 한다.
+    /// 확보 연출 1단계: 스핀업하며 0으로 축소. 파괴는 호출자(<see cref="TerritoryNodeStateVisual"/>) 몫.
+    /// ct는 호출자(부모 노드)의 destroyCancellationToken — 이 오브젝트는 부모의 자식이라
+    /// 부모 파괴 시 함께 파괴되므로 호출자 토큰 하나로 수명이 보장된다.
     /// </summary>
-    public IEnumerator VanishRoutine(float duration)
+    public async UniTask VanishAsync(float duration, CancellationToken ct)
     {
         _vanishing = true;
         _spinMultiplier = 4f;
@@ -88,7 +90,7 @@ public class VortexVisual : MonoBehaviour
         {
             elapsed += Time.deltaTime;
             transform.localScale = startScale * Mathf.Max(0f, 1f - elapsed / duration);
-            yield return null;
+            await UniTask.Yield(ct);
         }
     }
 

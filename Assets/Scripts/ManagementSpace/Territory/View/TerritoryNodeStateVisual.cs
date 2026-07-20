@@ -1,4 +1,5 @@
-using System.Collections;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 /// <summary>
@@ -62,7 +63,7 @@ public class TerritoryNodeStateVisual : MonoBehaviour
     {
         if (_isAnimating)
         {
-            return; // 연출 코루틴이 끝나면 최종 상태(Mountain)와 일치한다
+            return; // 연출 태스크가 끝나면 최종 상태(Mountain)와 일치한다
         }
 
         if (isHome)
@@ -83,7 +84,7 @@ public class TerritoryNodeStateVisual : MonoBehaviour
         {
             if (playClaimFx && _kind == Kind.Vortex)
             {
-                StartCoroutine(ClaimSequence(nodeId));
+                ClaimSequence(nodeId, destroyCancellationToken).Forget();
             }
             else
             {
@@ -122,11 +123,14 @@ public class TerritoryNodeStateVisual : MonoBehaviour
     }
 
     // 확보 연출: 소용돌이 스핀업+축소 → 파괴 → 땅이 오버슈트하며 솟아오름.
-    private IEnumerator ClaimSequence(int nodeId)
+    // ct는 destroyCancellationToken — 코루틴과 달리 UniTask는 오브젝트 파괴 시 자동 중단되지
+    // 않으므로, 모든 await에 토큰을 걸어 파괴 후 접근(MissingReferenceException)을 막는다.
+    // 취소로 _isAnimating이 true로 남아도 이 컴포넌트 자체가 파괴된 뒤라 무해하다.
+    private async UniTaskVoid ClaimSequence(int nodeId, CancellationToken ct)
     {
         _isAnimating = true;
 
-        yield return _vortex.VanishRoutine(_vanishDuration);
+        await _vortex.VanishAsync(_vanishDuration, ct);
         Destroy(_current);
         _vortex = null;
 
@@ -142,7 +146,7 @@ public class TerritoryNodeStateVisual : MonoBehaviour
                 elapsed += Time.deltaTime;
                 float p = Mathf.Clamp01(elapsed / _popDuration);
                 t.localScale = finalScale * Mathf.Max(0.01f, EaseOutBack(p));
-                yield return null;
+                await UniTask.Yield(ct);
             }
             t.localScale = finalScale;
         }

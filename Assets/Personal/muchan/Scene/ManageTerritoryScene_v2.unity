@@ -952,10 +952,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TerritoryController
   _settings:
     NodeCount: 20
-    AreaRadius: 900
+    AreaRadius: 450
     SectorCenterDegrees: 160
     SectorAngleDegrees: 140
-    MinNodeSpacing: 280
+    MinNodeSpacing: 140
     OutwardBias: 1.5
     TreeShortEdgeBias: 3
     ExtraEdgeKeepRatio: 0.3

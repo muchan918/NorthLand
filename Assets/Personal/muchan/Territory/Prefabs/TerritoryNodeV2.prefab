@@ -53,7 +53,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 80
+  m_Radius: 45
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &3710225068571312697
 MonoBehaviour:
@@ -90,10 +90,10 @@ MonoBehaviour:
   - {fileID: 1124086591143084589, guid: 270ae32630cb97045acc5ee76e5c3e5f, type: 3}
   - {fileID: 4051877345385198461, guid: dbe2089df6598a04aa50bee287a5b834, type: 3}
   - {fileID: 8213041960024509097, guid: 47b42b630704ce44dbfe8fec0a434236, type: 3}
-  _mountainScale: 1
-  _mountainYOffset: -14.2
+  _mountainScale: 0.5
+  _mountainYOffset: -7.1
   _vortexMaterial: {fileID: 2100000, guid: 65f413f1f75b29f418021d66b6d0c081, type: 2}
-  _vortexDiameter: 120
+  _vortexDiameter: 60
   _vortexColor: {r: 0.35, g: 0.75, b: 0.95, a: 0.85}
   _vortexHoverColor: {r: 0.6, g: 0.95, b: 1, a: 1}
   _vortexDimColor: {r: 0.55, g: 0.55, b: 0.55, a: 0.5}
