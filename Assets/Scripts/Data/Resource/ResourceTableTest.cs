@@ -7,7 +7,7 @@ public class ResourceTableTest : MonoBehaviour
         foreach (var id in new[] { "wood", "iron", "food", "mana" })
         {
             var data = DataTableManager.Get<ResourceTable>("ResourceTable").Get(id);
-            Debug.Log($"{data.ResourceID} -> {data.DisplayName} ({data.Kind})");
+            Debug.Log($"{data.ResourceID} -> {LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, data.NameKey)} ({data.Kind})");
         }
     }
 }

@@ -1,7 +1,7 @@
-TowerID,DisplayName,TowerType,MagicEffectType,GridWidth,GridHeight,Role,Description
-archer_tower,궁수 타워,Single,None,1,1,단일 대상 공격,사거리 내 가장 가까운 적 하나를 지속 공격
-cannon_tower,대포,Area,None,1,1,광역 공격,착탄 지점 주변 범위 피해
-lightning_tower,번개 타워,Chain,None,1,1,연쇄 공격,적 하나를 맞히면 주변 적으로 번개가 튐
-haste_tower,가속의 탑,Magic,Buff,1,1,아군 공격속도 강화,범위 내 아군 타워 공격속도 증가
-slow_tower,서리의 탑,Magic,Debuff,1,1,적 이동속도 감소,범위 내 적 이동속도 감소
-poison_tower,독마법 타워,Magic,Debuff,1,1,적 독상태이상 적용,범위 내 적 에게 일정시간 동안  독데미지 부여
+TowerID,NameKey,TowerType,MagicEffectType,GridWidth,GridHeight,RoleKey,DescriptionKey
+archer_tower,towers.archer.name,Single,None,1,1,towers.archer.role,towers.archer.desc
+cannon_tower,towers.cannon.name,Area,None,1,1,towers.cannon.role,towers.cannon.desc
+lightning_tower,towers.lightning.name,Chain,None,1,1,towers.lightning.role,towers.lightning.desc
+haste_tower,towers.haste.name,Magic,Buff,1,1,towers.haste.role,towers.haste.desc
+slow_tower,towers.slow.name,Magic,Debuff,1,1,towers.slow.role,towers.slow.desc
+poison_tower,towers.poison.name,Magic,Debuff,1,1,towers.poison.role,towers.poison.desc

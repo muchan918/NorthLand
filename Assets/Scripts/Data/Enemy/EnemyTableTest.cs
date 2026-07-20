@@ -12,7 +12,7 @@ public class EnemyTableTest : MonoBehaviour
             var data = DataTableManager.Get<EnemyTable>("EnemyTable").Get(id);
             if (data == null) continue;
 
-            Debug.Log($"{data.EnemyID} -> {data.DisplayName} ({data.EnemyType}) : {data.Role}");
+            Debug.Log($"{data.EnemyID} -> {LocalizationHelper.Get(LocalizationHelper.k_EnemiesTable, data.NameKey)} ({data.EnemyType}) : {LocalizationHelper.Get(LocalizationHelper.k_EnemiesTable, data.RoleKey)}");
         }
     }
 }

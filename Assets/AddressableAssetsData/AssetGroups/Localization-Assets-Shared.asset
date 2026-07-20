@@ -20,6 +20,21 @@ MonoBehaviour:
     m_ReadOnly: 1
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9345e22f18ba7c446a8626f8882a2ea7
+    m_Address: Assets/Localization/NorthLand_Enemies Shared Data.asset
+    m_ReadOnly: 1
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 94ff895bea0fd3a4e9e010db2f0cee78
+    m_Address: Assets/Localization/NorthLand_Towers Shared Data.asset
+    m_ReadOnly: 1
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: fd515eea95e07f54586d0fb2bc53acb7
+    m_Address: Assets/Localization/NorthLand_buildings Shared Data.asset
+    m_ReadOnly: 1
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 1
   m_Settings: {fileID: 11400000, guid: abf5d22285b9d174786176fc6fc53279, type: 2}
   m_SchemaSet:

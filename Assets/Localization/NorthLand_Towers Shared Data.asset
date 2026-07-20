@@ -1,0 +1,100 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: NorthLand_Towers Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: NorthLand_Towers
+  m_TableCollectionNameGuidString: 94ff895bea0fd3a4e9e010db2f0cee78
+  m_Entries:
+  - m_Id: 1852796186624
+    m_Key: towers.archer.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1976142278656
+    m_Key: towers.archer.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1989530497024
+    m_Key: towers.archer.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2598207893504
+    m_Key: towers.cannon.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2601362010112
+    m_Key: towers.cannon.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2603442384896
+    m_Key: towers.cannon.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2724070567936
+    m_Key: towers.lightning.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2726385823744
+    m_Key: towers.lightning.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2727056912384
+    m_Key: towers.lightning.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2921097998336
+    m_Key: towers.haste.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2921639063552
+    m_Key: towers.haste.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2923149012992
+    m_Key: towers.haste.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3010218569728
+    m_Key: towers.slow.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3011833376768
+    m_Key: towers.slow.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3012533825536
+    m_Key: towers.slow.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 77423716192256
+    m_Key: towers.poison.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 77423783301120
+    m_Key: towers.poison.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 77423783301121
+    m_Key: towers.poison.desc
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 853242367454478454
+  references:
+    version: 2
+    RefIds:
+    - rid: 853242367454478454
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1784527206690

@@ -8,8 +8,8 @@ public enum EnemyType
 public class EnemyData
 {
     public string EnemyID { get; set; }
-    public string DisplayName { get; set; }
+    public string NameKey { get; set; }
     public EnemyType EnemyType { get; set; }
-    public string Role { get; set; }
-    public string Description { get; set; }
+    public string RoleKey { get; set; }
+    public string DescriptionKey { get; set; }
 }

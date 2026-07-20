@@ -9,7 +9,7 @@ public class BuildingInfoUI : MonoBehaviour
 {
     public static BuildingInfoUI Instance { get; private set; }
 
-    [SerializeField] private TextMeshProUGUI _buildingInfoText;
+    [SerializeField] TextMeshProUGUI _buildingInfoText;
 
     private void Awake()
     {
@@ -23,9 +23,10 @@ public class BuildingInfoUI : MonoBehaviour
         HideInfo(); // Instance 등록 후 숨기므로 안전
     }
 
-    public void ShowInfo(string info)
+    public void ShowInfo(string key)
     {
-        _buildingInfoText.text = info;
+        string localizedString = LocalizationHelper.Get(LocalizationHelper.k_BuildingsTable, key);
+        _buildingInfoText.text = localizedString;
         gameObject.SetActive(true);
     }
 

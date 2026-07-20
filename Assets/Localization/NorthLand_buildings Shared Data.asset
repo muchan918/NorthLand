@@ -1,0 +1,100 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: NorthLand_buildings Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: NorthLand_buildings
+  m_TableCollectionNameGuidString: fd515eea95e07f54586d0fb2bc53acb7
+  m_Entries:
+  - m_Id: 663232851968
+    m_Key: buildings.woodcutter.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 850768572416
+    m_Key: buildings.woodcutter.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 938781847552
+    m_Key: buildings.woodcutter.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1026795122688
+    m_Key: buildings.mine.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1090347216896
+    m_Key: buildings.mine.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1152288698368
+    m_Key: buildings.mine.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1321805688832
+    m_Key: buildings.farm.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1352474439680
+    m_Key: buildings.farm.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1380861489152
+    m_Key: buildings.farm.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1914511175680
+    m_Key: buildings.castle.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2796522975232
+    m_Key: buildings.castle.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3326582337536
+    m_Key: buildings.castle.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7663790469120
+    m_Key: buildings.alchemist.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7754253217792
+    m_Key: buildings.alchemist.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7796770877440
+    m_Key: buildings.alchemist.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8647807741952
+    m_Key: buildings.lab.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8695924797440
+    m_Key: buildings.lab.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8711661826048
+    m_Key: buildings.lab.desc
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 853242367454478412
+  references:
+    version: 2
+    RefIds:
+    - rid: 853242367454478412
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1784512606765

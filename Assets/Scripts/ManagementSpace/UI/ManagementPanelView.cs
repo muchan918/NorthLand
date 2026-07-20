@@ -12,6 +12,11 @@ using UnityEngine.UI;
 /// </summary>
 public class ManagementPanelView : MonoBehaviour
 {
+    private const string k_DayStringTableKey = "game.system.day";
+    private const string k_NightStringTableKey = "game.system.night";
+    private const string k_WaveStringTableKey = "game.system.wave";
+    private const string k_DefenseStringTableKey = "game.system.defense";
+
     [Header("컨트롤러")]
     [SerializeField] ManagementController _controller;
 
@@ -101,11 +106,11 @@ public class ManagementPanelView : MonoBehaviour
 
         if (_villagerPoolText != null)
         {
-            _villagerPoolText.text = $"Villagers {_controller.AssignedTotal}/{_controller.MaxVillagers}";
+            _villagerPoolText.text = $"{_controller.AssignedTotal}/{_controller.MaxVillagers}";
         }
         if (_phaseText != null)
         {
-            _phaseText.text = _controller.IsDay ? $"Day (Wave {_controller.WaveCount})" : "Night (Defense)";
+            _phaseText.text = _controller.IsDay ? $"{LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, k_WaveStringTableKey)} {_controller.WaveCount}" : $"{LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, k_NightStringTableKey)} ({LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, k_DefenseStringTableKey)})";
         }
         if (_endDayButton != null)
         {

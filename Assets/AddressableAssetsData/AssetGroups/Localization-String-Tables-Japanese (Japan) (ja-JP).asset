@@ -22,6 +22,24 @@ MonoBehaviour:
     - Locale-ja-JP
     - Preload
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a31d2ba729c0f2442a3f5145a6c672b8
+    m_Address: NorthLand_buildings_ja-JP
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-ja-JP
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: dc66d7162db3bb5488356fba512ea432
+    m_Address: NorthLand_Towers_ja-JP
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-ja-JP
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e692b14850843db44b41b7a958c11009
+    m_Address: NorthLand_Enemies_ja-JP
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-ja-JP
+    FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 1
   m_Settings: {fileID: 11400000, guid: abf5d22285b9d174786176fc6fc53279, type: 2}
   m_SchemaSet:

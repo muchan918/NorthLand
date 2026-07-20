@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: NorthLand_Enemies_ko-KR
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: ko-KR
+  m_SharedData: {fileID: 11400000, guid: 9345e22f18ba7c446a8626f8882a2ea7, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 83810725888
+    m_Localized: "\uACE0\uBE14\uB9B0 \uC804\uC0AC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 464754192384
+    m_Localized: "\uADFC\uC811"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 468822667264
+    m_Localized: "\uBCF8\uC9C4\uAE4C\uC9C0 \uB3C4\uB2EC\uD574 \uADFC\uC811 \uACF5\uACA9\uC744
+      \uAC00\uD558\uB294 \uAE30\uBCF8 \uC801"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1359952883712
+    m_Localized: "\uACE0\uBE14\uB9B0 \uAD81\uC218"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1366428889088
+    m_Localized: "\uC6D0\uAC70\uB9AC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1368643481600
+    m_Localized: "\uC0AC\uAC70\uB9AC \uBC16\uC5D0\uC11C \uC6D0\uAC70\uB9AC \uACF5\uACA9\uC744
+      \uAC00\uD558\uB294 \uC801"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2502347075584
+    m_Localized: "\uC624\uC6B0\uAC70 \uD0B9"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2504364535808
+    m_Localized: "\uBCF4\uC2A4"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2505803182080
+    m_Localized: "\uAC15\uB825\uD55C \uC2A4\uD0EF\uACFC \uACE0\uC720\uD55C \uD589\uB3D9\uC744
+      \uAC00\uC9C4 \uBCF4\uC2A4 \uBAAC\uC2A4\uD130"
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []

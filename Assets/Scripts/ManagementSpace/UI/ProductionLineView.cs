@@ -45,8 +45,7 @@ public class ProductionLineView : MonoBehaviour
 
         if (_nameText != null)
         {
-            // 임시로 영어 표기(ResourceKind 이름) — 한글 폰트 도입 전까지. 한글 DisplayName은 LineDisplayName 참고.
-            _nameText.text = _controller.LineKind(_lineIndex).ToString();
+            _nameText.text = _controller.LineDisplayName(_lineIndex);
         }
         if (_villagerText != null)
         {
