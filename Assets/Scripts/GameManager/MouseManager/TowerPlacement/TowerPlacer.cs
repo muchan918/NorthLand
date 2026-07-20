@@ -125,7 +125,9 @@ public class TowerPlacer : MonoBehaviour
                 StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Chain.Attack.AttackRange));
                 break;
             case TowerType.Magic:
-                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, 0f)); // 마법 타입은 사거리 없음
+                // 마법 타워는 오라 반경을 사거리 미리보기로 사용(#111 완료기준 #4).
+                // 반경 규칙은 TowerAsset.MagicRadius 단일 출처(WL-056) — AuraTower 실효과와 공유.
+                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.MagicRadius));
                 break;
             default:
                 Debug.LogError($"[TowerPlacer] 알 수 없는 TowerType={type}입니다.");

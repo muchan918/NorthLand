@@ -10,14 +10,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
-  m_Name: lightning_tower
+  m_Name: poison_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
-  TowerID: lightning_tower
-  TowerPrefab: {fileID: 0}
-  GhostPrefab: {fileID: 0}
-  TowerType: 2
-  MagicEffectType: 0
-  Cost: []
+  TowerID: poison_tower
+  TowerPrefab: {fileID: 527708244005276318, guid: fc4ef101e7e1d6f468ba584523b14680, type: 3}
+  GhostPrefab: {fileID: 527708244005276318, guid: 11629f488a947514c869e22c8d9776ef, type: 3}
+  TowerType: 3
+  MagicEffectType: 2
+  Cost:
+  - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
+    Amount: 40
+  - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+    Amount: 20
   Single:
     Attack:
       AttackDamage: 0
@@ -53,11 +57,11 @@ MonoBehaviour:
         DamageAmount: 0
         TickInterval: 0
     DebuffAura:
-      Radius: 0
-      Interval: 0
-      Duration: 0
+      Radius: 10
+      Interval: 1
+      Duration: 3
       Modifiers: []
       Damage:
-        HasDamage: 0
-        DamageAmount: 0
-        TickInterval: 0
+        HasDamage: 1
+        DamageAmount: 3
+        TickInterval: 1
