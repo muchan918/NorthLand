@@ -1,0 +1,102 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &5065947980244056731
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1375865117216226601}
+  - component: {fileID: 8828621789724042324}
+  - component: {fileID: 3710225068571312697}
+  - component: {fileID: 479388041808449702}
+  m_Layer: 6
+  m_Name: TerritoryNodeV2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1375865117216226601
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5065947980244056731}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!135 &8828621789724042324
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5065947980244056731}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 80
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &3710225068571312697
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5065947980244056731}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cf947c815ad3da4abf90f80d4e01988, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TerritoryNodeView
+  _visual: {fileID: 0}
+  _ownedColor: {r: 1, g: 0.85, b: 0.2, a: 1}
+  _selectableColor: {r: 0.65, g: 0.65, b: 0.65, a: 1}
+  _hoverColor: {r: 0.9, g: 0.85, b: 0.4, a: 1}
+--- !u!114 &479388041808449702
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5065947980244056731}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4fa43794856f465419a875c3974b5248, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TerritoryNodeStateVisual
+  _mountainPrefabs:
+  - {fileID: 681017626638778351, guid: fe028f34ae733b947a626c753caf9c43, type: 3}
+  - {fileID: 448881793709328671, guid: ef833fb8db8767a4794f016e6123fade, type: 3}
+  - {fileID: 4666154063851486373, guid: 0511d4442e533224780537b8b4470a26, type: 3}
+  - {fileID: 1124086591143084589, guid: 270ae32630cb97045acc5ee76e5c3e5f, type: 3}
+  - {fileID: 4051877345385198461, guid: dbe2089df6598a04aa50bee287a5b834, type: 3}
+  - {fileID: 8213041960024509097, guid: 47b42b630704ce44dbfe8fec0a434236, type: 3}
+  _mountainScale: 1
+  _mountainYOffset: -14.2
+  _vortexMaterial: {fileID: 2100000, guid: 65f413f1f75b29f418021d66b6d0c081, type: 2}
+  _vortexDiameter: 120
+  _vortexColor: {r: 0.35, g: 0.75, b: 0.95, a: 0.85}
+  _vortexHoverColor: {r: 0.6, g: 0.95, b: 1, a: 1}
+  _vortexDimColor: {r: 0.55, g: 0.55, b: 0.55, a: 0.5}
+  _vortexSpinSpeed: 60
+  _vanishDuration: 0.25
+  _popDuration: 0.5
