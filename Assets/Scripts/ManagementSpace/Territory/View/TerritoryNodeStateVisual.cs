@@ -178,10 +178,15 @@ public class TerritoryNodeStateVisual : MonoBehaviour
 
         // Sweet_Land의 BlendShapeAnimator는 무한 루프(솟았다 꺼졌다)라 산이 계속 출렁인다.
         // Destroy는 프레임 끝에 실행되므로 enabled=false를 먼저 걸어 Start 코루틴 진입을 막는다.
-        foreach (var animator in go.GetComponentsInChildren<ithappy.BlendShapeAnimator>(true))
+        // 벤더 타입(ithappy.*)은 소스가 Assets/Imported(중첩 repo)에만 있어 컴파일 타임 직접 참조 금지 —
+        // 미동기화 환경에서 Assembly-CSharp 전체가 깨진다(WL-062). 이름 문자열 덕타이핑으로 디커플링.
+        foreach (var behaviour in go.GetComponentsInChildren<MonoBehaviour>(true))
         {
-            animator.enabled = false;
-            Destroy(animator);
+            if (behaviour != null && behaviour.GetType().Name == "BlendShapeAnimator")
+            {
+                behaviour.enabled = false;
+                Destroy(behaviour);
+            }
         }
 
         // 저작된 형태(가중치 0)로 고정 — 애니메이터가 남긴 중간 가중치 방지.
