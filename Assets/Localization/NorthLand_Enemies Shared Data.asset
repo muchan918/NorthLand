@@ -28,7 +28,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 1359952883712
-    m_Key: "enemies.goblin.archer.name\t"
+    m_Key: enemies.goblin.archer.name
     m_Metadata:
       m_Items: []
   - m_Id: 1366428889088
