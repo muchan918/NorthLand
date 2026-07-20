@@ -17,7 +17,7 @@ public class BuildingTooltipSource : MonoBehaviour, IHoverable
     {
         if (_buildingAsset == null)
         {
-            Debug.LogError("BuildingTooltipSource: BuildingAsset이 할당되지 않았다.", this);
+            Debug.LogError("[BuildingTooltipSource] BuildingAsset 미할당", this);
             return;
         }
 
@@ -25,7 +25,7 @@ public class BuildingTooltipSource : MonoBehaviour, IHoverable
         _data = table != null ? table.Get(_buildingAsset.BuildingID) : null;
         if (_data == null)
         {
-            Debug.LogError($"BuildingTooltipSource: BuildingData를 찾지 못했다 ({_buildingAsset.BuildingID}).", this);
+            Debug.LogError($"[BuildingTooltipSource] BuildingData가 없습니다. ({_buildingAsset.BuildingID}).", this);
         }
     }
 
@@ -41,7 +41,10 @@ public class BuildingTooltipSource : MonoBehaviour, IHoverable
         Color header, background;
         ResolveColors(out header, out background);
 
-        return new TooltipContent($"{_data.DisplayName} - {_data.Role}", _data.Description, header, background);
+        string tooltipHeader = $"{LocalizationHelper.Get(LocalizationHelper.k_BuildingsTable, _data.NameKey)} - {LocalizationHelper.Get(LocalizationHelper.k_BuildingsTable, _data.RoleKey)}";
+        string tooltipBody = LocalizationHelper.Get(LocalizationHelper.k_BuildingsTable, _data.DescriptionKey);
+
+        return new TooltipContent(tooltipHeader, tooltipBody, header, background);
     }
 
     // 건물 하이라이트는 이번 범위 밖 — 훅만 만족(#67).

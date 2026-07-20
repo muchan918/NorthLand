@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 930a028e81889a14c988db9f454052f1, type: 3}
   m_Name: headquarters
   m_EditorClassIdentifier: Assembly-CSharp::BuildingAsset
-  BuildingID: headquarters
+  BuildingID: castle
   BuildingType: 1
   Cost: []
   Production:

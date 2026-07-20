@@ -17,7 +17,7 @@ public class BuildingInfo : MonoBehaviour, ISelectable
             return;
         }
 
-        BuildingInfoUI.Instance.ShowInfo(_buildingAsset.Data.Description);
+        BuildingInfoUI.Instance.ShowInfo(_buildingAsset.Data.DescriptionKey);
     }
 
     public void OnDeselected()

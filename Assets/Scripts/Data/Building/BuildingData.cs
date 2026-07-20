@@ -8,8 +8,8 @@ public enum BuildingType
 public class BuildingData
 {
     public string BuildingID { get; set; }
-    public string DisplayName { get; set; }
+    public string NameKey { get; set; }
     public BuildingType BuildingType { get; set; }
-    public string Role { get; set; }
-    public string Description { get; set; }
+    public string RoleKey { get; set; }
+    public string DescriptionKey { get; set; }
 }

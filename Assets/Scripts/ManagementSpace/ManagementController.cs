@@ -67,7 +67,7 @@ public class ManagementController : MonoBehaviour
 
     public int ResourceCount(ResourceKind kind) => _wallet != null ? _wallet.Get(kind) : 0;
 
-    public string LineDisplayName(int index) => IsValidLine(index) ? _lineAssets[index].Data.DisplayName : "-";
+    public string LineDisplayName(int index) => IsValidLine(index) ? LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, _lineAssets[index].Data.NameKey) : "-";
     public ResourceKind LineKind(int index) => IsValidLine(index) ? _lineAssets[index].Data.Kind : default;
     public int LineVillagers(int index) => IsValidLine(index) ? _villagerCounts[index] : 0;
     public int LineExpectedProduction(int index) => _baseAmountPerVillager * LineVillagers(index);
@@ -228,7 +228,7 @@ public class ManagementController : MonoBehaviour
             }
 
             int produced = _sources[i].Produce(_villagerCounts[i]);
-            Debug.Log($"[정산] {_lineAssets[i].Data.DisplayName}: 주민 {_villagerCounts[i]}명 → +{produced}");
+            Debug.Log($"[정산] {LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, _lineAssets[i].Data.NameKey)}: 주민 {_villagerCounts[i]}명 → +{produced}");
         }
 
         for (int i = 0; i < _villagerCounts.Length; i++)

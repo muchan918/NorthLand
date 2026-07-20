@@ -11,7 +11,7 @@ public class BuildingTableTest : MonoBehaviour
         })
         {
             var data = DataTableManager.Get<BuildingTable>("BuildingTable").Get(id);
-            Debug.Log($"{data.BuildingID} -> {data.DisplayName} ({data.BuildingType}) : {data.Role}");
+            Debug.Log($"{data.BuildingID} -> {data.NameKey} ({data.BuildingType}) : {data.RoleKey} / {data.DescriptionKey}");
         }
     }
 }
