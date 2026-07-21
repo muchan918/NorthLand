@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
   TowerID: archer_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: 59a4083c89cedda4eb456dba28fe2c5b, type: 3}
-  GhostPrefab: {fileID: 6801833135963741600, guid: 59a4083c89cedda4eb456dba28fe2c5b, type: 3}
+  GhostPrefab: {fileID: 6801833135963741600, guid: f17d0377a6145e94d87d5c97613ea433, type: 3}
   TowerType: 0
   MagicEffectType: 0
   Cost: []
@@ -24,7 +24,7 @@ MonoBehaviour:
       AttackRange: 40
       AttackInterval: 1
       ProjectilePrefab: {fileID: 1627456267034388861, guid: 9ab0358fc47fc9548b2edc3435d0e2a4, type: 3}
-      ProjectileSpeed: 20
+      ProjectileSpeed: 40
   Area:
     Attack:
       AttackDamage: 0
