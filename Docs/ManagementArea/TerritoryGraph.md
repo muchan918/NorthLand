@@ -24,7 +24,7 @@
 
 - 보유 영토 기준 **인접 영토만** 선택 가능(GDD §6.3 노란색/회색).
 - 인접 영토 중 하나 선택 → 확보 → **고유 효과 획득** → 다음 확장 가능 영역(프론티어) 생성.
-- 영토 효과·보상은 **매 게임 랜덤**(GDD §7) → 리플레이성. 마나석·주민이 대표 보상(§4.2·§6.1).
+- 영토 효과·보상은 **매 게임 랜덤**(GDD §7) → 리플레이성. 기본 자원·마나석·주민이 대표 보상(§3.2·§6.1).
 
 ---
 
@@ -145,7 +145,7 @@
 `TooltipContent`로 반환한다(`BuildingTooltipSource` 계보) — 정의가 없는 노드(본진·미할당)는 `null` 반환으로
 툴팁 없음. 키는 정의의 `_id`에서 `territories.{id}.name/.desc`로 파생(스트링 테이블 `NorthLand_Territories`).
 색 하이라이트는 `OnHoverEnter`/`OnHoverExit`(`MouseManager.md` §8)가 별도로 Selectable 노드만 담당 |
-| **자원 보상** | 효과가 `ResourceWallet.Add`로 마나석 지급(GDD §4.2 / 팀 계약 #3 — 마나석은 영토 확장·전투 보상에서만. **정당한 마나 원천**). 주민 획득(§6.1)은 주민 시스템 부재로 placeholder 심 |
+| **자원 보상** | 효과가 `ResourceWallet.Add`로 자원 지급 — **기본 자원(나무/철/식량)·마나석 모두 영토 확장 보상으로 지급 가능**(자원 흐름 결정: 기본 자원은 주민 생산 + 영토 보상 둘 다, GDD §3.2·계약 #3 개정). 마나석은 여전히 영토 확장·전투 보상에서만 발생하는 **정당한 원천**. 주민 획득(§6.1)은 주민 시스템 부재로 placeholder 심 |
 | **낮/밤** | 확장은 **낮 행동**(GDD §5.1). `TerritoryController`가 `DayNightManager.OnDayStart`를 구독해 `HasExpandedToday`를 매 낮 시작마다 초기화하고, `TryClaim`에서 하루 1회로 게이팅한다(이슈 #67). 확장을 마쳐야(`HasExpandedToday == true`) `ManagementController`의 주민 배치가 열린다(§6.1 연동, 아래 참고). 밤 잠금·자원 비용 게이팅은 여전히 TBD(§8) |
 | **공간 분리** | 경영 공간 전용. 전투 그리드(BattleMapBuilder)·좌표계와 **무관**(팀 계약 #4 — 한쪽 확장이 다른 쪽 상태에 의존 금지) |
 
