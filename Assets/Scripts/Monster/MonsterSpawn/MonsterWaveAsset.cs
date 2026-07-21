@@ -21,6 +21,10 @@ public sealed class MonsterWaveAsset : ScriptableObject
     [SerializeField]
     private List<MonsterWaveGroup> groups = new List<MonsterWaveGroup>();
 
+    [SerializeField]
+    private bool Reward = false;
+
+
     public int WaveNumber => waveNumber;
 
     public float SpawnInterval => spawnInterval;
