@@ -10,10 +10,17 @@ public class WaveRewardPool : ScriptableObject
     [SerializeField]
     private List<WaveRewardData> rewards = new();
 
-    public List<WaveRewardData> GetRandomCandidates(int count)
+    public List<WaveRewardData> GetRandomCandidates(int count,System.Random random)
     {
         List<WaveRewardData> candidates = new();
         List<WaveRewardData> remaining = new();
+
+        if (random == null)
+        {
+            Debug.LogError( "보상 후보 추출용 Random이 null입니다.",this);
+
+            return candidates;
+        }
 
         foreach (WaveRewardData reward in rewards)
         {
@@ -27,7 +34,7 @@ public class WaveRewardPool : ScriptableObject
 
         for (int i = 0; i < candidateCount; i++)
         {
-            int randomIndex = Random.Range(0, remaining.Count);
+            int randomIndex = random.Next(remaining.Count);
 
             candidates.Add(remaining[randomIndex]);
             remaining.RemoveAt(randomIndex);

@@ -7,6 +7,8 @@ using UnityEngine;
 
 public class MonsterSpawn : MonoBehaviour
 {
+    public event Action<int> WaveCleared;
+
     [Header("Common References")]
     [SerializeField] private Transform fallbackSpawnPoint;
     [SerializeField] private Transform monsterParent;
@@ -31,10 +33,6 @@ public class MonsterSpawn : MonoBehaviour
     private readonly List<Vector3> spawnRoute = new List<Vector3>();
     private CancellationTokenSource spawnCancellationTokenSource;
 
-
-    [Header("Reward")]
-    [SerializeField]
-    private WaveRewardController rewardController;
 
     private void Awake()
     {
@@ -128,8 +126,7 @@ public class MonsterSpawn : MonoBehaviour
             EndNightIfNight();
             return;
         }
-
-        if (!waveProvider.TryGetWave(round,out IReadOnlyList<MonsterSpawnEntry> entries,out WaveRewardPool rewardPool))
+        if (!waveProvider.TryGetWave(round,out IReadOnlyList<MonsterSpawnEntry> entries))
         {
             Debug.LogWarning($"Wave {round} 데이터가 없습니다.",this);
 
@@ -140,11 +137,11 @@ public class MonsterSpawn : MonoBehaviour
         CancellationToken cancellationToken =
             RestartSpawnTasks();
 
-        SpawnRoundAsync(round,entries,rewardPool,cancellationToken).Forget();
+        SpawnRoundAsync(round,entries,cancellationToken).Forget();
     }
-  
 
-    private async UniTaskVoid SpawnRoundAsync(int round,IReadOnlyList<MonsterSpawnEntry> entries,WaveRewardPool rewardPool,CancellationToken cancellationToken)
+
+    private async UniTaskVoid SpawnRoundAsync(int round,IReadOnlyList<MonsterSpawnEntry> entries,CancellationToken cancellationToken)
     {
         try
         {
@@ -185,19 +182,16 @@ public class MonsterSpawn : MonoBehaviour
 
             await UniTask.WaitUntil(() => monsterParent.childCount == 0,cancellationToken: cancellationToken);
 
-            if (rewardPool != null)
+            if (WaveCleared != null)
             {
-                if (rewardController == null)
-                {
-                    Debug.LogWarning($"Wave {round}에 RewardPool이 있지만 RewardController가 지정되지 않았습니다.",this);
-                }
-                else
-                {
-                    await rewardController.ShowRewardSelectionAsync(rewardPool,cancellationToken);
-                }
+                WaveCleared.Invoke(round);
             }
+            else
+            {
+                Debug.LogWarning("WaveCleared 구독자가 없어 기존 방식으로 밤을 종료합니다.",this);
 
-            EndNightIfNight();
+                EndNightIfNight();
+            }
         }
         catch (OperationCanceledException)
         {

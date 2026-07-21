@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Threading;
 using TMPro;
 using UnityEngine;
-using UnityEngine.SocialPlatforms;
 using UnityEngine.UI;
+using UnityEngine.Serialization;
 
 public class WaveRewardSelectionUI : MonoBehaviour
 {
@@ -26,31 +26,51 @@ public class WaveRewardSelectionUI : MonoBehaviour
     private Image[] iconImages;
 
     [SerializeField]
-    private GameObject Openpanel;
+    [FormerlySerializedAs("Openpanel")]
+    private GameObject openPanel;
 
     private UniTaskCompletionSource<WaveRewardData> selectionSource;
+
+    private float previousTimeScale;
 
     private void Awake()
     {
         if (panel != null)
         {
             panel.SetActive(false);
-            Openpanel.SetActive(false);
+        }
+
+        if (openPanel != null)
+        {
+            openPanel.SetActive(false);
         }
     }
 
 
     public void ClosePanel()
     {
-        Time.timeScale=1;
-        panel.SetActive(false);
-        Openpanel.SetActive(true);
+        if (panel != null)
+        {
+            panel.SetActive(false);
+        }
+
+        if (openPanel != null)
+        {
+            openPanel.SetActive(true);
+        }
     }
+
     public void OpenPanel()
     {
-        Time.timeScale = 0;
-        panel.SetActive(true);
-        Openpanel.SetActive(false);
+        if (panel != null)
+        {
+            panel.SetActive(true);
+        }
+
+        if (openPanel != null)
+        {
+            openPanel.SetActive(false);
+        }
     }
 
     public async UniTask<WaveRewardData> SelectRewardAsync(IReadOnlyList<WaveRewardData> candidates,CancellationToken cancellationToken)
@@ -65,10 +85,17 @@ public class WaveRewardSelectionUI : MonoBehaviour
         ClearButtonListeners();
         ShowCandidates(candidates);
 
+        previousTimeScale = Time.timeScale;
+        Time.timeScale = 0f;
+
         if (panel != null)
         {
-            Time.timeScale = 0;
             panel.SetActive(true);
+        }
+
+        if (openPanel != null)
+        {
+            openPanel.SetActive(false);
         }
 
         using CancellationTokenRegistration registration =cancellationToken.Register(() => selectionSource?.TrySetCanceled(cancellationToken));
@@ -80,11 +107,16 @@ public class WaveRewardSelectionUI : MonoBehaviour
         finally
         {
             ClearButtonListeners();
+            Time.timeScale = previousTimeScale;
 
             if (panel != null)
             {
-                Time.timeScale = 1;
                 panel.SetActive(false);
+            }
+
+            if (openPanel != null)
+            {
+                openPanel.SetActive(false);
             }
 
             selectionSource = null;

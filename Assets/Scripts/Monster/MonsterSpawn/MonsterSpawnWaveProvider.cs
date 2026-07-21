@@ -19,18 +19,15 @@ public sealed class MonsterSpawnWaveProvider :
     }
 
     // 웨이브 번호에 해당하는 스폰 목록 제공
-    public bool TryGetWave(int waveNumber,out IReadOnlyList<MonsterSpawnEntry> entries,out WaveRewardPool rewardPool)
+    public bool TryGetWave(int waveNumber,out IReadOnlyList<MonsterSpawnEntry> entries)
     {
         cachedEntries.Clear();
-        rewardPool = null;
 
         if (!waveByNumber.TryGetValue(waveNumber,out MonsterWaveAsset wave))
         {
             entries = cachedEntries;
             return false;
         }
-
-        rewardPool = wave.RewardPool;
 
         float nextGroupStartDelay = 0f;
         float spawnInterval = Mathf.Max(0f, wave.SpawnInterval);
@@ -97,6 +94,19 @@ public sealed class MonsterSpawnWaveProvider :
 
             waveByNumber.Add(waveNumber, wave);
         }
+
+    }
+    public bool TryGetRewardPool(int waveNumber,out WaveRewardPool rewardPool)
+    {
+        rewardPool = null;
+
+        if (!waveByNumber.TryGetValue(waveNumber,out MonsterWaveAsset wave))
+        {
+            return false;
+        }
+
+        rewardPool = wave.RewardPool;
+        return rewardPool != null;
     }
 
 }

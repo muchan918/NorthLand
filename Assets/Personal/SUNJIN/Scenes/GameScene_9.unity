@@ -274,7 +274,6 @@ MonoBehaviour:
   playOnStart: 0
   startRound: 0
   gatePrefab: {fileID: 1575376242241284251, guid: 788faa61af890a34190abb04b7b8b8f9, type: 3}
-  rewardController: {fileID: 313991733}
 --- !u!4 &111725159
 Transform:
   m_ObjectHideFlags: 0
@@ -1228,6 +1227,7 @@ GameObject:
   - component: {fileID: 313991732}
   - component: {fileID: 313991733}
   - component: {fileID: 313991734}
+  - component: {fileID: 313991735}
   m_Layer: 0
   m_Name: RewardSystem
   m_TagString: Untagged
@@ -1307,6 +1307,21 @@ MonoBehaviour:
   - {fileID: 239735367}
   - {fileID: 1839045989}
   Openpanel: {fileID: 631693546}
+--- !u!114 &313991735
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 313991729}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db500e5176d23b94488a322f5b4f87b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WaveCompletionCoordinator
+  monsterSpawn: {fileID: 111725158}
+  waveProvider: {fileID: 111725157}
+  rewardController: {fileID: 313991733}
 --- !u!1 &327219154
 GameObject:
   m_ObjectHideFlags: 0

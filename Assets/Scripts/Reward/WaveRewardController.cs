@@ -8,6 +8,13 @@ public class WaveRewardController : MonoBehaviour
     [SerializeField]
     private WaveRewardSelectionUI selectionUI;
 
+    private System.Random rewardRandom;
+
+    private void Awake()
+    {
+        //나중에 런시드가 생기면 교체
+        rewardRandom = new System.Random();
+    }
     public async UniTask ShowRewardSelectionAsync(WaveRewardPool rewardPool,CancellationToken cancellationToken)
     {
         if (rewardPool == null)
@@ -22,7 +29,7 @@ public class WaveRewardController : MonoBehaviour
             return;
         }
 
-        List<WaveRewardData> candidates = rewardPool.GetRandomCandidates(3);
+        List<WaveRewardData> candidates =rewardPool.GetRandomCandidates(3,rewardRandom);
 
         if (candidates.Count == 0)
         {
