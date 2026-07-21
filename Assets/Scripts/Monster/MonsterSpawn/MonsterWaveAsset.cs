@@ -21,15 +21,16 @@ public sealed class MonsterWaveAsset : ScriptableObject
     [SerializeField]
     private List<MonsterWaveGroup> groups = new List<MonsterWaveGroup>();
 
+    [Header("Reward")]
     [SerializeField]
-    private bool Reward = false;
-
+    private WaveRewardPool rewardPool;
 
     public int WaveNumber => waveNumber;
-
     public float SpawnInterval => spawnInterval;
-
     public List<MonsterWaveGroup> Groups => groups;
+
+    public WaveRewardPool RewardPool => rewardPool;
+    public bool HasReward => rewardPool != null;
 }
 
 // 웨이브에 포함되는 몬스터 한 종류와 수량
