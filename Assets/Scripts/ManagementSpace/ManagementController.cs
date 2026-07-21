@@ -27,6 +27,7 @@ public class ManagementController : MonoBehaviour
     public event Action OnChanged;
 
     private ResourceWallet _wallet;
+    private ProductionModifiers _productionModifiers;
     private ResourceProductionSource[] _sources;
     private ResourceAsset[] _lineAssets;
     private int[] _villagerCounts;
@@ -132,7 +133,13 @@ public class ManagementController : MonoBehaviour
     public string LineDisplayName(int index) => IsValidLine(index) ? LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, _lineAssets[index].Data.NameKey) : "-";
     public ResourceKind LineKind(int index) => IsValidLine(index) ? _lineAssets[index].Data.Kind : default;
     public int LineVillagers(int index) => IsValidLine(index) ? _villagerCounts[index] : 0;
-    public int LineExpectedProduction(int index) => _baseAmountPerVillager * LineVillagers(index);
+    // 패시브 생산 배율(영토 효과 등)을 반영한 예상 생산량. 정산부(HandleNightToDay)와 같은 식이어야 UI가 실제와 일치한다.
+    public int LineExpectedProduction(int index) =>
+        IsValidLine(index) ? Mathf.RoundToInt(_baseAmountPerVillager * LineVillagers(index) * ProductionMultiplier(index)) : 0;
+
+    // 라인 산출 자원의 현재 생산 배율(레지스트리 미준비 시 1.0).
+    private float ProductionMultiplier(int index) =>
+        _productionModifiers != null && IsValidLine(index) ? _productionModifiers.GetMultiplier(_lineAssets[index].Data.Kind) : 1f;
 
     // 모델은 Awake에서 구축한다 — 뷰의 Start()가 어떤 순서로 돌든 라인 수가 준비돼 있도록.
     private void Awake()
@@ -156,6 +163,10 @@ public class ManagementController : MonoBehaviour
         if (_territory != null)
         {
             _territory.OnChanged -= HandleTerritoryChanged;
+            if (_territory.Graph != null)
+            {
+                _territory.Graph.OnNodeClaimed -= HandleNodeClaimed;
+            }
         }
     }
 
@@ -165,6 +176,9 @@ public class ManagementController : MonoBehaviour
         // 지갑 잔액이 바뀌면(획득·차감) 컨트롤러 OnChanged로 재발화 → 패널/HUD가 갱신된다.
         // (지갑 직접 변경엔 원래 OnChanged가 안 돌던 지점을 여기서 메운다)
         _wallet.OnChanged += (_, _) => OnChanged?.Invoke();
+
+        // 생산 배율 레지스트리는 지갑과 함께 런마다 새로 만든다(영토 패시브 효과가 여기에 누적).
+        _productionModifiers = new ProductionModifiers();
 
         ResourceTable table = DataTableManager.Get<ResourceTable>("ResourceTable");
 
@@ -223,9 +237,29 @@ public class ManagementController : MonoBehaviour
         }
 
         _territory.OnChanged += HandleTerritoryChanged;
+
+        // 영토 확보 효과 적용 지점(WL-030): 확보 시 1회 발행되는 OnNodeClaimed를 구독해 그 노드의 효과를
+        // 적용한다. 지갑·생산 배율을 이 컨트롤러가 소유하므로 여기서 컨텍스트를 조립하는 게 자연스럽다.
+        if (_territory.Graph != null)
+        {
+            _territory.Graph.OnNodeClaimed += HandleNodeClaimed;
+        }
     }
 
     private void HandleTerritoryChanged() => OnChanged?.Invoke();
+
+    // 확보된 노드에 주입된 정의의 효과들을 적용한다(즉시 자원 지급·패시브 생산 배율 등). 정의가 없는 노드(본진)는 무시.
+    // 지갑 지급은 wallet.OnChanged → OnChanged로, 배율 변경은 이어지는 Graph.OnChanged 중계로 UI에 반영된다.
+    private void HandleNodeClaimed(TerritoryNode node)
+    {
+        if (node == null || node.Definition == null)
+        {
+            return;
+        }
+
+        var ctx = new TerritoryEffectContext(_wallet, _productionModifiers, node, _territory != null ? _territory.Graph : null);
+        node.Definition.ApplyAll(ctx);
+    }
 
     // ── 뷰(또는 후속 패널 버튼)가 호출하는 진입점 ─────────────────────────
     public void AssignVillager(int index)
@@ -292,7 +326,7 @@ public class ManagementController : MonoBehaviour
                 continue;
             }
 
-            int produced = _sources[i].Produce(_villagerCounts[i]);
+            int produced = _sources[i].Produce(_villagerCounts[i], ProductionMultiplier(i));
             Debug.Log($"[정산] {LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, _lineAssets[i].Data.NameKey)}: 주민 {_villagerCounts[i]}명 → +{produced}");
         }
 
