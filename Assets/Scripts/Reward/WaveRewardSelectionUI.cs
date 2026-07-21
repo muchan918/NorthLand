@@ -49,6 +49,8 @@ public class WaveRewardSelectionUI : MonoBehaviour
 
     public void ClosePanel()
     {
+        Time.timeScale = previousTimeScale;
+
         if (panel != null)
         {
             panel.SetActive(false);
@@ -59,9 +61,10 @@ public class WaveRewardSelectionUI : MonoBehaviour
             openPanel.SetActive(true);
         }
     }
-
     public void OpenPanel()
     {
+        Time.timeScale = 0f;
+
         if (panel != null)
         {
             panel.SetActive(true);

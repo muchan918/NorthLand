@@ -17,7 +17,7 @@ public class WaveRewardPool : ScriptableObject
 
         if (random == null)
         {
-            Debug.LogError( "º¸»ó ÈÄº¸ ÃßÃâ¿ë RandomÀÌ nullÀÔ´Ï´Ù.",this);
+            Debug.LogError("ë³´ìƒ í›„ë³´ ì¶”ì¶œìš© Randomì´ nullì…ë‹ˆë‹¤.",this);
 
             return candidates;
         }
