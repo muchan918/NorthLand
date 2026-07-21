@@ -21,6 +21,9 @@ namespace CombatSpace
 
         private DayNightManager subscribedDayNightManager;
 
+        [SerializeField]
+        private float spawnDelaySeconds = 1f;
+
         private void OnEnable()
         {
             SubscribeRevealEvent();
@@ -124,7 +127,7 @@ namespace CombatSpace
 
             RefreshMonsterMapData();
 
-            await UniTask.Delay(TimeSpan.FromSeconds(1f),cancellationToken:this.GetCancellationTokenOnDestroy());
+            await UniTask.Delay(TimeSpan.FromSeconds(spawnDelaySeconds),cancellationToken:this.GetCancellationTokenOnDestroy());
 
             monsterSpawn.StartRound(waveNumber);
 
@@ -163,7 +166,7 @@ namespace CombatSpace
 
             monsterSpawn.SetSpawnPoint(spawnPosition,spawnRotation);
 
-            Debug.Log("몬스터 맵 데이터 갱신 완료\n경로 좌표: {tileSpawner.CurrentWorldEnemyRoute.Count}개\n스폰 위치: {spawnPosition}",this);
+            Debug.Log($"몬스터 맵 데이터 갱신 완료\n경로 좌표: {tileSpawner.CurrentWorldEnemyRoute.Count}개\n스폰 위치: {spawnPosition}",this);
         }
 
         private bool ValidateReferences()
