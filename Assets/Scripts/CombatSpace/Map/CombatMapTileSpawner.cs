@@ -588,12 +588,7 @@ namespace CombatSpace
             }
 
             Debug.Log(
-                "타일 시각화 검증 완료\n" +
-                $"맵 데이터 타일: " +
-                $"{mapTileCount}개\n" +
-                $"생성된 오브젝트: " +
-                $"{spawnedTiles.Count}개",
-                this);
+                $"타일 시각화 검증 완료\n 맵 데이터 타일:{mapTileCount}개\n생성된 오브젝트:{spawnedTiles.Count}개",this);
         }
 
         // 현재 공개 범위에 맞춰 몬스터용 월드 경로 갱신
@@ -679,13 +674,12 @@ namespace CombatSpace
             if (spawnRouteIndex > 0)
             {
                 Vector3 nextPosition =GridToWorldPosition(map.EnemyRoute[spawnRouteIndex - 1]);
-
                 nextPosition.y += monsterWaypointYOffset;
 
                 Vector3 direction = nextPosition - position;
                 direction.y = 0f;
 
-                if (direction.sqrMagnitude >0.0001f)
+                if(direction.sqrMagnitude > 0.0001f)
                 {
                     rotation =
                         Quaternion.LookRotation(
