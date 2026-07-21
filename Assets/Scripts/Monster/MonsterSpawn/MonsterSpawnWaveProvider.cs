@@ -19,19 +19,21 @@ public sealed class MonsterSpawnWaveProvider :
     }
 
     // 웨이브 번호에 해당하는 스폰 목록 제공
-    public bool TryGetWave(int waveNumber, out IReadOnlyList<MonsterSpawnEntry> entries)
+    public bool TryGetWave(int waveNumber,out IReadOnlyList<MonsterSpawnEntry> entries,out WaveRewardPool rewardPool)
     {
         cachedEntries.Clear();
+        rewardPool = null;
 
-        if (!waveByNumber.TryGetValue(waveNumber, out MonsterWaveAsset wave))
+        if (!waveByNumber.TryGetValue(waveNumber,out MonsterWaveAsset wave))
         {
             entries = cachedEntries;
             return false;
         }
 
+        rewardPool = wave.RewardPool;
+
         float nextGroupStartDelay = 0f;
-        float spawnInterval =
-            Mathf.Max(0f, wave.SpawnInterval);
+        float spawnInterval = Mathf.Max(0f, wave.SpawnInterval);
 
         foreach (MonsterWaveGroup group in wave.Groups)
         {
@@ -42,7 +44,7 @@ public sealed class MonsterSpawnWaveProvider :
 
             if (group.MonsterPrefab == null)
             {
-                Debug.LogWarning($"Wave {waveNumber}에 몬스터 프리팹이 지정되지 않은 항목이 있습니다.", wave);
+                Debug.LogWarning($"Wave {waveNumber}에 몬스터 프리팹이 없는 항목이 있습니다.",wave);
 
                 continue;
             }
@@ -54,10 +56,10 @@ public sealed class MonsterSpawnWaveProvider :
                 continue;
             }
 
-            cachedEntries.Add(new MonsterSpawnEntry(group.MonsterPrefab, spawnCount, nextGroupStartDelay, spawnInterval));
+            cachedEntries.Add(
+                new MonsterSpawnEntry(group.MonsterPrefab,spawnCount,nextGroupStartDelay,spawnInterval)
+            );
 
-            // 이전 그룹이 모두 생성된 다음
-            // 동일한 간격으로 다음 그룹 생성 시작
             nextGroupStartDelay += spawnCount * spawnInterval;
         }
 

@@ -1,8 +1,8 @@
+using Cysharp.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public class MonsterSpawn : MonoBehaviour
@@ -30,6 +30,11 @@ public class MonsterSpawn : MonoBehaviour
     private readonly List<Vector3> route = new List<Vector3>();
     private readonly List<Vector3> spawnRoute = new List<Vector3>();
     private CancellationTokenSource spawnCancellationTokenSource;
+
+
+    [Header("Reward")]
+    [SerializeField]
+    private WaveRewardController rewardController;
 
     private void Awake()
     {
@@ -124,18 +129,22 @@ public class MonsterSpawn : MonoBehaviour
             return;
         }
 
-        if (!waveProvider.TryGetWave(round, out IReadOnlyList<MonsterSpawnEntry> entries))
+        if (!waveProvider.TryGetWave(round,out IReadOnlyList<MonsterSpawnEntry> entries,out WaveRewardPool rewardPool))
         {
-            Debug.LogWarning($"[몬스터 스포너] 라운드 {round} 웨이브 데이터 없음 — 스폰 없이 즉시 웨이브 클리어(밤 종료) 처리합니다.");
+            Debug.LogWarning($"Wave {round} 데이터가 없습니다.",this);
+
             EndNightIfNight();
             return;
         }
 
-        CancellationToken cancellationToken = RestartSpawnTasks();
-        SpawnRoundAsync(entries, cancellationToken).Forget();
-    }
+        CancellationToken cancellationToken =
+            RestartSpawnTasks();
 
-    private async UniTaskVoid SpawnRoundAsync(IReadOnlyList<MonsterSpawnEntry> entries, CancellationToken cancellationToken)
+        SpawnRoundAsync(round,entries,rewardPool,cancellationToken).Forget();
+    }
+  
+
+    private async UniTaskVoid SpawnRoundAsync(int round,IReadOnlyList<MonsterSpawnEntry> entries,WaveRewardPool rewardPool,CancellationToken cancellationToken)
     {
         try
         {
@@ -174,7 +183,20 @@ public class MonsterSpawn : MonoBehaviour
                 return;
             }
 
-            await UniTask.WaitUntil(() => monsterParent.childCount == 0, cancellationToken: cancellationToken);
+            await UniTask.WaitUntil(() => monsterParent.childCount == 0,cancellationToken: cancellationToken);
+
+            if (rewardPool != null)
+            {
+                if (rewardController == null)
+                {
+                    Debug.LogWarning($"Wave {round}에 RewardPool이 있지만 RewardController가 지정되지 않았습니다.",this);
+                }
+                else
+                {
+                    await rewardController.ShowRewardSelectionAsync(rewardPool,cancellationToken);
+                }
+            }
+
             EndNightIfNight();
         }
         catch (OperationCanceledException)
