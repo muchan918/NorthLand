@@ -34,7 +34,14 @@ namespace NorthLand.Combat
         void Awake()
         {
             currentHp = Stat != null ? Stat.MaxHp : 0f;
+
             movement = GetComponent<IMovementAgent>();
+
+            if (movement != null && Stat != null)
+            {
+                movement.SetMoveSpeed(Stat.MoveSpeed);
+            }
+
             OnHpChanged?.Invoke(currentHp, MaxHp);
         }
 

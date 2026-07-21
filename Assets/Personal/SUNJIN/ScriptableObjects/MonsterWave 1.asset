@@ -15,7 +15,7 @@ MonoBehaviour:
   waveNumber: 1
   spawnInterval: 1
   groups:
-  - monsterPrefab: {fileID: 7321704587212441968, guid: fd343a3c8af5dee4998407a8dd41a05d, type: 3}
-    count: 3
   - monsterPrefab: {fileID: 7987534744054934123, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
+    count: 3
+  - monsterPrefab: {fileID: 7321704587212441968, guid: fd343a3c8af5dee4998407a8dd41a05d, type: 3}
     count: 3
