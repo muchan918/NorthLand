@@ -981,6 +981,10 @@ MonoBehaviour:
     ExtraEdgeKeepRatio: 0.3
     ExtraEdgeMaxLengthRatio: 1.6
   _seed: 12345
+  _definitionPool:
+  - {fileID: 11400000, guid: af0718a15f88e3847804f1df6dcdfd4a, type: 2}
+  - {fileID: 11400000, guid: 1eb06d72a0b96c04792b35f4bed99642, type: 2}
+  - {fileID: 11400000, guid: 27c1dc31a563ce845b12a99aecfc5bfe, type: 2}
 --- !u!4 &340814263
 Transform:
   m_ObjectHideFlags: 0
@@ -1145,6 +1149,7 @@ GameObject:
   - component: {fileID: 370785750}
   - component: {fileID: 370785749}
   - component: {fileID: 370785751}
+  - component: {fileID: 370785752}
   m_Layer: 0
   m_Name: Header
   m_TagString: Untagged
@@ -1236,6 +1241,26 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!114 &370785752
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 370785747}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 306cc8c2b49d7114eaa3623786fc2126, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.LayoutElement
+  m_IgnoreLayout: 0
+  m_MinWidth: 240
+  m_MinHeight: -1
+  m_PreferredWidth: -1
+  m_PreferredHeight: -1
+  m_FlexibleWidth: -1
+  m_FlexibleHeight: -1
+  m_LayoutPriority: 1
 --- !u!1 &511623824
 GameObject:
   m_ObjectHideFlags: 0
