@@ -964,7 +964,7 @@ MonoBehaviour:
   _shipSpeed: 8
   _shipYawOffset: 0
   _shipHeightOffset: 0
-  _shipEndpointInset: 40
+  _shipEndpointInset: 0.5
   _shipTurnSpeed: 180
   _drawEdgeLines: 0
   _edgeMaterial: {fileID: 0}
@@ -1001,13 +1001,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 340814260}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0.043342292, z: -0, w: 0.9990603}
-  m_LocalPosition: {x: -201, y: 14.2, z: 9}
+  m_LocalRotation: {x: 0, y: -0.15212336, z: 0, w: 0.98836154}
+  m_LocalPosition: {x: -238.3, y: 14.2, z: -2.8}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: -4.968, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -17.5, z: 0}
 --- !u!1 &345590591
 GameObject:
   m_ObjectHideFlags: 0
