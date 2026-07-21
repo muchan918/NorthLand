@@ -21,7 +21,7 @@ MonoBehaviour:
   Single:
     Attack:
       AttackDamage: 10
-      AttackRange: 10
+      AttackRange: 40
       AttackInterval: 1
       ProjectilePrefab: {fileID: 1734245126228380, guid: 41c31c5e3f16cfa43ace39def9113a7a, type: 3}
       ProjectileSpeed: 20

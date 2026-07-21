@@ -28,14 +28,48 @@ public class TerritoryNodeView : MonoBehaviour, ISelectable, IHoverable
     private int _nodeId = -1;
     private bool _isHovered;
 
+    // #93: 상태별 비주얼 스왑(소용돌이/땅) 컴포넌트. 구형 프리팹엔 없으므로 색상 경로로 폴백한다.
+    private TerritoryNodeStateVisual _stateVisual;
+    private bool _pendingClaimFx;
+
     public int NodeId => _nodeId;
+
+    private void Awake()
+    {
+        _stateVisual = GetComponent<TerritoryNodeStateVisual>();
+    }
 
     /// <summary>그래프 뷰가 스폰 직후 호출한다. 모델과의 연결점은 (컨트롤러, 노드 Id) 둘뿐.</summary>
     public void Bind(TerritoryController controller, int nodeId)
     {
         _controller = controller;
         _nodeId = nodeId;
+
+        // 확보 연출 트리거(#93): OnNodeClaimed는 확보 시 정확히 1회, OnChanged보다 먼저 발행되므로
+        // 직후 도달하는 Refresh가 플래그를 소비해 연출 경로로 들어간다. 본진·재시작처럼 이벤트 없이
+        // Owned인 노드는 플래그가 없어 자연히 연출 없이 완성 상태가 된다.
+        if (_stateVisual != null && _controller != null && _controller.Graph != null)
+        {
+            _controller.Graph.OnNodeClaimed += HandleClaimed;
+        }
+
         Refresh();
+    }
+
+    private void OnDestroy()
+    {
+        if (_controller != null && _controller.Graph != null)
+        {
+            _controller.Graph.OnNodeClaimed -= HandleClaimed;
+        }
+    }
+
+    private void HandleClaimed(TerritoryNode node)
+    {
+        if (node != null && node.Id == _nodeId)
+        {
+            _pendingClaimFx = true;
+        }
     }
 
     public void OnDeselected() => Refresh();
@@ -89,7 +123,25 @@ public class TerritoryNodeView : MonoBehaviour, ISelectable, IHoverable
 
         bool revealed = node.State != TerritoryState.Locked;
         gameObject.SetActive(revealed);
-        if (!revealed || _visual == null)
+        if (!revealed)
+        {
+            return;
+        }
+
+        bool canClaimNow = node.State == TerritoryState.Selectable && !_controller.HasExpandedToday;
+
+        // #93: 스왑 컴포넌트가 있으면(신형 프리팹) 소용돌이/땅 비주얼에 위임하고,
+        // 없으면(구형 프리팹, GameScene 등 기존 씬) 아래 색상 경로를 그대로 쓴다.
+        if (_stateVisual != null)
+        {
+            bool isHome = _nodeId == _controller.Graph.HomeNodeId;
+            bool playClaimFx = _pendingClaimFx;
+            _pendingClaimFx = false;
+            _stateVisual.Apply(node.State, isHome, _nodeId, _isHovered, canClaimNow, playClaimFx);
+            return;
+        }
+
+        if (_visual == null)
         {
             return;
         }
@@ -100,7 +152,6 @@ public class TerritoryNodeView : MonoBehaviour, ISelectable, IHoverable
         // Selectable 상태이면서 오늘 아직 확장하지 않은 경우(HasExpandedToday == false)에만 적용한다
         // — 이미 확보한(Owned) 영토는 물론, 오늘 확장을 다 쓴 뒤의 회색 노드도 호버해도 색이 그대로다.
         Color stateColor = node.State == TerritoryState.Owned ? _ownedColor : _selectableColor;
-        bool canClaimNow = node.State == TerritoryState.Selectable && !_controller.HasExpandedToday;
         bool applyHover = _isHovered && canClaimNow;
         _visual.material.color = applyHover ? _hoverColor : stateColor;
     }

@@ -5,8 +5,9 @@
 > **경로(코드)**: `Assets/Scripts/ManagementSpace/Territory`
 > **상태**: ✅ **씬 통합 완료(이슈 #67)** — `TerritoryController`/`TerritoryGraphView`가 실제
 > `Assets/Scenes/GameScene.unity`에 배치돼 그래프 생성·확보(`ISelectable`)·호버 하이라이트
-> (`IHoverable`)까지 플레이 가능. 효과 카탈로그(§5)·보상 수치(§8) 등 일부는 여전히 미착수 —
-> 남은 TBD는 §8에서 계속 추적한다.
+> (`IHoverable`)까지 플레이 가능. ✅ **노드 비주얼 에셋 적용(#127, PR#128, muchan)** — 임시 색상
+> 구체를 상태별 비주얼(소용돌이/산)로 교체, §7.1 참고. 효과 카탈로그(§5)·보상 수치(§8) 등
+> 일부는 여전히 미착수 — 남은 TBD는 §8에서 계속 추적한다.
 > 확정되지 않은 항목은 본문에서 **TBD / TODO**로 명시한다(docs-are-dev-reference 규약).
 > **GDD 근거**: §4.1(두 공간) · §5.1(낮 경영—영토 확장) · §6.3(경영 영토 확장) ·
 > §4.2(마나석=영토 확장 보상) · §6.1(주민 획득) · §3(Slay the Spire 노드 선택 응용) · §7(랜덤 리플레이)
@@ -150,6 +151,23 @@ pull 공급"으로 예정했던 원래 설계는 효과 카탈로그(§5)가 아
 - **인접 형태(밀집 vs 섬+다리)는 전적으로 뷰의 렌더링 결정** → 모델·전이·효과는 그대로(요구사항 3).
   다리 = 엣지의 한 시각 표현일 뿐.
 
+### 7.1 현재 뷰 구현 (#127, PR#128 — muchan)
+
+이 절의 "아트 교체 시 뷰 참조만 재연결" 원칙이 실제로 실행된 첫 사례. 모델·전이 코드는 무변경.
+
+- **상태→비주얼 스왑**: 신형 프리팹 `TerritoryNodeV2` 루트의 `TerritoryNodeStateVisual`이 담당 —
+  Selectable=소용돌이(`VortexVisual`, 에셋 부재로 절차 생성: 스파이럴 텍스처+회전 쿼드),
+  Owned=산 에셋(@NorthLand Mountain_01~06, `nodeId % 6` 결정적 선택), 본진=스폰 안 함(씬의 섬 지형 사용).
+- **확보 연출**: `OnNodeClaimed` 구독으로 확보 직후 1회만 — 소용돌이 스핀업+축소 소멸 → 산이
+  ease-out-back으로 솟아오름. UniTask + `destroyCancellationToken`(Tower/AuraTower 패턴).
+- **폴백**: `TerritoryNodeView`는 `TerritoryNodeStateVisual`이 없으면(구형 프리팹) 기존 색상 경로를 그대로 사용.
+- **색 시맨틱 재배정 주의**: GDD §6.3의 "회색=선택 가능"이 소용돌이 도입으로 바뀜 —
+  선택 가능=파란 소용돌이, **회색=오늘 확장 소진**(호버 하이라이트=밝은 틴트+회전 가속).
+  아트 확정 시 GDD 색 언어 갱신 필요(PR#128 리뷰 🟡).
+- **튜닝 세트 결합**: 그래프 간격(AreaRadius 450·MinNodeSpacing 140)과 비주얼 스케일(산 0.5·소용돌이
+  지름 60·클릭 콜라이더 45)은 세트 — 간격류 조정 시 비례해 함께 조정할 것(WL-059).
+- **잔여**: 다리(엣지) 에셋 — 현재 `TerritoryGraphView.CreateEdge`는 `LineRenderer` 유지, #93 후속.
+
 ---
 
 ## 8. 미결 / TODO (구현 전 확정 필요)
@@ -183,7 +201,8 @@ pull 공급"으로 예정했던 원래 설계는 효과 카탈로그(§5)가 아
 
 - ❌ **주민 시스템**(GDD §6.1): 부재 → 주민 보상은 placeholder 심(자원 시스템의 주민 수 placeholder와 동일 상황).
 - ❌ **구체 효과 구현**: §5 심 위 실제 효과들은 후속.
-- ❌ **실제 아트/연출**: 첫 구현은 기능 배치(노드·연결 최소 시각), 아트 교체 시 뷰 참조만 재연결.
+- ~~❌ **실제 아트/연출**: 첫 구현은 기능 배치(노드·연결 최소 시각), 아트 교체 시 뷰 참조만 재연결.~~
+  → **노드 비주얼은 적용됨(#127, §7.1)**. 잔여: 다리(엣지) 에셋(#93 후속)·본진 전용 연출.
 - **의존**: `MouseManager`(ISelectable/IHoverable, 씬 배치·`_camera`), `TooltipUI`(#38), `ResourceWallet`
   (`ManagementController` 소유, WL-017), `DayNightManager`(낮/밤 게이팅, nullable).
 
