@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: cannon_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
   TowerID: cannon_tower
-  TowerPrefab: {fileID: 3104185744962560807, guid: 22e17405b65e6c944aa818b6aa985fe8, type: 3}
-  GhostPrefab: {fileID: 3104185744962560807, guid: 0f15a64eb49264649beae3a8d6994dee, type: 3}
+  TowerPrefab: {fileID: 3104185744962560807, guid: 3aa39c2dca7c6674484d79f6043acd6e, type: 3}
+  GhostPrefab: {fileID: 3104185744962560807, guid: 017965e4e87759048b99f86070e0dee8, type: 3}
   TowerType: 1
   MagicEffectType: 0
   Cost:
@@ -32,9 +32,9 @@ MonoBehaviour:
   Area:
     Attack:
       AttackDamage: 30
-      AttackRange: 50
+      AttackRange: 40
       AttackInterval: 2
-      ProjectilePrefab: {fileID: 4221183324172678294, guid: 136851b0bfefab845bfe7190fd938122, type: 3}
+      ProjectilePrefab: {fileID: 4221183324172678294, guid: 58184368b64351d4094976b3524ed9a1, type: 3}
       ProjectileSpeed: 50
     SplashRadius: 4
   Chain:
