@@ -17,7 +17,7 @@ public class SkillRangeIndicator : MonoBehaviour
         var lr = gameObject.AddComponent<LineRenderer>();
         lr.useWorldSpace = false;
         lr.loop = true;
-        lr.widthMultiplier = 0.15f;
+        lr.widthMultiplier = 3f;
         // 타겟팅마다 Instantiate되는 고스트라 매번 새 Material이 생긴다 — GameObject가 Destroy될 때
         // 같이 정리하기 위해 참조를 들고 있는다(OnDestroy 참고, PR#115 리뷰 지적).
         runtimeMaterial = new Material(Shader.Find("Sprites/Default")); // 언릿, 정점색으로 tint
