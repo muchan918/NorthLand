@@ -1,3 +1,5 @@
+using Cysharp.Threading.Tasks;
+using System;
 using UnityEngine;
 
 namespace CombatSpace
@@ -18,6 +20,9 @@ namespace CombatSpace
         private MonsterSpawn monsterSpawn;
 
         private DayNightManager subscribedDayNightManager;
+
+        [SerializeField]
+        private float spawnDelaySeconds = 1f;
 
         private void OnEnable()
         {
@@ -97,34 +102,32 @@ namespace CombatSpace
         // 낮에서 밤으로 바뀌면 맵을 공개하고 해당 웨이브 시작
         private void HandleDayToNight()
         {
+            HandleDayToNightAsync().Forget();
+        }
+
+        private async UniTaskVoid HandleDayToNightAsync()
+        {
             if (!ValidateReferences())
             {
                 return;
             }
 
-            DayNightManager dayNightManager =
-                DayNightManager.Instance;
+            DayNightManager dayNightManager =DayNightManager.Instance;
 
             if (dayNightManager == null)
             {
-                Debug.LogError(
-                    "DayNightManager가 없습니다.",
-                    this);
+                Debug.LogError("DayNightManager가 없습니다.",this);
 
                 return;
             }
 
-            // WaveCount는 완료된 웨이브 수이므로
-            // 새로 시작할 웨이브는 +1
             int waveNumber = dayNightManager.WaveCount + 1;
 
-            // 현재는 기존 RevealForRound API를 사용
-            // 추후 진행도 기반 API로 교체 가능
             revealController.RevealForRound(waveNumber);
 
-            // 이벤트 호출 순서와 관계없이
-            // 최신 경로가 전달되도록 다시 갱신
             RefreshMonsterMapData();
+
+            await UniTask.Delay(TimeSpan.FromSeconds(spawnDelaySeconds),cancellationToken:this.GetCancellationTokenOnDestroy());
 
             monsterSpawn.StartRound(waveNumber);
 
@@ -163,7 +166,7 @@ namespace CombatSpace
 
             monsterSpawn.SetSpawnPoint(spawnPosition,spawnRotation);
 
-            Debug.Log("몬스터 맵 데이터 갱신 완료\n경로 좌표: {tileSpawner.CurrentWorldEnemyRoute.Count}개\n스폰 위치: {spawnPosition}",this);
+            Debug.Log($"몬스터 맵 데이터 갱신 완료\n경로 좌표: {tileSpawner.CurrentWorldEnemyRoute.Count}개\n스폰 위치: {spawnPosition}",this);
         }
 
         private bool ValidateReferences()

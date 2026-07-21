@@ -27,6 +27,8 @@ namespace CombatSpace
         public int RouteIndex =>
             routeIndex;
 
+  
+
         public void Initialize(
             CombatTileData tileData)
         {

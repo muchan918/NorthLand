@@ -1,4 +1,7 @@
+using Cysharp.Threading.Tasks;
+using System;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 
 namespace CombatSpace
@@ -26,7 +29,24 @@ namespace CombatSpace
         [SerializeField]
         private GameObject waterTilePrefab;
 
-   
+        [Header("Reveal Animation")]
+        [SerializeField]
+        [Min(0f)]
+        private float revealYOffset = 20f;
+
+        [SerializeField]
+        [Min(0.01f)]
+        private float revealDuration = 0.5f;
+
+        [SerializeField]
+        private AnimationCurve revealCurve =AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+
+
+        [Tooltip("Road 타일 피벗에서 몬스터 발 위치까지의 월드 Y 오프셋. " +"Road 프리팹의 피벗·높이 변경 시 함께 조정해야 합니다.")]
+        [Header("Monster Route")]
+        [SerializeField]
+        private float monsterWaypointYOffset = 6f;
+
 
         private readonly Dictionary<Vector2Int,CombatMapTileView> spawnedTiles = new Dictionary<Vector2Int, CombatMapTileView>();
 
@@ -323,7 +343,6 @@ namespace CombatSpace
                 this);
         }
 
-        // 공개 데이터에 따라 타일 GameObject 활성화
         [ContextMenu("Refresh Tile Visibility")]
         public void RefreshTileVisibility()
         {
@@ -331,7 +350,8 @@ namespace CombatSpace
             {
                 Debug.LogError(
                     "Reveal Controller가 지정되지 않았습니다.",
-                    this);
+                    this
+                );
 
                 return;
             }
@@ -340,7 +360,8 @@ namespace CombatSpace
             {
                 Debug.LogError(
                     "공개 데이터가 초기화되지 않았습니다.",
-                    this);
+                    this
+                );
 
                 return;
             }
@@ -355,33 +376,96 @@ namespace CombatSpace
             foreach (KeyValuePair<Vector2Int, CombatMapTileView> pair
                      in spawnedTiles)
             {
-                if (pair.Value == null)
+                CombatMapTileView tileView = pair.Value;
+
+                if (tileView == null)
                 {
                     continue;
                 }
 
+                GameObject tileObject = tileView.gameObject;
+                bool wasVisible = tileObject.activeSelf;
+
                 bool isRevealed =
                     revealController.RevealData.IsRevealed(pair.Key);
 
-                pair.Value.gameObject.SetActive(isRevealed);
+                tileObject.SetActive(isRevealed);
 
-                if (isRevealed)
+                if (!isRevealed)
                 {
-                    visibleTileCount++;
+                    continue;
+                }
+
+                visibleTileCount++;
+
+                // 이미 공개되어 있던 타일은 움직이지 않고
+                // 이번에 새로 공개된 타일만 상승시킨다.
+                if (!wasVisible)
+                {
+                    PlayTileRevealAsync(
+                        tileView.transform,
+                        tileView.GetCancellationTokenOnDestroy()
+                    ).Forget();
                 }
             }
 
-            // 현재 공개된 범위에 맞춰 몬스터용 월드 경로 갱신
+            // 공개 범위가 바뀌었으므로 몬스터 경로 캐시도 갱신
             RebuildCurrentWorldEnemyRoute();
 
             Debug.Log(
                 $"타일 표시 갱신 완료: " +
-                $"{visibleTileCount}/" +
-                $"{spawnedTiles.Count}개 공개\n" +
+                $"{visibleTileCount}/{spawnedTiles.Count}개 공개\n" +
                 $"몬스터 월드 경로: " +
                 $"{currentWorldEnemyRoute.Count}개",
-                this);
+                this
+            );
         }
+
+        private async UniTask PlayTileRevealAsync(
+        Transform tileTransform,
+        CancellationToken cancellationToken)
+        {
+            Vector3 targetPosition = tileTransform.localPosition;
+            Vector3 startPosition =
+                targetPosition + Vector3.down * revealYOffset;
+
+            tileTransform.localPosition = startPosition;
+
+            try
+            {
+                float elapsed = 0f;
+
+                while (elapsed < revealDuration)
+                {
+                    elapsed += Time.deltaTime;
+
+                    float normalizedTime =
+                        Mathf.Clamp01(elapsed / revealDuration);
+
+                    float curvedTime =
+                        revealCurve.Evaluate(normalizedTime);
+
+                    tileTransform.localPosition =
+                        Vector3.LerpUnclamped(
+                            startPosition,
+                            targetPosition,
+                            curvedTime
+                        );
+
+                    await UniTask.Yield(
+                        PlayerLoopTiming.Update,
+                        cancellationToken
+                    );
+                }
+
+                tileTransform.localPosition = targetPosition;
+            }
+            catch (OperationCanceledException)
+            {
+                // 타일이 제거되거나 씬이 종료된 정상적인 취소
+            }
+        }
+
 
         [ContextMenu("Clear Map Tiles")]
         public void ClearTiles()
@@ -497,28 +581,14 @@ namespace CombatSpace
             if (!isValid)
             {
                 Debug.LogError(
-                    "타일 시각화 검증 실패\n" +
-                    $"맵 데이터 타일: " +
-                    $"{mapTileCount}개\n" +
-                    $"생성된 오브젝트: " +
-                    $"{spawnedTiles.Count}개\n" +
-                    $"누락: {missingTileCount}개\n" +
-                    $"타입 불일치: " +
-                    $"{wrongTypeCount}개\n" +
-                    $"불필요한 오브젝트: " +
-                    $"{unnecessaryTileCount}개",
-                    this);
+                    $"타일 시각화 검증 실패\n맵 데이터 타일: {mapTileCount}개\n 생성된 오브젝트: {spawnedTiles.Count} 개\n 누락: {missingTileCount}개\n" +
+                    $"타입 불일치: {wrongTypeCount}개\n불필요한 오브젝트: {unnecessaryTileCount}개", this);
 
                 return;
             }
 
             Debug.Log(
-                "타일 시각화 검증 완료\n" +
-                $"맵 데이터 타일: " +
-                $"{mapTileCount}개\n" +
-                $"생성된 오브젝트: " +
-                $"{spawnedTiles.Count}개",
-                this);
+                $"타일 시각화 검증 완료\n 맵 데이터 타일:{mapTileCount}개\n생성된 오브젝트:{spawnedTiles.Count}개",this);
         }
 
         // 현재 공개 범위에 맞춰 몬스터용 월드 경로 갱신
@@ -544,11 +614,7 @@ namespace CombatSpace
                 mapGenerator.CurrentMap;
 
             int finalRouteIndex =
-                Mathf.Clamp(
-                    revealController
-                        .CurrentSpawnRouteIndex,
-                    0,
-                    map.EnemyRoute.Count - 1);
+                Mathf.Clamp(revealController.CurrentSpawnRouteIndex,0,map.EnemyRoute.Count - 1);
 
             for (int routeIndex = 0;
                  routeIndex <= finalRouteIndex;
@@ -557,12 +623,11 @@ namespace CombatSpace
                 Vector2Int gridPosition =
                     map.EnemyRoute[routeIndex];
 
-                Vector3 worldPosition =
-                    GridToWorldPosition(
-                        gridPosition);
+                Vector3 worldPosition = GridToWorldPosition(gridPosition);
 
-                currentWorldEnemyRoute.Add(
-                    worldPosition);
+                worldPosition.y += monsterWaypointYOffset;
+
+                currentWorldEnemyRoute.Add(worldPosition);
             }
         }
         // 현재 공개된 마지막 Road의 월드 스폰 Pose 제공
@@ -596,10 +661,9 @@ namespace CombatSpace
                 return false;
             }
 
-            position =
-                GridToWorldPosition(
-                    map.EnemyRoute[
-                        spawnRouteIndex]);
+            position =GridToWorldPosition(map.EnemyRoute[spawnRouteIndex]);
+
+            position.y += monsterWaypointYOffset;
 
             Transform coordinateRoot =
                 tileRoot != null
@@ -609,16 +673,13 @@ namespace CombatSpace
             // 이전 Road 방향, 즉 성문 방향을 바라봄
             if (spawnRouteIndex > 0)
             {
-                Vector3 nextPosition =
-                    GridToWorldPosition(
-                        map.EnemyRoute[
-                            spawnRouteIndex - 1]);
+                Vector3 nextPosition =GridToWorldPosition(map.EnemyRoute[spawnRouteIndex - 1]);
+                nextPosition.y += monsterWaypointYOffset;
 
-                Vector3 direction =
-                    nextPosition - position;
+                Vector3 direction = nextPosition - position;
+                direction.y = 0f;
 
-                if (direction.sqrMagnitude >
-                    0.0001f)
+                if(direction.sqrMagnitude > 0.0001f)
                 {
                     rotation =
                         Quaternion.LookRotation(
