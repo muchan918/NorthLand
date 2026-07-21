@@ -1,15 +1,13 @@
 using NorthLand.Combat;
 using System.Collections.Generic;
 using UnityEngine;
-using static EnemyAsset;
 
 public class MonsterMove : MonoBehaviour, IMovementAgent
 {
 
-    [SerializeField] private EnemyAsset enemyAsset;
 
     [SerializeField] private float arriveDistance = 0.05f;
-    private float moveSpeed;
+
     private bool canMove = true;
 
     private readonly List<Vector3> route = new List<Vector3>();
@@ -19,43 +17,33 @@ public class MonsterMove : MonoBehaviour, IMovementAgent
     public bool CanMove => canMove;
     public bool IsStopped { get; set; }
 
+    [SerializeField] private float fallbackMoveSpeed = 3f;
+
+    private float moveSpeed;
+    private bool hasInjectedMoveSpeed;
+
     private void Awake()
     {
-        ApplyMoveSpeed();
+        if (!hasInjectedMoveSpeed)
+        {
+            moveSpeed = fallbackMoveSpeed;
+        }
     }
 
-
-    public void ApplyMoveSpeed()
+    public void SetMoveSpeed(float value)
     {
-        if (enemyAsset == null)
+        if (value > 0f)
         {
-            Debug.LogError("EnemyAsset이 지정되지 않았습니다.", this);
-            return;
+            moveSpeed = value;
+        }
+        else
+        {
+            moveSpeed = Mathf.Max(0.01f, fallbackMoveSpeed);
+
+            Debug.LogWarning($"[{name}] 유효한 MoveSpeed가 없어 폴백값 {moveSpeed}을 사용합니다.",this);
         }
 
-        EnemyAsset.CombatFields stat = GetCombatStat();
-
-        if (stat == null)
-        {
-            Debug.LogError(
-                $"{enemyAsset.EnemyType} 타입의 전투 스탯이 지정되지 않았습니다.",
-                enemyAsset
-            );
-            return;
-        }
-
-        moveSpeed = stat.MoveSpeed;
-    }
-
-    private EnemyAsset.CombatFields GetCombatStat()
-    {
-        return enemyAsset.EnemyType switch
-        {
-            EnemyType.Melee => enemyAsset.Melee?.Stat,
-            EnemyType.Ranged => enemyAsset.Ranged?.Stat,
-            EnemyType.Boss => enemyAsset.Boss?.Stat,
-            _ => null
-        };
+        hasInjectedMoveSpeed = true;
     }
 
 
