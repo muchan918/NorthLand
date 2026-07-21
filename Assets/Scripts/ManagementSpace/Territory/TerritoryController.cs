@@ -18,6 +18,9 @@ public class TerritoryController : MonoBehaviour
     [Tooltip("생성 시드. 0이면 매 플레이 랜덤 — 사용된 시드를 로그로 남겨 재현 가능하게 한다")]
     [SerializeField] int _seed = 0;
 
+    [Tooltip("노드에 중복 없이 배정할 영토 정의 풀. 비우면 효과 없이 지형만 생성된다(TerritoryGraph.md §5).")]
+    [SerializeField] List<TerritoryDefinition> _definitionPool = new();
+
     /// <summary>그래프 상태가 바뀔 때 발생(Graph.OnChanged 중계). 뷰는 이걸 구독해 다시 렌더한다.</summary>
     public event Action OnChanged;
 
@@ -46,7 +49,7 @@ public class TerritoryController : MonoBehaviour
         int seed = _seed != 0 ? _seed : new System.Random().Next(1, int.MaxValue);
         Debug.Log($"[영토] 그래프 생성 seed={seed} (재현: 컨트롤러 _seed에 입력)");
 
-        Graph = BuildGeneratedGraph(_settings, seed);
+        Graph = BuildGeneratedGraph(_settings, seed, _definitionPool);
         Graph.OnChanged += HandleGraphChanged;
     }
 
@@ -117,8 +120,8 @@ public class TerritoryController : MonoBehaviour
     private void HandleGraphChanged() => OnChanged?.Invoke();
 
     // 생성 파이프라인(형태) → 모델(상태) 조립. 생성기는 위치·엣지만 알고 모델을 모르므로
-    // 여기서 Vector2(2D) → XZ 평면 Vector3 변환과 노드 연결을 수행한다.
-    private static TerritoryGraph BuildGeneratedGraph(TerritoryGraphGenSettings settings, int seed)
+    // 여기서 Vector2(2D) → XZ 평면 Vector3 변환과 노드 연결을 수행하고, 마지막에 효과 정의를 주입한다.
+    private static TerritoryGraph BuildGeneratedGraph(TerritoryGraphGenSettings settings, int seed, IReadOnlyList<TerritoryDefinition> definitionPool)
     {
         TerritoryGraphLayout layout = TerritoryGraphGenerator.Generate(settings, seed);
 
@@ -133,6 +136,66 @@ public class TerritoryController : MonoBehaviour
             TerritoryNode.Connect(nodes[layout.Edges[i].A], nodes[layout.Edges[i].B]);
         }
 
+        AssignDefinitions(nodes, layout.HomeNodeId, definitionPool, seed);
+
         return new TerritoryGraph(nodes, layout.HomeNodeId);
+    }
+
+    // 노드에 효과 정의를 중복 없이(비복원) 배정한다 — 본진은 효과 없음(제외).
+    // 시드로 셔플하므로 재현 가능(WL-008 계보): 같은 seed면 같은 지형 + 같은 효과 배치.
+    //
+    // ⚠ 잠정 정책(팀 회의로 방향성 재검토 예정): 정의 풀보다 배정 대상 노드가 많으면 풀을 소진한 뒤
+    //    다시 셔플해 반복 배정한다 → 이 경우 같은 정의가 재등장할 수 있다. "풀 ≥ 노드 강제 / 가중치 /
+    //    인접 중복 회피" 등 대안은 미결(WL-030 인접). 지금은 소진 후 재셔플 반복으로만 채운다.
+    private static void AssignDefinitions(TerritoryNode[] nodes, int homeNodeId, IReadOnlyList<TerritoryDefinition> pool, int seed)
+    {
+        if (pool == null || pool.Count == 0)
+        {
+            return; // 효과 없이 지형만 — 유효한 초기/미설정 상태(§5 "풀을 비우면 지형만")
+        }
+
+        var rng = new System.Random(seed);
+        var bag = new List<TerritoryDefinition>(pool.Count);
+
+        for (int i = 0; i < nodes.Length; i++)
+        {
+            if (nodes[i].Id == homeNodeId)
+            {
+                continue; // 본진은 효과 없음
+            }
+
+            if (bag.Count == 0)
+            {
+                RefillShuffled(bag, pool, rng);
+                if (bag.Count == 0)
+                {
+                    Debug.LogWarning("[영토] 정의 풀에 유효한 항목이 없어 효과를 배정하지 않습니다.");
+                    return;
+                }
+            }
+
+            int last = bag.Count - 1;
+            nodes[i].Definition = bag[last];
+            bag.RemoveAt(last); // 끝에서 꺼내 O(1) — 순서가 이미 무작위라 어느 쪽에서 꺼내도 무방
+        }
+    }
+
+    // 풀 전체(널 슬롯 제외)를 bag에 복사한 뒤 Fisher-Yates로 섞는다. 배정은 bag 끝에서 꺼내므로 순서만 무작위면 충분.
+    private static void RefillShuffled(List<TerritoryDefinition> bag, IReadOnlyList<TerritoryDefinition> pool, System.Random rng)
+    {
+        bag.Clear();
+        for (int i = 0; i < pool.Count; i++)
+        {
+            if (pool[i] != null)
+            {
+                bag.Add(pool[i]);
+            }
+        }
+
+        for (int i = bag.Count - 1; i > 0; i--)
+        {
+            int j = rng.Next(i + 1);
+            (bag[i], bag[j]) = (bag[j], bag[i]);
+        }
     }
 }

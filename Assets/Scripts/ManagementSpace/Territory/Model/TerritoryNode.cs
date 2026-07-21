@@ -18,6 +18,12 @@ public class TerritoryNode
     /// <summary>현재 상태. 전이는 <see cref="TerritoryGraph.TryClaim"/>만 수행한다.</summary>
     public TerritoryState State { get; internal set; } = TerritoryState.Locked;
 
+    /// <summary>
+    /// 이 노드에 주입된 효과 묶음(그래프 조립 단계에서 정의 풀로부터 중복 없이 배정된다).<br/>
+    /// 본진·풀 미할당 시 null일 수 있다. 확보 시 효과 적용의 데이터 출처가 되며, 배정은 <see cref="TerritoryController"/>가 한다.
+    /// </summary>
+    public TerritoryDefinition Definition { get; internal set; }
+
     private readonly List<int> _neighborIds = new();
 
     /// <summary>무방향 엣지로 연결된 이웃 노드 Id 목록.</summary>
