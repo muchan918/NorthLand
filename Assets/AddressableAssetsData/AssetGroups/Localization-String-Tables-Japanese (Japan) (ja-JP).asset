@@ -28,6 +28,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - Locale-ja-JP
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: acc4977b63fb1d141a4615f7e2948f0e
+    m_Address: NorthLand_Territories_ja-JP
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-ja-JP
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: dc66d7162db3bb5488356fba512ea432
     m_Address: NorthLand_Towers_ja-JP
     m_ReadOnly: 1

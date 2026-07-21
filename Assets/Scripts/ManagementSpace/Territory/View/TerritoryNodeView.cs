@@ -24,6 +24,13 @@ public class TerritoryNodeView : MonoBehaviour, ISelectable, IHoverable
     [Tooltip("호버 시 색 (#67 호버 하이라이트)")]
     [SerializeField] Color _hoverColor = new(0.9f, 0.85f, 0.4f);
 
+    [Header("호버 툴팁 색 (이름/설명)")]
+    [Tooltip("툴팁 헤더(이름) 영역 배경색")]
+    [SerializeField] Color _tooltipHeaderColor = new(0.20f, 0.35f, 0.50f, 0.95f);
+
+    [Tooltip("툴팁 본문(설명) 영역 배경색")]
+    [SerializeField] Color _tooltipBackgroundColor = new(0.10f, 0.12f, 0.16f, 0.95f);
+
     private TerritoryController _controller;
     private int _nodeId = -1;
     private bool _isHovered;
@@ -85,26 +92,61 @@ public class TerritoryNodeView : MonoBehaviour, ISelectable, IHoverable
             return;
         }
 
+        // 본진은 확보 대상이 아니다(초기 Owned) — TryClaim이 어차피 실패하지만, 실패 로그·선택 churn을
+        // 남기지 않도록 진입 자체를 막는다. Selectable 판정은 모델(TryClaim)이 최종적으로 담당.
+        if (_nodeId == _controller.Graph.HomeNodeId)
+        {
+            return;
+        }
+
         if (_controller.TryClaim(_nodeId))
         {
             Debug.Log($"[영토] 노드 {_nodeId} 선택으로 확보 성공", this);
         }
     }
 
-    // 영토 노드는 툴팁 없음 — 호버는 색 변경 전용(BuildingTooltipSource 경로와 독립, #67).
-    public TooltipContent? GetTooltipContent() => null;
+    // 호버 시 이 노드에 주입된 영토 정의의 이름·설명을 툴팁으로 공급한다(pull — BuildingTooltipSource 계보).
+    // 정의가 없는 노드(본진·미할당)는 null을 반환해 툴팁을 띄우지 않는다. 색 하이라이트는 OnHoverEnter/Exit가 별도로 담당.
+    public TooltipContent? GetTooltipContent()
+    {
+        if (_controller == null || _controller.Graph == null)
+        {
+            return null;
+        }
+
+        var def = _controller.Graph.GetNode(_nodeId)?.Definition;
+        if (def == null)
+        {
+            return null;
+        }
+
+        // 동기 pull 조회(로케일 변경 자동 갱신 불필요 — 호버 시점 1회). 키는 정의의 _id에서 파생된다.
+        string name = LocalizationHelper.Get(LocalizationHelper.k_TerritoriesTable, def.DisplayNameKey);
+        string desc = LocalizationHelper.Get(LocalizationHelper.k_TerritoriesTable, def.DescriptionKey);
+        return new(name, desc, _tooltipHeaderColor, _tooltipBackgroundColor);
+    }
 
     public void OnHoverEnter()
     {
+        if (IsHome) return; // 본진은 호버 연출 없음(GDD §6.3.1)
+
         _isHovered = true;
+
         Refresh();
     }
 
     public void OnHoverExit()
     {
+        if (IsHome) return; // 본진은 호버 연출 없음(GDD §6.3.1)
+
         _isHovered = false;
+
         Refresh();
     }
+
+    // 본진 판정은 하드코딩 0이 아니라 모델의 HomeNodeId 기준 — 본진 인덱스가 바뀌어도 어긋나지 않는다.
+    // 컨트롤러/그래프 미준비 시엔 본진으로 취급하지 않는다(가드는 각 호출부가 담당).
+    private bool IsHome => _controller != null && _controller.Graph != null && _nodeId == _controller.Graph.HomeNodeId;
 
     /// <summary>모델 상태를 시각에 반영한다. Locked는 완전 숨김(GDD §4.2 점진 공개 — 스펙 확정).</summary>
     public void Refresh()
@@ -134,7 +176,7 @@ public class TerritoryNodeView : MonoBehaviour, ISelectable, IHoverable
         // 없으면(구형 프리팹, GameScene 등 기존 씬) 아래 색상 경로를 그대로 쓴다.
         if (_stateVisual != null)
         {
-            bool isHome = _nodeId == _controller.Graph.HomeNodeId;
+            bool isHome = IsHome;
             bool playClaimFx = _pendingClaimFx;
             _pendingClaimFx = false;
             _stateVisual.Apply(node.State, isHome, _nodeId, _isHovered, canClaimNow, playClaimFx);
