@@ -170,9 +170,7 @@ namespace CombatSpace
                     targetRouteIndex);
 
             // 마지막 공개 Road를 스폰 좌표로 사용
-            CurrentSpawnPosition =
-                map.EnemyRoute[
-                    LastRevealedRouteIndex];
+            CurrentSpawnPosition =map.EnemyRoute[LastRevealedRouteIndex];
 
             // 실제 타일 표시를 갱신하도록 알림
             RevealChanged?.Invoke();
