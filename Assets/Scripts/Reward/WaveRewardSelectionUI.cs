@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SocialPlatforms;
 using UnityEngine.UI;
 
 public class WaveRewardSelectionUI : MonoBehaviour
@@ -41,11 +42,13 @@ public class WaveRewardSelectionUI : MonoBehaviour
 
     public void ClosePanel()
     {
+        Time.timeScale=1;
         panel.SetActive(false);
         Openpanel.SetActive(true);
     }
     public void OpenPanel()
     {
+        Time.timeScale = 0;
         panel.SetActive(true);
         Openpanel.SetActive(false);
     }
@@ -64,6 +67,7 @@ public class WaveRewardSelectionUI : MonoBehaviour
 
         if (panel != null)
         {
+            Time.timeScale = 0;
             panel.SetActive(true);
         }
 
@@ -79,6 +83,7 @@ public class WaveRewardSelectionUI : MonoBehaviour
 
             if (panel != null)
             {
+                Time.timeScale = 1;
                 panel.SetActive(false);
             }
 
