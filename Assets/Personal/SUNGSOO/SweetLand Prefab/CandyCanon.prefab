@@ -98,7 +98,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NorthLand.Combat.TowerReloadVisual
   ammoVisual: {fileID: 3618210342519369474}
-  reappearDelay: 1
+  reappearDelay: 0.4
 --- !u!1001 &622289482328021908
 PrefabInstance:
   m_ObjectHideFlags: 0

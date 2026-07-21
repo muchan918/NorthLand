@@ -40,8 +40,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4730205998854451338}
-  - component: {fileID: 9152163262590414141}
-  - component: {fileID: 7606764782955880520}
   m_Layer: 0
   m_Name: CandyCanon-Ghost
   m_TagString: Untagged
@@ -68,37 +66,6 @@ Transform:
   - {fileID: 1414083816465471360}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &9152163262590414141
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3104185744962560807}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 76c1645faf600e94e9cd5231388979f5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NorthLand.Combat.Tower
-  data: {fileID: 11400000, guid: a752545bbde5030438f8995ae4ee0849, type: 2}
-  enemyLayerMask:
-    serializedVersion: 2
-    m_Bits: 128
-  firePoint: {fileID: 1414083816465471360}
---- !u!114 &7606764782955880520
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3104185744962560807}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a906f576adf67ef40bf202c1f733a1b3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NorthLand.Combat.TowerReloadVisual
-  ammoVisual: {fileID: 3618210342519369474}
-  reappearDelay: 1
 --- !u!1001 &622289482328021908
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -176,11 +143,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c7ad879a371b3e34cb00e34492a2deaf, type: 3}
---- !u!1 &3618210342519369474 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 4221183324172678294, guid: c7ad879a371b3e34cb00e34492a2deaf, type: 3}
-  m_PrefabInstance: {fileID: 622289482328021908}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &4142651462560953784 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3593722362457828908, guid: c7ad879a371b3e34cb00e34492a2deaf, type: 3}
