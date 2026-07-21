@@ -115,6 +115,13 @@ public class TerritoryGraph
         return node != null && node.State != TerritoryState.Locked;
     }
 
+    /// <summary>플레이어가 확보(Owned)한 노드인가 — 엣지 배 연출은 양끝이 모두 Owned일 때만 흐른다(#93).</summary>
+    public bool IsOwned(int id)
+    {
+        var node = GetNode(id);
+        return node != null && node.State == TerritoryState.Owned;
+    }
+
     /// <summary>
     /// 노드 확보 시도 — 이 모델의 유일한 상태 변경 진입점.<br/>
     /// Selectable이 아니면(구조 불변식 위반) 확보하지 않고 false를 반환한다.

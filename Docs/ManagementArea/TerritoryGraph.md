@@ -6,7 +6,8 @@
 > **상태**: ✅ **씬 통합 완료(이슈 #67)** — `TerritoryController`/`TerritoryGraphView`가 실제
 > `Assets/Scenes/GameScene.unity`에 배치돼 그래프 생성·확보(`ISelectable`)·호버 하이라이트
 > (`IHoverable`)까지 플레이 가능. ✅ **노드 비주얼 에셋 적용(#127, PR#128, muchan)** — 임시 색상
-> 구체를 상태별 비주얼(소용돌이/산)로 교체, §7.1 참고. 효과 카탈로그(§5)·보상 수치(§8) 등
+> 구체를 상태별 비주얼(소용돌이/산)로 교체, §7.1 참고. ✅ **엣지 배 연출 적용(#93, muchan)** —
+> 엣지 선(LineRenderer)을 배(SweetBoat) 왕복 연출로 교체, §7.2 참고. 효과 카탈로그(§5)·보상 수치(§8) 등
 > 일부는 여전히 미착수 — 남은 TBD는 §8에서 계속 추적한다.
 > 확정되지 않은 항목은 본문에서 **TBD / TODO**로 명시한다(docs-are-dev-reference 규약).
 > **GDD 근거**: §4.1(두 공간) · §5.1(낮 경영—영토 확장) · §6.3(경영 영토 확장) ·
@@ -166,7 +167,24 @@ pull 공급"으로 예정했던 원래 설계는 효과 카탈로그(§5)가 아
   아트 확정 시 GDD 색 언어 갱신 필요(PR#128 리뷰 🟡).
 - **튜닝 세트 결합**: 그래프 간격(AreaRadius 450·MinNodeSpacing 140)과 비주얼 스케일(산 0.5·소용돌이
   지름 60·클릭 콜라이더 45)은 세트 — 간격류 조정 시 비례해 함께 조정할 것(WL-059).
-- **잔여**: 다리(엣지) 에셋 — 현재 `TerritoryGraphView.CreateEdge`는 `LineRenderer` 유지, #93 후속.
+- **잔여**: 본진 전용 연출. 다리(엣지)는 #93에서 배 왕복 연출로 대체됨(§7.2).
+
+### 7.2 엣지 배 연출 (#93 — muchan)
+
+§7.1과 같은 "엣지 = 한 시각 표현"(§7 원칙) 두 번째 적용. **모델·전이 코드 무변경, 뷰만 교체**.
+
+- **선 → 배 교체**: `TerritoryGraphView`가 엣지마다 만들던 `LineRenderer`를, @NorthLand `SweetBoat_01~05`
+  중 **랜덤 1척**이 두 노드 사이를 왕복하는 연출로 대체. 새 `TerritoryEdgeShip`(뷰 내부 컴포넌트)이
+  이동/조향 담당 — 엣지 길이와 무관하게 **속도 일정 왕복**, 진행 방향 바라보기(끝점 반전 시 `RotateTowards`
+  로 완만하게), 배 FBX의 forward 축이 불명이라 `_shipYawOffset`으로 뱃머리 보정. 선은 `_drawEdgeLines`로
+  분리해 **기본 꺼짐**(디버그용 보존).
+- **표시 규칙 강화(설계 변경)**: §4.2의 엣지 공개(양끝이 드러나면 보임)와 달리, 배는 **양끝이 모두 `Owned`
+  일 때만** 흐른다 — 이를 위해 `TerritoryGraph.IsOwned(id)` 신설, `Refresh`가 `IsOwned(A) && IsOwned(B)`로
+  게이팅. 확보 가능(Selectable) 프론티어로 뻗는 엣지엔 아직 배가 다니지 않는다("확보된 영토 사이 물류" 톤).
+- **선택 레이캐스트 간섭 차단**: 배 프리팹의 `MeshCollider`를 인스턴스 시 제거 — 배가 노드 루트 콜라이더
+  클릭을 가로채지 않게(§3 접점 매트릭스, #127 "산 자식 콜라이더 스폰 시 비활성"과 동일 취지).
+- **튜닝**: `_shipSpeed`·`_shipYawOffset`·`_shipHeightOffset`·`_shipEndpointInset`·`_shipTurnSpeed`를
+  `TerritoryGraphView` 인스펙터에 노출(플레이 중 눈으로 맞춤 — 특히 뱃머리 방향·속도).
 
 ---
 
@@ -202,7 +220,7 @@ pull 공급"으로 예정했던 원래 설계는 효과 카탈로그(§5)가 아
 - ❌ **주민 시스템**(GDD §6.1): 부재 → 주민 보상은 placeholder 심(자원 시스템의 주민 수 placeholder와 동일 상황).
 - ❌ **구체 효과 구현**: §5 심 위 실제 효과들은 후속.
 - ~~❌ **실제 아트/연출**: 첫 구현은 기능 배치(노드·연결 최소 시각), 아트 교체 시 뷰 참조만 재연결.~~
-  → **노드 비주얼은 적용됨(#127, §7.1)**. 잔여: 다리(엣지) 에셋(#93 후속)·본진 전용 연출.
+  → **노드 비주얼(#127, §7.1)·엣지 배 연출(#93, §7.2) 적용됨**. 잔여: 본진 전용 연출.
 - **의존**: `MouseManager`(ISelectable/IHoverable, 씬 배치·`_camera`), `TooltipUI`(#38), `ResourceWallet`
   (`ManagementController` 소유, WL-017), `DayNightManager`(낮/밤 게이팅, nullable).
 
