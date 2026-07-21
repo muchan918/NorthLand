@@ -1,10 +1,11 @@
-using System.Collections.Generic;
 using NorthLand.Combat;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class MonsterMove : MonoBehaviour, IMovementAgent
 {
-    [SerializeField] private float moveSpeed = 3f;
+
+
     [SerializeField] private float arriveDistance = 0.05f;
 
     private bool canMove = true;
@@ -15,6 +16,35 @@ public class MonsterMove : MonoBehaviour, IMovementAgent
     public bool HasRouteRemaining => currentRouteIndex < route.Count;
     public bool CanMove => canMove;
     public bool IsStopped { get; set; }
+
+    [SerializeField] private float fallbackMoveSpeed = 3f;
+
+    private float moveSpeed;
+    private bool hasInjectedMoveSpeed;
+
+    private void Awake()
+    {
+        if (!hasInjectedMoveSpeed)
+        {
+            moveSpeed = fallbackMoveSpeed;
+        }
+    }
+
+    public void SetMoveSpeed(float value)
+    {
+        if (value > 0f)
+        {
+            moveSpeed = value;
+        }
+        else
+        {
+            moveSpeed = Mathf.Max(0.01f, fallbackMoveSpeed);
+
+            Debug.LogWarning($"[{name}] 유효한 MoveSpeed가 없어 폴백값 {moveSpeed}을 사용합니다.",this);
+        }
+
+        hasInjectedMoveSpeed = true;
+    }
 
 
     public void SetRoute(List<Vector3> routePoints)
