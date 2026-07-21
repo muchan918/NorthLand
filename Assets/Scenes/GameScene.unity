@@ -238,6 +238,7 @@ MonoBehaviour:
   tileSpawner: {fileID: 1175259920}
   revealController: {fileID: 1175259919}
   monsterSpawn: {fileID: 111725158}
+  spawnDelaySeconds: 1
 --- !u!114 &111725157
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5757,6 +5758,7 @@ MonoBehaviour:
   _buttonPrefab: {fileID: 2502935727608881747, guid: b373d7f3c9fc5764b91c0f94b11c46e6, type: 3}
   _towers:
   - {fileID: 11400000, guid: 7ecd80d44165e644591aafb428cf5efe, type: 2}
+  - {fileID: 11400000, guid: a752545bbde5030438f8995ae4ee0849, type: 2}
 --- !u!114 &1645270242
 MonoBehaviour:
   m_ObjectHideFlags: 0
