@@ -22,6 +22,9 @@ public class TowerSelectPanelView : MonoBehaviour
     [Header("타워 목록")]
     [SerializeField] List<TowerAsset> _towers = new();
 
+    [Header("호버 툴팁")]
+    [SerializeField] BuildingTooltipPalette _tooltipPalette; // BuildingTooltipSource와 공유하는 팔레트(BuildingType.TowerPanel 항목 사용)
+
     /// <summary>버튼 클릭 시 선택된 TowerAsset을 발행. 추후 배치 툴이 구독한다.</summary>
     public event Action<TowerAsset> OnTowerSelected;
 
@@ -85,6 +88,13 @@ public class TowerSelectPanelView : MonoBehaviour
         }
 
         button.onClick.AddListener(() => HandleClick(tower));
+
+        // 호버 시 코스트+설명 툴팁 표시 (#141) — uGUI 버튼이라 IHoverable 경로 대신 포인터 이벤트 직접 수신.
+        var tooltipSource = button.GetComponent<TowerButtonTooltipSource>();
+        if (tooltipSource == null) tooltipSource = button.gameObject.AddComponent<TowerButtonTooltipSource>();
+        tooltipSource.SetTower(tower);
+        tooltipSource.SetPalette(_tooltipPalette);
+
         _buttons.Add((button, tower));
         RefreshButton(button, tower); // 초기 활성 상태 반영
     }

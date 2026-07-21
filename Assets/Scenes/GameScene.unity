@@ -1592,8 +1592,8 @@ RectTransform:
   - {fileID: 917358679}
   - {fileID: 227380444}
   - {fileID: 879316587}
-  - {fileID: 832343763}
   - {fileID: 1645270240}
+  - {fileID: 832343763}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -5759,6 +5759,7 @@ MonoBehaviour:
   _towers:
   - {fileID: 11400000, guid: 7ecd80d44165e644591aafb428cf5efe, type: 2}
   - {fileID: 11400000, guid: a752545bbde5030438f8995ae4ee0849, type: 2}
+  _tooltipPalette: {fileID: 11400000, guid: 3c4481da6b4624b4ca531255009ef584, type: 2}
 --- !u!114 &1645270242
 MonoBehaviour:
   m_ObjectHideFlags: 0
