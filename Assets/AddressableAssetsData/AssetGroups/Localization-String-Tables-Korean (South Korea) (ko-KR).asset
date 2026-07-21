@@ -22,6 +22,12 @@ MonoBehaviour:
     - Locale-ko-KR
     - Preload
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a278a00a8ce31664cb0a309886d864c6
+    m_Address: NorthLand_Territories_ko-KR
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-ko-KR
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: cbec9aa52145fb540becd6b35894e681
     m_Address: NorthLand_Enemies_ko-KR
     m_ReadOnly: 1

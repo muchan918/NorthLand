@@ -39,8 +39,11 @@ public class ResourceProductionSource
         _wallet = wallet;
     }
 
-    /// <summary>주민 수에 따른 생산량을 계산한다. 부작용 없음. (주민 0명 → 0)</summary>
-    public int CalculateAmount(int villagerCount)
+    /// <summary>
+    /// 주민 수에 따른 생산량을 계산한다. 부작용 없음. (주민 0명 → 0)<br/>
+    /// <paramref name="multiplier"/>는 패시브 생산 배율(영토 효과 등, 기본 1.0 = 무보정)로, 반올림해 정수로 만든다.
+    /// </summary>
+    public int CalculateAmount(int villagerCount, float multiplier = 1f)
     {
         if (villagerCount < 0)
         {
@@ -48,14 +51,14 @@ public class ResourceProductionSource
             return 0;
         }
 
-        return _baseAmountPerVillager * villagerCount;
+        return Mathf.RoundToInt(_baseAmountPerVillager * villagerCount * multiplier);
     }
 
     /// <summary>
     /// 배치된 주민 수만큼 자원을 생산해 지갑에 넣는다(정산). 외부 트리거 전용.<br/>
-    /// 실제로 지갑에 더한 양을 반환한다. 생산할 수 없으면 0.
+    /// <paramref name="multiplier"/>는 패시브 생산 배율(기본 1.0). 실제로 지갑에 더한 양을 반환한다. 생산할 수 없으면 0.
     /// </summary>
-    public int Produce(int villagerCount)
+    public int Produce(int villagerCount, float multiplier = 1f)
     {
         if (_wallet == null)
         {
@@ -74,7 +77,7 @@ public class ResourceProductionSource
             return 0;
         }
 
-        int amount = CalculateAmount(villagerCount);
+        int amount = CalculateAmount(villagerCount, multiplier);
         if (amount <= 0)
         {
             return 0;

@@ -24,7 +24,7 @@
 
 - 보유 영토 기준 **인접 영토만** 선택 가능(GDD §6.3 노란색/회색).
 - 인접 영토 중 하나 선택 → 확보 → **고유 효과 획득** → 다음 확장 가능 영역(프론티어) 생성.
-- 영토 효과·보상은 **매 게임 랜덤**(GDD §7) → 리플레이성. 마나석·주민이 대표 보상(§4.2·§6.1).
+- 영토 효과·보상은 **매 게임 랜덤**(GDD §7) → 리플레이성. 기본 자원·마나석·주민이 대표 보상(§3.2·§6.1).
 
 ---
 
@@ -112,19 +112,24 @@
 
 ## 5. SO 주입 & 효과 확장 심 (요구사항 2 핵심)
 
-효과 종류가 **아직 미정**이므로, 지금은 **심만 정의**하고 구체 효과는 후속에 SO로 추가한다.
+**추상 효과 SO 방식으로 확정** — 심 + 노드 주입까지 구현됨(효과 Apply 배선은 후속, §8·WL-030). 구현 타입:
 
-- `TerritoryDefinition`(SO)이 하나 이상의 **효과**를 참조한다.
-- 효과 심(택1, §8에서 확정):
-  - **(권장) 추상 효과 SO** — 효과를 ScriptableObject 서브클래스로 두고, 적용 시 컨텍스트를 받아 실행한다.
-    새 효과 = 효과 SO 하나 추가. 데이터+행동을 SO로 주입 → 요구사항 2에 가장 부합.
-  - 대안: 순수 인터페이스 + 코드 구현 (SO 주입성이 약함).
-- **적용 컨텍스트**가 효과가 건드릴 시스템을 노출한다: 자원 지갑(마나·자원 지급),
-  주민 획득 심(주민 시스템 부재 → placeholder), 대상 노드/그래프 참조 등.
-- **신규 효과가 생겨도 `TerritoryGraph`/전이/뷰 코드는 불변** — 효과 SO만 추가·주입.
+- `TerritoryEffect`(추상 SO) — 효과 1개의 데이터+행동을 함께 담는다. `Apply(in TerritoryEffectContext)` 하나로
+  즉시/패시브를 통일하고, 무엇을 건드리는지는 컨텍스트 표면으로 구분한다. **새 효과 = 이 클래스 상속 SO 하나 추가.**
+  - 구체 효과: `GrantResourceEffect`(즉시·자원/마나석 지급), `GainResidentEffect`(즉시·주민 심),
+    `ProductionMultiplierEffect`(패시브·생산 +X%, 등록 훅 미구현 → §8).
+- `TerritoryDefinition`(SO) — 하나 이상의 `TerritoryEffect`를 묶는다. 노드에 주입되는 단위.
+- `TerritoryEffectContext`(struct) — 효과가 건드릴 시스템을 노출: 자원 지갑(마나·자원 지급),
+  주민 획득 심(주민 시스템 부재 → placeholder), 대상 노드/그래프 참조.
+- **주입**: `TerritoryController._definitionPool`(authored SO 리스트)을 그래프 생성 시 `_seed`로 셔플해
+  본진 제외 노드에 **중복 없이(비복원)** 배정(`AssignDefinitions`) → `TerritoryNode.Definition`에 보관.
+  같은 seed면 지형+효과 배치가 재현된다(WL-008 계보).
+- **신규 효과가 생겨도 `TerritoryGraph`/전이/뷰/주입 코드는 불변** — 효과 SO만 추가·주입.
 
-> **표시 문자열·수치 데이터 출처는 미결(WL-013·팀 계약 #2 연동)**: 표시명/설명을 CSV→SO 파이프라인
-> (BuildingTable식)으로 둘지, authored SO로 둘지는 §8 TBD. 효과 **행동**은 코드/SO이므로 CSV POCO 패턴과 별개.
+> **수치 데이터 출처 확정: 영토 효과는 SO 단독 관리(CSV 아님)** — 팀 회의 결정. 각 효과 SO의 인스펙터 필드에
+> 직접 authoring한다(자원량·주민 수·생산 %). "모두 CSV로 관리는 과하다"는 판단 — 계약 #2(수치=CSV)는
+> **건물/타워/적 밸런싱 테이블에 적용**되며 영토 효과는 그 예외다. 효과 **행동**은 코드/SO이므로 CSV POCO 패턴과 별개.
+> 표시명/설명은 `TerritoryDefinition`의 스트링 테이블 키(로컬라이제이션 #102 계보)로 authored — 표시 문자열 출처는 §8.
 
 ---
 
@@ -135,11 +140,12 @@
 | 접점 | 방식 |
 |---|---|
 | **선택 입력** | 노드가 `ISelectable` 구현 → `MouseManager`가 Idle 클릭으로 선택 통지(팀 계약 #1 입력 단일 창구). 확정 판정은 모델(`Selectable`인가)이 담당 |
-| **호버** | **확정(이슈 #67, 최초 설계에서 변경)** — 노드가 `IHoverable`을 구현하지만 `GetTooltipContent()`는
-`null`을 반환해 `TooltipUI` 툴팁은 띄우지 않는다(건물 호버 툴팁 경로와 독립). 대신 `OnHoverEnter`/
-`OnHoverExit`(`MouseManager.md` §8 호버 하이라이트)로 Selectable 노드만 색 변경 — "표시명+효과 설명
-pull 공급"으로 예정했던 원래 설계는 효과 카탈로그(§5)가 아직 없어 보류, 필요해지면 후속 |
-| **자원 보상** | 효과가 `ResourceWallet.Add`로 마나석 지급(GDD §4.2 / 팀 계약 #3 — 마나석은 영토 확장·전투 보상에서만. **정당한 마나 원천**). 주민 획득(§6.1)은 주민 시스템 부재로 placeholder 심 |
+| **호버** | 노드가 `IHoverable` 구현. **툴팁 공급**: `GetTooltipContent()`가 노드에 주입된 `TerritoryDefinition`의
+이름·설명을 `LocalizationHelper.Get(k_TerritoriesTable, DisplayNameKey/DescriptionKey)`로 동기 pull해
+`TooltipContent`로 반환한다(`BuildingTooltipSource` 계보) — 정의가 없는 노드(본진·미할당)는 `null` 반환으로
+툴팁 없음. 키는 정의의 `_id`에서 `territories.{id}.name/.desc`로 파생(스트링 테이블 `NorthLand_Territories`).
+색 하이라이트는 `OnHoverEnter`/`OnHoverExit`(`MouseManager.md` §8)가 별도로 Selectable 노드만 담당 |
+| **자원 보상** | 효과가 `ResourceWallet.Add`로 자원 지급 — **기본 자원(나무/철/식량)·마나석 모두 영토 확장 보상으로 지급 가능**(자원 흐름 결정: 기본 자원은 주민 생산 + 영토 보상 둘 다, GDD §3.2·계약 #3 개정). 마나석은 여전히 영토 확장·전투 보상에서만 발생하는 **정당한 원천**. 주민 획득(§6.1)은 주민 시스템 부재로 placeholder 심 |
 | **낮/밤** | 확장은 **낮 행동**(GDD §5.1). `TerritoryController`가 `DayNightManager.OnDayStart`를 구독해 `HasExpandedToday`를 매 낮 시작마다 초기화하고, `TryClaim`에서 하루 1회로 게이팅한다(이슈 #67). 확장을 마쳐야(`HasExpandedToday == true`) `ManagementController`의 주민 배치가 열린다(§6.1 연동, 아래 참고). 밤 잠금·자원 비용 게이팅은 여전히 TBD(§8) |
 | **공간 분리** | 경영 공간 전용. 전투 그리드(BattleMapBuilder)·좌표계와 **무관**(팀 계약 #4 — 한쪽 확장이 다른 쪽 상태에 의존 금지) |
 
@@ -190,10 +196,18 @@ pull 공급"으로 예정했던 원래 설계는 효과 카탈로그(§5)가 아
 
 ## 8. 미결 / TODO (구현 전 확정 필요)
 
-- [ ] **영토 종류·효과 카탈로그** (요구사항 2): 효과 심 위에 올릴 구체 효과 미정. 심만 먼저, 효과 SO는 후속.
-- [ ] **효과 연결 경로 고정** (WL-030, PR#75 리뷰): 현재 `OnNodeClaimed` 훅만 존재(더미 효과도 미연결).
-      연결 시 `OnNodeClaimed → 효과 SO.Apply → ResourceWallet.Add`로만 지급(계약 #3), 수치는
-      DataTable/CSV(계약 #2) — 인스펙터/코드 하드코딩 지급 금지.
+- [~] **영토 종류·효과 카탈로그** (요구사항 2): 효과 심 + 노드 주입 **구현됨**(§5). 구체 효과 3종(자원/주민/생산)
+      스캐폴드 존재. 실제 카탈로그(어떤 정의를 몇 개, 어떤 수치로)는 authored SO로 후속 채움.
+- [x] **효과 Apply 배선** (WL-030): **완료** — `ManagementController`가 `TerritoryController.Graph.OnNodeClaimed`를
+      구독해 확보 시 `TerritoryDefinition.ApplyAll(ctx)` 실행. 즉시 자원/마나석은 `ResourceWallet.Add`로 지급(계약 #3),
+      수치는 효과 SO에 authored(§5 — 영토 효과는 CSV 예외). 편집모드 검증: Iron10Tree10→나무·철 +10, Mana10→마나 +10,
+      Tree0.1+10→나무 +10 & 나무 생산 ×1.1 확인. 주민 획득만 여전히 심(주민 시스템 부재).
+- [x] **패시브 생산 modifier 훅**: **완료** — `ProductionModifiers`(자원별 배율, 곱셈 누적) 신설. `ManagementController`가
+      소유하고 정산(`ResourceProductionSource.Produce(count, multiplier)`)·예상치(`LineExpectedProduction`) 둘 다 반영.
+      `ProductionMultiplierEffect.Apply → ctx.AddProductionMultiplier`로 등록. `ResourceProductionSource`엔 선택적
+      `multiplier` 파라미터(기본 1f)만 추가해 기존 동작 불변.
+- [ ] **효과 분배 정책 재검토** (잠정 구현): 현재 `AssignDefinitions`는 풀 소진 시 재셔플 반복(같은 정의 재등장
+      허용). "풀 ≥ 노드 강제 / 가중치 / 인접 중복 회피" 등 대안은 팀 회의로 방향성 재검토 예정.
 - [x] **입력 연결 선결 조건(레이어)** (WL-005): **해소(이슈 #67)** — `TerritoryNode.prefab`이 Layer 6
       (`Selectable`)이고 `GameScene`의 `MouseManager._selectableMask`도 이 비트를 포함해 클릭·호버
       모두 정상 동작함을 실제 씬에서 확인. 클릭 1회=즉시 확보(비가역)가 `ISelectable`의 "조회" 시맨틱을
@@ -208,9 +222,10 @@ pull 공급"으로 예정했던 원래 설계는 효과 카탈로그(§5)가 아
       `TerritoryController.HasExpandedToday`를 초기화, `TryClaim`에서 하루 1회만 허용. 그 날 확장을
       마쳐야 `ManagementController.CanAssignVillagers`가 열려 주민 배치가 가능해진다(GDD §6.1 "영토
       확장을 통해 주민 획득"과 정합). 자원(마나 등) 비용 게이팅은 여전히 TBD.
-- [ ] **보상 구체 수치**: 마나량·주민 획득 수 출처(CSV 파이프라인? 계약 #2). 주민 획득은 주민 시스템 의존.
+- [x] **보상 수치 출처**: **확정 — 효과 SO에 직접 authoring**(CSV 아님, §5 결정). 주민 획득은 여전히 주민 시스템 의존(심).
 - [ ] **좌표계**: 2D 캔버스(uGUI) vs 3D 월드 노드. 비그리드지만 공간 선택·호버가 필요 → 입력/레이캐스트 방식 결정.
-- [ ] **표시 문자열 소유권**: TerritoryDefinition 표시명/설명을 CSV→SO vs authored SO (WL-013 연동).
+- [~] **표시 문자열 소유권**: `TerritoryDefinition`에 표시명/설명 **스트링 테이블 키 필드 존재**(authored, #102 계보).
+      효과 카탈로그가 채워지면 실제 키 배정. CSV→SO 파이프라인은 도입 안 함(§5 SO 단독 결정과 정합).
 - [ ] **세이브/로드**: 런 내 그래프 상태(보유/프론티어) 영속화.
 
 ---
