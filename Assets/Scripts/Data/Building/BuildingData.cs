@@ -3,7 +3,7 @@ public enum BuildingType
     Production,
     General,
     Skill,
-    TowerPanel,
+    Tower,
 }
 
 public class BuildingData
