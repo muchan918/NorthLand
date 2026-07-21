@@ -37,7 +37,7 @@ public class TowerButtonTooltipSource : MonoBehaviour, IPointerEnterHandler, IPo
         Color backgroundColor = new(0.10f, 0.10f, 0.10f, 0.95f);
         if (_palette != null)
         {
-            _palette.Resolve(BuildingType.TowerPanel, out headerColor, out backgroundColor);
+            _palette.Resolve(BuildingType.Tower, out headerColor, out backgroundColor);
         }
 
         TowerData data = _tower.Data;
