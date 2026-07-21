@@ -955,18 +955,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TerritoryGraphView
   _controller: {fileID: 340814262}
   _nodePrefab: {fileID: 3710225068571312697, guid: 1030a68bebf918b40bfb5fc777dfefb2, type: 3}
-  _shipPrefabs:
-  - {fileID: 6891987478725591003, guid: ffbe4fb9a409e8141b1a44784eb6ebfc, type: 3}
-  - {fileID: 757664236516813506, guid: 94334965a36852b44a0b4d8521f61e36, type: 3}
-  - {fileID: 2367054623483788682, guid: aa274544732cdc04898604074197d661, type: 3}
-  - {fileID: 833308628241725832, guid: 7096346e7d3e7844c906582c2b1914f2, type: 3}
-  - {fileID: 6021256102852878251, guid: cbcdacd72b19b2e4a8a6b281f1ae81b8, type: 3}
-  _shipSpeed: 8
-  _shipYawOffset: 0
-  _shipHeightOffset: 0
-  _shipEndpointInset: 40
-  _shipTurnSpeed: 180
-  _drawEdgeLines: 0
   _edgeMaterial: {fileID: 0}
   _edgeWidth: 2
   _edgeColor: {r: 0.75, g: 0.75, b: 0.75, a: 1}
@@ -1001,13 +989,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 340814260}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0.043342292, z: -0, w: 0.9990603}
+  m_LocalRotation: {x: 0, y: -0.15212336, z: 0, w: 0.98836154}
   m_LocalPosition: {x: -201, y: 14.2, z: 9}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: -4.968, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -17.5, z: 0}
 --- !u!1 &345590591
 GameObject:
   m_ObjectHideFlags: 0
@@ -4008,8 +3996,8 @@ MonoBehaviour:
     - serializedVersion: 3
       time: 0
       value: 0
-      inSlope: 0
-      outSlope: 0
+      inSlope: 2
+      outSlope: 2
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
