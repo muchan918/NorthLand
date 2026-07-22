@@ -114,10 +114,6 @@ MonoBehaviour:
     m_Localized: Lv
     m_Metadata:
       m_Items: []
-  - m_Id: 4448596669902850
-    m_Localized: "\u30A2\u30C3\u30D7\u30B0\u30EC\u30FC\u30C9"
-    m_Metadata:
-      m_Items: []
   references:
     version: 2
     RefIds: []
