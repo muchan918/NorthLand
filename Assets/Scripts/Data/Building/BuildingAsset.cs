@@ -21,15 +21,26 @@ public class BuildingAsset : ScriptableObject
     [System.Serializable]
     public class ProductionFields
     {
+        // 레벨 0(미업그레이드) 주민당 생산량. 업그레이드하면 UpgradeLevels의 값으로 올라간다.
         public int BaseAmountPerVillager;
 
-        // 나무꾼의 집/광산/농지처럼 ResourceTable 자원을 생산하는 경우만 채운다.
+        // 나무꾼의 집/광산/농장처럼 ResourceTable 자원을 생산하는 경우만 채운다.
         public ResourceAsset OutputResource;
 
-        // 훈련장처럼 병사를 생산하는 경우 true. 병사는 화폐성 자원이 아니라
-        // ResourceTable에 넣지 않기로 했음 (전투 스탯·부활 등 별도 생명주기).
-        // TODO: SoldierAsset이 생기면 이 bool 대신 참조 필드로 교체.
-        public bool ProducesSoldier;
+        // 건물 업그레이드 레벨 테이블. index i = 레벨 (i+1). 비어 있으면 업그레이드 불가(최대 레벨 = Count).
+        // 수치(비용·주민당량)는 이 SO에 직접 authoring한다(밸런싱 TBD — 영토 효과·타워 스탯 선례, WL-015).
+        public List<UpgradeLevel> UpgradeLevels = new List<UpgradeLevel>();
+    }
+
+    // 생산 건물 업그레이드 한 단계. AmountPerVillager는 누적 델타가 아니라 그 레벨의 절대 주민당량.
+    [System.Serializable]
+    public class UpgradeLevel
+    {
+        // 이 레벨에 도달하기 위해 소모하는 비용(ManagementController.TrySpend 게이트웨이 경유).
+        public List<ResourceCost> Cost = new List<ResourceCost>();
+
+        // 이 레벨에서의 주민당 생산량(절대값).
+        public int AmountPerVillager;
     }
 
     [System.Serializable]

@@ -1,10 +1,12 @@
-# BuildingUpgrade — 생산 건물 업그레이드 (주민당 획득량 증가) [설계]
+# BuildingUpgrade — 생산 건물 업그레이드 (주민당 획득량 증가)
 
 > **담당**: n0wst4ndup
 > **이슈**: #139 (feature/139-building-upgrade)
 > **경로(코드)**: `Assets/Scripts/ManagementSpace`
-> **상태**: 🟡 **설계 중** — 수치·비용은 전부 TBD, 구조부터 확정 후 구현.
-> 확정되지 않은 항목은 본문에서 **TBD / 제안**으로 명시한다(docs-are-dev-reference 규약).
+> **상태**: ✅ **로직 구현·검증 완료**(#139) — 라인 소스를 `BuildingAsset`로 이관 + 라인별 레벨/주민당량 런타임
+> 상태 + 업그레이드 공개 API. PlayMode 검증 26/26 PASS(§6). **UI 통합은 다음 이슈**(경영 패널 레벨 표시·업그레이드
+> 버튼). 레벨수·비용·증가폭 **수치는 placeholder TBD**(밸런싱 후속).
+> 확정되지 않은 항목은 본문에서 **TBD**로 명시한다(docs-are-dev-reference 규약).
 > **GDD 근거**: §5.7(건물 업그레이드) · §3.2(자원 흐름) · §4.1(낮—건물 업그레이드)
 
 이 문서는 경영 공간 **건물 업그레이드가 이번 이슈에서 무엇을 구현하고, 무엇을 미루는지**의 기준선이다.
@@ -30,7 +32,17 @@
 
 ---
 
-## 2. 핵심 설계 쟁점 (구현 전 확정 필요)
+## 2. 핵심 설계 쟁점 (✅ 구현으로 확정)
+
+**구현 결과 요약(#139)** — 아래 쟁점 상세는 결정 근거 기록으로 남긴다:
+- **쟁점1 (WL-016) — 레벨 상태 위치**: ✅ `ManagementController`가 라인별 런타임 배열(`_level[]`·`_amountPerVillager[]`)로 소유. 공유 SO(`BuildingAsset`)엔 레벨 상태를 쓰지 않는다.
+- **쟁점2 (WL-021) — 라인별 주민당량**: ✅ 라인 소스를 `ResourceAsset[]` → **`BuildingAsset[]`(`_productionBuildings`)** 로 이관. 전역 `_baseAmountPerVillager` **제거**, 라인별 주민당량이 정산·예상치를 구동. `ResourceProductionSource`는 주민당량을 `Produce(villagers, amountPerVillager, mult)` 인자로 받는 **무상태 심**으로 리팩터(readonly 필드 제거).
+- **쟁점3 (WL-015) — 수치 출처**: ✅ **SO(`BuildingAsset.Production.UpgradeLevels`)에 authoring**(CSV 아님). BuildingData CSV엔 수치 컬럼이 없고 생산 수치(주민당량·비용)가 이미 `BuildingAsset` SO에 있어 SO가 정합적(타워 스탯·영토 효과 선례). 수치 자체는 placeholder TBD.
+- **쟁점4 — 트리거·차감**: ✅ 공개 API `TryUpgrade(int)`(성공 bool) + 조회 `CanUpgrade`/`LineLevel`/`LineMaxLevel`/`LineAmountPerVillager`/`LineUpgradeCost`. 비용은 기존 `TrySpend(costs)` 게이트웨이로 **원자적** 차감(WL-017/WL-048). 입력 UI는 다음 이슈. 게이팅 = **낮 전용**(`IsDay`, 영토확장 완료는 요구 안 함).
+
+---
+
+### (참고) 결정 근거 — 원래 쟁점 상세
 
 ### 쟁점 1 — per-instance 레벨 상태를 어디에 두는가 (WL-016)
 **공유 SO에 레벨을 쓰면 안 된다.** 현재 건물 데이터는 건물 타입당 단일 `BuildingAsset`(SO)를 공유한다
@@ -71,13 +83,13 @@
  BuildingAsset(SO)   ──읽기──▶  라인별 Level[i] / AmountPerVillager[i]  ──▶ ProductionLineView
   기본 주민당량                  ▲            │                              (레벨·업그레이드 버튼)
   레벨 테이블(비용·증가폭)        │            │ TrySpend(cost) 게이트웨이
-  ※ CSV vs SO = 쟁점3            │            ▼
-                           업그레이드 버튼 → Upgrade(lineIndex) → 비용 차감 성공 시 Level++·AmountPerVillager 갱신
+  ※ SO에 authoring(쟁점3 해소)   │            ▼
+                           TryUpgrade(lineIndex) 〔UI=다음 이슈〕 → TrySpend 성공 시 Level++·AmountPerVillager 갱신
                                                                     → OnChanged → 정산식·예상치·HUD 갱신
 ```
 
-- 정산(`HandleNightToDay`)·예상치(`LineExpectedProduction`)는 전역 `_baseAmountPerVillager` 대신 **라인별 주민당량**을 참조하도록 변경.
-- 업그레이드는 **낮에만** 가능(밤 배치 잠금과 동일한 페이즈 게이팅, Resources.md §2). 게이팅 정책은 구현 시 확정.
+- 정산(`HandleNightToDay`)·예상치(`LineExpectedProduction`)는 전역 `_baseAmountPerVillager` 대신 **라인별 주민당량**(`_amountPerVillager[i]`)을 참조하도록 변경 — ✅ 구현됨.
+- 업그레이드는 **낮에만** 가능(`IsDay` 게이트, 주민 배치와 동일한 페이즈 규칙) — ✅ 확정·구현됨(영토확장 완료는 요구 안 함).
 
 ---
 
@@ -95,11 +107,12 @@
 
 ## 5. 미결 / TODO
 
-- [ ] **수치 전부**: 레벨 수, 레벨당 비용, 레벨당 주민당량 증가폭 (밸런싱, 후속).
-- [ ] **데이터 출처 합의**(쟁점3): 레벨 테이블 = CSV(`BuildingTable`) vs SO 인스펙터. muchan 협의.
-- [ ] **레벨 상태 소유 확정**(쟁점1·2, WL-016/WL-021): `ManagementController` 라인별 런타임 상태로.
-- [ ] **레벨 상한·리셋 정책**: 최대 레벨, 런 시작 시 리셋 여부(런 내 유지 vs 매일 유지).
-- [ ] **업그레이드 게이팅**: 낮 전용? 영토 확장 완료 필요? 잉여 주민 게이트(CanEndDay)와의 상호작용.
+- [ ] **수치 전부**: 레벨 수, 레벨당 비용, 레벨당 주민당량 증가폭 (밸런싱, 후속). **현재 placeholder**: 3종 모두 Lv1(5→7, wood20+iron10) / Lv2(7→9, wood40+iron20).
+- [x] **데이터 출처 합의**(쟁점3): **SO 확정** — `BuildingAsset.Production.UpgradeLevels`에 authoring(CSV 아님, WL-015 선례).
+- [x] **레벨 상태 소유 확정**(쟁점1·2, WL-016/WL-021): **완료** — `ManagementController` 라인별 런타임 배열(`_level`·`_amountPerVillager`), 라인 소스 `BuildingAsset[]` 이관.
+- [x] **레벨 상한·리셋 정책**: **확정** — 상한 = 테이블 길이(`LineMaxLevel`), 런 내 유지(세이브 미도입 → Play/런 시작 시 초기화).
+- [x] **업그레이드 게이팅**: **낮 전용 확정**(`IsDay`). 영토확장 완료 요구 없음. 잉여 주민 게이트(CanEndDay)와 독립.
+- [ ] **UI 통합**(다음 이슈): 경영 패널에 레벨 표시·업그레이드 버튼(`TryUpgrade`/`CanUpgrade`/`LineLevel`/`LineUpgradeCost` 바인딩).
 - [ ] **세이브/로드**: 업그레이드 레벨 영속화(전역 세이브 미도입 상태).
 - [ ] **본성/마법연구소/연금술사 업그레이드**(범위 밖): 효과·구조 정의 후 별도.
 
@@ -107,23 +120,25 @@
 
 ## 6. 검증 방법
 
-지갑·정산은 순수 로직이라 이상적이나 asmdef 부재로 유닛 테스트 불가(Resources.md §7) — **씬 Play + 패널 조작**으로 검증한다.
+asmdef 부재로 순수 유닛 테스트 불가(Resources.md §7) — UI도 다음 이슈라 패널 조작이 없어, **PlayMode + unity-cli `exec`**(리플렉션으로 지갑 시드·정산 트리거)로 공개 API를 직접 구동해 검증했다.
 
-**절차(제안)**: `GameScene` Play →
-1. 생산 라인 주민 배치 후 예상 생산량 확인.
-2. 업그레이드 버튼 → 비용 차감(HUD 감소) + 주민당량↑ → 같은 주민 수에서 예상 생산량 증가 확인.
-3. 자원 부족 시 업그레이드 불가(조용한 실패 없이 로그/피드백).
-4. 낮→밤 정산에서 상향된 주민당량이 실제 정산에 반영되는지 확인.
+**검증 완료(#139, PlayMode exec — 26/26 PASS)**:
+1. **초기 상태**: 라인 3개(wood/iron/food), 주민당량 5, 레벨 0, 최대 레벨 2.
+2. **원자성**: wood만 있고 iron 부족 시 `CanUpgrade`=false, `TryUpgrade`=false, **wood 무차감·레벨 불변**(부분 차감 없음).
+3. **성공 차감**: Lv1(주민당량 5→7, wood-20/iron-10), Lv2(7→9, wood-40/iron-20) — 정확히 차감.
+4. **최대 레벨**: Lv2에서 `TryUpgrade`=false, 레벨 불변, `LineUpgradeCost`=null.
+5. **정산 반영**: 업그레이드된 주민당량(9)이 `LineExpectedProduction`(9×2=18)과 실제 정산(`HandleNightToDay` → wood +18)에 반영, 정산 후 주민 0 초기화.
 
-> ⚠️ unity-cli 스크린샷은 Screen Space Overlay 캔버스를 캡처하지 못한다 — 시각 확인은 에디터 Game 뷰에서.
-
----
-
-## 7. 문서 반영 예정 (구현 PR에서)
-
-- `SystemMap.md` §2(공개 API: `ManagementController`에 업그레이드 진입점 추가) · §3(접점: DataTable 레벨 테이블).
-- `WatchList.md`: WL-016(per-instance 레벨 상태)·WL-021(라인별 주민당량)·WL-015(수치 출처) 진전 반영.
+> ⚠️ UI 시각 검증은 다음 이슈(패널 표시·버튼)에서. unity-cli 스크린샷은 Screen Space Overlay 캔버스를 못 잡으므로 Game 뷰에서.
 
 ---
 
-*이 문서는 설계 합의용 초안이다. §5 TBD가 확정되는 대로 갱신하고, 구현 착수 시 "설계" 표기를 해제한다.*
+## 7. 문서 반영 (완료)
+
+- `SystemMap.md` §1(Management 행: 업그레이드 구현 반영) · §2(공개 API에 `TryUpgrade`/`CanUpgrade`/`LineLevel` 등 추가).
+- `WatchList.md`: WL-016(레벨=런타임 상태)·WL-021(라인별 주민당량·라인 소스 건물 이관)·WL-015(수치=SO) 진전 반영.
+- `GDD.md` §5.7·§3.2와 정합(주민당량 증가 = 업그레이드 효과).
+
+---
+
+*구현 완료 문서. 잔여 TBD(수치 밸런싱·세이브·UI 통합)는 §5 참고.*
