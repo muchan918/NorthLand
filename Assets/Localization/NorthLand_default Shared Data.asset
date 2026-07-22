@@ -91,6 +91,30 @@ MonoBehaviour:
     m_Key: game.btn.close
     m_Metadata:
       m_Items: []
+  - m_Id: 4417295401234432
+    m_Key: game.btn.upgrade
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4417838077063168
+    m_Key: game.panel.cost
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4448596606988288
+    m_Key: building.upgrade.per_villager
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4448596669902848
+    m_Key: building.upgrade.max
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4448596669902849
+    m_Key: building.upgrade.level
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4448596669902850
+    m_Key: building.upgrade.button
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

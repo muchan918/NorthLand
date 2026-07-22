@@ -11,6 +11,11 @@ public class BuildingInfoUI : MonoBehaviour
 {
     public static BuildingInfoUI Instance { get; private set; }
 
+    // NorthLand_default 스트링 테이블 키 (짧은 라벨을 넣고 코드에서 조합 — ManagementPanelView 계보).
+    private const string k_PerVillagerKey = "building.upgrade.per_villager";
+    private const string k_MaxKey = "building.upgrade.max";
+    private const string k_LevelKey = "building.upgrade.level";
+
     [Tooltip("업그레이드 데이터 소스. 비우면 씬에서 자동 탐색.")]
     [SerializeField] ManagementController _controller;
 
@@ -113,10 +118,10 @@ public class BuildingInfoUI : MonoBehaviour
         int cur = _controller.LineAmountPerVillager(_lineIndex);
         bool isMax = level >= max;
 
-        SetText(_nameLevelText, $"{BuildingName()} (Lv {level}/{max})");
+        SetText(_nameLevelText, $"{BuildingName()} ({L(k_LevelKey)} {level}/{max})");
         SetText(_amountText, isMax
-            ? $"주민당 {cur} (MAX)"
-            : $"주민당 {cur} → {_controller.LineNextAmountPerVillager(_lineIndex)}");
+            ? $"{L(k_PerVillagerKey)} {cur} ({L(k_MaxKey)})"
+            : $"{L(k_PerVillagerKey)} {cur} → {_controller.LineNextAmountPerVillager(_lineIndex)}");
         if (isMax)
         {
             ClearCostRows();
@@ -210,6 +215,9 @@ public class BuildingInfoUI : MonoBehaviour
             label.text = value;
         }
     }
+
+    // NorthLand_default 키를 현재 로케일로 조회(짧은 라벨). 지속 표시지만 OnChanged마다 재조회돼 갱신된다(ManagementPanelView와 동일 pull 방식).
+    private static string L(string key) => LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, key);
 
     private bool EnsureController()
     {
