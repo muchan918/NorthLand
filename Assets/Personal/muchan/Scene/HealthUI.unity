@@ -5052,12 +5052,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9813378b39bd43b42ab2d84923df3702, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterSpawnWaveProvider
-  spawnTableName: MonsterSpawnTable
-  monsterPrefabs:
-  - monsterId: goblin_warrior
-    monsterPrefab: {fileID: 7987534744054934123, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
-  - monsterId: goblin_archer
-    monsterPrefab: {fileID: 2829118851254710498, guid: 14082e7b329c64b4b8a92cc5df099b78, type: 3}
+  waves: []
 --- !u!114 &315114511
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5355,6 +5350,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TerritoryGraphView
   _controller: {fileID: 340814262}
   _nodePrefab: {fileID: 3752202782328440975, guid: 3c9b38777ac9d0343bcdfb19aa438020, type: 3}
+  _shipPrefabs: []
+  _shipSpeed: 4
+  _shipYawOffset: 0
+  _shipHeightOffset: 0
+  _shipEndpointInset: 0.5
+  _shipTurnSpeed: 180
+  _drawEdgeLines: 0
   _edgeMaterial: {fileID: 0}
   _edgeWidth: 0.12
   _edgeColor: {r: 0.75, g: 0.75, b: 0.75, a: 1}
@@ -5381,6 +5383,7 @@ MonoBehaviour:
     ExtraEdgeKeepRatio: 0.3
     ExtraEdgeMaxLengthRatio: 1.6
   _seed: 0
+  _definitionPool: []
 --- !u!4 &340814263
 Transform:
   m_ObjectHideFlags: 0
@@ -8717,6 +8720,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 746ba3ce36acad54fa80a53a079fd605, type: 2}
   _baseAmountPerVillager: 5
   _maxVillagers: 5
+  _manaPerWaveClear: 10
 --- !u!4 &544968474
 Transform:
   m_ObjectHideFlags: 0
@@ -26342,121 +26346,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4854395701603972, guid: d48eb1247f3dcd0418e2eda7cafc1db7, type: 3}
   m_PrefabInstance: {fileID: 1761072887}
   m_PrefabAsset: {fileID: 0}
---- !u!1001 &1769336461
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 56554902708689826, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 957.0439
-      objectReference: {fileID: 0}
-    - target: {fileID: 56554902708689826, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.40487
-      objectReference: {fileID: 0}
-    - target: {fileID: 56554902708689826, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -40.932
-      objectReference: {fileID: 0}
-    - target: {fileID: 56554902708689826, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 56554902708689826, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 56554902708689826, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 56554902708689826, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 56554902708689826, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 56554902708689826, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 56554902708689826, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 590603523704524269, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
-      propertyPath: m_AnchorMax.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 590603523704524269, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7987534744054934123, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
-      propertyPath: m_Name
-      value: Shadow
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 7987534744054934123, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1769336463}
-    - targetCorrespondingSourceObject: {fileID: 7987534744054934123, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1769336464}
-  m_SourcePrefab: {fileID: 100100000, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
---- !u!1 &1769336462 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 7987534744054934123, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
-  m_PrefabInstance: {fileID: 1769336461}
-  m_PrefabAsset: {fileID: 0}
---- !u!136 &1769336463
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1769336462}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.5
-  m_Height: 1
-  m_Direction: 1
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &1769336464
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1769336462}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8950d5607d26b4b43bdd3df1578cac4e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NorthLand.Combat.Enemy
-  data: {fileID: 11400000, guid: 8ed5bb2849f78af46afccdfeb916934f, type: 2}
-  targetLayerMask:
-    serializedVersion: 2
-    m_Bits: 768
 --- !u!1001 &1770707280
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -30810,95 +30699,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4044762662327514, guid: c0f64814bc1f33a4397ec2ac7befbda8, type: 3}
   m_PrefabInstance: {fileID: 2081480681}
   m_PrefabAsset: {fileID: 0}
---- !u!1001 &2088989917
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 2829118851254710498, guid: 14082e7b329c64b4b8a92cc5df099b78, type: 3}
-      propertyPath: m_Name
-      value: Phantom
-      objectReference: {fileID: 0}
-    - target: {fileID: 7400307300139216932, guid: 14082e7b329c64b4b8a92cc5df099b78, type: 3}
-      propertyPath: m_AnchorMax.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7400307300139216932, guid: 14082e7b329c64b4b8a92cc5df099b78, type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7650114505797407241, guid: 14082e7b329c64b4b8a92cc5df099b78, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 957.0375
-      objectReference: {fileID: 0}
-    - target: {fileID: 7650114505797407241, guid: 14082e7b329c64b4b8a92cc5df099b78, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -0.00001
-      objectReference: {fileID: 0}
-    - target: {fileID: 7650114505797407241, guid: 14082e7b329c64b4b8a92cc5df099b78, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -41.22532
-      objectReference: {fileID: 0}
-    - target: {fileID: 7650114505797407241, guid: 14082e7b329c64b4b8a92cc5df099b78, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7650114505797407241, guid: 14082e7b329c64b4b8a92cc5df099b78, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7650114505797407241, guid: 14082e7b329c64b4b8a92cc5df099b78, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7650114505797407241, guid: 14082e7b329c64b4b8a92cc5df099b78, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7650114505797407241, guid: 14082e7b329c64b4b8a92cc5df099b78, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7650114505797407241, guid: 14082e7b329c64b4b8a92cc5df099b78, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7650114505797407241, guid: 14082e7b329c64b4b8a92cc5df099b78, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 2829118851254710498, guid: 14082e7b329c64b4b8a92cc5df099b78, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 2088989919}
-  m_SourcePrefab: {fileID: 100100000, guid: 14082e7b329c64b4b8a92cc5df099b78, type: 3}
---- !u!1 &2088989918 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 2829118851254710498, guid: 14082e7b329c64b4b8a92cc5df099b78, type: 3}
-  m_PrefabInstance: {fileID: 2088989917}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &2088989919
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2088989918}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8950d5607d26b4b43bdd3df1578cac4e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NorthLand.Combat.Enemy
-  data: {fileID: 11400000, guid: 13d0608ed3d6fae4480128cbd57442c8, type: 2}
-  targetLayerMask:
-    serializedVersion: 2
-    m_Bits: 768
 --- !u!1001 &2089100991
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -31945,5 +31745,3 @@ SceneRoots:
   - {fileID: 1384901248}
   - {fileID: 1551337336}
   - {fileID: 1318080317}
-  - {fileID: 2088989917}
-  - {fileID: 1769336461}
