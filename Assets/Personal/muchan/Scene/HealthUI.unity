@@ -8210,6 +8210,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CameraController2
   cinemachineCamera: {fileID: 1228655714}
   cameraTarget: {fileID: 863015837}
+  waveRewardSelectionUI: {fileID: 0}
   moveSpeed: 50
   xBounds: {x: -500, y: 500}
   zBounds: {x: -500, y: 500}
@@ -8714,11 +8715,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4186b3991f33f6a43800e1786ed094b9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ManagementController
-  _resourceAssets:
-  - {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-  - {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
-  - {fileID: 11400000, guid: 746ba3ce36acad54fa80a53a079fd605, type: 2}
-  _baseAmountPerVillager: 5
+  _productionBuildings: []
   _maxVillagers: 5
   _manaPerWaveClear: 10
 --- !u!4 &544968474
@@ -29875,7 +29872,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.85, g: 0.68, b: 0.15, a: 1}
+  m_Color: {r: 0.9974991, g: 1, b: 0, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
