@@ -114,6 +114,18 @@ MonoBehaviour:
     m_Localized: Lv
     m_Metadata:
       m_Items: []
+  - m_Id: 4384618839711744
+    m_Localized: "\u653B\u6483\u529B"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4384618869071872
+    m_Localized: "\u5C04\u7A0B"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4384618869071873
+    m_Localized: "\u653B\u6483\u901F\u5EA6"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

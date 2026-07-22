@@ -111,6 +111,18 @@ MonoBehaviour:
     m_Key: building.upgrade.level
     m_Metadata:
       m_Items: []
+  - m_Id: 4384618839711744
+    m_Key: game.tower.attack_damage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4384618869071872
+    m_Key: game.tower.attack_range
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4384618869071873
+    m_Key: game.tower.attack_speed
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
