@@ -77,9 +77,7 @@ namespace NorthLand.Combat
                 movement.IsStopped = hasTarget;
             }
 
-            monsterStateMachine?.ChangeState(
-                hasTarget ? MonsterState.Attack : MonsterState.Move
-            );
+            monsterStateMachine?.SetHasTarget(hasTarget);
 
             cooldownTimer -= Time.deltaTime;
 
@@ -117,7 +115,17 @@ namespace NorthLand.Combat
             }
 
             isDying = true;
-            monsterStateMachine?.ChangeState(MonsterState.Death);
+
+            if (monsterStateMachine != null)
+            {
+                monsterStateMachine.ChangeState(MonsterState.Death);
+            }
+            else
+            {
+                Debug.LogWarning($"[{name}] MonsterStateMachine이 없어 사망 애니메이션 없이 즉시 제거합니다.",this);
+
+                Destroy(gameObject);
+            }
         }
 
         public bool TryAttack(IDamageable target)

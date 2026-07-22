@@ -23,6 +23,10 @@ public class MonsterStateMachine : MonoBehaviour
 
     public MonsterState CurrentState => currentState;
 
+    private bool hasTarget;
+
+
+
     private void Awake()
     {
         if (monsterMove == null)
@@ -38,18 +42,32 @@ public class MonsterStateMachine : MonoBehaviour
 
     private void Update()
     {
-        if (currentState == MonsterState.Attack || currentState == MonsterState.Death)
+        if (currentState == MonsterState.Death)
         {
             return;
         }
 
-        if (monsterMove != null &&!monsterMove.IsStopped &&monsterMove.CanMove &&monsterMove.HasRouteRemaining)
+        if (hasTarget)
+        {
+            ChangeState(MonsterState.Attack);
+            return;
+        }
+
+        if (monsterMove != null &&
+            !monsterMove.IsStopped &&
+            monsterMove.CanMove &&
+            monsterMove.HasRouteRemaining)
         {
             ChangeState(MonsterState.Move);
             return;
         }
 
         ChangeState(MonsterState.Idle);
+    }
+
+    public void SetHasTarget(bool value)
+    {
+        hasTarget = value;
     }
 
 
