@@ -3034,6 +3034,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 639db89c157d46343837e79b6259f345, type: 2}
   _maxVillagers: 5
   _manaPerWaveClear: 10
+  _initialWood: 110
+  _initialIron: 30
+  _initialFood: 20
 --- !u!4 &544968474
 Transform:
   m_ObjectHideFlags: 0
