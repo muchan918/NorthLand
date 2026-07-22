@@ -57,13 +57,13 @@
                    │               │ SkillTargeting │
                    │◄──────────────┤ (스킬 조준 모드)│
                    └───────────────└────────────────┘
-      · 좌클릭 → OnConfirmed(pos) 후 복귀
+      · 도로 타일 좌클릭 → OnConfirmed(pos) 후 복귀
       · 우클릭 / Esc → 취소 후 복귀
 ```
 
 - **Idle (기본)**: 좌클릭으로 배치된 오브젝트를 선택/해제. **매 프레임 커서 밑 `IHoverable`을 추적**해 대상이 바뀔 때 `OnHoverChanged`로 통지(툴팁용).
 - **Placement**: 고스트(프리뷰)가 마우스를 따라다니고, 유효 위치에서 좌클릭하면 배치. (배치 중에는 호버 통지를 끈다 — `BeginPlacement`이 호버를 클리어)
-- **SkillTargeting** (#103): 스킬 범위 인디케이터(고스트)가 마우스를 따라다니고, 좌클릭 시 그 위치를 그대로 확정 콜백에 넘긴다. `Placement`와 구조는 비슷하지만 그리드 스냅·점유 검증이 없는 더 단순한 상태 — §4.5 참고.
+- **SkillTargeting** (#103): 스킬 범위 인디케이터(고스트)가 마우스를 따라다니되 **전투 타일 위에서만 표시**(그 외엔 숨김)하고, **도로 타일 위에서만**(초록) 좌클릭으로 시전을 확정한다(그 외 전투 타일은 빨강 = 시전 불가). 인디케이터는 히트 표면에 얹혀 낮은 도로 채널 안에 앉는다. `Placement`와 구조는 비슷하지만 그리드 스냅·점유 검증이 없다 — §4.5 참고.
 
 ## 4. 시나리오별 흐름
 
@@ -113,12 +113,18 @@
    `MouseManager.BeginSkillTargeting(request)` 호출. `request`(`SkillTargetRequest`)에는 **범위 인디케이터 프리팹**,
    **확정 콜백(`OnConfirmed(Vector3)`)**만 담긴다 — `PlacementRequest`와 달리 `Snap`/`CanPlaceAt` 없음(그리드 개념 불필요).
 2. `SkillTargeting` 상태로 전환, 인디케이터(`SkillRangeIndicator`) 생성.
-3. 매 프레임: 포인터 → `_placementMask`(Ground) 레이캐스트 → 히트 지점 그대로 인디케이터 이동(스냅 없음).
-4. **좌클릭**: UI 위면 무시 / 그 외엔 `OnConfirmed(hit.point)` 호출(보통 `SkillManager.CastAt(pos)` 연결) 후 `Idle` 복귀.
+3. 매 프레임: 포인터 → `_placementMask`(Ground) 레이캐스트 → 히트한 타일의 `CombatMapTileView`를 읽어 판정한다.
+   - **전투 타일이 아니면**(빈 칸·타일 사이 틈·맵 밖) 인디케이터를 **숨긴다**(`SetActive(false)`).
+   - 전투 타일이면 표시하고 **히트 표면(`hit.point`)에 배치** — 도로 메시가 낮게 모델링돼 있어 도로 위에선 낮은 채널 안에 앉는다.
+   - `TileType == Road`면 `SkillRangeIndicator.SetValid(true)`(초록=시전 가능), 그 외 전투 타일(잔디/물)은 `SetValid(false)`(빨강=시전 불가).
+4. **좌클릭**: UI 위면 무시 / **도로 타일 위에서만** `OnConfirmed(hit.point)` 호출(보통 `SkillManager.CastAt(pos)` 연결) 후 `Idle` 복귀. 도로 밖 좌클릭은 무시(조준 모드 유지).
 5. **우클릭 / Esc**: 취소, 인디케이터 제거, `Idle` 복귀.
 
-> `Placement`와 상태 흐름은 같지만, 배치 결과가 영구 오브젝트가 아니라 즉발 효과라 `CanPlaceAt` 검증이나
+> `Placement`와 상태 흐름은 같지만, 배치 결과가 영구 오브젝트가 아니라 즉발 효과라
 > `KeepPlacingAfterConfirm`(연속 배치) 개념이 없다.
+> 도로 전용 게이팅·유효/무효 색은 **MouseManager가 소유**한다(`CombatMapTileView.TileType` 질의).
+> `SkillTargetRequest`엔 여전히 `CanPlaceAt` 류 훅이 없다 — 스킬 규칙이 단순(도로 여부)해 매니저에 인라인.
+> 규칙이 복잡해지면 `PlacementRequest`처럼 요청 측으로 옮긴다.
 
 ## 5. 레이캐스트 레이어 (선택 / 배치 분리)
 
@@ -131,6 +137,7 @@
 
 - "선택 가능한가"는 레이어가 아니라 **`ISelectable` 컴포넌트가 결정** → 타입(타워/건물/병사)마다 레이어를 팔 필요 없음.
 - `_placementMask`에서 배치물 레이어를 빼두면, 커서가 기존 건물 위에 있어도 그 **뒤 바닥**을 잡는다. (겹침 방지는 레이어가 아니라 `CanPlaceAt`에서 처리)
+- **스킬 타겟팅**은 `_placementMask` 히트에서 `CombatMapTileView`(전투 타일 데이터)를 읽어 도로 여부를 판정한다 — 레이어가 아니라 컴포넌트가 최종 판정(선택/호버와 동일 원칙).
 
 ## 6. 확장 포인트
 
@@ -176,7 +183,9 @@
       `_hovered?.OnHoverEnter()`). 첫 구현체: `TerritoryNodeView`(영토 확장 가능 노드 호버 시 색
       변경, 벗어나면 원래 색 복귀 — `Assets/Scripts/ManagementSpace/Territory/View`). 건물
       쪽(`BuildingTooltipSource`)은 훅만 만족(빈 구현), 실제 하이라이트 연출은 후속.
-- [ ] **유효/무효 셀 표시, 선택 표시**: 배치 고스트의 유효/무효 표시, 선택된 오브젝트 표시는 여전히 미구현
+- [~] **유효/무효 표시, 선택 표시**: **스킬 인디케이터는 구현됨**(#103 후속) — 도로=초록/그 외 전투 타일=빨강,
+      전투 타일 밖 숨김(`SkillRangeIndicator.SetValid`, §4.5). 배치(Placement) 고스트의 유효/무효 표시와
+      선택된 오브젝트 표시는 여전히 미구현
 - [ ] **그리드 스냅**: `Snap()`이 현재 좌표를 그대로 반환 → 그리드 좌표계·셀 크기 확정 후 스냅 구현
 - [ ] **배치 가능 셀 검사**: `CanPlaceAt`이 항상 `true` → 점유 여부·빌드 가능 영역 검사 연동
 - [ ] **선택 대상 탐색**: 콜라이더가 자식/부모에 있을 때 `GetComponentInParent` 등 탐색 규칙

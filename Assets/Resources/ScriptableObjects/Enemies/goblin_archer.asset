@@ -24,7 +24,7 @@ MonoBehaviour:
   Ranged:
     Stat:
       MaxHp: 10
-      MoveSpeed: 15
+      MoveSpeed: 30
       AttackDamage: 10
       AttackRange: 10
       AttackInterval: 5
