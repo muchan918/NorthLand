@@ -76,7 +76,7 @@ public class CameraController2 : MonoBehaviour
             return;
         }
 
-        if (waveRewardSelectionUI.Camerastop)
+        if (waveRewardSelectionUI != null && waveRewardSelectionUI.Camerastop)
         {
             return;
         }

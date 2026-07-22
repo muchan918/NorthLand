@@ -5,8 +5,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Serialization;
-using UnityEngine.Localization;
-using UnityEngine.Localization.Settings;
+using UnityEngine.Localization.Components;
 
 public class WaveRewardSelectionUI : MonoBehaviour
 {
@@ -19,10 +18,10 @@ public class WaveRewardSelectionUI : MonoBehaviour
     private Button[] rewardButtons;
 
     [SerializeField]
-    private TMP_Text[] nameTexts;
+    private LocalizeStringEvent[] nameLocalizers;
 
     [SerializeField]
-    private TMP_Text[] descriptionTexts;
+    private LocalizeStringEvent[] descriptionLocalizers;
 
     [SerializeField]
     private Image[] iconImages;
@@ -31,18 +30,16 @@ public class WaveRewardSelectionUI : MonoBehaviour
     [FormerlySerializedAs("Openpanel")]
     private GameObject openPanel;
 
-    public bool Camerastop=false;
+    public bool Camerastop => panel != null && panel.activeSelf;
 
     private UniTaskCompletionSource<WaveRewardData> selectionSource;
 
     private float previousTimeScale;
 
-    private IReadOnlyList<WaveRewardData> currentCandidates;
 
     private void Awake()
     {
 
-        Camerastop = false;
         if (panel != null)
         {
             panel.SetActive(false);
@@ -57,7 +54,6 @@ public class WaveRewardSelectionUI : MonoBehaviour
 
     public void ClosePanel()
     {
-        Camerastop = false;
         if (panel != null)
         {
             panel.SetActive(false);
@@ -70,7 +66,6 @@ public class WaveRewardSelectionUI : MonoBehaviour
     }
     public void OpenPanel()
     {
-        Camerastop = true;
         if (panel != null)
         {
             panel.SetActive(true);
@@ -82,40 +77,7 @@ public class WaveRewardSelectionUI : MonoBehaviour
         }
     }
 
-    private void OnEnable()
-    {
-        LocalizationSettings.SelectedLocaleChanged += OnLocaleChanged;
-    }
-
-    private void OnDisable()
-    {
-        LocalizationSettings.SelectedLocaleChanged -= OnLocaleChanged;
-    }
-
-    private void OnLocaleChanged(Locale locale)
-    {
-        RefreshLocalizedTexts();
-    }
-    private void RefreshLocalizedTexts()
-    {
-        if (currentCandidates == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < currentCandidates.Count && i < nameTexts.Length; i++)
-        {
-            WaveRewardData reward = currentCandidates[i];
-
-            if (reward == null || nameTexts[i] == null)
-            {
-                continue;
-            }
-
-            nameTexts[i].text = LocalizationHelper.Get(LocalizationHelper.k_RewardsTable,reward.DisplayName);
-            descriptionTexts[i].text = LocalizationHelper.Get(LocalizationHelper.k_RewardsTable, reward.Description);
-        }
-    }
+  
 
     public async UniTask<WaveRewardData> SelectRewardAsync(IReadOnlyList<WaveRewardData> candidates,CancellationToken cancellationToken)
     {
@@ -125,14 +87,12 @@ public class WaveRewardSelectionUI : MonoBehaviour
         }
 
         selectionSource = new UniTaskCompletionSource<WaveRewardData>();
-        currentCandidates = candidates;
 
         ClearButtonListeners();
         ShowCandidates(candidates);
 
         previousTimeScale = Time.timeScale;
         Time.timeScale = 0f;
-        Camerastop = true;
 
         if (panel != null)
         {
@@ -157,17 +117,13 @@ public class WaveRewardSelectionUI : MonoBehaviour
 
             if (panel != null)
             {
-                Camerastop = false;
                 panel.SetActive(false);
             }
 
             if (openPanel != null)
             {
-                Camerastop = false;
                 openPanel.SetActive(false);
             }
-
-            currentCandidates = null;
             selectionSource = null;
         }
     }
@@ -186,16 +142,18 @@ public class WaveRewardSelectionUI : MonoBehaviour
             }
 
             WaveRewardData reward = candidates[i];
-
-            if (i < nameTexts.Length && nameTexts[i] != null)
+            if (i < nameLocalizers.Length && nameLocalizers[i] != null)
             {
-                nameTexts[i].text = LocalizationHelper.Get(LocalizationHelper.k_RewardsTable,reward.DisplayName);
+                nameLocalizers[i].StringReference.SetReference(LocalizationHelper.k_RewardsTable,reward.DisplayName);
+
+                nameLocalizers[i].RefreshString();
             }
 
-            if (i < descriptionTexts.Length &&
-                descriptionTexts[i] != null)
+            if (i < descriptionLocalizers.Length && descriptionLocalizers[i] != null)
             {
-                descriptionTexts[i].text = LocalizationHelper.Get(LocalizationHelper.k_RewardsTable, reward.Description);
+                descriptionLocalizers[i].StringReference.SetReference(LocalizationHelper.k_RewardsTable,reward.Description);
+
+                descriptionLocalizers[i].RefreshString();
             }
 
             if (i < iconImages.Length &&
