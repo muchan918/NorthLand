@@ -62,7 +62,7 @@ public class WaveCompletionCoordinator : MonoBehaviour
 
             DayNightManager dayNight = DayNightManager.Instance;
 
-            if (dayNight != null &&dayNight.CurrentPhase ==DayNightManager.Phase.Night)
+            if (dayNight != null &&dayNight.CurrentPhase == DayNightManager.Phase.Night)
             {
                 dayNight.EndNight();
             }

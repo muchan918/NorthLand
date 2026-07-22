@@ -43,10 +43,7 @@ public class MonsterStateMachine : MonoBehaviour
             return;
         }
 
-        if (monsterMove != null &&
-            !monsterMove.IsStopped &&
-            monsterMove.CanMove &&
-            monsterMove.HasRouteRemaining)
+        if (monsterMove != null &&!monsterMove.IsStopped &&monsterMove.CanMove &&monsterMove.HasRouteRemaining)
         {
             ChangeState(MonsterState.Move);
             return;
@@ -55,36 +52,44 @@ public class MonsterStateMachine : MonoBehaviour
         ChangeState(MonsterState.Idle);
     }
 
-#if UNITY_EDITOR
-    private void LateUpdate()
+
+    //    디버깅용 코드 나중에 필요없음녀 삭제
+    //    private void LateUpdate()
+    //    {
+    //        Keyboard keyboard = Keyboard.current;
+    //        if (keyboard == null)
+    //        {
+    //            return;
+    //        }
+
+    //        if (keyboard.fKey.wasPressedThisFrame)
+    //        {
+    //            ChangeState(MonsterState.Move);
+    //        }
+
+    //        if (keyboard.gKey.wasPressedThisFrame)
+    //        {
+    //            ChangeState(currentState == MonsterState.Attack
+    //                ? MonsterState.Move
+    //                : MonsterState.Attack);
+    //        }
+
+    //        if (keyboard.hKey.wasPressedThisFrame)
+    //        {
+    //            ChangeState(MonsterState.Death);
+    //        }
+    //    }
+
+
+
+
+    public void ChangeState(MonsterState nextState)
     {
-        Keyboard keyboard = Keyboard.current;
-        if (keyboard == null)
+        if (currentState == MonsterState.Death)
         {
             return;
         }
 
-        if (keyboard.fKey.wasPressedThisFrame)
-        {
-            ChangeState(MonsterState.Move);
-        }
-
-        if (keyboard.gKey.wasPressedThisFrame)
-        {
-            ChangeState(currentState == MonsterState.Attack
-                ? MonsterState.Move
-                : MonsterState.Attack);
-        }
-
-        if (keyboard.hKey.wasPressedThisFrame)
-        {
-            ChangeState(MonsterState.Death);
-        }
-    }
-#endif
-
-    public void ChangeState(MonsterState nextState)
-    {
         if (currentState == nextState)
         {
             return;
@@ -115,7 +120,11 @@ public class MonsterStateMachine : MonoBehaviour
                 monsterAnimation?.SetAttackAnimation(true);
                 break;
             case MonsterState.Death:
-                monsterMove?.SetMoveEnabled(false);
+                if (monsterMove != null)
+                {
+                    monsterMove.IsStopped = true;
+                    monsterMove.SetMoveEnabled(false);
+                }
                 monsterAnimation?.PlayDeathAnimation();
                 Destroy(gameObject, destroyDelay);
                 break;
