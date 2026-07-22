@@ -23,6 +23,11 @@ public class ManagementController : MonoBehaviour
     [Tooltip("웨이브 클리어(밤→낮 정산) 시 지급되는 마나석 고정량 (GDD §4.3)")]
     [SerializeField] int _manaPerWaveClear = 10;
 
+    [Tooltip("게임 시작(런당 1회) 시 지급되는 초기 나무/철/식량. 마나석은 영토 확장·전투 보상 전용이라 제외(팀 계약 #3, 이슈 #130)")]
+    [SerializeField] int _initialWood = 110;
+    [SerializeField] int _initialIron = 40;
+    [SerializeField] int _initialFood = 0;
+
     /// <summary>상태(자원·주민 배치·페이즈)가 바뀔 때 발생. 뷰는 이걸 구독해 다시 렌더한다.</summary>
     public event Action OnChanged;
 
@@ -206,6 +211,12 @@ public class ManagementController : MonoBehaviour
         // 지갑 잔액이 바뀌면(획득·차감) 컨트롤러 OnChanged로 재발화 → 패널/HUD가 갱신된다.
         // (지갑 직접 변경엔 원래 OnChanged가 안 돌던 지점을 여기서 메운다)
         _wallet.OnChanged += (_, _) => OnChanged?.Invoke();
+
+        // 게임 시작 초기 자원 지급(런당 1회, 이슈 #130) — 유일 창구인 ResourceWallet.Add로만 지급한다(팀 계약 #3).
+        _wallet.Add(ResourceKind.Wood, _initialWood);
+        _wallet.Add(ResourceKind.Iron, _initialIron);
+        _wallet.Add(ResourceKind.Food, _initialFood);
+        Debug.Log($"[경영] 초기 자원 지급: Wood +{_initialWood}, Iron +{_initialIron}, Food +{_initialFood}");
 
         // 생산 배율 레지스트리는 지갑과 함께 런마다 새로 만든다(영토 패시브 효과가 여기에 누적).
         _productionModifiers = new ProductionModifiers();
