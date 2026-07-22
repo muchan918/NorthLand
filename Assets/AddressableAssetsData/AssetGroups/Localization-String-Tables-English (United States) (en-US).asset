@@ -15,6 +15,12 @@ MonoBehaviour:
   m_GroupName: Localization-String-Tables-English (United States) (en-US)
   m_GUID: 8307e37143e6bff4f98157f97bb3e8af
   m_SerializeEntries:
+  - m_GUID: 13e18d8e51a3318429cb5aa8edb93d43
+    m_Address: NorthLand_Rewards_en-US
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-en-US
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 199b00ae01f7b5642a1af661ec453fb2
     m_Address: NorthLand_default_en-US
     m_ReadOnly: 1

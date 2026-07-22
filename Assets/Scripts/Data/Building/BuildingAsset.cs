@@ -18,18 +18,52 @@ public class BuildingAsset : ScriptableObject
     public ProductionFields Production;
     public SkillFields Skill;
 
+#if UNITY_EDITOR
+    // 에디터 authoring 가드: 업그레이드 주민당량이 base(레벨0)부터 단조 증가하지 않으면 경고한다.
+    // AmountPerVillager가 절대값이라 실수로 낮게/비단조로 적으면 업그레이드가 조용히 생산을 떨어뜨릴 수 있다(수치=SO, WL-015 축).
+    private void OnValidate()
+    {
+        if (BuildingType != BuildingType.Production || Production == null || Production.UpgradeLevels == null)
+        {
+            return;
+        }
+
+        int prev = Production.BaseAmountPerVillager;
+        for (int i = 0; i < Production.UpgradeLevels.Count; i++)
+        {
+            int cur = Production.UpgradeLevels[i].AmountPerVillager;
+            if (cur <= prev)
+            {
+                Debug.LogWarning($"[BuildingAsset] {BuildingID}: 업그레이드 Lv{i + 1} 주민당량({cur})이 이전 단계({prev}) 이하 — 업그레이드가 생산을 늘리지 않습니다.", this);
+            }
+            prev = cur;
+        }
+    }
+#endif
+
     [System.Serializable]
     public class ProductionFields
     {
+        // 레벨 0(미업그레이드) 주민당 생산량. 업그레이드하면 UpgradeLevels의 값으로 올라간다.
         public int BaseAmountPerVillager;
 
-        // 나무꾼의 집/광산/농지처럼 ResourceTable 자원을 생산하는 경우만 채운다.
+        // 나무꾼의 집/광산/농장처럼 ResourceTable 자원을 생산하는 경우만 채운다.
         public ResourceAsset OutputResource;
 
-        // 훈련장처럼 병사를 생산하는 경우 true. 병사는 화폐성 자원이 아니라
-        // ResourceTable에 넣지 않기로 했음 (전투 스탯·부활 등 별도 생명주기).
-        // TODO: SoldierAsset이 생기면 이 bool 대신 참조 필드로 교체.
-        public bool ProducesSoldier;
+        // 건물 업그레이드 레벨 테이블. index i = 레벨 (i+1). 비어 있으면 업그레이드 불가(최대 레벨 = Count).
+        // 수치(비용·주민당량)는 이 SO에 직접 authoring한다(밸런싱 TBD — 영토 효과·타워 스탯 선례, WL-015).
+        public List<UpgradeLevel> UpgradeLevels = new List<UpgradeLevel>();
+    }
+
+    // 생산 건물 업그레이드 한 단계. AmountPerVillager는 누적 델타가 아니라 그 레벨의 절대 주민당량.
+    [System.Serializable]
+    public class UpgradeLevel
+    {
+        // 이 레벨에 도달하기 위해 소모하는 비용(ManagementController.TrySpend 게이트웨이 경유).
+        public List<ResourceCost> Cost = new List<ResourceCost>();
+
+        // 이 레벨에서의 주민당 생산량(절대값).
+        public int AmountPerVillager;
     }
 
     [System.Serializable]
