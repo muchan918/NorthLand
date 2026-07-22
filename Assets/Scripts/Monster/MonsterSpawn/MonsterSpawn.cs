@@ -1,12 +1,14 @@
+using Cysharp.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public class MonsterSpawn : MonoBehaviour
 {
+    public event Action<int> WaveCleared;
+
     [Header("Common References")]
     [SerializeField] private Transform fallbackSpawnPoint;
     [SerializeField] private Transform monsterParent;
@@ -30,6 +32,7 @@ public class MonsterSpawn : MonoBehaviour
     private readonly List<Vector3> route = new List<Vector3>();
     private readonly List<Vector3> spawnRoute = new List<Vector3>();
     private CancellationTokenSource spawnCancellationTokenSource;
+
 
     private void Awake()
     {
@@ -123,19 +126,22 @@ public class MonsterSpawn : MonoBehaviour
             EndNightIfNight();
             return;
         }
-
-        if (!waveProvider.TryGetWave(round, out IReadOnlyList<MonsterSpawnEntry> entries))
+        if (!waveProvider.TryGetWave(round,out IReadOnlyList<MonsterSpawnEntry> entries))
         {
-            Debug.LogWarning($"[몬스터 스포너] 라운드 {round} 웨이브 데이터 없음 — 스폰 없이 즉시 웨이브 클리어(밤 종료) 처리합니다.");
+            Debug.LogWarning($"Wave {round} 데이터가 없습니다.",this);
+
             EndNightIfNight();
             return;
         }
 
-        CancellationToken cancellationToken = RestartSpawnTasks();
-        SpawnRoundAsync(entries, cancellationToken).Forget();
+        CancellationToken cancellationToken =
+            RestartSpawnTasks();
+
+        SpawnRoundAsync(round,entries,cancellationToken).Forget();
     }
 
-    private async UniTaskVoid SpawnRoundAsync(IReadOnlyList<MonsterSpawnEntry> entries, CancellationToken cancellationToken)
+
+    private async UniTaskVoid SpawnRoundAsync(int round,IReadOnlyList<MonsterSpawnEntry> entries,CancellationToken cancellationToken)
     {
         try
         {
@@ -174,8 +180,18 @@ public class MonsterSpawn : MonoBehaviour
                 return;
             }
 
-            await UniTask.WaitUntil(() => monsterParent.childCount == 0, cancellationToken: cancellationToken);
-            EndNightIfNight();
+            await UniTask.WaitUntil(() => monsterParent.childCount == 0,cancellationToken: cancellationToken);
+
+            if (WaveCleared != null)
+            {
+                WaveCleared.Invoke(round);
+            }
+            else
+            {
+                Debug.LogWarning("WaveCleared 구독자가 없어 기존 방식으로 밤을 종료합니다.",this);
+
+                EndNightIfNight();
+            }
         }
         catch (OperationCanceledException)
         {
