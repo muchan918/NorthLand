@@ -28,7 +28,7 @@ public class MouseManager : MonoBehaviour
     [SerializeField] Camera _camera;
 
     [Header("Raycast Layers")]
-    // 선택 후보 레이어(타워/건물/병사...). 최종 선택 여부는 ISelectable 유무로 판정하므로, 레이어는 굵은 필터일 뿐.
+    // 선택 후보 레이어(타워/건물...). 최종 선택 여부는 ISelectable 유무로 판정하므로, 레이어는 굵은 필터일 뿐.
     [SerializeField] LayerMask _selectableMask;
     // 배치 표면 레이어(바닥/그리드). 고스트가 이 위에 올라간다.
     [SerializeField] LayerMask _placementMask;
