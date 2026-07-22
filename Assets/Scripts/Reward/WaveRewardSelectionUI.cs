@@ -5,6 +5,8 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Serialization;
+using UnityEngine.Localization;
+using UnityEngine.Localization.Settings;
 
 public class WaveRewardSelectionUI : MonoBehaviour
 {
@@ -34,6 +36,8 @@ public class WaveRewardSelectionUI : MonoBehaviour
     private UniTaskCompletionSource<WaveRewardData> selectionSource;
 
     private float previousTimeScale;
+
+    private IReadOnlyList<WaveRewardData> currentCandidates;
 
     private void Awake()
     {
@@ -78,6 +82,41 @@ public class WaveRewardSelectionUI : MonoBehaviour
         }
     }
 
+    private void OnEnable()
+    {
+        LocalizationSettings.SelectedLocaleChanged += OnLocaleChanged;
+    }
+
+    private void OnDisable()
+    {
+        LocalizationSettings.SelectedLocaleChanged -= OnLocaleChanged;
+    }
+
+    private void OnLocaleChanged(Locale locale)
+    {
+        RefreshLocalizedTexts();
+    }
+    private void RefreshLocalizedTexts()
+    {
+        if (currentCandidates == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < currentCandidates.Count && i < nameTexts.Length; i++)
+        {
+            WaveRewardData reward = currentCandidates[i];
+
+            if (reward == null || nameTexts[i] == null)
+            {
+                continue;
+            }
+
+            nameTexts[i].text = LocalizationHelper.Get(LocalizationHelper.k_RewardsTable,reward.DisplayName);
+            descriptionTexts[i].text = LocalizationHelper.Get(LocalizationHelper.k_RewardsTable, reward.Description);
+        }
+    }
+
     public async UniTask<WaveRewardData> SelectRewardAsync(IReadOnlyList<WaveRewardData> candidates,CancellationToken cancellationToken)
     {
         if (candidates == null || candidates.Count == 0)
@@ -86,6 +125,7 @@ public class WaveRewardSelectionUI : MonoBehaviour
         }
 
         selectionSource = new UniTaskCompletionSource<WaveRewardData>();
+        currentCandidates = candidates;
 
         ClearButtonListeners();
         ShowCandidates(candidates);
@@ -127,6 +167,7 @@ public class WaveRewardSelectionUI : MonoBehaviour
                 openPanel.SetActive(false);
             }
 
+            currentCandidates = null;
             selectionSource = null;
         }
     }
@@ -148,13 +189,13 @@ public class WaveRewardSelectionUI : MonoBehaviour
 
             if (i < nameTexts.Length && nameTexts[i] != null)
             {
-                nameTexts[i].text = reward.DisplayName;
+                nameTexts[i].text = LocalizationHelper.Get(LocalizationHelper.k_RewardsTable,reward.DisplayName);
             }
 
             if (i < descriptionTexts.Length &&
                 descriptionTexts[i] != null)
             {
-                descriptionTexts[i].text = reward.Description;
+                descriptionTexts[i].text = LocalizationHelper.Get(LocalizationHelper.k_RewardsTable, reward.Description);
             }
 
             if (i < iconImages.Length &&

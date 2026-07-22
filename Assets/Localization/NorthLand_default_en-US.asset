@@ -82,6 +82,18 @@ MonoBehaviour:
     m_Localized: Title
     m_Metadata:
       m_Items: []
+  - m_Id: 4355764703014912
+    m_Localized: Select
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4357188526616576
+    m_Localized: open
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4359788156235776
+    m_Localized: close
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []
