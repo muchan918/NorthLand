@@ -18,6 +18,29 @@ public class BuildingAsset : ScriptableObject
     public ProductionFields Production;
     public SkillFields Skill;
 
+#if UNITY_EDITOR
+    // 에디터 authoring 가드: 업그레이드 주민당량이 base(레벨0)부터 단조 증가하지 않으면 경고한다.
+    // AmountPerVillager가 절대값이라 실수로 낮게/비단조로 적으면 업그레이드가 조용히 생산을 떨어뜨릴 수 있다(수치=SO, WL-015 축).
+    private void OnValidate()
+    {
+        if (BuildingType != BuildingType.Production || Production == null || Production.UpgradeLevels == null)
+        {
+            return;
+        }
+
+        int prev = Production.BaseAmountPerVillager;
+        for (int i = 0; i < Production.UpgradeLevels.Count; i++)
+        {
+            int cur = Production.UpgradeLevels[i].AmountPerVillager;
+            if (cur <= prev)
+            {
+                Debug.LogWarning($"[BuildingAsset] {BuildingID}: 업그레이드 Lv{i + 1} 주민당량({cur})이 이전 단계({prev}) 이하 — 업그레이드가 생산을 늘리지 않습니다.", this);
+            }
+            prev = cur;
+        }
+    }
+#endif
+
     [System.Serializable]
     public class ProductionFields
     {

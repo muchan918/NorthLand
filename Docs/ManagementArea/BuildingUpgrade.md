@@ -40,6 +40,15 @@
 - **쟁점3 (WL-015) — 수치 출처**: ✅ **SO(`BuildingAsset.Production.UpgradeLevels`)에 authoring**(CSV 아님). BuildingData CSV엔 수치 컬럼이 없고 생산 수치(주민당량·비용)가 이미 `BuildingAsset` SO에 있어 SO가 정합적(타워 스탯·영토 효과 선례). 수치 자체는 placeholder TBD.
 - **쟁점4 — 트리거·차감**: ✅ 공개 API `TryUpgrade(int)`(성공 bool) + 조회 `CanUpgrade`/`LineLevel`/`LineMaxLevel`/`LineAmountPerVillager`/`LineUpgradeCost`. 비용은 기존 `TrySpend(costs)` 게이트웨이로 **원자적** 차감(WL-017/WL-048). 입력 UI는 다음 이슈. 게이팅 = **낮 전용**(`IsDay`, 영토확장 완료는 요구 안 함).
 
+### ⚠️ 업그레이드 소유 단위 — **건물 타입 단위**(현재 확정)
+업그레이드 상태는 **라인 = 건물 타입 단위**로 소유한다(`_productionBuildings`가 타입당 SO 1개 → 라인당 레벨 1개).
+경영 공간이 같은 타입 건물을 여러 채 배치하지 않는 현 구조에서 자연스러운 모델이며, **다음 UI 이슈는 "라인(타입)당
+업그레이드 1개" 계약을 그대로 소비**하면 된다(index 순회 + `LineUpgradeCost==null`→"MAX").
+- **인스턴스 단위**(같은 타입을 여러 채 지어 각각 따로 업그레이드)가 필요해지는 건 **건물 배치 시스템(#27)** 도입
+  시점이다. 그때 라인 index 계약을 인스턴스 키로 열지 결정한다(WL-021 잔여). 그전까지는 타입 단위 유지.
+- #139 완료기준 ⑤("같은 타입 다른 인스턴스와 단계 혼선 없음")은 **현재 인스턴스 개념이 없어 자동 충족**(공허참).
+  단, 레벨 상태를 공유 SO가 아닌 런타임에 둔 덕분에(쟁점1) 인스턴스가 생겨도 오염되지 않는 구조는 이미 갖춰져 있다.
+
 ---
 
 ### (참고) 결정 근거 — 원래 쟁점 상세
