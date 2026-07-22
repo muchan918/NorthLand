@@ -9,7 +9,7 @@ using UnityEditor;
 
 namespace NorthLand.Combat
 {
-    public class Tower : MonoBehaviour, IAttacker
+    public class Tower : MonoBehaviour, IAttacker, ISelectable
     {
         [SerializeField] TowerAsset data;
 
@@ -48,6 +48,42 @@ namespace NorthLand.Combat
         }
 
         public Faction Faction => Faction.Player;
+
+        // 정보 패널 연동(#153) — BuildingInfo/BuildingInfoUI와 동일 패턴.
+        // data.Data는 원래 TowerSelectPanelView가 배치 전 채워두지만(TowerPlacer 참고),
+        // 그 경로를 거치지 않은 인스턴스(테스트 씬 등)를 위해 방어적으로 한 번 더 채운다.
+        public void OnSelected()
+        {
+            if (data == null)
+            {
+                Debug.LogError("[Tower] TowerAsset 미할당", this);
+                return;
+            }
+
+            data.Data ??= DataTableManager.Get<TowerTable>("TowerTable").Get(data.TowerID);
+            if (data.Data == null)
+            {
+                Debug.LogError($"[Tower] TowerData 없음 (TowerID={data.TowerID})", this);
+                return;
+            }
+
+            TowerInfoUI.Instance.ShowInfo(data.Data.DescriptionKey, BuildStatsText());
+        }
+
+        public void OnDeselected() => TowerInfoUI.Instance.HideInfo();
+
+        // 공통 공격 스탯(공격력/사거리/공격속도)을 정보 패널용 평문으로 조합한다. Magic 타워는 공통 Attack이
+        // 없어 null 반환(패널은 통계 구간 없이 설명만 표시). 라벨은 game.tower.* 로컬라이즈 키(k_DefaultTable)에서 가져온다.
+        string BuildStatsText()
+        {
+            if (Attack == null) return null;
+
+            string damageLabel = LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, "game.tower.attack_damage");
+            string rangeLabel = LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, "game.tower.attack_range");
+            string speedLabel = LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, "game.tower.attack_speed");
+
+            return $"{damageLabel}: {AttackDamage:0.#}\n{rangeLabel}: {AttackRange:0.#}\n{speedLabel}: {1f / AttackInterval:0.##}";
+        }
 
         // TowerType에 맞는 공통 공격 스탯 해석. Magic(또는 data 미할당)은 Attack 없음 → null.
         TowerAsset.AttackFields Attack => data == null ? null : data.TowerType switch
