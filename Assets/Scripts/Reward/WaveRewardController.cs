@@ -50,6 +50,7 @@ public class WaveRewardController : MonoBehaviour
 
     private void GrantReward(WaveRewardData reward)
     {
+        //Reward 내용은 아직 미정이라 로그만 정해지면 수정 
         if (reward == null)
         {
             return;

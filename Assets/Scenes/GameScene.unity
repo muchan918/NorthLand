@@ -2178,6 +2178,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CameraController2
   cinemachineCamera: {fileID: 1228655714}
   cameraTarget: {fileID: 863015837}
+  waveRewardSelectionUI: {fileID: 1658482855}
   moveSpeed: 50
   xBounds: {x: -500, y: 500}
   zBounds: {x: -500, y: 500}
@@ -8122,6 +8123,7 @@ MonoBehaviour:
   - {fileID: 1374549039}
   - {fileID: 869933966}
   openPanel: {fileID: 1123896257}
+  Camerastop: 0
 --- !u!114 &1658482856
 MonoBehaviour:
   m_ObjectHideFlags: 0

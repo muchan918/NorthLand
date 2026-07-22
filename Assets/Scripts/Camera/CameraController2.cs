@@ -11,6 +11,7 @@ public class CameraController2 : MonoBehaviour
     [Header("References")]
     [SerializeField] private CinemachineCamera cinemachineCamera;
     [SerializeField] private Transform cameraTarget;
+    [SerializeField] private WaveRewardSelectionUI waveRewardSelectionUI;
 
     [Header("Move (WASD)")]
     [SerializeField] private float moveSpeed = 15f;
@@ -31,20 +32,35 @@ public class CameraController2 : MonoBehaviour
     private Vector2 _dragStartScreenPos;
     private Vector3 _dragStartTargetPos;
 
+
     private void Awake()
     {
         bool hasMissingReference = false;
 
         if (cinemachineCamera == null)
         {
-            Debug.LogError("CameraController2: Cinemachine Camera 참조가 할당되지 않았습니다.", this);
+            Debug.LogError(
+                "CameraController2: Cinemachine Camera 참조가 할당되지 않았습니다.",
+                this);
+
             hasMissingReference = true;
         }
 
         if (cameraTarget == null)
         {
-            Debug.LogError("CameraController2: Camera Target 참조가 할당되지 않았습니다.", this);
+            Debug.LogError(
+                "CameraController2: Camera Target 참조가 할당되지 않았습니다.",
+                this);
+
             hasMissingReference = true;
+        }
+
+        if (waveRewardSelectionUI == null)
+        {
+            Debug.LogWarning(
+                "CameraController2: WaveRewardSelectionUI가 연결되지 않았습니다. " +
+                "보상 선택 중 카메라 정지 기능이 작동하지 않습니다.",
+                this);
         }
 
         if (hasMissingReference)
@@ -56,6 +72,11 @@ public class CameraController2 : MonoBehaviour
     private void Update()
     {
         if (Mouse.current == null)
+        {
+            return;
+        }
+
+        if (waveRewardSelectionUI.Camerastop)
         {
             return;
         }
@@ -72,6 +93,8 @@ public class CameraController2 : MonoBehaviour
             return;
         }
 
+      
+
         Vector3 moveDirection = Vector3.zero;
 
         Vector3 forward = GroundForward();
@@ -87,7 +110,7 @@ public class CameraController2 : MonoBehaviour
             return;
         }
 
-        Vector3 nextPosition = cameraTarget.position + moveDirection.normalized * moveSpeed * Time.deltaTime;
+        Vector3 nextPosition = cameraTarget.position + moveDirection.normalized * moveSpeed * Time.unscaledDeltaTime;
         cameraTarget.position = ClampPosition(nextPosition);
     }
 

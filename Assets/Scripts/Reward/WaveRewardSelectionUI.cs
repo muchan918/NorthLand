@@ -29,12 +29,16 @@ public class WaveRewardSelectionUI : MonoBehaviour
     [FormerlySerializedAs("Openpanel")]
     private GameObject openPanel;
 
+    public bool Camerastop=false;
+
     private UniTaskCompletionSource<WaveRewardData> selectionSource;
 
     private float previousTimeScale;
 
     private void Awake()
     {
+
+        Camerastop = false;
         if (panel != null)
         {
             panel.SetActive(false);
@@ -49,7 +53,7 @@ public class WaveRewardSelectionUI : MonoBehaviour
 
     public void ClosePanel()
     {
-
+        Camerastop = false;
         if (panel != null)
         {
             panel.SetActive(false);
@@ -62,6 +66,7 @@ public class WaveRewardSelectionUI : MonoBehaviour
     }
     public void OpenPanel()
     {
+        Camerastop = true;
         if (panel != null)
         {
             panel.SetActive(true);
@@ -87,6 +92,7 @@ public class WaveRewardSelectionUI : MonoBehaviour
 
         previousTimeScale = Time.timeScale;
         Time.timeScale = 0f;
+        Camerastop = true;
 
         if (panel != null)
         {
@@ -111,11 +117,13 @@ public class WaveRewardSelectionUI : MonoBehaviour
 
             if (panel != null)
             {
+                Camerastop = false;
                 panel.SetActive(false);
             }
 
             if (openPanel != null)
             {
+                Camerastop = false;
                 openPanel.SetActive(false);
             }
 
