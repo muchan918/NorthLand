@@ -20,6 +20,9 @@ public class ManagementController : MonoBehaviour
     [Tooltip("총 보유(최대) 주민 수. 주민 시스템 부재로 임시 placeholder. 전 라인 배치 합계 상한.")]
     [SerializeField] int _maxVillagers = 5;
 
+    [Tooltip("웨이브 클리어(밤→낮 정산) 시 지급되는 마나석 고정량 (GDD §4.3)")]
+    [SerializeField] int _manaPerWaveClear = 10;
+
     /// <summary>상태(자원·주민 배치·페이즈)가 바뀔 때 발생. 뷰는 이걸 구독해 다시 렌더한다.</summary>
     public event Action OnChanged;
 
@@ -414,6 +417,9 @@ public class ManagementController : MonoBehaviour
         {
             _villagerCounts[i] = 0;
         }
+
+        _wallet.Add(ResourceKind.Mana, _manaPerWaveClear);
+        Debug.Log($"[정산] 웨이브 클리어 보상: 마나석 +{_manaPerWaveClear}");
 
         Debug.Log($"[경영] 밤 → 낮 (Wave {WaveCount}): 자원 정산 + 주민 배치 초기화");
         OnChanged?.Invoke();

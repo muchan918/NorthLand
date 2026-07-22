@@ -1783,10 +1783,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4186b3991f33f6a43800e1786ed094b9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ManagementController
-  _productionBuildings:
-  - {fileID: 11400000, guid: ba79754af9105604892d30cae1799110, type: 2}
-  - {fileID: 11400000, guid: 8268c334119ef524ea770b364abf1fd5, type: 2}
-  - {fileID: 11400000, guid: 639db89c157d46343837e79b6259f345, type: 2}
+  _resourceAssets:
+  - {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
+  - {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+  - {fileID: 11400000, guid: 746ba3ce36acad54fa80a53a079fd605, type: 2}
+  _baseAmountPerVillager: 5
   _maxVillagers: 5
 --- !u!4 &544968474
 Transform:
