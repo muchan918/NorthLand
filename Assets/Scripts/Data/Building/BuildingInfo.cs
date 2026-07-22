@@ -17,7 +17,8 @@ public class BuildingInfo : MonoBehaviour, ISelectable
             return;
         }
 
-        BuildingInfoUI.Instance.ShowInfo(_buildingAsset.Data.DescriptionKey);
+        // 건물 SO를 넘겨 패널이 이름·레벨·업그레이드 정보를 컨트롤러에서 pull하도록 한다.
+        BuildingInfoUI.Instance.ShowInfo(_buildingAsset);
     }
 
     public void OnDeselected()

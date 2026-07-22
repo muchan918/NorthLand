@@ -38,6 +38,7 @@ public class ManagementController : MonoBehaviour
     private int[] _level;
     private int[] _amountPerVillager;
     private List<BuildingAsset.UpgradeLevel>[] _lineUpgradeLevels;
+    private BuildingAsset[] _lineBuildings; // 라인 index → 원본 건물 SO (건물→라인 매핑용, BuildingInfoUI 등)
 
     private DayNightManager _dayNight;
     private TerritoryController _territory;
@@ -167,6 +168,26 @@ public class ManagementController : MonoBehaviour
         return next < levels.Count && CanAfford(levels[next].Cost);
     }
 
+    // 건물 SO가 몇 번 라인인지. 생산 라인(업그레이드 대상)이 아니면 -1.
+    public int LineIndexOf(BuildingAsset building)
+    {
+        if (building == null || _lineBuildings == null) return -1;
+        for (int i = 0; i < _lineBuildings.Length; i++)
+        {
+            if (_lineBuildings[i] == building) return i;
+        }
+        return -1;
+    }
+
+    // 한 단계 업그레이드 후의 주민당량(표시용 "현재 → 다음"). 최대 레벨이면 현재값 그대로(증가 없음).
+    public int LineNextAmountPerVillager(int index)
+    {
+        if (!IsValidLine(index)) return 0;
+        List<BuildingAsset.UpgradeLevel> levels = _lineUpgradeLevels[index];
+        int next = _level[index];
+        return next < levels.Count ? levels[next].AmountPerVillager : _amountPerVillager[index];
+    }
+
     // 라인 산출 자원의 현재 생산 배율(레지스트리 미준비 시 1.0).
     private float ProductionMultiplier(int index) =>
         _productionModifiers != null && IsValidLine(index) ? _productionModifiers.GetMultiplier(_lineAssets[index].Data.Kind) : 1f;
@@ -216,6 +237,7 @@ public class ManagementController : MonoBehaviour
         var sources = new List<ResourceProductionSource>();
         var baseAmounts = new List<int>();
         var upgradeLevels = new List<List<BuildingAsset.UpgradeLevel>>();
+        var buildings = new List<BuildingAsset>();
 
         int count = _productionBuildings != null ? _productionBuildings.Length : 0;
         for (int i = 0; i < count; i++)
@@ -249,12 +271,14 @@ public class ManagementController : MonoBehaviour
             sources.Add(source);
             baseAmounts.Add(Mathf.Max(0, building.Production.BaseAmountPerVillager)); // 레벨0 주민당량
             upgradeLevels.Add(building.Production.UpgradeLevels ?? new List<BuildingAsset.UpgradeLevel>());
+            buildings.Add(building);
         }
 
         _lineAssets = assets.ToArray();
         _sources = sources.ToArray();
         _amountPerVillager = baseAmounts.ToArray();
         _lineUpgradeLevels = upgradeLevels.ToArray();
+        _lineBuildings = buildings.ToArray();
         _level = new int[_sources.Length];
         _villagerCounts = new int[_sources.Length];
     }
