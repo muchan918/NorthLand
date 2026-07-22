@@ -79,6 +79,18 @@ MonoBehaviour:
     m_Key: game.btn.title
     m_Metadata:
       m_Items: []
+  - m_Id: 4355764703014912
+    m_Key: game.btn.select
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4357188526616576
+    m_Key: game.btn.open
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4359788156235776
+    m_Key: game.btn.close
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
