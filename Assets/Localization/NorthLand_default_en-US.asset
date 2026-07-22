@@ -94,6 +94,18 @@ MonoBehaviour:
     m_Localized: close
     m_Metadata:
       m_Items: []
+  - m_Id: 4384618839711744
+    m_Localized: Attack Damage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4384618869071872
+    m_Localized: Attack Range
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4384618869071873
+    m_Localized: Attack Speed
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []
