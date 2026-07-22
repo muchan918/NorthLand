@@ -17,8 +17,8 @@
 | Localization                                | n0wst4ndup | `Assets/Scripts/Localization/LocalizationHelper.cs`, `Assets/Localization/*`(String Table 컬렉션), `Assets/Scripts/Test/LocalizationTest.cs` | String Table 4종(`NorthLand_default`/`NorthLand_buildings`/`NorthLand_Enemies`/`NorthLand_Towers`, ko-KR/en-US/ja-JP) 구축. Building/Enemy/Resource/Tower CSV 표시 문자열은 키로 이관 완료(WL-013 해소, PR#126 — 신규 `poison_tower` 행 포함). `LocalizationHelper`(static 동기 pull 헬퍼) 신설 — 호버 툴팁 등 '호출 시점 1회' 풀 경로 전용, 지속형 표시는 `LocalizeStringEvent`/`LocalizedString.StringChanged` 사용. 전투 공간(TowerInfoUI) 표시 배선은 후속(#102) |
 | DayNightManager (낮/밤 상태·전환 이벤트 훅) | muchan     | `Assets/Scripts/DayNight`                                    | 상태 관리 + 전환 이벤트 훅 구현. 자원 정산/주민 배치 초기화는 `Management(Resource)`가 구현(#66), 본진 회복은 미구현(소유 시스템 대기). 밤→낮 트리거는 임시 UI(`NightActionPanelView`의 "웨이브 성공" 버튼, #66)가 `EndNight()` 직접 호출(웨이브 클리어 로직으로 교체 예정, WL-018) |
 | DayNightLighting (낮/밤 전환 조명·스카이박스 연출, #7) | muchan     | `Assets/Scripts/DayNight`                                    | `OnDayToNight`/`OnNightToDay` 구독해 Directional Light·Ambient(Trilight)·Skybox를 즉시 전환(스냅). 부드러운 Lerp 전환은 미구현 — 밤 종료 자동화의 UniTask 전환 작업과 함께 후속 예정 |
-| Management(Resource) (자원 지갑·생산처)     | n0wst4ndup | `Assets/Scripts/ManagementSpace`                              | 지갑·생산처(#42) + 경영 패널 UI·DayNightManager 낮/밤 루프 연동(#43, #66). 정산+주민 배치 초기화=OnNightToDay(정산 먼저). **밤→낮 전환은 이제 밤 전용 임시 UI(`NightActionPanelView`)의 "웨이브 성공" 버튼이 트리거(WL-018)** — 경영 패널(`RequestAdvancePhase`)은 낮→밤(`EndDay`)만 담당. 주민 수는 placeholder(주민 시스템 부재). 소비처·마나석 생산 후속 |
-| TerritoryGraph (경영 영토 확장)             | n0wst4ndup (View 비주얼: muchan) | `Assets/Scripts/ManagementSpace/Territory`                    | 그래프 생성(Delaunay+프루닝)·클레임(`ISelectable`)·점진 공개·호버 하이라이트(`IHoverable`) 구현, `GameScene`에 씬 통합 완료(#18, #67). 하루 1회 확장 게이팅(`HasExpandedToday`, `DayNightManager.OnDayStart` 연동)도 #67에서 추가. **노드 비주얼 에셋 적용(#127, PR#128, muchan)**: `TerritoryNodeStateVisual`(상태→비주얼 스왑: Selectable=절차 생성 소용돌이 `VortexVisual`, Owned=산 에셋, 본진=씬 지형)+확보 연출(UniTask). `GameScene`의 `TerritoryGraphView._nodePrefab`=`TerritoryNodeV2`(간격 튜닝 세트와 결합 — WL-059). 구형 프리팹은 기존 색상 경로 폴백. **엣지 배 연출(#93, muchan)**: 엣지 선(LineRenderer)을 `SweetBoat` 랜덤 1척이 왕복하는 `TerritoryEdgeShip` 연출로 교체(선은 `_drawEdgeLines` 기본 꺼짐), 양끝이 모두 `Owned`일 때만 표시(`TerritoryGraph.IsOwned`). 효과/마나석 지급(`OnNodeClaimed` 훅)은 여전히 미연결(WL-030) |
+| Management(Resource) (자원 지갑·생산처)     | n0wst4ndup | `Assets/Scripts/ManagementSpace`                              | 지갑·생산처(#42) + 경영 패널 UI·DayNightManager 낮/밤 루프 연동(#43, #66). 정산+주민 배치 초기화=OnNightToDay(정산 먼저). **밤→낮 전환은 이제 밤 전용 임시 UI(`NightActionPanelView`)의 "웨이브 성공" 버튼이 트리거(WL-018)** — 경영 패널(`RequestAdvancePhase`)은 낮→밤(`EndDay`)만 담당. 주민 수는 placeholder(주민 시스템 부재). 소비처·마나석 생산 후속. **🔀 방향 전환 예고(GDD v0.3, #139)**: ①확장 자원 라인(영토 해금, **매일 자동 수급**)으로 라인 목록 동적화 + 정산 시 **일일 수급 `Add`**(WL-021 경로. 종전 '식량 소모 생산' 모델은 폐기), ②생산 건물 3종 **업그레이드**(주민당량 증가, 라인별 상태로 분화 — WL-016/WL-021, BuildingUpgrade.md), ③자원 총량 표기 정본을 생산 패널로 이관(탑 바는 4주차 제거 예정 — Resources.md §5.5 (C)). 이번 이슈는 방향 문서화 + 업그레이드 구현 |
+| TerritoryGraph (경영 영토 확장)             | n0wst4ndup (View 비주얼: muchan) | `Assets/Scripts/ManagementSpace/Territory`                    | 그래프 생성(Delaunay+프루닝)·클레임(`ISelectable`)·점진 공개·호버 하이라이트(`IHoverable`) 구현, `GameScene`에 씬 통합 완료(#18, #67). 하루 1회 확장 게이팅(`HasExpandedToday`, `DayNightManager.OnDayStart` 연동)도 #67에서 추가. **노드 비주얼 에셋 적용(#127, PR#128, muchan)**: `TerritoryNodeStateVisual`(상태→비주얼 스왑: Selectable=절차 생성 소용돌이 `VortexVisual`, Owned=산 에셋, 본진=씬 지형)+확보 연출(UniTask). `GameScene`의 `TerritoryGraphView._nodePrefab`=`TerritoryNodeV2`(간격 튜닝 세트와 결합 — WL-059). 구형 프리팹은 기존 색상 경로 폴백. **엣지 배 연출(#93, muchan)**: 엣지 선(LineRenderer)을 `SweetBoat` 랜덤 1척이 왕복하는 `TerritoryEdgeShip` 연출로 교체(선은 `_drawEdgeLines` 기본 꺼짐), 양끝이 모두 `Owned`일 때만 표시(`TerritoryGraph.IsOwned`). 효과/마나석 지급(`OnNodeClaimed` 훅)은 여전히 미연결(WL-030). **🔀 방향 전환 예고(GDD v0.3)**: 영토 = "미개척 영지" → 확보 시 **새 자원 종류 + 생산 라인 해금**으로 의미 변경(GDD §3.2·§5.3). 효과 SO 계층(`TerritoryEffect`/`Grant`/`GainResident`/`ProductionMultiplier`)은 이 모델로 **재편 대상 — 별도 이슈**(TerritoryGraph.md §0). #139는 방향 문서화까지 |
 
 ## 2. 공개 API (다른 시스템이 소비해도 되는 것)
 
@@ -53,13 +53,16 @@
 - `ResourceWallet` (경영 자원 상태 저장소, 순수 C#) — `Get(ResourceKind)`, `CanAfford(kind, amount)`,
   `Add(kind, amount)`, `bool TrySpend(kind, amount)`(부족 시 false+로그, 차감 안 함),
   `event Action<ResourceKind,int> OnChanged`(종류, 변경 후 값). 자원 획득/차감은 이 창구로만(팀 계약 #3·#6)
-- `ResourceProductionSource` (건물 생산 단위, 순수 C#) — `int CalculateAmount(villagerCount)`(순수),
-  `int Produce(villagerCount)`(정산: 지갑에 Add, 넣은 양 반환), `static bool TryCreate(BuildingAsset, ResourceWallet, out)`.
-  **주민 수는 인자로 받음**(주민 시스템 부재 — placeholder). 정산 트리거는 이제 `ManagementController`가 DayNightManager 이벤트로 호출. `OutputResource.Data.Kind`로 지갑 키 해석(→ Data 채움 규약 의존)
-- `ManagementController` (경영 로직/모델, MonoBehaviour) — 지갑·생산처·주민 배치 소유. `AssignVillager(int)`/
+- `ResourceProductionSource` (건물 생산 단위, 순수 C#) — `int CalculateAmount(villagerCount, amountPerVillager, mult)`(순수),
+  `int Produce(villagerCount, amountPerVillager, mult)`(정산: 지갑에 Add, 넣은 양 반환), `static bool TryCreate(BuildingAsset, ResourceWallet, out)`(OutputResource만 캡처).
+  **주민 수·주민당 생산량을 인자로 받는 무상태 심**(주민당량은 건물 업그레이드로 가변 — #139; readonly 필드 제거). 정산 트리거는 이제 `ManagementController`가 DayNightManager 이벤트로 호출. `OutputResource.Data.Kind`로 지갑 키 해석(→ Data 채움 규약 의존)
+- `ManagementController` (경영 로직/모델, MonoBehaviour) — 지갑·생산처·주민 배치·업그레이드 상태 소유. `AssignVillager(int)`/
   `UnassignVillager(int)`, `RequestAdvancePhase()`(낮→밤 `EndDay()`·잉여 게이트 전용 — **밤→낮 `EndNight()`은 더 이상
   이 메서드가 호출하지 않음, #66. 밤 전용 임시 UI `NightActionPanelView`의 "웨이브 성공" 버튼이 직접 호출, WL-018**),
-  질의 `ResourceCount`/`LineCount`/`LineKind`/`AssignedTotal`/`IsDay`/`CanAdvancePhase`, `event OnChanged`(뷰 갱신).
+  **건물 업그레이드**(#139): `bool TryUpgrade(int)`·`bool CanUpgrade(int)`·`int LineLevel/LineMaxLevel/LineAmountPerVillager(int)`·
+  `IReadOnlyList<ResourceCost> LineUpgradeCost(int)` — 낮 전용, 수치는 `BuildingAsset.Production.UpgradeLevels`(SO),
+  **소비 게이트웨이** `bool CanAfford/TrySpend(IReadOnlyList<ResourceCost>)`(소비처는 지갑 직접 접근 대신 경유, 원자 차감 — WL-017),
+  질의 `ResourceCount`/`LineCount`/`LineKind`/`LineExpectedProduction`/`AssignedTotal`/`IsDay`/`CanAdvancePhase`, `event OnChanged`(뷰 갱신).
   UI(`ManagementPanelView`/`ProductionLineView`)는 이 컨트롤러만 구독·호출 — UI 아트 교체 시 뷰 참조만 재연결
 - `MouseManager.Instance.BeginPlacement(PlacementRequest)` / `CancelPlacement()` / `event OnSelectionChanged`
 - `MouseManager.Instance.PointerPosition`(포인터 화면 좌표 — Mouse.current 직접 폴링 대신 이걸 쓴다) /
@@ -138,8 +141,11 @@
 2. **데이터 파이프라인**: 게임 수치는 CSV(`Assets/Resources/DataTables/`) → DataTableManager → SO
    패턴. 새 데이터 타입은 `XxxData`(POCO)+`XxxAsset`(SO)+`XxxTable` 템플릿을 따른다.
    Get 계열 null 반환 → 호출부 null 체크 필수. (Docs/Tools/DataTableManager.md)
-3. **자원 흐름 고정** (GDD §4.2): 나무/철/식량 = 주민 배치 생산에서만 획득, 마나석 = 영토 확장·전투
-   보상에서만. 우회 경로 신설 금지.
+3. **자원 흐름** (GDD §3.2): 기본 자원(나무/철/식량) = 주민 배치 생산 **또는 영토 확장 보상**, 마나석 =
+   영토 확장·전투 보상에서만.
+   - **방향 전환(GDD v0.3)**: **미개척 영지 자원**(영토 해금)은 주민 배치 없이 **매일 정산마다 일정량이 자동
+     수급**된다(영토 확장 보상의 일종) — 영토 해금이라는 정당한 원천이므로 계약 위반 아님. (직전 '식량 소모 →
+     확장 자원 변환' 모델은 폐기, WL-042 참고.) 그 밖의 우회 경로(마나석→기본 자원 교환 건물 등)는 여전히 금지/미결.
 4. **공간 분리** (GDD §4.1/§6.2): 경영 공간 = 건물, 전투 공간 = 타워. 두 영토는 독립 관리 —
    한쪽 확장이 다른 쪽 상태에 의존 금지.
 5. **낮/밤 전환 계약** (GDD §5, Build0 계획): 낮 시작=본진 회복, 밤 시작(`OnDayToNight`)=전투 스테이지 확장+몬스터 스폰(#17), 밤→낮=주민 배치 기반 자원 정산(먼저)+

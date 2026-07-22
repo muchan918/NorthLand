@@ -14,11 +14,8 @@ using UnityEngine;
 /// </summary>
 public class ManagementController : MonoBehaviour
 {
-    [Tooltip("생산 라인으로 만들 산출 자원들. ResourceID가 ResourceTable CSV(wood/iron/food/mana)와 일치해야 한다.")]
-    [SerializeField] ResourceAsset[] _resourceAssets;
-
-    [Tooltip("주민 1명당 생산량 (모든 라인 공통, 임시값)")]
-    [SerializeField] int _baseAmountPerVillager = 5;
+    [Tooltip("생산 라인이 되는 생산 건물들(나무꾼의 집·광산·농장). 각 건물의 Production에서 산출 자원·주민당량·업그레이드 테이블을 읽는다.")]
+    [SerializeField] BuildingAsset[] _productionBuildings;
 
     [Tooltip("총 보유(최대) 주민 수. 주민 시스템 부재로 임시 placeholder. 전 라인 배치 합계 상한.")]
     [SerializeField] int _maxVillagers = 5;
@@ -34,6 +31,13 @@ public class ManagementController : MonoBehaviour
     private ResourceProductionSource[] _sources;
     private ResourceAsset[] _lineAssets;
     private int[] _villagerCounts;
+
+    // 건물 업그레이드 상태 — 라인별 런타임 상태로 소유한다(공유 SO에 레벨을 쓰지 않는다, WL-016).
+    // _level[i]=현재 레벨(0=미업그레이드), _amountPerVillager[i]=그 레벨의 주민당 생산량(정산·예상치가 참조),
+    // _lineUpgradeLevels[i]=그 건물의 레벨 테이블(SO에서 추출한 읽기 전용 기준값).
+    private int[] _level;
+    private int[] _amountPerVillager;
+    private List<BuildingAsset.UpgradeLevel>[] _lineUpgradeLevels;
 
     private DayNightManager _dayNight;
     private TerritoryController _territory;
@@ -138,7 +142,30 @@ public class ManagementController : MonoBehaviour
     public int LineVillagers(int index) => IsValidLine(index) ? _villagerCounts[index] : 0;
     // 패시브 생산 배율(영토 효과 등)을 반영한 예상 생산량. 정산부(HandleNightToDay)와 같은 식이어야 UI가 실제와 일치한다.
     public int LineExpectedProduction(int index) =>
-        IsValidLine(index) ? Mathf.RoundToInt(_baseAmountPerVillager * LineVillagers(index) * ProductionMultiplier(index)) : 0;
+        IsValidLine(index) ? Mathf.RoundToInt(_amountPerVillager[index] * LineVillagers(index) * ProductionMultiplier(index)) : 0;
+
+    // ── 건물 업그레이드 조회 API (다음 이슈의 UI가 바인딩할 계약) ──────────
+    public int LineLevel(int index) => IsValidLine(index) ? _level[index] : 0;
+    public int LineMaxLevel(int index) => IsValidLine(index) ? _lineUpgradeLevels[index].Count : 0;
+    public int LineAmountPerVillager(int index) => IsValidLine(index) ? _amountPerVillager[index] : 0;
+
+    // 다음 레벨(=현재 레벨 인덱스)의 비용. 최대 레벨이거나 라인 무효면 null(표시부는 "MAX" 처리).
+    public IReadOnlyList<ResourceCost> LineUpgradeCost(int index)
+    {
+        if (!IsValidLine(index)) return null;
+        List<BuildingAsset.UpgradeLevel> levels = _lineUpgradeLevels[index];
+        int next = _level[index];
+        return next < levels.Count ? levels[next].Cost : null;
+    }
+
+    // 업그레이드 가능 여부: 낮이어야 하고, 다음 레벨이 있어야 하고, 그 비용을 감당할 수 있어야 한다.
+    public bool CanUpgrade(int index)
+    {
+        if (!IsDay || !IsValidLine(index)) return false;
+        List<BuildingAsset.UpgradeLevel> levels = _lineUpgradeLevels[index];
+        int next = _level[index];
+        return next < levels.Count && CanAfford(levels[next].Cost);
+    }
 
     // 라인 산출 자원의 현재 생산 배율(레지스트리 미준비 시 1.0).
     private float ProductionMultiplier(int index) =>
@@ -187,34 +214,48 @@ public class ManagementController : MonoBehaviour
 
         var assets = new List<ResourceAsset>();
         var sources = new List<ResourceProductionSource>();
+        var baseAmounts = new List<int>();
+        var upgradeLevels = new List<List<BuildingAsset.UpgradeLevel>>();
 
-        int count = _resourceAssets != null ? _resourceAssets.Length : 0;
+        int count = _productionBuildings != null ? _productionBuildings.Length : 0;
         for (int i = 0; i < count; i++)
         {
-            ResourceAsset asset = _resourceAssets[i];
-            if (asset == null)
+            BuildingAsset building = _productionBuildings[i];
+            if (building == null)
             {
-                Debug.LogError($"[경영] {i}번 ResourceAsset이 비어 있습니다.");
+                Debug.LogError($"[경영] {i}번 생산 건물이 비어 있습니다.");
+                continue;
+            }
+
+            // 건물의 Production에서 생산처를 만든다(타입·OutputResource 검증은 TryCreate가 담당·로깅).
+            if (!ResourceProductionSource.TryCreate(building, _wallet, out ResourceProductionSource source))
+            {
                 continue;
             }
 
             // ResourceAsset.Data는 호출부가 채우는 규약(SystemMap §2).
-            if (asset.Data == null && table != null)
+            ResourceAsset output = building.Production.OutputResource;
+            if (output.Data == null && table != null)
             {
-                asset.Data = table.Get(asset.ResourceID);
+                output.Data = table.Get(output.ResourceID);
             }
-            if (asset.Data == null)
+            if (output.Data == null)
             {
-                Debug.LogError($"[경영] '{asset.ResourceID}' Data를 채우지 못해 라인 제외.");
+                Debug.LogError($"[경영] '{output.ResourceID}' Data를 채우지 못해 라인 제외.");
                 continue;
             }
 
-            assets.Add(asset);
-            sources.Add(new ResourceProductionSource(asset, _baseAmountPerVillager, _wallet));
+            assets.Add(output);
+            sources.Add(source);
+            baseAmounts.Add(Mathf.Max(0, building.Production.BaseAmountPerVillager)); // 레벨0 주민당량
+            upgradeLevels.Add(building.Production.UpgradeLevels ?? new List<BuildingAsset.UpgradeLevel>());
         }
 
         _lineAssets = assets.ToArray();
         _sources = sources.ToArray();
+        _amountPerVillager = baseAmounts.ToArray();
+        _lineUpgradeLevels = upgradeLevels.ToArray();
+        _level = new int[_sources.Length];
         _villagerCounts = new int[_sources.Length];
     }
 
@@ -296,6 +337,45 @@ public class ManagementController : MonoBehaviour
         OnChanged?.Invoke();
     }
 
+    /// <summary>
+    /// 생산 건물(라인)을 한 단계 업그레이드한다 — 낮에만, 다음 레벨 비용을 감당 가능할 때만.<br/>
+    /// 비용은 <see cref="TrySpend"/> 게이트웨이로 원자적으로 차감하고(WL-017/WL-048), 성공 시 레벨↑·주민당량 갱신.
+    /// 성공 여부를 반환한다. (UI는 다음 이슈 — 지금은 이 진입점만 제공.)
+    /// </summary>
+    public bool TryUpgrade(int index)
+    {
+        if (!IsDay)
+        {
+            Debug.Log("[경영] 밤에는 업그레이드할 수 없습니다.");
+            return false;
+        }
+        if (!IsValidLine(index))
+        {
+            return false;
+        }
+
+        List<BuildingAsset.UpgradeLevel> levels = _lineUpgradeLevels[index];
+        int next = _level[index];
+        if (next >= levels.Count)
+        {
+            Debug.Log($"[경영] {LineDisplayName(index)}: 이미 최대 레벨입니다. (Lv{_level[index]})");
+            return false;
+        }
+
+        BuildingAsset.UpgradeLevel target = levels[next];
+        if (!TrySpend(target.Cost))
+        {
+            Debug.Log($"[경영] {LineDisplayName(index)}: 자원이 부족해 업그레이드할 수 없습니다.");
+            return false;
+        }
+
+        _level[index] = next + 1;
+        _amountPerVillager[index] = target.AmountPerVillager;
+        Debug.Log($"[경영] {LineDisplayName(index)} 업그레이드 → Lv{_level[index]} (주민당량 {_amountPerVillager[index]})");
+        OnChanged?.Invoke();
+        return true;
+    }
+
     // 페이즈 전환 버튼: 낮이면 밤으로(잉여 주민 게이트). 밤→낮(EndNight)은 이제 웨이브 성공
     // 버튼이 전담한다(WL-018) — 이 버튼은 밤에는 아무 동작도 하지 않는다.
     public void RequestAdvancePhase()
@@ -329,7 +409,7 @@ public class ManagementController : MonoBehaviour
                 continue;
             }
 
-            int produced = _sources[i].Produce(_villagerCounts[i], ProductionMultiplier(i));
+            int produced = _sources[i].Produce(_villagerCounts[i], _amountPerVillager[i], ProductionMultiplier(i));
             Debug.Log($"[정산] {LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, _lineAssets[i].Data.NameKey)}: 주민 {_villagerCounts[i]}명 → +{produced}");
         }
 

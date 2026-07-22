@@ -9,6 +9,9 @@ NorthLand: Last Stand (팀 유유아) 프로젝트 문서 모음.
 | [GDD.md](GDD.md) | 게임 디자인 문서. **설계·게임플레이 결정 전에 먼저 읽기.** |
 | [Core/MouseManager.md](Core/MouseManager.md) | 마우스 입력/선택/배치 중앙 매니저 설계·구현 현황 (#9) |
 | [Core/DayNightManager.md](Core/DayNightManager.md) | 낮/밤 페이즈 전환 매니저·이벤트 훅 설계·구현 현황 (#6) |
+| [ManagementArea/Resources.md](ManagementArea/Resources.md) | 경영 자원 시스템(지갑·생산처·패널) + 확장 자원 방향(§5.5) |
+| [ManagementArea/TerritoryGraph.md](ManagementArea/TerritoryGraph.md) | 경영 영토 확장(그래프 노드) — **영토=미개척 영지 방향 전환(§0)** |
+| [ManagementArea/BuildingUpgrade.md](ManagementArea/BuildingUpgrade.md) | 생산 건물 업그레이드(주민당 획득량 증가) 설계 (#139) |
 | [Tools/StringTable.md](Tools/StringTable.md) | 로컬라이제이션 String Table 사용법·현재 상태 (`ko-KR`/`en-US`/`ja-JP`) |
 | [Tools/unity-cli-guide.md](Tools/unity-cli-guide.md) | Unity Editor 제어시 명령어·워크플로우 |
 | [Review/SystemMap.md](Review/SystemMap.md) | 시스템 지도·공개 API·접점 매트릭스·팀 계약 — **PR 리뷰(자동/수동) 판단 기준** |
@@ -19,6 +22,7 @@ NorthLand: Last Stand (팀 유유아) 프로젝트 문서 모음.
 ## 폴더 규칙
 
 - **`Core/`** — 게임 시스템 설계 및 구현 현황 문서
+- **`ManagementArea/`** — 경영 공간 시스템 설계·현황 문서(자원·영토·건물 업그레이드)
 - **`Tools/`** — 패키지·도구 사용 가이드
 - **`Review/`** — PR 리뷰 기준 문서 (시스템 지도·통합 계약 / 추적 이슈 원장). 공개 API·계약이 바뀌면 같은 PR에서 갱신
 - **`Build{N}/`** — 빌드별 기록
