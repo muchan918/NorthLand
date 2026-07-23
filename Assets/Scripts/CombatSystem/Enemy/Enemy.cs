@@ -24,6 +24,8 @@ namespace NorthLand.Combat
 
         private MonsterStateMachine monsterStateMachine;
 
+        private MonsterMove monsterMove;
+
         // EnemyType에 맞는 공통 전투 스탯 해석. data 미할당 시 null.
         EnemyAsset.CombatFields Stat => data == null ? null : data.EnemyType switch
         {
@@ -47,6 +49,13 @@ namespace NorthLand.Combat
             }
 
             OnHpChanged?.Invoke(currentHp, MaxHp);
+
+            monsterMove = GetComponentInChildren<MonsterMove>();
+
+            if (monsterMove != null)
+            {
+                monsterMove.RouteCompleted += HandleRouteCompleted;
+            }
         }
 
         public Faction Faction => Faction.Enemy;
@@ -156,6 +165,23 @@ namespace NorthLand.Combat
 
             projectile.Init(target, AttackDamage, ranged.ProjectileSpeed, this, ProjectileImpact.MakeSingle());
             return true;
+        }
+
+        private void OnDestroy()
+        {
+            if (monsterMove != null)
+            {
+                monsterMove.RouteCompleted -= HandleRouteCompleted;
+            }
+        }
+        private void HandleRouteCompleted()
+        {
+            if (isDying)
+            {
+                return;
+            }
+
+            Destroy(gameObject);
         }
 
         // 사거리 내에서 가장 가까운 아군 대상(유닛/본진)을 타겟으로 선정
