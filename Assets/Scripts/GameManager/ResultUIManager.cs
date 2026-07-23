@@ -16,6 +16,7 @@ namespace NorthLand.UI
         [SerializeField] GameObject gameOverPanel;
         [SerializeField] GameObject victoryPanel;
 
+
         void Awake()
         {
             if (Instance != null && Instance != this)
