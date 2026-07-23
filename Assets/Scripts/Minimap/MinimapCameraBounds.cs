@@ -3,21 +3,21 @@ using UnityEngine;
 [RequireComponent(typeof(LineRenderer))]
 public class MinimapCameraBounds : MonoBehaviour
 {
-    [SerializeField] private Transform cameraTarget;
+    [Header("Camera")]
     [SerializeField] private Camera targetCamera;
+    [SerializeField] private Camera minimapCamera;
 
-    [Header("Zoom Size")]
-    [SerializeField] private float widthScale = 1f;
-    [SerializeField] private float heightScale = 1f;
+    [Header("Ground")]
+    [SerializeField] private float groundY = 0f;
 
-    [Header("Minimap Rendering")]
-    [SerializeField] private float worldY = 500f;
-
-    [Header("Position Offset")]
-    [SerializeField] private float xOffset = 80f;
-    [SerializeField] private float zOffset = 120f;
+    [Header("Line Rendering")]
+    [SerializeField] private float distanceFromNearPlane = 1f;
 
     private LineRenderer lineRenderer;
+    private Plane groundPlane;
+
+    [Header("Rotation")]
+    [SerializeField] private float rotationOffset;
 
     private void Awake()
     {
@@ -27,33 +27,69 @@ public class MinimapCameraBounds : MonoBehaviour
         lineRenderer.loop = true;
         lineRenderer.useWorldSpace = true;
 
-        if (targetCamera == null)
-        {
-            targetCamera = Camera.main;
-        }
+        groundPlane = new Plane(Vector3.up,new Vector3(0f, groundY, 0f));
     }
 
     private void LateUpdate()
     {
-        if (cameraTarget == null ||targetCamera == null)
+        if (targetCamera == null || minimapCamera == null)
         {
             return;
         }
 
-        float centerX = cameraTarget.position.x + xOffset;
+        if (!TryGetGroundPoint(new Vector2(0f, 0f),out Vector3 bottomLeft) ||!TryGetGroundPoint(new Vector2(0f, 1f),out Vector3 topLeft) ||
+            !TryGetGroundPoint(new Vector2(1f, 1f),out Vector3 topRight) ||!TryGetGroundPoint(new Vector2(1f, 0f),out Vector3 bottomRight))
+        {
+            return;
+        }
 
-        float centerZ = cameraTarget.position.z + zOffset;
+        // 미니맵 카메라의 Near Plane보다 약간 앞에 선을 배치한다.
+        Vector3 renderPosition =minimapCamera.transform.position +minimapCamera.transform.forward *(minimapCamera.nearClipPlane + distanceFromNearPlane);
 
-        float halfHeight = targetCamera.orthographicSize * heightScale;
+        float renderY = renderPosition.y;
 
-        float halfWidth = targetCamera.orthographicSize * targetCamera.aspect *widthScale;
+        Vector3 center =(bottomLeft + topLeft + topRight + bottomRight) / 4f;
 
-        lineRenderer.SetPosition(0,new Vector3(centerX - halfWidth,worldY,centerZ - halfHeight));
+        Quaternion rotation =Quaternion.Euler(0f, rotationOffset, 0f);
 
-        lineRenderer.SetPosition(1,new Vector3(centerX - halfWidth,worldY,centerZ + halfHeight));
+        bottomLeft = center + rotation * (bottomLeft - center);
 
-        lineRenderer.SetPosition(2,new Vector3(centerX + halfWidth,worldY,centerZ + halfHeight));
+        topLeft = center + rotation * (topLeft - center);
 
-        lineRenderer.SetPosition(3,new Vector3(centerX + halfWidth,worldY,centerZ - halfHeight));
+        topRight = center + rotation * (topRight - center);
+
+        bottomRight = center + rotation * (bottomRight - center);
+
+        bottomLeft.y = renderY;
+        topLeft.y = renderY;
+        topRight.y = renderY;
+        bottomRight.y = renderY;
+
+        lineRenderer.SetPosition(0, bottomLeft);
+        lineRenderer.SetPosition(1, topLeft);
+        lineRenderer.SetPosition(2, topRight);
+        lineRenderer.SetPosition(3, bottomRight);
+    }
+
+    private bool TryGetGroundPoint(Vector2 viewportPoint,
+        out Vector3 groundPoint)
+    {
+        Ray ray = targetCamera.ViewportPointToRay(new Vector3(viewportPoint.x,viewportPoint.y,0f));
+
+        if (groundPlane.Raycast(ray, out float distance))
+        {
+            groundPoint = ray.GetPoint(distance);
+            return true;
+        }
+
+        groundPoint = default;
+        return false;
+    }
+
+    private void OnValidate()
+    {
+        distanceFromNearPlane =Mathf.Max(0.01f, distanceFromNearPlane);
+
+        groundPlane = new Plane(Vector3.up,new Vector3(0f, groundY, 0f));
     }
 }

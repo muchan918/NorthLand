@@ -3,16 +3,16 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 [RequireComponent(typeof(RawImage))]
-public class MinimapClickMover :MonoBehaviour,IPointerClickHandler,IDragHandler
+public class MinimapClickMover :
+    MonoBehaviour,
+    IPointerClickHandler,
+    IDragHandler
 {
     [SerializeField] private Camera minimapCamera;
     [SerializeField] private CameraController2 cameraController2;
 
-    [Header("실제 맵 바닥 높이")]
+    [Header("Ground")]
     [SerializeField] private float groundY = 0f;
-
-    [SerializeField]
-    private float offset = 0.08f;
 
     private RawImage rawImage;
     private RectTransform rectTransform;
@@ -35,13 +35,13 @@ public class MinimapClickMover :MonoBehaviour,IPointerClickHandler,IDragHandler
 
     private void MoveCamera(PointerEventData eventData)
     {
-        // 오른쪽 마우스만 허용
+        // 미니맵은 우클릭으로 조작한다.
         if (eventData.button != PointerEventData.InputButton.Right)
         {
             return;
         }
 
-        if (minimapCamera == null || cameraController2 == null)
+        if (minimapCamera == null ||cameraController2 == null ||rawImage == null ||rectTransform == null)
         {
             return;
         }
@@ -57,22 +57,23 @@ public class MinimapClickMover :MonoBehaviour,IPointerClickHandler,IDragHandler
 
         float v = Mathf.InverseLerp(rect.yMin,rect.yMax,localPoint.y);
 
-        // 드래그 중 미니맵 밖으로 나가도 좌표 제한
         u = Mathf.Clamp01(u);
         v = Mathf.Clamp01(v);
 
         Rect uvRect = rawImage.uvRect;
 
         u = uvRect.x + u * uvRect.width;
-        v = uvRect.y + v * uvRect.height- offset;
+        v = uvRect.y + v * uvRect.height;
 
-        Ray ray = minimapCamera.ViewportPointToRay(new Vector3(u, v , 0f));
+        Ray ray = minimapCamera.ViewportPointToRay(new Vector3(u, v, 0f));
 
         Plane groundPlane = new Plane(Vector3.up,new Vector3(0f, groundY, 0f));
 
         if (groundPlane.Raycast(ray, out float distance))
         {
-            cameraController2.MoveTo(ray.GetPoint(distance));
+            Vector3 clickedWorldPosition =ray.GetPoint(distance);
+
+            cameraController2.MoveViewCenterTo(clickedWorldPosition,groundY);
         }
     }
 }

@@ -1597,10 +1597,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ManagementPanelView
   _controller: {fileID: 544968473}
-  _woodText: {fileID: 711703915}
-  _ironText: {fileID: 254779436}
-  _foodText: {fileID: 2112597839}
-  _manaText: {fileID: 1514873855}
   _villagerPoolText: {fileID: 1894582133}
   _phaseText: {fileID: 965220044}
   _endDayButton: {fileID: 1432297225}
@@ -2899,13 +2895,14 @@ MonoBehaviour:
   cameraTarget: {fileID: 863015837}
   waveRewardSelectionUI: {fileID: 1658482855}
   moveSpeed: 50
-  xBounds: {x: -1450, y: 1290}
-  zBounds: {x: -1000, y: 600}
+  xBounds: {x: -1450, y: 1200}
+  zBounds: {x: -1050, y: 550}
   dragSpeed: 0.3
   zoomSpeed: 10
   minZoomSize: 70
   maxZoomSize: 300
   minimapMoveSmoothTime: 0.2
+  mainCamera: {fileID: 0}
 --- !u!4 &522335600
 Transform:
   m_ObjectHideFlags: 0
@@ -8082,7 +8079,6 @@ MonoBehaviour:
   minimapCamera: {fileID: 1977149817}
   cameraController2: {fileID: 522335599}
   groundY: 0
-  offset: 0.08
 --- !u!1 &1276908195
 GameObject:
   m_ObjectHideFlags: 0
@@ -9379,7 +9375,7 @@ MonoBehaviour:
   m_RendererIndex: -1
   m_VolumeLayerMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 1023
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
   m_RenderPostProcessing: 0
@@ -13510,13 +13506,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dd68c3c902962ca469768488bbb40b65, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MinimapCameraBounds
-  cameraTarget: {fileID: 863015837}
   targetCamera: {fileID: 1459800175}
-  widthScale: 1
-  heightScale: 1.3
-  worldY: 500
-  xOffset: 80
-  zOffset: 200
+  minimapCamera: {fileID: 1977149817}
+  groundY: 0
+  distanceFromNearPlane: 1
+  rotationOffset: -200
 --- !u!114 &1945152975
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -32,6 +32,8 @@ public class CameraController2 : MonoBehaviour
     [Header("미니맵 이동")]
     [SerializeField] private float minimapMoveSmoothTime = 0.15f;
 
+    [SerializeField] private Camera mainCamera;
+
     private Vector3 minimapMoveTarget;
     private Vector3 minimapMoveVelocity;
     private bool isMinimapMoving;
@@ -246,6 +248,60 @@ public class CameraController2 : MonoBehaviour
         minimapMoveTarget = ClampPosition(worldPosition);
         isMinimapMoving = true;
     }
+
+    public void MoveViewCenterTo(
+    Vector3 clickedWorldPosition,
+    float groundY)
+    {
+        if (cameraTarget == null)
+        {
+            return;
+        }
+
+        if (mainCamera == null)
+        {
+            mainCamera = Camera.main;
+        }
+
+        if (mainCamera == null)
+        {
+            MoveTo(clickedWorldPosition);
+            return;
+        }
+
+        Plane groundPlane = new Plane(
+            Vector3.up,
+            new Vector3(0f, groundY, 0f));
+
+        // 현재 메인 화면의 정중앙이 지면의 어디를 보고 있는지 계산
+        Ray centerRay = mainCamera.ViewportPointToRay(
+            new Vector3(0.5f, 0.5f, 0f));
+
+        if (!groundPlane.Raycast(centerRay, out float distance))
+        {
+            MoveTo(clickedWorldPosition);
+            return;
+        }
+
+        Vector3 currentViewCenter =
+            centerRay.GetPoint(distance);
+
+        // cameraTarget과 실제 화면 중심 사이의 차이
+        Vector3 targetOffset =
+            cameraTarget.position - currentViewCenter;
+
+        Vector3 correctedTargetPosition =
+            clickedWorldPosition + targetOffset;
+
+        correctedTargetPosition.y =
+            cameraTarget.position.y;
+
+        minimapMoveTarget =
+            ClampPosition(correctedTargetPosition);
+
+        isMinimapMoving = true;
+    }
+
     private void CancelMinimapMove()
     {
         isMinimapMoving = false;
