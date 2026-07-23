@@ -57,6 +57,7 @@ public class MonsterAnimation : MonoBehaviour
             animator.SetBool(IsMoveHash, false);
         }
 
+
         animator.SetBool(IsAttackHash, isAttacking);
     }
 

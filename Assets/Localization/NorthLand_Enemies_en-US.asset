@@ -54,6 +54,42 @@ MonoBehaviour:
     m_Localized: A boss monster with a powerful stat and unique behavior
     m_Metadata:
       m_Items: []
+  - m_Id: 1014745072590848
+    m_Localized: Yellow grummy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1015580837994496
+    m_Localized: Red grummy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1015732369809408
+    m_Localized: Blue grummy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1021480143347712
+    m_Localized: Monster
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1021678651367424
+    m_Localized: High-HP Monster
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1021661907705856
+    m_Localized: Fast-monving Monster
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1021640063770624
+    m_Localized: Monster
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1021582014603264
+    m_Localized: Fast Monster
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1021608925257728
+    m_Localized: Fat Monster
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

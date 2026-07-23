@@ -13,10 +13,8 @@ MonoBehaviour:
   m_Name: MonsterWave 2
   m_EditorClassIdentifier: Assembly-CSharp::MonsterWaveAsset
   waveNumber: 2
-  spawnInterval: 1
+  spawnInterval: 0.5
   groups:
   - monsterPrefab: {fileID: 7321704587212441968, guid: fd343a3c8af5dee4998407a8dd41a05d, type: 3}
-    count: 3
-  - monsterPrefab: {fileID: 7987534744054934123, guid: a1c9bc7faac30b84f87615a1001e368d, type: 3}
-    count: 3
-  rewardPool: {fileID: 11400000, guid: ce674cf169ac3ea41a0b9fd5ca1b6cdf, type: 2}
+    count: 10
+  rewardPool: {fileID: 0}

@@ -10,26 +10,26 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0d69c3ea8da17ce478b23f25c3bebb63, type: 3}
-  m_Name: goblin_archer
+  m_Name: blue_grummy
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAsset
-  EnemyID: goblin_archer
-  EnemyType: 1
+  EnemyID: blue_grummy
+  EnemyType: 0
   Melee:
+    Stat:
+      MaxHp: 80
+      MoveSpeed: 15
+      AttackDamage: 50
+      AttackRange: 3
+      AttackInterval: 3
+  Ranged:
     Stat:
       MaxHp: 0
       MoveSpeed: 0
       AttackDamage: 0
       AttackRange: 0
       AttackInterval: 0
-  Ranged:
-    Stat:
-      MaxHp: 10
-      MoveSpeed: 80
-      AttackDamage: 10
-      AttackRange: 10
-      AttackInterval: 5
     ProjectilePrefab: {fileID: 0}
-    ProjectileSpeed: 10
+    ProjectileSpeed: 0
   Boss:
     Stat:
       MaxHp: 0

@@ -19,8 +19,9 @@ public class CameraController2 : MonoBehaviour
     [SerializeField] private Vector2 zBounds = new Vector2(-40f, 40f);
 
     [Header("Move (Drag)")]
-    // 좌클릭 드래그 — MouseManager의 선택 입력(wasPressedThisFrame 1회성)과 같은 버튼을 쓰므로,
-    // 드래그 시작 지점의 오브젝트가 선택/해제될 수 있다(의도적으로 감수 — 요청 사항).
+    // 우클릭 드래그 — 좌클릭(MouseManager의 선택 입력)과 버튼을 분리해, 드래그 시작 지점의
+    // 오브젝트가 선택/해제되던 부작용을 없앴다. 단 우클릭은 배치/스킬 지정 모드에서 취소로도
+    // 쓰이므로(MouseManager), 그 모드 중 드래그하면 취소와 함께 카메라가 끌릴 수 있다.
     [SerializeField] private float dragSpeed = 0.05f;
 
     [Header("Zoom (Orthographic Size)")]
@@ -116,7 +117,7 @@ public class CameraController2 : MonoBehaviour
 
     private void MoveDrag()
     {
-        if (Mouse.current.leftButton.wasPressedThisFrame)
+        if (Mouse.current.rightButton.wasPressedThisFrame)
         {
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
             {
@@ -127,7 +128,7 @@ public class CameraController2 : MonoBehaviour
             _dragStartScreenPos = Mouse.current.position.ReadValue();
             _dragStartTargetPos = cameraTarget.position;
         }
-        else if (Mouse.current.leftButton.wasReleasedThisFrame)
+        else if (Mouse.current.rightButton.wasReleasedThisFrame)
         {
             _isDragging = false;
         }
