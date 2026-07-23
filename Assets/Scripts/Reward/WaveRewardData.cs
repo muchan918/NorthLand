@@ -4,7 +4,7 @@ using UnityEngine;
 // 새 타입 추가 시 기존 에셋의 직렬화 값(int) 보존을 위해 반드시 뒤에만 추가할 것.
 public enum WaveRewardType
 {
-    Fire,
+    Burn,
     Ice,
     Lightning,
     Poison

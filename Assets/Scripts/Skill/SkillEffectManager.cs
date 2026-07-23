@@ -1,26 +1,28 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// 웨이브 클리어 보상으로 얻는 스킬 특수효과(#169)의 레벨 상태 중앙 보관소.
-// 보상은 전부 스킬 특수효과이므로 WaveRewardType 전 타입을 레벨 관리 대상으로 다룬다.
-// 보상 선택 시 WaveRewardController가 ApplyReward를 호출해 레벨을 올리고,
-// 스킬 시전 측(SkillManager 훅 — 이후 단계)은 GetLevel로 현재 레벨을 읽어간다.
-// 레벨은 런(run) 단위로만 유효하므로 씬 생명주기 상태로 충분하다.
-//
-// 새 효과 추가 절차(이슈 #169 확장 방침): WaveRewardType에 값 1개 추가 →
-// 효과 구현 단계에서 수치 설정 블록 + 발동 분기 추가.
+// 웨이브 클리어 보상(#169)을 스킬 특수효과(SkillEffect)로 라우팅하는 씬 싱글톤.
+// 보상은 전부 스킬 특수효과 — 타입 분류 없이 전 타입을 효과 컴포넌트로 다룬다.
+// 효과들은 이 오브젝트에 컴포넌트로 부착하며, 레벨 소유·스킬 이벤트 구독·발동 로직은
+// 각 SkillEffect가 담당한다(SkillEffect.cs 참고). 여기는 보상 → 효과 위임과 레벨 조회만.
 public class SkillEffectManager : MonoBehaviour
 {
     public static SkillEffectManager Instance { get; private set; }
 
-    // 효과별 현재 레벨. 미보유 효과는 키 자체가 없다(= 0레벨).
-    readonly Dictionary<WaveRewardType, int> effectLevels = new();
+    // 이 오브젝트에 부착된 효과 컴포넌트들. Awake에서 수집한다.
+    readonly Dictionary<WaveRewardType, SkillEffect> effects = new();
 
     void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
+
+            foreach (var effect in GetComponents<SkillEffect>())
+            {
+                if (!effects.TryAdd(effect.Type, effect))
+                    Debug.LogWarning($"[SkillEffect] 같은 타입의 효과가 중복 부착됨: {effect.Type}", effect);
+            }
         }
         else
         {
@@ -28,7 +30,7 @@ public class SkillEffectManager : MonoBehaviour
         }
     }
 
-    // 보상 선택 결과를 반영해 해당 효과의 레벨을 올린다.
+    // 보상 선택 결과를 해당 타입의 효과에 위임한다. WaveRewardController가 호출.
     public void ApplyReward(WaveRewardData reward)
     {
         if (reward == null)
@@ -36,17 +38,18 @@ public class SkillEffectManager : MonoBehaviour
             return;
         }
 
-        effectLevels.TryGetValue(reward.RewardType, out int currentLevel);
-        int newLevel = currentLevel + reward.Amount;
-        effectLevels[reward.RewardType] = newLevel;
+        if (!effects.TryGetValue(reward.RewardType, out var effect))
+        {
+            Debug.LogWarning($"[SkillEffect] {reward.RewardType} 타입의 SkillEffect 컴포넌트가 부착돼 있지 않아 보상이 무시됨", this);
+            return;
+        }
 
-        Debug.Log($"[SkillEffect] {reward.RewardType} Lv{currentLevel} → Lv{newLevel}", reward);
+        effect.OnRewardApplied(reward.Amount);
     }
 
-    // 현재 효과 레벨. 미보유 시 0 — 스킬 훅은 이 값 하나만 보고 분기하면 된다.
+    // 현재 효과 레벨. 효과 미부착/미보유 시 0.
     public int GetLevel(WaveRewardType type)
     {
-        effectLevels.TryGetValue(type, out int level);
-        return level;
+        return effects.TryGetValue(type, out var effect) ? effect.Level : 0;
     }
 }
