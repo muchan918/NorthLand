@@ -5,8 +5,8 @@ using UnityEngine;
 /// <summary>
 /// 영토 확장의 씬 진입점(얇은 MonoBehaviour). 그래프 모델을 소유·구축하고,
 /// 뷰/입력이 호출할 유일한 변경 진입점(<see cref="TryClaim"/>)을 제공한다 — ManagementController와 동일 계보.<br/>
-/// 정책(하루 1회 게이팅)은 <see cref="TryClaim"/>에 구현됨(이슈 #67) — 비용 게이팅과 효과 적용(WL-030)은
-/// 여전히 미착수.
+/// 정책(하루 1회 게이팅)은 <see cref="TryClaim"/>에 구현됨(이슈 #67). 확보 후 자원 수급은 즉시지급이 아니라
+/// <b>매일 정산 시 자동 수급</b>(#166) — 노드의 <see cref="TerritoryDefinition"/>/DailyYield를 ManagementController가 소비한다.
 /// </summary>
 public class TerritoryController : MonoBehaviour
 {
@@ -18,7 +18,7 @@ public class TerritoryController : MonoBehaviour
     [Tooltip("생성 시드. 0이면 매 플레이 랜덤 — 사용된 시드를 로그로 남겨 재현 가능하게 한다")]
     [SerializeField] int _seed = 0;
 
-    [Tooltip("노드에 중복 없이 배정할 영토 정의 풀. 비우면 효과 없이 지형만 생성된다(TerritoryGraph.md §5).")]
+    [Tooltip("노드에 랜덤 배정할 미개척 영지 정의 풀(금/루비/사파이어/다이아 등). 비우면 영지 없이 지형만 생성된다(TerritoryGraph.md §5).")]
     [SerializeField] List<TerritoryDefinition> _definitionPool = new();
 
     /// <summary>그래프 상태가 바뀔 때 발생(Graph.OnChanged 중계). 뷰는 이걸 구독해 다시 렌더한다.</summary>
@@ -141,17 +141,16 @@ public class TerritoryController : MonoBehaviour
         return new TerritoryGraph(nodes, layout.HomeNodeId);
     }
 
-    // 노드에 효과 정의를 중복 없이(비복원) 배정한다 — 본진은 효과 없음(제외).
-    // 시드로 셔플하므로 재현 가능(WL-008 계보): 같은 seed면 같은 지형 + 같은 효과 배치.
+    // 노드에 미개척 영지 정의를 배정하고 각 노드의 일일 수급량을 롤한다 — 본진은 영지 없음(제외, #166).
+    // 시드로 셔플·롤하므로 재현 가능(WL-008 계보): 같은 seed면 같은 지형 + 같은 영지 배치 + 같은 일일량.
     //
-    // ⚠ 잠정 정책(팀 회의로 방향성 재검토 예정): 정의 풀보다 배정 대상 노드가 많으면 풀을 소진한 뒤
-    //    다시 셔플해 반복 배정한다 → 이 경우 같은 정의가 재등장할 수 있다. "풀 ≥ 노드 강제 / 가중치 /
-    //    인접 중복 회피" 등 대안은 미결(WL-030 인접). 지금은 소진 후 재셔플 반복으로만 채운다.
+    // 풀(자원 종류)보다 노드가 많은 게 정상이다(특수 자원 4종 < 노드 최대 30) — 풀을 소진하면 다시
+    // 셔플해 반복 배정하므로 같은 자원(예: 금)이 여러 노드에 정상적으로 재등장한다(GDD §3.2 "영지 수↑→총 수급↑").
     private static void AssignDefinitions(TerritoryNode[] nodes, int homeNodeId, IReadOnlyList<TerritoryDefinition> pool, int seed)
     {
         if (pool == null || pool.Count == 0)
         {
-            return; // 효과 없이 지형만 — 유효한 초기/미설정 상태(§5 "풀을 비우면 지형만")
+            return; // 영지 없이 지형만 — 유효한 초기/미설정 상태(§5 "풀을 비우면 지형만")
         }
 
         var rng = new System.Random(seed);
@@ -161,7 +160,7 @@ public class TerritoryController : MonoBehaviour
         {
             if (nodes[i].Id == homeNodeId)
             {
-                continue; // 본진은 효과 없음
+                continue; // 본진은 영지 없음
             }
 
             if (bag.Count == 0)
@@ -169,13 +168,16 @@ public class TerritoryController : MonoBehaviour
                 RefillShuffled(bag, pool, rng);
                 if (bag.Count == 0)
                 {
-                    Debug.LogWarning("[영토] 정의 풀에 유효한 항목이 없어 효과를 배정하지 않습니다.");
+                    Debug.LogWarning("[영토] 정의 풀에 유효한 항목이 없어 영지를 배정하지 않습니다.");
                     return;
                 }
             }
 
             int last = bag.Count - 1;
-            nodes[i].Definition = bag[last];
+            TerritoryDefinition def = bag[last];
+            nodes[i].Definition = def;
+            // 주입 시점에 일일 수급량을 [Min,Max]에서 1회 롤해 노드에 확정한다(#166). 같은 rng라 시드 결정성 유지.
+            nodes[i].DailyYield = def.RollDailyYield(rng);
             bag.RemoveAt(last); // 끝에서 꺼내 O(1) — 순서가 이미 무작위라 어느 쪽에서 꺼내도 무방
         }
     }

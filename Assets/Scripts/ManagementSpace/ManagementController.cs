@@ -219,10 +219,6 @@ public class ManagementController : MonoBehaviour
         if (_territory != null)
         {
             _territory.OnChanged -= HandleTerritoryChanged;
-            if (_territory.Graph != null)
-            {
-                _territory.Graph.OnNodeClaimed -= HandleNodeClaimed;
-            }
         }
     }
 
@@ -315,30 +311,13 @@ public class ManagementController : MonoBehaviour
             return;
         }
 
+        // 확보/낮 시작 등 영토 상태가 바뀌면 패널을 갱신한다 — 수급 row의 일일량·활성(회색) 상태 반영(#166).
+        // ⚠ 확보 시 즉시 지급은 없다. 자원은 매일 정산(HandleNightToDay → SettleTerritorySupply)에서
+        //   확보(Owned) 노드로부터 자동 수급된다(GDD §3.2 미개척 영지 = 매일 자동 수급).
         _territory.OnChanged += HandleTerritoryChanged;
-
-        // 영토 확보 효과 적용 지점(WL-030): 확보 시 1회 발행되는 OnNodeClaimed를 구독해 그 노드의 효과를
-        // 적용한다. 지갑·생산 배율을 이 컨트롤러가 소유하므로 여기서 컨텍스트를 조립하는 게 자연스럽다.
-        if (_territory.Graph != null)
-        {
-            _territory.Graph.OnNodeClaimed += HandleNodeClaimed;
-        }
     }
 
     private void HandleTerritoryChanged() => OnChanged?.Invoke();
-
-    // 확보된 노드에 주입된 정의의 효과들을 적용한다(즉시 자원 지급·패시브 생산 배율 등). 정의가 없는 노드(본진)는 무시.
-    // 지갑 지급은 wallet.OnChanged → OnChanged로, 배율 변경은 이어지는 Graph.OnChanged 중계로 UI에 반영된다.
-    private void HandleNodeClaimed(TerritoryNode node)
-    {
-        if (node == null || node.Definition == null)
-        {
-            return;
-        }
-
-        var ctx = new TerritoryEffectContext(_wallet, _productionModifiers, node, _territory != null ? _territory.Graph : null);
-        node.Definition.ApplyAll(ctx);
-    }
 
     // ── 뷰(또는 후속 패널 버튼)가 호출하는 진입점 ─────────────────────────
     public void AssignVillager(int index)
@@ -453,12 +432,66 @@ public class ManagementController : MonoBehaviour
             _villagerCounts[i] = 0;
         }
 
+        // 미개척 영지 일일 자동 수급(#166): 확보(Owned)한 영지가 매일 자기 자원을 DailyYield만큼 지급한다.
+        // 주민 배치와 무관한 패시브 수입 — 확보한 영지 수·종류가 늘수록 총 수급이 늘어난다(GDD §3.2).
+        SettleTerritorySupply();
+
         _wallet.Add(ResourceKind.Mana, _manaPerWaveClear);
         Debug.Log($"[정산] 웨이브 클리어 보상: 마나석 +{_manaPerWaveClear}");
 
         Debug.Log($"[경영] 밤 → 낮 (Wave {WaveCount}): 자원 정산 + 주민 배치 초기화");
         OnChanged?.Invoke();
     }
+
+    // 확보(Owned)한 미개척 영지들이 매일 지급하는 자원을 지갑에 정산한다(#166). 주민 배치와 무관.
+    // 본진(Definition == null)·미확보 노드는 건너뛴다.
+    private void SettleTerritorySupply()
+    {
+        if (_territory == null || _territory.Graph == null)
+        {
+            return;
+        }
+
+        IReadOnlyList<TerritoryNode> nodes = _territory.Graph.Nodes;
+        for (int i = 0; i < nodes.Count; i++)
+        {
+            TerritoryNode node = nodes[i];
+            if (node.State != TerritoryState.Owned || node.Definition == null || node.DailyYield <= 0)
+            {
+                continue;
+            }
+
+            _wallet.Add(node.Definition.Kind, node.DailyYield);
+            Debug.Log($"[정산] 영지 수급: {node.Definition.Kind} +{node.DailyYield} (노드 {node.Id})");
+        }
+    }
+
+    /// <summary>
+    /// 지정 자원의 일일 자동 수급량 합 — 확보(Owned)한 그 종류 미개척 영지들의 <c>DailyYield</c> 총합(#166).<br/>
+    /// 그 종류 영지를 아직 확보하지 않았으면 0. 패널의 특수 자원 row가 "+n"·활성(회색) 판정에 쓴다.
+    /// </summary>
+    public int SupplyDaily(ResourceKind kind)
+    {
+        if (_territory == null || _territory.Graph == null)
+        {
+            return 0;
+        }
+
+        int sum = 0;
+        IReadOnlyList<TerritoryNode> nodes = _territory.Graph.Nodes;
+        for (int i = 0; i < nodes.Count; i++)
+        {
+            TerritoryNode node = nodes[i];
+            if (node.State == TerritoryState.Owned && node.Definition != null && node.Definition.Kind == kind)
+            {
+                sum += node.DailyYield;
+            }
+        }
+        return sum;
+    }
+
+    /// <summary>웨이브 클리어(밤→낮) 시 지급되는 마나석 고정량 — 마나 row의 "+n" 미리보기용(#166).</summary>
+    public int ManaPerWaveClear => _manaPerWaveClear;
 
     private bool CanEditLine(int index)
     {

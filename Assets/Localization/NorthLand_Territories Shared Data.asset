@@ -39,6 +39,38 @@ MonoBehaviour:
     m_Key: territories.i10t10.desc
     m_Metadata:
       m_Items: []
+  - m_Id: 746219764854784
+    m_Key: territories.gold.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 746219777437696
+    m_Key: territories.gold.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 746219777437697
+    m_Key: territories.ruby.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 746219777437698
+    m_Key: territories.ruby.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 746219777437699
+    m_Key: territories.sapphire.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 746219777437700
+    m_Key: territories.sapphire.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 746219777437701
+    m_Key: territories.diamond.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 746219777437702
+    m_Key: territories.diamond.desc
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

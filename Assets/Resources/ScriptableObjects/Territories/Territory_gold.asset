@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15691b0cf4424b240a65e0971c0bf430, type: 3}
+  m_Name: Territory_gold
+  m_EditorClassIdentifier: Assembly-CSharp::TerritoryDefinition
+  _id: gold
+  _kind: 4
+  _islandPrefab: {fileID: 681017626638778351, guid: fe028f34ae733b947a626c753caf9c43, type: 3}
+  _minDaily: 3
+  _maxDaily: 6
