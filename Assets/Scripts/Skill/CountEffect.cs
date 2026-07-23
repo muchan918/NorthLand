@@ -11,7 +11,7 @@ public class CountEffect : SkillEffect
     [Header("디버그")]
     [SerializeField] bool debugLog;   // 반복 예약을 Console에 출력 (검증용)
 
-    public override WaveRewardType Type => WaveRewardType.Count;
+    public override WaveRewardType Type => WaveRewardType.ExtraCast;
 
     protected override void HandleImpact(SkillCastContext context)
     {

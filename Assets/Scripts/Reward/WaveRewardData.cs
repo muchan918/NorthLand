@@ -6,7 +6,7 @@ public enum WaveRewardType
 {
     Burn,
     Bomb,
-    Count,
+    ExtraCast,
     BuffBurn
 }
 
