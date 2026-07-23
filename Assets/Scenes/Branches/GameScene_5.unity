@@ -5655,6 +5655,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: fbb3a339d8f737043ade73b0cad2374c, type: 2}
   - {fileID: 11400000, guid: 76dc473896fb1b642ba2c5e5eb22104f, type: 2}
   - {fileID: 11400000, guid: a644f4da55393c0449049fe2ae101343, type: 2}
+  - {fileID: 11400000, guid: 12559c63206463b478dc0e4fbd7ea193, type: 2}
 --- !u!114 &1011705112
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12514,10 +12515,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ManagementPanelView
   _controller: {fileID: 1230581865}
-  _woodText: {fileID: 1754072436}
-  _ironText: {fileID: 1548411900}
-  _foodText: {fileID: 847896852}
-  _manaText: {fileID: 1319386286}
   _villagerPoolText: {fileID: 811096984}
   _phaseText: {fileID: 1972694967}
   _endDayButton: {fileID: 1877534728}
