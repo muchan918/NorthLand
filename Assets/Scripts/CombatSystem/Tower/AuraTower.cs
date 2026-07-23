@@ -14,7 +14,7 @@ namespace NorthLand.Combat
     //   Buff   → 아군 타워 대상, 스탯 버프. 배치 즉시(낮 포함) 사거리 내 타워에 부여하고, 타워 추가/제거 시
     //            (Tower.ActiveChanged) 재적용한다 — 폴링 없이 낮 정보 패널에도 버프 스탯이 즉시 반영(#164). Interval/Duration 미사용.
     // DamageInfo의 데미지 소스로 쓰이기 위해 IAttacker를 구현한다.
-    public class AuraTower : MonoBehaviour, IAttacker
+    public class AuraTower : MonoBehaviour, IAttacker, ISelectable
     {
         [SerializeField] TowerAsset data;
 
@@ -49,6 +49,52 @@ namespace NorthLand.Combat
 
         // 오라 타워는 단일 대상 즉시 공격 경로를 쓰지 않는다. 오라 루프로만 동작.
         public bool TryAttack(IDamageable target) => false;
+
+        // 정보 패널 연동(#153/#164) — Tower와 동일 패턴. 마법 타워도 선택 시 자기 정보를 연다.
+        // (MouseManager는 hit.collider.TryGetComponent<ISelectable>로 판정하므로 콜라이더와 같은 GO에 있어야 함)
+        public void OnSelected()
+        {
+            if (data == null)
+            {
+                Debug.LogError("[AuraTower] TowerAsset 미할당", this);
+                return;
+            }
+
+            data.Data ??= DataTableManager.Get<TowerTable>("TowerTable").Get(data.TowerID);
+            if (data.Data == null)
+            {
+                Debug.LogError($"[AuraTower] TowerData 없음 (TowerID={data.TowerID})", this);
+                return;
+            }
+
+            TowerInfoUI.Instance.ShowInfo(data.Data.DescriptionKey, BuildStatsText());
+        }
+
+        public void OnDeselected() => TowerInfoUI.Instance.HideInfo();
+
+        // 마법 타워 정보 텍스트: 오라 반경 + 효과 요약(디버프 DoT / 버프 스탯 증가). 라벨은 game.tower.* 로컬라이즈 키.
+        string BuildStatsText()
+        {
+            string rangeLabel = LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, "game.tower.attack_range");
+            string text = $"{rangeLabel}: {Radius:0.#}";
+
+            if (IsDebuff)
+            {
+                var dot = DebuffAura?.Damage;
+                if (dot != null && dot.HasDamage)
+                    text += $"\nDoT: {dot.DamageAmount:0.#} / {dot.TickInterval:0.#}s";
+            }
+            else if (IsBuff && BuffAura?.Modifiers != null)
+            {
+                foreach (var mod in BuffAura.Modifiers)
+                {
+                    if (mod == null) continue;
+                    string sign = mod.Amount >= 0 ? "+" : "";
+                    text += $"\n{mod.Stat} {sign}{mod.Amount:0.#}{(mod.IsPercentage ? "%" : "")}";
+                }
+            }
+            return text;
+        }
 
         void OnEnable()
         {
