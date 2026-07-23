@@ -34,9 +34,9 @@ namespace NorthLand.Combat
     }
 
     // 투사체 비행 방식
-    //  Homing   : 매 프레임 살아있는 대상 위치를 추적하는 유도탄 (반드시 명중)
+    //  Homing   : 매 프레임 살아있는 대상을 추적하는 유도탄 (반드시 명중). arcHeight>0이면 곡사(포물선) 비주얼도 적용.
     //  Ballistic: 발사 순간 대상의 월드 위치를 착탄점으로 고정하고 그 지점까지 비행.
-    //             대상이 도중에 죽거나 움직여도 고정된 착탄점에 그대로 명중(캐논·박격포용).
+    //             대상이 도중에 죽거나 움직여도 고정된 착탄점에 그대로 명중(박격포 등).
     public enum FlightMode { Homing, Ballistic }
 
     public class Projectile : MonoBehaviour
@@ -57,8 +57,11 @@ namespace NorthLand.Combat
         // Ballistic 상태: 발사 순간 스냅샷한 착탄점과 시작점, 진행 거리
         Vector3 startPos;
         Vector3 landingPos;
-        float totalDistance;
+        float totalDistance;   // 발사 시 시작점→대상까지 거리(호밍 아크 진행도 계산에도 재사용)
         float traveled;
+
+        // Homing 상태: 아크를 얹기 전의 "평면" 추적 위치. transform.position = homingPos + 아크 높이.
+        Vector3 homingPos;
 
         // 체인 중복 타격 방지용 (한 프레임에 하나의 투사체만 명중 처리되므로 static 재사용 OK)
         static readonly HashSet<IDamageable> chainHitSet = new HashSet<IDamageable>();
@@ -79,6 +82,14 @@ namespace NorthLand.Combat
                 landingPos = mb != null ? mb.transform.position : transform.position;
                 totalDistance = Vector3.Distance(startPos, landingPos);
             }
+            else // Homing
+            {
+                // 평면 추적 시작점 + 초기 거리(아크 진행도 t 계산 기준) 스냅샷.
+                homingPos = transform.position;
+                var mb = target as MonoBehaviour;
+                Vector3 tp = mb != null ? mb.transform.position : transform.position;
+                totalDistance = Vector3.Distance(homingPos, tp);
+            }
         }
 
         void Update()
@@ -89,7 +100,7 @@ namespace NorthLand.Combat
                 UpdateHoming();
         }
 
-        // 살아있는 대상을 매 프레임 추적하는 유도탄
+        // 살아있는 대상을 매 프레임 추적하는 유도탄. arcHeight>0이면 평면 추적 위에 포물선 높이를 얹어 곡사로 보이게 한다.
         void UpdateHoming()
         {
             var targetObj = target as MonoBehaviour;
@@ -100,14 +111,24 @@ namespace NorthLand.Combat
             }
 
             Vector3 targetPos = targetObj.transform.position;
+            Vector3 prevPos = transform.position;
 
-            Vector3 dir = targetPos - transform.position;
-            if (dir.sqrMagnitude > 0.0001f)
-                transform.rotation = Quaternion.LookRotation(dir.normalized) * Quaternion.Euler(rotationOffset);
+            // 평면(비아크) 추적 위치를 대상으로 이동. 아크는 이 위에 시각적 높이만 더한다.
+            homingPos = Vector3.MoveTowards(homingPos, targetPos, speed * Time.deltaTime);
 
-            transform.position = Vector3.MoveTowards(transform.position, targetPos, speed * Time.deltaTime);
+            // 진행도 t: 시작 시 0, 대상에 근접할수록 1(초기 거리 기준). 대상이 멀어지면 0으로 clamp.
+            float remaining = Vector3.Distance(homingPos, targetPos);
+            float t = totalDistance > 0.0001f ? Mathf.Clamp01(1f - remaining / totalDistance) : 1f;
+            float arcY = arcHeight * 4f * t * (1f - t);   // 양 끝 0, t=0.5에서 정점(arcHeight)인 포물선
 
-            if (Vector3.Distance(transform.position, targetPos) < 0.1f)
+            transform.position = homingPos + Vector3.up * arcY;
+
+            // 실제 이동 방향(아크 포함)을 향하도록 회전 → 곡사 시 상승/하강에 맞춰 기수가 기운다.
+            Vector3 moveDir = transform.position - prevPos;
+            if (moveDir.sqrMagnitude > 0.0001f)
+                transform.rotation = Quaternion.LookRotation(moveDir.normalized) * Quaternion.Euler(rotationOffset);
+
+            if (remaining < 0.1f)
             {
                 OnHit(targetPos);
                 Destroy(gameObject);

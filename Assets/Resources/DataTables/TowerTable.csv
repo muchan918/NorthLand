@@ -5,3 +5,4 @@ lightning_tower,towers.lightning.name,Chain,None,1,1,towers.lightning.role,tower
 haste_tower,towers.haste.name,Magic,Buff,1,1,towers.haste.role,towers.haste.desc
 slow_tower,towers.slow.name,Magic,Debuff,1,1,towers.slow.role,towers.slow.desc
 poison_tower,towers.poison.name,Magic,Debuff,1,1,towers.poison.role,towers.poison.desc
+gatling_tower,towers.gatling.name,Single,None,1,1,towers.gatling.role,towers.gatling.desc

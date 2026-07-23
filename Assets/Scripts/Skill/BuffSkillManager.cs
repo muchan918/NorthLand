@@ -17,6 +17,9 @@ public class BuffSkillManager : MonoBehaviour
 
     float cooldownTimer;
 
+    // 합산 중첩(#164)용 소스키 — 버프 타워의 소스키(TowerID 해시)와 겹치지 않는 고정 식별자.
+    static readonly int SkillSourceId = "skill.player_buff".GetHashCode();
+
     public bool IsReady => cooldownTimer <= 0f;
     public float CooldownRemaining01 => cooldown <= 0f ? 0f : Mathf.Clamp01(cooldownTimer / cooldown);
 
@@ -52,7 +55,7 @@ public class BuffSkillManager : MonoBehaviour
         if (!CanCast()) return false;
 
         foreach (var tower in Tower.Active)
-            tower.ApplyBuff(damageMultiplier, attackSpeedMultiplier, buffDuration);
+            tower.ApplyBuff(SkillSourceId, damageMultiplier, attackSpeedMultiplier, buffDuration);
 
         Debug.Log($"[BuffSkill] 발동: 타워 {Tower.Active.Count}개, 데미지x{damageMultiplier}, 공속x{attackSpeedMultiplier}, {buffDuration}초");
 

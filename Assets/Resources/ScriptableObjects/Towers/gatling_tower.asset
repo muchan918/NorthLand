@@ -10,25 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
-  m_Name: poison_tower
+  m_Name: gatling_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
-  TowerID: poison_tower
-  TowerPrefab: {fileID: 527708244005276318, guid: fc4ef101e7e1d6f468ba584523b14680, type: 3}
-  GhostPrefab: {fileID: 527708244005276318, guid: 11629f488a947514c869e22c8d9776ef, type: 3}
-  TowerType: 3
-  MagicEffectType: 2
-  Cost:
-  - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-    Amount: 40
-  - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
-    Amount: 20
+  TowerID: gatling_tower
+  TowerPrefab: {fileID: 6801833135963741600, guid: fc8cae31ccc3652479febc65cbf3e558, type: 3}
+  GhostPrefab: {fileID: 6801833135963741600, guid: 42cd2c767e149584392896cc66892ff3, type: 3}
+  TowerType: 0
+  MagicEffectType: 0
+  Cost: []
   Single:
     Attack:
-      AttackDamage: 0
-      AttackRange: 0
-      AttackInterval: 0
-      ProjectilePrefab: {fileID: 0}
-      ProjectileSpeed: 0
+      AttackDamage: 4
+      AttackRange: 32
+      AttackInterval: 0.35
+      ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
+      ProjectileSpeed: 800
   Area:
     Attack:
       AttackDamage: 0
@@ -56,11 +52,11 @@ MonoBehaviour:
         DamageAmount: 0
         TickInterval: 0
     DebuffAura:
-      Radius: 30
-      Interval: 1
-      Duration: 3
+      Radius: 0
+      Interval: 0
+      Duration: 0
       Modifiers: []
       Damage:
-        HasDamage: 1
-        DamageAmount: 3
-        TickInterval: 1
+        HasDamage: 0
+        DamageAmount: 0
+        TickInterval: 0
