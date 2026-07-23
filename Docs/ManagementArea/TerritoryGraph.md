@@ -7,8 +7,9 @@
 > `Assets/Scenes/GameScene.unity`에 배치돼 그래프 생성·확보(`ISelectable`)·호버 하이라이트
 > (`IHoverable`)까지 플레이 가능. ✅ **노드 비주얼 에셋 적용(#127, PR#128, muchan)** — 임시 색상
 > 구체를 상태별 비주얼(소용돌이/산)로 교체, §7.1 참고. ✅ **엣지 배 연출 적용(#93, muchan)** —
-> 엣지 선(LineRenderer)을 배(SweetBoat) 왕복 연출로 교체, §7.2 참고. 효과 카탈로그(§5)·보상 수치(§8) 등
-> 일부는 여전히 미착수 — 남은 TBD는 §8에서 계속 추적한다.
+> 엣지 선(LineRenderer)을 배(SweetBoat) 왕복 연출로 교체, §7.2 참고. ✅ **영토 = 미개척 영지 자원 재설계(#166)** —
+> 구 효과 SO 계층 폐기, 각 영지가 매일 자동 수급하는 자원 SO(`TerritoryDefinition`)로 교체, §0·§5 참고.
+> 밸런싱 수치·본진 연출 등 잔여 TBD는 §8에서 계속 추적한다.
 > 확정되지 않은 항목은 본문에서 **TBD / TODO**로 명시한다(docs-are-dev-reference 규약).
 > **GDD 근거**: §4.1(두 공간) · §5.1(낮 경영—영토 확장) · §6.3(경영 영토 확장) ·
 > §4.2(마나석=영토 확장 보상) · §6.1(주민 획득) · §3(Slay the Spire 노드 선택 응용) · §7(랜덤 리플레이)
@@ -18,13 +19,13 @@
 
 ---
 
-## ⚠️ 0. 방향 전환 예고 (GDD v0.3 — 영토 = 미개척 영지)
+## ✅ 0. 영토 = 미개척 영지 자원 재설계 (완료 — #166, GDD v0.3)
 
-**영토의 의미가 바뀐다.** 종전에는 영토를 확보하면 자원/주민/생산배율 등 **고유 효과**를 즉시/패시브로 얻었다(아래 §5 효과 SO 계층). 새 방향에서 **각 영토는 "미개척 영지"이고, 확보 시 그 영지 고유의 새 자원 종류 + 생산 라인이 해금된다**(GDD §3.2·§5.3). 새 라인은 **주민 배치 없이 매일 정산 시 일정량이 자동 수급된다**(Resources.md §5.5).
+**영토의 의미가 바뀌었다.** 종전에는 영토를 확보하면 자원/주민/생산배율 등 **고유 효과**를 즉시/패시브로 얻었다(구 효과 SO 계층). 이제 **각 영토는 "미개척 영지"이고, 확보하면 그 영지 고유의 새 자원 종류(금/루비/사파이어/다이아 등)를 매일 자동 수급한다**(GDD §3.2·§5.3). 수급 라인은 **주민 배치 없이 매 정산마다 일정량이 자동 수급된다**(Resources.md §5.5).
 
-- **이번 이슈 범위**: 이 방향(영토=새 자원 해금)을 **문서에 확정**하는 것까지. 그래프 생성·선택·공개·뷰 연출 등 **구조 코드는 그대로 유효**하다.
-- **별도 이슈로 미룸**: 아래 **§5 효과 SO 계층**(`TerritoryEffect`/`GrantResourceEffect`/`GainResidentEffect`/`ProductionMultiplierEffect`)과 그 Apply 배선(§8 WL-030)은 새 방향에 맞춰 **재편 대상**이다. "확보 → 새 자원 라인 해금"으로 바꾸는 코드 작업은 **별도 이슈**에서 진행한다.
-- 따라서 아래 §5·§6(자원 보상)·§8의 효과 관련 항목은 **현재 구현 상태의 기록**으로 읽되, **새 방향으로 교체될 예정**임을 전제로 볼 것.
+- **재편 완료(#166)**: 구 효과 SO 계층(`TerritoryEffect`/`GrantResourceEffect`/`GainResidentEffect`/`ProductionMultiplierEffect`/`TerritoryEffectContext`)을 **삭제**하고, `TerritoryDefinition`을 "자원 영지 정의"(자원 종류 + 섬 프리팹 + 일일 수급 [Min,Max])로 리셰이프했다(§5). 확보 즉시 지급 경로(`OnNodeClaimed → ApplyAll`)는 제거되고, **매일 정산 자동 수급**(`ManagementController.HandleNightToDay`)으로 교체됐다.
+- **구조 코드는 그대로**: 그래프 생성(Delaunay+프루닝)·선택·점진 공개·뷰 연출(소용돌이/섬·엣지 배)·하루 1회 게이팅은 무변경. 확보 방식 자체는 바뀌지 않았다.
+- 아래 §5·§6·§8은 이 재설계 기준으로 갱신됨.
 
 ---
 
@@ -121,26 +122,23 @@
 
 ---
 
-## 5. SO 주입 & 효과 확장 심 (요구사항 2 핵심)
+## 5. 자원 영지 SO 주입 (#166)
 
-**추상 효과 SO 방식으로 확정** — 심 + 노드 주입까지 구현됨(효과 Apply 배선은 후속, §8·WL-030). 구현 타입:
+**각 노드는 "미개척 영지 정의"(`TerritoryDefinition`) SO 하나를 주입받는다.** 구현 타입:
 
-- `TerritoryEffect`(추상 SO) — 효과 1개의 데이터+행동을 함께 담는다. `Apply(in TerritoryEffectContext)` 하나로
-  즉시/패시브를 통일하고, 무엇을 건드리는지는 컨텍스트 표면으로 구분한다. **새 효과 = 이 클래스 상속 SO 하나 추가.**
-  - 구체 효과: `GrantResourceEffect`(즉시·자원/마나석 지급), `GainResidentEffect`(즉시·주민 심),
-    `ProductionMultiplierEffect`(패시브·생산 +X%, 등록 훅 미구현 → §8).
-- `TerritoryDefinition`(SO) — 하나 이상의 `TerritoryEffect`를 묶는다. 노드에 주입되는 단위.
-- `TerritoryEffectContext`(struct) — 효과가 건드릴 시스템을 노출: 자원 지갑(마나·자원 지급),
-  주민 획득 심(주민 시스템 부재 → placeholder), 대상 노드/그래프 참조.
-- **주입**: `TerritoryController._definitionPool`(authored SO 리스트)을 그래프 생성 시 `_seed`로 셔플해
-  본진 제외 노드에 **중복 없이(비복원)** 배정(`AssignDefinitions`) → `TerritoryNode.Definition`에 보관.
-  같은 seed면 지형+효과 배치가 재현된다(WL-008 계보).
-- **신규 효과가 생겨도 `TerritoryGraph`/전이/뷰/주입 코드는 불변** — 효과 SO만 추가·주입.
+- `TerritoryDefinition`(SO, `Assets/Scripts/ManagementSpace/Territory/TerritoryDefinition.cs`):
+  - `ResourceKind Kind` — 이 영지가 매일 수급하는 자원(금/루비/사파이어/다이아 등).
+  - `GameObject IslandPrefab` — 확보 시 이 노드에 세워지는 섬 프리팹. **SO = 고정 프리팹**(종전 `TerritoryNodeStateVisual._mountainPrefabs`의 노드 Id 기반 선택에서 SO 소유로 이관).
+  - `int MinDaily`/`MaxDaily` + `int RollDailyYield(System.Random)` — 매일 수급량 범위. **주입 시점에 [Min,Max]에서 1회 롤**해 노드에 확정.
+  - 표시명/설명 스트링 테이블 키(`NorthLand_Territories`, `territories.{id}.name/.desc`).
+- `TerritoryNode.Definition`(SO ref) + `TerritoryNode.DailyYield`(롤된 일일량) — 노드가 보관하는 주입 결과.
+- **주입·롤**: `TerritoryController._definitionPool`(authored SO 리스트)을 그래프 생성 시 `_seed`로 셔플해 본진 제외 노드에 배정하고, 각 노드의 `DailyYield`를 같은 rng로 롤(`AssignDefinitions`). **자원 종류(≈4종) < 노드(최대 30)라 같은 자원이 여러 노드에 정상 재등장**(GDD §3.2 "영지 수↑→총 수급↑"). 같은 seed면 지형+영지 배치+일일량이 재현된다(WL-008).
+- **수급(즉시 아님)**: 확보 즉시 지급은 없다. `ManagementController.HandleNightToDay`가 매 정산마다 `Graph.Nodes` 중 Owned+Definition 노드를 순회해 `ResourceWallet.Add(Definition.Kind, DailyYield)` — **주민 배치와 무관한 매일 자동 수급**(Resources.md §5.5 A).
+- **새 자원 종류가 생겨도 `TerritoryGraph`/전이/뷰/주입 코드는 불변** — SO만 추가하고 풀에 넣으면 된다.
 
-> **수치 데이터 출처 확정: 영토 효과는 SO 단독 관리(CSV 아님)** — 팀 회의 결정. 각 효과 SO의 인스펙터 필드에
-> 직접 authoring한다(자원량·주민 수·생산 %). "모두 CSV로 관리는 과하다"는 판단 — 계약 #2(수치=CSV)는
-> **건물/타워/적 밸런싱 테이블에 적용**되며 영토 효과는 그 예외다. 효과 **행동**은 코드/SO이므로 CSV POCO 패턴과 별개.
-> 표시명/설명은 `TerritoryDefinition`의 스트링 테이블 키(로컬라이제이션 #102 계보)로 authored — 표시 문자열 출처는 §8.
+> **⚠ 구 효과 SO 계층 삭제(#166)**: `TerritoryEffect`/`GrantResourceEffect`/`GainResidentEffect`/`ProductionMultiplierEffect`/`TerritoryEffectContext`와 `Definition.ApplyAll` 즉시 적용 경로는 **폐기·삭제**됐다. `ProductionModifiers`(생산 배율 레지스트리)는 코드에 잔존하나 등록 생산자가 없어 항상 ×1이다(기본 라인 정산·예상치 호출부 무변경 목적).
+
+> **수치 데이터 출처: 영지 SO 단독 관리(CSV 아님)** — 팀 회의 결정. 각 SO 인스펙터에 자원 종류·섬 프리팹·일일 수급 범위를 직접 authoring한다. 계약 #2(수치=CSV)는 **건물/타워/적 밸런싱 테이블에 적용**되며 영지 데이터는 그 예외. 표시명/설명은 스트링 테이블 키(로컬라이제이션 #102 계보).
 
 ---
 
@@ -156,7 +154,7 @@
 `TooltipContent`로 반환한다(`BuildingTooltipSource` 계보) — 정의가 없는 노드(본진·미할당)는 `null` 반환으로
 툴팁 없음. 키는 정의의 `_id`에서 `territories.{id}.name/.desc`로 파생(스트링 테이블 `NorthLand_Territories`).
 색 하이라이트는 `OnHoverEnter`/`OnHoverExit`(`MouseManager.md` §8)가 별도로 Selectable 노드만 담당 |
-| **자원 보상** | 효과가 `ResourceWallet.Add`로 자원 지급 — **기본 자원(나무/철/식량)·마나석 모두 영토 확장 보상으로 지급 가능**(자원 흐름 결정: 기본 자원은 주민 생산 + 영토 보상 둘 다, GDD §3.2·계약 #3 개정). 마나석은 여전히 영토 확장·전투 보상에서만 발생하는 **정당한 원천**. 주민 획득(§6.1)은 주민 시스템 부재로 placeholder 심 |
+| **자원 수급** | 확보(Owned) 영지가 **매일 정산마다** 자기 자원(`Definition.Kind`)을 `DailyYield`만큼 `ResourceWallet.Add`로 지급(#166) — 주민 배치 무관한 자동 수급(GDD §3.2·계약 #3). **확보 즉시 지급·주민 획득·생산 배율 효과는 모두 제거됨**(구 효과 SO 계층 폐기, §5). 정산 주체는 `ManagementController.HandleNightToDay`(`OnNightToDay`) |
 | **낮/밤** | 확장은 **낮 행동**(GDD §5.1). `TerritoryController`가 `DayNightManager.OnDayStart`를 구독해 `HasExpandedToday`를 매 낮 시작마다 초기화하고, `TryClaim`에서 하루 1회로 게이팅한다(이슈 #67). 확장을 마쳐야(`HasExpandedToday == true`) `ManagementController`의 주민 배치가 열린다(§6.1 연동, 아래 참고). 밤 잠금·자원 비용 게이팅은 여전히 TBD(§8) |
 | **공간 분리** | 경영 공간 전용. 전투 그리드(BattleMapBuilder)·좌표계와 **무관**(팀 계약 #4 — 한쪽 확장이 다른 쪽 상태에 의존 금지) |
 
@@ -207,21 +205,17 @@
 
 ## 8. 미결 / TODO (구현 전 확정 필요)
 
-- [ ] **🔀 방향 전환: 영토 = 미개척 영지 → 새 자원 라인 해금**(§0, GDD v0.3): 확보 효과를 "고유 효과 지급"에서
-      "새 자원 종류 + 생산 라인 해금"으로 교체. 효과 SO 계층(§5)·Apply 배선을 이 모델로 재편. **별도 이슈** —
-      이번 이슈는 방향 문서화까지. 연동: `ManagementController` 라인 목록 동적화(WL-021), 확장 자원 일일 수급 정산(Resources.md §5.5).
-- [~] **영토 종류·효과 카탈로그** (요구사항 2): 효과 심 + 노드 주입 **구현됨**(§5). 구체 효과 3종(자원/주민/생산)
-      스캐폴드 존재. **단 새 방향(§0)으로 효과 개념 자체가 재편 대상** — 실제 카탈로그는 재편 후 확정.
-- [x] **효과 Apply 배선** (WL-030): **완료** — `ManagementController`가 `TerritoryController.Graph.OnNodeClaimed`를
-      구독해 확보 시 `TerritoryDefinition.ApplyAll(ctx)` 실행. 즉시 자원/마나석은 `ResourceWallet.Add`로 지급(계약 #3),
-      수치는 효과 SO에 authored(§5 — 영토 효과는 CSV 예외). 편집모드 검증: Iron10Tree10→나무·철 +10, Mana10→마나 +10,
-      Tree0.1+10→나무 +10 & 나무 생산 ×1.1 확인. 주민 획득만 여전히 심(주민 시스템 부재).
-- [x] **패시브 생산 modifier 훅**: **완료** — `ProductionModifiers`(자원별 배율, 곱셈 누적) 신설. `ManagementController`가
-      소유하고 정산(`ResourceProductionSource.Produce(count, multiplier)`)·예상치(`LineExpectedProduction`) 둘 다 반영.
-      `ProductionMultiplierEffect.Apply → ctx.AddProductionMultiplier`로 등록. `ResourceProductionSource`엔 선택적
-      `multiplier` 파라미터(기본 1f)만 추가해 기존 동작 불변.
-- [ ] **효과 분배 정책 재검토** (잠정 구현): 현재 `AssignDefinitions`는 풀 소진 시 재셔플 반복(같은 정의 재등장
-      허용). "풀 ≥ 노드 강제 / 가중치 / 인접 중복 회피" 등 대안은 팀 회의로 방향성 재검토 예정.
+- [x] **🔀 영토 = 미개척 영지 자원 재설계**(§0, GDD v0.3, #166): **완료** — 확보 효과를 "고유 효과 지급"에서
+      "매일 자동 수급하는 자원 영지"로 교체. 구 효과 SO 계층(§5)·`ApplyAll` 즉시 적용 삭제. 연동 구현: 정산부
+      `HandleNightToDay`에 일일 수급 `Add`, 패널 고정 8행(기본3+마나+특수4, Resources.md §5.5).
+- [x] **자원 영지 카탈로그** (#166): **구현됨**(§5) — `TerritoryDefinition`(자원 종류+섬 프리팹+일일 [Min,Max]).
+      초기 4종 authored: `Territory_gold/ruby/sapphire/diamond`(placeholder 섬 = @NorthLand Mountain_01~04). 밸런싱 수치는 후속.
+- [x] **일일 수급 정산 배선** (구 WL-030): **완료** — `ManagementController.HandleNightToDay`가 매 정산 시 `Graph.Nodes`의
+      Owned+Definition 노드를 순회해 `ResourceWallet.Add(Definition.Kind, DailyYield)`. 확보 즉시 지급·`OnNodeClaimed` 효과 경로는 제거.
+- [x] **구 패시브 생산 modifier 효과 제거** (#166): `ProductionMultiplierEffect` 삭제. `ProductionModifiers` 레지스트리는
+      코드에 잔존하나 생산자가 없어 항상 ×1(기본 라인 정산·예상치 호출부 무변경 목적) — 필요 시 후속 정리.
+- [x] **영지 분배 정책** (#166): `AssignDefinitions`는 자원 종류(≈4) < 노드(≤30)라 풀 소진 후 재셔플 반복 —
+      **같은 자원이 여러 노드에 재등장하는 것이 정상**(영지 수↑→총 수급↑). 가중치·인접 회피 등은 필요 시 후속.
 - [x] **입력 연결 선결 조건(레이어)** (WL-005): **해소(이슈 #67)** — `TerritoryNode.prefab`이 Layer 6
       (`Selectable`)이고 `GameScene`의 `MouseManager._selectableMask`도 이 비트를 포함해 클릭·호버
       모두 정상 동작함을 실제 씬에서 확인. 클릭 1회=즉시 확보(비가역)가 `ISelectable`의 "조회" 시맨틱을
@@ -246,8 +240,8 @@
 
 ## 9. 범위 밖 / 의존
 
-- ❌ **주민 시스템**(GDD §6.1): 부재 → 주민 보상은 placeholder 심(자원 시스템의 주민 수 placeholder와 동일 상황).
-- ❌ **구체 효과 구현**: §5 심 위 실제 효과들은 후속.
+- ❌ **주민 시스템**(GDD §6.1): 부재. #166에서 주민 획득 효과(`GainResidentEffect`)는 제거됨 — 영지는 자원만 수급한다.
+- ✅ **자원 영지 구현**(#166): §5 `TerritoryDefinition`(자원 종류+섬+일일 수급) + `HandleNightToDay` 매일 수급. 초기 4종 authored.
 - ~~❌ **실제 아트/연출**: 첫 구현은 기능 배치(노드·연결 최소 시각), 아트 교체 시 뷰 참조만 재연결.~~
   → **노드 비주얼(#127, §7.1)·엣지 배 연출(#93, §7.2) 적용됨**. 잔여: 본진 전용 연출.
 - **의존**: `MouseManager`(ISelectable/IHoverable, 씬 배치·`_camera`), `TooltipUI`(#38), `ResourceWallet`
@@ -257,8 +251,8 @@
 
 ## 10. 문서 반영 예정 (구현 PR에서)
 
-- `SystemMap.md` §1(소유자에 TerritoryGraph 추가) · §2(공개 API: `TerritoryGraph`·`TerritoryDefinition`·
-  `TerritoryEffect` 심) · §3(접점: MouseManager/TooltipUI/ResourceWallet/DayNightManager).
+- `SystemMap.md` §1(소유자에 TerritoryGraph 추가) · §2(공개 API: `TerritoryGraph`·`TerritoryDefinition`
+  (자원 영지 SO, #166)·`ManagementController.SupplyDaily`) · §3(접점: MouseManager/TooltipUI/ResourceWallet/DayNightManager).
 - `WatchList.md`: 좌표계·표시 문자열 출처(WL-013) 등 신규/연동 이슈.
 
 ---

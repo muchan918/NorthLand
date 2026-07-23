@@ -126,6 +126,26 @@ MonoBehaviour:
     m_Localized: Attack Speed
     m_Metadata:
       m_Items: []
+  - m_Id: 4731930922856448
+    m_Localized: Gold
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4731930989965312
+    m_Localized: Ruby
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4731930989965313
+    m_Localized: Sapphire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4731930989965314
+    m_Localized: Diamond
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4747409699778560
+    m_Localized: Gain {1} {0} daily.
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []
