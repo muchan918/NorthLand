@@ -178,6 +178,7 @@ public class TowerPlacer : MonoBehaviour
 
     // ── 스냅: 앵커(히트 타일) 기준 W×H 풋프린트의 중심 월드 좌표 ─────────────────────
     // 그리드가 월드 X/Z축에 정렬돼 있다고 가정한다(battlespace 회전 없음). 프리뷰도 여기서 갱신.
+    // y는 hit.point.y(레이가 타일 옆면에 맞으면 벽면 높이) 대신 타일 앵커 y를 써서 타워가 항상 윗면에 앉는다.
     private Vector3 SnapToFootprintCenter(RaycastHit hit)
     {
         BattleTile anchor = hit.collider.GetComponentInParent<BattleTile>();
@@ -186,7 +187,7 @@ public class TowerPlacer : MonoBehaviour
         Vector3 result = anchor != null
             ? new Vector3(
                 anchor.transform.position.x + (_activeData.GridWidth - 1) * 0.5f * tileSize,
-                hit.point.y,
+                anchor.AnchorPosition.y,
                 anchor.transform.position.z + (_activeData.GridHeight - 1) * 0.5f * tileSize)
             : hit.point;
 
