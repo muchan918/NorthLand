@@ -12,6 +12,12 @@ public class MinimapCameraBounds : MonoBehaviour
     [Header("Minimap Rendering")]
     [SerializeField] private float worldY = 500f;
 
+    [SerializeField]
+    private float Xoffsete = 80f;
+
+    [SerializeField]
+    private float Zoffsete = 120f;
+
     private LineRenderer lineRenderer;
 
     private void Awake()
@@ -33,12 +39,12 @@ public class MinimapCameraBounds : MonoBehaviour
         float centerX = cameraTarget.position.x;
         float centerZ = cameraTarget.position.z;
 
-        lineRenderer.SetPosition(0,new Vector3(centerX - halfWidth,worldY,centerZ - halfHeight));
+        lineRenderer.SetPosition(0,new Vector3(centerX - halfWidth+ Xoffsete, worldY,centerZ - halfHeight+ Zoffsete));
 
-        lineRenderer.SetPosition(1,new Vector3(centerX - halfWidth,worldY,centerZ + halfHeight));
+        lineRenderer.SetPosition(1,new Vector3(centerX - halfWidth + Xoffsete,worldY,centerZ + halfHeight+ Zoffsete));
 
-        lineRenderer.SetPosition(2,new Vector3(centerX + halfWidth,worldY,centerZ + halfHeight));
+        lineRenderer.SetPosition(2,new Vector3(centerX + halfWidth + Xoffsete, worldY,centerZ + halfHeight + Zoffsete));
 
-        lineRenderer.SetPosition(3,new Vector3(centerX + halfWidth,worldY,centerZ - halfHeight));
+        lineRenderer.SetPosition(3,new Vector3(centerX + halfWidth + Xoffsete,worldY,centerZ - halfHeight + Zoffsete));
     }
 }
