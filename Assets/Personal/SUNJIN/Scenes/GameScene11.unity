@@ -414,11 +414,11 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 1368590475}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 420, y: 270}
-  m_Pivot: {x: 0, y: 0}
+  m_Pivot: {x: 0, y: 1}
 --- !u!114 &63900688
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2260,8 +2260,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TerritoryController
   _settings:
-    NodeCount: 100
-    AreaRadius: 450
+    NodeCount: 30
+    AreaRadius: 800
     SectorCenterDegrees: 160
     SectorAngleDegrees: 140
     MinNodeSpacing: 140
@@ -2584,11 +2584,11 @@ RectTransform:
   - {fileID: 1256323426}
   m_Father: {fileID: 1368590475}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 10, y: 10}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 10, y: -10}
   m_SizeDelta: {x: 400, y: 250}
-  m_Pivot: {x: 0, y: 0}
+  m_Pivot: {x: 0, y: 1}
 --- !u!114 &452281189
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2603,7 +2603,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 0
+  m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -2905,6 +2905,7 @@ MonoBehaviour:
   zoomSpeed: 10
   minZoomSize: 70
   maxZoomSize: 300
+  minimapMoveSmoothTime: 0.2
 --- !u!4 &522335600
 Transform:
   m_ObjectHideFlags: 0
@@ -6577,11 +6578,11 @@ RectTransform:
   - {fileID: 1006855160}
   m_Father: {fileID: 528513835}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 12, y: -181}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 12, y: 10}
   m_SizeDelta: {x: 210, y: 270}
-  m_Pivot: {x: 0, y: 1}
+  m_Pivot: {x: 0, y: 0}
 --- !u!114 &1016629097
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8004,6 +8005,7 @@ GameObject:
   - component: {fileID: 1256323426}
   - component: {fileID: 1256323428}
   - component: {fileID: 1256323427}
+  - component: {fileID: 1256323429}
   m_Layer: 5
   m_Name: MiniMap
   m_TagString: Untagged
@@ -8044,7 +8046,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.RawImage
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 0
+  m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -8065,6 +8067,22 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1256323425}
   m_CullTransparentMesh: 1
+--- !u!114 &1256323429
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1256323425}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 311ec752a6f00644da2aead873cfdbc0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MinimapClickMover
+  minimapCamera: {fileID: 1977149817}
+  cameraController2: {fileID: 522335599}
+  groundY: 0
+  offset: 0.08
 --- !u!1 &1276908195
 GameObject:
   m_ObjectHideFlags: 0
@@ -13340,6 +13358,8 @@ GameObject:
   - component: {fileID: 1945152971}
   - component: {fileID: 1945152972}
   - component: {fileID: 1945152973}
+  - component: {fileID: 1945152976}
+  - component: {fileID: 1945152975}
   m_Layer: 11
   m_Name: MinimapCameraBounds
   m_TagString: Untagged
@@ -13347,21 +13367,25 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1945152971
-Transform:
+--- !u!224 &1945152971
+RectTransform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1945152969}
-  serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 1
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!120 &1945152972
 LineRenderer:
   serializedVersion: 3
@@ -13493,6 +13517,41 @@ MonoBehaviour:
   worldY: 500
   xOffset: 80
   zOffset: 200
+--- !u!114 &1945152975
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1945152969}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1344c3c82d62a2a41a3576d8abb8e3ea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.RawImage
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Texture: {fileID: 0}
+  m_UVRect:
+    serializedVersion: 2
+    x: 0
+    y: 0
+    width: 1
+    height: 1
+--- !u!222 &1945152976
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1945152969}
+  m_CullTransparentMesh: 1
 --- !u!1 &1975990173
 GameObject:
   m_ObjectHideFlags: 0
@@ -13684,7 +13743,7 @@ GameObject:
   - component: {fileID: 1977149816}
   - component: {fileID: 1977149815}
   m_Layer: 0
-  m_Name: Camera
+  m_Name: MinMapCamera
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -13790,7 +13849,7 @@ Camera:
   m_AllowMSAA: 1
   m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
-  m_OcclusionCulling: 1
+  m_OcclusionCulling: 0
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
 --- !u!4 &1977149818
