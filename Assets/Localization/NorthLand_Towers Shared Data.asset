@@ -100,21 +100,15 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 1158352120487936
-    m_Key: 'towers.Sniper.name
-
-'
+    m_Key: towers.Sniper.name
     m_Metadata:
       m_Items: []
   - m_Id: 1158354364440576
-    m_Key: 'towers.Sniper.role
-
-'
+    m_Key: towers.Sniper.role
     m_Metadata:
       m_Items: []
   - m_Id: 1158356088299520
-    m_Key: 'towers.Sniper.desc
-
-'
+    m_Key: towers.Sniper.desc
     m_Metadata:
       m_Items: []
   m_Metadata:
