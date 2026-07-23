@@ -81,8 +81,7 @@ namespace NorthLand.Combat
 
             GameManager gameManager = GameManager.Instance;
 
-            if (gameManager != null &&
-                gameManager.Result == GameResult.GameOver)
+            if (gameManager != null &&gameManager.Result != GameResult.Playing)
             {
                 if (movement != null)
                 {

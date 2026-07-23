@@ -1,10 +1,5 @@
-using NorthLand.Combat;
 using NorthLand.Core;
-using NorthLand.UI;
 using UnityEngine;
-#if UNITY_EDITOR
-using UnityEngine.InputSystem;
-#endif
 
 public enum MonsterState
 {
@@ -52,7 +47,7 @@ public class MonsterStateMachine : MonoBehaviour
 
         GameManager gameManager = GameManager.Instance;
 
-        if (gameManager != null && gameManager.Result == GameResult.GameOver)
+        if (gameManager != null && gameManager.Result != GameResult.Playing)
         {
             ChangeState(MonsterState.Idle);
             return;
