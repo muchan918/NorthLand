@@ -10,8 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 15691b0cf4424b240a65e0971c0bf430, type: 3}
-  m_Name: Mana10
+  m_Name: Territory_diamond
   m_EditorClassIdentifier: Assembly-CSharp::TerritoryDefinition
-  _id: m10
-  _effects:
-  - {fileID: 11400000, guid: 261c1cee7acaaae4e8a71ad3edb98e94, type: 2}
+  _id: diamond
+  _kind: 7
+  _islandPrefab: {fileID: 1124086591143084589, guid: 270ae32630cb97045acc5ee76e5c3e5f, type: 3}
+  _minDaily: 1
+  _maxDaily: 3
