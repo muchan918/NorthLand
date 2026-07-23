@@ -16,6 +16,7 @@ namespace NorthLand.Combat
         public static PlayerBase Instance { get; private set; }
         public static event Action<PlayerBase> OnBaseSpawned;
 
+  
         void Awake()
         {
             currentHp = maxHp;
@@ -61,5 +62,6 @@ namespace NorthLand.Combat
             }
             GameManager.Instance.TriggerGameOver();
         }
+     
     }
 }

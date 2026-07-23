@@ -1,4 +1,5 @@
 using System;
+using NorthLand.Core;
 using UnityEngine;
 
 namespace NorthLand.Combat
@@ -75,6 +76,19 @@ namespace NorthLand.Combat
         {
             if (Stat == null || isDying)
             {
+                return;
+            }
+
+            GameManager gameManager = GameManager.Instance;
+
+            if (gameManager != null &&gameManager.Result != GameResult.Playing)
+            {
+                if (movement != null)
+                {
+                    movement.IsStopped = true;
+                }
+
+                monsterStateMachine?.SetHasTarget(false);
                 return;
             }
 
