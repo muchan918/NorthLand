@@ -15,7 +15,6 @@ namespace NorthLand.UI
 
         [SerializeField] GameObject gameOverPanel;
         [SerializeField] GameObject victoryPanel;
-        public bool GameOvered { get; private set; }
 
 
         void Awake()
@@ -40,12 +39,6 @@ namespace NorthLand.UI
         public void ShowGameOver()
         {
             HideAll();
-            if (GameOvered)
-            {
-                return;
-            }
-
-            GameOvered = true;
             SetActiveSafe(gameOverPanel, true);
         }
 

@@ -1,4 +1,5 @@
 using NorthLand.Combat;
+using NorthLand.Core;
 using NorthLand.UI;
 using UnityEngine;
 #if UNITY_EDITOR
@@ -49,9 +50,9 @@ public class MonsterStateMachine : MonoBehaviour
             return;
         }
 
-        ResultUIManager resultUIManager = ResultUIManager.Instance;
+        GameManager gameManager = GameManager.Instance;
 
-        if (resultUIManager != null && resultUIManager.GameOvered)
+        if (gameManager != null && gameManager.GameOvered)
         {
             ChangeState(MonsterState.Idle);
             return;
