@@ -43,6 +43,38 @@ MonoBehaviour:
     m_Localized: Get 10 Iron and Wood each
     m_Metadata:
       m_Items: []
+  - m_Id: 746219764854784
+    m_Localized: Gold Land
+    m_Metadata:
+      m_Items: []
+  - m_Id: 746219777437696
+    m_Localized: An outland that yields Gold daily
+    m_Metadata:
+      m_Items: []
+  - m_Id: 746219777437697
+    m_Localized: Ruby Land
+    m_Metadata:
+      m_Items: []
+  - m_Id: 746219777437698
+    m_Localized: An outland that yields Ruby daily
+    m_Metadata:
+      m_Items: []
+  - m_Id: 746219777437699
+    m_Localized: Sapphire Land
+    m_Metadata:
+      m_Items: []
+  - m_Id: 746219777437700
+    m_Localized: An outland that yields Sapphire daily
+    m_Metadata:
+      m_Items: []
+  - m_Id: 746219777437701
+    m_Localized: Diamond Land
+    m_Metadata:
+      m_Items: []
+  - m_Id: 746219777437702
+    m_Localized: An outland that yields Diamond daily
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

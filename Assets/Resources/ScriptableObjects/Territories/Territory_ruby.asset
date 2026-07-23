@@ -10,9 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 15691b0cf4424b240a65e0971c0bf430, type: 3}
-  m_Name: Tree0.1+10
+  m_Name: Territory_ruby
   m_EditorClassIdentifier: Assembly-CSharp::TerritoryDefinition
-  _id: t0.1+10
-  _effects:
-  - {fileID: 11400000, guid: 4f8b0ae8affe3b94694db406b83c67aa, type: 2}
-  - {fileID: 11400000, guid: 545029a7729d9cb4ebcac2b41cfdfdaa, type: 2}
+  _id: ruby
+  _kind: 5
+  _islandPrefab: {fileID: 448881793709328671, guid: ef833fb8db8767a4794f016e6123fade, type: 3}
+  _minDaily: 2
+  _maxDaily: 5
