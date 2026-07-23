@@ -2899,8 +2899,8 @@ MonoBehaviour:
   cameraTarget: {fileID: 863015837}
   waveRewardSelectionUI: {fileID: 1658482855}
   moveSpeed: 50
-  xBounds: {x: -1000, y: 1000}
-  zBounds: {x: -1000, y: 1000}
+  xBounds: {x: -1450, y: 1290}
+  zBounds: {x: -1000, y: 600}
   dragSpeed: 0.3
   zoomSpeed: 10
   minZoomSize: 70
@@ -13487,9 +13487,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MinimapCameraBounds
   cameraTarget: {fileID: 863015837}
-  halfWidth: 200
-  halfHeight: 200
+  targetCamera: {fileID: 1459800175}
+  widthScale: 1
+  heightScale: 1.3
   worldY: 500
+  xOffset: 80
+  zOffset: 200
 --- !u!1 &1975990173
 GameObject:
   m_ObjectHideFlags: 0

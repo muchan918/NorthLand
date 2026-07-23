@@ -4,19 +4,18 @@ using UnityEngine;
 public class MinimapCameraBounds : MonoBehaviour
 {
     [SerializeField] private Transform cameraTarget;
+    [SerializeField] private Camera targetCamera;
 
-    [Header("Rectangle Size")]
-    [SerializeField] private float halfWidth = 200f;
-    [SerializeField] private float halfHeight = 200f;
+    [Header("Zoom Size")]
+    [SerializeField] private float widthScale = 1f;
+    [SerializeField] private float heightScale = 1f;
 
     [Header("Minimap Rendering")]
     [SerializeField] private float worldY = 500f;
 
-    [SerializeField]
-    private float Xoffsete = 80f;
-
-    [SerializeField]
-    private float Zoffsete = 120f;
+    [Header("Position Offset")]
+    [SerializeField] private float xOffset = 80f;
+    [SerializeField] private float zOffset = 120f;
 
     private LineRenderer lineRenderer;
 
@@ -27,24 +26,34 @@ public class MinimapCameraBounds : MonoBehaviour
         lineRenderer.positionCount = 4;
         lineRenderer.loop = true;
         lineRenderer.useWorldSpace = true;
+
+        if (targetCamera == null)
+        {
+            targetCamera = Camera.main;
+        }
     }
 
     private void LateUpdate()
     {
-        if (cameraTarget == null)
+        if (cameraTarget == null ||targetCamera == null)
         {
             return;
         }
 
-        float centerX = cameraTarget.position.x;
-        float centerZ = cameraTarget.position.z;
+        float centerX = cameraTarget.position.x + xOffset;
 
-        lineRenderer.SetPosition(0,new Vector3(centerX - halfWidth+ Xoffsete, worldY,centerZ - halfHeight+ Zoffsete));
+        float centerZ = cameraTarget.position.z + zOffset;
 
-        lineRenderer.SetPosition(1,new Vector3(centerX - halfWidth + Xoffsete,worldY,centerZ + halfHeight+ Zoffsete));
+        float halfHeight = targetCamera.orthographicSize * heightScale;
 
-        lineRenderer.SetPosition(2,new Vector3(centerX + halfWidth + Xoffsete, worldY,centerZ + halfHeight + Zoffsete));
+        float halfWidth = targetCamera.orthographicSize * targetCamera.aspect *widthScale;
 
-        lineRenderer.SetPosition(3,new Vector3(centerX + halfWidth + Xoffsete,worldY,centerZ - halfHeight + Zoffsete));
+        lineRenderer.SetPosition(0,new Vector3(centerX - halfWidth,worldY,centerZ - halfHeight));
+
+        lineRenderer.SetPosition(1,new Vector3(centerX - halfWidth,worldY,centerZ + halfHeight));
+
+        lineRenderer.SetPosition(2,new Vector3(centerX + halfWidth,worldY,centerZ + halfHeight));
+
+        lineRenderer.SetPosition(3,new Vector3(centerX + halfWidth,worldY,centerZ - halfHeight));
     }
 }
