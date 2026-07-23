@@ -1,3 +1,4 @@
+using System;
 using NorthLand.Combat;
 using System.Collections.Generic;
 using UnityEngine;
@@ -21,6 +22,11 @@ public class MonsterMove : MonoBehaviour, IMovementAgent
 
     private float moveSpeed;
     private bool hasInjectedMoveSpeed;
+
+    public event Action RouteCompleted;
+
+    private bool routeCompleted;
+    private bool hasRoute;
 
     private void Awake()
     {
@@ -51,8 +57,10 @@ public class MonsterMove : MonoBehaviour, IMovementAgent
     {
         route.Clear();
         currentRouteIndex = 0;
+        routeCompleted = false;
+        hasRoute = routePoints != null && routePoints.Count > 0;
 
-        if (routePoints == null)
+        if (!hasRoute)
         {
             return;
         }
@@ -63,14 +71,15 @@ public class MonsterMove : MonoBehaviour, IMovementAgent
 
     private void Update()
     {
-        if (IsStopped)
+        if (!hasRoute || IsStopped || routeCompleted)
         {
             return;
         }
 
         if (currentRouteIndex >= route.Count)
         {
-            Destroy(gameObject);
+            routeCompleted = true;
+            RouteCompleted?.Invoke();
             return;
         }
 

@@ -22,6 +22,10 @@ namespace NorthLand.Combat
         // 타겟 탐색용 재사용 버퍼. 매 프레임 힙 할당을 피하기 위해 사용(최대 16개 감지).
         readonly Collider[] hitBuffer = new Collider[16];
 
+        private MonsterStateMachine monsterStateMachine;
+
+        private MonsterMove monsterMove;
+
         // EnemyType에 맞는 공통 전투 스탯 해석. data 미할당 시 null.
         EnemyAsset.CombatFields Stat => data == null ? null : data.EnemyType switch
         {
@@ -33,6 +37,8 @@ namespace NorthLand.Combat
 
         void Awake()
         {
+            monsterStateMachine = GetComponent<MonsterStateMachine>();
+
             currentHp = Stat != null ? Stat.MaxHp : 0f;
 
             movement = GetComponent<IMovementAgent>();
@@ -43,6 +49,13 @@ namespace NorthLand.Combat
             }
 
             OnHpChanged?.Invoke(currentHp, MaxHp);
+
+            monsterMove = GetComponentInChildren<MonsterMove>();
+
+            if (monsterMove != null)
+            {
+                monsterMove.RouteCompleted += HandleRouteCompleted;
+            }
         }
 
         public Faction Faction => Faction.Enemy;
@@ -60,25 +73,34 @@ namespace NorthLand.Combat
 
         void Update()
         {
-            // 전투 스탯이 없는(미설정) 개체는 동작하지 않음
-            if (Stat == null) return;
+            if (Stat == null || isDying)
+            {
+                return;
+            }
 
-            // 대상 탐색은 매 프레임(쿨다운과 무관) — IsStopped(멈춰서 공격) 판정에 최신 위치가 필요하기 때문.
-            // 정지 위치 정밀도 때문에 매 프레임 유지한다. 몬스터 수가 많아지면 N프레임 스로틀+캐시로
-            // 최적화 여지가 있다(PR#104 리뷰 지적) — 단 스로틀 간격만큼 정지 지점이 밀리는 트레이드오프.
-            var target = FindTarget();
+            IDamageable target = FindTarget();
+            bool hasTarget = target != null;
 
-            // 사거리 안에 대상(본진/아군 유닛)이 있으면 멈춰서 공격, 없으면 전진.
-            // MonsterMove 등 IMovementAgent 구현체를 NavMeshAgent처럼 구동한다.
             if (movement != null)
-                movement.IsStopped = target != null;
+            {
+                movement.IsStopped = hasTarget;
+            }
+
+            monsterStateMachine?.SetHasTarget(hasTarget);
 
             cooldownTimer -= Time.deltaTime;
-            if (cooldownTimer > 0f) return;
 
-            if (target != null && TryAttack(target))
+            if (!hasTarget || cooldownTimer > 0f)
+            {
+                return;
+            }
+
+            if (TryAttack(target))
+            {
                 cooldownTimer = AttackInterval;
+            }
         }
+
 
         public void TakeDamage(DamageInfo info)
         {
@@ -87,15 +109,32 @@ namespace NorthLand.Combat
             OnHpChanged?.Invoke(currentHp, MaxHp);
 
             if (IsDead)
+            {
                 Die();
+            }
         }
 
+        // 같은 프레임 다중 타격에 의한 이중 사망 처리 방지
         // 사망 처리. 추후 오브젝트 풀링 도입 시 이 메서드 내부만 "풀 반환"으로 교체하면 된다.
         void Die()
         {
-            if (isDying) return;   // 같은 프레임 다중 타격에 의한 이중 사망 처리 방지
+            if (isDying)
+            {
+                return;
+            }
+
             isDying = true;
-            Destroy(gameObject);
+
+            if (monsterStateMachine != null)
+            {
+                monsterStateMachine.ChangeState(MonsterState.Death);
+            }
+            else
+            {
+                Debug.LogWarning($"[{name}] MonsterStateMachine이 없어 사망 애니메이션 없이 즉시 제거합니다.",this);
+
+                Destroy(gameObject);
+            }
         }
 
         public bool TryAttack(IDamageable target)
@@ -126,6 +165,23 @@ namespace NorthLand.Combat
 
             projectile.Init(target, AttackDamage, ranged.ProjectileSpeed, this, ProjectileImpact.MakeSingle());
             return true;
+        }
+
+        private void OnDestroy()
+        {
+            if (monsterMove != null)
+            {
+                monsterMove.RouteCompleted -= HandleRouteCompleted;
+            }
+        }
+        private void HandleRouteCompleted()
+        {
+            if (isDying)
+            {
+                return;
+            }
+
+            Destroy(gameObject);
         }
 
         // 사거리 내에서 가장 가까운 아군 대상(유닛/본진)을 타겟으로 선정
