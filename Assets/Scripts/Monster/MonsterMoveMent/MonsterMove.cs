@@ -71,13 +71,12 @@ public class MonsterMove : MonoBehaviour, IMovementAgent
 
     private void Update()
     {
-
-        if (IsStopped || routeCompleted)
+        if (!hasRoute || IsStopped || routeCompleted)
         {
             return;
         }
 
-        if (hasRoute && currentRouteIndex >= route.Count)
+        if (currentRouteIndex >= route.Count)
         {
             routeCompleted = true;
             RouteCompleted?.Invoke();
@@ -88,7 +87,7 @@ public class MonsterMove : MonoBehaviour, IMovementAgent
         {
             return;
         }
-   
+
         Vector3 targetPosition = route[currentRouteIndex];
 
         Vector3 direction = targetPosition - transform.position;
