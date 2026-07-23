@@ -123,6 +123,26 @@ MonoBehaviour:
     m_Key: game.tower.attack_speed
     m_Metadata:
       m_Items: []
+  - m_Id: 4731930922856448
+    m_Key: game.resources.gold
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4731930989965312
+    m_Key: game.resources.ruby
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4731930989965313
+    m_Key: game.resources.sapphire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4731930989965314
+    m_Key: game.resources.diamond
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4747409699778560
+    m_Key: game.territory.daily_supply
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
