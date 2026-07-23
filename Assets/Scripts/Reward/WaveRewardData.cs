@@ -5,7 +5,7 @@ using UnityEngine;
 public enum WaveRewardType
 {
     Burn,
-    Ice,
+    Bomb,
     Lightning,
     Poison
 }

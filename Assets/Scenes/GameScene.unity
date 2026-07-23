@@ -13147,6 +13147,7 @@ GameObject:
   - component: {fileID: 1995850071}
   - component: {fileID: 1995850070}
   - component: {fileID: 1995850072}
+  - component: {fileID: 1995850073}
   m_Layer: 0
   m_Name: SkillEffectManager
   m_TagString: Untagged
@@ -13196,6 +13197,26 @@ MonoBehaviour:
   tickDamagePerLevel: 2
   tickInterval: 0.5
   duration: 3
+  debugLog: 0
+--- !u!114 &1995850073
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1995850069}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a5ddd60424c13594bac94a0b29800ee8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BombEffect
+  bombPrefab: {fileID: 8925636819348908530, guid: b4c2d3008892ecf4ba6ba30b57d958a1, type: 3}
+  damagePerLevel: 20
+  explosionDelay: 2
+  explosionRadius: 10
+  enemyLayerMask:
+    serializedVersion: 2
+    m_Bits: 128
   debugLog: 0
 --- !u!1 &2009190626
 GameObject:
