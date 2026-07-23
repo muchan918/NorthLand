@@ -20,9 +20,10 @@ namespace NorthLand.Combat
         float cooldownTimer;
         readonly Collider[] hitBuffer = new Collider[16];
 
-        // 소스별 버프를 합산 중첩한다(#164). 각 소스(플레이어 버프 스킬, 각 버프 타워 종류)가 자기 항목을
-        // add/refresh하고, 실효 배율 = 1 + 모든 소스 보너스의 합. 같은 소스키는 갱신만 되어 자기 자신과는
-        // 중첩되지 않는다(버프 타워는 TowerID 해시를 소스키로 써 같은 종류끼리 미중첩, AuraTower와 규칙 일치).
+        // 소스별 버프를 합산 중첩한다(#164). 각 소스가 자기 항목을 add/refresh하고, 실효 배율 = 1 + 모든 소스 보너스의 합.
+        // 같은 소스키는 갱신만 되어 자기 자신과는 중첩되지 않는다. 소스키 도메인(AuraTower/BuffSkillManager가 전달):
+        //   버프 타워 = GetInstanceID()(인스턴스별) → 같은 종류 버프 타워도 서로 합산 중첩됨
+        //   플레이어 버프 스킬 = 고정 문자열 해시 / 디버프(DoT) = TowerID 해시(같은 종류 공유·미중첩)
         // 공유 TowerAsset 값은 건드리지 않고 이 인스턴스 배율만 조작한다. AuraTower(Magic)는 AttackFields가 없어 버프 대상 아님.
         struct BuffEntry { public float DamageBonus; public float SpeedBonus; public float Expiry; }
         readonly Dictionary<int, BuffEntry> activeBuffs = new();

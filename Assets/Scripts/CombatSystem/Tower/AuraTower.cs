@@ -217,8 +217,8 @@ namespace NorthLand.Combat
                 if (tower.Faction != Faction) continue;   // 버프는 아군만
                 if ((tower.transform.position - transform.position).sqrMagnitude > sqrRadius) continue;
 
-                // duration<=0 → 지속형(밤 종료 시 RemoveBuff로 해제). 소스키=GetInstanceID()라 같은 종류 버프 타워도
-                // 각각 별개 소스로 합산 중첩되고, 스킬 등 다른 소스와도 합산된다.
+                // duration<=0 → 지속형(이 버프 타워 철거/비활성 시 RemoveBuffFromAll로 해제 — 밤 게이팅 없음).
+                // 소스키=GetInstanceID()라 같은 종류 버프 타워도 각각 별개 소스로 합산 중첩되고, 스킬 등 다른 소스와도 합산된다.
                 tower.ApplyBuff(GetInstanceID(), damageMul, attackSpeedMul, 0f);
             }
         }

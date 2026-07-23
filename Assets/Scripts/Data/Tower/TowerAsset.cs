@@ -77,7 +77,7 @@ public class TowerAsset : ScriptableObject
     [System.Serializable]
     public class BuffAuraFields
     {
-        // 버프는 이벤트형(밤 시작 1회 부여, 밤 종료 해제)이라 Interval/Duration이 불필요(#164). Radius+Modifiers만 사용한다.
+        // 버프는 이벤트형(배치 즉시 부여 + 타워 추가/제거 시 재적용, 범위 유지형)이라 Interval/Duration이 불필요(#164). Radius+Modifiers만 사용한다.
         public float Radius;
         public List<StatModifier> Modifiers;
         public OptionalDamage Damage;   // (현재 미사용) 향후 아군 힐 등 확장 여지로 보존

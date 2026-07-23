@@ -17,7 +17,11 @@ MonoBehaviour:
   GhostPrefab: {fileID: 6801833135963741600, guid: 42cd2c767e149584392896cc66892ff3, type: 3}
   TowerType: 0
   MagicEffectType: 0
-  Cost: []
+  Cost:
+  - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
+    Amount: 40
+  - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+    Amount: 20
   Single:
     Attack:
       AttackDamage: 4
