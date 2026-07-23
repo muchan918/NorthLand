@@ -52,7 +52,7 @@ public class MonsterStateMachine : MonoBehaviour
 
         GameManager gameManager = GameManager.Instance;
 
-        if (gameManager != null && gameManager.GameOvered)
+        if (gameManager != null && gameManager.Result == GameResult.GameOver)
         {
             ChangeState(MonsterState.Idle);
             return;
