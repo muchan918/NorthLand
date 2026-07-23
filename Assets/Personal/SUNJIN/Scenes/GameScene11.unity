@@ -2894,7 +2894,7 @@ MonoBehaviour:
   cinemachineCamera: {fileID: 1228655714}
   cameraTarget: {fileID: 863015837}
   waveRewardSelectionUI: {fileID: 1658482855}
-  moveSpeed: 50
+  moveSpeed: 300
   xBounds: {x: -1450, y: 1200}
   zBounds: {x: -1050, y: 550}
   dragSpeed: 0.3

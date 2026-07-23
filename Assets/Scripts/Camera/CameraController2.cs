@@ -142,6 +142,8 @@ public class CameraController2 : MonoBehaviour
             return;
         }
 
+        CancelMinimapMove();
+
         Vector3 nextPosition = cameraTarget.position + moveDirection.normalized * moveSpeed * Time.unscaledDeltaTime;
         cameraTarget.position = ClampPosition(nextPosition);
     }
@@ -150,18 +152,20 @@ public class CameraController2 : MonoBehaviour
     {
         if (Mouse.current.rightButton.wasPressedThisFrame)
         {
-            // 미니맵 등 UI 위에서 누른 경우는 큰 맵 드래그가 아님
-            if (EventSystem.current != null &&EventSystem.current.IsPointerOverGameObject())
+            // UI 위에서 누른 경우 큰 맵 드래그를 시작하지 않음
+            if (EventSystem.current != null &&
+                EventSystem.current.IsPointerOverGameObject())
             {
                 return;
             }
 
-            // 큰 맵 드래그가 시작됐으므로 미니맵 자동 이동 취소
+            // 수동 드래그를 시작하면 미니맵 자동 이동 취소
             CancelMinimapMove();
 
             _isDragging = true;
-            _dragStartScreenPos = Mouse.current.position.ReadValue();
-            _dragStartTargetPos = cameraTarget.position;
+            _dragStartScreenPos =Mouse.current.position.ReadValue();
+
+            _dragStartTargetPos =cameraTarget.position;
         }
         else if (Mouse.current.rightButton.wasReleasedThisFrame)
         {
@@ -173,32 +177,14 @@ public class CameraController2 : MonoBehaviour
             return;
         }
 
-        Vector2 currentScreenPos = Mouse.current.position.ReadValue();
-        if (Mouse.current.rightButton.wasPressedThisFrame)
-        {
-            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
-            {
-                return;
-            }
+        Vector2 currentScreenPos =Mouse.current.position.ReadValue();
 
-            _isDragging = true;
-            _dragStartScreenPos = Mouse.current.position.ReadValue();
-            _dragStartTargetPos = cameraTarget.position;
-        }
-        else if (Mouse.current.rightButton.wasReleasedThisFrame)
-        {
-            _isDragging = false;
-        }
+        // 드래그 반대 방향으로 카메라 이동
+        Vector2 screenDelta =_dragStartScreenPos - currentScreenPos;
 
-        if (!_isDragging)
-        {
-            return;
-        }
+        Vector3 offset =(GroundRight() * screenDelta.x +GroundForward() * screenDelta.y) *dragSpeed;
 
-        Vector2 screenDelta = _dragStartScreenPos - currentScreenPos; // 드래그 반대 방향으로 카메라 이동(잡아끄는 느낌)
-
-        Vector3 offset = (GroundRight() * screenDelta.x + GroundForward() * screenDelta.y) * dragSpeed;
-        cameraTarget.position = ClampPosition(_dragStartTargetPos + offset);
+        cameraTarget.position =ClampPosition(_dragStartTargetPos + offset);
     }
 
     private void ZoomMouseWheel()
