@@ -33,6 +33,7 @@ public class MonsterSpawn : MonoBehaviour
     private readonly List<Vector3> route = new List<Vector3>();
     private readonly List<Vector3> spawnRoute = new List<Vector3>();
     private CancellationTokenSource spawnCancellationTokenSource;
+    private int currentRound;
 
 
     private void Awake()
@@ -135,10 +136,46 @@ public class MonsterSpawn : MonoBehaviour
             return;
         }
 
+        currentRound = round;
+
         CancellationToken cancellationToken =
             RestartSpawnTasks();
 
         SpawnRoundAsync(round,entries,cancellationToken).Forget();
+    }
+
+    // [테스트 훅] 남은 웨이브를 즉시 클리어 처리한다. 대기 중 스폰을 멈추고(진행 중 SpawnRoundAsync는
+    // 취소로 조용히 종료 → WaveCleared 중복 발화 없음), 현재 스폰된 몬스터를 전부 제거한 뒤,
+    // SpawnRoundAsync가 하던 완료 경로(WaveCleared→보상→EndNight)를 직접 구동한다.
+    // childCount==0 자연 충족을 기다리지 않는 이유: 그 WaitUntil이 SpawnRoundAsync 내부에 있어
+    // 스폰 취소 시 도달하지 못하기 때문(스폰 도중엔 아직 시작조차 안 함).
+    public void ForceClearWave()
+    {
+        CancelSpawnTasks();
+        ClearSpawnedMonsters();
+
+        if (WaveCleared != null)
+        {
+            WaveCleared.Invoke(currentRound);
+        }
+        else
+        {
+            EndNightIfNight();
+        }
+    }
+
+    // monsterParent의 자식(=살아있는 몬스터)을 역순으로 제거한다.
+    private void ClearSpawnedMonsters()
+    {
+        if (monsterParent == null)
+        {
+            return;
+        }
+
+        for (int i = monsterParent.childCount - 1; i >= 0; i--)
+        {
+            Destroy(monsterParent.GetChild(i).gameObject);
+        }
     }
 
 

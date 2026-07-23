@@ -38,7 +38,6 @@ public class MouseManager : MonoBehaviour
     private PlacementRequest _request;
     private SkillTargetRequest _skillRequest;
     private GameObject _ghost;
-    private SkillRangeIndicator _skillIndicator; // 스킬 조준 고스트의 색(유효/무효) 갱신용 캐시
 
     private void Awake()
     {
@@ -128,7 +127,6 @@ public class MouseManager : MonoBehaviour
         ClearHover(); // 타겟팅 중에는 툴팁을 띄우지 않는다
         _skillRequest = request;
         _ghost = Instantiate(request.GhostPrefab);
-        _skillIndicator = _ghost.GetComponent<SkillRangeIndicator>();
         _mode = Mode.SkillTargeting;
     }
 
@@ -137,7 +135,6 @@ public class MouseManager : MonoBehaviour
         _skillRequest?.OnEnded?.Invoke();
         if (_ghost != null) Destroy(_ghost);
         _ghost = null;
-        _skillIndicator = null;
         _skillRequest = null;
         _mode = Mode.Idle;
     }
@@ -214,9 +211,9 @@ public class MouseManager : MonoBehaviour
     }
 
     // ── SkillTargeting: 스킬 범위 지정 (요구사항 ③, #103) ─────────
-    // 도로(Road) 타일 위에서만 시전 가능하다. 고스트는 전투 타일 위에서만 표시(그 외엔 숨김)하고,
-    // 도로=초록/그 외 전투 타일=빨강으로 색을 바꿔 유효 여부를 알린다. 도로는 메시가 낮게 모델링돼
-    // 있어 고스트를 실제 히트 표면(hit.point)에 붙이면 낮은 도로 채널 안에 자연스럽게 앉는다.
+    // 전투 타일 위이기만 하면(종류 무관) 시전 가능하다. 고스트는 전투 타일 위에서만 표시하고,
+    // 타일 밖(빈 칸·틈·맵 밖)에서는 숨긴다. 고스트를 실제 히트 표면(hit.point)에 붙이므로
+    // 도로처럼 낮게 모델링된 타일 위에서도 표면에 자연스럽게 앉는다.
     private void UpdateSkillTargeting(Vector2 screenPos, bool overUI)
     {
         // 우클릭/Esc 로 취소
@@ -241,11 +238,8 @@ public class MouseManager : MonoBehaviour
         if (!_ghost.activeSelf) _ghost.SetActive(true);
         _ghost.transform.position = hit.point; // 실제 표면 → 도로면 낮게 앉음
 
-        bool onRoad = tile.TileType == CombatTileType.Road;
-        _skillIndicator?.SetValid(onRoad); // 도로=초록 / 그 외=빨강
-
-        // 도로 위에서만 시전한다. 도로 밖 좌클릭은 무시(조준 모드 유지).
-        if (!overUI && onRoad && Mouse.current.leftButton.wasPressedThisFrame)
+        // 전투 타일 위이면 시전한다. 타일 밖은 위에서 이미 고스트를 숨기고 return 했다.
+        if (!overUI && Mouse.current.leftButton.wasPressedThisFrame)
         {
             _skillRequest.OnConfirmed(hit.point);
             CancelSkillTargeting(); // 한 번 시전하면 조준 모드 종료(연속 시전 불필요)
