@@ -51,6 +51,18 @@ MonoBehaviour:
     m_Key: enemies.ogre.king.desc
     m_Metadata:
       m_Items: []
+  - m_Id: 1014745072590848
+    m_Key: enemies.grummy.yellow.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1015580837994496
+    m_Key: enemies.grummy.red.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1015732369809408
+    m_Key: enemies.grummy.blue.name
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
