@@ -76,9 +76,18 @@
   전투 타일 밖에선 인디케이터 숨김. **전투 타일 위 좌클릭**이면 `OnConfirmed(hit.point)`로 확정(타일 게이팅은 MouseManager 소유 — 요청 타입엔 `CanPlaceAt` 훅 없음)
 - `SkillManager.Instance` — **null 반환 가능(씬에 없으면) → 호출부 null 체크 필수**(#103).
   `CastAt(Vector3)`(범위 내 적에게 데미지, 밤+쿨다운 게이팅 통과 못하면 false), `CanCast()`,
-  `IsReady`, `CooldownRemaining01`(0~1, UI 바인딩용), `Radius`
+  `IsReady`, `CooldownRemaining01`(0~1, UI 바인딩용), `Radius`.
+  `ImpactResolved` 이벤트(`Action<SkillCastContext>`, #169) — 임팩트(착탄)마다 발행, 보상 특수효과(`SkillEffect`)
+  구독용. **컨텍스트의 `HitTargets`는 임팩트마다 재사용되는 버퍼 → 이벤트 처리 중에만 유효, 보관 금지.**
+  `ExtraImpacts`/`ExtraImpactInterval`을 구독자가 가산하면 추가 임팩트가 그 간격으로 반복됨
 - `BuffSkillManager.Instance` — **null 반환 가능 → 호출부 null 체크 필수**(#103). `Activate()`(타겟팅 없이
-  즉시 발동, 밤+쿨다운 게이팅 통과 못하면 false), `CanCast()`, `IsReady`, `CooldownRemaining01`
+  즉시 발동, 밤+쿨다운 게이팅 통과 못하면 false), `CanCast()`, `IsReady`, `CooldownRemaining01`.
+  `BuffResolved` 이벤트(`Action<BuffCastContext>`, #169) — 버프 시전마다 발행(Duration 포함), 버프 계열 특수효과 구독용
+- `SkillEffectManager.Instance` — **null 반환 가능 → 호출부 null 체크 필수**(#169). 보상 라우터:
+  `ApplyReward(WaveRewardData)`(타입 매칭 `SkillEffect` 컴포넌트에 레벨 가산 위임), `GetLevel(WaveRewardType)`(미보유 0)
+- `Projectile.DamageDealt`(`static event Action<IAttacker, IDamageable>`, `NorthLand.Combat`, #169 muchan 추가) —
+  투사체 데미지가 실제로 들어간 직후 발행(단일/스플래시/체인 전 경로). **static이므로 구독 해제는 구독자 책임**
+  (파괴된 MonoBehaviour를 남기면 죽은 구독자 호출 버그). 현재 구독자: `BurnBuff`(버프 창 동안만)
 - `Tower.Active`(`static List<Tower>`, `NorthLand.Combat`) — 씬에 활성화된 모든 Tower가 `OnEnable`/`OnDisable`로
   자가 등록/해제(#103). `FindObjectsByType<Tower>()` 대체용 — 소비처가 씬을 훑지 않고 순회만 하면 됨
 - `Tower.ApplyBuff(float damageMul, float attackSpeedMul, float duration)` — 지속시간 동안 공격력/공격속도
