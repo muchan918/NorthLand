@@ -13149,6 +13149,7 @@ GameObject:
   - component: {fileID: 1995850072}
   - component: {fileID: 1995850073}
   - component: {fileID: 1995850074}
+  - component: {fileID: 1995850075}
   m_Layer: 0
   m_Name: SkillEffectManager
   m_TagString: Untagged
@@ -13232,6 +13233,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CountEffect
   repeatInterval: 0.5
+  debugLog: 0
+--- !u!114 &1995850075
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1995850069}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eacf04ed19c59734dac9e0d0a543fcfd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BurnBuff
+  tickDamagePerLevel: 1
+  tickInterval: 0.5
+  duration: 3
   debugLog: 0
 --- !u!1 &2009190626
 GameObject:

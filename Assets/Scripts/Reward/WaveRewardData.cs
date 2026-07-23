@@ -7,7 +7,7 @@ public enum WaveRewardType
     Burn,
     Bomb,
     Count,
-    Poison
+    BuffBurn
 }
 
 [CreateAssetMenu(fileName = "WaveReward",menuName = "Scriptable Objects/Wave Reward"
