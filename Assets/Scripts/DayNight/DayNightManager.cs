@@ -85,4 +85,18 @@ public class DayNightManager : MonoBehaviour
     //     yield return new WaitForSeconds(3f);
     //     EndNight();
     // }
+
+    // [테스트 훅] 주민 배치·영토 확장·몬스터 스폰 없이 웨이브 수만 올리고 낮 상태를 유지한 채 다음 날로 넘어간다.
+    // 정상 절차(EndDay→몬스터 스폰→WaveCleared→EndNight)를 전부 건너뛰므로 OnDayToNight/OnNightToDay는 발행하지 않는다.
+    public void SkipDay()
+    {
+        if (CurrentPhase != Phase.Day)
+        {
+            Debug.LogWarning("밤에는 SkipDay를 사용할 수 없습니다");
+            return;
+        }
+
+        WaveCount++;
+        OnDayStart?.Invoke();
+    }
 }

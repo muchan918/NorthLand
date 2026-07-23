@@ -18,10 +18,10 @@ MonoBehaviour:
   TowerType: 0
   MagicEffectType: 0
   Cost:
-  - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-    Amount: 60
-  - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
-    Amount: 40
+  - Resource: {fileID: 11400000, guid: 4a2d92e532482ff4dbafa7b361759b00, type: 2}
+    Amount: 5
+  - Resource: {fileID: 11400000, guid: 3929f789f0f53bd4b8ca15ea4342abd0, type: 2}
+    Amount: 5
   Single:
     Attack:
       AttackDamage: 50

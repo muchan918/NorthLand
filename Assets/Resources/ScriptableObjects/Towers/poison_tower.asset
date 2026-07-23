@@ -22,6 +22,8 @@ MonoBehaviour:
     Amount: 40
   - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
     Amount: 20
+  - Resource: {fileID: 11400000, guid: 090c2a0d275ad8f4493045612eb0e1da, type: 2}
+    Amount: 5
   Single:
     Attack:
       AttackDamage: 0
