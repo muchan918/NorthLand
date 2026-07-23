@@ -50,12 +50,18 @@ public class WaveRewardController : MonoBehaviour
 
     private void GrantReward(WaveRewardData reward)
     {
-        //Reward 내용은 아직 미정이라 로그만 정해지면 수정 
         if (reward == null)
         {
             return;
         }
 
         Debug.Log($"[웨이브 보상 선택]이름: {reward.DisplayName},종류: {reward.RewardType},수치: {reward.Amount}",reward);
+
+        // 스킬 특수효과 계열 보상(#169)은 SkillEffectManager가 레벨을 누적 관리한다.
+        // 매니저가 씬에 없어도 보상 선택 흐름 자체는 그대로 동작해야 한다.
+        if (SkillEffectManager.Instance != null)
+        {
+            SkillEffectManager.Instance.ApplyReward(reward);
+        }
     }
 }
