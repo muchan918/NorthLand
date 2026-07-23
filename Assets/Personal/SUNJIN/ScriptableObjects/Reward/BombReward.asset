@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cfd391053aaff74998f1c625afb3a41, type: 3}
   m_Name: BombReward
   m_EditorClassIdentifier: Assembly-CSharp::WaveRewardData
-  displayName: rewards.fire.magma.name
-  description: rewards.fire.magma.desc
+  displayName: rewards.bomb.name
+  description: rewards.bomb.desc
   icon: {fileID: 21300000, guid: f41812256c6f84a4bae0e460e3d9f578, type: 3}
   rewardType: 1
   amount: 1

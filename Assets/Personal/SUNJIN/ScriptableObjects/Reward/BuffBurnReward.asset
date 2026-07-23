@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cfd391053aaff74998f1c625afb3a41, type: 3}
   m_Name: BuffBurnReward
   m_EditorClassIdentifier: Assembly-CSharp::WaveRewardData
-  displayName: rewards.fire.meltdown.name
-  description: rewards.fire.meltdown.desc
+  displayName: rewards.buff.burn.name
+  description: rewards.buff.burn.desc
   icon: {fileID: 21300000, guid: 7b41267c4e3931541bfb5746c19caf9a, type: 3}
   rewardType: 3
   amount: 1

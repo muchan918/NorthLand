@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cfd391053aaff74998f1c625afb3a41, type: 3}
   m_Name: CountReward
   m_EditorClassIdentifier: Assembly-CSharp::WaveRewardData
-  displayName: rewards.fire.afterburn.name
-  description: rewards.fire.afterburn.desc
+  displayName: rewards.count.name
+  description: rewards.count.desc
   icon: {fileID: 21300000, guid: 7a755947c83b54a4283d95a84f336a7d, type: 3}
   rewardType: 2
   amount: 1
