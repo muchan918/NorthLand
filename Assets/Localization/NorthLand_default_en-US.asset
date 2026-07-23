@@ -87,11 +87,31 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 4357188526616576
-    m_Localized: open
+    m_Localized: Open
     m_Metadata:
       m_Items: []
   - m_Id: 4359788156235776
-    m_Localized: close
+    m_Localized: Close
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4417295401234432
+    m_Localized: Upgrade
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4417838077063168
+    m_Localized: Cost
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4448596606988288
+    m_Localized: Per villager
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4448596669902848
+    m_Localized: MAX
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4448596669902849
+    m_Localized: Lv
     m_Metadata:
       m_Items: []
   - m_Id: 4384618839711744

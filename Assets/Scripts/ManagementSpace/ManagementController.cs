@@ -23,6 +23,11 @@ public class ManagementController : MonoBehaviour
     [Tooltip("웨이브 클리어(밤→낮 정산) 시 지급되는 마나석 고정량 (GDD §4.3)")]
     [SerializeField] int _manaPerWaveClear = 10;
 
+    [Tooltip("게임 시작(런당 1회) 시 지급되는 초기 나무/철/식량. 마나석은 영토 확장·전투 보상 전용이라 제외(팀 계약 #3, 이슈 #130)")]
+    [SerializeField] int _initialWood = 110;
+    [SerializeField] int _initialIron = 40;
+    [SerializeField] int _initialFood = 0;
+
     /// <summary>상태(자원·주민 배치·페이즈)가 바뀔 때 발생. 뷰는 이걸 구독해 다시 렌더한다.</summary>
     public event Action OnChanged;
 
@@ -38,6 +43,7 @@ public class ManagementController : MonoBehaviour
     private int[] _level;
     private int[] _amountPerVillager;
     private List<BuildingAsset.UpgradeLevel>[] _lineUpgradeLevels;
+    private BuildingAsset[] _lineBuildings; // 라인 index → 원본 건물 SO (건물→라인 매핑용, BuildingInfoUI 등)
 
     private DayNightManager _dayNight;
     private TerritoryController _territory;
@@ -167,6 +173,26 @@ public class ManagementController : MonoBehaviour
         return next < levels.Count && CanAfford(levels[next].Cost);
     }
 
+    // 건물 SO가 몇 번 라인인지. 생산 라인(업그레이드 대상)이 아니면 -1.
+    public int LineIndexOf(BuildingAsset building)
+    {
+        if (building == null || _lineBuildings == null) return -1;
+        for (int i = 0; i < _lineBuildings.Length; i++)
+        {
+            if (_lineBuildings[i] == building) return i;
+        }
+        return -1;
+    }
+
+    // 한 단계 업그레이드 후의 주민당량(표시용 "현재 → 다음"). 최대 레벨이면 현재값 그대로(증가 없음).
+    public int LineNextAmountPerVillager(int index)
+    {
+        if (!IsValidLine(index)) return 0;
+        List<BuildingAsset.UpgradeLevel> levels = _lineUpgradeLevels[index];
+        int next = _level[index];
+        return next < levels.Count ? levels[next].AmountPerVillager : _amountPerVillager[index];
+    }
+
     // 라인 산출 자원의 현재 생산 배율(레지스트리 미준비 시 1.0).
     private float ProductionMultiplier(int index) =>
         _productionModifiers != null && IsValidLine(index) ? _productionModifiers.GetMultiplier(_lineAssets[index].Data.Kind) : 1f;
@@ -207,6 +233,12 @@ public class ManagementController : MonoBehaviour
         // (지갑 직접 변경엔 원래 OnChanged가 안 돌던 지점을 여기서 메운다)
         _wallet.OnChanged += (_, _) => OnChanged?.Invoke();
 
+        // 게임 시작 초기 자원 지급(런당 1회, 이슈 #130) — 유일 창구인 ResourceWallet.Add로만 지급한다(팀 계약 #3).
+        _wallet.Add(ResourceKind.Wood, _initialWood);
+        _wallet.Add(ResourceKind.Iron, _initialIron);
+        _wallet.Add(ResourceKind.Food, _initialFood);
+        Debug.Log($"[경영] 초기 자원 지급: Wood +{_initialWood}, Iron +{_initialIron}, Food +{_initialFood}");
+
         // 생산 배율 레지스트리는 지갑과 함께 런마다 새로 만든다(영토 패시브 효과가 여기에 누적).
         _productionModifiers = new ProductionModifiers();
 
@@ -216,6 +248,7 @@ public class ManagementController : MonoBehaviour
         var sources = new List<ResourceProductionSource>();
         var baseAmounts = new List<int>();
         var upgradeLevels = new List<List<BuildingAsset.UpgradeLevel>>();
+        var buildings = new List<BuildingAsset>();
 
         int count = _productionBuildings != null ? _productionBuildings.Length : 0;
         for (int i = 0; i < count; i++)
@@ -249,12 +282,14 @@ public class ManagementController : MonoBehaviour
             sources.Add(source);
             baseAmounts.Add(Mathf.Max(0, building.Production.BaseAmountPerVillager)); // 레벨0 주민당량
             upgradeLevels.Add(building.Production.UpgradeLevels ?? new List<BuildingAsset.UpgradeLevel>());
+            buildings.Add(building);
         }
 
         _lineAssets = assets.ToArray();
         _sources = sources.ToArray();
         _amountPerVillager = baseAmounts.ToArray();
         _lineUpgradeLevels = upgradeLevels.ToArray();
+        _lineBuildings = buildings.ToArray();
         _level = new int[_sources.Length];
         _villagerCounts = new int[_sources.Length];
     }
