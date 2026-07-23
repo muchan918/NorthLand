@@ -1,5 +1,7 @@
+using Cysharp.Threading.Tasks;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 using NorthLand.Combat;
 
@@ -64,7 +66,8 @@ public class SkillManager : MonoBehaviour
     }
 
     // 클릭한 위치를 중심으로 감전 임팩트를 발동한다. 특수효과가 ExtraImpacts를 가산하면
-    // (추가시전) 임팩트가 그만큼 반복되고, 반복분에서도 나머지 효과는 정상 발동한다.
+    // (추가시전) ExtraImpactInterval 간격으로 임팩트가 반복되고, 반복분에서도 나머지 효과는
+    // 정상 발동한다(화상/폭탄 조합 시너지).
     public bool CastAt(Vector3 position)
     {
         if (!CanCast()) return false;
@@ -75,15 +78,30 @@ public class SkillManager : MonoBehaviour
             HitTargets = hitTargets,
         };
 
-        for (int impact = 0; impact <= context.ExtraImpacts; impact++)
-        {
-            context.ImpactIndex = impact;
-            ResolveImpactDamage(position);
-            ImpactResolved?.Invoke(context);
-        }
+        context.ImpactIndex = 0;
+        ResolveImpactDamage(position);
+        ImpactResolved?.Invoke(context);
+
+        // 반복분은 간격을 두고 발동 — "한 번 누르면 잠시 뒤 한 번 더" 느낌.
+        if (context.ExtraImpacts > 0)
+            RepeatImpactsAsync(context, this.GetCancellationTokenOnDestroy()).Forget();
 
         cooldownTimer = cooldown;
         return true;
+    }
+
+    async UniTaskVoid RepeatImpactsAsync(SkillCastContext context, CancellationToken cancellationToken)
+    {
+        for (int impact = 1; impact <= context.ExtraImpacts; impact++)
+        {
+            await UniTask.Delay(
+                TimeSpan.FromSeconds(Mathf.Max(context.ExtraImpactInterval, 0f)),
+                cancellationToken: cancellationToken);
+
+            context.ImpactIndex = impact;
+            ResolveImpactDamage(context.Position);
+            ImpactResolved?.Invoke(context);
+        }
     }
 
     // 임팩트 1회: 반경 내 적 전체에게 데미지 적용 + 맞은 적을 hitTargets에 수집 + 연출.

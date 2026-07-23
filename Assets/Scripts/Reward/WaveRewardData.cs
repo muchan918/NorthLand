@@ -6,7 +6,7 @@ public enum WaveRewardType
 {
     Burn,
     Bomb,
-    Lightning,
+    Count,
     Poison
 }
 
