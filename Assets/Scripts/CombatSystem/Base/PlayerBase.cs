@@ -16,6 +16,8 @@ namespace NorthLand.Combat
         public static PlayerBase Instance { get; private set; }
         public static event Action<PlayerBase> OnBaseSpawned;
 
+        public bool GameOvered { get; private set; }
+
         void Awake()
         {
             currentHp = maxHp;
@@ -52,6 +54,13 @@ namespace NorthLand.Combat
 
         void GameOver()
         {
+            if (GameOvered)
+            {
+                return;
+            }
+
+            GameOvered = true;
+
             Debug.Log("Game Over - 본진이 파괴되었습니다");
 
             if (GameManager.Instance == null)
@@ -59,7 +68,10 @@ namespace NorthLand.Combat
                 Debug.LogWarning("[PlayerBase] GameManager가 씬에 없어 게임오버가 통지되지 않았습니다.");
                 return;
             }
+            //게임종료시 게임멈추는 로직
+            GameOvered = true;
             GameManager.Instance.TriggerGameOver();
         }
+     
     }
 }

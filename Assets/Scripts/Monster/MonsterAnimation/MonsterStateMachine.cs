@@ -1,3 +1,4 @@
+using NorthLand.Combat;
 using UnityEngine;
 #if UNITY_EDITOR
 using UnityEngine.InputSystem;
@@ -44,6 +45,14 @@ public class MonsterStateMachine : MonoBehaviour
     {
         if (currentState == MonsterState.Death)
         {
+            return;
+        }
+
+        PlayerBase playerBase = PlayerBase.Instance;
+
+        if (playerBase != null && playerBase.GameOvered)
+        {
+            ChangeState(MonsterState.Idle);
             return;
         }
 
