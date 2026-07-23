@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Threading;
-using Cysharp.Threading.Tasks;
 using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -22,15 +20,22 @@ namespace NorthLand.Combat
         float cooldownTimer;
         readonly Collider[] hitBuffer = new Collider[16];
 
-        // 버프 스킬(#103)이 이 배율만 조작한다 — 공유 TowerAsset 값은 건드리지 않음(타입 전체가 아니라
-        // 이 인스턴스만 일시적으로 강화됨). AuraTower(Magic)는 AttackFields 자체가 없어 버프 대상 아님.
+        // 소스별 버프를 합산 중첩한다(#164). 각 소스가 자기 항목을 add/refresh하고, 실효 배율 = 1 + 모든 소스 보너스의 합.
+        // 같은 소스키는 갱신만 되어 자기 자신과는 중첩되지 않는다. 소스키 도메인(AuraTower/BuffSkillManager가 전달):
+        //   버프 타워 = GetInstanceID()(인스턴스별) → 같은 종류 버프 타워도 서로 합산 중첩됨
+        //   플레이어 버프 스킬 = 고정 문자열 해시 / 디버프(DoT) = TowerID 해시(같은 종류 공유·미중첩)
+        // 공유 TowerAsset 값은 건드리지 않고 이 인스턴스 배율만 조작한다. AuraTower(Magic)는 AttackFields가 없어 버프 대상 아님.
+        struct BuffEntry { public float DamageBonus; public float SpeedBonus; public float Expiry; }
+        readonly Dictionary<int, BuffEntry> activeBuffs = new();
+        readonly List<int> expiredScratch = new();
         float damageMultiplier = 1f;
         float attackSpeedMultiplier = 1f;
-        CancellationTokenSource buffCts;
 
         // 씬에 존재하는 모든 Tower를 스킬 등에서 순회할 수 있게 자가 등록(FindObjectsByType 대체).
         public static readonly List<Tower> Active = new();
-        void OnEnable() => Active.Add(this);
+        // 타워가 씬에 추가/제거될 때 발생. 버프 타워가 배치 즉시(낮 포함) + layout 변화 시 사거리 내 타워를 갱신하는 데 쓴다(#164).
+        public static event Action ActiveChanged;
+        void OnEnable() { Active.Add(this); ActiveChanged?.Invoke(); }
 
         // 발사 시점 통지(탄약 시각 연출 등 구독용 — 예: 캐논 포탄이 발사 순간 사라짐).
         public event Action OnFired;
@@ -38,11 +43,9 @@ namespace NorthLand.Combat
         void OnDisable()
         {
             Active.Remove(this);
-            buffCts?.Cancel();
-            buffCts?.Dispose();
-            buffCts = null;
-            // 취소된 BuffRoutine은 원복 코드를 지나지 않고 바로 return하므로 여기서 직접 리셋해야
-            // 풀링 등으로 재활성화됐을 때 버프가 고착되지 않는다(PR#115 리뷰 지적).
+            ActiveChanged?.Invoke();   // 철거 등으로 빠지면 버프 타워가 대상 목록을 다시 계산하도록 통지.
+            // 풀링 등으로 재활성화됐을 때 버프가 고착되지 않도록 활성 버프를 비우고 배율을 리셋한다(PR#115 리뷰 지적).
+            activeBuffs.Clear();
             damageMultiplier = 1f;
             attackSpeedMultiplier = 1f;
         }
@@ -100,32 +103,58 @@ namespace NorthLand.Combat
         // 공격속도 배율이 클수록 더 빠르게(간격이 짧아짐) 공격하도록 나눗셈으로 적용.
         public float AttackInterval => Attack != null ? Attack.AttackInterval / attackSpeedMultiplier : 0f;
 
-        // 버프 스킬(#103) 진입점. 지속시간 동안 배율 적용 후 자동 원복. 재시전 시 남은 지속시간을 새 값으로 갱신.
-        // AuraTower.AuraLoop와 동일한 UniTask+CancellationTokenSource 패턴(코루틴 대신).
-        public void ApplyBuff(float damageMul, float attackSpeedMul, float duration)
+        // 버프 진입점(플레이어 스킬 #103 / 버프 타워 #164 공용). sourceId별로 항목을 add/refresh하며,
+        // 서로 다른 소스는 합산 중첩된다(같은 sourceId는 갱신만). 배율(예: 1.2)은 보너스(0.2)로 저장해
+        // 실효 배율 = 1 + 보너스 합. duration>0이면 그 시간 후 만료(Update에서 정리), duration<=0이면
+        // 지속형(만료 없음 → RemoveBuff로만 해제). 이벤트형 버프 타워는 지속형, 스킬은 시간제로 쓴다.
+        public void ApplyBuff(int sourceId, float damageMul, float attackSpeedMul, float duration)
         {
-            buffCts?.Cancel();
-            buffCts?.Dispose();
-            buffCts = new CancellationTokenSource();
-            BuffRoutine(damageMul, attackSpeedMul, duration, buffCts.Token).Forget();
+            activeBuffs[sourceId] = new BuffEntry
+            {
+                DamageBonus = damageMul - 1f,
+                SpeedBonus = attackSpeedMul - 1f,
+                Expiry = duration > 0f ? Time.time + duration : float.PositiveInfinity,
+            };
+            RecomputeBuffs();
         }
 
-        async UniTaskVoid BuffRoutine(float damageMul, float attackSpeedMul, float duration, CancellationToken ct)
+        // 특정 소스의 버프를 즉시 제거(만료 대기 없이). 이벤트형 버프 타워가 밤 종료·비활성화 시 호출한다.
+        public void RemoveBuff(int sourceId)
         {
-            damageMultiplier = damageMul;
-            attackSpeedMultiplier = attackSpeedMul;
+            if (activeBuffs.Remove(sourceId)) RecomputeBuffs();
+        }
 
-            bool canceled = await UniTask
-                .Delay(TimeSpan.FromSeconds(duration), cancellationToken: ct)
-                .SuppressCancellationThrow();
-            if (canceled) return;
+        // 만료된 버프를 제거한다(매 프레임, 페이즈 무관). 활성 항목 수가 적어 비용은 무시할 수준.
+        void PruneExpiredBuffs()
+        {
+            if (activeBuffs.Count == 0) return;
 
-            damageMultiplier = 1f;
-            attackSpeedMultiplier = 1f;
+            expiredScratch.Clear();
+            foreach (var kv in activeBuffs)
+                if (Time.time >= kv.Value.Expiry) expiredScratch.Add(kv.Key);
+
+            if (expiredScratch.Count == 0) return;
+            foreach (var key in expiredScratch) activeBuffs.Remove(key);
+            RecomputeBuffs();
+        }
+
+        // 실효 배율 = 1 + 모든 활성 소스 보너스의 합(합산 중첩).
+        void RecomputeBuffs()
+        {
+            float dmg = 0f, spd = 0f;
+            foreach (var b in activeBuffs.Values)
+            {
+                dmg += b.DamageBonus;
+                spd += b.SpeedBonus;
+            }
+            damageMultiplier = 1f + dmg;
+            attackSpeedMultiplier = 1f + spd;
         }
 
         void Update()
         {
+            PruneExpiredBuffs();
+
             // 공격 스탯이 없는 타입(Magic 등)은 이 컴포넌트가 처리하지 않음
             if (Attack == null) return;
             if (DayNightManager.Instance != null &&

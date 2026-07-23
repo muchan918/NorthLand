@@ -90,9 +90,13 @@
   (파괴된 MonoBehaviour를 남기면 죽은 구독자 호출 버그). 현재 구독자: `BurnBuff`(버프 창 동안만)
 - `Tower.Active`(`static List<Tower>`, `NorthLand.Combat`) — 씬에 활성화된 모든 Tower가 `OnEnable`/`OnDisable`로
   자가 등록/해제(#103). `FindObjectsByType<Tower>()` 대체용 — 소비처가 씬을 훑지 않고 순회만 하면 됨
-- `Tower.ApplyBuff(float damageMul, float attackSpeedMul, float duration)` — 지속시간 동안 공격력/공격속도
-  배율 적용 후 자동 원복(UniTask, `AuraTower.AuraLoop`와 동일한 `CancellationTokenSource` 패턴). 공유 `TowerAsset`
-  값은 건드리지 않음 — 인스턴스별 런타임 배율만 조작
+- `Tower.ActiveChanged`(`static event Action`, `NorthLand.Combat`) — Tower가 `Active`에 추가/제거될 때 발생(#164).
+  버프 타워(`AuraTower`)가 배치·철거·layout 변화 시 사거리 내 대상을 재계산하는 트리거
+- `Tower.ApplyBuff(int sourceId, float damageMul, float attackSpeedMul, float duration)` — 소스별 합산 중첩 버프(#164,
+  구형 3-arg 대체). sourceId별 항목 add/refresh, 실효 배율 = 1 + 모든 소스 보너스의 합. duration>0=시간제(Update에서 만료
+  정리), duration≤0=지속형(`RemoveBuff`로만 해제). 소스키 도메인: 버프 스킬=`"skill.player_buff"` 해시 / 버프 타워=
+  `GetInstanceID()`(같은 종류끼리 중첩) / 디버프 DoT=`TowerID` 해시. 공유 `TowerAsset` 값은 안 건드림 — 인스턴스별 배율만
+- `Tower.RemoveBuff(int sourceId)`(`NorthLand.Combat`) — 해당 소스의 버프를 즉시 제거(#164, 버프 타워 철거/비활성 시)
 - `IHoverable { TooltipContent? GetTooltipContent(), void OnHoverEnter(), void OnHoverExit() }` — 호버 시 툴팁 내용을 pull 공급(호버 시점마다 호출 → 동적 값 가능, `null`이면 툴팁 없음)
   + 호버 진입/이탈 훅(하이라이트 등 연출, `MouseManager.SetHover`가 대상 전환 시 호출, #67)
 - `TooltipUI.Instance.Show(TooltipContent)` / `Hide()` — 커서 추적 범용 툴팁 뷰(#38). **임시 싱글톤(UIManager 흡수 예정)**,

@@ -10,25 +10,25 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
-  m_Name: haste_tower
+  m_Name: Sniper_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
-  TowerID: haste_tower
-  TowerPrefab: {fileID: 527708244005276318, guid: b8dd447b76ed929439c677e7e946362a, type: 3}
-  GhostPrefab: {fileID: 527708244005276318, guid: 176674a10a91cf948b2304f59bba8820, type: 3}
-  TowerType: 3
-  MagicEffectType: 1
+  TowerID: Sniper_tower
+  TowerPrefab: {fileID: 6801833135963741600, guid: 28d6e50d7aad3d24eb3da6b519f7e3e0, type: 3}
+  GhostPrefab: {fileID: 6801833135963741600, guid: 02bd685941e50c74a861dd02e3773db9, type: 3}
+  TowerType: 0
+  MagicEffectType: 0
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-    Amount: 35
+    Amount: 60
   - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
-    Amount: 25
+    Amount: 40
   Single:
     Attack:
-      AttackDamage: 0
-      AttackRange: 0
-      AttackInterval: 0
-      ProjectilePrefab: {fileID: 0}
-      ProjectileSpeed: 0
+      AttackDamage: 50
+      AttackRange: 150
+      AttackInterval: 3
+      ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
+      ProjectileSpeed: 1600
   Area:
     Attack:
       AttackDamage: 0
@@ -49,11 +49,8 @@ MonoBehaviour:
     ChainDamageFalloff: 0
   Magic:
     BuffAura:
-      Radius: 28
-      Modifiers:
-      - Stat: 1
-        Amount: 20
-        IsPercentage: 1
+      Radius: 0
+      Modifiers: []
       Damage:
         HasDamage: 0
         DamageAmount: 0

@@ -90,6 +90,30 @@ MonoBehaviour:
     m_Localized: Deal poison damage to enemies in range over time
     m_Metadata:
       m_Items: []
+  - m_Id: 1099361558372352
+    m_Localized: GatlingShooter
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1100150569869312
+    m_Localized: Single Target Attack
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1100153673654272
+    m_Localized: Quickly and continuously attack the closest enemy within the intersection
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1158352120487936
+    m_Localized: Sniper Tower
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1158354364440576
+    m_Localized: Single Target Attack
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1158356088299520
+    m_Localized: An attack that deals heavy damage to enemies far away
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

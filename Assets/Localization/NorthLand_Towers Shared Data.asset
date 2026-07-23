@@ -87,6 +87,30 @@ MonoBehaviour:
     m_Key: towers.poison.desc
     m_Metadata:
       m_Items: []
+  - m_Id: 1099361558372352
+    m_Key: towers.gatling.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1100150569869312
+    m_Key: towers.gatling.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1100153673654272
+    m_Key: towers.gatling.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1158352120487936
+    m_Key: towers.Sniper.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1158354364440576
+    m_Key: towers.Sniper.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1158356088299520
+    m_Key: towers.Sniper.desc
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

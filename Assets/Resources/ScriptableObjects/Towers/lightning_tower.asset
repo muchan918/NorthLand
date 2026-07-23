@@ -46,7 +46,6 @@ MonoBehaviour:
   Magic:
     BuffAura:
       Radius: 0
-      Interval: 0
       Modifiers: []
       Damage:
         HasDamage: 0
