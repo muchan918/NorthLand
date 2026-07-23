@@ -113,8 +113,7 @@ public class MonsterMove : MonoBehaviour, IMovementAgent
 
     private void SkipReachedPoints()
     {
-        while (currentRouteIndex < route.Count &&
-               Vector3.Distance(transform.position, route[currentRouteIndex]) <= arriveDistance)
+        while (currentRouteIndex < route.Count && Vector3.Distance(transform.position, route[currentRouteIndex]) <= arriveDistance)
         {
             currentRouteIndex++;
         }
