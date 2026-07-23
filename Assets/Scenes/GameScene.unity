@@ -10603,14 +10603,14 @@ MonoBehaviour:
   towerPrefab: {fileID: 4828097712758218341, guid: 20d807b0a7cea9147bb69ff9c3c95951, type: 3}
   ghostPrefab: {fileID: 4828097712758218341, guid: 1c4fe65468dd4524a90ebe19c3110df8, type: 3}
   keepPlacing: 0
-  tileSize: 5
+  tileSize: 15
   dummyGridWidth: 50
   dummyGridHeight: 50
   dummyAttackRange: 48
   rangeColor: {r: 0.2, g: 0.8, b: 1, a: 0.9}
   rangeSegments: 48
-  validCellColor: {r: 0.2, g: 1, b: 0.3, a: 0.35}
-  invalidCellColor: {r: 1, g: 0.25, b: 0.2, a: 0.35}
+  validCellColor: {r: 0.2, g: 1, b: 0.3, a: 0.78431374}
+  invalidCellColor: {r: 1, g: 0.25, b: 0.2, a: 0.78431374}
 --- !u!1 &1649705443
 GameObject:
   m_ObjectHideFlags: 0
