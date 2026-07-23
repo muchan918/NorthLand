@@ -67,8 +67,16 @@ public class TowerPlacer : MonoBehaviour
 
     private void Awake()
     {
-        // WL-032 방어: tileSize가 StageBuilder.TileSize와 다르면 풋프린트 셀 조회가 어긋나
-        // 조용한 오배치가 된다. 씬에 StageBuilder가 있으면 값 불일치를 경고한다.
+        // 타일 간격 단일 출처화(WL-034 완화): 신맵 CombatMapGenerator.Settings.TileSize가 있으면 그 값을 쓴다.
+        // 인스펙터 tileSize는 폴백(구맵/테스트 씬). 신맵 타일은 15인데 tileSize=5면 하이라이트 쿼드가
+        // 타일보다 훨씬 작게(≈1/3) 그려져 타워 고스트에 가리고, 다중 셀 풋프린트도 어긋난다.
+        var combatMap = FindFirstObjectByType<CombatSpace.CombatMapGenerator>();
+        if (combatMap != null && combatMap.Settings != null && combatMap.Settings.TileSize > 0f)
+        {
+            tileSize = combatMap.Settings.TileSize;
+        }
+
+        // WL-032/034 방어: 신맵 반영 후에도 구맵(StageBuilder)과 불일치하면 경고한다(둘 다 있는 씬 대비).
         StageBuilder stage = FindFirstObjectByType<StageBuilder>();
         if (stage != null && !Mathf.Approximately(stage.TileSize, tileSize))
         {
@@ -318,7 +326,10 @@ public class TowerPlacer : MonoBehaviour
         {
             (Vector3 pos, BattleTile tile) = _footprint[i];
             GameObject q = _cellHighlights[i];
-            q.transform.position = new Vector3(pos.x, pos.y + 0.03f, pos.z); // z-파이팅 방지 살짝 위로
+            // 하이라이트 표시 y를 타일 윗면(앵커)에 맞춘다 — 타워 배치 y와 일치. 타일 없으면 풋프린트 y 폴백.
+            // (탐지용 RebuildFootprint/TileAt은 루트 y 유지 — 앵커가 콜라이더 위쪽일 때 OverlapSphere 놓침 방지)
+            float topY = tile != null ? tile.AnchorPosition.y : pos.y;
+            q.transform.position = new Vector3(pos.x, topY + 0.03f, pos.z); // z-파이팅 방지 살짝 위로
             q.GetComponent<Renderer>().sharedMaterial = IsBuildable(tile) ? _cellMatValid : _cellMatInvalid;
         }
     }
