@@ -26,10 +26,4 @@ public class BattleTile : MonoBehaviour
     /// 타워가 이 타일을 점유 중인지(런타임 상태). 타일 생성 시 false, 배치 확정 시 true.
     /// 타일이 파괴·재생성(맵 리셋)되면 자연히 초기화된다.
     public bool Occupied { get; set; }
-
-    /// <summary>
-    /// 타워 배치 시, 타워를 이 위치에 배치하도록 안내하는 앵커. 타일 프리팹에서 지정. <br/>
-    /// fallback: _anchor 미지정 시 타일 자신의 트랜스폼으로 폴백해 무설정 타일도 안전하다.
-    /// </summary>
-    public Transform Anchor => _anchor ?? transform;
 }
