@@ -16,35 +16,35 @@ MonoBehaviour:
   m_TableCollectionNameGuidString: d31939c85d7e0a94b8d7bc185b828d83
   m_Entries:
   - m_Id: 26849390592
-    m_Key: rewards.fire.burn.name
+    m_Key: rewards.burn.name
     m_Metadata:
       m_Items: []
   - m_Id: 1926189625344
-    m_Key: rewards.fire.magma.name
+    m_Key: rewards.bomb.name
     m_Metadata:
       m_Items: []
   - m_Id: 1979444703232
-    m_Key: rewards.fire.afterburn.name
+    m_Key: rewards.count.name
     m_Metadata:
       m_Items: []
   - m_Id: 2447998791680
-    m_Key: rewards.fire.meltdown.name
+    m_Key: rewards.buff.burn.name
     m_Metadata:
       m_Items: []
   - m_Id: 9946877472768
-    m_Key: rewards.fire.burn.desc
+    m_Key: rewards.burn.desc
     m_Metadata:
       m_Items: []
   - m_Id: 10113743663104
-    m_Key: rewards.fire.magma.desc
+    m_Key: rewards.bomb.desc
     m_Metadata:
       m_Items: []
   - m_Id: 10160417878016
-    m_Key: rewards.fire.afterburn.desc
+    m_Key: rewards.count.desc
     m_Metadata:
       m_Items: []
   - m_Id: 10162397589504
-    m_Key: rewards.fire.meltdown.desc
+    m_Key: rewards.buff.burn.desc
     m_Metadata:
       m_Items: []
   m_Metadata:

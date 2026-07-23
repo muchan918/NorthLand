@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -41,6 +42,10 @@ namespace NorthLand.Combat
 
     public class Projectile : MonoBehaviour
     {
+        // 투사체 데미지가 실제로 들어간 직후 통지(공격자, 피격자) — #169 버프 특수효과(BurnBuff 등)가
+        // 구독한다. 순수 추가 훅으로 기존 공격 로직은 무수정. static이므로 구독자가 해제를 책임진다.
+        public static event Action<IAttacker, IDamageable> DamageDealt;
+
         [SerializeField] Vector3 rotationOffset;
 
         [Header("Flight")]
@@ -149,7 +154,11 @@ namespace NorthLand.Combat
                     if (target != null && !target.IsDead) ApplyChain();
                     break;
                 default:
-                    if (target != null && !target.IsDead) target.TakeDamage(new DamageInfo(damage, source));
+                    if (target != null && !target.IsDead)
+                    {
+                        target.TakeDamage(new DamageInfo(damage, source));
+                        DamageDealt?.Invoke(source, target);
+                    }
                     break;
             }
         }
@@ -162,7 +171,10 @@ namespace NorthLand.Combat
             {
                 var d = h.GetComponentInParent<IDamageable>();
                 if (d != null && d.Faction != source.Faction && !d.IsDead)
+                {
                     d.TakeDamage(new DamageInfo(damage, source));
+                    DamageDealt?.Invoke(source, d);
+                }
             }
         }
 
@@ -173,6 +185,7 @@ namespace NorthLand.Combat
 
             float dmg = damage;
             target.TakeDamage(new DamageInfo(dmg, source));   // 최초 대상: 풀 데미지
+            DamageDealt?.Invoke(source, target);
             chainHitSet.Add(target);
 
             Vector3 from = (target as MonoBehaviour).transform.position;
@@ -184,6 +197,7 @@ namespace NorthLand.Combat
 
                 dmg *= impact.ChainDamageFalloff;             // 튕길 때마다 ×0.8 누적
                 next.TakeDamage(new DamageInfo(dmg, source));
+                DamageDealt?.Invoke(source, next);
                 chainHitSet.Add(next);
                 from = (next as MonoBehaviour).transform.position;
             }
