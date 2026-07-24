@@ -13,7 +13,13 @@ public class DayNightManager : MonoBehaviour
     public static DayNightManager Instance { get; private set; }
 
     public Phase CurrentPhase { get; private set; }
+
+    // 지금까지 클리어한 웨이브 수. 첫 낮에는 0이다(아직 아무것도 클리어하지 않았으므로).
     public int WaveCount { get; private set; }
+
+    // 지금 준비 중이거나 진행 중인 웨이브 번호(1부터). 첫 낮 = 1.
+    // 표시(UI)와 스폰 라운드 번호는 WaveCount가 아니라 항상 이 값을 쓴다.
+    public int CurrentWave => WaveCount + 1;
 
     // 낮이 시작되는 모든 시점(1일차 부트스트랩 포함)에 발생
     public event Action OnDayStart;
