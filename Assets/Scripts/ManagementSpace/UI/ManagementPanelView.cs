@@ -111,7 +111,7 @@ public class ManagementPanelView : MonoBehaviour
         }
         if (_phaseText != null)
         {
-            _phaseText.text = _controller.IsDay ? $"{LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, k_WaveStringTableKey)} {_controller.WaveCount}" : $"{LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, k_NightStringTableKey)} ({LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, k_DefenseStringTableKey)})";
+            _phaseText.text = _controller.IsDay ? $"{LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, k_WaveStringTableKey)} {_controller.CurrentWave}" : $"{LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, k_NightStringTableKey)} ({LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, k_DefenseStringTableKey)})";
         }
         if (_endDayButton != null)
         {

@@ -70,6 +70,9 @@ public class ManagementController : MonoBehaviour
     public bool IsDay => _dayNight == null || _dayNight.CurrentPhase == DayNightManager.Phase.Day;
     public int WaveCount => _dayNight != null ? _dayNight.WaveCount : 0;
 
+    // 지금 준비/진행 중인 웨이브 번호(1부터) — 패널 표시용. DayNightManager가 없으면 1일차로 간주.
+    public int CurrentWave => _dayNight != null ? _dayNight.CurrentWave : 1;
+
     // 영토가 씬에 없으면(null) 게이트 없이 배치 허용(permissive) — IsDay와 동일한 패턴.
     public bool CanAssignVillagers => _territory == null || _territory.HasExpandedToday;
 
