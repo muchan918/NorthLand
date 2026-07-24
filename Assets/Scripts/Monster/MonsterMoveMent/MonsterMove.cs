@@ -23,6 +23,10 @@ public class MonsterMove : MonoBehaviour, IMovementAgent
     private float moveSpeed;
     private bool hasInjectedMoveSpeed;
 
+    // 슬로우/스턴 배율(#164). 기준 moveSpeed에 곱해진다. 1=정상, 0.6=40%감속, 0=완전정지(스턴).
+    // 기준값은 안 건드리고 배율만 조작 → 만료 시 1로 원복하면 그만(눈덩이·유실 없음). StatusEffectHandler가 세팅.
+    private float slowMultiplier = 1f;
+
     public event Action RouteCompleted;
 
     private bool routeCompleted;
@@ -50,6 +54,12 @@ public class MonsterMove : MonoBehaviour, IMovementAgent
         }
 
         hasInjectedMoveSpeed = true;
+    }
+
+    // 슬로우/스턴 인프라(#164): 이동속도 배율 설정. 1=정상, 0=정지. StatusEffectHandler가 활성 효과를 합쳐 호출.
+    public void SetSlowMultiplier(float value)
+    {
+        slowMultiplier = Mathf.Clamp01(value);
     }
 
 
@@ -101,7 +111,7 @@ public class MonsterMove : MonoBehaviour, IMovementAgent
         transform.position = Vector3.MoveTowards(
             transform.position,
             targetPosition,
-            moveSpeed * Time.deltaTime
+            moveSpeed * slowMultiplier * Time.deltaTime   // 슬로우/스턴 배율 반영(#164)
         );
 
         if (Vector3.Distance(transform.position, targetPosition) <= arriveDistance)

@@ -114,6 +114,36 @@ MonoBehaviour:
     m_Localized: An attack that deals heavy damage to enemies far away
     m_Metadata:
       m_Items: []
+  - m_Id: 1254254390714368
+    m_Localized: Chocolate Falls Tower
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1254257007960064
+    m_Localized: Slows Enemies
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1254258907979776
+    m_Localized: 'Coats the path with chocolate,
+
+      enemies crossing the choco
+      zone are slowed.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1256596360044544
+    m_Localized: Soda Tower
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1256598117457920
+    m_Localized: Stuns Enemies
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1256599816151040
+    m_Localized: 'Fires soda that briefly stuns a hit enemy,
+
+      disrupting its
+      advance.'
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

@@ -183,8 +183,10 @@ namespace NorthLand.Combat
                 return false;
             }
 
-            // 타입별 명중 동작(단일/스플래시/체인)을 구성해 투사체에 전달
-            projectile.Init(target, atk.AttackDamage, atk.ProjectileSpeed, this, BuildImpact());
+            // 타입별 명중 동작(단일/스플래시/체인)을 구성해 투사체에 전달 + 명중 시 스턴(있으면)
+            var impact = BuildImpact();
+            impact.StunDuration = atk.OnHitStunDuration;
+            projectile.Init(target, atk.AttackDamage, atk.ProjectileSpeed, this, impact);
             OnFired?.Invoke();
             return true;
         }

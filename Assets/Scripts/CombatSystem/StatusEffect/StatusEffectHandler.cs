@@ -32,7 +32,24 @@ namespace NorthLand.Combat
             public IAttacker source;
         }
 
-        void Awake() => owner = GetComponent<IDamageable>();
+        // 이동속도 배율을 세팅할 대상(MonsterMove 등). 없으면 슬로우/스턴은 무시된다.
+        IMovementAgent mover;
+
+        // 슬로우/스턴(#164). effectId당 하나(같은 소스=갱신). 여러 개면 가장 강한 감속(최소 배율)을 적용.
+        readonly Dictionary<int, SlowEffect> slows = new Dictionary<int, SlowEffect>();
+        readonly List<int> expiredSlowBuffer = new List<int>();
+
+        class SlowEffect
+        {
+            public float multiplier;  // 0=스턴, 0.6=40%감속, 1=정상
+            public float remaining;   // 남은 지속시간(초)
+        }
+
+        void Awake()
+        {
+            owner = GetComponent<IDamageable>();
+            mover = GetComponent<IMovementAgent>();
+        }
 
         // 타워가 사거리 내에서 매 Interval마다 호출.
         // 이미 있으면 남은 지속시간을 duration으로 리셋(갱신), 없으면 새로 추가한다.
@@ -61,35 +78,95 @@ namespace NorthLand.Combat
             }
         }
 
+        // 타워/투사체가 호출: 대상에 슬로우(또는 스턴=배율0)를 부여·갱신한다. DoT와 동일하게 대상 쪽에서 duration을 소진 →
+        // 갱신이 끊겨도 남은 시간 후 원복. multiplier: 1=정상, 0.6=40%감속, 0=완전정지. 같은 effectId는 갱신(존 재적용/재명중).
+        public void ApplySlow(int effectId, float multiplier, float duration)
+        {
+            if (duration <= 0f) return;
+            multiplier = Mathf.Clamp01(multiplier);
+
+            if (slows.TryGetValue(effectId, out var s))
+            {
+                s.multiplier = multiplier;
+                s.remaining = duration;
+            }
+            else
+            {
+                slows[effectId] = new SlowEffect { multiplier = multiplier, remaining = duration };
+            }
+            RecomputeSlow();
+        }
+
+        // 활성 슬로우/스턴 중 가장 강한 것(최소 배율)을 이동 에이전트에 적용. 없으면 1(원복).
+        void RecomputeSlow()
+        {
+            float m = 1f;
+            foreach (var s in slows.Values)
+                if (s.multiplier < m) m = s.multiplier;
+
+            mover?.SetSlowMultiplier(m);
+            if (debugLog) Debug.Log($"[Status] {name}: 슬로우 배율={m:F2} (활성 {slows.Count}개)");
+        }
+
         void Update()
         {
-            if (effects.Count == 0) return;
-            if (owner == null || owner.IsDead) { effects.Clear(); return; }
-
-            float dt = Time.deltaTime;
-            expiredBuffer.Clear();
-
-            foreach (var kv in effects)
+            // 대상 사망/유실: 모든 효과 정리 + 슬로우 배율 원복(다음 재사용체 대비)
+            if (owner == null || owner.IsDead)
             {
-                var e = kv.Value;
-                e.remaining -= dt;
-                e.tickTimer -= dt;
-
-                // dt가 커서 한 프레임에 여러 틱이 밀렸을 경우까지 처리
-                while (e.tickTimer <= 0f)
-                {
-                    owner.TakeDamage(new DamageInfo(e.damagePerTick, e.source));
-                    if (debugLog) Debug.Log($"[Status] {name}: DoT 틱 -{e.damagePerTick}, 남은시간={Mathf.Max(e.remaining, 0f):F2}s");
-                    e.tickTimer += e.tickInterval;
-                    if (owner.IsDead) break;
-                }
-
-                if (owner.IsDead) { effects.Clear(); return; }
-                if (e.remaining <= 0f) expiredBuffer.Add(kv.Key);
+                if (effects.Count > 0) effects.Clear();
+                if (slows.Count > 0) { slows.Clear(); mover?.SetSlowMultiplier(1f); }
+                return;
             }
 
-            for (int i = 0; i < expiredBuffer.Count; i++)
-                effects.Remove(expiredBuffer[i]);
+            float dt = Time.deltaTime;
+
+            // --- DoT ---
+            if (effects.Count > 0)
+            {
+                expiredBuffer.Clear();
+                foreach (var kv in effects)
+                {
+                    var e = kv.Value;
+                    e.remaining -= dt;
+                    e.tickTimer -= dt;
+
+                    // dt가 커서 한 프레임에 여러 틱이 밀렸을 경우까지 처리
+                    while (e.tickTimer <= 0f)
+                    {
+                        owner.TakeDamage(new DamageInfo(e.damagePerTick, e.source));
+                        if (debugLog) Debug.Log($"[Status] {name}: DoT 틱 -{e.damagePerTick}, 남은시간={Mathf.Max(e.remaining, 0f):F2}s");
+                        e.tickTimer += e.tickInterval;
+                        if (owner.IsDead) break;
+                    }
+
+                    if (owner.IsDead)
+                    {
+                        effects.Clear();
+                        if (slows.Count > 0) { slows.Clear(); mover?.SetSlowMultiplier(1f); }
+                        return;
+                    }
+                    if (e.remaining <= 0f) expiredBuffer.Add(kv.Key);
+                }
+                for (int i = 0; i < expiredBuffer.Count; i++)
+                    effects.Remove(expiredBuffer[i]);
+            }
+
+            // --- 슬로우/스턴 ---
+            if (slows.Count > 0)
+            {
+                expiredSlowBuffer.Clear();
+                foreach (var kv in slows)
+                {
+                    kv.Value.remaining -= dt;
+                    if (kv.Value.remaining <= 0f) expiredSlowBuffer.Add(kv.Key);
+                }
+                if (expiredSlowBuffer.Count > 0)
+                {
+                    for (int i = 0; i < expiredSlowBuffer.Count; i++)
+                        slows.Remove(expiredSlowBuffer[i]);
+                    RecomputeSlow();   // 만료분 제거 후 재계산(남은 게 없으면 1로 원복)
+                }
+            }
         }
     }
 }

@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
+  m_Name: choco_tower
+  m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
+  TowerID: choco_tower
+  TowerPrefab: {fileID: 6801833135963741600, guid: a660ddd374f31434ea5166bfff8b4850, type: 3}
+  GhostPrefab: {fileID: 6801833135963741600, guid: 4605832d26ef29a49969945c4b0556cd, type: 3}
+  TowerType: 0
+  MagicEffectType: 0
+  Cost:
+  - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
+    Amount: 30
+  Single:
+    Attack:
+      AttackDamage: 10
+      AttackRange: 40
+      AttackInterval: 1
+      ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
+      ProjectileSpeed: 800
+  Area:
+    Attack:
+      AttackDamage: 0
+      AttackRange: 0
+      AttackInterval: 0
+      ProjectilePrefab: {fileID: 0}
+      ProjectileSpeed: 0
+    SplashRadius: 0
+  Chain:
+    Attack:
+      AttackDamage: 0
+      AttackRange: 0
+      AttackInterval: 0
+      ProjectilePrefab: {fileID: 0}
+      ProjectileSpeed: 0
+    ChainRadius: 0
+    MaxChainTargets: 0
+    ChainDamageFalloff: 0
+  Magic:
+    BuffAura:
+      Radius: 0
+      Modifiers: []
+      Damage:
+        HasDamage: 0
+        DamageAmount: 0
+        TickInterval: 0
+    DebuffAura:
+      Radius: 0
+      Interval: 0
+      Duration: 0
+      Modifiers: []
+      Damage:
+        HasDamage: 0
+        DamageAmount: 0
+        TickInterval: 0

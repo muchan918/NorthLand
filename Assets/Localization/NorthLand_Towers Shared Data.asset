@@ -111,6 +111,30 @@ MonoBehaviour:
     m_Key: towers.Sniper.desc
     m_Metadata:
       m_Items: []
+  - m_Id: 1254254390714368
+    m_Key: towers.choco.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1254257007960064
+    m_Key: towers.choco.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1254258907979776
+    m_Key: towers.choco.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1256596360044544
+    m_Key: towers.soda.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1256598117457920
+    m_Key: towers.soda.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1256599816151040
+    m_Key: towers.soda.desc
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
