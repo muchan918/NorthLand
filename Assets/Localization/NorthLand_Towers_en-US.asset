@@ -66,18 +66,6 @@ MonoBehaviour:
     m_Localized: Increase the attack speed of the surrounding towers
     m_Metadata:
       m_Items: []
-  - m_Id: 3010218569728
-    m_Localized: Frost Tower
-    m_Metadata:
-      m_Items: []
-  - m_Id: 3011833376768
-    m_Localized: Reduce the speed
-    m_Metadata:
-      m_Items: []
-  - m_Id: 3012533825536
-    m_Localized: Reduce the speed of movement of enemies in range
-    m_Metadata:
-      m_Items: []
   - m_Id: 77423716192256
     m_Localized: Poison Tower
     m_Metadata:

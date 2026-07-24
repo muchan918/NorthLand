@@ -27,6 +27,7 @@ MonoBehaviour:
       AttackInterval: 1
       ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
       ProjectileSpeed: 800
+      OnHitStunDuration: 0
   Area:
     Attack:
       AttackDamage: 0
@@ -34,6 +35,7 @@ MonoBehaviour:
       AttackInterval: 0
       ProjectilePrefab: {fileID: 0}
       ProjectileSpeed: 0
+      OnHitStunDuration: 0
     SplashRadius: 0
   Chain:
     Attack:
@@ -42,6 +44,7 @@ MonoBehaviour:
       AttackInterval: 0
       ProjectilePrefab: {fileID: 0}
       ProjectileSpeed: 0
+      OnHitStunDuration: 0
     ChainRadius: 0
     MaxChainTargets: 0
     ChainDamageFalloff: 0

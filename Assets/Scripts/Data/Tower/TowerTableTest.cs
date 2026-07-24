@@ -6,7 +6,7 @@ public class TowerTableTest : MonoBehaviour
     {
         foreach (var id in new[]
         {
-            "archer_tower", "cannon_tower", "lightning_tower", "haste_tower", "slow_tower", "poison_tower",
+            "archer_tower", "cannon_tower", "lightning_tower", "haste_tower", "poison_tower",
         })
         {
             var data = DataTableManager.Get<TowerTable>("TowerTable").Get(id);

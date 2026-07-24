@@ -83,6 +83,10 @@ namespace NorthLand.Combat
                 var dot = DebuffAura?.Damage;
                 if (dot != null && dot.HasDamage)
                     text += $"\nDoT: {dot.DamageAmount:0.#} / {dot.TickInterval:0.#}s";
+
+                float slowMul = ComputeSlowMultiplier(DebuffAura?.Modifiers);
+                if (slowMul < 1f)
+                    text += $"\nSlow: -{(1f - slowMul) * 100f:0.#}%";
             }
             else if (IsBuff && BuffAura?.Modifiers != null)
             {
@@ -154,11 +158,19 @@ namespace NorthLand.Combat
             if (debuff != null) ApplyDebuff(debuff);
         }
 
-        // 사거리 내 적군에게 DoT 디버프를 갱신. 상태 소유는 대상의 StatusEffectHandler.
+        // 사거리 내 적군에게 디버프(DoT + 슬로우)를 갱신. 상태 소유는 대상의 StatusEffectHandler.
+        // 슬로우는 DebuffAura.Modifiers의 MoveSpeed 항목을 배율로 환산해 적용한다(WL-076).
         void ApplyDebuff(TowerAsset.DebuffAuraFields aura)
         {
-            var dot = aura?.Damage;
-            if (dot == null || !dot.HasDamage) return;   // 현재는 DoT만 처리 (Modifiers 확장은 추후)
+            if (aura == null) return;
+
+            var dot = aura.Damage;
+            bool hasDot = dot != null && dot.HasDamage;
+
+            float slowMultiplier = ComputeSlowMultiplier(aura.Modifiers);
+            bool hasSlow = slowMultiplier < 1f;
+
+            if (!hasDot && !hasSlow) return;   // 적용할 효과 없음
 
             int count = Physics.OverlapSphereNonAlloc(
                 transform.position, aura.Radius, hitBuffer, targetLayerMask);
@@ -175,8 +187,26 @@ namespace NorthLand.Combat
                 if (handler == null) handler = target.gameObject.AddComponent<StatusEffectHandler>();
 
                 handler.debugLog = debugLog;
-                handler.ApplyOrRefresh(effectId, dot.DamageAmount, dot.TickInterval, aura.Duration, this);
+                if (hasDot) handler.ApplyOrRefresh(effectId, dot.DamageAmount, dot.TickInterval, aura.Duration, this);
+                if (hasSlow) handler.ApplySlow(effectId, slowMultiplier, aura.Duration);
             }
+        }
+
+        // MoveSpeed StatModifier들을 곱연산 슬로우 배율로 환산한다. 버프(ApplyBuffToTowersInRange)와 동일 규칙:
+        // IsPercentage=true면 Amount를 %로(예: -40 → x0.6), false면 배율 가산분으로(예: -0.4 → x0.6).
+        // 감속만 의미가 있으므로 [0,1]로 제한한다(양수 Amount로 적을 가속시키지 않음). 결과 1 = 감속 없음.
+        static float ComputeSlowMultiplier(System.Collections.Generic.List<StatModifier> modifiers)
+        {
+            float mul = 1f;
+            if (modifiers != null)
+            {
+                foreach (var mod in modifiers)
+                {
+                    if (mod == null || mod.Stat != ModifiableStat.MoveSpeed) continue;
+                    mul *= mod.IsPercentage ? 1f + mod.Amount / 100f : 1f + mod.Amount;
+                }
+            }
+            return Mathf.Clamp01(mul);
         }
 
         // 배치 시 + 타워 추가/제거 시(Tower.ActiveChanged) 호출 — 사거리 내 아군 타워를 라이브 스캔해 지속형 버프를 부여한다.

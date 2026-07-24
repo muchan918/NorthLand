@@ -164,7 +164,7 @@ archer_tower,궁수 타워,Single,None,1,1,단일 대상 공격,사거리 내 �
 cannon_tower,대포,Area,None,1,1,광역 공격,착탄 지점 주변 범위 피해
 lightning_tower,번개 타워,Chain,None,1,1,연쇄 공격,적 하나를 맞히면 주변 적으로 번개가 튐
 haste_tower,가속의 탑,Magic,Buff,1,1,아군 공격속도 강화,범위 내 아군 타워 공격속도 증가
-slow_tower,서리의 탑,Magic,Debuff,1,1,적 이동속도 감소,범위 내 적 이동속도 감소
+poison_tower,독의 탑,Magic,Debuff,1,1,적 지속 피해,범위 내 적에게 독 도트 피해
 ```
 
 ### EnemyTable (GDD 5.2 — 전투 공간 몬스터)

@@ -3,9 +3,8 @@ archer_tower,towers.archer.name,Single,None,1,1,towers.archer.role,towers.archer
 cannon_tower,towers.cannon.name,Area,None,1,1,towers.cannon.role,towers.cannon.desc
 lightning_tower,towers.lightning.name,Chain,None,1,1,towers.lightning.role,towers.lightning.desc
 haste_tower,towers.haste.name,Magic,Buff,1,1,towers.haste.role,towers.haste.desc
-slow_tower,towers.slow.name,Magic,Debuff,1,1,towers.slow.role,towers.slow.desc
 poison_tower,towers.poison.name,Magic,Debuff,1,1,towers.poison.role,towers.poison.desc
 gatling_tower,towers.gatling.name,Single,None,1,1,towers.gatling.role,towers.gatling.desc
 Sniper_tower,towers.Sniper.name,Single,None,1,1,towers.Sniper.role,towers.Sniper.desc
-choco_tower,towers.choco.name,Single,None,1,1,towers.choco.role,towers.choco.desc
+choco_tower,towers.choco.name,Magic,Debuff,1,1,towers.choco.role,towers.choco.desc
 soda_tower,towers.soda.name,Single,None,1,1,towers.soda.role,towers.soda.desc
