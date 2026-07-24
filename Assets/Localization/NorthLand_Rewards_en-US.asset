@@ -23,31 +23,31 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 1926189625344
-    m_Localized: Magma
+    m_Localized: "Bomb\t"
     m_Metadata:
       m_Items: []
   - m_Id: 1979444703232
-    m_Localized: Afterburn
+    m_Localized: Count
     m_Metadata:
       m_Items: []
   - m_Id: 2447998791680
-    m_Localized: Meltdown
+    m_Localized: Burn Buff
     m_Metadata:
       m_Items: []
   - m_Id: 9946877472768
-    m_Localized: Enemies hit by the skill take damage over time.
+    m_Localized: Continuous damage to enemies hit by skills.
     m_Metadata:
       m_Items: []
   - m_Id: 10113743663104
-    m_Localized: Enemies in the magma area are slowed.
+    m_Localized: Drop the bomb after using the skill.
     m_Metadata:
       m_Items: []
   - m_Id: 10160417878016
-    m_Localized: Enemies in the afterburn area take damage over time.
+    m_Localized: The skill is triggered once more.
     m_Metadata:
       m_Items: []
   - m_Id: 10162397589504
-    m_Localized: Enemies in the meltdown area have reduced defense.
+    m_Localized: The projectile tower will have a burn effect.
     m_Metadata:
       m_Items: []
   references:

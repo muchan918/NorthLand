@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: poison_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
   TowerID: poison_tower
-  TowerPrefab: {fileID: 527708244005276318, guid: fc4ef101e7e1d6f468ba584523b14680, type: 3}
-  GhostPrefab: {fileID: 527708244005276318, guid: 11629f488a947514c869e22c8d9776ef, type: 3}
+  TowerPrefab: {fileID: 527708244005276318, guid: 3046675b0c7627047a8e5d9571fa45f0, type: 3}
+  GhostPrefab: {fileID: 527708244005276318, guid: 3f7d03ebd2feee2468a836693208b76a, type: 3}
   TowerType: 3
   MagicEffectType: 2
   Cost:
@@ -22,6 +22,8 @@ MonoBehaviour:
     Amount: 40
   - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
     Amount: 20
+  - Resource: {fileID: 11400000, guid: 090c2a0d275ad8f4493045612eb0e1da, type: 2}
+    Amount: 5
   Single:
     Attack:
       AttackDamage: 0
@@ -50,14 +52,13 @@ MonoBehaviour:
   Magic:
     BuffAura:
       Radius: 0
-      Interval: 0
       Modifiers: []
       Damage:
         HasDamage: 0
         DamageAmount: 0
         TickInterval: 0
     DebuffAura:
-      Radius: 10
+      Radius: 30
       Interval: 1
       Duration: 3
       Modifiers: []

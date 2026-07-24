@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using NorthLand.Combat;
 
@@ -15,7 +16,14 @@ public class BuffSkillManager : MonoBehaviour
     [SerializeField] float buffDuration = 10f;
     [SerializeField] float cooldown = 20f;
 
+    // 버프 시전이 끝날 때마다 발행 — 보상으로 획득한 버프 계열 특수효과(SkillEffect 파생,
+    // 예: BurnBuff)가 구독한다. 구독자가 없으면 기본 버프 그대로. (감전의 ImpactResolved와 동일 구조)
+    public event Action<BuffCastContext> BuffResolved;
+
     float cooldownTimer;
+
+    // 합산 중첩(#164)용 소스키 — 버프 타워의 소스키(TowerID 해시)와 겹치지 않는 고정 식별자.
+    static readonly int SkillSourceId = "skill.player_buff".GetHashCode();
 
     public bool IsReady => cooldownTimer <= 0f;
     public float CooldownRemaining01 => cooldown <= 0f ? 0f : Mathf.Clamp01(cooldownTimer / cooldown);
@@ -52,9 +60,11 @@ public class BuffSkillManager : MonoBehaviour
         if (!CanCast()) return false;
 
         foreach (var tower in Tower.Active)
-            tower.ApplyBuff(damageMultiplier, attackSpeedMultiplier, buffDuration);
+            tower.ApplyBuff(SkillSourceId, damageMultiplier, attackSpeedMultiplier, buffDuration);
 
         Debug.Log($"[BuffSkill] 발동: 타워 {Tower.Active.Count}개, 데미지x{damageMultiplier}, 공속x{attackSpeedMultiplier}, {buffDuration}초");
+
+        BuffResolved?.Invoke(new BuffCastContext { Duration = buffDuration });
 
         cooldownTimer = cooldown;
         return true;

@@ -1,0 +1,66 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
+  m_Name: Sniper_tower
+  m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
+  TowerID: Sniper_tower
+  TowerPrefab: {fileID: 6801833135963741600, guid: 28d6e50d7aad3d24eb3da6b519f7e3e0, type: 3}
+  GhostPrefab: {fileID: 6801833135963741600, guid: 02bd685941e50c74a861dd02e3773db9, type: 3}
+  TowerType: 0
+  MagicEffectType: 0
+  Cost:
+  - Resource: {fileID: 11400000, guid: 4a2d92e532482ff4dbafa7b361759b00, type: 2}
+    Amount: 5
+  - Resource: {fileID: 11400000, guid: 3929f789f0f53bd4b8ca15ea4342abd0, type: 2}
+    Amount: 5
+  Single:
+    Attack:
+      AttackDamage: 50
+      AttackRange: 150
+      AttackInterval: 3
+      ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
+      ProjectileSpeed: 1600
+  Area:
+    Attack:
+      AttackDamage: 0
+      AttackRange: 0
+      AttackInterval: 0
+      ProjectilePrefab: {fileID: 0}
+      ProjectileSpeed: 0
+    SplashRadius: 0
+  Chain:
+    Attack:
+      AttackDamage: 0
+      AttackRange: 0
+      AttackInterval: 0
+      ProjectilePrefab: {fileID: 0}
+      ProjectileSpeed: 0
+    ChainRadius: 0
+    MaxChainTargets: 0
+    ChainDamageFalloff: 0
+  Magic:
+    BuffAura:
+      Radius: 0
+      Modifiers: []
+      Damage:
+        HasDamage: 0
+        DamageAmount: 0
+        TickInterval: 0
+    DebuffAura:
+      Radius: 0
+      Interval: 0
+      Duration: 0
+      Modifiers: []
+      Damage:
+        HasDamage: 0
+        DamageAmount: 0
+        TickInterval: 0

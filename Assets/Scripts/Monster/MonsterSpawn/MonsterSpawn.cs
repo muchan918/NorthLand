@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using UnityEngine;
 using NorthLand.Combat;
+using NorthLand.Core;
 
 public class MonsterSpawn : MonoBehaviour
 {
@@ -109,6 +110,14 @@ public class MonsterSpawn : MonoBehaviour
     public void StartRound(int round)
     {
         if (!isActiveAndEnabled)
+        {
+            return;
+        }
+
+        // 승패가 확정된 뒤(승리/게임오버)에는 어떤 경로로도 새 웨이브를 시작하지 않는다.
+        // 임시 치트 패널로 페이즈를 강제 전환해도 유령 스폰이 생기지 않게 하는 방어선.
+        if (GameManager.Instance != null &&
+            GameManager.Instance.Result != GameResult.Playing)
         {
             return;
         }

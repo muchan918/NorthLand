@@ -35,7 +35,7 @@ MonoBehaviour:
       AttackRange: 40
       AttackInterval: 2
       ProjectilePrefab: {fileID: 4221183324172678294, guid: 58184368b64351d4094976b3524ed9a1, type: 3}
-      ProjectileSpeed: 50
+      ProjectileSpeed: 100
     SplashRadius: 4
   Chain:
     Attack:
@@ -50,7 +50,6 @@ MonoBehaviour:
   Magic:
     BuffAura:
       Radius: 0
-      Interval: 0
       Modifiers: []
       Damage:
         HasDamage: 0

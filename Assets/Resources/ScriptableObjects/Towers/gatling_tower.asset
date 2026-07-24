@@ -1,0 +1,66 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
+  m_Name: gatling_tower
+  m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
+  TowerID: gatling_tower
+  TowerPrefab: {fileID: 6801833135963741600, guid: fc8cae31ccc3652479febc65cbf3e558, type: 3}
+  GhostPrefab: {fileID: 6801833135963741600, guid: 42cd2c767e149584392896cc66892ff3, type: 3}
+  TowerType: 0
+  MagicEffectType: 0
+  Cost:
+  - Resource: {fileID: 11400000, guid: 89825fd4ccdc8c0479da28304786292e, type: 2}
+    Amount: 5
+  - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+    Amount: 20
+  Single:
+    Attack:
+      AttackDamage: 4
+      AttackRange: 32
+      AttackInterval: 0.35
+      ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
+      ProjectileSpeed: 800
+  Area:
+    Attack:
+      AttackDamage: 0
+      AttackRange: 0
+      AttackInterval: 0
+      ProjectilePrefab: {fileID: 0}
+      ProjectileSpeed: 0
+    SplashRadius: 0
+  Chain:
+    Attack:
+      AttackDamage: 0
+      AttackRange: 0
+      AttackInterval: 0
+      ProjectilePrefab: {fileID: 0}
+      ProjectileSpeed: 0
+    ChainRadius: 0
+    MaxChainTargets: 0
+    ChainDamageFalloff: 0
+  Magic:
+    BuffAura:
+      Radius: 0
+      Modifiers: []
+      Damage:
+        HasDamage: 0
+        DamageAmount: 0
+        TickInterval: 0
+    DebuffAura:
+      Radius: 0
+      Interval: 0
+      Duration: 0
+      Modifiers: []
+      Damage:
+        HasDamage: 0
+        DamageAmount: 0
+        TickInterval: 0

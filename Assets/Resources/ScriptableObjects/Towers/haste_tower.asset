@@ -13,11 +13,15 @@ MonoBehaviour:
   m_Name: haste_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
   TowerID: haste_tower
-  TowerPrefab: {fileID: 0}
-  GhostPrefab: {fileID: 0}
+  TowerPrefab: {fileID: 527708244005276318, guid: b8dd447b76ed929439c677e7e946362a, type: 3}
+  GhostPrefab: {fileID: 527708244005276318, guid: 176674a10a91cf948b2304f59bba8820, type: 3}
   TowerType: 3
   MagicEffectType: 1
-  Cost: []
+  Cost:
+  - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
+    Amount: 35
+  - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+    Amount: 25
   Single:
     Attack:
       AttackDamage: 0
@@ -45,9 +49,11 @@ MonoBehaviour:
     ChainDamageFalloff: 0
   Magic:
     BuffAura:
-      Radius: 0
-      Interval: 0
-      Modifiers: []
+      Radius: 28
+      Modifiers:
+      - Stat: 1
+        Amount: 20
+        IsPercentage: 1
       Damage:
         HasDamage: 0
         DamageAmount: 0
