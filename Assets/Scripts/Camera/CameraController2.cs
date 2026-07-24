@@ -29,6 +29,15 @@ public class CameraController2 : MonoBehaviour
     [SerializeField] private float minZoomSize = 6f;
     [SerializeField] private float maxZoomSize = 35f;
 
+    [Header("미니맵 이동")]
+    [SerializeField] private float minimapMoveSmoothTime = 0.15f;
+
+    [SerializeField] private Camera mainCamera;
+
+    private Vector3 minimapMoveTarget;
+    private Vector3 minimapMoveVelocity;
+    private bool isMinimapMoving;
+
     private bool _isDragging;
     private Vector2 _dragStartScreenPos;
     private Vector3 _dragStartTargetPos;
@@ -67,6 +76,28 @@ public class CameraController2 : MonoBehaviour
         if (hasMissingReference)
         {
             enabled = false;
+        }
+    }
+
+    private void LateUpdate()
+    {
+        if (!isMinimapMoving || cameraTarget == null)
+        {
+            return;
+        }
+
+        cameraTarget.position = Vector3.SmoothDamp(
+            cameraTarget.position,
+            minimapMoveTarget,
+            ref minimapMoveVelocity,
+            minimapMoveSmoothTime);
+
+        if (Vector3.SqrMagnitude(
+                cameraTarget.position - minimapMoveTarget) < 0.01f)
+        {
+            cameraTarget.position = minimapMoveTarget;
+            minimapMoveVelocity = Vector3.zero;
+            isMinimapMoving = false;
         }
     }
 
@@ -111,6 +142,8 @@ public class CameraController2 : MonoBehaviour
             return;
         }
 
+        CancelMinimapMove();
+
         Vector3 nextPosition = cameraTarget.position + moveDirection.normalized * moveSpeed * Time.unscaledDeltaTime;
         cameraTarget.position = ClampPosition(nextPosition);
     }
@@ -119,14 +152,20 @@ public class CameraController2 : MonoBehaviour
     {
         if (Mouse.current.rightButton.wasPressedThisFrame)
         {
-            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+            // UI 위에서 누른 경우 큰 맵 드래그를 시작하지 않음
+            if (EventSystem.current != null &&
+                EventSystem.current.IsPointerOverGameObject())
             {
                 return;
             }
 
+            // 수동 드래그를 시작하면 미니맵 자동 이동 취소
+            CancelMinimapMove();
+
             _isDragging = true;
-            _dragStartScreenPos = Mouse.current.position.ReadValue();
-            _dragStartTargetPos = cameraTarget.position;
+            _dragStartScreenPos =Mouse.current.position.ReadValue();
+
+            _dragStartTargetPos =cameraTarget.position;
         }
         else if (Mouse.current.rightButton.wasReleasedThisFrame)
         {
@@ -138,11 +177,14 @@ public class CameraController2 : MonoBehaviour
             return;
         }
 
-        Vector2 currentScreenPos = Mouse.current.position.ReadValue();
-        Vector2 screenDelta = _dragStartScreenPos - currentScreenPos; // 드래그 반대 방향으로 카메라 이동(잡아끄는 느낌)
+        Vector2 currentScreenPos =Mouse.current.position.ReadValue();
 
-        Vector3 offset = (GroundRight() * screenDelta.x + GroundForward() * screenDelta.y) * dragSpeed;
-        cameraTarget.position = ClampPosition(_dragStartTargetPos + offset);
+        // 드래그 반대 방향으로 카메라 이동
+        Vector2 screenDelta =_dragStartScreenPos - currentScreenPos;
+
+        Vector3 offset =(GroundRight() * screenDelta.x +GroundForward() * screenDelta.y) *dragSpeed;
+
+        cameraTarget.position =ClampPosition(_dragStartTargetPos + offset);
     }
 
     private void ZoomMouseWheel()
@@ -180,6 +222,82 @@ public class CameraController2 : MonoBehaviour
         return right.normalized;
     }
 
+    public void MoveTo(Vector3 worldPosition)
+    {
+        if (cameraTarget == null)
+        {
+            return;
+        }
+
+        worldPosition.y = cameraTarget.position.y;
+
+        minimapMoveTarget = ClampPosition(worldPosition);
+        isMinimapMoving = true;
+    }
+
+    public void MoveViewCenterTo(
+    Vector3 clickedWorldPosition,
+    float groundY)
+    {
+        if (cameraTarget == null)
+        {
+            return;
+        }
+
+        if (mainCamera == null)
+        {
+            mainCamera = Camera.main;
+        }
+
+        if (mainCamera == null)
+        {
+            MoveTo(clickedWorldPosition);
+            return;
+        }
+
+        Plane groundPlane = new Plane(
+            Vector3.up,
+            new Vector3(0f, groundY, 0f));
+
+        // 현재 메인 화면의 정중앙이 지면의 어디를 보고 있는지 계산
+        Ray centerRay = mainCamera.ViewportPointToRay(
+            new Vector3(0.5f, 0.5f, 0f));
+
+        if (!groundPlane.Raycast(centerRay, out float distance))
+        {
+            MoveTo(clickedWorldPosition);
+            return;
+        }
+
+        Vector3 currentViewCenter =
+            centerRay.GetPoint(distance);
+
+        // cameraTarget과 실제 화면 중심 사이의 차이
+        Vector3 targetOffset =
+            cameraTarget.position - currentViewCenter;
+
+        Vector3 correctedTargetPosition =
+            clickedWorldPosition + targetOffset;
+
+        correctedTargetPosition.y =
+            cameraTarget.position.y;
+
+        minimapMoveTarget =
+            ClampPosition(correctedTargetPosition);
+
+        isMinimapMoving = true;
+    }
+
+    private void CancelMinimapMove()
+    {
+        isMinimapMoving = false;
+        minimapMoveVelocity = Vector3.zero;
+
+        if (cameraTarget != null)
+        {
+            minimapMoveTarget = cameraTarget.position;
+        }
+    }
     private Vector3 ClampPosition(Vector3 position)
     {
         position.x = Mathf.Clamp(position.x, xBounds.x, xBounds.y);
