@@ -35,8 +35,8 @@ public class MinimapClickMover :
 
     private void MoveCamera(PointerEventData eventData)
     {
-        // 미니맵은 우클릭으로 조작한다.
-        if (eventData.button != PointerEventData.InputButton.Right)
+        //미니맵은 좌클릭 으로 움직인다
+        if (eventData.button != PointerEventData.InputButton.Left)
         {
             return;
         }

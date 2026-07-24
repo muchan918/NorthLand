@@ -2902,7 +2902,7 @@ MonoBehaviour:
   minZoomSize: 70
   maxZoomSize: 300
   minimapMoveSmoothTime: 0.2
-  mainCamera: {fileID: 0}
+  mainCamera: {fileID: 1459800175}
 --- !u!4 &522335600
 Transform:
   m_ObjectHideFlags: 0
