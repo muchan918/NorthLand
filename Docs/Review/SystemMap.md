@@ -205,3 +205,7 @@
 - CSV POCO는 PascalCase 프로퍼티(CsvHelper), SO는 CreateAssetMenu
 - 테스트: XxxTest.cs MonoBehaviour + 개인 테스트 씬 Play 확인 (유닛 테스트 없음)
 - 커밋: `Feat|Fix: 한국어 요약 #이슈번호`
+- **적 프리팹 불변식(mover 위치)**: `MonsterMove`(`IMovementAgent` 구현)는 반드시
+  `Enemy`(`IDamageable`)와 **동일한 GameObject**에 부착한다. `StatusEffectHandler`(슬로우/스턴)가
+  `GetComponent<IMovementAgent>`(같은 GO)로 mover를 찾으므로, 자식 GO에 두면 CC(슬로우/스턴)가
+  에러 없이 조용히 무효가 된다(WL-077). 신규 적 프리팹 작성·리뷰 시 필수 확인 항목.
