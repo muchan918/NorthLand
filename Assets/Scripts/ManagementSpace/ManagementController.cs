@@ -17,6 +17,10 @@ public class ManagementController : MonoBehaviour
     [Tooltip("생산 라인이 되는 생산 건물들(나무꾼의 집·광산·농장). 각 건물의 Production에서 산출 자원·주민당량·업그레이드 테이블을 읽는다.")]
     [SerializeField] BuildingAsset[] _productionBuildings;
 
+    [Tooltip("업그레이드만 하는 건물들(마법 연구소 등). 생산 라인이 아니라 마나석으로 레벨만 올린다. " +
+             "강화 효과는 소비 시스템(스킬 등)이 GetUpgradeLevel로 레벨을 읽어 적용한다(결합도 최소, 효과는 TODO).")]
+    [SerializeField] BuildingAsset[] _upgradeBuildings;
+
     [Tooltip("총 보유(최대) 주민 수. 주민 시스템 부재로 임시 placeholder. 전 라인 배치 합계 상한.")]
     [SerializeField] int _maxVillagers = 5;
 
@@ -44,6 +48,14 @@ public class ManagementController : MonoBehaviour
     private int[] _amountPerVillager;
     private List<BuildingAsset.UpgradeLevel>[] _lineUpgradeLevels;
     private BuildingAsset[] _lineBuildings; // 라인 index → 원본 건물 SO (건물→라인 매핑용, BuildingInfoUI 등)
+
+    // 업그레이드 전용 건물(마법 연구소 등) 상태 — 생산 라인과 완전히 분리한다(주민·산출 자원·주민당량 개념 없음).
+    // 생산 라인과 같은 계보로 레벨만 런타임 상태로 소유하고(공유 SO 오염 금지, WL-016), 비용 차감은 동일한 TrySpend 게이트웨이를 쓴다.
+    // _upgradeLevel[i]=현재 레벨(0=미업그레이드), _upgradeLevelTables[i]=그 건물의 레벨 테이블(비용, SO에서 추출한 읽기 전용),
+    // _upgradeBuildingRefs[i]=index → 원본 건물 SO(건물→인덱스 매핑용).
+    private int[] _upgradeLevel;
+    private List<BuildingAsset.SkillUpgradeLevel>[] _upgradeLevelTables;
+    private BuildingAsset[] _upgradeBuildingRefs;
 
     private DayNightManager _dayNight;
     private TerritoryController _territory;
@@ -196,6 +208,92 @@ public class ManagementController : MonoBehaviour
         return next < levels.Count ? levels[next].AmountPerVillager : _amountPerVillager[index];
     }
 
+    // ── 업그레이드 전용 건물(마법 연구소 등) 조회/실행 API ─────────────────
+    // 생산 라인과 별개 트랙이라 index 도메인도 별개다(UpgradeIndexOf로 얻는다). BuildingInfoUI가 바인딩한다.
+
+    /// <summary>업그레이드 전용 건물 SO가 몇 번 index인지. 업그레이드 건물이 아니면 -1.</summary>
+    public int UpgradeIndexOf(BuildingAsset building)
+    {
+        if (building == null || _upgradeBuildingRefs == null) return -1;
+        for (int i = 0; i < _upgradeBuildingRefs.Length; i++)
+        {
+            if (_upgradeBuildingRefs[i] == building) return i;
+        }
+        return -1;
+    }
+
+    public int UpgradeBuildingLevel(int index) => IsValidUpgrade(index) ? _upgradeLevel[index] : 0;
+    public int UpgradeBuildingMaxLevel(int index) => IsValidUpgrade(index) ? _upgradeLevelTables[index].Count : 0;
+
+    // 다음 레벨(=현재 레벨 인덱스)의 비용. 최대 레벨이거나 index 무효면 null(표시부는 "MAX" 처리).
+    public IReadOnlyList<ResourceCost> UpgradeBuildingCost(int index)
+    {
+        if (!IsValidUpgrade(index)) return null;
+        List<BuildingAsset.SkillUpgradeLevel> levels = _upgradeLevelTables[index];
+        int next = _upgradeLevel[index];
+        return next < levels.Count ? levels[next].Cost : null;
+    }
+
+    // 업그레이드 가능 여부: 낮이어야 하고, 다음 레벨이 있어야 하고, 그 비용(마나석)을 감당할 수 있어야 한다.
+    public bool CanUpgradeBuilding(int index)
+    {
+        if (!IsDay || !IsValidUpgrade(index)) return false;
+        List<BuildingAsset.SkillUpgradeLevel> levels = _upgradeLevelTables[index];
+        int next = _upgradeLevel[index];
+        return next < levels.Count && CanAfford(levels[next].Cost);
+    }
+
+    /// <summary>
+    /// 업그레이드 전용 건물(마법 연구소 등)을 한 단계 올린다 — 낮에만, 다음 레벨 비용을 감당 가능할 때만.<br/>
+    /// 비용은 생산 건물과 동일한 <see cref="TrySpend"/> 게이트웨이로 원자적 차감(WL-017/WL-048), 성공 시 레벨↑.
+    /// 강화 효과는 여기서 적용하지 않는다 — 소비 시스템이 <see cref="GetUpgradeLevel"/>로 레벨을 읽어 정한다(결합도 최소, TODO).
+    /// </summary>
+    public bool TryUpgradeBuilding(int index)
+    {
+        if (!IsDay)
+        {
+            Debug.Log("[경영] 밤에는 업그레이드할 수 없습니다.");
+            return false;
+        }
+        if (!IsValidUpgrade(index))
+        {
+            return false;
+        }
+
+        List<BuildingAsset.SkillUpgradeLevel> levels = _upgradeLevelTables[index];
+        int next = _upgradeLevel[index];
+        if (next >= levels.Count)
+        {
+            Debug.Log($"[경영] {_upgradeBuildingRefs[index].BuildingID}: 이미 최대 레벨입니다. (Lv{_upgradeLevel[index]})");
+            return false;
+        }
+
+        if (!TrySpend(levels[next].Cost))
+        {
+            Debug.Log($"[경영] {_upgradeBuildingRefs[index].BuildingID}: 자원이 부족해 업그레이드할 수 없습니다.");
+            return false;
+        }
+
+        _upgradeLevel[index] = next + 1;
+        Debug.Log($"[경영] {_upgradeBuildingRefs[index].BuildingID} 업그레이드 → Lv{_upgradeLevel[index]}");
+        OnChanged?.Invoke();
+        return true;
+    }
+
+    /// <summary>
+    /// 업그레이드 전용 건물의 현재 레벨을 읽는다(미보유·미등록이면 0) — 소비 시스템(스킬 강화 등)이 참조하는 저결합 창구.<br/>
+    /// 소비 측은 이 컨트롤러와 대상 건물 SO만 알면 되고, 레벨→효과 매핑은 소비 측이 소유한다(효과 적용은 TODO).<br/>
+    /// 레벨 변경은 <see cref="OnChanged"/>로 통지되므로 소비 측은 이를 구독해 다시 pull하면 된다.
+    /// </summary>
+    public int GetUpgradeLevel(BuildingAsset building)
+    {
+        int index = UpgradeIndexOf(building);
+        return index >= 0 ? _upgradeLevel[index] : 0;
+    }
+
+    private bool IsValidUpgrade(int index) =>
+        _upgradeBuildingRefs != null && index >= 0 && index < _upgradeBuildingRefs.Length;
+
     // 라인 산출 자원의 현재 생산 배율(레지스트리 미준비 시 1.0).
     private float ProductionMultiplier(int index) =>
         _productionModifiers != null && IsValidLine(index) ? _productionModifiers.GetMultiplier(_lineAssets[index].Data.Kind) : 1f;
@@ -291,6 +389,35 @@ public class ManagementController : MonoBehaviour
         _lineBuildings = buildings.ToArray();
         _level = new int[_sources.Length];
         _villagerCounts = new int[_sources.Length];
+
+        BuildUpgradeBuildings();
+    }
+
+    // 업그레이드 전용 건물(마법 연구소 등) 트랙을 구축한다. 생산 라인과 달리 생산처·산출 자원이 없어
+    // 레벨 테이블(비용)만 캡처하면 된다. 스킬 타입이 아니거나 레벨 테이블이 비어도 등록은 하되 최대 레벨 0으로 둔다
+    // (BuildingInfoUI가 "업그레이드 불가"로 표시). 실제 강화 효과는 소비 시스템이 레벨을 참조해 정한다(TODO).
+    private void BuildUpgradeBuildings()
+    {
+        var refs = new List<BuildingAsset>();
+        var tables = new List<List<BuildingAsset.SkillUpgradeLevel>>();
+
+        int count = _upgradeBuildings != null ? _upgradeBuildings.Length : 0;
+        for (int i = 0; i < count; i++)
+        {
+            BuildingAsset building = _upgradeBuildings[i];
+            if (building == null)
+            {
+                Debug.LogError($"[경영] {i}번 업그레이드 건물이 비어 있습니다.");
+                continue;
+            }
+
+            refs.Add(building);
+            tables.Add(building.Skill?.UpgradeLevels ?? new List<BuildingAsset.SkillUpgradeLevel>());
+        }
+
+        _upgradeBuildingRefs = refs.ToArray();
+        _upgradeLevelTables = tables.ToArray();
+        _upgradeLevel = new int[_upgradeBuildingRefs.Length];
     }
 
     private void SubscribeDayNight()

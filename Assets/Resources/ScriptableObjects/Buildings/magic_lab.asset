@@ -18,6 +18,16 @@ MonoBehaviour:
   Production:
     BaseAmountPerVillager: 0
     OutputResource: {fileID: 0}
-    ProducesSoldier: 0
+    UpgradeLevels: []
   Skill:
     InputResource: {fileID: 0}
+    UpgradeLevels:
+    - Cost:
+      - Resource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
+        Amount: 20
+    - Cost:
+      - Resource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
+        Amount: 40
+    - Cost:
+      - Resource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
+        Amount: 60

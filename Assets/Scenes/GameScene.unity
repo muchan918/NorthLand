@@ -3762,6 +3762,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ba79754af9105604892d30cae1799110, type: 2}
   - {fileID: 11400000, guid: 8268c334119ef524ea770b364abf1fd5, type: 2}
   - {fileID: 11400000, guid: 639db89c157d46343837e79b6259f345, type: 2}
+  _upgradeBuildings:
+  - {fileID: 11400000, guid: 444e1653e8434af47bb9af09e73f29e3, type: 2}
   _maxVillagers: 2
   _manaPerWaveClear: 10
   _initialWood: 50
