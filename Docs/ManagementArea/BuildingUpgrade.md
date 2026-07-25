@@ -125,7 +125,8 @@
 - [ ] **UI 통합**(다음 이슈): 경영 패널에 레벨 표시·업그레이드 버튼(`TryUpgrade`/`CanUpgrade`/`LineLevel`/`LineUpgradeCost` 바인딩).
 - [ ] **세이브/로드**: 업그레이드 레벨 영속화(전역 세이브 미도입 상태).
 - [x] **마법 연구소 업그레이드**: **업그레이드 전용 건물 트랙으로 구현됨**(§8). 마나석 비용·레벨 추적. 강화 효과(스킬 강화)는 스킬 시스템 후속(TODO).
-- [ ] **본성/연금술사 업그레이드**(범위 밖): 효과·구조 정의 후 별도. (본성=`castle`/`headquarters`, 연금술사=`alchemist_house`. 필요 시 마법 연구소와 같은 `_upgradeBuildings` 트랙에 추가만 하면 됨.)
+- [ ] **연금술사 업그레이드**(범위 밖): `alchemist_house`는 **Skill 타입**이라 마법 연구소와 동일하게 `Skill.UpgradeLevels` authoring + `_upgradeBuildings` 배선만으로 확장 가능.
+- [ ] **본성 업그레이드**(범위 밖): `castle`/`headquarters`는 **General 타입**이라 현재 `BuildingAssetEditor`가 업그레이드 필드를 노출하지 않는다 → **SO만 추가로는 authoring 불가**. 착수하려면 레벨 테이블 필드를 타입 중립 그룹으로 승격(또는 에디터 노출 규칙 변경)이 선행돼야 한다(§8 참고, 리뷰 지적).
 
 ---
 
@@ -182,18 +183,19 @@ asmdef 부재로 순수 유닛 테스트 불가(Resources.md §7) — UI도 다�
 - `bool CanUpgradeBuilding(int)`(낮+다음 레벨+마나 감당) / `bool TryUpgradeBuilding(int)`(성공 bool, 원자적 차감 후 레벨↑, `OnChanged` 발화).
 - **`int GetUpgradeLevel(BuildingAsset)`** — 소비 시스템(스킬 강화 등)이 레벨을 읽는 **저결합 창구**. 미등록/미보유면 0.
 
-### 결합도 최소 — 스킬 강화(TODO) 연동 계약
-- 컨트롤러는 **레벨(int)만 노출**한다. 레벨→강화효과 매핑은 **소비 측(스킬 시스템)이 소유**한다 —
-  컨트롤러는 "스킬"을 전혀 모르고, 스킬은 마법 연구소 건물 SO와 `GetUpgradeLevel`만 알면 된다.
-- 레벨 변경은 `OnChanged`로 통지되므로, 스킬 시스템은 이를 구독해 다시 pull하면 된다(BuildingInfoUI와 동일 패턴).
-- 이 방향이면 스킬 밸런싱이 확정될 때 **컨트롤러/UI 무수정**으로 스킬 쪽만 붙이면 된다.
+### 결합도 최소 — 스킬 강화(TODO) 연동 방식 ⚠ **제안 단계(착지점 미확정)**
+> 아래 연동 방식은 **제안이며 확정 계약이 아니다** — 소비 측(PlayerSkill, 소유자 muchan) 사인오프가 남아 있다. 현재 강화 효과는 미구현(TODO)이라 **코드 충돌은 없다.**
+- 메커니즘(제안): 컨트롤러는 **레벨(int)만 노출**하고, 레벨→강화효과 매핑은 **소비 측(스킬 시스템)이 소유**한다 —
+  컨트롤러는 "스킬"을 전혀 모르고, 스킬은 마법 연구소 건물 SO와 `GetUpgradeLevel`만 알면 된다. 레벨 변경은 `OnChanged`로 통지되므로 구독 후 재-pull(BuildingInfoUI와 동일 패턴). 이 방향이면 스킬 밸런싱 확정 시 **컨트롤러/UI 무수정**으로 스킬 쪽만 붙는다.
+- ⚠ **착지점 확정 필요(muchan)**: PlayerSkill은 이미 **보상 기반 자체 레벨 축**(`SkillEffect.Level`, `SkillEffectManager.GetLevel`, #169)을 갖고 있고, GDD §5.5/§5.6은 스킬 강화의 원천을 **보상 트랙**으로 명시한다. 연구소 레벨을 **어느 축에 착지시킬지** — 예: 연구소 레벨=**기본 스킬 스탯 배율**(`SkillManager`의 damage/radius/cooldown), 보상=**특수 효과 레벨**(`SkillEffect.Level` 불변) — muchan과 합의한 뒤 GDD §5.5에 한 줄로 편입할 것. 합의 전에는 이 연동을 코드로 선반영하지 않는다(문서만 앞서가지 않도록).
 
 ### 잔여 / TODO
-- [ ] **강화 효과 구현**: 스킬 시스템이 `GetUpgradeLevel(magic_lab)`을 참조해 스킬을 강화(레벨→수치 매핑은 스킬 밸런싱 후속).
+- [ ] **강화 효과 착지점 확정(muchan) → 구현**: 연구소 레벨을 스킬의 어느 축(기본 스탯 배율 vs 보상 효과 레벨)에 붙일지 합의(위 "연동 방식" 참고) 후, 스킬 시스템이 `GetUpgradeLevel(magic_lab)`을 참조해 강화.
 - [ ] **수치 밸런싱**: 레벨 수·레벨당 마나 비용(현재 placeholder 20/40/60).
 - [ ] **클릭 오브젝트**: 마법 연구소를 클릭해 패널을 열려면 씬/프리팹에 `BuildingInfo`(+`Selectable` 레이어 콜라이더) 배치 필요 —
   생산 건물 클릭 오브젝트와 동일하게 건물 프리팹(Imported 사각지대 가능, WL-040) 쪽 작업.
-- [ ] **본성/연금술사**: 같은 트랙에 SO만 추가(`_upgradeBuildings`에 배선)하면 확장됨.
+- [ ] **연금술사(Skill 타입)**: 같은 트랙에 SO만 추가(`Skill.UpgradeLevels` authoring + `_upgradeBuildings` 배선)하면 확장.
+- [ ] **본성(General 타입)**: 레벨 테이블이 `Skill` 필드 그룹에 결박돼 있어 General 타입은 인스펙터 authoring 불가 — 필드를 **타입 중립 그룹으로 승격**하는 선행 작업 필요(리뷰 지적). "SO만 추가"로는 안 됨.
 
 ---
 

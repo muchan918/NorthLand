@@ -19,9 +19,16 @@ public class BuildingAsset : ScriptableObject
     public SkillFields Skill;
 
 #if UNITY_EDITOR
-    // 에디터 authoring 가드: 업그레이드 주민당량이 base(레벨0)부터 단조 증가하지 않으면 경고한다.
-    // AmountPerVillager가 절대값이라 실수로 낮게/비단조로 적으면 업그레이드가 조용히 생산을 떨어뜨릴 수 있다(수치=SO, WL-015 축).
+    // 에디터 authoring 가드: 업그레이드 수치를 잘못 적으면 조용히 생산 하락/무료 업그레이드가 되므로 경고한다(수치=SO, WL-015 축).
     private void OnValidate()
+    {
+        ValidateProductionUpgrades();
+        ValidateSkillUpgrades();
+    }
+
+    // 생산 건물: 주민당량이 base(레벨0)부터 단조 증가하지 않으면 경고한다.
+    // AmountPerVillager가 절대값이라 실수로 낮게/비단조로 적으면 업그레이드가 조용히 생산을 떨어뜨릴 수 있다.
+    private void ValidateProductionUpgrades()
     {
         if (BuildingType != BuildingType.Production || Production == null || Production.UpgradeLevels == null)
         {
@@ -37,6 +44,38 @@ public class BuildingAsset : ScriptableObject
                 Debug.LogWarning($"[BuildingAsset] {BuildingID}: 업그레이드 Lv{i + 1} 주민당량({cur})이 이전 단계({prev}) 이하 — 업그레이드가 생산을 늘리지 않습니다.", this);
             }
             prev = cur;
+        }
+    }
+
+    // 스킬/업그레이드 전용 건물(마법 연구소 등): 레벨 비용이 비었거나 총액 0이면 경고한다.
+    // 빈 비용은 ManagementController.TrySpend가 무료 성공을 반환해 조용히 '무료 업그레이드'가 된다
+    // (WL-057 poison_tower 무료 배치와 동일 실패 모드 — 비용 authoring 누락을 조기에 드러낸다).
+    private void ValidateSkillUpgrades()
+    {
+        if (BuildingType != BuildingType.Skill || Skill == null || Skill.UpgradeLevels == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < Skill.UpgradeLevels.Count; i++)
+        {
+            SkillUpgradeLevel level = Skill.UpgradeLevels[i];
+            int total = 0;
+            if (level != null && level.Cost != null)
+            {
+                for (int c = 0; c < level.Cost.Count; c++)
+                {
+                    ResourceCost cost = level.Cost[c];
+                    if (cost != null && cost.Resource != null && cost.Amount > 0)
+                    {
+                        total += cost.Amount;
+                    }
+                }
+            }
+            if (total <= 0)
+            {
+                Debug.LogWarning($"[BuildingAsset] {BuildingID}: 업그레이드 Lv{i + 1} 비용이 비어 있습니다(총액 0) — 무료로 업그레이드됩니다. 마나석 등 비용을 설정하세요.", this);
+            }
         }
     }
 #endif
