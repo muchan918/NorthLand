@@ -15,6 +15,9 @@ public class BuildingInfoUI : MonoBehaviour
     private const string k_PerVillagerKey = "building.upgrade.per_villager";
     private const string k_MaxKey = "building.upgrade.max";
     private const string k_LevelKey = "building.upgrade.level";
+    // 마법 연구소 등 업그레이드 전용 건물의 효과 줄 라벨. 생산 건물의 "주민당 5→7" 자리에 표시된다 —
+    // 강화 효과(스킬 강화)는 이번 범위 밖(추후 구현)이라 수치 대신 이 안내 문구를 보여준다.
+    private const string k_SkillPendingKey = "building.upgrade.skill_pending";
 
     [Tooltip("업그레이드 데이터 소스. 비우면 씬에서 자동 탐색.")]
     [SerializeField] ManagementController _controller;
@@ -34,7 +37,8 @@ public class BuildingInfoUI : MonoBehaviour
     [SerializeField] Button _upgradeButton;
 
     private BuildingAsset _building;
-    private int _lineIndex = -1;   // 현재 표시 중인 라인. -1 = 업그레이드 대상 아님(본진·스킬 건물 등)
+    private int _lineIndex = -1;      // 생산 라인(주민당량 업그레이드) index. -1 = 생산 라인 아님
+    private int _upgradeIndex = -1;   // 업그레이드 전용 건물(마법 연구소 등) index. -1 = 업그레이드 건물 아님
     private bool _subscribed;
     private ResourceTable _resourceTable; // 비용 자원 Data 채움용(호출부 채움 규약, SystemMap §2)
 
@@ -78,7 +82,8 @@ public class BuildingInfoUI : MonoBehaviour
         }
 
         _building = building;
-        _lineIndex = _controller.LineIndexOf(building);
+        _lineIndex = _controller.LineIndexOf(building);           // 생산 라인(나무·철·식량)
+        _upgradeIndex = _controller.UpgradeIndexOf(building);     // 업그레이드 전용 건물(마법 연구소 등)
         Subscribe(); // 업그레이드·정산으로 상태가 바뀌면 자동 갱신
         gameObject.SetActive(true);
         Refresh();
@@ -89,30 +94,82 @@ public class BuildingInfoUI : MonoBehaviour
         Unsubscribe();
         _building = null;
         _lineIndex = -1;
+        _upgradeIndex = -1;
         gameObject.SetActive(false);
     }
 
     private void HandleUpgradeClicked()
     {
         // 성공 시 컨트롤러 OnChanged → Refresh가 자동으로 다시 그린다(실패해도 무해).
-        if (_controller != null && _lineIndex >= 0)
+        if (_controller == null)
         {
-            _controller.TryUpgrade(_lineIndex);
+            return;
+        }
+        if (_lineIndex >= 0)
+        {
+            _controller.TryUpgrade(_lineIndex);            // 생산 라인: 주민당량 업그레이드
+        }
+        else if (_upgradeIndex >= 0)
+        {
+            _controller.TryUpgradeBuilding(_upgradeIndex); // 마법 연구소 등: 레벨 업그레이드(마나석)
         }
     }
 
     private void Refresh()
     {
-        // 업그레이드 대상이 아닌 건물(본진·스킬 건물 등): 이름만 표시하고 업그레이드 행/버튼은 감춘다.
-        if (_lineIndex < 0)
+        // 표시 대상 분기: 생산 라인(주민당량) → 업그레이드 전용 건물(마법 연구소 등) → 그 외(본진 등, 이름만).
+        if (_lineIndex >= 0)
         {
-            SetText(_nameLevelText, BuildingName());
-            SetText(_amountText, string.Empty);
+            RefreshProductionLine();
+        }
+        else if (_upgradeIndex >= 0)
+        {
+            RefreshUpgradeBuilding();
+        }
+        else
+        {
+            RefreshNonUpgradeable();
+        }
+    }
+
+    // 업그레이드 대상이 아닌 건물(본진 등): 이름만 표시하고 업그레이드 행/버튼은 감춘다.
+    private void RefreshNonUpgradeable()
+    {
+        SetText(_nameLevelText, BuildingName());
+        SetText(_amountText, string.Empty);
+        ClearCostRows();
+        if (_upgradeButton != null) _upgradeButton.gameObject.SetActive(false);
+    }
+
+    // 마법 연구소 등 업그레이드 전용 건물: 이름(Lv 현재/최대) + 효과 안내 + 비용(마나석) + 업그레이드 버튼.
+    // 생산 라인과 달리 "주민당 자원" 같은 즉시 효과값이 없다 — 강화 효과(스킬 강화)는 스킬 시스템이 레벨을 참조해
+    // 정하는 후속(TODO)이라, 효과 줄엔 수치를 지어내지 않고 "이번 범위 밖(추후 구현)" 안내 문구를 표시한다.
+    private void RefreshUpgradeBuilding()
+    {
+        int level = _controller.UpgradeBuildingLevel(_upgradeIndex);
+        int max = _controller.UpgradeBuildingMaxLevel(_upgradeIndex);
+        bool isMax = level >= max;
+
+        SetText(_nameLevelText, $"{BuildingName()} ({L(k_LevelKey)} {level}/{max})");
+        SetText(_amountText, L(k_SkillPendingKey));
+        if (isMax)
+        {
             ClearCostRows();
-            if (_upgradeButton != null) _upgradeButton.gameObject.SetActive(false);
-            return;
+        }
+        else
+        {
+            RebuildCostRows(_controller.UpgradeBuildingCost(_upgradeIndex));
         }
 
+        if (_upgradeButton != null)
+        {
+            _upgradeButton.gameObject.SetActive(true);
+            _upgradeButton.interactable = _controller.CanUpgradeBuilding(_upgradeIndex);
+        }
+    }
+
+    private void RefreshProductionLine()
+    {
         int level = _controller.LineLevel(_lineIndex);
         int max = _controller.LineMaxLevel(_lineIndex);
         int cur = _controller.LineAmountPerVillager(_lineIndex);

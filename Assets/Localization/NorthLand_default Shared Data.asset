@@ -143,6 +143,10 @@ MonoBehaviour:
     m_Key: game.territory.daily_supply
     m_Metadata:
       m_Items: []
+  - m_Id: 5457805389434880
+    m_Key: building.upgrade.skill_pending
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
