@@ -56,7 +56,8 @@ public class TowerPlacer : MonoBehaviour
     private Material _cellMatValid;
     private Material _cellMatInvalid;
     private TowerPlacementData _activeData; // 현재 배치 중인 타워의 데이터(주입 또는 더미)
-    private List<ResourceCost> _activeCost; // 현재 배치 중인 타워의 비용(확정 시 차감)
+    private IReadOnlyList<ResourceCost> _activeCost; // 현재 배치 중인 타워의 비용(확정 시 차감)
+    private System.Action _onConfirmed; // 배치 확정 후 1회 콜백(합성 재료 소모 등). 확정 직후 소비하고 비운다.
     private ManagementController _management; // 자원 차감 게이트웨이(WL-017). null이면 무료 배치(테스트 씬).
 
     // 프레임당 풋프린트를 1회만 계산해 캐시(스냅에서 채우고, 검증·하이라이트가 공유).
@@ -101,7 +102,13 @@ public class TowerPlacer : MonoBehaviour
 
     // ── 진입점 ─────────────────────────────────────────────────────────────────────
     /// 더미 데이터 + 인스펙터 프리팹으로 배치 시작. UI 버튼 OnClick에 연결(현재 테스트 경로).
+    /// 비용은 so.Cost, 확정 콜백 없음(일반 타워 배치).
     public void BeginTowerPlacement(TowerAsset so)
+        => BeginTowerPlacement(so, so != null ? so.Cost : null, null);
+
+    /// 비용·확정 콜백을 주입하는 오버로드. 합성(#195)이 결과 타워를 결과 코스트(ExtraCost)로 배치하고,
+    /// 배치 확정 직후 onConfirmed(재료 소모)를 실행하는 데 쓴다. 배치 코어는 단일인자 경로와 동일.
+    public void BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost, System.Action onConfirmed)
     {
         if (so == null)
         {
@@ -118,7 +125,8 @@ public class TowerPlacer : MonoBehaviour
 
         towerPrefab = so.TowerPrefab;
         ghostPrefab = so.GhostPrefab;
-        _activeCost = so.Cost;
+        _activeCost = cost;
+        _onConfirmed = onConfirmed;
 
         TowerType type = so.TowerType;
         switch (type)
@@ -244,6 +252,12 @@ public class TowerPlacer : MonoBehaviour
 
         Instantiate(towerPrefab, snappedPos, Quaternion.identity);
         foreach ((Vector3 _, BattleTile tile) in _footprint) tile.Occupied = true;
+
+        // 확정 콜백(합성 재료 소모 등)은 배치 성공 후 1회만 실행한다.
+        // 먼저 비우고 호출해 연속 배치(keepPlacing)에서도 재실행되지 않게 한다.
+        var confirmed = _onConfirmed;
+        _onConfirmed = null;
+        confirmed?.Invoke();
     }
 
     private static bool IsBuildable(BattleTile tile)
@@ -357,5 +371,6 @@ public class TowerPlacer : MonoBehaviour
         _rangeIndicator = null;
         ClearCellHighlights();
         _footprint.Clear();
+        _onConfirmed = null; // 취소로 끝났으면 확정 콜백은 실행하지 않는다(재료 보존).
     }
 }
