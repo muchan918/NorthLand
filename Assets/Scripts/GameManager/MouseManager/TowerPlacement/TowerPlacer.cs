@@ -250,8 +250,11 @@ public class TowerPlacer : MonoBehaviour
             return;
         }
 
-        Instantiate(towerPrefab, snappedPos, Quaternion.identity);
-        foreach ((Vector3 _, BattleTile tile) in _footprint) tile.Occupied = true;
+        // 점유 타일을 인스턴스에 기록해 둔다: 타워가 파괴되면(합성 소모·철거 등)
+        // TowerFootprint.OnDestroy가 그 타일들의 Occupied를 되돌려 재배치를 허용한다.
+        var placed = Instantiate(towerPrefab, snappedPos, Quaternion.identity);
+        var occupant = placed.AddComponent<TowerFootprint>();
+        foreach ((Vector3 _, BattleTile tile) in _footprint) occupant.Occupy(tile);
 
         // 확정 콜백(합성 재료 소모 등)은 배치 성공 후 1회만 실행한다.
         // 먼저 비우고 호출해 연속 배치(keepPlacing)에서도 재실행되지 않게 한다.
