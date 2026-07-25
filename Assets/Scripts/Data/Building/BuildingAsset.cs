@@ -70,5 +70,19 @@ public class BuildingAsset : ScriptableObject
     public class SkillFields
     {
         public ResourceAsset InputResource;
+
+        // 마법 연구소 등 스킬 건물의 업그레이드 레벨 테이블. index i = 레벨 (i+1). 비어 있으면 업그레이드 불가(최대 레벨 = Count).
+        // 생산 건물(UpgradeLevels)과 달리 주민당량 같은 즉시 효과값이 없다 — 각 레벨은 도달 비용(마나석)만 authoring하고,
+        // 강화 효과(스킬 강화 등)는 소비 시스템이 건물 레벨을 참조해 정한다(결합도 최소, 효과는 TODO). BuildingUpgrade.md §1.
+        public List<SkillUpgradeLevel> UpgradeLevels = new List<SkillUpgradeLevel>();
+    }
+
+    // 스킬/업그레이드 전용 건물(마법 연구소 등)의 업그레이드 한 단계. 생산 건물의 UpgradeLevel과 달리
+    // 주민당량 필드가 없다(효과는 레벨을 참조하는 소비 시스템이 정함) — 이 단계는 도달 비용만 갖는다.
+    [System.Serializable]
+    public class SkillUpgradeLevel
+    {
+        // 이 레벨에 도달하기 위해 소모하는 비용(ManagementController.TrySpend 게이트웨이 경유). 마법 연구소는 마나석.
+        public List<ResourceCost> Cost = new List<ResourceCost>();
     }
 }

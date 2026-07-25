@@ -146,6 +146,10 @@ MonoBehaviour:
     m_Localized: Gain {1} {0} daily.
     m_Metadata:
       m_Items: []
+  - m_Id: 5457805389434880
+    m_Localized: Skill enhancement (coming soon)
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []
