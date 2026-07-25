@@ -25,6 +25,7 @@ public class TowerTooltipView : MonoBehaviour
     private RectTransform _panelRect;
     private Image _icon;
     private TextMeshProUGUI _nameText;
+    private TextMeshProUGUI _descText;
     private TextMeshProUGUI _statsText;
     private TextMeshProUGUI _costText;
     private ResourceTable _resourceTable;
@@ -59,7 +60,10 @@ public class TowerTooltipView : MonoBehaviour
     {
         if (tower == null) { Hide(); return; }
 
-        _nameText.text = ResolveName(tower);
+        _nameText.text = ResolveHeader(tower);
+        string desc = ResolveDescription(tower);
+        _descText.text = desc;
+        _descText.gameObject.SetActive(!string.IsNullOrEmpty(desc)); // 설명 없으면 빈 줄 안 남기고 접음
         _statsText.text = BuildStats(tower);
         _costText.text = BuildCost(tower);
 
@@ -83,7 +87,11 @@ public class TowerTooltipView : MonoBehaviour
         _canvas = gameObject.AddComponent<Canvas>();
         _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         _canvas.sortingOrder = short.MaxValue;
-        gameObject.AddComponent<CanvasScaler>();
+        // 게임의 다른 캔버스와 스케일을 맞춘다(전부 ScaleWithScreenSize 1920×1080) — 고해상도/모바일에서
+        // 버튼만 커지고 툴팁 텍스트가 상대적으로 작아지는 어긋남 방지.
+        var scaler = gameObject.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
         // GraphicRaycaster는 붙이지 않는다 — 툴팁은 입력을 받지 않는다(패널도 raycastTarget off).
 
         TMP_FontAsset font = ResolveFont();
@@ -125,6 +133,12 @@ public class TowerTooltipView : MonoBehaviour
         le.preferredHeight = le.minHeight = 40;
 
         _nameText = MakeText("Name", header.transform, font, 22f, FontStyles.Bold, Color.white);
+
+        // 설명(#141 완료조건): 여러 줄일 수 있어 줄바꿈 허용 + 폭 제한(다른 줄은 NoWrap이라 이 폭이 패널 폭을 잡음).
+        _descText = MakeText("Desc", _panel.transform, font, 16f, FontStyles.Normal, new Color(0.75f, 0.78f, 0.85f));
+        _descText.textWrappingMode = TextWrappingModes.Normal;
+        _descText.gameObject.AddComponent<LayoutElement>().preferredWidth = 260f;
+
         _statsText = MakeText("Stats", _panel.transform, font, 18f, FontStyles.Normal, new Color(0.85f, 0.90f, 1f));
         _costText = MakeText("Cost", _panel.transform, font, 18f, FontStyles.Normal, new Color(1f, 0.92f, 0.60f));
     }
@@ -173,12 +187,27 @@ public class TowerTooltipView : MonoBehaviour
 
     // ----- 내용 조립 -----
 
-    // Data는 패널이 배치 전 채워두지만, 못 채운 경우 TowerID로 폴백.
-    private string ResolveName(TowerAsset t)
+    // 헤더 = 타워 이름 (+ 역할, 있으면). Data 미채움 시 TowerID로 폴백.
+    // BuildingTooltipSource의 "이름 - 역할" 표기와 같은 계열.
+    private string ResolveHeader(TowerAsset t)
     {
-        if (t.Data != null && !string.IsNullOrEmpty(t.Data.NameKey))
-            return LocalizationHelper.Get(LocalizationHelper.k_TowersTable, t.Data.NameKey);
-        return t.TowerID;
+        if (t.Data == null || string.IsNullOrEmpty(t.Data.NameKey)) return t.TowerID;
+
+        string name = LocalizationHelper.Get(LocalizationHelper.k_TowersTable, t.Data.NameKey);
+        if (!string.IsNullOrEmpty(t.Data.RoleKey))
+        {
+            string role = LocalizationHelper.Get(LocalizationHelper.k_TowersTable, t.Data.RoleKey);
+            if (!string.IsNullOrEmpty(role)) return $"{name} - {role}";
+        }
+        return name;
+    }
+
+    // 설명(#141): TowerData.DescriptionKey를 Towers 테이블에서 pull. Magic 타워는 공통 공격 스탯이
+    // 없어 이 설명이 실질적 정보의 핵심(poison/slow/haste 구분 근거). 없으면 빈 문자열(호출부가 접음).
+    private string ResolveDescription(TowerAsset t)
+    {
+        if (t.Data == null || string.IsNullOrEmpty(t.Data.DescriptionKey)) return string.Empty;
+        return LocalizationHelper.Get(LocalizationHelper.k_TowersTable, t.Data.DescriptionKey);
     }
 
     // 공격력/사거리/공속을 game.tower.* 로컬라이즈 라벨로 조합(Tower.BuildStatsText와 동일 규칙).

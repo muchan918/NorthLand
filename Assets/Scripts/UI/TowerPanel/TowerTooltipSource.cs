@@ -32,4 +32,11 @@ public class TowerTooltipSource : MonoBehaviour, IPointerEnterHandler, IPointerE
     {
         if (TowerTooltipView.Instance != null) TowerTooltipView.Instance.Hide();
     }
+
+    // 호버 중 버튼/패널이 비활성화되면(예: 낮→밤 전환 시 타워 패널 SetActive(false)) EventSystem이
+    // OnPointerExit를 주지 않아 툴팁이 화면에 잔류한다 — 비활성 시 명시적으로 숨긴다.
+    private void OnDisable()
+    {
+        if (TowerTooltipView.Instance != null) TowerTooltipView.Instance.Hide();
+    }
 }
