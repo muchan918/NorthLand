@@ -53,7 +53,7 @@
 | `TowerWallet` | 재료 후보 홀더(`List<Tower>`) | **여기에 넣고 뺀다** — `Add(Tower)`/`Remove(Tower)`/`Clear()`/`Towers`(읽기) |
 | `Tower.Asset` | 배치된 타워의 원본 `TowerAsset`(→ `TowerID`) | 선택 목록 표시·매칭 판정에 필요한 타워 식별 |
 | `TowerRecipe`(SO) | 재료(`Materials`)/결과(`Result`)/추가비용(`ExtraCost`) | 후보 버튼 1개 = 레시피 1개. 결과 정보 = `Result` |
-| `TowerFusionMatcher.TryResolve(...)` | 포함 매칭 순수 함수 | **버튼 활성 판정**(이 지갑으로 이 레시피가 되나?)에 재사용 |
+| `TowerFusionMatcher` | 포함 매칭. `TryResolve`(순수 코어) + `BuildRequired(recipe)` + `CanFuse(wallet, recipe)` | **버튼 활성 판정** = `CanFuse(wallet.Towers, recipe)`. 실행부와 동일 규칙(단일 출처) |
 | `TowerFusionController.TryFuse(TowerRecipe)` | 합성 실행(검증+배치+소모) | **버튼 onClick → `TryFuse(recipe)`** 한 줄 |
 
 > `TryFuse(TowerRecipe)`는 이미 임의 레시피를 받는 공개 진입점이라 **후보 버튼 그대로 재사용**한다. 현재 컨트롤러의 `_recipe`(테스트 단일 레시피) + `TryFuseSelected()`는 디버그 버튼용 — 실제 패널은 버튼마다 자기 레시피로 `TryFuse(recipe)`를 호출한다.
@@ -81,11 +81,10 @@
 1. **레시피 카탈로그**: 패널에 `[SerializeField] List<TowerRecipe> _recipes`(인스펙터 등록) 또는 `Resources.LoadAll<TowerRecipe>`. 기존 패턴(직렬화 리스트) 권장.
 2. **버튼 생성**: 레시피 1개당 버튼 1개. 버튼은 자기 `TowerRecipe`를 클로저로 물고(=`TowerSelectPanelView.AddTowerButton`이 `tower`를 무는 방식), **onClick → `_fusionController.TryFuse(recipe)`**.
 3. **버튼 표시**: 결과 타워(`recipe.Result`) 정보 — 이름은 `Result.TowerID` → `TowerData.NameKey` 로컬라이즈. (아이콘 필드가 생기면 교체.)
-4. **활성 판정**: 버튼 `interactable` = **현재 지갑이 이 레시피를 충족하는가**. `TowerFusionMatcher.TryResolve`를 재사용:
-   - 지갑 → `walletIds = wallet.Towers.Select(t => t.Asset.TowerID)`
-   - 레시피 → `required = (TowerID, 개수)` 집계(`TowerFusionController.BuildRequired`와 동일 규칙 — 같은 타워 여러 엔트리 합산)
-   - `TryResolve(walletIds, required, out _)` 성공 + `management.CanAfford(recipe.ExtraCost)`면 활성.
-5. **갱신 시점**: **지갑이 바뀔 때마다** 전 버튼 재판정. 기존 패널이 `ManagementController.OnChanged`를 구독해 `RefreshAffordability`를 부르는 것과 동형 — 이를 위해 **`TowerWallet`에 `event Action OnChanged`(Add/Remove/Clear 시 발행) 추가**를 권장(§7).
+4. **활성 판정**: 버튼 `interactable` = **현재 지갑이 이 레시피를 충족하는가**. 실행부와 **같은 공개 함수**를 그대로 쓴다(매칭 규칙 재구현 금지):
+   - `TowerFusionMatcher.CanFuse(wallet.Towers, recipe)` 성공 + `management.CanAfford(recipe.ExtraCost)`면 활성.
+   - (집계만 따로 필요하면 `TowerFusionMatcher.BuildRequired(recipe)` — `TryFuse`가 쓰는 바로 그 함수.)
+5. **갱신 시점**: **지갑이 바뀔 때마다** 전 버튼 재판정. `TowerWallet.OnChanged`(Add/Remove/Clear 시 발행)를 구독하면 된다 — 기존 패널이 `ManagementController.OnChanged`→`RefreshAffordability`를 구독하는 것과 동형.
 
 ### 4.4 결과 정보 패널
 
@@ -133,7 +132,7 @@
 
 - **[#183] 복수 선택(shift)**: `MouseManager`가 현재 단일 선택 — shift 복수 선택 지원을 MouseManager에 추가하거나, 합성 선택 레이어가 `OnSelectionChanged`를 듣고 shift 상태로 누적. 계획서 §1의 "shift 차별점".
 - **[#183] 선택 상태 = 지갑**: 임시 `TowerWallet`(인스펙터 드래그)을 선택 UI가 채우도록 교체. 실행부(TryFuse)는 무수정.
-- **`TowerWallet.OnChanged` 이벤트 추가(권장)**: 후보 버튼 활성 갱신을 이벤트 구독으로 하기 위함(ManagementController.OnChanged↔RefreshAffordability와 동형). Add/Remove/Clear에서 발행.
+- ~~`TowerWallet.OnChanged` 이벤트 추가~~ — **구현됨**(Add/Remove/Clear에서 발행). 후보 버튼(#183)이 구독해 활성 갱신. 매칭 규칙도 `TowerFusionMatcher.CanFuse`/`BuildRequired` 공개로 실행부와 단일 출처화됨.
 - **결과 정보 패널 배선**: `Result` 스탯 표시 규칙을 `TowerInfoUI`/`Tower.BuildStatsText`와 공유할지 별도 조합할지.
 - **레시피 카탈로그 출처**: 패널 직렬화 `List<TowerRecipe>` vs `Resources.LoadAll`. 결정 후 통일.
 - **밸런스·규칙(GDD §8)**: 레시피 족보(재료 조합→결과)·`ExtraCost` 수치·낮/밤 합성 허용 여부 미정.

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using NorthLand.Combat;
@@ -12,12 +13,27 @@ public class TowerWallet : MonoBehaviour
 
     public IReadOnlyList<Tower> Towers => _towers;
 
+    /// 지갑 내용(재료 선택)이 바뀔 때 발행. 후보 버튼(#183)이 활성 상태를 갱신하는 데 구독한다.
+    public event Action OnChanged;
+
     public void Add(Tower tower)
     {
-        if (tower != null && !_towers.Contains(tower)) _towers.Add(tower);
+        if (tower == null || _towers.Contains(tower)) return;
+        _towers.Add(tower);
+        OnChanged?.Invoke();
     }
 
-    public bool Remove(Tower tower) => _towers.Remove(tower);
+    public bool Remove(Tower tower)
+    {
+        if (!_towers.Remove(tower)) return false;
+        OnChanged?.Invoke();
+        return true;
+    }
 
-    public void Clear() => _towers.Clear();
+    public void Clear()
+    {
+        if (_towers.Count == 0) return;
+        _towers.Clear();
+        OnChanged?.Invoke();
+    }
 }

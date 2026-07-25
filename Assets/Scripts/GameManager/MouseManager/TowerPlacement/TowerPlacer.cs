@@ -126,24 +126,26 @@ public class TowerPlacer : MonoBehaviour
         towerPrefab = so.TowerPrefab;
         ghostPrefab = so.GhostPrefab;
         _activeCost = cost;
-        _onConfirmed = onConfirmed;
+        // _onConfirmed은 StartPlacement가 BeginPlacement '이후'에 설정한다 — BeginPlacement 내부의
+        // CancelPlacement가 이전 배치의 OnEnded=EndPlacement를 발화해 _onConfirmed을 null로 지우므로,
+        // 여기서 미리 대입하면 합성 재료 소모 콜백이 유실된다(무료 합성 버그).
 
         TowerType type = so.TowerType;
         switch (type)
         {
             case TowerType.Single:
-                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Single.Attack.AttackRange));
+                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Single.Attack.AttackRange), onConfirmed);
                 break;
             case TowerType.Area:
-                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Area.Attack.AttackRange));
+                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Area.Attack.AttackRange), onConfirmed);
                 break;
             case TowerType.Chain:
-                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Chain.Attack.AttackRange));
+                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Chain.Attack.AttackRange), onConfirmed);
                 break;
             case TowerType.Magic:
                 // 마법 타워는 오라 반경을 사거리 미리보기로 사용(#111 완료기준 #4).
                 // 반경 규칙은 TowerAsset.MagicRadius 단일 출처(WL-056) — AuraTower 실효과와 공유.
-                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.MagicRadius));
+                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.MagicRadius), onConfirmed);
                 break;
             default:
                 Debug.LogError($"[TowerPlacer] 알 수 없는 TowerType={type}입니다.");
@@ -159,7 +161,8 @@ public class TowerPlacer : MonoBehaviour
     // 이러면 위 더미 경로를 대체하며, 배치·검증·미리보기 코어(StartPlacement 이하)는 무수정이다.
 
     // 실제 배치 시작 코어(진입 방식과 무관). 게이트웨이/더미 어느 경로든 이 메서드를 호출한다.
-    private void StartPlacement(TowerPlacementData data)
+    // onConfirmed(합성 재료 소모 등)는 BeginPlacement 이후에 설정한다(순서 주의 — 아래 참고).
+    private void StartPlacement(TowerPlacementData data, System.Action onConfirmed = null)
     {
         if (MouseManager.Instance == null)
         {
@@ -184,6 +187,10 @@ public class TowerPlacer : MonoBehaviour
             OnEnded = EndPlacement,
             KeepPlacingAfterConfirm = keepPlacing,
         });
+
+        // 확정 콜백은 반드시 BeginPlacement '이후'에 설정한다 — 위 BeginPlacement 내부의
+        // CancelPlacement→이전 배치 EndPlacement가 _onConfirmed을 null로 지우기 때문(프리뷰와 동일한 순서 이슈).
+        _onConfirmed = onConfirmed;
 
         // 프리뷰는 BeginPlacement 이후에 만든다.
         // (BeginPlacement 내부의 CancelPlacement가 이전 배치의 OnEnded=EndPlacement를 먼저 발화해

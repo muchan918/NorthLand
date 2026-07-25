@@ -105,8 +105,8 @@
 - `TowerRecipe`(SO, `Assets/Scripts/Data/Tower/TowerRecipe.cs`, #194) — `Materials`(재료 `TowerAsset`+개수)/`Result`(결과 `TowerAsset`)/`ExtraCost`(`List<ResourceCost>`). **인스펙터 손입력(CSV 미경유** — 재료·결과가 SO 참조라 ID 문자열 resolve보다 직접 드래그가 자연스러움)
 - `TowerPlacer.BeginTowerPlacement(TowerAsset result, IReadOnlyList<ResourceCost> cost, System.Action onConfirmed)`(#195) — 비용·확정 콜백 주입 오버로드(합성 결과 배치용, 확정 직후 콜백에서 재료 소모). 기존 `BeginTowerPlacement(TowerAsset)`은 `cost=so.Cost, onConfirmed=null`로 위임(동작 불변). 확정 시 `_management.TrySpend(cost)` 후 `Instantiate`
 - `TowerFusionController.TryFuse(TowerRecipe)` / `TryFuseSelected()`(#195) — 합성 실행 진입점(버튼 onClick). 포함 매칭+`CanAfford` 검증→`TowerPlacer` 배치→확정 시 재료 `Destroy`
-- `TowerWallet`(#195, **임시**) — 재료 후보 홀더. `IReadOnlyList<Tower> Towers`/`Add`/`Remove`/`Clear`. #183 선택셋의 스탠드인(인스펙터 `List<Tower>` 드래그)
-- `TowerFusionMatcher.TryResolve(IReadOnlyList<string> walletTowerIds, IReadOnlyList<(string id,int count)> required, out List<int> consumeIndices)`(#195) — 포함 매칭 순수 함수(씬/Mono 비의존, EditMode 테스트 대상). 성공 시 소모할 인덱스 반환, 부족 시 false
+- `TowerWallet`(#195, **임시**) — 재료 후보 홀더. `IReadOnlyList<Tower> Towers`/`Add`/`Remove`/`Clear` + `event Action OnChanged`(Add/Remove/Clear 시 발행, #183 후보 버튼 갱신용). #183 선택셋의 스탠드인(인스펙터 `List<Tower>` 드래그)
+- `TowerFusionMatcher`(#195) — 포함 매칭. `TryResolve(walletTowerIds, required, out consumeIndices)`(순수 코어, 씬 비의존 EditMode 테스트 대상, 소모 인덱스 반환) + `BuildRequired(TowerRecipe)`(재료→(TowerID,개수) 집계) + `CanFuse(IReadOnlyList<Tower>, TowerRecipe)`(bool, #183 후보 버튼 활성 판정용). 실행부·버튼이 같은 규칙을 공유하는 단일 출처
 - `IHoverable { TooltipContent? GetTooltipContent(), void OnHoverEnter(), void OnHoverExit() }` — 호버 시 툴팁 내용을 pull 공급(호버 시점마다 호출 → 동적 값 가능, `null`이면 툴팁 없음)
   + 호버 진입/이탈 훅(하이라이트 등 연출, `MouseManager.SetHover`가 대상 전환 시 호출, #67)
 - `TooltipUI.Instance.Show(TooltipContent)` / `Hide()` — 커서 추적 범용 툴팁 뷰(#38). **임시 싱글톤(UIManager 흡수 예정)**,

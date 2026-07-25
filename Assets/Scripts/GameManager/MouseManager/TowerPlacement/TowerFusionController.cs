@@ -43,8 +43,8 @@ public class TowerFusionController : MonoBehaviour
             walletIds.Add(t.Asset.TowerID);
         }
 
-        // 2. 레시피 재료 → (TowerID, 개수) 집계
-        var required = BuildRequired(recipe);
+        // 2. 레시피 재료 → (TowerID, 개수) 집계 (후보 버튼 활성 판정과 동일 규칙 — 단일 출처)
+        var required = TowerFusionMatcher.BuildRequired(recipe);
         if (required.Count == 0)
         {
             Debug.LogWarning("[TowerFusion] 레시피에 유효한 재료가 없습니다.");
@@ -75,26 +75,6 @@ public class TowerFusionController : MonoBehaviour
 
         // 5. 배치 시작. 확정(고스트→타일)되면 ExtraCost 차감(TowerPlacer) 후 재료 소모.
         _placer.BeginTowerPlacement(recipe.Result, recipe.ExtraCost, () => ConsumeMaterials(toConsume));
-    }
-
-    // MaterialEntry 목록을 (TowerID, 개수)로 집계. 같은 타워가 여러 엔트리로 나뉘어도 합산한다.
-    private static List<(string id, int count)> BuildRequired(TowerRecipe recipe)
-    {
-        var map = new Dictionary<string, int>();
-        if (recipe.Materials != null)
-        {
-            foreach (var m in recipe.Materials)
-            {
-                if (m == null || m.Tower == null || m.Count <= 0) continue;
-                string id = m.Tower.TowerID;
-                map.TryGetValue(id, out int cur);
-                map[id] = cur + m.Count;
-            }
-        }
-
-        var list = new List<(string, int)>(map.Count);
-        foreach (var kv in map) list.Add((kv.Key, kv.Value));
-        return list;
     }
 
     private void ConsumeMaterials(List<Tower> towers)

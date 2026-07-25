@@ -11,11 +11,12 @@ public class TowerRecipe : ScriptableObject
     public List<MaterialEntry> Materials;   // 재료: 타워 종류별 필요 개수(multiset)
     public TowerAsset Result;               // 결과 타워
     public List<ResourceCost> ExtraCost;    // 합성 추가 비용(자원/마나석)
-}
 
-[System.Serializable]
-public class MaterialEntry
-{
-    public TowerAsset Tower;
-    public int Count;
+    // 전역 일반명(경영 자재 등과 충돌 위험 — 단일 Assembly-CSharp, WL-062 축)을 피해 TowerRecipe 안에 중첩한다.
+    [System.Serializable]
+    public class MaterialEntry
+    {
+        public TowerAsset Tower;
+        public int Count;
+    }
 }
