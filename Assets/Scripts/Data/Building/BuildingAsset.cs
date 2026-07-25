@@ -23,7 +23,7 @@ public class BuildingAsset : ScriptableObject
     private void OnValidate()
     {
         ValidateProductionUpgrades();
-        ValidateSkillUpgrades();
+        ValidateUpgradeCosts();
     }
 
     // 생산 건물: 주민당량이 base(레벨0)부터 단조 증가하지 않으면 경고한다.
@@ -47,12 +47,16 @@ public class BuildingAsset : ScriptableObject
         }
     }
 
-    // 스킬/업그레이드 전용 건물(마법 연구소 등): 레벨 비용이 비었거나 총액 0이면 경고한다.
+    // 업그레이드 전용 건물(마법 연구소 등): 레벨 비용이 비었거나 총액 0이면 경고한다.
     // 빈 비용은 ManagementController.TrySpend가 무료 성공을 반환해 조용히 '무료 업그레이드'가 된다
     // (WL-057 poison_tower 무료 배치와 동일 실패 모드 — 비용 authoring 누락을 조기에 드러낸다).
-    private void ValidateSkillUpgrades()
+    // ⚠ 게이트는 BuildingType이 아니라 '업그레이드 데이터 존재'로 건다 — 등록 경로
+    // (ManagementController.BuildUpgradeBuildings)가 BuildingType과 무관하게 Skill.UpgradeLevels를
+    // 읽으므로 검증도 같은 키여야 한다(필드가 타입 중립 그룹으로 승격돼도 가드가 자동으로 따라온다).
+    // Skill 타입이 아닌 건물은 UpgradeLevels가 비어 자연히 스킵된다.
+    private void ValidateUpgradeCosts()
     {
-        if (BuildingType != BuildingType.Skill || Skill == null || Skill.UpgradeLevels == null)
+        if (Skill == null || Skill.UpgradeLevels == null || Skill.UpgradeLevels.Count == 0)
         {
             return;
         }
