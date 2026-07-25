@@ -56,7 +56,8 @@ public class TowerPlacer : MonoBehaviour
     private Material _cellMatValid;
     private Material _cellMatInvalid;
     private TowerPlacementData _activeData; // 현재 배치 중인 타워의 데이터(주입 또는 더미)
-    private List<ResourceCost> _activeCost; // 현재 배치 중인 타워의 비용(확정 시 차감)
+    private IReadOnlyList<ResourceCost> _activeCost; // 현재 배치 중인 타워의 비용(확정 시 차감)
+    private System.Action _onConfirmed; // 배치 확정 후 1회 콜백(합성 재료 소모 등). 확정 직후 소비하고 비운다.
     private ManagementController _management; // 자원 차감 게이트웨이(WL-017). null이면 무료 배치(테스트 씬).
 
     // 프레임당 풋프린트를 1회만 계산해 캐시(스냅에서 채우고, 검증·하이라이트가 공유).
@@ -101,7 +102,13 @@ public class TowerPlacer : MonoBehaviour
 
     // ── 진입점 ─────────────────────────────────────────────────────────────────────
     /// 더미 데이터 + 인스펙터 프리팹으로 배치 시작. UI 버튼 OnClick에 연결(현재 테스트 경로).
+    /// 비용은 so.Cost, 확정 콜백 없음(일반 타워 배치).
     public void BeginTowerPlacement(TowerAsset so)
+        => BeginTowerPlacement(so, so != null ? so.Cost : null, null);
+
+    /// 비용·확정 콜백을 주입하는 오버로드. 합성(#195)이 결과 타워를 결과 코스트(ExtraCost)로 배치하고,
+    /// 배치 확정 직후 onConfirmed(재료 소모)를 실행하는 데 쓴다. 배치 코어는 단일인자 경로와 동일.
+    public void BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost, System.Action onConfirmed)
     {
         if (so == null)
         {
@@ -118,24 +125,27 @@ public class TowerPlacer : MonoBehaviour
 
         towerPrefab = so.TowerPrefab;
         ghostPrefab = so.GhostPrefab;
-        _activeCost = so.Cost;
+        _activeCost = cost;
+        // _onConfirmed은 StartPlacement가 BeginPlacement '이후'에 설정한다 — BeginPlacement 내부의
+        // CancelPlacement가 이전 배치의 OnEnded=EndPlacement를 발화해 _onConfirmed을 null로 지우므로,
+        // 여기서 미리 대입하면 합성 재료 소모 콜백이 유실된다(무료 합성 버그).
 
         TowerType type = so.TowerType;
         switch (type)
         {
             case TowerType.Single:
-                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Single.Attack.AttackRange));
+                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Single.Attack.AttackRange), onConfirmed);
                 break;
             case TowerType.Area:
-                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Area.Attack.AttackRange));
+                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Area.Attack.AttackRange), onConfirmed);
                 break;
             case TowerType.Chain:
-                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Chain.Attack.AttackRange));
+                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Chain.Attack.AttackRange), onConfirmed);
                 break;
             case TowerType.Magic:
                 // 마법 타워는 오라 반경을 사거리 미리보기로 사용(#111 완료기준 #4).
                 // 반경 규칙은 TowerAsset.MagicRadius 단일 출처(WL-056) — AuraTower 실효과와 공유.
-                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.MagicRadius));
+                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.MagicRadius), onConfirmed);
                 break;
             default:
                 Debug.LogError($"[TowerPlacer] 알 수 없는 TowerType={type}입니다.");
@@ -151,7 +161,8 @@ public class TowerPlacer : MonoBehaviour
     // 이러면 위 더미 경로를 대체하며, 배치·검증·미리보기 코어(StartPlacement 이하)는 무수정이다.
 
     // 실제 배치 시작 코어(진입 방식과 무관). 게이트웨이/더미 어느 경로든 이 메서드를 호출한다.
-    private void StartPlacement(TowerPlacementData data)
+    // onConfirmed(합성 재료 소모 등)는 BeginPlacement 이후에 설정한다(순서 주의 — 아래 참고).
+    private void StartPlacement(TowerPlacementData data, System.Action onConfirmed = null)
     {
         if (MouseManager.Instance == null)
         {
@@ -176,6 +187,10 @@ public class TowerPlacer : MonoBehaviour
             OnEnded = EndPlacement,
             KeepPlacingAfterConfirm = keepPlacing,
         });
+
+        // 확정 콜백은 반드시 BeginPlacement '이후'에 설정한다 — 위 BeginPlacement 내부의
+        // CancelPlacement→이전 배치 EndPlacement가 _onConfirmed을 null로 지우기 때문(프리뷰와 동일한 순서 이슈).
+        _onConfirmed = onConfirmed;
 
         // 프리뷰는 BeginPlacement 이후에 만든다.
         // (BeginPlacement 내부의 CancelPlacement가 이전 배치의 OnEnded=EndPlacement를 먼저 발화해
@@ -242,8 +257,17 @@ public class TowerPlacer : MonoBehaviour
             return;
         }
 
-        Instantiate(towerPrefab, snappedPos, Quaternion.identity);
-        foreach ((Vector3 _, BattleTile tile) in _footprint) tile.Occupied = true;
+        // 점유 타일을 인스턴스에 기록해 둔다: 타워가 파괴되면(합성 소모·철거 등)
+        // TowerFootprint.OnDestroy가 그 타일들의 Occupied를 되돌려 재배치를 허용한다.
+        var placed = Instantiate(towerPrefab, snappedPos, Quaternion.identity);
+        var occupant = placed.AddComponent<TowerFootprint>();
+        foreach ((Vector3 _, BattleTile tile) in _footprint) occupant.Occupy(tile);
+
+        // 확정 콜백(합성 재료 소모 등)은 배치 성공 후 1회만 실행한다.
+        // 먼저 비우고 호출해 연속 배치(keepPlacing)에서도 재실행되지 않게 한다.
+        var confirmed = _onConfirmed;
+        _onConfirmed = null;
+        confirmed?.Invoke();
     }
 
     private static bool IsBuildable(BattleTile tile)
@@ -357,5 +381,6 @@ public class TowerPlacer : MonoBehaviour
         _rangeIndicator = null;
         ClearCellHighlights();
         _footprint.Clear();
+        _onConfirmed = null; // 취소로 끝났으면 확정 콜백은 실행하지 않는다(재료 보존).
     }
 }

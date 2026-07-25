@@ -11,6 +11,9 @@ namespace NorthLand.Combat
     {
         [SerializeField] TowerAsset data;
 
+        // 배치된 타워의 원본 SO 읽기 접근자. 합성(#195)에서 재료 타워의 TowerID/스탯을 조회하는 데 쓴다.
+        public TowerAsset Asset => data;
+
         // TODO(TBD): 대상 탐지 필터링을 LayerMask로 할지 Tag로 할지 미확정. 임시 LayerMask.
         [SerializeField] LayerMask enemyLayerMask;
 
