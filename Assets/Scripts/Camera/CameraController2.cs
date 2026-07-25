@@ -86,14 +86,10 @@ public class CameraController2 : MonoBehaviour
             return;
         }
 
-        cameraTarget.position = Vector3.SmoothDamp(
-            cameraTarget.position,
-            minimapMoveTarget,
-            ref minimapMoveVelocity,
-            minimapMoveSmoothTime);
+        cameraTarget.position = Vector3.SmoothDamp(cameraTarget.position,minimapMoveTarget,ref minimapMoveVelocity,minimapMoveSmoothTime,
+       Mathf.Infinity,Time.unscaledDeltaTime);
 
-        if (Vector3.SqrMagnitude(
-                cameraTarget.position - minimapMoveTarget) < 0.01f)
+        if (Vector3.SqrMagnitude(cameraTarget.position - minimapMoveTarget) < 0.01f)
         {
             cameraTarget.position = minimapMoveTarget;
             minimapMoveVelocity = Vector3.zero;
