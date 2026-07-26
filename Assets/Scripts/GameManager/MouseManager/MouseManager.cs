@@ -22,6 +22,11 @@ public class MouseManager : MonoBehaviour
     // 소유하고, MouseManager는 마커 유무만 알 뿐 대상 타입(타워)은 모른다(입력 단일 창구·제네릭 유지).
     // 이 경로에서는 단일 _selected를 건드리지 않는다.
     public event Action<IGroupSelectable> OnGroupSelectToggled;
+    // 평클릭(추가키 없음)·Esc·빈 곳 클릭 시 해석된 대상(ISelectable 또는 null)을 **중복 제거 없이 항상** 발행한다.
+    // OnSelectionChanged는 _selected 변화만(deduped) 통지하므로, Shift로만 선택한 상태(_selected==null)에서
+    // Esc·빈 곳 클릭의 해제 신호가 `Select(null)`의 조기 반환에 삼켜지는 문제가 있었다(WL-085). 그룹 선택
+    // 코디네이터는 이 이벤트로 집합을 리셋(타워면 단일화)/해제한다. 단일 선택(_selected) 상태는 안 바꾼다.
+    public event Action<ISelectable> OnPrimarySelect;
     // 커서 밑 호버 대상이 바뀔 때만 통지(없으면 null). 툴팁 UI가 구독해 표시/숨김을 결정한다.
     public event Action<IHoverable> OnHoverChanged;
     // 현재 포인터 화면 좌표. 다른 시스템(툴팁 등)이 Mouse.current를 직접 읽지 않고 여기서 얻는다(입력 단일 창구 계약).
@@ -153,6 +158,7 @@ public class MouseManager : MonoBehaviour
         if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {
             Select(null);
+            OnPrimarySelect?.Invoke(null); // 중복 제거와 무관하게 항상 발행 — 그룹 해제 신호(WL-085)
             return;
         }
 
@@ -173,11 +179,13 @@ public class MouseManager : MonoBehaviour
             return;
         }
 
-        // 평클릭: 기존 단일 선택 규칙 유지. 코디네이터가 이 통지로 그룹을 리셋(타워면 단일화)/해제(그 외)한다.
-        if (hitSelectable && hit.collider.TryGetComponent(out ISelectable sel))
-            Select(sel);
-        else
-            Select(null); // 빈 곳 클릭 → 선택 해제
+        // 평클릭: 기존 단일 선택(중복 제거 유지 — 기존 구독자용) + 그룹용 OnPrimarySelect를 항상 발행한다.
+        // OnPrimarySelect는 _selected 중복 제거와 무관하게 발행되므로, "이미 _selected인 타워 재클릭=단일화"·
+        // "빈 곳 클릭=해제"가 항상 코디네이터에 전달된다(WL-085).
+        ISelectable picked = null;
+        if (hitSelectable) hit.collider.TryGetComponent(out picked);
+        Select(picked);
+        OnPrimarySelect?.Invoke(picked);
     }
 
     // ── Idle: 호버 (툴팁) ─────────────────────────────────────────

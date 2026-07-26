@@ -88,7 +88,7 @@
 [플레이어 클릭/수정키]
         │  (입력 단일 창구 — 계약 #1)
         ▼
-   MouseManager ── 수정키 없음 ──▶ 단일 선택 (OnSelectionChanged) ─┐
+   MouseManager ── 수정키 없음 ──▶ 평클릭/Esc (OnPrimarySelect·항상 발행) ─┐
         │                                                          │
         └─ 수정키 + 마커(IGroupSelectable) ─▶ 그룹 토글 이벤트 ──┐  │
                                                                 │  │
@@ -118,7 +118,7 @@
 
 - **`TowerRecipe`(SO)**: `List<MaterialEntry> Materials`(재료 `TowerAsset`+`Count`, multiset) / `TowerAsset Result` / `List<ResourceCost> ExtraCost`(합성 추가 자원/마나석). CSV 미경유 인스펙터 손입력.
 - **결과 타워**: 별도 특수 타입이 아니라 일반 `TowerAsset`. 신규 결과 타워는 `TowerTable.csv` 행 + SO + 프리팹/고스트/스탯을 추가(§13 콘텐츠).
-- **레시피 카탈로그(전체 열거)**: #183 후보 버튼 패널이 순회·매칭하려면 전체 레시피 목록이 필요하다. **출처 = 패널의 인스펙터 직렬화 배열 `[SerializeField] TowerRecipe[] _recipes`**(구현 결정). 후보에 넣을 `TowerRecipe` SO를 인스펙터에 등록한다(예시 SO는 `Assets/Resources/ScriptableObjects/Recipes/`). `Resources.LoadAll<TowerRecipe>` 자동 열거 대안도 있으나, 등록 대상을 명시 통제하려고 인스펙터 배열을 택함(WL-076(a) 관련).
+- **레시피 카탈로그(전체 열거)**: #183 후보 버튼 패널이 순회·매칭하려면 전체 레시피 목록이 필요하다. **출처 = 패널의 인스펙터 직렬화 배열 `[SerializeField] TowerRecipe[] _recipes`**(구현 결정). 후보에 넣을 `TowerRecipe` SO를 인스펙터에 등록한다(예시 SO는 `Assets/Resources/ScriptableObjects/TowerRecipes/` — SO 정본 트리). `Resources.LoadAll<TowerRecipe>` 자동 열거 대안도 있으나, 등록 대상을 명시 통제하려고 인스펙터 배열을 택함(WL-076(a) 관련).
   - **버튼 순서** = 인스펙터 배열 순서(작성자가 직접 통제 → 결정적, F6 충족).
 
 ---
@@ -145,7 +145,7 @@
 
 - **추가 선택 키 = Shift**(확정, 필요 시 재조정). 키 판정은 MouseManager가 소유(게임플레이 코드의 `Keyboard.current` 직접 폴링 금지, 계약 #1). *WL-073 유의: 우클릭이 카메라 드래그와 이미 이중 점유 → 추가 선택 키를 우클릭이 아닌 Shift로 두어 충돌을 피한다.*
 - **그룹 토글 이벤트**(예: `OnGroupSelectToggled(IGroupSelectable)`) 신설: **Shift + 마커 대상** 클릭 시 발행. 이때 단일 `_selected`는 건드리지 않는다.
-- **Idle Esc 처리 추가 + 빈 곳 클릭**(F3): 빈 곳 좌클릭(기존 `Select(null)`)·Esc → 코디네이터에 **전체 해제** 신호(전용 clear 이벤트 또는 `OnSelectionChanged(null)` 경유). **우클릭은 해제에 쓰지 않는다** — 우클릭은 이미 카메라 드래그(WL-073)·배치/조준 취소로 이중 점유라, 세 번째 의미를 얹으면 카메라 팬 중 선택이 사라진다. (이슈 #183 AC의 '우클릭=해제'에서 **의도적으로 이탈** — F3 결정.)
+- **평클릭·Esc·빈 곳 해제 = `OnPrimarySelect` 신설**(F3 + WL-085): 평클릭(해석된 `ISelectable`)·Esc·빈 곳 클릭 시 `OnPrimarySelect(ISelectable|null)`를 **중복 제거 없이 항상** 발행한다. 코디네이터가 이걸로 그룹을 리셋(타워면 `SetSingle`)/해제(그 외·null)한다. → 기존엔 이 신호를 `Select(null)`의 `OnSelectionChanged`로 받으려 했으나 `if (_selected == next) return;` 중복 제거에 삼켜졌다(**Shift로만 선택 시 `_selected==null` → Esc·빈 곳 해제 불발**, 이미 선택된 타워 재평클릭 시 단일화 불발 — WL-085). `OnSelectionChanged`는 기존 단일 선택 구독자용으로 그대로 두고, 그룹 경로만 이 새 이벤트로 분리. **우클릭은 해제에 쓰지 않는다**(카메라 드래그 이중 점유 WL-073, 이슈 AC에서 의도적 이탈 — F3).
 
 ### 7.3 입력 규칙 (이슈 §상세)
 | 입력 | 동작 |
@@ -160,7 +160,7 @@
 ### 7.4 집합 = `TowerMergeGroup` (이음매, 단일 리스트)
 - 코디네이터는 **순수 C# `TowerMergeGroup` 하나를 유일한 백킹 스토어로 직접 조작**한다(`Add`/`Remove`/`Clear`/`Prune`)(F4). 별도 동기화 리스트가 없어 어긋날 표면이 없다. 그룹의 `OnChanged`(Add/Remove/Clear/Prune 성공 시 발행) 하나로 하이라이트·패널·실행부 소모까지 모든 변경이 단일 통지된다 — 코디네이터가 구독해 `RefreshHighlight`/`RefreshPanel`/`OnGroupChanged` 발행.
 - 실행부(`TowerFusionController.TryFuse(recipe, group)`)·매칭(`TowerFusionMatcher`)은 매칭/배치 로직 **무수정**으로 이 그룹의 `Towers`를 소비. 실행부는 재료 소모 시 `group.Remove(t)`를 부르며, 이 역시 `OnChanged`로 UI가 자동 갱신된다.
-- MouseManager가 넘기는 것은 도메인 중립 `IGroupSelectable`이므로, 코디네이터가 `grp.Tower`로 받아 `_group.Add(tower)`. 평클릭 통지(`OnSelectionChanged`)에서는 `sel is Tower`로 판정. 재료 식별은 `tower.Asset.TowerID`, `Tower.Asset`이 null인 항목은 실행부에서 제외.
+- MouseManager가 넘기는 것은 도메인 중립 `IGroupSelectable`(**Tower 미노출** — 마커는 `OnGroupSelected/OnGroupDeselected`만)이므로, 코디네이터가 `grp is TowerGroupSelectable`로 캐스팅해 `Tower`를 얻어 `_group.Add(tower)`. 평클릭 통지(`OnPrimarySelect`)에서는 `sel is Tower`면 `SetSingle(tower)`, 아니면 `Clear()`. 재료 식별은 `tower.Asset.TowerID`, `Tower.Asset`이 null인 항목은 실행부에서 제외.
 
 ---
 
@@ -216,10 +216,10 @@
 
 ## 10. 게이팅 / 수명주기
 
-- **낮(배치 페이즈) 전용** — 멀티 선택·패널 전환·실행 전부 낮에만. 밤에는 Shift+클릭 그룹 토글을 무시하고 패널 전환도 하지 않는다. 코디네이터가 `DayNightManager.Instance?.CurrentPhase == Day` 판정(`Instance` null이면 permissive, WL-002 완화 패턴), 입력 핸들러(`HandleSelectionChanged`/`HandleGroupToggle`)와 `RequestMerge` 진입에서 게이팅. → 밤 실행이 코디네이터 앞단에서 막혀 WL-077의 밤 순간이동이 UI 경로에선 발생하지 않는다. (실행부 `TryFuse` 자체 방어 게이팅은 defense-in-depth로 미추가 — muchan 협의 옵션.)
-- **리셋**: 밤 진입(`OnDayToNight`) 시 코디네이터가 (1) 선택 집합을 비우고, (2) **진행 중인 합성 고스트 배치도 취소**(`MouseManager.CancelPlacement()`)한다(F5). (2)를 빠뜨리면 밤으로 넘어간 뒤 확정 시 재료가 파괴되어 밤 순간이동/유령 소모가 남는다(`PhasePanelSwitcher`가 밤에 스킬 조준을 끊는 것과 동형). 코디네이터는 **씬 오브젝트**라 씬 전환 시 새로 생성돼 그룹이 자연히 비므로 별도 `sceneLoaded` 리셋은 불요. `RefreshHighlight`는 파괴된 `Tower` 참조를 null 가드해 `OnGroupDeselected` NRE를 피한다('죽은 참조 역참조 금지', WL-033 축).
+- **낮(배치 페이즈) 전용** — 멀티 선택·패널 전환·실행 전부 낮에만. 밤에는 Shift+클릭 그룹 토글을 무시하고 패널 전환도 하지 않는다. 코디네이터가 `DayNightManager.Instance?.CurrentPhase == Day` 판정(`Instance` null이면 permissive, WL-002 완화 패턴), 입력 핸들러(`HandlePrimarySelect`/`HandleGroupToggle`)와 `RequestMerge` 진입에서 게이팅. → 밤 실행이 코디네이터 앞단에서 막혀 WL-077의 밤 순간이동이 UI 경로에선 발생하지 않는다. (실행부 `TryFuse` 자체 방어 게이팅은 defense-in-depth로 미추가 — muchan 협의 옵션.)
+- **리셋**: 밤 진입(`OnDayToNight`) 시 **코디네이터는 선택 집합만 비운다**. 진행 중인 배치(일반/합성 공통) 취소(F5 — 확정이 밤으로 넘어가는 것 방지)는 **`PhasePanelSwitcher.ShowNight`가 `MouseManager.CancelPlacement()`로** 담당한다 — 페이즈 취소 책임을 한 곳에 모음(낮 진입 스킬 조준 취소 `ShowDay`와 대칭, 🟡 소유권 이관). 코디네이터는 **씬 오브젝트**라 씬 전환 시 새로 생성돼 그룹이 자연히 비므로 별도 `sceneLoaded` 리셋은 불요. `RefreshHighlight`는 파괴된 `Tower` 참조를 null 가드해 `OnGroupDeselected` NRE를 피한다('죽은 참조 역참조 금지', WL-033 축).
 - **코디네이터 수명주기**(F7): MouseManager는 `DontDestroyOnLoad`, `Tower.ActiveChanged`는 static이라 씬보다 오래 산다 → 코디네이터(씬 오브젝트)는 `OnDestroy`에서 이들 구독을 **반드시 해제**한다(안 하면 씬 언로드 후 죽은 구독자를 호출 — `Projectile.DamageDealt` static 구독 주의와 같은 계열).
-- **외부 파괴 대응**(WL-076(b)): 그룹에 든 타워가 외부 사유(철거·전투 사망 등)로 파괴되면 → 코디네이터가 **`Tower.ActiveChanged`(static, OnEnable/OnDisable 발행)를 구독해 `TowerMergeGroup.Prune()`**(파괴된 항목 정리 + `OnChanged` 발행)을 호출한다. 합성 소모 경로는 실행부가 `group.Remove`로 즉시 갱신하므로 이 Prune은 비-합성 파괴용 방어. (OnDisable 시점 참조가 아직 null이 아닐 수 있어 정리가 한 프레임 늦을 수 있으나 무해.)
+- **외부 파괴 대응**(WL-076(b) 해소): 그룹에 든 타워가 외부 사유(철거·전투 사망 등)로 파괴되면 → 코디네이터가 **`Tower.ActiveChanged` 구독 → `_group.Prune(t => t == null || !Tower.Active.Contains(t))`**. `Tower.OnDisable`이 `Active.Remove` **직후** `ActiveChanged`를 발행하는데, 그 시점엔 아직 Unity 가짜 null이 아니라 `t == null`만으론 못 거른다 → **이미 Remove가 끝난 `Tower.Active` 멤버십**으로 판정해 그 프레임에 정확히 제거한다(리스트에 죽은 슬롯이 남아 `Count`만 부풀던 유령 상태 방지). 합성 소모 경로는 실행부가 `group.Remove`로 즉시 갱신한다.
 
 ---
 
@@ -269,8 +269,8 @@
 
 - **[구현 PR] SystemMap 갱신 필수**: #183은 MouseManager 공개 선택 계약(그룹 토글 이벤트·Idle Esc/빈곳 클리어 신호)과 신규 코디네이터/마커를 추가하므로, 구현 PR에서 `SystemMap.md`(§1 TowerFusion 행·§2 API·§3 접점 — MouseManager·TowerFusion 인근)를 같이 갱신한다.
 - **추가 선택 키 = Shift**(§7.2): WL-073(우클릭 이중 점유) 회피 겸. 재조정 시 이 문서·구현 동시 수정.
-- **레시피 카탈로그 출처 = 패널 인스펙터 배열 `TowerRecipe[] _recipes`**(§5, WL-076(a)): 후보 레시피 SO를 인스펙터에 등록. 순서 = 배열 순서(결정적). 예시 SO는 `Assets/Resources/ScriptableObjects/Recipes/`.
-- **stale 버튼 방어**(§10, WL-076(b) 해소): `TowerMergeGroup.Prune()` + 코디네이터가 `Tower.ActiveChanged` 구독해 호출 — #183에서 구현.
+- **레시피 카탈로그 출처 = 패널 인스펙터 배열 `TowerRecipe[] _recipes`**(§5, WL-076(a)): 후보 레시피 SO를 인스펙터에 등록. 순서 = 배열 순서(결정적). 예시 SO 2종은 `Assets/Resources/ScriptableObjects/TowerRecipes/`.
+- **stale 버튼 방어**(§10, WL-076(b) 해소): `TowerMergeGroup.Prune(predicate)` + 코디네이터가 `Tower.ActiveChanged` 구독해 **`Tower.Active` 멤버십 기준**으로 호출(OnDisable 시점 가짜-null 미형성 문제 회피).
 - **결과 배치·소모 타이밍(F2 결정)**: **현행 유지** — 새 타일에 고스트 배치 + 확정 시 재료 `Destroy`. 재료 타일 재사용 불가 제약(WL-077a)을 인지하고 안고 간다. **향후 방향 = 커맨드 패턴**: 버튼 클릭 즉시 재료를 소모(타일 해제)해 자리를 재사용 가능하게 하되, **배치 취소 시 소모한 재료를 원복**한다. 이때 `Destroy`는 되돌릴 수 없으므로, 커맨드는 즉시 파괴 대신 **비활성화(SetActive false + 타일/점유 해제)로 '소프트 소모'** → 확정 시 진짜 `Destroy`, 취소 시 재활성화·재점유로 원복하는 형태가 자연스럽다(재료 스냅샷 재구성도 대안). 도입 시 §9 흐름 교체.
 - **낮/밤 실행 게이팅**(§10, WL-077 phase): 코디네이터 `RequestMerge`/입력 핸들러가 낮 게이팅 → UI 경로 밤 실행 차단. 실행부 `TryFuse` 자체 방어 게이팅은 미추가(옵션, muchan 협의).
 - **결과 정보 패널 배선**(§8.3): 스탯 표시를 `Tower`/`TowerInfoUI`와 공유할지 별도 조합할지(WL-079 축).
@@ -312,7 +312,7 @@
 
 **4. 그 외**
 - `TowerInfoUI`(기존 씬 싱글톤)·`MouseManager`(기존, 코드만 확장)·`DayNightManager`(낮/밤 게이팅) 별도 배선 불필요.
-- 레시피는 패널 `TowerMergePanelView`의 인스펙터 배열 `_recipes`에 **등록해야 후보로 뜬다**(예시 SO 2종은 `Assets/Resources/ScriptableObjects/Recipes/`에 있음).
+- 레시피는 패널 `TowerMergePanelView`의 인스펙터 배열 `_recipes`에 **등록해야 후보로 뜬다**. 예시 SO 2종 `Recipe_Example_Gatling`(archer×2+cannon×1→gatling)·`Recipe_Example_Sniper`(archer×1+cannon×1→Sniper)는 `Assets/Resources/ScriptableObjects/TowerRecipes/`. **`Recipe_Example_Sniper`는 새로 추가된 SO라 `_recipes`에 손수 넣어야** "다중 후보 동시 활성"이 검증된다(archer×2+cannon×1 선택 시 두 버튼 동시 활성).
 - **레이어**: 타워 콜라이더가 `MouseManager._selectableMask`에 포함돼야 Shift 클릭이 마커를 잡는다(기존 타워 단일 선택이 동작 중이면 이미 충족).
 
 **검증 체크리스트(Play)**: 타워 1개=인포 / Shift 2개=인포 숨김+합성 패널(리스트 순서대로) / archer 2개 → `Recipe_Example_ArcherToGatling` 버튼 활성 → 클릭 → 고스트 배치·확정 → archer 2개 소멸+gatling 생성 / Shift로 1개로 축소=인포 복귀, 빈곳·Esc=해제 / Shift+건물=무시 / 밤 전환=선택·패널 리셋.

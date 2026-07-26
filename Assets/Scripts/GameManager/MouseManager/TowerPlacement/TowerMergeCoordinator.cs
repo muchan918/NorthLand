@@ -42,7 +42,7 @@ public class TowerMergeCoordinator : MonoBehaviour
         var mm = MouseManager.Instance;
         if (mm != null)
         {
-            mm.OnSelectionChanged += HandleSelectionChanged;
+            mm.OnPrimarySelect += HandlePrimarySelect;
             mm.OnGroupSelectToggled += HandleGroupToggle;
         }
         else
@@ -70,7 +70,7 @@ public class TowerMergeCoordinator : MonoBehaviour
         var mm = MouseManager.Instance;
         if (mm != null)
         {
-            mm.OnSelectionChanged -= HandleSelectionChanged;
+            mm.OnPrimarySelect -= HandlePrimarySelect;
             mm.OnGroupSelectToggled -= HandleGroupToggle;
         }
 
@@ -83,19 +83,13 @@ public class TowerMergeCoordinator : MonoBehaviour
     }
 
     // ── 입력 핸들러 ───────────────────────────────────────────────────
-    // 평클릭: 타워면 그 타워로 단일 리셋, 그 외(건물/빈 곳)면 집합 해제. 밤엔 무시.
-    private void HandleSelectionChanged(ISelectable sel)
+    // 평클릭(추가키 없음)·Esc·빈 곳: MouseManager.OnPrimarySelect가 _selected 중복 제거와 무관하게 항상 발행.
+    // 타워면 그 타워로 단일 리셋(SetSingle=원자 1회 통지), 그 외(건물/빈 곳/null)면 집합 해제. 밤엔 무시.
+    private void HandlePrimarySelect(ISelectable sel)
     {
         if (!IsDay) return;
-        if (sel is Tower tower)
-        {
-            _group.Clear();
-            _group.Add(tower);
-        }
-        else
-        {
-            _group.Clear();
-        }
+        if (sel is Tower tower) _group.SetSingle(tower);
+        else _group.Clear();
     }
 
     // Shift+마커: 집합 토글(있으면 제거, 없으면 끝에 추가). 밤엔 무시.
@@ -103,7 +97,8 @@ public class TowerMergeCoordinator : MonoBehaviour
     {
         if (!IsDay) return;
 
-        Tower t = grp?.Tower;
+        // 마커는 도메인 중립(Tower를 노출하지 않음) — 타워 해석은 도메인을 아는 코디네이터가 캐스팅으로 한다.
+        Tower t = grp is TowerGroupSelectable tgs ? tgs.Tower : null;
         if (t == null) return;
 
         if (_group.Contains(t))
@@ -116,15 +111,14 @@ public class TowerMergeCoordinator : MonoBehaviour
         }
     }
 
-    // 밤 진입: 집합 리셋 + 진행 중이던 합성 고스트 배치도 취소(F5 — 확정 시 재료 파괴 방지).
-    private void HandleDayToNight()
-    {
-        _group.Clear();
-        MouseManager.Instance?.CancelPlacement();
-    }
+    // 밤 진입: 선택 집합만 리셋. 진행 중 배치 취소(F5)는 페이즈 취소 책임 일원화로 PhasePanelSwitcher.ShowNight가
+    // 담당한다(낮 진입 스킬 조준 취소와 대칭) — 코디네이터는 전역 CancelPlacement를 더 이상 호출하지 않는다.
+    private void HandleDayToNight() => _group.Clear();
 
-    // 타워가 씬에서 빠지면(철거·사망·합성 소모) 죽은 참조 정리. Prune이 실제로 지우면 OnChanged→갱신 연쇄.
-    private void HandleActiveChanged() => _group.Prune();
+    // 타워가 씬에서 빠지면(철거·사망·합성 소모) 죽은 참조 정리. Tower.OnDisable→ActiveChanged 시점엔 아직
+    // Unity 가짜 null이 아니라(파괴 완료 후부터 null) t==null만으론 못 거른다 → 이미 Active.Remove가 끝난
+    // Tower.Active 멤버십으로 판정한다. 실제로 지우면 OnChanged→갱신 연쇄.
+    private void HandleActiveChanged() => _group.Prune(t => t == null || !Tower.Active.Contains(t));
 
     // 집합 변경 단일 통지 경로(선택 토글/리셋/소모/Prune 전부 여기로 수렴).
     private void HandleGroupChanged()

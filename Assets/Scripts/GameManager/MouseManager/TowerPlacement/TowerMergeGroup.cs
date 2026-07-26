@@ -48,11 +48,25 @@ public class TowerMergeGroup
         return true;
     }
 
-    /// 외부 사유(철거·전투 사망 등)로 파괴된 타워를 정리한다. 하나라도 지웠으면 true.
-    /// Unity의 오버로드된 ==로 파괴된 MonoBehaviour는 null로 잡힌다(WL-076b).
-    public bool Prune()
+    /// 집합을 tower 하나로 원자 교체(전부 비우고 하나만). OnChanged 1회 — 평클릭 단일화가 Clear+Add로
+    /// 통지를 두 번 쏘던 것을 대체(불필요한 패널 재빌드·GC 방지). 이미 그 단일이면 no-op(false).
+    public bool SetSingle(Tower tower)
     {
-        if (_towers.RemoveAll(t => t == null) == 0) return false;
+        if (tower == null) return Clear();
+        if (_towers.Count == 1 && _towers[0] == tower) return false;
+        _towers.Clear();
+        _towers.Add(tower);
+        OnChanged?.Invoke();
+        return true;
+    }
+
+    /// 죽은 항목을 주입된 판정(isDead)으로 제거한다. 하나라도 지우면 OnChanged. (WL-076b)
+    /// 판정을 인자로 받는 이유: 파괴 완료 후에야 Unity 가짜 null(t==null)이 되지만, Tower.OnDisable→
+    /// ActiveChanged 시점엔 아직 null이 아니다. 그 시점을 잡으려면 Tower.Active 멤버십 등 도메인 판정이
+    /// 필요한데, 그 지식은 소유자(코디네이터)에게 있으므로 이 순수 홀더는 판정을 위임받아 실행만 한다.
+    public bool Prune(System.Predicate<Tower> isDead)
+    {
+        if (isDead == null || _towers.RemoveAll(isDead) == 0) return false;
         OnChanged?.Invoke();
         return true;
     }
