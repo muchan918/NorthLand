@@ -26,6 +26,12 @@ namespace NorthLand.Combat
         [Header("Debug")]
         [SerializeField] bool debugLog = false;
 
+        // 선택 시 오라 반경 원 색(배치 미리보기와 구분되도록 초록 계열, #192). 채움은 반투명.
+        [Header("선택 사거리 표시")]
+        [SerializeField] Color selectionRangeColor = new Color(0.3f, 1f, 0.4f, 0.9f);
+        [SerializeField] Color selectionRangeFillColor = new Color(0.3f, 1f, 0.4f, 0.15f);
+        RangeCircle _rangeCircle; // lazy 생성, 자식 GO
+
         readonly Collider[] hitBuffer = new Collider[32];
         CancellationTokenSource cts;
         int effectId;
@@ -105,9 +111,24 @@ namespace NorthLand.Combat
             }
 
             TowerInfoUI.Instance.ShowInfo(data.Data.DescriptionKey, BuildStatsText());
+            ShowRangeCircle();
         }
 
-        public void OnDeselected() => TowerInfoUI.Instance.HideInfo();
+        public void OnDeselected()
+        {
+            _rangeCircle?.Hide();
+            TowerInfoUI.Instance.HideInfo();
+        }
+
+        // 선택 시 오라 반경 원(버프 반영 Radius)을 표시한다. 원은 자식 GO라 타워 파괴 시 함께 정리된다.
+        void ShowRangeCircle()
+        {
+            if (_rangeCircle == null)
+                _rangeCircle = RangeCircle.Create(transform, selectionRangeFillColor, selectionRangeColor, "TowerRangeSelection");
+
+            _rangeCircle.SetRadius(Radius);
+            _rangeCircle.Show();
+        }
 
         // 마법 타워 정보 텍스트: 오라 반경 + 효과 요약(디버프 DoT / 버프 스탯 증가). 라벨은 game.tower.* 로컬라이즈 키.
         string BuildStatsText()
