@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
+using CombatSpace;
+using NorthLand.Combat;
 
 /// 배치에 필요한 타워 데이터(풋프린트·사거리)의 최소 단위.
 /// TowerPlacer는 이 구조체에만 의존하고 특정 SO(TowerAsset/Combat TowerData)에 묶이지 않는다.
@@ -65,6 +67,24 @@ public class TowerPlacer : MonoBehaviour
     private readonly List<(Vector3 pos, BattleTile tile)> _footprint = new List<(Vector3, BattleTile)>();
     // OverlapSphere 재사용 버퍼(배치 중 매 프레임 힙 할당 방지). 셀 하나에 겹치는 콜라이더는 소수.
     private readonly Collider[] _overlap = new Collider[8];
+
+    //Ksj
+    //타워가 여러 버프 타일을 점유할 때 사용할 효과 중첩 규칙
+    [Header("Tile Buff")]
+    [SerializeField]
+    private TileBuffRuleSettings tileBuffRules;
+
+    private LineRenderer rangeLineRenderer;
+
+    private BattleTile lastPreviewAnchor;
+
+    private bool previewFootprintInitialized;
+
+    private float lastRenderedRange = float.NaN;
+
+    private readonly TileBuffCalculator previewBuffCalculator = new TileBuffCalculator();
+
+    private readonly List<BuffTileDefinition> previewDefinitions = new List<BuffTileDefinition>();
 
     private void Awake()
     {
@@ -195,6 +215,9 @@ public class TowerPlacer : MonoBehaviour
         // 프리뷰는 BeginPlacement 이후에 만든다.
         // (BeginPlacement 내부의 CancelPlacement가 이전 배치의 OnEnded=EndPlacement를 먼저 발화해
         //  방금 만든 프리뷰를 지우는 순서 문제를 피하기 위함)
+        lastPreviewAnchor = null;
+        previewFootprintInitialized = false;
+        lastRenderedRange = float.NaN;
         CreateRangeIndicator(_activeData.AttackRange);
         CreateCellHighlights(_activeData.GridWidth * _activeData.GridHeight);
     }
@@ -204,8 +227,19 @@ public class TowerPlacer : MonoBehaviour
     // y는 hit.point.y(레이가 타일 옆면에 맞으면 벽면 높이) 대신 타일 앵커 y를 써서 타워가 항상 윗면에 앉는다.
     private Vector3 SnapToFootprintCenter(RaycastHit hit)
     {
-        BattleTile anchor = hit.collider.GetComponentInParent<BattleTile>();
-        RebuildFootprint(anchor); // 이번 프레임 풋프린트 1회 계산(검증·하이라이트가 공유)
+        BattleTile anchor =hit.collider.GetComponentInParent<BattleTile>();
+
+        bool footprintChanged =!previewFootprintInitialized ||anchor != lastPreviewAnchor;
+
+        if (footprintChanged)
+        {
+            RebuildFootprint(anchor);
+
+            lastPreviewAnchor = anchor;
+            previewFootprintInitialized = true;
+
+            UpdateRangeIndicator(CalculatePreviewRange());
+        }
 
         Vector3 result = anchor != null
             ? new Vector3(
@@ -263,6 +297,18 @@ public class TowerPlacer : MonoBehaviour
         var occupant = placed.AddComponent<TowerFootprint>();
         foreach ((Vector3 _, BattleTile tile) in _footprint) occupant.Occupy(tile);
 
+
+        //KSJ
+        // 타워가 점유한 모든 타일의 버프를 중첩 규칙에 따라 계산하고,
+        // 계산 결과를 배치된 타워의 TowerTileBuff 컴포넌트에 저장한다.
+        TowerTileBuff towerTileBuff =placed.GetComponent<TowerTileBuff>();
+
+        if (towerTileBuff == null)
+        {
+            towerTileBuff =placed.AddComponent<TowerTileBuff>();
+        }
+        towerTileBuff.Initialize(CalculateTileBuff(occupant.Tiles));
+
         // 확정 콜백(합성 재료 소모 등)은 배치 성공 후 1회만 실행한다.
         // 먼저 비우고 호출해 연속 배치(keepPlacing)에서도 재실행되지 않게 한다.
         var confirmed = _onConfirmed;
@@ -304,25 +350,31 @@ public class TowerPlacer : MonoBehaviour
     }
 
     // ── 사거리 미리보기(런타임 LineRenderer 원) ──────────────────────────────────────
-    private void CreateRangeIndicator(float range)
+    private void CreateRangeIndicator(
+      float range)
     {
-        if (_rangeIndicator != null) Destroy(_rangeIndicator);
-        if (_rangeMat == null) _rangeMat = new Material(Shader.Find("Sprites/Default")); // 언릿, 정점색으로 tint
-
-        _rangeIndicator = new GameObject("TowerRangePreview");
-        LineRenderer lr = _rangeIndicator.AddComponent<LineRenderer>();
-        lr.useWorldSpace = false; // 원을 로컬로 그리고 오브젝트를 이동시켜 중심 추적
-        lr.loop = true;
-        lr.widthMultiplier = 0.15f;
-        lr.sharedMaterial = _rangeMat; // 공유 머티리얼(매 배치 새로 만들지 않음 — 누수 방지)
-        lr.startColor = lr.endColor = rangeColor;
-
-        lr.positionCount = rangeSegments;
-        for (int i = 0; i < rangeSegments; i++)
+        if (_rangeIndicator != null)
         {
-            float angle = (i / (float)rangeSegments) * Mathf.PI * 2f;
-            lr.SetPosition(i, new Vector3(Mathf.Cos(angle) * range, 0.05f, Mathf.Sin(angle) * range));
+            Destroy(_rangeIndicator);
         }
+
+        if (_rangeMat == null)
+        {
+            _rangeMat =new Material(Shader.Find("Sprites/Default"));
+        }
+
+        _rangeIndicator =new GameObject("TowerRangePreview");
+
+        rangeLineRenderer =_rangeIndicator.AddComponent<LineRenderer>();
+
+        rangeLineRenderer.useWorldSpace = false;
+        rangeLineRenderer.loop = true;
+        rangeLineRenderer.widthMultiplier = 0.15f;
+        rangeLineRenderer.sharedMaterial = _rangeMat;
+        rangeLineRenderer.startColor = rangeColor;
+        rangeLineRenderer.endColor = rangeColor;
+
+        UpdateRangeIndicator(range);
     }
 
     // ── 풋프린트 셀 하이라이트(바닥에 눕힌 반투명 쿼드, 셀별 유효/무효 색) ────────────────
@@ -382,5 +434,89 @@ public class TowerPlacer : MonoBehaviour
         ClearCellHighlights();
         _footprint.Clear();
         _onConfirmed = null; // 취소로 끝났으면 확정 콜백은 실행하지 않는다(재료 보존).
+        rangeLineRenderer = null;
+        lastPreviewAnchor = null;
+        previewFootprintInitialized = false;
+        lastRenderedRange = float.NaN;
     }
+
+    private float CalculatePreviewRange()
+    {
+        previewDefinitions.Clear();
+
+        foreach ((Vector3 _, BattleTile tile) in _footprint)
+        {
+            BuffTileDefinition definition = GetBuffDefinition(tile);
+
+            if (definition != null)
+            {
+                previewDefinitions.Add(definition);
+            }
+        }
+
+        TileBuffCalculationResult result =previewBuffCalculator.Calculate(previewDefinitions,tileBuffRules);
+
+        float flat =result.GetValue(TileBuffStat.AttackRange,TileModifierMode.Flat);
+
+        float percentage =result.GetValue(TileBuffStat.AttackRange,TileModifierMode.Percentage);
+
+        return (_activeData.AttackRange + flat) *(1f + percentage / 100f);
+    }
+
+    private void UpdateRangeIndicator(float range)
+    {
+        if (rangeLineRenderer == null)
+        {
+            return;
+        }
+
+        if (Mathf.Approximately(lastRenderedRange,range))
+        {
+            return;
+        }
+
+        lastRenderedRange = range;
+
+        rangeLineRenderer.positionCount =rangeSegments;
+
+        for (int i = 0; i < rangeSegments; i++)
+        {
+            float angle =i / (float)rangeSegments *Mathf.PI * 2f;
+
+            rangeLineRenderer.SetPosition(i,new Vector3(Mathf.Cos(angle) * range,0.05f,Mathf.Sin(angle) * range));
+        }
+    }
+
+    private static BuffTileDefinition GetBuffDefinition(BattleTile tile)
+    {
+        if (tile == null)
+        {
+            return null;
+        }
+
+        CombatMapTileView tileView =tile.GetComponentInParent<CombatMapTileView>();
+
+        return tileView != null? tileView.BuffDefinition: null;
+    }
+
+    private TileBuffCalculationResult CalculateTileBuff(IReadOnlyList<BattleTile> tiles)
+    {
+        previewDefinitions.Clear();
+
+        if (tiles != null)
+        {
+            foreach (BattleTile tile in tiles)
+            {
+                BuffTileDefinition definition =GetBuffDefinition(tile);
+
+                if (definition != null)
+                {
+                    previewDefinitions.Add(definition);
+                }
+            }
+        }
+
+        return previewBuffCalculator.Calculate(previewDefinitions,tileBuffRules);
+    }
+
 }

@@ -50,6 +50,8 @@ namespace CombatSpace
 
         private readonly Dictionary<Vector2Int,CombatMapTileView> spawnedTiles = new Dictionary<Vector2Int, CombatMapTileView>();
 
+        private readonly HashSet<BuffTileDefinition>warnedMissingBuffPrefabs =new HashSet<BuffTileDefinition>();
+
         // 현재 공개된 Road의 월드 좌표 경로
         private readonly List<Vector3> currentWorldEnemyRoute =new List<Vector3>();
 
@@ -115,8 +117,7 @@ namespace CombatSpace
         [ContextMenu("Spawn Map Tiles")]
         public void SpawnTiles()
         {
-            if (mapGenerator == null ||
-                mapGenerator.CurrentMap == null)
+            if (mapGenerator == null ||mapGenerator.CurrentMap == null)
             {
                 Debug.LogError(
                     "먼저 전투맵 데이터를 생성해야 합니다.",
@@ -133,22 +134,19 @@ namespace CombatSpace
             SubscribeRevealEvent();
 
             ClearTiles();
+            warnedMissingBuffPrefabs.Clear();
 
-            CombatMapData map =
-                mapGenerator.CurrentMap;
+            CombatMapData map =mapGenerator.CurrentMap;
 
             for (int x = 0; x < map.Width; x++)
             {
                 for (int y = 0; y < map.Height; y++)
                 {
-                    Vector2Int position =
-                        new Vector2Int(x, y);
+                    Vector2Int position =new Vector2Int(x, y);
 
-                    CombatTileData tileData =
-                        map.GetTile(position);
+                    CombatTileData tileData =map.GetTile(position);
 
-                    if (tileData.Type ==
-                        CombatTileType.Empty)
+                    if (tileData.Type ==CombatTileType.Empty)
                     {
                         continue;
                     }
@@ -158,8 +156,7 @@ namespace CombatSpace
             }
 
             // 공개 데이터가 이미 있다면 즉시 적용
-            if (revealController != null &&
-                revealController.RevealData != null)
+            if (revealController != null &&revealController.RevealData != null)
             {
                 RefreshTileVisibility();
             }
@@ -170,11 +167,9 @@ namespace CombatSpace
                 this);
         }
 
-        private void SpawnTile(
-            CombatTileData tileData)
+        private void SpawnTile(CombatTileData tileData)
         {
-            GameObject prefab =
-                GetPrefab(tileData.Type);
+            GameObject prefab =GetPrefab(tileData);
 
             if (prefab == null)
             {
@@ -225,39 +220,55 @@ namespace CombatSpace
                 tileView);
         }
 
-        private GameObject GetPrefab(
-            CombatTileType tileType)
+        private GameObject GetPrefab(CombatTileData tileData)
         {
-            return tileType switch
+            if (tileData == null)
             {
-                CombatTileType.Road =>
-                    roadTilePrefab,
+                return null;
+            }
 
-                CombatTileType.Grass =>
-                    grassTilePrefab,
-
-                CombatTileType.Water =>
-                    waterTilePrefab,
-
-                _ =>
-                    null
+            return tileData.Type switch
+            {
+                CombatTileType.Road => roadTilePrefab,
+                CombatTileType.Grass => GetGrassPrefab(tileData),
+                CombatTileType.Water => waterTilePrefab,
+                _ => null
             };
         }
 
-        private Vector3 GridToLocalPosition(
-         Vector2Int position)
+        private GameObject GetGrassPrefab(CombatTileData tileData)
         {
-            CombatMapGenerationSettings settings =
-                mapGenerator.Settings;
+            BuffTileDefinition definition =tileData.BuffDefinition;
 
-            return new Vector3(
-                (position.x + 0.5f) *
-                settings.TileSize,
+            // Definition 자체가 없으면 기본 잔디를 사용한다.
+            if (definition == null)
+            {
+                return grassTilePrefab;
+            }
+
+            // Definition은 있지만 프리팹이 없으면 종류별로 한 번만 경고한다.
+            if (definition.Prefab == null)
+            {
+                if (warnedMissingBuffPrefabs.Add(definition))
+                {
+                    Debug.LogWarning($"버프 타일 '{definition.Id}'의 프리팹이 할당되지 않아 일반 잔디로 대체합니다.",this);
+                }
+
+                return grassTilePrefab;
+            }
+
+            return definition.Prefab;
+        }
+
+        private Vector3 GridToLocalPosition(Vector2Int position)
+        {
+            CombatMapGenerationSettings settings =mapGenerator.Settings;
+
+            return new Vector3((position.x + 0.5f) *settings.TileSize,
 
                 settings.TileHeight,
 
-                (position.y + 0.5f) *
-                settings.TileSize);
+                (position.y + 0.5f) *settings.TileSize);
         }
 
 

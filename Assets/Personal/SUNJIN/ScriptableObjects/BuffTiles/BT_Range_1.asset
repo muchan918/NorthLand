@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f49e81514ce2be49adb1f934afd23eb, type: 3}
+  m_Name: BT_Range_1
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.BuffTileDefinition
+  id: range_plus_1
+  prefab: {fileID: 3733212974178513189, guid: 45e75e66e75bb4f44b5ad7eeda6cfadb, type: 3}
+  modifiers:
+  - Stat: 0
+    ModifierMode: 1
+    Value: 10

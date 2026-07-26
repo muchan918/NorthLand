@@ -18,39 +18,28 @@ namespace CombatSpace
         [HideInInspector]
         private int routeIndex = -1;
 
-        public Vector2Int GridPosition =>
-            gridPosition;
+        public Vector2Int GridPosition => gridPosition;
 
-        public CombatTileType TileType =>
-            tileType;
+        public CombatTileType TileType => tileType;
 
-        public int RouteIndex =>
-            routeIndex;
+        public int RouteIndex => routeIndex;
 
-  
+        public BuffTileDefinition BuffDefinition { get; private set; }
 
-        public void Initialize(
-            CombatTileData tileData)
+
+        public void Initialize(CombatTileData tileData)
         {
             if (tileData == null)
             {
-                throw new ArgumentNullException(
-                    nameof(tileData));
+                throw new ArgumentNullException(nameof(tileData));
             }
 
-            gridPosition =
-                tileData.Position;
+            gridPosition = tileData.Position;
+            tileType = tileData.Type;
+            routeIndex = tileData.RouteIndex;
+            BuffDefinition = tileData.BuffDefinition;
 
-            tileType =
-                tileData.Type;
-
-            routeIndex =
-                tileData.RouteIndex;
-
-            gameObject.name =
-                $"Tile_{tileType}_" +
-                $"{gridPosition.x}_" +
-                $"{gridPosition.y}";
+            gameObject.name =$"Tile_{tileType}_{gridPosition.x}_{gridPosition.y}";
         }
     }
 }
