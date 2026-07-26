@@ -12,18 +12,18 @@ using NorthLand.Combat;
 public class TowerMergePanelView : MonoBehaviour
 {
     [Header("연결")]
-    [SerializeField] private TowerMergeCoordinator _coordinator;
+    [SerializeField] TowerMergeCoordinator _coordinator;
 
     [Header("선택 리스트 (상단 Vertical Scroll)")]
-    [SerializeField] private Transform _selectedListContent;
-    [SerializeField] private GameObject _selectedRowPrefab; // TMP_Text 포함 행
+    [SerializeField] Transform _selectedListContent;
+    [SerializeField] GameObject _selectedRowPrefab; // TMP_Text 포함 행
 
     [Header("후보 버튼 (하단 Horizontal Scroll)")]
-    [SerializeField] private Transform _candidateContent;
-    [SerializeField] private Button _candidateButtonPrefab;
+    [SerializeField] Transform _candidateContent;
+    [SerializeField] Button _candidateButtonPrefab;
 
-    // 레시피 카탈로그 경로(Resources 하위). 레시피 SO를 여기에 둔다(전체 열거, F6 결정적 정렬).
-    private const string k_RecipesPath = "ScriptableObjects/Recipes";
+    [Header("리소스")]
+    [SerializeField] TowerRecipe[] _recipes;
 
     private readonly List<(Button button, TowerRecipe recipe)> _candidates = new();
     private readonly List<GameObject> _rows = new();
@@ -54,12 +54,7 @@ public class TowerMergePanelView : MonoBehaviour
             return;
         }
 
-        var recipes = Resources.LoadAll<TowerRecipe>(k_RecipesPath);
-        // Resources.LoadAll은 반환 순서를 보장하지 않는다 → 결과 TowerID로 결정적 정렬(F6).
-        System.Array.Sort(recipes, (a, b) =>
-            string.CompareOrdinal(RecipeSortKey(a), RecipeSortKey(b)));
-
-        foreach (var recipe in recipes)
+        foreach (var recipe in _recipes)
         {
             if (recipe == null) continue;
 

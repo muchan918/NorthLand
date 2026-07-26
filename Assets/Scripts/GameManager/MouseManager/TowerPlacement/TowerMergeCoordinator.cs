@@ -11,8 +11,8 @@ using NorthLand.Combat;
 public class TowerMergeCoordinator : MonoBehaviour
 {
     [Header("연결")]
-    [SerializeField] private TowerFusionController _controller;
-    [SerializeField] private GameObject _mergePanel; // 2개 이상 선택 시 켜지는 합성 패널 루트
+    [SerializeField] TowerFusionController _controller;
+    [SerializeField] GameObject _mergePanel; // 2개 이상 선택 시 켜지는 합성 패널 루트
 
     // 선택 재료 집합 — 코디네이터가 유일하게 소유하는 순수 C# 홀더(씬 오브젝트 아님). 실행부에 인자로 넘긴다.
     private readonly TowerMergeGroup _group = new();
@@ -45,15 +45,23 @@ public class TowerMergeCoordinator : MonoBehaviour
             mm.OnSelectionChanged += HandleSelectionChanged;
             mm.OnGroupSelectToggled += HandleGroupToggle;
         }
-        else Debug.LogWarning("[TowerMerge] MouseManager가 씬에 없어 합성 선택이 비활성입니다.");
+        else
+        {
+            Debug.LogWarning("[TowerMerge] MouseManager가 씬에 없어 합성 선택이 비활성입니다.");
+        }
 
         if (DayNightManager.Instance != null)
+        {
             DayNightManager.Instance.OnDayToNight += HandleDayToNight;
+        }
 
         Tower.ActiveChanged += HandleActiveChanged; // 외부 파괴(철거·사망) 시 stale 방어(WL-076b)
         _group.OnChanged += HandleGroupChanged;
 
-        if (_mergePanel != null) _mergePanel.SetActive(false); // 초기 숨김
+        if (_mergePanel != null)
+        {
+            _mergePanel.SetActive(false); // 초기 숨김
+        }
     }
 
     private void OnDestroy()
@@ -65,8 +73,11 @@ public class TowerMergeCoordinator : MonoBehaviour
             mm.OnSelectionChanged -= HandleSelectionChanged;
             mm.OnGroupSelectToggled -= HandleGroupToggle;
         }
+
         if (DayNightManager.Instance != null)
+        {
             DayNightManager.Instance.OnDayToNight -= HandleDayToNight;
+        }
         Tower.ActiveChanged -= HandleActiveChanged;
         _group.OnChanged -= HandleGroupChanged;
     }
@@ -91,10 +102,18 @@ public class TowerMergeCoordinator : MonoBehaviour
     private void HandleGroupToggle(IGroupSelectable grp)
     {
         if (!IsDay) return;
+
         Tower t = grp?.Tower;
         if (t == null) return;
-        if (_group.Contains(t)) _group.Remove(t);
-        else _group.Add(t);
+
+        if (_group.Contains(t))
+        {
+            _group.Remove(t);
+        }
+        else
+        {
+            _group.Add(t);
+        }
     }
 
     // 밤 진입: 집합 리셋 + 진행 중이던 합성 고스트 배치도 취소(F5 — 확정 시 재료 파괴 방지).
@@ -122,13 +141,20 @@ public class TowerMergeCoordinator : MonoBehaviour
         foreach (var t in _group.Towers)
         {
             if (t == null) continue;
-            if (_highlighted.Add(t)) GetMarker(t)?.OnGroupSelected();
+
+            if (_highlighted.Add(t))
+            {
+                GetMarker(t)?.OnGroupSelected();
+            }
         }
         // 집합에서 빠졌거나 파괴된 타워는 하이라이트 off + 추적 해제.
         _highlighted.RemoveWhere(t =>
         {
             if (t != null && _group.Contains(t)) return false; // 유지
-            if (t != null) GetMarker(t)?.OnGroupDeselected();
+            if (t != null)
+            {
+                GetMarker(t)?.OnGroupDeselected();
+            }
             return true;
         });
     }
@@ -160,9 +186,12 @@ public class TowerMergeCoordinator : MonoBehaviour
     }
 
     private static IGroupSelectable GetMarker(Tower t)
-        => t.TryGetComponent(out IGroupSelectable g) ? g : null;
+    {
+        return t.TryGetComponent(out IGroupSelectable g) ? g : null;
+    }
 
-    private static bool IsDay =>
+    private static bool IsDay => (
         DayNightManager.Instance == null ||
-        DayNightManager.Instance.CurrentPhase == DayNightManager.Phase.Day;
+        DayNightManager.Instance.CurrentPhase == DayNightManager.Phase.Day
+    );
 }
