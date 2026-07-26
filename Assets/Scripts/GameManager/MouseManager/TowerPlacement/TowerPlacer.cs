@@ -242,7 +242,11 @@ public class TowerPlacer : MonoBehaviour
                 anchor.transform.position.z + (_activeData.GridHeight - 1) * 0.5f * tileSize)
             : hit.point;
 
-        if (_rangeCircle != null) _rangeCircle.transform.position = result;
+        if (_rangeCircle != null)
+        {
+            _rangeCircle.transform.position = result;
+            _rangeCircle.Show(); // 커서가 유효 타일 위에 온 첫 스냅부터 표시(원점 잔상 방지)
+        }
         UpdateCellHighlights();
         return result;
     }
@@ -350,6 +354,7 @@ public class TowerPlacer : MonoBehaviour
 
         _rangeCircle = NorthLand.Combat.RangeCircle.Create(null, rangeFillColor, rangeColor, "TowerRangePreview");
         _rangeCircle.SetRadius(range);
+        _rangeCircle.Hide(); // 첫 스냅 전엔 맵 원점(0,0)에 원이 노출되므로 숨긴다 — SnapToFootprintCenter에서 Show
     }
 
     // ── 풋프린트 셀 하이라이트(바닥에 눕힌 반투명 쿼드, 셀별 유효/무효 색) ────────────────

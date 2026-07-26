@@ -19,7 +19,7 @@ namespace NorthLand.Combat
     {
         const string k_Shader = "Sprites/Default";
         const int k_Segments = 48;       // 원 근사 다각형의 변 수(클수록 매끈)
-        const float k_OutlineWidth = 0.6f;
+        const float k_OutlineWidth = 0.6f; // 외곽선 폭(맵 스케일에 안 맞으면 이 값만 조정)
         const float k_YOffset = 0.06f;   // z-파이팅 방지용으로 바닥 살짝 위
 
         LineRenderer _outline;
@@ -28,20 +28,42 @@ namespace NorthLand.Combat
         Material _outlineMat;
         Material _fillMat;
         float _radius = float.NaN;       // 같은 반지름이면 지오메트리 재생성 생략
+        bool _built;                     // 지오메트리/머티리얼 1회 구성 가드(Awake·Create 어느 쪽이 먼저 부르든 안전)
 
         /// 범위 원을 하나 만들어 반환한다. parent가 null이면 월드에 독립 생성.
         public static RangeCircle Create(Transform parent, Color fillColor, Color outlineColor, string name = "RangeCircle")
         {
             var go = new GameObject(name);
-            if (parent != null) go.transform.SetParent(parent, false);
+            if (parent != null)
+            {
+                go.transform.SetParent(parent, false);
+
+                // "월드 반경" 계약 유지: 부모(타워) 루트에 스케일/회전이 있어도 원은 월드 기준 크기·바닥 평면(XZ)을 유지한다.
+                // SetRadius가 받는 값(Tower.AttackRange 등)은 OverlapSphere가 쓰는 월드 반경이므로, 로컬 지오메트리(반경=로컬 단위)가
+                // 곧 월드 반경이 되도록 부모 변환을 역보정한다. 미보정 시 스케일 걸린 프리팹에서 표시 반경이 실제와 어긋난다(#192 재발).
+                Vector3 ls = parent.lossyScale;
+                go.transform.localScale = new Vector3(
+                    Mathf.Approximately(ls.x, 0f) ? 1f : 1f / ls.x,
+                    Mathf.Approximately(ls.y, 0f) ? 1f : 1f / ls.y,
+                    Mathf.Approximately(ls.z, 0f) ? 1f : 1f / ls.z);
+                go.transform.rotation = Quaternion.identity; // 부모 회전과 무관하게 바닥 평면 고정
+            }
             // 활성 GO에 AddComponent하면 Awake가 즉시(동기) 실행되어 지오메트리가 준비된다.
             var circle = go.AddComponent<RangeCircle>();
             circle.SetColors(fillColor, outlineColor);
             return circle;
         }
 
-        void Awake()
+        // 활성 GO면 AddComponent 시 Awake로, 비활성이면 Create/공개 메서드의 명시 호출로 구성된다.
+        void Awake() => Build();
+
+        // 지오메트리·머티리얼을 1회만 구성한다. 언제 호출해도 안전(멱등).
+        // 비활성 부모에 붙였을 때 Awake가 미실행돼 필드가 null인 채 역참조되는 NRE를 방지한다.
+        void Build()
         {
+            if (_built) return;
+            _built = true;
+
             // 외곽선: 이 GO의 LineRenderer(로컬 좌표 원).
             _outline = gameObject.AddComponent<LineRenderer>();
             _outline.useWorldSpace = false;
@@ -67,6 +89,7 @@ namespace NorthLand.Combat
         /// 채움/외곽선 색. 채움은 보통 알파를 낮춰 반투명하게 넘긴다.
         public void SetColors(Color fill, Color outline)
         {
+            Build();
             _fillMat.color = fill;
             _outline.startColor = _outline.endColor = outline;
         }
@@ -74,6 +97,7 @@ namespace NorthLand.Combat
         /// 원의 반경(월드 반경). 같은 값이면 재생성을 생략한다.
         public void SetRadius(float radius)
         {
+            Build();
             if (Mathf.Approximately(_radius, radius)) return;
             _radius = radius;
             Rebuild(radius);
