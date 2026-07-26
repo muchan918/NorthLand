@@ -226,14 +226,30 @@ namespace CombatSpace
 
             return tileData.Type switch
             {
-                CombatTileType.Road =>roadTilePrefab,
-
-                CombatTileType.Grass =>tileData.BuffDefinition?.Prefab?? grassTilePrefab,
-
-                CombatTileType.Water =>waterTilePrefab,
-
-                _ =>null
+                CombatTileType.Road => roadTilePrefab,
+                CombatTileType.Grass => GetGrassPrefab(tileData),
+                CombatTileType.Water => waterTilePrefab,
+                _ => null
             };
+        }
+
+        private GameObject GetGrassPrefab(CombatTileData tileData)
+        {
+            BuffTileDefinition definition =tileData.BuffDefinition;
+
+            if (definition == null)
+            {
+                return grassTilePrefab;
+            }
+
+            if (definition.Prefab == null)
+            {
+                Debug.LogWarning($"버프 타일 '{definition.Id}'의 프리팹이 할당되지 않아 일반 잔디로 대체합니다.",this);
+
+                return grassTilePrefab;
+            }
+
+            return definition.Prefab;
         }
 
         private Vector3 GridToLocalPosition(Vector2Int position)
