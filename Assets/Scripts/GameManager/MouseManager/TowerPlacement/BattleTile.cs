@@ -16,6 +16,8 @@ public class BattleTile : MonoBehaviour
     [SerializeField] TileKind _kind = TileKind.Grass;
     [SerializeField] Transform _anchor = null;
 
+
+
     public TileKind Kind => _kind;
 
     /// 타워가 앉을 기준점(타일 윗면에 둔 자식 앵커). 배치 시 레이의 hit.point.y(옆면에 맞으면 벽면 높이)
@@ -26,4 +28,5 @@ public class BattleTile : MonoBehaviour
     /// 타워가 이 타일을 점유 중인지(런타임 상태). 타일 생성 시 false, 배치 확정 시 true.
     /// 타일이 파괴·재생성(맵 리셋)되면 자연히 초기화된다.
     public bool Occupied { get; set; }
+
 }

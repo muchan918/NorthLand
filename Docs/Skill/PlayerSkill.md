@@ -47,6 +47,7 @@
 
 - 수치는 전부 각 효과 컴포넌트의 **인스펙터 직접 입력**(CSV 미사용 — 스킬 수치 정책과 동일, WL-015 축).
 - 반복 임팩트(Count)에서도 Burn/Bomb이 정상 발동한다 — 조합 시너지 의도.
+- **웨이브 종료 시** 진행 중이던 추가시전 반복분·미폭발 폭탄은 취소된다(§5 규약, #200).
 
 ## 4. 새 특수효과 추가 절차
 
@@ -66,7 +67,8 @@
 - **`StatusEffectHandler` effectId 분리 규약**: 다른 id는 공존(각자 틱), 같은 id는 갱신. 현재 사용: 타워 오라=TowerID 해시, 감전 화상=`"skill_burn"` 해시, 버프 화상=`"buff_burn"` 해시. 새 도트 효과는 고유 문자열 해시로 분리할 것.
 - **`DamageInfo` source=null 규약**: 플레이어 스킬 계열은 `IAttacker` 개체가 아니므로 source를 null로 넘긴다(`SkillManager` 주석 참고).
 - **`Projectile.DamageDealt`는 static 이벤트** — 구독 해제는 구독자 책임. 파괴 경로(`OnDestroy`→`Unsubscribe`)에서 반드시 해제(`BurnBuff.DeactivateWindow` 참고).
-- 관련 WatchList: **WL-074**(버프 데미지 배율이 투사체에 미적용 — 공속만 실효), **WL-068**(스킬 시전 Y와 몬스터 부양 높이 불일치 시 적중 0), **WL-050**(배율 덮어쓰기 비스택).
+- **웨이브/런 종료 시 진행 중 효과 취소(#200)**: 시전 후 **지연 발동하는 효과 2종 한정** — 추가시전 반복 착탄(`SkillManager.RepeatImpactsAsync`)·지연 폭탄(`SkillBomb`) — 을 취소한다. 신호는 `DayNightManager.OnNightToDay`(밤→낮=웨이브 종료)와 `GameManager.OnResultDecided`(승리/게임오버 — `EndNight()`를 안 타는 종료 경로) 둘 다 구독(적이 사라졌거나 결과 화면 뒤에서 잔존 발동 방지). 추가 착탄은 파괴 토큰과 링크한 `CancellationTokenSource`로, 폭탄은 `initialized`를 내리고 자기 파괴. **취소 대상 아님**: 버프 화상 창(`BurnBuff.WindowAsync`)·타워 버프 배율(`Tower.ApplyBuff`)·적 DoT는 자체 타이머로 만료된다(낮엔 타워가 밤 게이팅돼 실害 0). 조준(타겟팅) 모드 취소는 별개로 `PhasePanelSwitcher`가 `OnDayStart`에서 담당.
+- 관련 WatchList: **WL-074**(버프 데미지 배율이 투사체에 미적용 — 공속만 실효), **WL-068**(스킬 시전 Y와 몬스터 부양 높이 불일치 시 적중 0 — #200에서 "지면까지 닿는 길쭉한 트리거 콜라이더" 계약으로 해소 방향 확정), **WL-050**(배율 덮어쓰기 비스택).
 
 ## 6. 잔여 작업 (#169)
 

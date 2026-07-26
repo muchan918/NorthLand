@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using NorthLand.Combat;
+using NorthLand.Core;
 
 // 플레이어의 두 번째 스킬(#103) — 버프. 감전(SkillManager)과 달리 위치 타겟팅이 없다: 버튼을 누르면
 // 즉시 씬의 모든 Tower에게 공격력/공격속도 배율을 일정 시간 부여한다. 감전과 병렬 구조(밤 게이팅+
@@ -48,6 +49,7 @@ public class BuffSkillManager : MonoBehaviour
 
     public bool CanCast()
     {
+        if (GameManager.Instance != null && GameManager.Instance.Result != GameResult.Playing) return false;
         if (!IsReady) return false;
         if (DayNightManager.Instance != null &&
             DayNightManager.Instance.CurrentPhase != DayNightManager.Phase.Night) return false;

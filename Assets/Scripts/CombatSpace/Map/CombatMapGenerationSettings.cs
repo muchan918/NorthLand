@@ -52,6 +52,13 @@ namespace CombatSpace
         [Min(1)]
         public int GrassRadius = 5;
 
+        [Header("Buff Tiles")]
+        [Tooltip("이번 맵에서 생성할 잔디 타일 종류와 가중치")]
+        public BuffTileSpawnPool BuffTilePool;
+
+        [Tooltip("여러 타일을 점유할 때 적용할 효과별 중첩 규칙")]
+        public TileBuffRuleSettings BuffTileRules;
+
         [Header("Erosion")]
         [Range(0f, 1f)]
         public float ErosionProbability = 0.3f;
@@ -177,6 +184,42 @@ namespace CombatSpace
             if (GrassRadius < 1)
             {
                 errorMessage =  "GrassRadius는 1 이상이어야 합니다.";
+
+                return false;
+            }
+
+            if (BuffTilePool == null)
+            {
+                errorMessage =
+                    "버프 타일 생성 풀이 지정되지 않았습니다.";
+
+                return false;
+            }
+
+            if (!BuffTilePool.Validate(
+                    out string buffTilePoolError))
+            {
+                errorMessage =
+                    "버프 타일 생성 풀 설정 오류: " +
+                    buffTilePoolError;
+
+                return false;
+            }
+
+            if (BuffTileRules == null)
+            {
+                errorMessage =
+                    "버프 타일 중첩 규칙이 지정되지 않았습니다.";
+
+                return false;
+            }
+
+            if (!BuffTileRules.Validate(
+                    out string buffTileRuleError))
+            {
+                errorMessage =
+                    "버프 타일 중첩 규칙 설정 오류: " +
+                    buffTileRuleError;
 
                 return false;
             }

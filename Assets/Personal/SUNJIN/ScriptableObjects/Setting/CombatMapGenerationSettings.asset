@@ -26,6 +26,8 @@ MonoBehaviour:
   TurnPenalty: 0.5
   RouteStartPosition: {x: 0, y: 35}
   GrassRadius: 5
+  BuffTilePool: {fileID: 11400000, guid: a0a3fc912827b8b44b122fafdc78f75c, type: 2}
+  BuffTileRules: {fileID: 11400000, guid: 4e66e06684a153f4b80a97f47b2debfc, type: 2}
   ErosionProbability: 0.3
   MinErosionIterations: 3
   MaxErosionIterations: 5

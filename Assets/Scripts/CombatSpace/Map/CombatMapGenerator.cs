@@ -60,6 +60,8 @@ namespace CombatSpace
         private readonly WaterGenerator waterGenerator =
             new WaterGenerator();
 
+        private readonly BuffTileGenerator buffTileGenerator =
+            new BuffTileGenerator();
         public CombatMapData CurrentMap
         {
             get;
@@ -281,6 +283,13 @@ namespace CombatSpace
                 errorMessage =
                     $"최종 Road 검증 실패: " +
                     $"{finalRouteError}";
+
+                return false;
+            }
+
+            if (!buffTileGenerator.Generate(candidateMap,Settings,random))
+            {
+                errorMessage ="버프 타일 생성 실패";
 
                 return false;
             }
