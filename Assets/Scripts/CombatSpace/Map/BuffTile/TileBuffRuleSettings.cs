@@ -1,5 +1,3 @@
-
-using CombatSpace;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -56,21 +54,31 @@ namespace CombatSpace
             }
 
             var keys = new HashSet<(TileBuffStat Stat, TileModifierMode Mode)>();
-
             foreach (TileBuffStackRule rule in rules)
             {
                 if (rule == null)
                 {
-                    errorMessage = "비어 있는 버프 타일 중첩 규칙이 있습니다.";
+                    errorMessage =
+                        "비어 있는 버프 타일 중첩 규칙이 있습니다.";
 
                     return false;
                 }
 
-                var key = (rule.Stat, rule.ModifierMode);
+                if (rule.Stat == TileBuffStat.AttackSpeed &&
+                    rule.ModifierMode == TileModifierMode.Flat)
+                {
+                    errorMessage =
+                        "AttackSpeed는 Percentage 모드만 지원합니다.";
+
+                    return false;
+                }
+
+                var key =
+                    (rule.Stat, rule.ModifierMode);
 
                 if (!keys.Add(key))
                 {
-                    errorMessage = $"중복된 버프 타일 중첩 규칙이 있습니다.Stat={rule.Stat},Mode={rule.ModifierMode}";
+                    errorMessage =$"중복된 버프 타일 중첩 규칙이 있습니다. Stat={rule.Stat},Mode={rule.ModifierMode}";
 
                     return false;
                 }

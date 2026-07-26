@@ -11,6 +11,10 @@ namespace CombatSpace
     {
         AttackRange,
         AttackDamage,
+
+
+        // 공격속도는 Percentage 모드만 지원한다.
+        // 값이 증가할수록 AttackInterval이 짧아진다.
         AttackSpeed
     }
 

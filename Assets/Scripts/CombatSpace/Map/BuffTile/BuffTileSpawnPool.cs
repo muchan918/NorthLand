@@ -89,6 +89,16 @@ namespace CombatSpace
                     return false;
                 }
 
+                foreach (TileStatModifier modifier in entry.Definition.Modifiers)
+                {
+                    if (modifier.Stat ==TileBuffStat.AttackSpeed &&modifier.ModifierMode ==TileModifierMode.Flat)
+                    {
+                        errorMessage =$"버프 타일 '{entry.Definition.Id}'의 AttackSpeed는 Percentage 모드만 지원합니다.";
+
+                        return false;
+                    }
+                }
+
                 if (entry.Weight <= 0f)
                 {
                     errorMessage =$"버프 타일 '{entry.Definition.Id}'의 가중치는 0보다 커야 합니다.";
