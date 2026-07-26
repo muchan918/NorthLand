@@ -17,4 +17,4 @@ MonoBehaviour:
   modifiers:
   - Stat: 0
     ModifierMode: 1
-    Value: 100
+    Value: 20

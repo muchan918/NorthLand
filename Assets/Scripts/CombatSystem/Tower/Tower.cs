@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using CombatSpace;
+
 #if UNITY_EDITOR
 using UnityEditor;
-using CombatSpace;
 #endif
 
 namespace NorthLand.Combat

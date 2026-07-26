@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using CombatSpace;
+using NorthLand.Combat;
 
 /// 배치에 필요한 타워 데이터(풋프린트·사거리)의 최소 단위.
 /// TowerPlacer는 이 구조체에만 의존하고 특정 SO(TowerAsset/Combat TowerData)에 묶이지 않는다.
@@ -74,6 +75,12 @@ public class TowerPlacer : MonoBehaviour
     private TileBuffRuleSettings tileBuffRules;
 
     private LineRenderer rangeLineRenderer;
+
+    private BattleTile lastPreviewAnchor;
+
+    private bool previewFootprintInitialized;
+
+    private float lastRenderedRange = float.NaN;
 
     private readonly TileBuffCalculator previewBuffCalculator = new TileBuffCalculator();
 
@@ -208,6 +215,9 @@ public class TowerPlacer : MonoBehaviour
         // 프리뷰는 BeginPlacement 이후에 만든다.
         // (BeginPlacement 내부의 CancelPlacement가 이전 배치의 OnEnded=EndPlacement를 먼저 발화해
         //  방금 만든 프리뷰를 지우는 순서 문제를 피하기 위함)
+        lastPreviewAnchor = null;
+        previewFootprintInitialized = false;
+        lastRenderedRange = float.NaN;
         CreateRangeIndicator(_activeData.AttackRange);
         CreateCellHighlights(_activeData.GridWidth * _activeData.GridHeight);
     }
@@ -217,9 +227,19 @@ public class TowerPlacer : MonoBehaviour
     // y는 hit.point.y(레이가 타일 옆면에 맞으면 벽면 높이) 대신 타일 앵커 y를 써서 타워가 항상 윗면에 앉는다.
     private Vector3 SnapToFootprintCenter(RaycastHit hit)
     {
-        BattleTile anchor = hit.collider.GetComponentInParent<BattleTile>();
-        RebuildFootprint(anchor); // 이번 프레임 풋프린트 1회 계산(검증·하이라이트가 공유)
-        UpdateRangeIndicator(CalculatePreviewRange());
+        BattleTile anchor =hit.collider.GetComponentInParent<BattleTile>();
+
+        bool footprintChanged =!previewFootprintInitialized ||anchor != lastPreviewAnchor;
+
+        if (footprintChanged)
+        {
+            RebuildFootprint(anchor);
+
+            lastPreviewAnchor = anchor;
+            previewFootprintInitialized = true;
+
+            UpdateRangeIndicator(CalculatePreviewRange());
+        }
 
         Vector3 result = anchor != null
             ? new Vector3(
@@ -287,7 +307,7 @@ public class TowerPlacer : MonoBehaviour
         {
             towerTileBuff =placed.AddComponent<TowerTileBuff>();
         }
-        towerTileBuff.Initialize(occupant.Tiles,tileBuffRules);
+        towerTileBuff.Initialize(CalculateTileBuff(occupant.Tiles));
 
         // 확정 콜백(합성 재료 소모 등)은 배치 성공 후 1회만 실행한다.
         // 먼저 비우고 호출해 연속 배치(keepPlacing)에서도 재실행되지 않게 한다.
@@ -415,6 +435,9 @@ public class TowerPlacer : MonoBehaviour
         _footprint.Clear();
         _onConfirmed = null; // 취소로 끝났으면 확정 콜백은 실행하지 않는다(재료 보존).
         rangeLineRenderer = null;
+        lastPreviewAnchor = null;
+        previewFootprintInitialized = false;
+        lastRenderedRange = float.NaN;
     }
 
     private float CalculatePreviewRange()
@@ -423,9 +446,11 @@ public class TowerPlacer : MonoBehaviour
 
         foreach ((Vector3 _, BattleTile tile) in _footprint)
         {
-            if (tile?.BuffDefinition != null)
+            BuffTileDefinition definition = GetBuffDefinition(tile);
+
+            if (definition != null)
             {
-                previewDefinitions.Add(tile.BuffDefinition);
+                previewDefinitions.Add(definition);
             }
         }
 
@@ -445,7 +470,14 @@ public class TowerPlacer : MonoBehaviour
             return;
         }
 
-        rangeLineRenderer.positionCount = rangeSegments;
+        if (Mathf.Approximately(lastRenderedRange,range))
+        {
+            return;
+        }
+
+        lastRenderedRange = range;
+
+        rangeLineRenderer.positionCount =rangeSegments;
 
         for (int i = 0; i < rangeSegments; i++)
         {
@@ -453,6 +485,38 @@ public class TowerPlacer : MonoBehaviour
 
             rangeLineRenderer.SetPosition(i,new Vector3(Mathf.Cos(angle) * range,0.05f,Mathf.Sin(angle) * range));
         }
+    }
+
+    private static BuffTileDefinition GetBuffDefinition(BattleTile tile)
+    {
+        if (tile == null)
+        {
+            return null;
+        }
+
+        CombatMapTileView tileView =tile.GetComponentInParent<CombatMapTileView>();
+
+        return tileView != null? tileView.BuffDefinition: null;
+    }
+
+    private TileBuffCalculationResult CalculateTileBuff(IReadOnlyList<BattleTile> tiles)
+    {
+        previewDefinitions.Clear();
+
+        if (tiles != null)
+        {
+            foreach (BattleTile tile in tiles)
+            {
+                BuffTileDefinition definition =GetBuffDefinition(tile);
+
+                if (definition != null)
+                {
+                    previewDefinitions.Add(definition);
+                }
+            }
+        }
+
+        return previewBuffCalculator.Calculate(previewDefinitions,tileBuffRules);
     }
 
 }

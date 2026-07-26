@@ -1,4 +1,3 @@
-using CombatSpace;
 using UnityEngine;
 
 /// 전투 맵 타일의 종류. grass/road/lava 프리팹에 대응.
@@ -30,10 +29,4 @@ public class BattleTile : MonoBehaviour
     /// 타일이 파괴·재생성(맵 리셋)되면 자연히 초기화된다.
     public bool Occupied { get; set; }
 
-
-    public BuffTileDefinition BuffDefinition { get; private set; }
-    public void InitializeBuff(BuffTileDefinition definition)
-    {
-        BuffDefinition = definition;
-    }
 }
