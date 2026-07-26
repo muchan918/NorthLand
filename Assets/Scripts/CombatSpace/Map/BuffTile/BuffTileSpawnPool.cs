@@ -80,14 +80,7 @@ namespace CombatSpace
                         "활성화된 버프 타일의 ID가 없습니다.";
 
                     return false;
-                }
-
-                if (entry.Definition.Prefab == null)
-                {
-                    errorMessage =$"버프 타일 '{entry.Definition.Id}'에 프리팹이 없습니다.";
-
-                    return false;
-                }
+                }    
 
                 foreach (TileStatModifier modifier in entry.Definition.Modifiers)
                 {

@@ -20,9 +20,10 @@ namespace CombatSpace
         [Tooltip("저장 및 데이터 구분에 사용할 고유 ID")]
         private string id;
 
+
         [Header("Visual")]
         [SerializeField]
-        [Tooltip("이 타일이 선택됐을 때 생성할 프리팹")]
+        [Tooltip("이 타일에 사용할 전용 프리팹. 비어 있으면 기본 잔디 프리팹을 사용한다.")]
         private GameObject prefab;
 
         [Header("Effects")]
