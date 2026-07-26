@@ -26,7 +26,7 @@ MonoBehaviour:
     modifierMode: 1
     stackMode: 0
   - stat: 2
-    modifierMode: 0
+    modifierMode: 1
     stackMode: 0
   - stat: 2
     modifierMode: 0
