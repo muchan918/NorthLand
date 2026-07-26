@@ -16352,14 +16352,6 @@ PrefabInstance:
       propertyPath: _coordinator
       value: 
       objectReference: {fileID: 230092176}
-    - target: {fileID: 5262100445004343832, guid: d539c413d032ea441bd8184c2a4dddc3, type: 3}
-      propertyPath: _recipes.Array.size
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5262100445004343832, guid: d539c413d032ea441bd8184c2a4dddc3, type: 3}
-      propertyPath: '_recipes.Array.data[0]'
-      value: 
-      objectReference: {fileID: 11400000, guid: 6af1dd8f004e27844bc7e6ffe21d475e, type: 2}
     - target: {fileID: 6414358444844159426, guid: d539c413d032ea441bd8184c2a4dddc3, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
