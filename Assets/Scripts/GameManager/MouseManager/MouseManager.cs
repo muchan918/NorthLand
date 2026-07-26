@@ -18,6 +18,10 @@ public class MouseManager : MonoBehaviour
     public static MouseManager Instance { get; private set; }
 
     public event Action<ISelectable> OnSelectionChanged;
+    // Shift(추가 선택 키) + IGroupSelectable 대상 클릭 시 발행(토글). 그룹 선택 집합은 TowerMergeCoordinator가
+    // 소유하고, MouseManager는 마커 유무만 알 뿐 대상 타입(타워)은 모른다(입력 단일 창구·제네릭 유지).
+    // 이 경로에서는 단일 _selected를 건드리지 않는다.
+    public event Action<IGroupSelectable> OnGroupSelectToggled;
     // 커서 밑 호버 대상이 바뀔 때만 통지(없으면 null). 툴팁 UI가 구독해 표시/숨김을 결정한다.
     public event Action<IHoverable> OnHoverChanged;
     // 현재 포인터 화면 좌표. 다른 시스템(툴팁 등)이 Mouse.current를 직접 읽지 않고 여기서 얻는다(입력 단일 창구 계약).
@@ -144,9 +148,33 @@ public class MouseManager : MonoBehaviour
     {
         UpdateHover(screenPos, overUI);
 
+        // Esc → 전체 해제(그룹 포함). 코디네이터가 OnSelectionChanged(null)을 받아 집합을 비운다.
+        // (우클릭은 카메라 드래그·조준 취소와 이미 이중 점유라 해제에 쓰지 않는다 — WL-073)
+        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
+            Select(null);
+            return;
+        }
+
         if (overUI || !Mouse.current.leftButton.wasPressedThisFrame) return;
 
-        if (RaycastMask(screenPos, _selectableMask, out var hit) && hit.collider.TryGetComponent(out ISelectable sel))
+        // 추가 선택 키(Shift) 판정은 입력 단일 창구인 MouseManager가 소유한다(계약 #1).
+        bool additive = Keyboard.current != null &&
+                        (Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed);
+
+        bool hitSelectable = RaycastMask(screenPos, _selectableMask, out var hit);
+
+        if (additive)
+        {
+            // Shift 추가 선택: 그룹 선택 가능(IGroupSelectable 마커) 대상만 토글 통지.
+            // 건물·영지 노드·빈 곳 등 마커 없는 대상은 무시(집합 불변). 단일 _selected도 건드리지 않는다.
+            if (hitSelectable && hit.collider.TryGetComponent(out IGroupSelectable grp))
+                OnGroupSelectToggled?.Invoke(grp);
+            return;
+        }
+
+        // 평클릭: 기존 단일 선택 규칙 유지. 코디네이터가 이 통지로 그룹을 리셋(타워면 단일화)/해제(그 외)한다.
+        if (hitSelectable && hit.collider.TryGetComponent(out ISelectable sel))
             Select(sel);
         else
             Select(null); // 빈 곳 클릭 → 선택 해제

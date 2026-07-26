@@ -263,6 +263,10 @@ public class TowerPlacer : MonoBehaviour
         var occupant = placed.AddComponent<TowerFootprint>();
         foreach ((Vector3 _, BattleTile tile) in _footprint) occupant.Occupy(tile);
 
+        // 배치된 타워를 합성(#183) 그룹 선택 대상으로 표시(마커 런타임 부착 — Tower.cs 무편집).
+        // 합성 결과 타워도 이 경로로 배치되므로 다단 합성의 재료가 될 수 있다.
+        placed.AddComponent<TowerGroupSelectable>();
+
         // 확정 콜백(합성 재료 소모 등)은 배치 성공 후 1회만 실행한다.
         // 먼저 비우고 호출해 연속 배치(keepPlacing)에서도 재실행되지 않게 한다.
         var confirmed = _onConfirmed;
