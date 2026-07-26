@@ -84,6 +84,10 @@ public class TowerSelectPanelView : MonoBehaviour
             label.text = tower.TowerID;
         }
 
+        // 호버 시 타워 코스트/스탯 툴팁(#141). 버튼 프리팹 편집 없이 런타임으로 부착 —
+        // tower.Data는 위에서 이미 채웠으므로 이름 조회가 가능하다.
+        button.gameObject.AddComponent<TowerTooltipSource>().Init(tower);
+
         button.onClick.AddListener(() => HandleClick(tower));
         _buttons.Add((button, tower));
         RefreshButton(button, tower); // 초기 활성 상태 반영
