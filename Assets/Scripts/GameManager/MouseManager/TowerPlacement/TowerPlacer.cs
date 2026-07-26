@@ -45,16 +45,14 @@ public class TowerPlacer : MonoBehaviour
     [SerializeField] private float dummyAttackRange = 3f;
 
     [Header("사거리 미리보기")]
-    [SerializeField] private Color rangeColor = new Color(0.2f, 0.8f, 1f, 0.9f);
-    [SerializeField] private int rangeSegments = 48;
+    [SerializeField] private Color rangeColor = new Color(0.2f, 0.8f, 1f, 0.9f);      // 외곽선(굵게)
+    [SerializeField] private Color rangeFillColor = new Color(0.2f, 0.8f, 1f, 0.15f); // 채움(반투명)
 
     [Header("셀 하이라이트")]
     [SerializeField] private Color validCellColor = new Color(0.2f, 1f, 0.3f, 0.35f);
     [SerializeField] private Color invalidCellColor = new Color(1f, 0.25f, 0.2f, 0.35f);
 
-    private GameObject _rangeIndicator;
     private readonly List<GameObject> _cellHighlights = new List<GameObject>();
-    private Material _rangeMat;
     private Material _cellMatValid;
     private Material _cellMatInvalid;
     private TowerPlacementData _activeData; // 현재 배치 중인 타워의 데이터(주입 또는 더미)
@@ -74,13 +72,11 @@ public class TowerPlacer : MonoBehaviour
     [SerializeField]
     private TileBuffRuleSettings tileBuffRules;
 
-    private LineRenderer rangeLineRenderer;
+    private NorthLand.Combat.RangeCircle _rangeCircle;
 
     private BattleTile lastPreviewAnchor;
 
     private bool previewFootprintInitialized;
-
-    private float lastRenderedRange = float.NaN;
 
     private readonly TileBuffCalculator previewBuffCalculator = new TileBuffCalculator();
 
@@ -113,9 +109,8 @@ public class TowerPlacer : MonoBehaviour
     private void OnDestroy()
     {
         // 런타임 생성물·머티리얼 정리(누수 방지).
-        if (_rangeIndicator != null) Destroy(_rangeIndicator);
+        if (_rangeCircle != null) Destroy(_rangeCircle.gameObject);
         ClearCellHighlights();
-        if (_rangeMat != null) Destroy(_rangeMat);
         if (_cellMatValid != null) Destroy(_cellMatValid);
         if (_cellMatInvalid != null) Destroy(_cellMatInvalid);
     }
@@ -217,7 +212,6 @@ public class TowerPlacer : MonoBehaviour
         //  방금 만든 프리뷰를 지우는 순서 문제를 피하기 위함)
         lastPreviewAnchor = null;
         previewFootprintInitialized = false;
-        lastRenderedRange = float.NaN;
         CreateRangeIndicator(_activeData.AttackRange);
         CreateCellHighlights(_activeData.GridWidth * _activeData.GridHeight);
     }
@@ -248,7 +242,7 @@ public class TowerPlacer : MonoBehaviour
                 anchor.transform.position.z + (_activeData.GridHeight - 1) * 0.5f * tileSize)
             : hit.point;
 
-        if (_rangeIndicator != null) _rangeIndicator.transform.position = result;
+        if (_rangeCircle != null) _rangeCircle.transform.position = result;
         UpdateCellHighlights();
         return result;
     }
@@ -349,32 +343,13 @@ public class TowerPlacer : MonoBehaviour
         return null;
     }
 
-    // ── 사거리 미리보기(런타임 LineRenderer 원) ──────────────────────────────────────
-    private void CreateRangeIndicator(
-      float range)
+    // ── 사거리 미리보기(공용 RangeCircle: 채움+외곽선) ──────────────────────────────────
+    private void CreateRangeIndicator(float range)
     {
-        if (_rangeIndicator != null)
-        {
-            Destroy(_rangeIndicator);
-        }
+        if (_rangeCircle != null) Destroy(_rangeCircle.gameObject);
 
-        if (_rangeMat == null)
-        {
-            _rangeMat =new Material(Shader.Find("Sprites/Default"));
-        }
-
-        _rangeIndicator =new GameObject("TowerRangePreview");
-
-        rangeLineRenderer =_rangeIndicator.AddComponent<LineRenderer>();
-
-        rangeLineRenderer.useWorldSpace = false;
-        rangeLineRenderer.loop = true;
-        rangeLineRenderer.widthMultiplier = 0.15f;
-        rangeLineRenderer.sharedMaterial = _rangeMat;
-        rangeLineRenderer.startColor = rangeColor;
-        rangeLineRenderer.endColor = rangeColor;
-
-        UpdateRangeIndicator(range);
+        _rangeCircle = NorthLand.Combat.RangeCircle.Create(null, rangeFillColor, rangeColor, "TowerRangePreview");
+        _rangeCircle.SetRadius(range);
     }
 
     // ── 풋프린트 셀 하이라이트(바닥에 눕힌 반투명 쿼드, 셀별 유효/무효 색) ────────────────
@@ -429,15 +404,13 @@ public class TowerPlacer : MonoBehaviour
     // 배치 종료(취소/확정 복귀) 시 프리뷰 정리. PlacementRequest.OnEnded로 연결됨.
     private void EndPlacement()
     {
-        if (_rangeIndicator != null) Destroy(_rangeIndicator);
-        _rangeIndicator = null;
+        if (_rangeCircle != null) Destroy(_rangeCircle.gameObject);
+        _rangeCircle = null;
         ClearCellHighlights();
         _footprint.Clear();
         _onConfirmed = null; // 취소로 끝났으면 확정 콜백은 실행하지 않는다(재료 보존).
-        rangeLineRenderer = null;
         lastPreviewAnchor = null;
         previewFootprintInitialized = false;
-        lastRenderedRange = float.NaN;
     }
 
     private float CalculatePreviewRange()
@@ -463,28 +436,10 @@ public class TowerPlacer : MonoBehaviour
         return (_activeData.AttackRange + flat) *(1f + percentage / 100f);
     }
 
+    // 반지름 갱신은 RangeCircle이 자체적으로 같은 값 재생성을 생략한다(중복 캐시 불필요).
     private void UpdateRangeIndicator(float range)
     {
-        if (rangeLineRenderer == null)
-        {
-            return;
-        }
-
-        if (Mathf.Approximately(lastRenderedRange,range))
-        {
-            return;
-        }
-
-        lastRenderedRange = range;
-
-        rangeLineRenderer.positionCount =rangeSegments;
-
-        for (int i = 0; i < rangeSegments; i++)
-        {
-            float angle =i / (float)rangeSegments *Mathf.PI * 2f;
-
-            rangeLineRenderer.SetPosition(i,new Vector3(Mathf.Cos(angle) * range,0.05f,Mathf.Sin(angle) * range));
-        }
+        if (_rangeCircle != null) _rangeCircle.SetRadius(range);
     }
 
     private static BuffTileDefinition GetBuffDefinition(BattleTile tile)
