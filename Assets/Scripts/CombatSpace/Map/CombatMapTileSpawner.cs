@@ -115,8 +115,7 @@ namespace CombatSpace
         [ContextMenu("Spawn Map Tiles")]
         public void SpawnTiles()
         {
-            if (mapGenerator == null ||
-                mapGenerator.CurrentMap == null)
+            if (mapGenerator == null ||mapGenerator.CurrentMap == null)
             {
                 Debug.LogError(
                     "먼저 전투맵 데이터를 생성해야 합니다.",
@@ -134,21 +133,17 @@ namespace CombatSpace
 
             ClearTiles();
 
-            CombatMapData map =
-                mapGenerator.CurrentMap;
+            CombatMapData map =mapGenerator.CurrentMap;
 
             for (int x = 0; x < map.Width; x++)
             {
                 for (int y = 0; y < map.Height; y++)
                 {
-                    Vector2Int position =
-                        new Vector2Int(x, y);
+                    Vector2Int position =new Vector2Int(x, y);
 
-                    CombatTileData tileData =
-                        map.GetTile(position);
+                    CombatTileData tileData =map.GetTile(position);
 
-                    if (tileData.Type ==
-                        CombatTileType.Empty)
+                    if (tileData.Type ==CombatTileType.Empty)
                     {
                         continue;
                     }
@@ -158,8 +153,7 @@ namespace CombatSpace
             }
 
             // 공개 데이터가 이미 있다면 즉시 적용
-            if (revealController != null &&
-                revealController.RevealData != null)
+            if (revealController != null &&revealController.RevealData != null)
             {
                 RefreshTileVisibility();
             }
@@ -170,11 +164,9 @@ namespace CombatSpace
                 this);
         }
 
-        private void SpawnTile(
-            CombatTileData tileData)
+        private void SpawnTile(CombatTileData tileData)
         {
-            GameObject prefab =
-                GetPrefab(tileData.Type);
+            GameObject prefab =GetPrefab(tileData);
 
             if (prefab == null)
             {
@@ -225,39 +217,34 @@ namespace CombatSpace
                 tileView);
         }
 
-        private GameObject GetPrefab(
-            CombatTileType tileType)
+        private GameObject GetPrefab(CombatTileData tileData)
         {
-            return tileType switch
+            if (tileData == null)
             {
-                CombatTileType.Road =>
-                    roadTilePrefab,
+                return null;
+            }
 
-                CombatTileType.Grass =>
-                    grassTilePrefab,
+            return tileData.Type switch
+            {
+                CombatTileType.Road =>roadTilePrefab,
 
-                CombatTileType.Water =>
-                    waterTilePrefab,
+                CombatTileType.Grass =>tileData.BuffDefinition?.Prefab?? grassTilePrefab,
 
-                _ =>
-                    null
+                CombatTileType.Water =>waterTilePrefab,
+
+                _ =>null
             };
         }
 
-        private Vector3 GridToLocalPosition(
-         Vector2Int position)
+        private Vector3 GridToLocalPosition(Vector2Int position)
         {
-            CombatMapGenerationSettings settings =
-                mapGenerator.Settings;
+            CombatMapGenerationSettings settings =mapGenerator.Settings;
 
-            return new Vector3(
-                (position.x + 0.5f) *
-                settings.TileSize,
+            return new Vector3((position.x + 0.5f) *settings.TileSize,
 
                 settings.TileHeight,
 
-                (position.y + 0.5f) *
-                settings.TileSize);
+                (position.y + 0.5f) *settings.TileSize);
         }
 
 
