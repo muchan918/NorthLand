@@ -33,13 +33,19 @@ public class TowerMergePanelView : MonoBehaviour
 
     private void OnEnable()
     {
-        if (_coordinator != null) _coordinator.OnGroupChanged += Refresh;
+        if (_coordinator != null)
+        {
+            _coordinator.OnGroupChanged += Refresh;
+        }
         Refresh(); // 활성화 시점의 현재 선택 상태로 동기화(코디네이터가 켠 직후)
     }
 
     private void OnDisable()
     {
-        if (_coordinator != null) _coordinator.OnGroupChanged -= Refresh;
+        if (_coordinator != null)
+        {
+            _coordinator.OnGroupChanged -= Refresh;
+        }
     }
 
     // 레시피당 버튼 1개 미리 생성 + 기본 숨김(SetActive false). 한 번만.
@@ -60,7 +66,9 @@ public class TowerMergePanelView : MonoBehaviour
 
             // 결과 타워의 런타임 Data(에셋에 저장 안 됨)를 채워 라벨을 로컬라이즈할 수 있게 한다(채움 규약).
             if (recipe.Result != null && recipe.Result.Data == null)
+            {
                 recipe.Result.Data = DataTableManager.Get<TowerTable>("TowerTable")?.Get(recipe.Result.TowerID);
+            }
 
             var button = Instantiate(_candidateButtonPrefab, _candidateContent);
 
@@ -83,7 +91,10 @@ public class TowerMergePanelView : MonoBehaviour
 
     private void RefreshSelectedList()
     {
-        foreach (var row in _rows) if (row != null) Destroy(row);
+        foreach (var row in _rows)
+        {
+            if (row != null) Destroy(row);
+        }
         _rows.Clear();
 
         if (_coordinator == null || _selectedListContent == null || _selectedRowPrefab == null) return;
@@ -91,6 +102,7 @@ public class TowerMergePanelView : MonoBehaviour
         foreach (var tower in _coordinator.SelectedTowers)
         {
             if (tower == null) continue;
+
             var row = Instantiate(_selectedRowPrefab, _selectedListContent);
             var text = row.GetComponentInChildren<TMP_Text>();
             if (text != null) text.text = LocalizedTowerName(tower.Asset);
@@ -105,6 +117,7 @@ public class TowerMergePanelView : MonoBehaviour
         foreach (var (button, recipe) in _candidates)
         {
             if (button == null) continue;
+
             button.gameObject.SetActive(_coordinator.CanMerge(recipe));
         }
     }
@@ -113,9 +126,12 @@ public class TowerMergePanelView : MonoBehaviour
     private static string LocalizedTowerName(TowerAsset asset)
     {
         if (asset == null) return "?";
+
         var data = asset.Data;
         if (data != null && !string.IsNullOrEmpty(data.NameKey))
+        {
             return LocalizationHelper.Get(LocalizationHelper.k_TowersTable, data.NameKey);
+        }
         return asset.TowerID;
     }
 }
