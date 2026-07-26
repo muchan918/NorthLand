@@ -8,6 +8,7 @@ using UnityEngine;
 public class TowerFootprint : MonoBehaviour
 {
     private readonly List<BattleTile> _tiles = new List<BattleTile>();
+    public IReadOnlyList<BattleTile> Tiles =>_tiles;
 
     /// 점유할 타일을 등록하고 즉시 Occupied=true로 잠근다.
     public void Occupy(BattleTile tile)

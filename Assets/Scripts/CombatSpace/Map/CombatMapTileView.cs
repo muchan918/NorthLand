@@ -29,28 +29,27 @@ namespace CombatSpace
 
   
 
-        public void Initialize(
-            CombatTileData tileData)
+        public void Initialize(CombatTileData tileData)
         {
             if (tileData == null)
             {
-                throw new ArgumentNullException(
-                    nameof(tileData));
+                throw new ArgumentNullException(nameof(tileData));
             }
 
-            gridPosition =
-                tileData.Position;
+            gridPosition =tileData.Position;
 
-            tileType =
-                tileData.Type;
+            tileType =tileData.Type;
 
-            routeIndex =
-                tileData.RouteIndex;
+            routeIndex =tileData.RouteIndex;
 
-            gameObject.name =
-                $"Tile_{tileType}_" +
-                $"{gridPosition.x}_" +
-                $"{gridPosition.y}";
+            BattleTile battleTile =GetComponent<BattleTile>();
+
+            if (battleTile != null)
+            {
+                battleTile.InitializeBuff(tileData.BuffDefinition);
+            }
+
+            gameObject.name =$"Tile_{tileType}_{gridPosition.x}_{gridPosition.y}";
         }
     }
 }

@@ -16,5 +16,5 @@ MonoBehaviour:
   prefab: {fileID: 3733212974178513189, guid: 45e75e66e75bb4f44b5ad7eeda6cfadb, type: 3}
   modifiers:
   - Stat: 0
-    ModifierMode: 0
-    Value: 1
+    ModifierMode: 1
+    Value: 50
