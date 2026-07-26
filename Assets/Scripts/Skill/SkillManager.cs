@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 using NorthLand.Combat;
+using NorthLand.Core;
 
 // 플레이어의 클릭 시전 기본 스킬(#103). 밤에만 시전 가능하며, 클릭한 위치를 중심으로 범위 내
 // 몬스터에게 즉시 데미지를 준다. 컨셉은 "감전" — 로직은 단순하게 유지하고 타격감(이펙트/사운드)
@@ -35,6 +36,10 @@ public class SkillManager : MonoBehaviour
     readonly Collider[] hitBuffer = new Collider[16];
     readonly List<IDamageable> hitTargets = new List<IDamageable>(16);
 
+    // 예약된 추가 착탄(RepeatImpactsAsync) 취소용. 파괴 토큰과 링크해 기존 파괴-취소 동작을 유지하며,
+    // 웨이브 종료(밤→낮) 시 Cancel해 낮으로 넘어간 반복 착탄이 뒤늦게 발동하지 않게 한다(#200 ②).
+    CancellationTokenSource repeatCts;
+
     public float Radius => radius;
     public bool IsReady => cooldownTimer <= 0f;
     public float CooldownRemaining01 => cooldown <= 0f ? 0f : Mathf.Clamp01(cooldownTimer / cooldown);
@@ -51,6 +56,44 @@ public class SkillManager : MonoBehaviour
         }
     }
 
+    void Start()
+    {
+        // 웨이브 종료(밤→낮) 시 예약된 추가 착탄을 취소한다. DayNightManager가 없으면 취소만 못 할 뿐
+        // 스킬 자체는 동작하므로 경고만 남긴다(PhasePanelSwitcher.Start 패턴).
+        if (DayNightManager.Instance != null)
+            DayNightManager.Instance.OnNightToDay += HandleWaveEnd;
+        else
+            Debug.LogWarning("[Skill] DayNightManager를 찾을 수 없어 웨이브 종료 시 추가 착탄 취소가 배선되지 않았습니다.");
+
+        // 승리/게임오버는 EndNight()(→OnNightToDay)를 타지 않으므로 결과 확정 신호로도 취소한다(#200 리뷰).
+        // 그러지 않으면 예약된 추가 착탄이 결과 화면 뒤에서 계속 발동한다.
+        if (GameManager.Instance != null)
+            GameManager.Instance.OnResultDecided += HandleResultDecided;
+    }
+
+    void OnDestroy()
+    {
+        if (DayNightManager.Instance != null)
+            DayNightManager.Instance.OnNightToDay -= HandleWaveEnd;
+        if (GameManager.Instance != null)
+            GameManager.Instance.OnResultDecided -= HandleResultDecided;
+
+        repeatCts?.Cancel();
+        repeatCts?.Dispose();
+        repeatCts = null;
+    }
+
+    // 웨이브 종료: 예약된 추가 착탄을 취소한다. 다음 시전에서 CastAt이 새 링크 소스를 만든다.
+    void HandleWaveEnd()
+    {
+        repeatCts?.Cancel();
+        repeatCts?.Dispose();
+        repeatCts = null;
+    }
+
+    // 승리/게임오버(런 종료)도 웨이브 종료와 동일하게 진행 중 효과를 취소한다.
+    void HandleResultDecided(GameResult _) => HandleWaveEnd();
+
     void Update()
     {
         if (cooldownTimer > 0f)
@@ -59,6 +102,7 @@ public class SkillManager : MonoBehaviour
 
     public bool CanCast()
     {
+        if (GameManager.Instance != null && GameManager.Instance.Result != GameResult.Playing) return false;
         if (!IsReady) return false;
         if (DayNightManager.Instance != null &&
             DayNightManager.Instance.CurrentPhase != DayNightManager.Phase.Night) return false;
@@ -83,8 +127,12 @@ public class SkillManager : MonoBehaviour
         ImpactResolved?.Invoke(context);
 
         // 반복분은 간격을 두고 발동 — "한 번 누르면 잠시 뒤 한 번 더" 느낌.
+        // 파괴 토큰과 링크한 소스로 예약해, 파괴뿐 아니라 웨이브 종료(HandleWaveEnd)에서도 취소된다(#200 ②).
         if (context.ExtraImpacts > 0)
-            RepeatImpactsAsync(context, this.GetCancellationTokenOnDestroy()).Forget();
+        {
+            repeatCts ??= CancellationTokenSource.CreateLinkedTokenSource(this.GetCancellationTokenOnDestroy());
+            RepeatImpactsAsync(context, repeatCts.Token).Forget();
+        }
 
         cooldownTimer = cooldown;
         return true;
