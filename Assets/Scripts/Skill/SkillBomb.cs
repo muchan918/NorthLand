@@ -12,6 +12,7 @@ public class SkillBomb : MonoBehaviour
 
     float timer;
     bool initialized;
+    bool subscribedWaveEnd;   // OnNightToDay 구독 여부(중복 해제/누수 방지)
     readonly Collider[] hitBuffer = new Collider[16];
 
     public void Init(float damage, float radius, float delay, LayerMask enemyLayerMask, bool debugLog)
@@ -22,6 +23,23 @@ public class SkillBomb : MonoBehaviour
         this.debugLog = debugLog;
         timer = delay;
         initialized = true;
+
+        // 웨이브 종료(밤→낮) 시 폭발 전이면 폭발 없이 정리한다(#200 ②). DayNightManager가 없으면
+        // (예: 테스트 씬) 구독을 스킵하고 폭탄은 그냥 정상 폭발한다.
+        if (DayNightManager.Instance != null)
+        {
+            DayNightManager.Instance.OnNightToDay += HandleWaveEnd;
+            subscribedWaveEnd = true;
+        }
+    }
+
+    // 웨이브가 끝났으면 폭발 없이 소멸(적이 이미 사라진 낮에 뒤늦게 터지지 않게).
+    void HandleWaveEnd() => Destroy(gameObject);
+
+    void OnDestroy()
+    {
+        if (subscribedWaveEnd && DayNightManager.Instance != null)
+            DayNightManager.Instance.OnNightToDay -= HandleWaveEnd;
     }
 
     void Update()
