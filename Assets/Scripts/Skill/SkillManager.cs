@@ -102,6 +102,7 @@ public class SkillManager : MonoBehaviour
 
     public bool CanCast()
     {
+        if (GameManager.Instance != null && GameManager.Instance.Result != GameResult.Playing) return false;
         if (!IsReady) return false;
         if (DayNightManager.Instance != null &&
             DayNightManager.Instance.CurrentPhase != DayNightManager.Phase.Night) return false;
