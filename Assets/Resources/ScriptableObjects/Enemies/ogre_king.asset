@@ -32,9 +32,9 @@ MonoBehaviour:
     ProjectileSpeed: 0
   Boss:
     Stat:
-      MaxHp: 0
-      MoveSpeed: 0
-      AttackDamage: 0
-      AttackRange: 0
-      AttackInterval: 0
+      MaxHp: 600
+      MoveSpeed: 20
+      AttackDamage: 70
+      AttackRange: 3
+      AttackInterval: 2.5
     BehaviorTree: {fileID: 0}
