@@ -227,9 +227,9 @@ public class TowerPlacer : MonoBehaviour
     // y는 hit.point.y(레이가 타일 옆면에 맞으면 벽면 높이) 대신 타일 앵커 y를 써서 타워가 항상 윗면에 앉는다.
     private Vector3 SnapToFootprintCenter(RaycastHit hit)
     {
-        BattleTile anchor =hit.collider.GetComponentInParent<BattleTile>();
+        BattleTile anchor = hit.collider.GetComponentInParent<BattleTile>();
 
-        bool footprintChanged =!previewFootprintInitialized ||anchor != lastPreviewAnchor;
+        bool footprintChanged = !previewFootprintInitialized || anchor != lastPreviewAnchor;
 
         if (footprintChanged)
         {
@@ -295,17 +295,22 @@ public class TowerPlacer : MonoBehaviour
         // TowerFootprint.OnDestroy가 그 타일들의 Occupied를 되돌려 재배치를 허용한다.
         var placed = Instantiate(towerPrefab, snappedPos, Quaternion.identity);
         var occupant = placed.AddComponent<TowerFootprint>();
-        foreach ((Vector3 _, BattleTile tile) in _footprint) occupant.Occupy(tile);
-
+        // 배치된 타워를 합성(#183) 그룹 선택 대상으로 표시(마커 런타임 부착 — Tower.cs 무편집).
+        // 합성 결과 타워도 이 경로로 배치되므로 다단 합성의 재료가 될 수 있다.
+        placed.AddComponent<TowerGroupSelectable>();
+        foreach ((Vector3 _, BattleTile tile) in _footprint)
+        {
+            occupant.Occupy(tile);
+        }
 
         //KSJ
         // 타워가 점유한 모든 타일의 버프를 중첩 규칙에 따라 계산하고,
         // 계산 결과를 배치된 타워의 TowerTileBuff 컴포넌트에 저장한다.
-        TowerTileBuff towerTileBuff =placed.GetComponent<TowerTileBuff>();
+        TowerTileBuff towerTileBuff = placed.GetComponent<TowerTileBuff>();
 
         if (towerTileBuff == null)
         {
-            towerTileBuff =placed.AddComponent<TowerTileBuff>();
+            towerTileBuff = placed.AddComponent<TowerTileBuff>();
         }
         towerTileBuff.Initialize(CalculateTileBuff(occupant.Tiles));
 
@@ -360,12 +365,12 @@ public class TowerPlacer : MonoBehaviour
 
         if (_rangeMat == null)
         {
-            _rangeMat =new Material(Shader.Find("Sprites/Default"));
+            _rangeMat = new Material(Shader.Find("Sprites/Default"));
         }
 
-        _rangeIndicator =new GameObject("TowerRangePreview");
+        _rangeIndicator = new GameObject("TowerRangePreview");
 
-        rangeLineRenderer =_rangeIndicator.AddComponent<LineRenderer>();
+        rangeLineRenderer = _rangeIndicator.AddComponent<LineRenderer>();
 
         rangeLineRenderer.useWorldSpace = false;
         rangeLineRenderer.loop = true;
@@ -454,13 +459,13 @@ public class TowerPlacer : MonoBehaviour
             }
         }
 
-        TileBuffCalculationResult result =previewBuffCalculator.Calculate(previewDefinitions,tileBuffRules);
+        TileBuffCalculationResult result = previewBuffCalculator.Calculate(previewDefinitions, tileBuffRules);
 
-        float flat =result.GetValue(TileBuffStat.AttackRange,TileModifierMode.Flat);
+        float flat = result.GetValue(TileBuffStat.AttackRange, TileModifierMode.Flat);
 
-        float percentage =result.GetValue(TileBuffStat.AttackRange,TileModifierMode.Percentage);
+        float percentage = result.GetValue(TileBuffStat.AttackRange, TileModifierMode.Percentage);
 
-        return (_activeData.AttackRange + flat) *(1f + percentage / 100f);
+        return (_activeData.AttackRange + flat) * (1f + percentage / 100f);
     }
 
     private void UpdateRangeIndicator(float range)
@@ -470,20 +475,20 @@ public class TowerPlacer : MonoBehaviour
             return;
         }
 
-        if (Mathf.Approximately(lastRenderedRange,range))
+        if (Mathf.Approximately(lastRenderedRange, range))
         {
             return;
         }
 
         lastRenderedRange = range;
 
-        rangeLineRenderer.positionCount =rangeSegments;
+        rangeLineRenderer.positionCount = rangeSegments;
 
         for (int i = 0; i < rangeSegments; i++)
         {
-            float angle =i / (float)rangeSegments *Mathf.PI * 2f;
+            float angle = i / (float)rangeSegments * Mathf.PI * 2f;
 
-            rangeLineRenderer.SetPosition(i,new Vector3(Mathf.Cos(angle) * range,0.05f,Mathf.Sin(angle) * range));
+            rangeLineRenderer.SetPosition(i, new Vector3(Mathf.Cos(angle) * range, 0.05f, Mathf.Sin(angle) * range));
         }
     }
 
@@ -494,9 +499,9 @@ public class TowerPlacer : MonoBehaviour
             return null;
         }
 
-        CombatMapTileView tileView =tile.GetComponentInParent<CombatMapTileView>();
+        CombatMapTileView tileView = tile.GetComponentInParent<CombatMapTileView>();
 
-        return tileView != null? tileView.BuffDefinition: null;
+        return tileView != null ? tileView.BuffDefinition : null;
     }
 
     private TileBuffCalculationResult CalculateTileBuff(IReadOnlyList<BattleTile> tiles)
@@ -507,7 +512,7 @@ public class TowerPlacer : MonoBehaviour
         {
             foreach (BattleTile tile in tiles)
             {
-                BuffTileDefinition definition =GetBuffDefinition(tile);
+                BuffTileDefinition definition = GetBuffDefinition(tile);
 
                 if (definition != null)
                 {
@@ -516,7 +521,7 @@ public class TowerPlacer : MonoBehaviour
             }
         }
 
-        return previewBuffCalculator.Calculate(previewDefinitions,tileBuffRules);
+        return previewBuffCalculator.Calculate(previewDefinitions, tileBuffRules);
     }
 
 }
