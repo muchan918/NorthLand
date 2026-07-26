@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 using NorthLand.Combat;
+using NorthLand.Core;
 
 // 플레이어의 클릭 시전 기본 스킬(#103). 밤에만 시전 가능하며, 클릭한 위치를 중심으로 범위 내
 // 몬스터에게 즉시 데미지를 준다. 컨셉은 "감전" — 로직은 단순하게 유지하고 타격감(이펙트/사운드)
@@ -63,12 +64,19 @@ public class SkillManager : MonoBehaviour
             DayNightManager.Instance.OnNightToDay += HandleWaveEnd;
         else
             Debug.LogWarning("[Skill] DayNightManager를 찾을 수 없어 웨이브 종료 시 추가 착탄 취소가 배선되지 않았습니다.");
+
+        // 승리/게임오버는 EndNight()(→OnNightToDay)를 타지 않으므로 결과 확정 신호로도 취소한다(#200 리뷰).
+        // 그러지 않으면 예약된 추가 착탄이 결과 화면 뒤에서 계속 발동한다.
+        if (GameManager.Instance != null)
+            GameManager.Instance.OnResultDecided += HandleResultDecided;
     }
 
     void OnDestroy()
     {
         if (DayNightManager.Instance != null)
             DayNightManager.Instance.OnNightToDay -= HandleWaveEnd;
+        if (GameManager.Instance != null)
+            GameManager.Instance.OnResultDecided -= HandleResultDecided;
 
         repeatCts?.Cancel();
         repeatCts?.Dispose();
@@ -82,6 +90,9 @@ public class SkillManager : MonoBehaviour
         repeatCts?.Dispose();
         repeatCts = null;
     }
+
+    // 승리/게임오버(런 종료)도 웨이브 종료와 동일하게 진행 중 효과를 취소한다.
+    void HandleResultDecided(GameResult _) => HandleWaveEnd();
 
     void Update()
     {
