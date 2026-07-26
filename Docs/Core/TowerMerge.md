@@ -118,8 +118,8 @@
 
 - **`TowerRecipe`(SO)**: `List<MaterialEntry> Materials`(재료 `TowerAsset`+`Count`, multiset) / `TowerAsset Result` / `List<ResourceCost> ExtraCost`(합성 추가 자원/마나석). CSV 미경유 인스펙터 손입력.
 - **결과 타워**: 별도 특수 타입이 아니라 일반 `TowerAsset`. 신규 결과 타워는 `TowerTable.csv` 행 + SO + 프리팹/고스트/스탯을 추가(§13 콘텐츠).
-- **레시피 카탈로그(전체 열거)**: #183 후보 버튼 패널이 순회·매칭하려면 전체 레시피 열거가 필요하다. **출처 결정: `Resources.LoadAll<TowerRecipe>`**(전체 열거가 #194 완료기준이며, 패널마다 직렬화 리스트를 손으로 채우는 누락 위험을 없앰). `TowerRecipe` SO를 `Assets/Resources/…` 하위 규약 경로에 둔다. (WL-076(a) 카탈로그 출처 미정 해소 방향.)
-  - **버튼 순서는 결정적으로**(F6): `Resources.LoadAll`은 반환 순서를 보장하지 않아 그대로 쓰면 플랫폼/빌드마다 후보 버튼 순서가 흔들린다. 로드 후 명시 정렬(레시피에 `SortOrder`(int) 필드 추가 또는 `Result.TowerID` 기준)로 순서를 고정한다.
+- **레시피 카탈로그(전체 열거)**: #183 후보 버튼 패널이 순회·매칭하려면 전체 레시피 목록이 필요하다. **출처 = 패널의 인스펙터 직렬화 배열 `[SerializeField] TowerRecipe[] _recipes`**(구현 결정). 후보에 넣을 `TowerRecipe` SO를 인스펙터에 등록한다(예시 SO는 `Assets/Resources/ScriptableObjects/Recipes/`). `Resources.LoadAll<TowerRecipe>` 자동 열거 대안도 있으나, 등록 대상을 명시 통제하려고 인스펙터 배열을 택함(WL-076(a) 관련).
+  - **버튼 순서** = 인스펙터 배열 순서(작성자가 직접 통제 → 결정적, F6 충족).
 
 ---
 
@@ -269,7 +269,7 @@
 
 - **[구현 PR] SystemMap 갱신 필수**: #183은 MouseManager 공개 선택 계약(그룹 토글 이벤트·Idle Esc/빈곳 클리어 신호)과 신규 코디네이터/마커를 추가하므로, 구현 PR에서 `SystemMap.md`(§1 TowerFusion 행·§2 API·§3 접점 — MouseManager·TowerFusion 인근)를 같이 갱신한다.
 - **추가 선택 키 = Shift**(§7.2): WL-073(우클릭 이중 점유) 회피 겸. 재조정 시 이 문서·구현 동시 수정.
-- **레시피 카탈로그 출처 = `Resources.LoadAll<TowerRecipe>("ScriptableObjects/Recipes")`**(§5, WL-076(a) 해소): 레시피 SO를 `Assets/Resources/ScriptableObjects/Recipes/`에 둔다(`Towers/` SO와 같은 트리). `Result.TowerID`로 결정적 정렬.
+- **레시피 카탈로그 출처 = 패널 인스펙터 배열 `TowerRecipe[] _recipes`**(§5, WL-076(a)): 후보 레시피 SO를 인스펙터에 등록. 순서 = 배열 순서(결정적). 예시 SO는 `Assets/Resources/ScriptableObjects/Recipes/`.
 - **stale 버튼 방어**(§10, WL-076(b) 해소): `TowerMergeGroup.Prune()` + 코디네이터가 `Tower.ActiveChanged` 구독해 호출 — #183에서 구현.
 - **결과 배치·소모 타이밍(F2 결정)**: **현행 유지** — 새 타일에 고스트 배치 + 확정 시 재료 `Destroy`. 재료 타일 재사용 불가 제약(WL-077a)을 인지하고 안고 간다. **향후 방향 = 커맨드 패턴**: 버튼 클릭 즉시 재료를 소모(타일 해제)해 자리를 재사용 가능하게 하되, **배치 취소 시 소모한 재료를 원복**한다. 이때 `Destroy`는 되돌릴 수 없으므로, 커맨드는 즉시 파괴 대신 **비활성화(SetActive false + 타일/점유 해제)로 '소프트 소모'** → 확정 시 진짜 `Destroy`, 취소 시 재활성화·재점유로 원복하는 형태가 자연스럽다(재료 스냅샷 재구성도 대안). 도입 시 §9 흐름 교체.
 - **낮/밤 실행 게이팅**(§10, WL-077 phase): 코디네이터 `RequestMerge`/입력 핸들러가 낮 게이팅 → UI 경로 밤 실행 차단. 실행부 `TryFuse` 자체 방어 게이팅은 미추가(옵션, muchan 협의).
@@ -312,7 +312,7 @@
 
 **4. 그 외**
 - `TowerInfoUI`(기존 씬 싱글톤)·`MouseManager`(기존, 코드만 확장)·`DayNightManager`(낮/밤 게이팅) 별도 배선 불필요.
-- 레시피는 `Assets/Resources/ScriptableObjects/Recipes/`에서 `Resources.LoadAll`로 자동 로드 — 인스펙터 등록 불필요.
+- 레시피는 패널 `TowerMergePanelView`의 인스펙터 배열 `_recipes`에 **등록해야 후보로 뜬다**(예시 SO 2종은 `Assets/Resources/ScriptableObjects/Recipes/`에 있음).
 - **레이어**: 타워 콜라이더가 `MouseManager._selectableMask`에 포함돼야 Shift 클릭이 마커를 잡는다(기존 타워 단일 선택이 동작 중이면 이미 충족).
 
 **검증 체크리스트(Play)**: 타워 1개=인포 / Shift 2개=인포 숨김+합성 패널(리스트 순서대로) / archer 2개 → `Recipe_Example_ArcherToGatling` 버튼 활성 → 클릭 → 고스트 배치·확정 → archer 2개 소멸+gatling 생성 / Shift로 1개로 축소=인포 복귀, 빈곳·Esc=해제 / Shift+건물=무시 / 밤 전환=선택·패널 리셋.

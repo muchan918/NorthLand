@@ -109,12 +109,6 @@ public class TowerMergePanelView : MonoBehaviour
         }
     }
 
-    private static string RecipeSortKey(TowerRecipe r)
-    {
-        if (r == null) return string.Empty;
-        return r.Result != null ? r.Result.TowerID : r.name;
-    }
-
     // TowerID → TowerData.NameKey → NorthLand_Towers 로컬라이즈. Data/NameKey 없으면 TowerID 폴백.
     private static string LocalizedTowerName(TowerAsset asset)
     {
