@@ -14,6 +14,20 @@ namespace CombatSpace
             Vector2Int.right
         };
 
+        private const int StartProtectionRange = 5;
+
+     
+        private bool IsNearStartPosition(
+            CombatMapData map,
+            Vector2Int position)
+        {
+            int distance =
+                Mathf.Abs(position.x - map.RouteStartPosition.x) +
+                Mathf.Abs(position.y - map.RouteStartPosition.y);
+
+            return distance <= StartProtectionRange;
+        }
+
         public bool Erode(CombatMapData map,CombatMapGenerationSettings settings,Random random)
         {
             if (map == null ||settings == null ||random == null)
@@ -68,14 +82,19 @@ namespace CombatSpace
                 {
                     Vector2Int position = new Vector2Int(x, y);
 
-                    CombatTileData tile = map.GetTile(position);
-
-                    if (tile.Type !=CombatTileType.Grass)
+                    if (IsNearStartPosition(map, position))
                     {
                         continue;
                     }
 
-                    if (IsBoundaryGrass(map,position))
+                    CombatTileData tile = map.GetTile(position);
+
+                    if (tile.Type != CombatTileType.Grass)
+                    {
+                        continue;
+                    }
+
+                    if (IsBoundaryGrass(map, position))
                     {
                         boundaries.Add(position);
                     }
@@ -84,6 +103,7 @@ namespace CombatSpace
 
             return boundaries;
         }
+
 
         // 인접한 4칸 중 Empty 또는 맵 바깥이 있는지 검사
         private bool IsBoundaryGrass(CombatMapData map,Vector2Int position)

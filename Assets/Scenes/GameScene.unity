@@ -1733,7 +1733,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 999
@@ -4419,7 +4419,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 54.75
+  m_fontSize: 60.35
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -8656,8 +8656,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapGenerator
   settings: {fileID: 11400000, guid: 55271131c48cc86498c6c7303fa95f80, type: 2}
-  seed: 458
-  maxGenerationAttempts: 5
+  seed: 1
+  maxGenerationAttempts: 456841
   validatedSeeds: 0100000002000000030000000400000005000000
   stabilityTestStartSeed: 1
   stabilityTestCount: 100
@@ -8760,7 +8760,7 @@ Transform:
   m_GameObject: {fileID: 1185487563}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 119.1, y: 13.9, z: 0}
+  m_LocalPosition: {x: 119.1, y: -100, z: 0}
   m_LocalScale: {x: 500, y: 100, z: 500}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -12151,7 +12151,7 @@ MonoBehaviour:
   dummyGridHeight: 50
   dummyAttackRange: 48
   rangeColor: {r: 0.2, g: 0.8, b: 1, a: 0.9}
-  rangeSegments: 48
+  rangeFillColor: {r: 0.2, g: 0.8, b: 1, a: 0.15}
   validCellColor: {r: 0.2, g: 1, b: 0.3, a: 0.78431374}
   invalidCellColor: {r: 1, g: 0.25, b: 0.2, a: 0.78431374}
   tileBuffRules: {fileID: 11400000, guid: 4e66e06684a153f4b80a97f47b2debfc, type: 2}
@@ -16256,6 +16256,10 @@ PrefabInstance:
     - target: {fileID: 1168851091610572510, guid: d539c413d032ea441bd8184c2a4dddc3, type: 3}
       propertyPath: m_Name
       value: TowerMergePanel
+      objectReference: {fileID: 0}
+    - target: {fileID: 1168851091610572510, guid: d539c413d032ea441bd8184c2a4dddc3, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1440654891619771942, guid: d539c413d032ea441bd8184c2a4dddc3, type: 3}
       propertyPath: m_SizeDelta.y

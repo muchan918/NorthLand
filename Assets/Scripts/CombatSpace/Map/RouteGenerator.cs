@@ -180,6 +180,10 @@ namespace CombatSpace
                     {
                         continue;
                     }
+                    if (nextPosition.x == 0 && nextPosition != map.RouteStartPosition)
+                    {
+                        continue;
+                    }
 
                     // 기존 Road와 겹치는 것 방지
                     if (occupiedRoute.Contains( nextPosition) && nextPosition != goal)
