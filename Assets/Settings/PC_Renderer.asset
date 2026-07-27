@@ -34,7 +34,7 @@ MonoBehaviour:
   m_AssetVersion: 3
   m_PrepassLayerMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 4294963199
   m_OpaqueLayerMask:
     serializedVersion: 2
     m_Bits: 4294963199

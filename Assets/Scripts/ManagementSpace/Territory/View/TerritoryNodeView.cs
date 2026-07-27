@@ -10,7 +10,7 @@ using UnityEngine;
 // 레이어 확인 완료(WL-005 해소, #67): 프리팹은 Layer 6(Selectable)이고 MouseManager._selectableMask도
 // 이 비트를 포함해 클릭/호버 모두 정상 동작함을 실제 씬에서 확인함.
 [RequireComponent(typeof(Collider))]
-public class TerritoryNodeView : MonoBehaviour, ISelectable, IHoverable
+public class TerritoryNodeView : MonoBehaviour, ISelectable, IHoverable, IOutlineTargetProvider
 {
     [Tooltip("상태색을 입힐 자식 Visual의 렌더러")]
     [SerializeField] Renderer _visual;
@@ -82,6 +82,12 @@ public class TerritoryNodeView : MonoBehaviour, ISelectable, IHoverable
             _pendingClaimFx = true;
         }
     }
+
+    // 아웃라인 대상(#213 §5.4). 노드 루트를 그대로 쓰면 상태에 따라 교체되는 시각물(회오리 Quad / 섬·산
+    // 인스턴스)을 구분할 수 없다 — 회오리에는 헐 아웃라인을 씌우면 안 되고(사각형이 된다), 확보 후에는
+    // 새로 스폰된 섬 인스턴스가 대상이어야 한다. 그래서 판단을 상태 비주얼에 위임한다.
+    // 구형 프리팹(상태 비주얼 없음 = 색상 경로)은 노드 루트 자신 → 드라이버 기본 동작과 같다.
+    public GameObject OutlineTarget => _stateVisual != null ? _stateVisual.OutlineTarget : gameObject;
 
     public void OnDeselected() => Refresh();
 

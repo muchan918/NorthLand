@@ -61,6 +61,15 @@ public class TerritoryNodeStateVisual : MonoBehaviour
     private GameObject _islandPrefab;
 
     /// <summary>
+    /// 아웃라인을 걸 시각물(#213 §5.4 — <see cref="IOutlineTargetProvider"/>가 이 값을 그대로 쓴다).<br/>
+    /// 섬/산 인스턴스만 대상이고, <b>회오리와 본진은 null</b>이다:<br/>
+    /// - 회오리는 평면 Quad라 인버티드 헐이 소용돌이가 아니라 사각형이 되고, 헐이 depth/normals 프리패스에
+    ///   찍히면 뒤의 바다가 가려져 흰 사각형으로 보인다 → 기존 <c>_vortexHoverColor</c> 하이라이트만 쓴다.<br/>
+    /// - 본진(Kind.None)은 이 컴포넌트가 스폰하는 시각물이 없다(씬에 별도 구현).
+    /// </summary>
+    public GameObject OutlineTarget => _kind == Kind.Mountain ? _current : null;
+
+    /// <summary>
     /// 뷰의 Refresh에서 호출된다. Locked(비활성)는 뷰가 SetActive(false)로 처리하므로 여기 오지 않는다.
     /// playClaimFx는 이번 Refresh가 확보 직후(OnNodeClaimed)임을 뜻하며 1회성 연출을 튼다.
     /// islandPrefab은 이 노드 영지 SO의 프리팹(#166) — null이면 _mountainPrefabs 폴백.

@@ -1,22 +1,23 @@
 # 상호작용 아웃라인(Interaction Outline) — 설계 명세
 
-> **상태**: **호버 노랑 / 선택·그룹 초록 / 합성 프리뷰 핑크 구현 완료**(§11 체크리스트). 남은 것은 **영지 섬·산 대상(§5.4)**, **Mobile 렌더러 시각 검증(T9)**, **미니맵 노출 여부(T2)**, 그리고 `MouseManager.md`·`TowerMerge.md`·SystemMap 갱신이다. 색·선 굵기는 전부 **임시(아트 TBD)**.
+> **상태**: **호버 노랑 / 선택·그룹 초록 / 합성 프리뷰 핑크 + 영지 노드 대상(§5.4) 구현 완료**(§11 체크리스트). 남은 것은 **Mobile 렌더러 시각 검증(T9)**, **미니맵 노출 여부(T2)**, 그리고 `MouseManager.md`·`TowerMerge.md`·SystemMap 갱신이다. 색·선 굵기는 전부 **임시(아트 TBD)**.
 > **소유**: n0wst4ndup(#213)
 > **이슈**: #213 [Feature] 상호작용 아웃라인 — 호버=노란색 / 선택=초록색(그룹 포함) / 합성 후보 버튼 호버 시 재료 타워만 핑크색
 > **구현 파일**:
 > - `Assets/Scripts/GameManager/MouseManager/Highlight/OutlineHighlight.cs` — (**구현 완료**) 아웃라인 표시 컴포넌트, 상태 플래그·색 우선순위·shell 생성
 > - `Assets/Scripts/GameManager/MouseManager/Highlight/OutlineInteractionDriver.cs` — (**구현 완료**) MouseManager 이벤트 구독 → 호버 노랑·단일 선택 초록 구동 + 줌 대응 폭 갱신
-> - `Assets/Scripts/GameManager/MouseManager/Highlight/IOutlineTargetProvider.cs` — (**구현 완료**) 아웃라인 대상 GO를 대신 지정하는 훅(영지 노드용 — 구현체는 아직 없음)
+> - `Assets/Scripts/GameManager/MouseManager/Highlight/IOutlineTargetProvider.cs` — (**구현 완료**) 아웃라인 대상 GO를 대신 지정하는 훅(구현체: `TerritoryNodeView`)
 > - `Assets/Scripts/GameManager/MouseManager/TowerPlacement/TowerGroupSelectable.cs` — (**수정 완료**) 하늘색 쿼드 제거, `IHoverable` 추가 구현, 그룹 초록
 > - `Assets/Scripts/GameManager/MouseManager/TowerPlacement/TowerMergeCoordinator.cs` — (**수정 완료**) `PreviewMerge`/`ClearMergePreview` 추가
 > - `Assets/Scripts/UI/TowerPanel/TowerMergeCandidateHover.cs` — (**구현 완료**) 후보 버튼 EventSystem 호버 → 코디네이터 프리뷰 호출
 > - `Assets/Scripts/UI/TowerPanel/TowerMergePanelView.cs` — (**수정 완료**) `BuildCandidates`에서 위 컴포넌트 런타임 배선
 > - `Assets/Scripts/GameManager/MouseManager/MouseManager.cs` · `Assets/Scripts/CombatSystem/Tower/Tower.cs` — (**수정 완료**) 파괴된 선택/호버 대상 통지 방어(§8, WL-033 계열 버그 수정)
-> - `Assets/Scripts/ManagementSpace/Territory/View/TerritoryNodeStateVisual.cs` — (미착수) `IOutlineTargetProvider` 구현(회오리=null, 섬=인스턴스)
+> - `Assets/Scripts/ManagementSpace/Territory/View/TerritoryNodeView.cs` — (**수정 완료**) `IOutlineTargetProvider` 구현 — 판단은 상태 비주얼에 위임(§5.4)
+> - `Assets/Scripts/ManagementSpace/Territory/View/TerritoryNodeStateVisual.cs` — (**수정 완료**) `OutlineTarget` 공개(회오리·본진=null, 섬/산=인스턴스)
 > - `Assets/Scripts/Editor/OutlineSmoothMeshBaker.cs` — (**구현 완료**, 에디터) 대상 메시의 스무스 노멀 사본을 에셋으로 굽는 메뉴(§6.4)
 > - `Assets/Scripts/GameManager/MouseManager/Highlight/OutlineSmoothMeshRegistry.cs` — (**구현 완료**) 원본 메시 → 스무스 사본 매핑 SO(런타임 부착 컴포넌트가 인스펙터 배선 없이 `Resources.Load`로 조회)
 > - `Assets/Resources/Outline/OutlineSmoothMeshRegistry.asset` + `Assets/Meshes/OutlineSmooth/*.asset`(13개) — (**생성 완료**) 베이크 산출물
-> - `Assets/Settings/PC_Renderer.asset` · `Assets/Settings/Mobile_Renderer.asset` — (**적용 완료**) 아웃라인 렌더러 피처 추가 + `OutlineShell` 레이어 마스크 제외, PC/Mobile 동일
+> - `Assets/Settings/PC_Renderer.asset` · `Assets/Settings/Mobile_Renderer.asset` — (**적용 완료**) 아웃라인 렌더러 피처 추가 + `OutlineShell`을 **Opaque·Transparent·Prepass 세 마스크 모두에서** 제외, PC/Mobile 동일
 > - `ProjectSettings/TagManager.asset` — (**적용 완료**) `OutlineShell` 레이어(12) 신설
 > **관련**: #148(전역 비주얼 룩 파이프라인 — 툰 셰이더), #138(경영 공간 건물 시인성), #67(호버 훅), #183/#192/#210, WL-076b·WL-085·WL-087
 > **참조**: `Docs/Core/MouseManager.md` §8, `Docs/Core/TowerMerge.md` §8.4, `Docs/Review/SystemMap.md`, `Docs/Tools/unity-cli-guide.md`
@@ -108,6 +109,30 @@ printf '%s\n' 'var all = UnityEngine.Object.FindObjectsByType<Renderer>(FindObje
 | 레거시 `FlatKit/Stylized Surface With Outline` 셰이더로 shell | 태그 없는(SRPDefaultUnlit) 패스라 PC의 **Deferred**(`m_RenderingMode: 2`)에서 그려질지 불확실 + CGPROGRAM/UnityCG 기반(SRP Batcher 비호환, URP 6000 경고 리스크). **모던 경로와 프로퍼티가 달라 #148 이행도 불리** |
 | 자체 인버티드 헐 셰이더 신규 작성 | FlatKit으로 해결되는 것을 중복 구현. #148과 셰이더가 갈라진다 |
 
+### 2.5 PR 리뷰 지적 중 **유지**로 결정한 2건 (2026-07-27, 소유자 판단)
+
+리뷰(PR#218)가 🔴/🟠로 올린 두 항목은 **바꾸지 않는다**. 근거와 해소 조건을 여기 남긴다 — 나중에 같은 지적이 반복되면 이 절을 먼저 읽고 판단할 것.
+
+**(1) 베이커의 벤더 네임스페이스 직접 참조 — 유지, 이동으로 해소 예정**
+
+- 지적: `Assets/Scripts/Editor/OutlineSmoothMeshBaker.cs`가 `FlatKit.MeshSmoother`를 컴파일 타임 직접 참조한다 → `Assets/Imported/`(`.gitignore:162`) 미동기화 팀원에서 Assembly-CSharp-Editor 컴파일 실패(WL-062 계열).
+- 결정: **스무딩 로직을 자체 구현하지 않고 참조를 유지한다.** 대신 비주얼 작업(#148) 때 이 베이커를 **`Assets/Imported/@NorthLand`(아트 저장소) 안으로 옮긴다** — 옮기고 나면 참조하는 쪽과 참조되는 쪽이 같은 트리에 있게 되므로, 벤더 트리가 없는 환경에는 **베이커 파일 자체가 없어** 컴파일이 깨질 대상이 사라진다. 즉 "덕타이핑으로 감추기"가 아니라 **거주지 정리로 원인을 없애는** 경로다.
+- 그때까지의 실제 위험: 베이커는 **에디터 전용 1회성 툴**이고 산출물(`Assets/Meshes/OutlineSmooth/*` + 레지스트리)은 이미 프로젝트 저장소에 커밋돼 있다 → 벤더 트리가 없는 팀원도 **아웃라인 표시 자체는 정상 동작**한다(런타임 경로에 벤더 참조 없음).
+- 해소 조건: 베이커가 `Assets/Imported/@NorthLand` 아래로 이동하면 이 항목 종결. 이동 전까지 `Assets/Scripts/` 안에 **새로운** 벤더 참조를 추가하지는 않는다.
+
+**(2) 호버 노랑 vs "보유 영토 노랑"(GDD §6.3) 색 충돌 — 충돌 아님, 노랑 유지**
+
+- 지적: `Docs/GDD.md:165`와 `TerritoryNodeView._ownedColor`(1, 0.85, 0.2)가 노랑을 '보유 영토'에 배정했는데 호버색도 노랑이라 §5.4 착수 시 구분이 사라진다.
+- 결정: **충돌하지 않는다.** 노드의 "노란 구체"는 **구형 색상 경로**(`TerritoryNodeView._visual`)의 표현이고, 현행 신형 프리팹(`TerritoryNodeV2`)은 `TerritoryNodeStateVisual`이 그 View를 **가로채** 상태별 시각물(회오리 / 섬·산 프리팹)로 갈아끼운다 — 즉 **보유 상태를 노란색으로 알리지 않는다**(보유 = 섬이 솟아 있음). `_ownedColor`/`_hoverColor`는 상태 비주얼이 없는 구형 프리팹에서만 쓰인다.
+- 따라서 상호작용 색 언어는 아래 배정을 그대로 유지한다. 최종 색은 여전히 아트 TBD(T4)이고, 그때 재검토한다.
+
+| 색 | 의미 | 소유 |
+|---|---|---|
+| 노랑 | **호버**(지금 커서가 있음) | #213 |
+| 초록 | **선택**(단일·그룹) — `Tower.selectionRangeColor` 사거리 원과 정합 | #213 |
+| 핑크 | **합성 시 소모 예정** | #213 |
+| (색 없음) | 영지 회오리 = 자체 틴트·회전·스케일 펄스로 호버 표현(§5.4) | #93 |
+
 ---
 
 ## 3. 렌더링 방식 상세 (shell)
@@ -137,6 +162,7 @@ FlatKit의 per-object 아웃라인은 **`FlatKit/Stylized Surface` 셰이더의 
 - 이 피처를 **`PC_Renderer.asset`·`Mobile_Renderer.asset` 양쪽에** 1개씩 추가한다(CLAUDE.md: 렌더러/파이프라인 설정은 PC/Mobile 동시 적용).
 - 피처의 **Layer Mask = `OutlineShell` 레이어만** → §2.1의 913 드로우 문제가 발생하지 않는다. 상시 비용은 "활성 shell 수"에 정확히 비례한다.
 - shell의 **본체 패스(ForwardLit/GBuffer)가 그려지면 원본과 z-파이팅**한다. → Universal Renderer의 **`Opaque Layer Mask` / `Transparent Layer Mask`에서 `OutlineShell`을 제외**하면 본체 패스가 아예 그려지지 않는다(카메라 컬링 마스크는 그대로 두므로 cullResults에는 남아 렌더러 피처는 계속 그린다). **스파이크에서 검증됨(T1 해결) → 알파 클립 폴백은 불필요.** 적용값: `m_OpaqueLayerMask` = `m_TransparentLayerMask` = `4294963199`(= ~(1<<12)).
+- **`Prepass Layer Mask`(URP 17 신규 필드)도 반드시 같이 제외한다** — 같은 값 `4294963199`. 이 마스크는 depth/normals 프리패스의 필터라 마스크 기본값(전 레이어)으로 두면 아웃라인 패스와 무관하게 **shell이 원본과 같은 위치로 깊이를 쓴다.** 원본이 불투명·닫힌 메시일 때는 자기 깊이와 같아 증상이 안 보이지만, **원본이 반투명 평면(영지 회오리 Quad)이면 그 뒤의 바다가 깊이 테스트에서 탈락해 호버 순간 회오리가 흰 사각형으로 변한다.** 실측 A/B는 §10.1. `m_AssetVersion 2→3` 마이그레이션으로 이 필드가 생겼기 때문에, **URP 렌더러 에셋 포맷이 올라갈 때는 새 레이어 마스크 필드가 추가됐는지 확인해야 한다**(세 마스크를 같은 값으로 유지).
 - 피처의 `Event`는 기본값 **300(AfterRenderingOpaques)** 을 쓴다 — 원본이 깊이를 쓴 뒤에 그려야 헐의 안쪽 면이 깊이 테스트에서 탈락하고 실루엣만 남는다.
 
 ### 3.4 파라미터 — 게임 카메라가 직교(orthographic)라는 전제
@@ -170,6 +196,8 @@ FlatKit의 per-object 아웃라인은 **`FlatKit/Stylized Surface` 셰이더의 
 색 상수는 `OutlineHighlight` 최상단 `static readonly Color` 3개로만 존재한다(교체 지점 1곳 = 완료 기준 충족). 아트가 확정되면 이 3줄 또는 §9 이행 후 머티리얼 에셋으로 승격한다.
 
 > **주의**: static 공유 머티리얼은 도메인 리로드까지 살아 있다. 대상별 인스턴스가 아니므로 `OnDestroy`에서 파괴하지 **않는다**(다른 대상이 쓰고 있다). 반대로 향후 대상별 색 변형이 필요해지면 그때는 MPB로 덮되 머티리얼은 계속 공유한다.
+
+**빌드 시 셰이더 변종 스트리핑은 이 경로에서 문제되지 않는다**(리뷰 PR#218 🟠 확인 결과). 아웃라인 패스의 키워드 선언이 `#pragma multi_compile _ DR_OUTLINE_ON` / `#pragma multi_compile _ DR_OUTLINE_SMOOTH_NORMALS`(`Assets/Imported/FlatKit/Shaders/StylizedSurface/StylizedSurface.shader`, pass `Outline`)라 **`shader_feature`가 아니라 `multi_compile`** 이다 — 머티리얼 에셋에 그 키워드 조합이 없어도 변종이 빌드에 남는다. 셰이더 자체는 렌더러 피처의 `overrideShader` 참조로 포함된다. 단 **플레이어 빌드 1회 확인은 여전히 남은 검증**(T9와 함께)이고, 프로젝트에 셰이더 스트리핑 콜백을 도입하면 이 전제가 깨진다.
 
 ---
 
@@ -231,9 +259,9 @@ public void Set(OutlineKind kind, bool on);   // 멱등
 | 코디네이터 `HandleDayToNight` | 밤 전환 시 집합 리셋과 함께 |
 | 패널 루트 비활성화 | `RefreshPanel`이 2개 미만에서 `_mergePanel.SetActive(false)` |
 
-### 5.4 영지 노드 — 섬/산만, 회오리는 제외
+### 5.4 영지 노드 — 섬/산만, 회오리는 제외 (**구현 완료**)
 
-영지 노드는 상태에 따라 시각물이 교체된다(`TerritoryNodeStateVisual`): 확보 전 = `VortexVisual`이 런타임 생성한 **평면 Quad**(소용돌이), 확보 후 = 섬/산 프리팹 인스턴스. 평면 Quad에 인버티드 헐을 씌우면 소용돌이 모양이 아니라 **사각 테두리**가 나온다 → **회오리는 기존 `_vortexHoverColor` 하이라이트를 그대로 쓰고 아웃라인을 붙이지 않는다.**
+영지 노드는 상태에 따라 시각물이 교체된다(`TerritoryNodeStateVisual`): 확보 전 = `VortexVisual`이 런타임 생성한 **평면 Quad**(소용돌이), 확보 후 = 섬/산 프리팹 인스턴스. 평면 Quad에 인버티드 헐을 씌우면 소용돌이 모양이 아니라 **사각형**이 나온다 → **회오리는 기존 `_vortexHoverColor` 하이라이트(틴트 + 회전 가속 + 스케일 펄스)를 그대로 쓰고 아웃라인을 붙이지 않는다.**
 
 대상이 상태에 따라 달라지므로 훅을 하나 둔다.
 
@@ -241,9 +269,17 @@ public void Set(OutlineKind kind, bool on);   // 멱등
 public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  // null = 아웃라인 없음
 ```
 
-- `TerritoryNodeStateVisual`이 구현: 회오리 상태 → `null`, 확보 상태 → 섬 인스턴스 GO.
+- **`TerritoryNodeView`가 구현하고**(호버·선택 히트는 노드 루트 콜라이더에서 나오므로 인터페이스도 루트에 있어야 드라이버가 찾는다) 판단은 `TerritoryNodeStateVisual.OutlineTarget`에 위임한다: 회오리·본진 → `null`, 확보 후 → **섬 인스턴스 GO**.
+- 상태 비주얼이 없는 **구형 프리팹**(색상 경로)은 노드 루트 자신을 돌려준다 = 드라이버 기본 동작과 같다(회귀 없음).
 - 드라이버는 히트한 컴포넌트의 GO에서 이 인터페이스를 찾아 있으면 그 대상에, 없으면 히트 GO에 적용한다.
 - `TerritoryNodeView.OnSelected`는 "즉시 확보(비가역)"를 오버로드하고 있어 **선택 상태가 유지되지 않는다** → 영지 노드는 **호버 노랑만**, 초록은 대상 외.
+
+**왜 노드 루트를 대상으로 쓰면 안 되는가(실측된 두 증상, §10.1)**
+
+| 증상 | 원인 |
+|---|---|
+| 회오리 호버 시 회오리가 **흰 사각형**으로 변한다 | 노드 루트를 대상으로 잡으면 자식인 회오리 Quad에 shell이 생긴다. 그 shell이 프리패스에 깊이를 써서 뒤의 바다가 사라진다(§3.2 프리패스 마스크). **아웃라인 패스 자체는 `Cull Front`라 평면에서 아무것도 그리지 않는다** — 즉 사각형은 아웃라인이 아니라 깊이 구멍이었다 |
+| 확보 후 **산에 호버해도 테두리가 없다** | 노드 루트의 `OutlineHighlight`가 회오리 시절에 shell 수집을 이미 마쳐(1회 캐시) 죽은 참조만 들고 있었다. 새로 스폰된 산에는 shell이 생기지 않는다 → §6.1-4의 재빌드 규칙으로 함께 해소 |
 
 ---
 
@@ -255,6 +291,7 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 2. **제외**: 조상에 `RangeCircle`이 있는 렌더러 — `Tower.cs:106`/`AuraTower.cs:127`이 사거리 원을 **타워 자식**(`"TowerRangeSelection"`)으로 생성하므로 제외하지 않으면 사거리 원판에 테두리가 생긴다. `RangeCircle`의 `Fill` 자식이 MeshRenderer라 타입 필터로는 걸러지지 않는다.
 3. **제외**: 이미 만든 `OutlineShell` 자신(재수집 시 무한 증식 방지).
 4. 수집은 **첫 표시 시 1회**, 결과를 캐시한다. 사거리 원은 첫 선택 때 지연 생성되므로 수집 시점이 그 전/후 어느 쪽이든 조상 검사로 안전해야 한다.
+5. **단, 캐시한 shell 중 하나라도 파괴됐으면(= 원본 렌더러가 사라졌으면) 살아남은 shell까지 정리하고 다시 수집한다.** 대상의 시각물이 런타임에 교체되는 경우(영지 노드 회오리→섬)에 1회 캐시를 고정하면 죽은 참조만 남아 **아웃라인이 조용히 사라진다**(§5.4 표). 검사 비용은 캐시 리스트 순회 1회뿐이고 정상 대상은 첫 조건에서 빠져나간다. 대상 자체를 바꿔치기할 수 있으면 `IOutlineTargetProvider`(§5.4)를 쓰는 것이 우선이고, 이 규칙은 그 훅이 없는 대상까지 받쳐주는 안전망이다.
 
 ### 6.2 렌더러가 많은 대상 — 상한과 그 이유 (프록시 계획은 폐기)
 
@@ -323,6 +360,7 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 | 피처 Layer Mask | `OutlineShell`만 (`m_Bits: 4096`) | **적용 완료** — 상시 비용을 활성 shell 수로 한정 |
 | `autoReferenceMaterials` | **0(off)** | 켜두면 FlatKit 머티리얼의 아웃라인 토글을 끌 때 이 피처가 자동 삭제될 수 있다 → 우리 shell 머티리얼은 코드가 관리하므로 끈다 |
 | Opaque/Transparent Layer Mask | `OutlineShell` 제외 (`m_Bits: 4294963199`) | **적용 완료** — shell 본체 패스 억제(§3.2에서 검증) |
+| Prepass Layer Mask (URP 17 신규) | `OutlineShell` 제외 (`m_Bits: 4294963199`) | **적용 완료** — 빼지 않으면 shell이 depth/normals 프리패스에 찍혀 **뒤의 오브젝트가 사라진다**(회오리 흰 사각형의 실제 원인, §10.1 A/B). 마이그레이션으로 생긴 필드라 기본값이 전 레이어(`4294967295`)였다 |
 | 카메라 컬링 마스크 | 변경 없음(`-1`) | cullResults에 남아야 피처가 그릴 수 있다 |
 
 > **미니맵 주의**: 씬에 `MinMapCamera`(cullingMask `-1`, depth 0)와 `Main Camera`(`-1`, depth -1)가 있다. 그대로 두면 **미니맵에도 아웃라인이 나온다.** 미니맵에 표시할지 결정하고, 표시하지 않을 거면 `MinMapCamera`의 컬링 마스크에서 `OutlineShell`을 제외한다. → **TODO(구현 시 결정)**
@@ -380,11 +418,27 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 
 검증 명령 규약은 `Docs/Tools/unity-cli-guide.md`를 따른다(`.cs` 수정 후 `editor refresh --compile` → `console --type error` 0건, 에셋 텍스트 편집 후 `reserialize`). 씬 뷰 캡처는 `sv.pivot/rotation/size` 설정 후 **`sv.Focus()`** 를 호출해야 카메라가 실제로 갱신된다(백그라운드 에디터에서는 `Repaint()`만으로는 이전 프레임이 찍힌다 — 게임 뷰 캡처는 편집 모드에서 갱신되지 않아 판단 근거로 쓰지 말 것).
 
+### 10.1 영지 노드 버그 2건 — 원인 실측과 수정 (2026-07-27)
+
+플레이 중 보고된 증상: **(1) 회오리에 호버하면 회오리가 도는 흰 사각형으로 변한다. (2) 확보한 산에 호버하면 테두리가 안 보인다.** 편집 모드에서 회오리·산을 세우고 shell을 붙여 결정론적으로 재현했다(잔재 0, 씬 미저장, 콘솔 에러 0).
+
+**캡처 리그 주의**: `screenshot --view scene`은 백그라운드 에디터에서 카메라 변경을 반영하지 못했다(§10의 `sv.Focus()` 주의와 같은 계열). 그래서 **임시 카메라 + `RenderTexture` 직접 렌더 → `EncodeToPNG`** 로 찍었다 — URP 파이프라인 결과를 그대로 얻으면서 프레이밍이 결정론적이다. 앞으로 이 문서의 비주얼 A/B는 이 방식을 쓴다.
+
+| # | 실측 | 결과 |
+|---|---|---|
+| 1 | 회오리 호버 시 흰 사각형의 정체 | 아웃라인 패스가 **아니다** — 픽셀색이 `_OutlineColor`(노랑 1, 0.92, 0.2)가 아니라 하늘/앰비언트에 가까운 (0.867, 0.973, 0.961)이었다 |
+| 2 | `m_PrepassLayerMask`에서 레이어 12 제외 A/B(다른 조건 동일) | 같은 픽셀이 **(0.867, 0.973, 0.961) → (0.239, 0.482, 0.765) = 바다색**. 즉 shell이 프리패스에 깊이를 써서 **뒤의 바다를 탈락시킨 깊이 구멍**이었다 → 세 마스크를 같은 값으로 통일(§7) |
+| 3 | 같은 마스크 변경이 실제 메시 아웃라인을 해치는지 | `Mountain_01` 호버 캡처 전/후 **차이 없음**(노란 실루엣 유지) — 아웃라인 패스는 프리패스 깊이에 의존하지 않는다 |
+| 4 | 산 아웃라인 누락 재현 | 노드 루트 대상으로 `[회오리 호버 → 확보 → 산 호버]` 시 shell 개수 **1 → 0**. 섬 인스턴스를 대상으로 삼으면 **1** |
+| 5 | 수정 후 회귀 | 회오리 호버 = 흰 사각형 없음(틴트·펄스만), 산 호버 = 노란 실루엣, 시각물 교체 후 재호버 shell **1개**(재빌드 동작), 컴파일 에러 0 |
+
+캡처(로컬 전용 — `Screenshots/`는 `.gitignore:184` 대상이라 저장소에 올라가지 않는다): `repro_hover_on|off.png`(증상), `repro_prepass_on|off.png`(원인 A/B), `fix_vortex_hover.png`·`fix_mountain_hover.png`(수정 후). 다시 필요하면 위 절차로 재생성한다.
+
 ---
 
 ## 11. 완료 기준 (이슈 #213 체크리스트 매핑)
 
-- [x] 호버 대상(건물·배치된 타워)에 커서를 올리면 노란 아웃라인 on, 벗어나면 off → §5.1 · 영지 섬/산(§5.4)은 미착수
+- [x] 호버 대상(건물·배치된 타워·영지 섬/산)에 커서를 올리면 노란 아웃라인 on, 벗어나면 off → §5.1 · §5.4(영지, 편집 모드 캡처로 확인 §10.1)
 - [x] `ISelectable` 클릭 시 초록 on, 다른 대상·빈 곳·Esc에서 off → §5.1
 - [x] Shift 다중 선택도 같은 초록, 다시 Shift로 빼면 즉시 off(WL-087 표면 재발 없음) → §5.2
 - [x] 선택된(초록) 대상에 호버해도 노랑으로 밀리지 않음 → §4 (편집 모드 캡처로 확인)
@@ -426,3 +480,4 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 | 2026-07-27 | 렌더 경로 스파이크 완료 — 레이어(12)·렌더러 피처 PC/Mobile 적용, T1 종결(Layer Mask 제외), 직교 파라미터 확정(§3.4), 스무스 노멀 프리베이크 필수 판정(§6.4). Mobile 시각 검증(T9)·미니맵(T2) 미확인 |
 | 2026-07-27 | 스무스 노멀 베이커·레지스트리 구현 완료(§6.4) — 대상 16 프리팹 → 유니크 메시 13개 베이크, 산출물은 gitignore되지 않는 `Assets/Meshes/OutlineSmooth`. T10 종결 |
 | 2026-07-27 | 표시 경로 구현 완료 — `OutlineHighlight`/`OutlineInteractionDriver`/`IOutlineTargetProvider`, 타워 `IHoverable` 추가로 호버 노랑, 그룹 초록으로 하늘색 쿼드 대체, 합성 프리뷰 핑크. 박스 프록시 폐기·상한 512로 확정(§6.2), 머티리얼을 스무스 여부까지 6변형으로(§3.3), 드라이버는 런타임 부트스트랩(§5.1). 파괴 대상 통지 예외(WL-033 계열) 수정. T3 종결 |
+| 2026-07-27 | 영지 노드 버그 2건 수정(§10.1 실측) — ① `m_PrepassLayerMask`에서 `OutlineShell` 제외(PC/Mobile): shell이 프리패스에 깊이를 써 회오리 뒤 바다를 지우던 **흰 사각형** 제거 ② §5.4 구현: `TerritoryNodeView`가 `IOutlineTargetProvider`, 판단은 `TerritoryNodeStateVisual.OutlineTarget`(회오리·본진 null / 섬 인스턴스) ③ shell 캐시가 죽었으면 재빌드(§6.1-5) — 시각물 교체 후 아웃라인이 사라지던 문제. 리뷰 지적 2건(벤더 참조·노랑 색 충돌)은 **유지 결정**으로 §2.5에 근거·해소 조건 기록 |

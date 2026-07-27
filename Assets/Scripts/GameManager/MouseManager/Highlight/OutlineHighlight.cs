@@ -17,8 +17,12 @@ public enum OutlineKind
 ///
 /// 표시 방식은 **shell**: 대상의 렌더러마다 같은 메시를 쓰는 자식 렌더러를 만들고 거기에만 FlatKit
 /// 아웃라인 머티리얼을 물린다. 원본 머티리얼·프리팹은 건드리지 않으므로 URP Lit·FBX 내장·FlatKit 어느
-/// 머티리얼이든 동일하게 동작한다. shell은 `OutlineShell` 레이어에 두고, URP 렌더러의 Opaque/Transparent
-/// Layer Mask에서 그 레이어를 빼두었기 때문에 **본체 패스는 그려지지 않고 아웃라인 패스만** 나온다.
+/// 머티리얼이든 동일하게 동작한다. shell은 `OutlineShell` 레이어에 두고, URP 렌더러의 Opaque/Transparent/
+/// **Prepass** Layer Mask 세 곳 모두에서 그 레이어를 빼두었기 때문에 **본체 패스는 그려지지 않고 아웃라인
+/// 패스만** 나온다. 프리패스를 빼는 것이 선택이 아닌 이유: 마스크에 남겨두면 shell이 depth/normals
+/// 프리패스에 원본과 같은 위치로 찍혀 **그 뒤의 오브젝트가 깊이 테스트에서 탈락한다** — 원본이 불투명·닫힌
+/// 메시일 땐 자기 깊이와 같아 보이지 않지만, 원본이 반투명 평면(영지 회오리)이면 뒤의 바다가 사라져
+/// **흰 사각형**이 된다(#213 §7 실측).
 ///
 /// 사용법(멱등 — 토글 API를 만들지 말 것. 훅 호출이 비대칭이면 상태가 어긋난다):
 ///     OutlineHighlight.GetOrAdd(go).Set(OutlineKind.Hover, true);
@@ -193,7 +197,15 @@ public class OutlineHighlight : MonoBehaviour
 
     private void EnsureShells()
     {
-        if (_built) return;
+        // 시각물이 런타임에 교체되는 대상(영지 노드 회오리→섬, 프리팹 교체 등)은 1회 빌드로 고정하면
+        // 교체 뒤 shell 집합에 죽은 참조만 남아 **아웃라인이 조용히 사라진다** → 죽은 shell을 감지하면
+        // 살아남은 shell까지 정리하고 다시 수집한다. 정상 대상은 첫 줄에서 그대로 빠져나간다.
+        if (_built)
+        {
+            if (!HasDeadShell()) return;
+            DiscardShells();
+        }
+
         _built = true; // 실패해도 매번 재시도하지 않는다(경고 스팸 방지)
 
         int layer = ShellLayer;
@@ -224,6 +236,26 @@ public class OutlineHighlight : MonoBehaviour
         }
 
         foreach (var r in sources) CreateShell(r, layer);
+    }
+
+    // 원본 렌더러가 파괴되면 그 자식이던 shell도 함께 파괴된다 → Unity의 가짜 null로 감지된다.
+    private bool HasDeadShell()
+    {
+        foreach (var shell in _shells)
+        {
+            if (shell.Renderer == null) return true;
+        }
+        return false;
+    }
+
+    private void DiscardShells()
+    {
+        foreach (var shell in _shells)
+        {
+            if (shell.Renderer != null) Destroy(shell.Renderer.gameObject);
+        }
+        _shells.Clear();
+        _skinned.Clear();
     }
 
     private static bool IsEligible(Renderer r)
