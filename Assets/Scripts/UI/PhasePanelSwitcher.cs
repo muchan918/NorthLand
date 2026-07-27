@@ -40,7 +40,13 @@ public class PhasePanelSwitcher : MonoBehaviour
         ApplyPhase(DayNightManager.Phase.Day);
     }
 
-    private void ShowNight() => ApplyPhase(DayNightManager.Phase.Night);
+    private void ShowNight()
+    {
+        // 밤 진입 시 진행 중인 배치(일반 타워/합성 결과 공통)를 취소한다 — 확정 순간이 밤으로 넘어가는 것을 방지.
+        // 페이즈 전환 시 입력 모드 취소 책임을 여기로 일원화(ShowDay의 스킬 조준 취소와 대칭, WL-002 축 완화).
+        MouseManager.Instance?.CancelPlacement();
+        ApplyPhase(DayNightManager.Phase.Night);
+    }
 
     private void ApplyPhase(DayNightManager.Phase phase)
     {

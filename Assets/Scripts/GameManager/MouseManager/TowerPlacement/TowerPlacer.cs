@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
+using CombatSpace;
+using NorthLand.Combat;
 
 /// 배치에 필요한 타워 데이터(풋프린트·사거리)의 최소 단위.
 /// TowerPlacer는 이 구조체에만 의존하고 특정 SO(TowerAsset/Combat TowerData)에 묶이지 않는다.
@@ -43,20 +45,19 @@ public class TowerPlacer : MonoBehaviour
     [SerializeField] private float dummyAttackRange = 3f;
 
     [Header("사거리 미리보기")]
-    [SerializeField] private Color rangeColor = new Color(0.2f, 0.8f, 1f, 0.9f);
-    [SerializeField] private int rangeSegments = 48;
+    [SerializeField] private Color rangeColor = new Color(0.2f, 0.8f, 1f, 0.9f);      // 외곽선(굵게)
+    [SerializeField] private Color rangeFillColor = new Color(0.2f, 0.8f, 1f, 0.15f); // 채움(반투명)
 
     [Header("셀 하이라이트")]
     [SerializeField] private Color validCellColor = new Color(0.2f, 1f, 0.3f, 0.35f);
     [SerializeField] private Color invalidCellColor = new Color(1f, 0.25f, 0.2f, 0.35f);
 
-    private GameObject _rangeIndicator;
     private readonly List<GameObject> _cellHighlights = new List<GameObject>();
-    private Material _rangeMat;
     private Material _cellMatValid;
     private Material _cellMatInvalid;
     private TowerPlacementData _activeData; // 현재 배치 중인 타워의 데이터(주입 또는 더미)
-    private List<ResourceCost> _activeCost; // 현재 배치 중인 타워의 비용(확정 시 차감)
+    private IReadOnlyList<ResourceCost> _activeCost; // 현재 배치 중인 타워의 비용(확정 시 차감)
+    private System.Action _onConfirmed; // 배치 확정 후 1회 콜백(합성 재료 소모 등). 확정 직후 소비하고 비운다.
     private ManagementController _management; // 자원 차감 게이트웨이(WL-017). null이면 무료 배치(테스트 씬).
 
     // 프레임당 풋프린트를 1회만 계산해 캐시(스냅에서 채우고, 검증·하이라이트가 공유).
@@ -64,6 +65,22 @@ public class TowerPlacer : MonoBehaviour
     private readonly List<(Vector3 pos, BattleTile tile)> _footprint = new List<(Vector3, BattleTile)>();
     // OverlapSphere 재사용 버퍼(배치 중 매 프레임 힙 할당 방지). 셀 하나에 겹치는 콜라이더는 소수.
     private readonly Collider[] _overlap = new Collider[8];
+
+    //Ksj
+    //타워가 여러 버프 타일을 점유할 때 사용할 효과 중첩 규칙
+    [Header("Tile Buff")]
+    [SerializeField]
+    private TileBuffRuleSettings tileBuffRules;
+
+    private NorthLand.Combat.RangeCircle _rangeCircle;
+
+    private BattleTile lastPreviewAnchor;
+
+    private bool previewFootprintInitialized;
+
+    private readonly TileBuffCalculator previewBuffCalculator = new TileBuffCalculator();
+
+    private readonly List<BuffTileDefinition> previewDefinitions = new List<BuffTileDefinition>();
 
     private void Awake()
     {
@@ -92,16 +109,21 @@ public class TowerPlacer : MonoBehaviour
     private void OnDestroy()
     {
         // 런타임 생성물·머티리얼 정리(누수 방지).
-        if (_rangeIndicator != null) Destroy(_rangeIndicator);
+        if (_rangeCircle != null) Destroy(_rangeCircle.gameObject);
         ClearCellHighlights();
-        if (_rangeMat != null) Destroy(_rangeMat);
         if (_cellMatValid != null) Destroy(_cellMatValid);
         if (_cellMatInvalid != null) Destroy(_cellMatInvalid);
     }
 
     // ── 진입점 ─────────────────────────────────────────────────────────────────────
     /// 더미 데이터 + 인스펙터 프리팹으로 배치 시작. UI 버튼 OnClick에 연결(현재 테스트 경로).
+    /// 비용은 so.Cost, 확정 콜백 없음(일반 타워 배치).
     public void BeginTowerPlacement(TowerAsset so)
+        => BeginTowerPlacement(so, so != null ? so.Cost : null, null);
+
+    /// 비용·확정 콜백을 주입하는 오버로드. 합성(#195)이 결과 타워를 결과 코스트(ExtraCost)로 배치하고,
+    /// 배치 확정 직후 onConfirmed(재료 소모)를 실행하는 데 쓴다. 배치 코어는 단일인자 경로와 동일.
+    public void BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost, System.Action onConfirmed)
     {
         if (so == null)
         {
@@ -118,24 +140,27 @@ public class TowerPlacer : MonoBehaviour
 
         towerPrefab = so.TowerPrefab;
         ghostPrefab = so.GhostPrefab;
-        _activeCost = so.Cost;
+        _activeCost = cost;
+        // _onConfirmed은 StartPlacement가 BeginPlacement '이후'에 설정한다 — BeginPlacement 내부의
+        // CancelPlacement가 이전 배치의 OnEnded=EndPlacement를 발화해 _onConfirmed을 null로 지우므로,
+        // 여기서 미리 대입하면 합성 재료 소모 콜백이 유실된다(무료 합성 버그).
 
         TowerType type = so.TowerType;
         switch (type)
         {
             case TowerType.Single:
-                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Single.Attack.AttackRange));
+                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Single.Attack.AttackRange), onConfirmed);
                 break;
             case TowerType.Area:
-                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Area.Attack.AttackRange));
+                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Area.Attack.AttackRange), onConfirmed);
                 break;
             case TowerType.Chain:
-                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Chain.Attack.AttackRange));
+                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Chain.Attack.AttackRange), onConfirmed);
                 break;
             case TowerType.Magic:
                 // 마법 타워는 오라 반경을 사거리 미리보기로 사용(#111 완료기준 #4).
                 // 반경 규칙은 TowerAsset.MagicRadius 단일 출처(WL-056) — AuraTower 실효과와 공유.
-                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.MagicRadius));
+                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.MagicRadius), onConfirmed);
                 break;
             default:
                 Debug.LogError($"[TowerPlacer] 알 수 없는 TowerType={type}입니다.");
@@ -151,7 +176,8 @@ public class TowerPlacer : MonoBehaviour
     // 이러면 위 더미 경로를 대체하며, 배치·검증·미리보기 코어(StartPlacement 이하)는 무수정이다.
 
     // 실제 배치 시작 코어(진입 방식과 무관). 게이트웨이/더미 어느 경로든 이 메서드를 호출한다.
-    private void StartPlacement(TowerPlacementData data)
+    // onConfirmed(합성 재료 소모 등)는 BeginPlacement 이후에 설정한다(순서 주의 — 아래 참고).
+    private void StartPlacement(TowerPlacementData data, System.Action onConfirmed = null)
     {
         if (MouseManager.Instance == null)
         {
@@ -177,9 +203,15 @@ public class TowerPlacer : MonoBehaviour
             KeepPlacingAfterConfirm = keepPlacing,
         });
 
+        // 확정 콜백은 반드시 BeginPlacement '이후'에 설정한다 — 위 BeginPlacement 내부의
+        // CancelPlacement→이전 배치 EndPlacement가 _onConfirmed을 null로 지우기 때문(프리뷰와 동일한 순서 이슈).
+        _onConfirmed = onConfirmed;
+
         // 프리뷰는 BeginPlacement 이후에 만든다.
         // (BeginPlacement 내부의 CancelPlacement가 이전 배치의 OnEnded=EndPlacement를 먼저 발화해
         //  방금 만든 프리뷰를 지우는 순서 문제를 피하기 위함)
+        lastPreviewAnchor = null;
+        previewFootprintInitialized = false;
         CreateRangeIndicator(_activeData.AttackRange);
         CreateCellHighlights(_activeData.GridWidth * _activeData.GridHeight);
     }
@@ -190,7 +222,18 @@ public class TowerPlacer : MonoBehaviour
     private Vector3 SnapToFootprintCenter(RaycastHit hit)
     {
         BattleTile anchor = hit.collider.GetComponentInParent<BattleTile>();
-        RebuildFootprint(anchor); // 이번 프레임 풋프린트 1회 계산(검증·하이라이트가 공유)
+
+        bool footprintChanged = !previewFootprintInitialized || anchor != lastPreviewAnchor;
+
+        if (footprintChanged)
+        {
+            RebuildFootprint(anchor);
+
+            lastPreviewAnchor = anchor;
+            previewFootprintInitialized = true;
+
+            UpdateRangeIndicator(CalculatePreviewRange());
+        }
 
         Vector3 result = anchor != null
             ? new Vector3(
@@ -199,7 +242,11 @@ public class TowerPlacer : MonoBehaviour
                 anchor.transform.position.z + (_activeData.GridHeight - 1) * 0.5f * tileSize)
             : hit.point;
 
-        if (_rangeIndicator != null) _rangeIndicator.transform.position = result;
+        if (_rangeCircle != null)
+        {
+            _rangeCircle.transform.position = result;
+            _rangeCircle.Show(); // 커서가 유효 타일 위에 온 첫 스냅부터 표시(원점 잔상 방지)
+        }
         UpdateCellHighlights();
         return result;
     }
@@ -242,8 +289,34 @@ public class TowerPlacer : MonoBehaviour
             return;
         }
 
-        Instantiate(towerPrefab, snappedPos, Quaternion.identity);
-        foreach ((Vector3 _, BattleTile tile) in _footprint) tile.Occupied = true;
+        // 점유 타일을 인스턴스에 기록해 둔다: 타워가 파괴되면(합성 소모·철거 등)
+        // TowerFootprint.OnDestroy가 그 타일들의 Occupied를 되돌려 재배치를 허용한다.
+        var placed = Instantiate(towerPrefab, snappedPos, Quaternion.identity);
+        var occupant = placed.AddComponent<TowerFootprint>();
+        // 배치된 타워를 합성(#183) 그룹 선택 대상으로 표시(마커 런타임 부착 — Tower.cs 무편집).
+        // 합성 결과 타워도 이 경로로 배치되므로 다단 합성의 재료가 될 수 있다.
+        placed.AddComponent<TowerGroupSelectable>();
+        foreach ((Vector3 _, BattleTile tile) in _footprint)
+        {
+            occupant.Occupy(tile);
+        }
+
+        //KSJ
+        // 타워가 점유한 모든 타일의 버프를 중첩 규칙에 따라 계산하고,
+        // 계산 결과를 배치된 타워의 TowerTileBuff 컴포넌트에 저장한다.
+        TowerTileBuff towerTileBuff = placed.GetComponent<TowerTileBuff>();
+
+        if (towerTileBuff == null)
+        {
+            towerTileBuff = placed.AddComponent<TowerTileBuff>();
+        }
+        towerTileBuff.Initialize(CalculateTileBuff(occupant.Tiles));
+
+        // 확정 콜백(합성 재료 소모 등)은 배치 성공 후 1회만 실행한다.
+        // 먼저 비우고 호출해 연속 배치(keepPlacing)에서도 재실행되지 않게 한다.
+        var confirmed = _onConfirmed;
+        _onConfirmed = null;
+        confirmed?.Invoke();
     }
 
     private static bool IsBuildable(BattleTile tile)
@@ -279,26 +352,14 @@ public class TowerPlacer : MonoBehaviour
         return null;
     }
 
-    // ── 사거리 미리보기(런타임 LineRenderer 원) ──────────────────────────────────────
+    // ── 사거리 미리보기(공용 RangeCircle: 채움+외곽선) ──────────────────────────────────
     private void CreateRangeIndicator(float range)
     {
-        if (_rangeIndicator != null) Destroy(_rangeIndicator);
-        if (_rangeMat == null) _rangeMat = new Material(Shader.Find("Sprites/Default")); // 언릿, 정점색으로 tint
+        if (_rangeCircle != null) Destroy(_rangeCircle.gameObject);
 
-        _rangeIndicator = new GameObject("TowerRangePreview");
-        LineRenderer lr = _rangeIndicator.AddComponent<LineRenderer>();
-        lr.useWorldSpace = false; // 원을 로컬로 그리고 오브젝트를 이동시켜 중심 추적
-        lr.loop = true;
-        lr.widthMultiplier = 0.15f;
-        lr.sharedMaterial = _rangeMat; // 공유 머티리얼(매 배치 새로 만들지 않음 — 누수 방지)
-        lr.startColor = lr.endColor = rangeColor;
-
-        lr.positionCount = rangeSegments;
-        for (int i = 0; i < rangeSegments; i++)
-        {
-            float angle = (i / (float)rangeSegments) * Mathf.PI * 2f;
-            lr.SetPosition(i, new Vector3(Mathf.Cos(angle) * range, 0.05f, Mathf.Sin(angle) * range));
-        }
+        _rangeCircle = NorthLand.Combat.RangeCircle.Create(null, rangeFillColor, rangeColor, "TowerRangePreview");
+        _rangeCircle.SetRadius(range);
+        _rangeCircle.Hide(); // 첫 스냅 전엔 맵 원점(0,0)에 원이 노출되므로 숨긴다 — SnapToFootprintCenter에서 Show
     }
 
     // ── 풋프린트 셀 하이라이트(바닥에 눕힌 반투명 쿼드, 셀별 유효/무효 색) ────────────────
@@ -353,9 +414,74 @@ public class TowerPlacer : MonoBehaviour
     // 배치 종료(취소/확정 복귀) 시 프리뷰 정리. PlacementRequest.OnEnded로 연결됨.
     private void EndPlacement()
     {
-        if (_rangeIndicator != null) Destroy(_rangeIndicator);
-        _rangeIndicator = null;
+        if (_rangeCircle != null) Destroy(_rangeCircle.gameObject);
+        _rangeCircle = null;
         ClearCellHighlights();
         _footprint.Clear();
+        _onConfirmed = null; // 취소로 끝났으면 확정 콜백은 실행하지 않는다(재료 보존).
+        lastPreviewAnchor = null;
+        previewFootprintInitialized = false;
     }
+
+    private float CalculatePreviewRange()
+    {
+        previewDefinitions.Clear();
+
+        foreach ((Vector3 _, BattleTile tile) in _footprint)
+        {
+            BuffTileDefinition definition = GetBuffDefinition(tile);
+
+            if (definition != null)
+            {
+                previewDefinitions.Add(definition);
+            }
+        }
+
+        TileBuffCalculationResult result = previewBuffCalculator.Calculate(previewDefinitions, tileBuffRules);
+
+        float flat = result.GetValue(TileBuffStat.AttackRange, TileModifierMode.Flat);
+
+        float percentage = result.GetValue(TileBuffStat.AttackRange, TileModifierMode.Percentage);
+
+        return (_activeData.AttackRange + flat) * (1f + percentage / 100f);
+    }
+
+    // 반지름 갱신은 RangeCircle이 자체적으로 같은 값 재생성을 생략한다(중복 캐시 불필요).
+    private void UpdateRangeIndicator(float range)
+    {
+        if (_rangeCircle != null) _rangeCircle.SetRadius(range);
+    }
+
+    private static BuffTileDefinition GetBuffDefinition(BattleTile tile)
+    {
+        if (tile == null)
+        {
+            return null;
+        }
+
+        CombatMapTileView tileView = tile.GetComponentInParent<CombatMapTileView>();
+
+        return tileView != null ? tileView.BuffDefinition : null;
+    }
+
+    private TileBuffCalculationResult CalculateTileBuff(IReadOnlyList<BattleTile> tiles)
+    {
+        previewDefinitions.Clear();
+
+        if (tiles != null)
+        {
+            foreach (BattleTile tile in tiles)
+            {
+                BuffTileDefinition definition = GetBuffDefinition(tile);
+
+                if (definition != null)
+                {
+                    previewDefinitions.Add(definition);
+                }
+            }
+        }
+
+        return previewBuffCalculator.Calculate(previewDefinitions, tileBuffRules);
+    }
+
 }

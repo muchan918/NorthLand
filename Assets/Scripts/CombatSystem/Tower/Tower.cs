@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using CombatSpace;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -11,8 +13,17 @@ namespace NorthLand.Combat
     {
         [SerializeField] TowerAsset data;
 
+        // 배치된 타워의 원본 SO 읽기 접근자. 합성(#195)에서 재료 타워의 TowerID/스탯을 조회하는 데 쓴다.
+        public TowerAsset Asset => data;
+
         // TODO(TBD): 대상 탐지 필터링을 LayerMask로 할지 Tag로 할지 미확정. 임시 LayerMask.
         [SerializeField] LayerMask enemyLayerMask;
+
+        // 선택 시 사거리 원 색(배치 미리보기와 구분되도록 초록 계열, #192). 채움은 반투명.
+        [Header("선택 사거리 표시")]
+        [SerializeField] Color selectionRangeColor = new Color(0.3f, 1f, 0.4f, 0.9f);
+        [SerializeField] Color selectionRangeFillColor = new Color(0.3f, 1f, 0.4f, 0.15f);
+        RangeCircle _rangeCircle; // lazy 생성, 자식 GO — 선택 시 표시/해제 시 숨김
 
         // 투사체 생성 위치(포신/머즐). 미할당 시 기존처럼 타워 루트(바닥)에서 생성(하위 호환).
         [SerializeField] Transform firePoint;
@@ -39,6 +50,14 @@ namespace NorthLand.Combat
 
         // 발사 시점 통지(탄약 시각 연출 등 구독용 — 예: 캐논 포탄이 발사 순간 사라짐).
         public event Action OnFired;
+
+
+        private TowerTileBuff tileBuff;
+
+        private void Start()
+        {
+            tileBuff = GetComponent<TowerTileBuff>();
+        }
 
         void OnDisable()
         {
@@ -71,9 +90,24 @@ namespace NorthLand.Combat
             }
 
             TowerInfoUI.Instance.ShowInfo(data.Data.DescriptionKey, BuildStatsText());
+            ShowRangeCircle();
         }
 
-        public void OnDeselected() => TowerInfoUI.Instance.HideInfo();
+        public void OnDeselected()
+        {
+            _rangeCircle?.Hide();
+            TowerInfoUI.Instance.HideInfo();
+        }
+
+        // 선택 시 사거리 원(버프 반영 AttackRange)을 표시한다. 원은 자식 GO라 타워 파괴 시 함께 정리된다.
+        void ShowRangeCircle()
+        {
+            if (_rangeCircle == null)
+                _rangeCircle = RangeCircle.Create(transform, selectionRangeFillColor, selectionRangeColor, "TowerRangeSelection");
+
+            _rangeCircle.SetRadius(AttackRange);
+            _rangeCircle.Show();
+        }
 
         // 공통 공격 스탯(공격력/사거리/공격속도)을 정보 패널용 평문으로 조합한다. Magic 타워는 공통 Attack이
         // 없어 null 반환(패널은 통계 구간 없이 설명만 표시). 라벨은 game.tower.* 로컬라이즈 키(k_DefaultTable)에서 가져온다.
@@ -98,10 +132,90 @@ namespace NorthLand.Combat
         };
 
         // Magic 타워/미할당(Attack==null)에서도 안전하도록 null 가드(공개 IAttacker 계약).
-        public float AttackDamage => Attack != null ? Attack.AttackDamage * damageMultiplier : 0f;
-        public float AttackRange => Attack != null ? Attack.AttackRange : 0f;
-        // 공격속도 배율이 클수록 더 빠르게(간격이 짧아짐) 공격하도록 나눗셈으로 적용.
-        public float AttackInterval => Attack != null ? Attack.AttackInterval / attackSpeedMultiplier : 0f;
+        public float AttackDamage
+        {
+            get
+            {
+                if (Attack == null)
+                {
+                    return 0f;
+                }
+
+                float baseDamage = Attack.AttackDamage;
+
+                if (tileBuff == null)
+                {
+                    return baseDamage * damageMultiplier;
+                }
+
+                float flat = tileBuff.GetValue(
+                    TileBuffStat.AttackDamage,
+                    TileModifierMode.Flat);
+
+                float percentage = tileBuff.GetValue(
+                    TileBuffStat.AttackDamage,
+                    TileModifierMode.Percentage);
+
+                return (baseDamage + flat)
+                    * (1f + percentage / 100f)
+                    * damageMultiplier;
+            }
+        }
+
+        //KSJ
+        // 타일 버프가 적용된 최종 공격 사거리를 반환한다.
+        // 고정 증가량을 먼저 더한 뒤 퍼센트 증가량을 곱한다.
+        public float AttackRange
+        {
+            get
+            {
+                if (Attack == null)
+                {
+                    return 0f;
+                }
+
+                float baseRange =
+                    Attack.AttackRange;
+
+                // 버프 정보가 없으면 원래 사거리를 그대로 사용한다.
+                if (tileBuff == null)
+                {
+                    return baseRange;
+                }
+
+                float flat =tileBuff.GetValue(TileBuffStat.AttackRange,TileModifierMode.Flat);
+
+                float percentage =tileBuff.GetValue(TileBuffStat.AttackRange,TileModifierMode.Percentage);
+
+                // 최종 사거리 = (기본 사거리 + 고정 증가량) × 퍼센트 배율
+                return (baseRange + flat) *(1f + percentage / 100f);
+            }
+        }
+
+
+        // 타일 버프와 기존 타워 버프를 반영한 최종 공격 간격.
+        // 공격속도가 증가할수록 공격 간격은 짧아진다.
+        public float AttackInterval
+        {
+            get
+            {
+                if (Attack == null)
+                {
+                    return 0f;
+                }
+
+                float percentage = tileBuff?.GetValue(
+                    TileBuffStat.AttackSpeed,
+                    TileModifierMode.Percentage) ?? 0f;
+
+                float finalSpeedMultiplier =
+                    attackSpeedMultiplier *
+                    (1f + percentage / 100f);
+
+                return Attack.AttackInterval /
+                    Mathf.Max(finalSpeedMultiplier, 0.01f);
+            }
+        }
 
         // 버프 진입점(플레이어 스킬 #103 / 버프 타워 #164 공용). sourceId별로 항목을 add/refresh하며,
         // 서로 다른 소스는 합산 중첩된다(같은 sourceId는 갱신만). 배율(예: 1.2)은 보너스(0.2)로 저장해
@@ -186,7 +300,7 @@ namespace NorthLand.Combat
             // 타입별 명중 동작(단일/스플래시/체인)을 구성해 투사체에 전달 + 명중 시 스턴(있으면)
             var impact = BuildImpact();
             impact.StunDuration = atk.OnHitStunDuration;
-            projectile.Init(target, atk.AttackDamage, atk.ProjectileSpeed, this, impact);
+            projectile.Init(target, AttackDamage, atk.ProjectileSpeed, this, impact);
             OnFired?.Invoke();
             return true;
         }
@@ -236,7 +350,7 @@ namespace NorthLand.Combat
         {
             if (Attack == null) return;
             Handles.color = Color.red;
-            Handles.DrawWireDisc(transform.position, Vector3.up, Attack.AttackRange);
+            Handles.DrawWireDisc(transform.position,Vector3.up,AttackRange);
         }
 #endif
     }

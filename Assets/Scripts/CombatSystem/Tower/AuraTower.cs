@@ -3,6 +3,8 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using NorthLand.Combat;
+using CombatSpace;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -24,6 +26,12 @@ namespace NorthLand.Combat
         [Header("Debug")]
         [SerializeField] bool debugLog = false;
 
+        // 선택 시 오라 반경 원 색(배치 미리보기와 구분되도록 초록 계열, #192). 채움은 반투명.
+        [Header("선택 사거리 표시")]
+        [SerializeField] Color selectionRangeColor = new Color(0.3f, 1f, 0.4f, 0.9f);
+        [SerializeField] Color selectionRangeFillColor = new Color(0.3f, 1f, 0.4f, 0.15f);
+        RangeCircle _rangeCircle; // lazy 생성, 자식 GO
+
         readonly Collider[] hitBuffer = new Collider[32];
         CancellationTokenSource cts;
         int effectId;
@@ -39,13 +47,48 @@ namespace NorthLand.Combat
         TowerAsset.BuffAuraFields BuffAura => IsBuff ? data.Magic?.BuffAura : null;
 
         // 반경은 TowerAsset.MagicRadius 단일 출처를 사용(WL-056) — TowerPlacer 프리뷰와 규칙 공유.
-        float Radius => data != null ? data.MagicRadius : 0f;
+        float Radius
+        {
+            get
+            {
+                if (data == null)
+                {
+                    return 0f;
+                }
+
+                float baseRadius =
+                    data.MagicRadius;
+
+                if (tileBuff == null)
+                {
+                    return baseRadius;
+                }
+
+                float flat =
+                    tileBuff.GetValue(
+                        TileBuffStat.AttackRange,
+                        TileModifierMode.Flat);
+
+                float percentage =
+                    tileBuff.GetValue(
+                        TileBuffStat.AttackRange,
+                        TileModifierMode.Percentage);
+
+                return
+                    (baseRadius + flat) *
+                    (1f + percentage / 100f);
+            }
+        }
+
         float Interval => DebuffAura?.Interval ?? 0f;   // 버프는 이벤트형이라 Interval 미사용 — 디버프 폴링 주기만.
 
         // IAttacker 계약(공개 스탯). 오라 타워라 값이 없으면 0 가드.
         public float AttackDamage => DebuffAura?.Damage != null ? DebuffAura.Damage.DamageAmount : 0f;
         public float AttackRange => Radius;
         public float AttackInterval => Interval;
+
+
+        private TowerTileBuff tileBuff;
 
         // 오라 타워는 단일 대상 즉시 공격 경로를 쓰지 않는다. 오라 루프로만 동작.
         public bool TryAttack(IDamageable target) => false;
@@ -68,9 +111,24 @@ namespace NorthLand.Combat
             }
 
             TowerInfoUI.Instance.ShowInfo(data.Data.DescriptionKey, BuildStatsText());
+            ShowRangeCircle();
         }
 
-        public void OnDeselected() => TowerInfoUI.Instance.HideInfo();
+        public void OnDeselected()
+        {
+            _rangeCircle?.Hide();
+            TowerInfoUI.Instance.HideInfo();
+        }
+
+        // 선택 시 오라 반경 원(버프 반영 Radius)을 표시한다. 원은 자식 GO라 타워 파괴 시 함께 정리된다.
+        void ShowRangeCircle()
+        {
+            if (_rangeCircle == null)
+                _rangeCircle = RangeCircle.Create(transform, selectionRangeFillColor, selectionRangeColor, "TowerRangeSelection");
+
+            _rangeCircle.SetRadius(Radius);
+            _rangeCircle.Show();
+        }
 
         // 마법 타워 정보 텍스트: 오라 반경 + 효과 요약(디버프 DoT / 버프 스탯 증가). 라벨은 game.tower.* 로컬라이즈 키.
         string BuildStatsText()
@@ -100,6 +158,7 @@ namespace NorthLand.Combat
             return text;
         }
 
+
         void OnEnable()
         {
             if (!IsMagic || data.Magic == null) return;   // 마법 타워가 아니거나 Magic 데이터 미할당이면 미동작
@@ -118,6 +177,18 @@ namespace NorthLand.Combat
                 // 버프: 배치 즉시(낮 포함) 사거리 내 타워에 부여 → 낮 정보 패널에도 버프된 스탯이 보인다.
                 // 이후 타워가 추가/제거될 때마다(Tower.ActiveChanged) 재적용해 새로 지은 타워도 반영. 폴링은 없다(#164).
                 Tower.ActiveChanged += ApplyBuffToTowersInRange;
+                ApplyBuffToTowersInRange();
+            }
+        }
+        private void Start()
+        {
+            tileBuff =
+                GetComponent<TowerTileBuff>();
+
+            // OnEnable은 TowerTileBuff가 추가되기 전에 실행되므로
+            // 배치가 완료된 후 버프 오라 범위를 다시 계산한다.
+            if (IsBuff)
+            {
                 ApplyBuffToTowersInRange();
             }
         }
@@ -173,7 +244,7 @@ namespace NorthLand.Combat
             if (!hasDot && !hasSlow) return;   // 적용할 효과 없음
 
             int count = Physics.OverlapSphereNonAlloc(
-                transform.position, aura.Radius, hitBuffer, targetLayerMask);
+                transform.position, Radius, hitBuffer, targetLayerMask);
 
             for (int i = 0; i < count; i++)
             {
@@ -238,7 +309,7 @@ namespace NorthLand.Combat
             // 물리 OverlapSphere 대신 Tower.Active(전 타워 자가 등록 리스트)를 거리 필터링한다.
             // 전용 Tower 레이어가 없어 레이어마스크 방식이 취약하고, 버프 대상은 AttackFields를 가진
             // Tower(Single/Area/Chain)뿐이라 이 리스트가 정확한 대상 집합이다(AuraTower는 미포함 → 자기 자신도 제외).
-            float sqrRadius = aura.Radius * aura.Radius;
+            float sqrRadius = Radius * Radius;
             var towers = Tower.Active;
             for (int i = 0; i < towers.Count; i++)
             {
