@@ -124,7 +124,7 @@
 - [x] **업그레이드 게이팅**: **낮 전용 확정**(`IsDay`). 영토확장 완료 요구 없음. 잉여 주민 게이트(CanEndDay)와 독립.
 - [ ] **UI 통합**(다음 이슈): 경영 패널에 레벨 표시·업그레이드 버튼(`TryUpgrade`/`CanUpgrade`/`LineLevel`/`LineUpgradeCost` 바인딩).
 - [ ] **세이브/로드**: 업그레이드 레벨 영속화(전역 세이브 미도입 상태).
-- [x] **마법 연구소 업그레이드**: **업그레이드 전용 건물 트랙으로 구현됨**(§8). 마나석 비용·레벨 추적. 강화 효과(스킬 강화)는 스킬 시스템 후속(TODO).
+- [x] **마법 연구소 업그레이드**: **업그레이드 전용 건물 트랙으로 구현됨**(§8). 마나석 비용·레벨 추적 + 강화 효과(스킬 기본 스탯 배율, #205) 구현 완료.
 - [ ] **연금술사 업그레이드**(범위 밖): `alchemist_house`는 **Skill 타입**이라 마법 연구소와 동일하게 `Skill.UpgradeLevels` authoring + `_upgradeBuildings` 배선만으로 확장 가능.
 - [ ] **본성 업그레이드**(범위 밖): `castle`/`headquarters`는 **General 타입**이라 현재 `BuildingAssetEditor`가 업그레이드 필드를 노출하지 않는다 → **SO만 추가로는 authoring 불가**. 착수하려면 레벨 테이블 필드를 타입 중립 그룹으로 승격(또는 에디터 노출 규칙 변경)이 선행돼야 한다(§8 참고, 리뷰 지적).
 
@@ -155,7 +155,7 @@ asmdef 부재로 순수 유닛 테스트 불가(Resources.md §7) — UI도 다�
 
 ## 8. 업그레이드 전용 건물 트랙 (마법 연구소 등)
 
-> **상태**: ✅ 로직·데이터·씬 배선 구현. 강화 효과(스킬 강화)는 **TODO** — 스킬 시스템이 레벨을 참조해 적용(결합도 최소).
+> **상태**: ✅ 로직·데이터·씬 배선 구현. 강화 효과(스킬 강화)도 **구현 완료**(#205) — 스킬 시스템이 레벨을 참조해 기본 스탯을 배율 강화한다(결합도 최소).
 
 생산 3종(§1~§7)과 달리 **마법 연구소**는 자원을 생산하지 않는다 — 주민 배치·산출 자원·주민당량 개념이 없고,
 **마나석으로 레벨만 올리는** 건물이다. 그래서 생산 라인 배열(`_productionBuildings`/`_sources`)에 억지로 끼우지 않고
@@ -168,8 +168,8 @@ asmdef 부재로 순수 유닛 테스트 불가(Resources.md §7) — UI도 다�
 | 레벨 상태 | `_level[]`(런타임, WL-016) | `_upgradeLevel[]`(런타임, 동일 계보) |
 | 수치 출처 | `BuildingAsset.Production.UpgradeLevels`(비용+주민당량) | `BuildingAsset.Skill.UpgradeLevels`(**비용만**, `SkillUpgradeLevel`) |
 | 비용 차감 | `TrySpend(costs)` 게이트웨이(원자적) | **동일** `TrySpend(costs)` 게이트웨이 |
-| 업그레이드 효과 | 주민당량↑(즉시, 정산 반영) | **없음(TODO)** — 레벨만 오르고, 강화는 소비 시스템이 레벨 참조 |
-| UI | `BuildingInfoUI`(클릭→패널→버튼) | **동일** `BuildingInfoUI`(별 분기). 효과 줄은 생산의 "주민당 5→7" 자리에 **"스킬 강화 (추후 구현)"** 안내를 표시(`building.upgrade.skill_pending`) — 효과가 이번 범위 밖임을 명시 |
+| 업그레이드 효과 | 주민당량↑(즉시, 정산 반영) | 레벨만 오르고, 강화는 소비 시스템(`SkillManager`/`BuffSkillManager`, #205)이 레벨을 참조해 기본 스탯 배율로 적용 |
+| UI | `BuildingInfoUI`(클릭→패널→버튼) | **동일** `BuildingInfoUI`(별 분기). 효과 줄은 생산의 "주민당 5→7" 자리에 여전히 **"스킬 강화 (추후 구현)"** placeholder를 표시(`building.upgrade.skill_pending`) — 실제 강화 내용 표시로 교체는 후속 과제(#205 범위 밖, 선택사항) |
 
 ### 데이터 (SO)
 - `BuildingAsset.Skill.UpgradeLevels : List<SkillUpgradeLevel>` — index i = 레벨 (i+1), 최대 레벨 = `Count`.
@@ -183,15 +183,15 @@ asmdef 부재로 순수 유닛 테스트 불가(Resources.md §7) — UI도 다�
 - `bool CanUpgradeBuilding(int)`(낮+다음 레벨+마나 감당) / `bool TryUpgradeBuilding(int)`(성공 bool, 원자적 차감 후 레벨↑, `OnChanged` 발화).
 - **`int GetUpgradeLevel(BuildingAsset)`** — 소비 시스템(스킬 강화 등)이 레벨을 읽는 **저결합 창구**. 미등록/미보유면 0.
 
-### 결합도 최소 — 스킬 강화(TODO) 연동 방식 ⚠ **제안 단계(착지점 미확정)**
-> 아래 연동 방식은 **제안이며 확정 계약이 아니다** — 소비 측(PlayerSkill, 소유자 muchan) 사인오프가 남아 있다. 현재 강화 효과는 미구현(TODO)이라 **코드 충돌은 없다.**
-- 메커니즘(제안): 컨트롤러는 **레벨(int)만 노출**하고, 레벨→강화효과 매핑은 **소비 측(스킬 시스템)이 소유**한다 —
-  컨트롤러는 "스킬"을 전혀 모르고, 스킬은 마법 연구소 건물 SO와 `GetUpgradeLevel`만 알면 된다. 레벨 변경은 `OnChanged`로 통지되므로 구독 후 재-pull(BuildingInfoUI와 동일 패턴). 이 방향이면 스킬 밸런싱 확정 시 **컨트롤러/UI 무수정**으로 스킬 쪽만 붙는다.
-- ⚠ **착지점 확정 필요(muchan)**: PlayerSkill은 이미 **보상 기반 자체 레벨 축**(`SkillEffect.Level`, `SkillEffectManager.GetLevel`, #169)을 갖고 있고, GDD §5.5/§5.6은 스킬 강화의 원천을 **보상 트랙**으로 명시한다. 연구소 레벨을 **어느 축에 착지시킬지** — 예: 연구소 레벨=**기본 스킬 스탯 배율**(`SkillManager`의 damage/radius/cooldown), 보상=**특수 효과 레벨**(`SkillEffect.Level` 불변) — muchan과 합의한 뒤 GDD §5.5에 한 줄로 편입할 것. 합의 전에는 이 연동을 코드로 선반영하지 않는다(문서만 앞서가지 않도록).
+### 결합도 최소 — 스킬 강화 연동 방식 ✅ **착지점 확정(#205)**
+> 연구소 레벨 = **기본 스킬 스탯 배율**, 보상 = **특수 효과 레벨**(`SkillEffect.Level`, #169) — 두 축은 독립적으로 동시 스택된다. muchan 사인오프 완료. 상세: `Docs/Skill/PlayerSkill.md`.
+- 메커니즘: 컨트롤러는 **레벨(int)만 노출**하고, 레벨→강화효과 매핑은 **소비 측(`SkillManager`/`BuffSkillManager`)이 소유**한다 —
+  컨트롤러는 "스킬"을 전혀 모르고, 각 스킬은 마법 연구소 건물 SO 참조와 `GetUpgradeLevel`만 안다. 레벨 변경은 `OnChanged`로 통지되므로 구독 후 재-pull(BuildingInfoUI와 동일 패턴). **컨트롤러/UI 무수정**으로 스킬 쪽에만 배선이 붙었다.
+- 레벨→배율 매핑은 각 스킬 클래스 내부의 인스펙터 authoring 리스트(`SkillManager.SkillUpgradeLevel`/`BuffSkillManager.BuffUpgradeLevel`, index i = 레벨 i+1)로 소유한다 — CSV 미사용(WL-015와 동일 축). 수치는 **placeholder(TBD, 밸런싱 후속)**.
+- `SkillManager`/`BuffSkillManager`는 공통 베이스클래스로 묶지 않고 동일 패턴을 각자 구현했다(기존 "스킬 2개뿐이라 추상화 안 함" 방침 유지).
 
 ### 잔여 / TODO
-- [ ] **강화 효과 착지점 확정(muchan) → 구현**: 연구소 레벨을 스킬의 어느 축(기본 스탯 배율 vs 보상 효과 레벨)에 붙일지 합의(위 "연동 방식" 참고) 후, 스킬 시스템이 `GetUpgradeLevel(magic_lab)`을 참조해 강화.
-- [ ] **수치 밸런싱**: 레벨 수·레벨당 마나 비용(현재 placeholder 20/40/60).
+- [ ] **수치 밸런싱**: 레벨 수·레벨당 마나 비용(현재 placeholder 20/40/60), 스킬 강화 배율(현재 placeholder).
 - [ ] **클릭 오브젝트**: 마법 연구소를 클릭해 패널을 열려면 씬/프리팹에 `BuildingInfo`(+`Selectable` 레이어 콜라이더) 배치 필요 —
   생산 건물 클릭 오브젝트와 동일하게 건물 프리팹(Imported 사각지대 가능, WL-040) 쪽 작업.
 - [ ] **연금술사(Skill 타입)**: 같은 트랙에 SO만 추가(`Skill.UpgradeLevels` authoring + `_upgradeBuildings` 배선)하면 확장.

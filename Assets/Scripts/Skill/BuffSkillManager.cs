@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using NorthLand.Combat;
 using NorthLand.Core;
@@ -17,6 +18,25 @@ public class BuffSkillManager : MonoBehaviour
     [SerializeField] float buffDuration = 10f;
     [SerializeField] float cooldown = 20f;
 
+    // 마법 연구소(#205) — 레벨 비례로 기본 스탯(공격력·공속 배율/지속시간/쿨다운)을 배율 강화한다.
+    // 컨트롤러는 레벨(int)만 노출하고, 레벨→배율 매핑은 이 클래스(소비 측)가 소유한다(BuildingUpgrade.md §8).
+    // 보상 특수효과(#169, SkillEffect.Level)와는 독립 축 — BuffResolved 구독 흐름은 건드리지 않는다.
+    [Header("마법 연구소 강화 (#205, 수치는 placeholder)")]
+    [Tooltip("비우면 강화 없음(레벨 0 취급)")]
+    [SerializeField] BuildingAsset _magicLabAsset;
+    [Tooltip("비우면 씬에서 자동 탐색")]
+    [SerializeField] ManagementController _managementController;
+    [SerializeField] List<BuffUpgradeLevel> _upgradeLevels;
+
+    [Serializable]
+    struct BuffUpgradeLevel
+    {
+        public float damageMultiplierScale;
+        public float attackSpeedMultiplierScale;
+        public float durationMultiplier;
+        public float cooldownMultiplier;
+    }
+
     // 버프 시전이 끝날 때마다 발행 — 보상으로 획득한 버프 계열 특수효과(SkillEffect 파생,
     // 예: BurnBuff)가 구독한다. 구독자가 없으면 기본 버프 그대로. (감전의 ImpactResolved와 동일 구조)
     public event Action<BuffCastContext> BuffResolved;
@@ -26,8 +46,14 @@ public class BuffSkillManager : MonoBehaviour
     // 합산 중첩(#164)용 소스키 — 버프 타워의 소스키(TowerID 해시)와 겹치지 않는 고정 식별자.
     static readonly int SkillSourceId = "skill.player_buff".GetHashCode();
 
+    // 마법 연구소 레벨로 계산한 유효 스탯(레벨 0/미배선이면 기본값과 동일).
+    float effectiveDamageMultiplier;
+    float effectiveAttackSpeedMultiplier;
+    float effectiveDuration;
+    float effectiveCooldown;
+
     public bool IsReady => cooldownTimer <= 0f;
-    public float CooldownRemaining01 => cooldown <= 0f ? 0f : Mathf.Clamp01(cooldownTimer / cooldown);
+    public float CooldownRemaining01 => effectiveCooldown <= 0f ? 0f : Mathf.Clamp01(cooldownTimer / effectiveCooldown);
 
     void Awake()
     {
@@ -38,6 +64,46 @@ public class BuffSkillManager : MonoBehaviour
         else
         {
             Destroy(gameObject);
+        }
+    }
+
+    void Start()
+    {
+        // 마법 연구소(#205) — 비워두면 씬에서 자동 탐색(BuildingInfoUI와 동일 관례).
+        if (_managementController == null)
+            _managementController = FindFirstObjectByType<ManagementController>();
+        if (_managementController != null)
+            _managementController.OnChanged += RefreshUpgrade;
+        RefreshUpgrade();
+    }
+
+    void OnDestroy()
+    {
+        if (_managementController != null)
+            _managementController.OnChanged -= RefreshUpgrade;
+    }
+
+    // 마법 연구소 레벨(미배선·미보유 시 0)로 유효 스탯을 다시 계산한다. 레벨 0/범위 밖 = 배율 1.0(기본값 그대로).
+    void RefreshUpgrade()
+    {
+        int level = (_managementController != null && _magicLabAsset != null)
+            ? _managementController.GetUpgradeLevel(_magicLabAsset)
+            : 0;
+
+        if (_upgradeLevels != null && level > 0 && level <= _upgradeLevels.Count)
+        {
+            BuffUpgradeLevel scaling = _upgradeLevels[level - 1];
+            effectiveDamageMultiplier = damageMultiplier * scaling.damageMultiplierScale;
+            effectiveAttackSpeedMultiplier = attackSpeedMultiplier * scaling.attackSpeedMultiplierScale;
+            effectiveDuration = buffDuration * scaling.durationMultiplier;
+            effectiveCooldown = cooldown * scaling.cooldownMultiplier;
+        }
+        else
+        {
+            effectiveDamageMultiplier = damageMultiplier;
+            effectiveAttackSpeedMultiplier = attackSpeedMultiplier;
+            effectiveDuration = buffDuration;
+            effectiveCooldown = cooldown;
         }
     }
 
@@ -62,13 +128,13 @@ public class BuffSkillManager : MonoBehaviour
         if (!CanCast()) return false;
 
         foreach (var tower in Tower.Active)
-            tower.ApplyBuff(SkillSourceId, damageMultiplier, attackSpeedMultiplier, buffDuration);
+            tower.ApplyBuff(SkillSourceId, effectiveDamageMultiplier, effectiveAttackSpeedMultiplier, effectiveDuration);
 
-        Debug.Log($"[BuffSkill] 발동: 타워 {Tower.Active.Count}개, 데미지x{damageMultiplier}, 공속x{attackSpeedMultiplier}, {buffDuration}초");
+        Debug.Log($"[BuffSkill] 발동: 타워 {Tower.Active.Count}개, 데미지x{effectiveDamageMultiplier}, 공속x{effectiveAttackSpeedMultiplier}, {effectiveDuration}초");
 
-        BuffResolved?.Invoke(new BuffCastContext { Duration = buffDuration });
+        BuffResolved?.Invoke(new BuffCastContext { Duration = effectiveDuration });
 
-        cooldownTimer = cooldown;
+        cooldownTimer = effectiveCooldown;
         return true;
     }
 
