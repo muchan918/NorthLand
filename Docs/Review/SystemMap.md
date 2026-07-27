@@ -227,4 +227,4 @@
 - **적 프리팹 불변식(mover 위치)**: `MonsterMove`(`IMovementAgent` 구현)는 반드시
   `Enemy`(`IDamageable`)와 **동일한 GameObject**에 부착한다. `StatusEffectHandler`(슬로우/스턴)가
   `GetComponent<IMovementAgent>`(같은 GO)로 mover를 찾으므로, 자식 GO에 두면 CC(슬로우/스턴)가
-  에러 없이 조용히 무효가 된다(WL-089). 신규 적 프리팹 작성·리뷰 시 필수 확인 항목.
+  에러 없이 조용히 무효가 된다(WL-099). 신규 적 프리팹 작성·리뷰 시 필수 확인 항목.
