@@ -5,46 +5,37 @@ using NorthLand.Combat;
 /// Tower.cs(Combat 소유)를 건드리지 않으려고 별도 컴포넌트로 분리했다. TowerPlacer가 타워 배치 시
 /// 런타임으로 부착하므로(AddComponent), 게임 흐름으로 배치된 모든 타워(합성 결과 포함)가 자동으로
 /// 그룹 선택 대상이 된다. MouseManager는 이 마커 유무만 보고 대상 타입(타워)은 모른다(제네릭 유지).
+///
+/// IHoverable도 함께 구현한다(#213 §5.1): `Tower`는 IAttacker·ISelectable만 구현해서
+/// `MouseManager.UpdateHover`의 `hit.collider.TryGetComponent<IHoverable>`에 걸리지 않고, 그러면
+/// 호버 이벤트 자체가 발생하지 않아 타워에 호버 아웃라인이 뜨지 않는다. 툴팁은 필요 없으니
+/// `GetTooltipContent()`는 null을 반환한다(계약상 허용 — "색 변경만 하는 호버 대상", 이슈 #67).
+///
+/// ⚠️ `TryGetComponent`는 GameObject당 IHoverable **하나만** 잡고 부모 탐색도 하지 않는다.
+/// 나중에 타워 툴팁을 추가할 때 별도 컴포넌트를 만들면 툴팁이나 아웃라인 중 하나가 조용히 죽는다
+/// → 반드시 이 컴포넌트에 합칠 것. 마커는 콜라이더와 같은 GO(타워 루트)에 유지해야 한다.
 [DisallowMultipleComponent]
-public class TowerGroupSelectable : MonoBehaviour, IGroupSelectable
+public class TowerGroupSelectable : MonoBehaviour, IGroupSelectable, IHoverable
 {
-    // 플레이스홀더 하이라이트 색/크기(아트 TBD — TowerMerge.md §8.4). 런타임 부착이라 인스펙터 배선이 없어
-    // 코드로 생성한다. 후속에서 아웃라인/링 연출로 교체.
-    private static readonly Color k_HighlightColor = new(0.2f, 0.9f, 1f, 0.5f);
-    private const float k_HighlightSize = 3.5f;
-
     private Tower _tower;
-    private GameObject _highlight;
-    private Material _highlightMat;
 
     public Tower Tower => _tower != null ? _tower : (_tower = GetComponent<Tower>());
 
     private void Awake() => _tower = GetComponent<Tower>();
 
-    public void OnGroupSelected() => SetHighlight(true);
-    public void OnGroupDeselected() => SetHighlight(false);
+    // ── 그룹 선택(합성 재료) = 초록 아웃라인 ────────────────────────────
+    // 코디네이터의 RefreshHighlight가 diff로 대칭 호출하는 단일 경로다(#213 §5.2).
+    // 임시 하늘색 바닥 쿼드는 아웃라인으로 대체됐다(TowerMerge.md §8.4 확정).
+    public void OnGroupSelected() => Highlight?.Set(OutlineKind.GroupSelected, true);
+    public void OnGroupDeselected() => Highlight?.Set(OutlineKind.GroupSelected, false);
 
-    private void SetHighlight(bool on)
-    {
-        if (on && _highlight == null) CreateHighlight();
-        if (_highlight != null) _highlight.SetActive(on);
-    }
+    // ── 호버 = 노란 아웃라인 ────────────────────────────────────────────
+    // 실제 색 구동은 OutlineInteractionDriver가 MouseManager.OnHoverChanged로 대칭 처리한다
+    // (훅 안에서 켜면 훅 호출이 비대칭인 경로에서 잔존한다 — WL-087과 같은 함정).
+    // 이 구현체가 존재하는 것만으로 "이 타워는 호버 대상"이 성립한다.
+    public TooltipContent? GetTooltipContent() => null;
+    public void OnHoverEnter() { }
+    public void OnHoverExit() { }
 
-    private void CreateHighlight()
-    {
-        _highlight = GameObject.CreatePrimitive(PrimitiveType.Quad);
-        _highlight.name = "MergeSelectionHighlight";
-        Destroy(_highlight.GetComponent<Collider>()); // 선택 레이캐스트 방해 금지
-        _highlight.transform.SetParent(transform, false);
-        _highlight.transform.localPosition = new Vector3(0f, 0.05f, 0f);
-        _highlight.transform.localRotation = Quaternion.Euler(90f, 0f, 0f); // XZ 바닥에 눕힘
-        _highlight.transform.localScale = Vector3.one * k_HighlightSize;
-        _highlightMat = new Material(Shader.Find("Sprites/Default")) { color = k_HighlightColor };
-        _highlight.GetComponent<Renderer>().sharedMaterial = _highlightMat;
-    }
-
-    private void OnDestroy()
-    {
-        if (_highlightMat != null) Destroy(_highlightMat);
-    }
+    private OutlineHighlight Highlight => OutlineHighlight.GetOrAdd(gameObject);
 }
