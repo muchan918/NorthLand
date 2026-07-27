@@ -46,7 +46,16 @@ namespace NorthLand.Combat
         public static readonly List<Tower> Active = new();
         // 타워가 씬에 추가/제거될 때 발생. 버프 타워가 배치 즉시(낮 포함) + layout 변화 시 사거리 내 타워를 갱신하는 데 쓴다(#164).
         public static event Action ActiveChanged;
-        void OnEnable() { Active.Add(this); ActiveChanged?.Invoke(); }
+        void OnEnable()
+        {
+            // Magic 타워는 AuraTower가 소비해야 한다. Tower 컴포넌트가 붙으면 Attack==null이라
+            // Update가 조용히 무동작(무증상 먹통)하므로, 프리팹 실수를 즉시 드러낸다.
+            if (data != null && data.TowerType == TowerType.Magic)
+                Debug.LogError("[Tower] Magic 타워에 Tower 컴포넌트가 붙어 있음 — AuraTower가 필요합니다", this);
+
+            Active.Add(this);
+            ActiveChanged?.Invoke();
+        }
 
         // 발사 시점 통지(탄약 시각 연출 등 구독용 — 예: 캐논 포탄이 발사 순간 사라짐).
         public event Action OnFired;
