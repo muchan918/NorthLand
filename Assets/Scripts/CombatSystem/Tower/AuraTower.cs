@@ -20,6 +20,9 @@ namespace NorthLand.Combat
     {
         [SerializeField] TowerAsset data;
 
+        // 배치된 타워의 원본 SO 읽기 접근자(Tower.Asset과 대칭). 배치 후 프리팹↔SO 정합 검증에 쓴다(WL-100).
+        public TowerAsset Asset => data;
+
         // 디버프=적 레이어 / 버프=아군 레이어. 프리팹에서 지정.
         [SerializeField] LayerMask targetLayerMask;
 
@@ -161,7 +164,18 @@ namespace NorthLand.Combat
 
         void OnEnable()
         {
-            if (!IsMagic || data.Magic == null) return;   // 마법 타워가 아니거나 Magic 데이터 미할당이면 미동작
+            // Tower.OnEnable의 Magic 오부착 가드와 대칭(WL-100). AuraTower는 Magic 타워 전용이므로
+            // 비-Magic(또는 null) 에셋·Magic 데이터 미할당은 오라가 조용히 안 도는 무증상 실수 → 즉시 드러낸다.
+            if (!IsMagic)
+            {
+                Debug.LogError("[AuraTower] Magic TowerAsset이 아님(미할당 또는 비-Magic) — Magic 타워 전용 컴포넌트입니다", this);
+                return;
+            }
+            if (data.Magic == null)
+            {
+                Debug.LogError("[AuraTower] Magic 데이터 블록(Magic) 미할당 — 오라가 동작하지 않습니다", this);
+                return;
+            }
 
             // 같은 TowerID끼리 하나의 DoT 효과를 공유·갱신(디버프 전용 키). 버프는 GetInstanceID()를 소스키로 쓴다.
             effectId = !string.IsNullOrEmpty(data.TowerID) ? data.TowerID.GetHashCode() : GetInstanceID();
