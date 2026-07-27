@@ -28,7 +28,14 @@ public class BuildingInfo : MonoBehaviour, ISelectable
         if (HasExchange)
         {
             if (BuildingInfoUI.Instance != null) BuildingInfoUI.Instance.HideInfo();
-            if (StorePanelUI.Instance != null) StorePanelUI.Instance.Show(_buildingAsset);
+            if (StorePanelUI.Instance != null)
+            {
+                StorePanelUI.Instance.Show(_buildingAsset);
+            }
+            else
+            {
+                Debug.LogWarning($"[BuildingInfo] {_buildingAsset.BuildingID}: 상점 패널이 씬에 없습니다(Imported 동기화 확인).", this);
+            }
         }
         else
         {

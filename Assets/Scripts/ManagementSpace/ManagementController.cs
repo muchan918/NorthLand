@@ -336,11 +336,12 @@ public class ManagementController : MonoBehaviour
             return false;
         }
 
-        if (!_wallet.TrySpend(payKind, offer.PayAmount))
+        if (!_wallet.CanAfford(payKind, offer.PayAmount))
         {
             Debug.Log($"[경영] {payKind}이(가) 부족해 교환할 수 없습니다. (필요 {offer.PayAmount}, 보유 {_wallet.Get(payKind)})");
             return false;
         }
+        _wallet.TrySpend(payKind, offer.PayAmount);
 
         int gained = ExchangeGainAmount(building, offer);
         _wallet.Add(gainKind, gained);
@@ -402,6 +403,7 @@ public class ManagementController : MonoBehaviour
         if (_dayNight != null)
         {
             _dayNight.OnNightToDay -= HandleNightToDay;
+            _dayNight.OnDayToNight -= HandleDayToNight;
         }
         if (_territory != null)
         {
@@ -516,6 +518,7 @@ public class ManagementController : MonoBehaviour
         }
 
         _dayNight.OnNightToDay += HandleNightToDay;
+        _dayNight.OnDayToNight += HandleDayToNight;
     }
 
     private void SubscribeTerritory()
@@ -630,6 +633,10 @@ public class ManagementController : MonoBehaviour
     }
 
     // ── DayNightManager 이벤트 훅 (팀 계약 #5) ──────────────────────────
+    // 낮→밤은 배치 확정만 하고 정산은 없다(팀 계약 #5) — IsDay 게이트를 쓰는 버튼(교환/업그레이드)이
+    // 전환 즉시 비활성화되도록 OnChanged만 재발행한다(WL-104).
+    private void HandleDayToNight() => OnChanged?.Invoke();
+
     private void HandleNightToDay()
     {
         for (int i = 0; i < _sources.Length; i++)
