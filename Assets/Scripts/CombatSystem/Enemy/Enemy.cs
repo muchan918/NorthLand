@@ -32,6 +32,10 @@ namespace NorthLand.Combat
 
         private MonsterMove monsterMove;
 
+        // 보스 BehaviorTree 실행 주체(보스가 아니면 null). 정지 핸들 확보용 필드 —
+        // 게임 종료·사망 시 이 에이전트를 꺼서 그래프 틱을 멈춘다.
+        private Unity.Behavior.BehaviorGraphAgent behaviorAgent;
+
         // EnemyType에 맞는 공통 전투 스탯 해석. data 미할당 시 null.
         EnemyAsset.CombatFields Stat => data == null ? null : data.EnemyType switch
         {
@@ -77,7 +81,7 @@ namespace NorthLand.Combat
             // "어떤 보스가 어떤 그래프를 쓰는지"는 프리팹 배선이 아니라 SO(tracked)가 단일 출처로 소유한다.
             if (data != null && data.EnemyType == EnemyType.Boss && data.Boss != null && data.Boss.BehaviorTree != null)
             {
-                var behaviorAgent = GetComponent<Unity.Behavior.BehaviorGraphAgent>();
+                behaviorAgent = GetComponent<Unity.Behavior.BehaviorGraphAgent>();
                 if (behaviorAgent == null)
                 {
                     behaviorAgent = gameObject.AddComponent<Unity.Behavior.BehaviorGraphAgent>();
@@ -146,6 +150,12 @@ namespace NorthLand.Combat
                     movement.IsStopped = true;
                 }
 
+                // 게임 종료(승리/패배) 후 보스 BT가 계속 tick하지 않도록 에이전트를 끈다.
+                if (behaviorAgent != null)
+                {
+                    behaviorAgent.enabled = false;
+                }
+
                 monsterStateMachine?.SetHasTarget(false);
                 return;
             }
@@ -196,6 +206,12 @@ namespace NorthLand.Combat
             }
 
             isDying = true;
+
+            // 사망 연출 지연 동안(파괴 전까지) 보스 BT가 계속 돌지 않도록 에이전트를 끈다.
+            if (behaviorAgent != null)
+            {
+                behaviorAgent.enabled = false;
+            }
 
             if (monsterStateMachine != null)
             {
