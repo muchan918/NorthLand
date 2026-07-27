@@ -93,7 +93,7 @@ namespace CombatSpace
         {
             List<Vector2Int> targets = new List<Vector2Int>(  map.MajorWaypoints.Count + 1);
 
-            targets.Add(map.RouteStartPosition);
+            targets.Add(map.BasePosition);
 
             targets.AddRange(map.MajorWaypoints);
 
@@ -180,7 +180,7 @@ namespace CombatSpace
                     {
                         continue;
                     }
-                    if (nextPosition.x == 0 && nextPosition != map.RouteStartPosition)
+                    if (nextPosition.x == 0 && nextPosition != map.BasePosition)
                     {
                         continue;
                     }

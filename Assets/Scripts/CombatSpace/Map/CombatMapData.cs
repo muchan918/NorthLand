@@ -15,8 +15,27 @@ namespace CombatSpace
         // 생성에 사용된 시드
         public int Seed { get; }
 
-        // 적 경로 시작 좌표
+        // 경로 목록의 시작 좌표. 현재 게임에서는 본진(성문) 위치다.
         public Vector2Int RouteStartPosition { get; }
+
+        // 적이 도달하는 최종 목표인 본진(성문) 위치
+        public Vector2Int BasePosition =>
+            RouteStartPosition;
+
+        // 적이 출현하는 현재 경로의 반대쪽 끝 좌표
+        public Vector2Int SpawnPosition
+        {
+            get
+            {
+                if (EnemyRoute.Count == 0)
+                {
+                    throw new InvalidOperationException(
+                        "EnemyRoute가 생성되기 전에는 SpawnPosition을 조회할 수 없습니다.");
+                }
+
+                return EnemyRoute[EnemyRoute.Count - 1];
+            }
+        }
 
         // 전체 타일 데이터
         public CombatTileData[,] Tiles { get; }
