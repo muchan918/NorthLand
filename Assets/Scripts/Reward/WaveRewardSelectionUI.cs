@@ -30,11 +30,17 @@ public class WaveRewardSelectionUI : MonoBehaviour
     [FormerlySerializedAs("Openpanel")]
     private GameObject openPanel;
 
+    [SerializeField]
+    private CanvasGroup gameSpeedControls;
+
+    private bool wasGameSpeedControlsInteractable;
+
     public bool Camerastop => panel != null && panel.activeSelf;
 
     private UniTaskCompletionSource<WaveRewardData> selectionSource;
 
-    private float previousTimeScale;
+    [SerializeField]
+    private GameSpeed gameSpeedController;
 
 
     private void Awake()
@@ -91,8 +97,25 @@ public class WaveRewardSelectionUI : MonoBehaviour
         ClearButtonListeners();
         ShowCandidates(candidates);
 
-        previousTimeScale = Time.timeScale;
-        Time.timeScale = 0f;
+        if (gameSpeedControls != null)
+        {
+            wasGameSpeedControlsInteractable =
+                gameSpeedControls.interactable;
+
+            gameSpeedControls.interactable = false;
+            gameSpeedControls.alpha = 0.8f;
+        }
+
+        if (gameSpeedController != null)
+        {
+            gameSpeedController.SetRewardPaused(true);
+        }
+        else
+        {
+            Debug.LogError(
+                "[WaveRewardSelectionUI] GameSpeed가 연결되지 않았습니다.",
+                this);
+        }
 
         if (panel != null)
         {
@@ -113,7 +136,16 @@ public class WaveRewardSelectionUI : MonoBehaviour
         finally
         {
             ClearButtonListeners();
-            Time.timeScale = previousTimeScale;
+            if (gameSpeedController != null)
+            {
+                gameSpeedController.SetRewardPaused(false);
+            }
+
+            if (gameSpeedControls != null)
+            {
+                gameSpeedControls.interactable =wasGameSpeedControlsInteractable;
+                gameSpeedControls.alpha = 1f;
+            }
 
             if (panel != null)
             {
@@ -124,6 +156,7 @@ public class WaveRewardSelectionUI : MonoBehaviour
             {
                 openPanel.SetActive(false);
             }
+
             selectionSource = null;
         }
     }
