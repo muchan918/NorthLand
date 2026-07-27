@@ -227,12 +227,12 @@
 - **적 프리팹 mover 탐색 규약**: `MonsterMove`(`IMovementAgent` 구현)는 `Enemy` 루트 또는 그 자식
   GameObject 어디에 있어도 된다. mover를 참조하는 모든 지점이 `GetComponentInChildren`로 통일돼 있다
   (`Enemy.cs:56·72`, `MonsterSpawn.cs:327`, `MonsterStateMachine.cs:32`, `StatusEffectHandler.cs:51` —
-  WL-099 A안 채택, main #212가 WL-093 수정으로 확정한 방향과 정합). 따라서 자식 GO에 둔 mover도
+  WL-102 A안 채택, main #212가 WL-093 수정으로 확정한 방향과 정합). 따라서 자식 GO에 둔 mover도
   이동·보스 램프·CC(슬로우/스턴)가 모두 정상 동작한다. 신규 적 프리팹은 이 탐색 규약을 벗어난
   이중 mover(루트+자식 동시 부착)만 피하면 된다.
 - **Ghost 프리팹 규약(시각 전용)**: 배치 프리뷰 Ghost 프리팹에는 게임플레이 컴포넌트(`Tower`,
   `AuraTower`, `TowerReloadVisual` 등)를 붙이지 않는다 — 메시/머티리얼 등 시각 요소만. `MouseManager`가
   고스트를 컴포넌트 비활성 없이 `Instantiate`하므로(`MouseManager.cs:117`), live 컴포넌트가 실리면
   프리뷰가 실제 게임플레이를 실행한다(`Tower`=자가 등록, `AuraTower` 버프 경로=페이즈 게이팅 없이 즉시
-  주변 타워 버프). WL-066(Tower)·WL-098/WL-066 확장(AuraTower)의 정본 규약. 신규 타워 고스트 작성·프리팹
+  주변 타워 버프). WL-066(Tower)·WL-101/WL-066 확장(AuraTower)의 정본 규약. 신규 타워 고스트 작성·프리팹
   스왑 시 필수 확인(muchan/n0wst4ndup 게이트).

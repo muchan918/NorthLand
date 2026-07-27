@@ -34,7 +34,8 @@ public class WaveRewardSelectionUI : MonoBehaviour
 
     private UniTaskCompletionSource<WaveRewardData> selectionSource;
 
-    private float previousTimeScale;
+    [SerializeField]
+    private GameSpeedController gameSpeedController;
 
 
     private void Awake()
@@ -91,8 +92,16 @@ public class WaveRewardSelectionUI : MonoBehaviour
         ClearButtonListeners();
         ShowCandidates(candidates);
 
-        previousTimeScale = Time.timeScale;
-        Time.timeScale = 0f;
+        if (gameSpeedController != null)
+        {
+            gameSpeedController.SetPaused(GamePauseReason.Reward,true);
+        }
+        else
+        {
+            Debug.LogError(
+                "[WaveRewardSelectionUI] GameSpeed가 연결되지 않았습니다.",
+                this);
+        }
 
         if (panel != null)
         {
@@ -113,7 +122,10 @@ public class WaveRewardSelectionUI : MonoBehaviour
         finally
         {
             ClearButtonListeners();
-            Time.timeScale = previousTimeScale;
+            if (gameSpeedController != null)
+            {
+                gameSpeedController.SetPaused(GamePauseReason.Reward,false);
+            }
 
             if (panel != null)
             {
@@ -124,6 +136,7 @@ public class WaveRewardSelectionUI : MonoBehaviour
             {
                 openPanel.SetActive(false);
             }
+
             selectionSource = null;
         }
     }
