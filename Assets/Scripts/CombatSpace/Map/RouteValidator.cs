@@ -23,9 +23,9 @@ namespace CombatSpace
                 return false;
             }
 
-            if (map.EnemyRoute[0] != map.RouteStartPosition)
+            if (map.EnemyRoute[0] != map.BasePosition)
             {
-                errorMessage = "Road가 고정 시작점에서 시작하지 않습니다.";
+                errorMessage = "Road가 본진 위치에서 시작하지 않습니다.";
 
                 return false;
             }
