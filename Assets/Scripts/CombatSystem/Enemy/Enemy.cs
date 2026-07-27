@@ -47,13 +47,20 @@ namespace NorthLand.Combat
 
             currentHp = Stat != null ? Stat.MaxHp : 0f;
 
-            movement = GetComponent<IMovementAgent>();
+            // 자식까지 탐색(WL-089): MonsterMove가 자식 오브젝트에 붙는 프리팹에서도 movement를 찾도록
+            // GetComponentInChildren 사용 — line 61·MonsterSpawn·MonsterStateMachine의 탐색 범위와 일치시킨다.
+            movement = GetComponentInChildren<IMovementAgent>();
 
             baseMoveSpeed = Stat != null ? Stat.MoveSpeed : 0f;
 
             if (movement != null && Stat != null)
             {
                 movement.SetMoveSpeed(baseMoveSpeed * speedMultiplier);
+            }
+            else if (movement == null)
+            {
+                // 이동 액추에이터를 못 찾으면 보스 속도 가감속 패턴이 조용히 무동작하므로 경고로 드러낸다.
+                Debug.LogWarning($"[{name}] IMovementAgent를 찾지 못해 이동속도 패턴이 동작하지 않습니다.", this);
             }
 
             OnHpChanged?.Invoke(currentHp, MaxHp);
