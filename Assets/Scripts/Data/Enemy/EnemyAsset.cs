@@ -48,8 +48,9 @@ public class EnemyAsset : ScriptableObject
     {
         public CombatFields Stat;
 
-        // TODO: 실제 BehaviorTree 에셋 타입이 정해지면 교체
-        // (예: com.unity.behavior의 BehaviorGraph, 또는 커스텀 SO)
-        public Object BehaviorTree;
+        // 이 보스가 실행할 BehaviorTree 런타임 그래프. Enemy가 Awake에서 BehaviorGraphAgent에 주입한다
+        // (데이터 주도 — 프리팹에 에이전트·그래프를 수동 배선하지 않는다).
+        // 지정: Project에서 그래프 에셋(예: MidBossBehavior)을 펼쳐 안의 BehaviorGraph 서브에셋을 이 칸에 드래그.
+        public Unity.Behavior.BehaviorGraph BehaviorTree;
     }
 }

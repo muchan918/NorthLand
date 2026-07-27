@@ -71,6 +71,20 @@ namespace NorthLand.Combat
             {
                 monsterMove.RouteCompleted += HandleRouteCompleted;
             }
+
+            // 보스 데이터 주도 AI: EnemyAsset.Boss.BehaviorTree에 그래프가 지정돼 있으면
+            // BehaviorGraphAgent를 확보(없으면 부착)해 그래프를 주입한다. 그래프 실행 주체는 에이전트지만,
+            // "어떤 보스가 어떤 그래프를 쓰는지"는 프리팹 배선이 아니라 SO(tracked)가 단일 출처로 소유한다.
+            if (data != null && data.EnemyType == EnemyType.Boss && data.Boss != null && data.Boss.BehaviorTree != null)
+            {
+                var behaviorAgent = GetComponent<Unity.Behavior.BehaviorGraphAgent>();
+                if (behaviorAgent == null)
+                {
+                    behaviorAgent = gameObject.AddComponent<Unity.Behavior.BehaviorGraphAgent>();
+                }
+
+                behaviorAgent.Graph = data.Boss.BehaviorTree;
+            }
         }
 
         public Faction Faction => Faction.Enemy;
