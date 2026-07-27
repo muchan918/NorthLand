@@ -12,8 +12,9 @@
 > - `Assets/Scripts/UI/TowerPanel/TowerMergeCandidateHover.cs` — (신규) 후보 버튼 EventSystem 호버 → 코디네이터 프리뷰 호출
 > - `Assets/Scripts/UI/TowerPanel/TowerMergePanelView.cs` — (수정) `BuildCandidates`에서 위 컴포넌트 배선
 > - `Assets/Scripts/ManagementSpace/Territory/View/TerritoryNodeStateVisual.cs` — (수정) `IOutlineTargetProvider` 구현(회오리=null, 섬=인스턴스)
-> - `Assets/Scripts/Editor/OutlineSmoothMeshBaker.cs` — (신규, 에디터) 대상 메시의 스무스 노멀 사본을 에셋으로 굽는 메뉴(§6.4)
-> - `Assets/Scripts/GameManager/MouseManager/Highlight/OutlineSmoothMeshRegistry.cs` + `.asset` — (신규) 원본 메시 → 스무스 사본 매핑 SO(런타임 부착 컴포넌트가 인스펙터 배선 없이 조회)
+> - `Assets/Scripts/Editor/OutlineSmoothMeshBaker.cs` — (**구현 완료**, 에디터) 대상 메시의 스무스 노멀 사본을 에셋으로 굽는 메뉴(§6.4)
+> - `Assets/Scripts/GameManager/MouseManager/Highlight/OutlineSmoothMeshRegistry.cs` — (**구현 완료**) 원본 메시 → 스무스 사본 매핑 SO(런타임 부착 컴포넌트가 인스펙터 배선 없이 `Resources.Load`로 조회)
+> - `Assets/Resources/Outline/OutlineSmoothMeshRegistry.asset` + `Assets/Meshes/OutlineSmooth/*.asset`(13개) — (**생성 완료**) 베이크 산출물
 > - `Assets/Settings/PC_Renderer.asset` · `Assets/Settings/Mobile_Renderer.asset` — (**적용 완료**) 아웃라인 렌더러 피처 추가 + `OutlineShell` 레이어 마스크 제외, PC/Mobile 동일
 > - `ProjectSettings/TagManager.asset` — (**적용 완료**) `OutlineShell` 레이어(12) 신설
 > **관련**: #148(전역 비주얼 룩 파이프라인 — 툰 셰이더), #138(경영 공간 건물 시인성), #67(호버 훅), #183/#192/#210, WL-076b·WL-085·WL-087
@@ -283,11 +284,25 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 | 그러나 **에디터에서는 읽힌다** | `isReadable == false`인 `CandyTower_01`(9867 verts, 서브메시 2)·`TowerCap_01`에서 에디터 `mesh.vertices` 접근 성공 |
 | 서브메시 개수는 우리 베이커에선 제약이 아니다 | FlatKit 인스펙터 UI만 멀티 서브메시를 거부한다. uv3만 채우면 되므로 서브메시 수와 무관(실제로 2-서브메시 메시에서 스무딩·렌더 성공) |
 
-**절차**
-1. 에디터 메뉴(`OutlineSmoothMeshBaker`)로 대상 프리팹 트리의 메시를 수집한다.
-2. 메시별로 `Object.Instantiate` → `FlatKit.MeshSmoother.SmoothNormals(clone)`(에디터 asmdef 참조 가능) → `Assets/Imported/@NorthLand/Meshes/OutlineSmooth/<name>_smooth.asset`으로 저장. **벤더 트리(`Sweet_Land`, `TARBO`)는 건드리지 않는다.**
-3. 원본 메시 → 스무스 사본 매핑을 `OutlineSmoothMeshRegistry`(SO)에 기록. shell 생성 시 이 레지스트리로 조회하고, **없으면 원본 메시로 폴백**(찢어진 아웃라인이지만 동작은 한다) + 1회 경고 로그.
-4. 대상 규모: 타워 메시 + 산 메시 기준 **15~20개** 예상. 건물은 프록시(§6.2)를 쓰므로 베이크 대상이 아니다(프록시 메시는 우리가 생성하므로 스무스 노멀을 처음부터 채워 만든다).
+**구현 상태: 완료**(`Assets/Scripts/Editor/OutlineSmoothMeshBaker.cs`, `Assets/Scripts/GameManager/MouseManager/Highlight/OutlineSmoothMeshRegistry.cs`)
+
+| 항목 | 값 |
+|---|---|
+| 에디터 메뉴 | `NorthLand/Outline/1. 베이크 대상 자동 수집` → `2. 스무스 메시 베이크` |
+| 자동 수집 범위 | `@NorthLand/Prefabs/Tower`, `@NorthLand/Prefabs/Territory` — 이름에 `ghost`/`bullet`/`arrow`가 있거나 메시가 없는 프리팹은 제외하고, 제외 목록도 로그로 남긴다 |
+| 대상 프리팹 | **16개** (타워 9종 + `Candy_04` + `Mountain_01~06`) — 레지스트리 인스펙터에서 손으로 가감 가능 |
+| 실제 베이크 결과 | **유니크 메시 13개** (`CandyTower_01`·`Pot_01`·`TowerCap_01` 등이 여러 타워에 공유돼 중복 제거됨). 전부 uv3 채워짐 |
+| 산출물 위치 | `Assets/Meshes/OutlineSmooth/<name>_smooth.asset` |
+| 레지스트리 | `Assets/Resources/Outline/OutlineSmoothMeshRegistry.asset` (`Resources.Load`, DataTable CSV와 같은 규약) |
+| 재실행 | 멱등 — 살아 있는 사본은 재사용한다(`신규 0 / 재사용 13`) |
+
+**산출물을 `Assets/Imported` 밖에 두는 이유**: `Assets/Imported/`는 프로젝트 저장소에서 **`.gitignore` 대상**(`.gitignore:162`)이고 내부에 **중첩 git 저장소**(`Assets/Imported/.git`)로 따로 관리된다. 그 안에 구우면 팀원이 프로젝트 저장소를 받아도 사본이 따라오지 않아 레지스트리 참조가 깨진다. 원본 메시(아트 저장소)는 프리팹과 함께 오므로, **원본=아트 저장소 / 사본=프로젝트 저장소** 조합으로 둔다. 벤더 트리(`Sweet_Land`·`TARBO`)는 어느 쪽으로도 수정하지 않는다.
+
+**폴백(T10 종결)**: 레지스트리에 사본이 없으면 `Resolve()`가 **원본 메시를 그대로 반환**한다 — 아웃라인이 끊겨 보이지만 기능은 살아 있다. 레지스트리 에셋 자체가 없으면 최초 1회만 경고 로그를 남긴다(매 호출 `Resources.Load` 반복 금지).
+
+**주의 — `AssetDatabase.SaveAssets()` 금지**: 무관한 더티 에셋(동적 JP 폰트 아틀라스, 미니맵 RenderTexture 등)까지 디스크에 써서 남의 작업 트리를 더럽힌다. 베이커는 `SaveAssetIfDirty(registry)`만 쓴다(사본 메시는 `CreateAsset` 시점에 이미 기록된다).
+
+건물은 프록시(§6.2)를 쓰므로 베이크 대상이 아니다 — 프록시 메시는 우리가 생성하므로 스무스 노멀을 처음부터 채워 만든다.
 
 **#148 재사용**: 툰 룩에서 아웃라인을 상시로 켜면 같은 스무스 노멀 문제를 그대로 만난다 → 이 베이커·레지스트리는 #148에서 그대로 쓰인다(§9).
 
@@ -393,7 +408,7 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 | T7 | `Soldier` 레이어(8) 등 리젝된 시스템 잔재 정리 | 별건 |
 | T8 | 폭 드라이버 상수(C ≈ 35)와 상·하한 클램프 최종값 | 실기 튜닝 |
 | T9 | **Mobile(Forward) 렌더러 시각 검증** — 품질 레벨 전환 후 캡처 | 구현 중 필수 |
-| T10 | 스무스 사본이 없는 메시의 폴백 정책(원본 사용 + 경고 vs 아웃라인 생략) | 구현 중 |
+| ~~T10~~ | ~~스무스 사본이 없는 메시의 폴백 정책~~ | **종결** — 원본 메시로 폴백 + 레지스트리 부재 시 1회 경고(§6.4) |
 
 ---
 
@@ -403,3 +418,4 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 |---|---|
 | 2026-07-27 | 최초 작성 — #213 착수 전 조사·결정 기록(shell 방식 확정, 컨버전은 #148로 분리). 구현 미착수 |
 | 2026-07-27 | 렌더 경로 스파이크 완료 — 레이어(12)·렌더러 피처 PC/Mobile 적용, T1 종결(Layer Mask 제외), 직교 파라미터 확정(§3.4), 스무스 노멀 프리베이크 필수 판정(§6.4). Mobile 시각 검증(T9)·미니맵(T2) 미확인 |
+| 2026-07-27 | 스무스 노멀 베이커·레지스트리 구현 완료(§6.4) — 대상 16 프리팹 → 유니크 메시 13개 베이크, 산출물은 gitignore되지 않는 `Assets/Meshes/OutlineSmooth`. T10 종결 |
