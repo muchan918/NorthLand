@@ -40,7 +40,7 @@ namespace CombatSpace
 
             DrawTiles(map);
             DrawWaypoints(map);
-            DrawStartPosition(map);
+            DrawBasePosition(map);
         }
 
         private float TileSize
@@ -98,11 +98,11 @@ namespace CombatSpace
             }
         }
 
-        private void DrawStartPosition(CombatMapData map)
+        private void DrawBasePosition(CombatMapData map)
         {
             Gizmos.color = startColor;
 
-            Vector3 center =GridToLocal(map.RouteStartPosition);
+            Vector3 center =GridToLocal(map.BasePosition);
 
             center.y = 0.2f;
 
