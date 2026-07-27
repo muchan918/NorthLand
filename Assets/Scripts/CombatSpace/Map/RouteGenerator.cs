@@ -180,10 +180,11 @@ namespace CombatSpace
                     {
                         continue;
                     }
-                    if (nextPosition.x == 0 && nextPosition != map.BasePosition)
+                    if (IsBlockedBaseEdgePosition(map,nextPosition,goal))
                     {
                         continue;
                     }
+                 
 
                     // 기존 Road와 겹치는 것 방지
                     if (occupiedRoute.Contains( nextPosition) && nextPosition != goal)
@@ -323,6 +324,25 @@ namespace CombatSpace
             path.Reverse();
 
             return path;
+        }
+        private bool IsBlockedBaseEdgePosition(CombatMapData map,Vector2Int position,Vector2Int goal)
+        {
+            if (position == map.BasePosition ||position == goal)
+            {
+                return false;
+            }
+
+            Vector2Int basePosition =map.BasePosition;
+
+            bool baseOnVerticalEdge =basePosition.x == 0 ||basePosition.x == map.Width - 1;
+
+            bool baseOnHorizontalEdge =basePosition.y == 0 ||basePosition.y == map.Height - 1;
+
+            bool positionOnBaseVerticalEdge =baseOnVerticalEdge &&position.x == basePosition.x;
+
+            bool positionOnBaseHorizontalEdge =baseOnHorizontalEdge &&position.y == basePosition.y;
+
+            return positionOnBaseVerticalEdge ||positionOnBaseHorizontalEdge;
         }
     }
 }

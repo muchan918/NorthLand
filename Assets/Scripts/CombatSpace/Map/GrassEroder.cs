@@ -14,17 +14,11 @@ namespace CombatSpace
             Vector2Int.right
         };
 
-        private const int BaseProtectionRange = 5;
-
-        private bool IsNearBase(
-            CombatMapData map,
-            Vector2Int position)
+        private bool IsNearBase(CombatMapData map,CombatMapGenerationSettings settings,Vector2Int position)
         {
-            int distance =
-                Mathf.Abs(position.x - map.BasePosition.x) +
-                Mathf.Abs(position.y - map.BasePosition.y);
+            int distance =Mathf.Abs(position.x - map.BasePosition.x) +Mathf.Abs(position.y - map.BasePosition.y);
 
-            return distance <= BaseProtectionRange;
+            return distance <= settings.BaseProtectionRange;
         }
 
         public bool Erode(CombatMapData map,CombatMapGenerationSettings settings,Random random)
@@ -38,7 +32,7 @@ namespace CombatSpace
 
             for (int iteration = 0;iteration < iterationCount;iteration++)
             {
-                List<Vector2Int> candidates = FindBoundaryGrassTiles(map);
+                List<Vector2Int> candidates = FindBoundaryGrassTiles(map, settings);
 
                 Shuffle(candidates, random);
 
@@ -71,7 +65,7 @@ namespace CombatSpace
         }
 
         // Empty와 맞닿은 Grass 경계 타일 검색
-        private List<Vector2Int> FindBoundaryGrassTiles(CombatMapData map)
+        private List<Vector2Int> FindBoundaryGrassTiles(CombatMapData map,CombatMapGenerationSettings settings)
         {
             List<Vector2Int> boundaries = new List<Vector2Int>();
 
@@ -81,7 +75,7 @@ namespace CombatSpace
                 {
                     Vector2Int position = new Vector2Int(x, y);
 
-                    if (IsNearBase(map, position))
+                    if (IsNearBase(map,settings,position))
                     {
                         continue;
                     }
