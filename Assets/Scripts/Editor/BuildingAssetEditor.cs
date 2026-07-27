@@ -16,7 +16,7 @@ public class BuildingAssetEditor : Editor
         EditorGUILayout.Space();
 
         // enumValueIndex는 enum 선언 순서상의 인덱스. BuildingType이 명시적 값 없이
-        // 선언 순서(Production=0, General=1, Skill=2) 그대로라 (int)value와 일치하지만,
+        // 선언 순서(Production=0, General=1, Skill=2, Store=3) 그대로라 (int)value와 일치하지만,
         // 선언 순서가 바뀌거나 명시적 값이 추가되면 더 이상 일치하지 않으니 주의.
         var type = (BuildingType)buildingTypeProp.enumValueIndex;
         switch (type)
@@ -26,6 +26,9 @@ public class BuildingAssetEditor : Editor
                 break;
             case BuildingType.Skill:
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("Skill"), true);
+                break;
+            case BuildingType.Store:
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("Exchange"), true);
                 break;
             case BuildingType.General:
                 EditorGUILayout.HelpBox("General 타입은 추가 필드가 없습니다.", MessageType.None);
