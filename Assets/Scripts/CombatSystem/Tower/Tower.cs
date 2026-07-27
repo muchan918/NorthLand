@@ -95,7 +95,9 @@ namespace NorthLand.Combat
 
         public void OnDeselected()
         {
-            _rangeCircle?.Hide();
+            // `?.`는 순수 참조 검사라 **파괴된** 원(타워 소모·철거로 자식째 파괴)도 통과시켜 Hide() 안에서
+            // MissingReferenceException이 난다 → Unity 오버로드 ==로 검사한다.
+            if (_rangeCircle != null) _rangeCircle.Hide();
             TowerInfoUI.Instance.HideInfo();
         }
 
