@@ -43,6 +43,18 @@ public class GameSpeedController : MonoBehaviour
 
     private void Awake()
     {
+        if (speedControls == null)
+        {
+            speedControls = GetComponent<CanvasGroup>();
+        }
+
+        if (speedControls == null)
+        {
+            Debug.LogError(
+                "[GameSpeedController] CanvasGroup이 연결되지 않았습니다.",
+                this);
+        }
+
         if (Instance != null && Instance != this)
         {
             Debug.LogError(
