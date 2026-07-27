@@ -336,13 +336,19 @@ namespace CombatSpace
 
             bool baseOnVerticalEdge =basePosition.x == 0 ||basePosition.x == map.Width - 1;
 
+            if (baseOnVerticalEdge)
+            {
+                return position.x == basePosition.x;
+            }
+
             bool baseOnHorizontalEdge =basePosition.y == 0 ||basePosition.y == map.Height - 1;
 
-            bool positionOnBaseVerticalEdge =baseOnVerticalEdge &&position.x == basePosition.x;
+            if (baseOnHorizontalEdge)
+            {
+                return position.y == basePosition.y;
+            }
 
-            bool positionOnBaseHorizontalEdge =baseOnHorizontalEdge &&position.y == basePosition.y;
-
-            return positionOnBaseVerticalEdge ||positionOnBaseHorizontalEdge;
+            return false;
         }
     }
 }
