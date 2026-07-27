@@ -13,7 +13,7 @@ namespace CombatSpace
                 return false;
             }
 
-            List<Vector2Int> ordered = CreateNearestNeighborOrder(map.MajorWaypoints, map.RouteStartPosition);
+            List<Vector2Int> ordered = CreateNearestNeighborOrder(map.MajorWaypoints, map.BasePosition);
 
             ImproveWithTwoOpt(ordered);
 

@@ -93,7 +93,7 @@ namespace CombatSpace
         {
             List<Vector2Int> targets = new List<Vector2Int>(  map.MajorWaypoints.Count + 1);
 
-            targets.Add(map.RouteStartPosition);
+            targets.Add(map.BasePosition);
 
             targets.AddRange(map.MajorWaypoints);
 
@@ -180,6 +180,11 @@ namespace CombatSpace
                     {
                         continue;
                     }
+                    if (IsBlockedBaseEdgePosition(map,nextPosition,goal))
+                    {
+                        continue;
+                    }
+                 
 
                     // 기존 Road와 겹치는 것 방지
                     if (occupiedRoute.Contains( nextPosition) && nextPosition != goal)
@@ -319,6 +324,31 @@ namespace CombatSpace
             path.Reverse();
 
             return path;
+        }
+        private bool IsBlockedBaseEdgePosition(CombatMapData map,Vector2Int position,Vector2Int goal)
+        {
+            if (position == map.BasePosition ||position == goal)
+            {
+                return false;
+            }
+
+            Vector2Int basePosition =map.BasePosition;
+
+            bool baseOnVerticalEdge =basePosition.x == 0 ||basePosition.x == map.Width - 1;
+
+            if (baseOnVerticalEdge)
+            {
+                return position.x == basePosition.x;
+            }
+
+            bool baseOnHorizontalEdge =basePosition.y == 0 ||basePosition.y == map.Height - 1;
+
+            if (baseOnHorizontalEdge)
+            {
+                return position.y == basePosition.y;
+            }
+
+            return false;
         }
     }
 }

@@ -52,6 +52,9 @@ namespace CombatSpace
         [Min(1)]
         public int GrassRadius = 5;
 
+        [Min(0)]
+        public int BaseProtectionRange = 5;
+
         [Header("Buff Tiles")]
         [Tooltip("이번 맵에서 생성할 잔디 타일 종류와 가중치")]
         public BuffTileSpawnPool BuffTilePool;
@@ -220,6 +223,15 @@ namespace CombatSpace
                 errorMessage =
                     "버프 타일 중첩 규칙 설정 오류: " +
                     buffTileRuleError;
+
+                return false;
+            }
+
+
+            if (BaseProtectionRange < 0)
+            {
+                errorMessage =
+                    "본진 침식 보호 범위는 0 이상이어야 합니다.";
 
                 return false;
             }
