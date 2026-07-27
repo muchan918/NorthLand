@@ -51,6 +51,7 @@ public class BuffSkillManager : MonoBehaviour
     float effectiveAttackSpeedMultiplier;
     float effectiveDuration;
     float effectiveCooldown;
+    int lastMagicLabLevel = -1; // 레벨 변경 시에만 로그를 남기기 위한 캐시(-1: 최초 1회는 무조건 로그).
 
     public bool IsReady => cooldownTimer <= 0f;
     public float CooldownRemaining01 => effectiveCooldown <= 0f ? 0f : Mathf.Clamp01(cooldownTimer / effectiveCooldown);
@@ -104,6 +105,12 @@ public class BuffSkillManager : MonoBehaviour
             effectiveAttackSpeedMultiplier = attackSpeedMultiplier;
             effectiveDuration = buffDuration;
             effectiveCooldown = cooldown;
+        }
+
+        if (level != lastMagicLabLevel)
+        {
+            Debug.Log($"[BuffSkill] 마법 연구소 Lv{level} 적용 — 데미지배율={effectiveDamageMultiplier:F2}, 공속배율={effectiveAttackSpeedMultiplier:F2}, 지속시간={effectiveDuration}초, 쿨다운={effectiveCooldown}초");
+            lastMagicLabLevel = level;
         }
     }
 

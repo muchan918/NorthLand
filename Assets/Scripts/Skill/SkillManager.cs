@@ -62,6 +62,7 @@ public class SkillManager : MonoBehaviour
     float effectiveDamage;
     float effectiveRadius;
     float effectiveCooldown;
+    int lastMagicLabLevel = -1; // 레벨 변경 시에만 로그를 남기기 위한 캐시(-1: 최초 1회는 무조건 로그).
 
     public float Radius => effectiveRadius;
     public bool IsReady => cooldownTimer <= 0f;
@@ -134,6 +135,12 @@ public class SkillManager : MonoBehaviour
             effectiveDamage = damage;
             effectiveRadius = radius;
             effectiveCooldown = cooldown;
+        }
+
+        if (level != lastMagicLabLevel)
+        {
+            Debug.Log($"[Skill] 마법 연구소 Lv{level} 적용 — 감전 데미지={effectiveDamage}(x{effectiveDamage / damage:F2}), 사거리={effectiveRadius}(x{effectiveRadius / radius:F2}), 쿨다운={effectiveCooldown}(x{effectiveCooldown / cooldown:F2})");
+            lastMagicLabLevel = level;
         }
     }
 
