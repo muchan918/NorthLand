@@ -119,7 +119,7 @@ namespace NorthLand.Combat
 
         public void OnDeselected()
         {
-            _rangeCircle?.Hide();
+            if (_rangeCircle != null) _rangeCircle.Hide();
             TowerInfoUI.Instance.HideInfo();
         }
 
