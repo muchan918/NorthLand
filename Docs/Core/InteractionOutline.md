@@ -1,6 +1,6 @@
 # 상호작용 아웃라인(Interaction Outline) — 설계 명세
 
-> **상태**: **설계 확정 · 구현 미착수(코드 0줄)**. 이 문서는 이슈 #213 착수 전 조사·결정 기록이며, 아래 "구현 예정 파일"은 **아직 존재하지 않는다**. 구현이 진행되면 각 절의 `TODO`를 실제 동작으로 갱신한다.
+> **상태**: **렌더 경로 스파이크 검증 완료(§10) · 컴포넌트 구현 미착수(C# 0줄)**. 검증으로 확정된 것은 URP 설정 2개(`PC_Renderer`/`Mobile_Renderer`에 아웃라인 렌더러 피처 추가 + 레이어 마스크 제외)와 `OutlineShell` 레이어(12) 신설이며 **이미 커밋 대상**이다. 아래 "구현 예정 파일" 중 `.cs`·SO는 **아직 존재하지 않는다**. 구현이 진행되면 각 절의 `TODO`를 실제 동작으로 갱신한다.
 > **소유**: n0wst4ndup(#213)
 > **이슈**: #213 [Feature] 상호작용 아웃라인 — 호버=노란색 / 선택=초록색(그룹 포함) / 합성 후보 버튼 호버 시 재료 타워만 핑크색
 > **구현 예정 파일**(전부 신규 또는 수정 예정 — 미착수):
@@ -12,8 +12,10 @@
 > - `Assets/Scripts/UI/TowerPanel/TowerMergeCandidateHover.cs` — (신규) 후보 버튼 EventSystem 호버 → 코디네이터 프리뷰 호출
 > - `Assets/Scripts/UI/TowerPanel/TowerMergePanelView.cs` — (수정) `BuildCandidates`에서 위 컴포넌트 배선
 > - `Assets/Scripts/ManagementSpace/Territory/View/TerritoryNodeStateVisual.cs` — (수정) `IOutlineTargetProvider` 구현(회오리=null, 섬=인스턴스)
-> - `Assets/Settings/PC_Renderer.asset` · `Assets/Settings/Mobile_Renderer.asset` — (수정) 아웃라인 렌더러 피처 추가 + 레이어 마스크 조정 **양쪽 동일 적용**
-> - `ProjectSettings/TagManager.asset` — (수정) `OutlineShell` 레이어 신설
+> - `Assets/Scripts/Editor/OutlineSmoothMeshBaker.cs` — (신규, 에디터) 대상 메시의 스무스 노멀 사본을 에셋으로 굽는 메뉴(§6.4)
+> - `Assets/Scripts/GameManager/MouseManager/Highlight/OutlineSmoothMeshRegistry.cs` + `.asset` — (신규) 원본 메시 → 스무스 사본 매핑 SO(런타임 부착 컴포넌트가 인스펙터 배선 없이 조회)
+> - `Assets/Settings/PC_Renderer.asset` · `Assets/Settings/Mobile_Renderer.asset` — (**적용 완료**) 아웃라인 렌더러 피처 추가 + `OutlineShell` 레이어 마스크 제외, PC/Mobile 동일
+> - `ProjectSettings/TagManager.asset` — (**적용 완료**) `OutlineShell` 레이어(12) 신설
 > **관련**: #148(전역 비주얼 룩 파이프라인 — 툰 셰이더), #138(경영 공간 건물 시인성), #67(호버 훅), #183/#192/#210, WL-076b·WL-085·WL-087
 > **참조**: `Docs/Core/MouseManager.md` §8, `Docs/Core/TowerMerge.md` §8.4, `Docs/Review/SystemMap.md`, `Docs/Tools/unity-cli-guide.md`
 > **문서 계약**: 코드가 이 명세와 어긋나면 문서를 갱신한다(팀 계약 #7). 공개 API·계약이 바뀌는 PR은 SystemMap을 같은 PR에서 갱신한다.
@@ -132,8 +134,24 @@ FlatKit의 per-object 아웃라인은 **`FlatKit/Stylized Surface` 셰이더의 
 
 - 이 피처를 **`PC_Renderer.asset`·`Mobile_Renderer.asset` 양쪽에** 1개씩 추가한다(CLAUDE.md: 렌더러/파이프라인 설정은 PC/Mobile 동시 적용).
 - 피처의 **Layer Mask = `OutlineShell` 레이어만** → §2.1의 913 드로우 문제가 발생하지 않는다. 상시 비용은 "활성 shell 수"에 정확히 비례한다.
-- shell의 **본체 패스(ForwardLit/GBuffer)가 그려지면 원본과 z-파이팅**한다. 이를 막는 1순위 방법은 Universal Renderer의 **`Opaque Layer Mask` / `Transparent Layer Mask`에서 `OutlineShell`을 제외**하는 것 — 카메라 컬링 마스크는 그대로 두므로 cullResults에는 남아 있고 렌더러 피처는 계속 그릴 수 있다. 2순위(폴백)는 shell 머티리얼을 알파 클립(`_AlphaClip=1`, `_Cutoff=1`, `_BaseColor.a=0`)으로 만들어 본체 프래그먼트를 전부 버리는 것. **어느 쪽이 실제로 동작하는지는 §10 스파이크에서 확정한다.**
-- 아웃라인 폭은 **스크린스페이스**(`_OutlineSpace = Screen`)를 기본으로 한다 — 카메라 줌 범위가 있어 오브젝트스페이스로 두면 줌아웃 시 선이 사라진다. `_CameraDistanceImpact`로 거리 보정 정도를 조절한다.
+- shell의 **본체 패스(ForwardLit/GBuffer)가 그려지면 원본과 z-파이팅**한다. → Universal Renderer의 **`Opaque Layer Mask` / `Transparent Layer Mask`에서 `OutlineShell`을 제외**하면 본체 패스가 아예 그려지지 않는다(카메라 컬링 마스크는 그대로 두므로 cullResults에는 남아 렌더러 피처는 계속 그린다). **스파이크에서 검증됨(T1 해결) → 알파 클립 폴백은 불필요.** 적용값: `m_OpaqueLayerMask` = `m_TransparentLayerMask` = `4294963199`(= ~(1<<12)).
+- 피처의 `Event`는 기본값 **300(AfterRenderingOpaques)** 을 쓴다 — 원본이 깊이를 쓴 뒤에 그려야 헐의 안쪽 면이 깊이 테스트에서 탈락하고 실루엣만 남는다.
+
+### 3.4 파라미터 — 게임 카메라가 직교(orthographic)라는 전제
+
+`Main Camera`는 **직교**이고 줌은 `CameraController2`가 `orthographicSize` **70~300**으로 클램프한다(씬 인스턴스 값. 스크립트 기본값 6/35는 씬에서 오버라이드됨). 이 조건에서 스파이크로 확정한 값:
+
+| 프로퍼티 | 값 | 근거 |
+|---|---|---|
+| `_OutlineSpace` | `Screen` | 직교에서도 폭 제어가 예측 가능 |
+| `_CameraDistanceImpact` | **1** | 직교는 `clipPosition.w == 1` 고정이라 기본값(0)이면 폭이 거리 항에 눌려 선이 거의 안 보인다. 1로 두면 `lerp(w, 4, 1) = 4` 상수가 되어 거리 의존이 사라진다 |
+| `_OutlineDepthOffset` | **0 고정** | 직교의 clip z는 선형이라 0.05만 줘도 헐 전체가 깊이 테스트에서 탈락해 아웃라인이 사라진다. **원근에서 내부 크리스를 지우던 이 노브를 직교에서는 쓸 수 없다** → 대신 §6.4 스무스 노멀로 해결 |
+| `_OutlineWidth` | **`C / orthographicSize`, C ≈ 35** (클램프 필요) | 폭은 화면 비율 고정이라 고정값을 쓰면 줌아웃 시 오브젝트를 삼킨다. size 70에서 0.5가 적정, size 300에서는 0.117로 줄여야 얇은 프린지가 된다 |
+| `DR_OUTLINE_SMOOTH_NORMALS` | **on** | §6.4 |
+
+**폭 드라이버**: 공유 머티리얼 3개의 `_OutlineWidth`를 카메라 `orthographicSize` 변화 시 한 번만 갱신하는 작은 컴포넌트를 둔다(모든 shell이 머티리얼을 공유하므로 `SetFloat` 3회로 전체 반영). 상·하한을 둬서 최소 가독 두께와 최대 두께를 보장한다. → 상수 C·클램프 최종값은 실기 튜닝(T8).
+
+**측정 감각**: 타워는 화면에서 size 70일 때 약 100px, size 300일 때 약 20px 높이다. 즉 정밀한 실루엣보다 **가독성**이 기준이다.
 
 ### 3.3 색 — 임시 3종을 한 곳에서
 
@@ -240,7 +258,7 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 
 **정책**: 수집 결과가 상한(**초안 16개**, 인스펙터 노출)을 넘으면 자동 수집을 버리고 **프록시 shell 1개**로 폴백한다 + `Debug.LogWarning`으로 대상 이름과 렌더러 수를 남긴다(조용한 품질 저하 금지).
 
-- 프록시 형상 1순위: 루트 `Collider`(주로 `BoxCollider`) 기반 박스 실루엣 → 1 드로우. 정확한 실루엣은 아니지만 "이 건물이 지금 대상"은 충분히 읽힌다.
+- 프록시 형상 1순위: 루트 `Collider`(주로 `BoxCollider`) 기반 박스 실루엣 → 1 드로우. 정확한 실루엣은 아니지만 "이 건물이 지금 대상"은 충분히 읽힌다. 구현은 **정점 위치가 공유된 유닛 큐브 메시 1개를 static으로 만들고**(uv3에 평균 노멀을 코드로 채워 §6.4의 스무스 노멀 요건을 처음부터 충족) shell 트랜스폼의 스케일로 콜라이더 bounds에 맞춘다 → 대상마다 메시를 만들지 않으므로 파괴 대상이 늘지 않는다.
 - 프록시 형상 2순위(후속): 아트가 만든 저폴리 실루엣 메시를 `OutlineHighlight`에 직접 지정 → #148/#138에서 개선.
 
 ### 6.3 SkinnedMeshRenderer 처리
@@ -250,18 +268,41 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 - shell도 `SkinnedMeshRenderer`로 만들고 `sharedMesh`·`bones`·`rootBone`을 **원본과 공유**한다.
 - 블렌드셰이프 가중치는 원본이 매 프레임 바뀌므로, **shell이 켜져 있는 동안만** 원본 → shell로 가중치를 복사한다(꺼져 있으면 아무 일도 하지 않는다). 복사를 빠뜨리면 산 모양이 어긋난 아웃라인이 보인다.
 - 스키닝이 두 번 돌지만 동시 대상이 1~2개라 무해하다.
+- 산의 shell 메시는 §6.4의 스무스 사본을 쓰되 **블렌드셰이프가 보존된 사본**이어야 한다(`Object.Instantiate(mesh)`는 블렌드셰이프를 복사한다).
+
+### 6.4 스무스 노멀 프리베이크 (필수)
+
+**왜 필요한가**: 대상 모델이 전부 하드(스플릿) 노멀 로우폴리다. 인버티드 헐을 그대로 씌우면 헐이 면 단위로 찢어져 게임 줌에서 **점선처럼 끊긴 프린지**가 된다(스파이크 확인). 원근에서는 `_OutlineDepthOffset`으로 가릴 수 있었지만 직교에서는 그 노브를 못 쓴다(§3.4). FlatKit의 해법이자 유일하게 깨끗한 결과를 낸 방법은 **정점 위치를 공유하는 노멀을 평균해 uv3(TEXCOORD2)에 넣고 `DR_OUTLINE_SMOOTH_NORMALS`를 켜는 것**이다.
+
+**왜 런타임 스무딩이 아니라 프리베이크인가**
+
+| 사실 | 근거(실측) |
+|---|---|
+| FlatKit `MeshSmoother`는 런타임에서 못 쓴다 | `Assets/Imported/FlatKit/Utils/FlatKit.Utils.Editor.asmdef` → `includePlatforms: ["Editor"]` |
+| 대상 메시 대부분이 런타임에서 읽히지 않는다 | `isReadable`: ArcherTower 1/1 true, **SodaTower 0/2, RollyShooter 0/2, Mine 0/44, Mountain_01 0/1** → 런타임 `mesh.vertices` 접근 불가 |
+| 그러나 **에디터에서는 읽힌다** | `isReadable == false`인 `CandyTower_01`(9867 verts, 서브메시 2)·`TowerCap_01`에서 에디터 `mesh.vertices` 접근 성공 |
+| 서브메시 개수는 우리 베이커에선 제약이 아니다 | FlatKit 인스펙터 UI만 멀티 서브메시를 거부한다. uv3만 채우면 되므로 서브메시 수와 무관(실제로 2-서브메시 메시에서 스무딩·렌더 성공) |
+
+**절차**
+1. 에디터 메뉴(`OutlineSmoothMeshBaker`)로 대상 프리팹 트리의 메시를 수집한다.
+2. 메시별로 `Object.Instantiate` → `FlatKit.MeshSmoother.SmoothNormals(clone)`(에디터 asmdef 참조 가능) → `Assets/Imported/@NorthLand/Meshes/OutlineSmooth/<name>_smooth.asset`으로 저장. **벤더 트리(`Sweet_Land`, `TARBO`)는 건드리지 않는다.**
+3. 원본 메시 → 스무스 사본 매핑을 `OutlineSmoothMeshRegistry`(SO)에 기록. shell 생성 시 이 레지스트리로 조회하고, **없으면 원본 메시로 폴백**(찢어진 아웃라인이지만 동작은 한다) + 1회 경고 로그.
+4. 대상 규모: 타워 메시 + 산 메시 기준 **15~20개** 예상. 건물은 프록시(§6.2)를 쓰므로 베이크 대상이 아니다(프록시 메시는 우리가 생성하므로 스무스 노멀을 처음부터 채워 만든다).
+
+**#148 재사용**: 툰 룩에서 아웃라인을 상시로 켜면 같은 스무스 노멀 문제를 그대로 만난다 → 이 베이커·레지스트리는 #148에서 그대로 쓰인다(§9).
 
 ---
 
 ## 7. 레이어 / 렌더링 설정
 
-| 항목 | 값 | 비고 |
+| 항목 | 값 | 상태 / 비고 |
 |---|---|---|
-| 신규 레이어 | `OutlineShell` = **12** | 현재 사용: 0 Default, 1 TransparentFX, 2 Ignore Raycast, 3 Ground, 4 Water, 5 UI, 6 Selectable, 7 Enemy, 8 Soldier(병사 리젝 잔재), 9 PlayerBase, 11 MinimapOverlay. **10과 12 이상이 비어 있음** |
-| 렌더러 피처 | `ObjectOutlineRendererFeature` 1개 | `PC_Renderer.asset`(현재 SSAO만, **Deferred** `m_RenderingMode: 2`) · `Mobile_Renderer.asset`(현재 피처 없음) **양쪽** |
-| 피처 Layer Mask | `OutlineShell`만 | 상시 비용을 활성 shell 수로 한정 |
-| Opaque/Transparent Layer Mask | `OutlineShell` 제외 | shell 본체 패스 억제(1순위). 현재 둘 다 `4294967295`(전체) |
-| 카메라 컬링 마스크 | 변경 없음(현재 `-1`) | cullResults에 남아야 피처가 그릴 수 있다 |
+| 신규 레이어 | `OutlineShell` = **12** | **적용 완료**. 기존: 0 Default, 1 TransparentFX, 2 Ignore Raycast, 3 Ground, 4 Water, 5 UI, 6 Selectable, 7 Enemy, 8 Soldier(병사 리젝 잔재), 9 PlayerBase, 11 MinimapOverlay (10·13+ 비어 있음) |
+| 렌더러 피처 | `Flat Kit Per Object Outline`(`ObjectOutlineRendererFeature`) | **적용 완료** — `PC_Renderer.asset`(SSAO와 공존, **Deferred** `m_RenderingMode: 2`) · `Mobile_Renderer.asset`(Forward) 양쪽. `Event: 300`, `overrideShader` = FlatKit/Stylized Surface, `overrideShaderPassIndex: 1`, `PassNames: [Outline]` |
+| 피처 Layer Mask | `OutlineShell`만 (`m_Bits: 4096`) | **적용 완료** — 상시 비용을 활성 shell 수로 한정 |
+| `autoReferenceMaterials` | **0(off)** | 켜두면 FlatKit 머티리얼의 아웃라인 토글을 끌 때 이 피처가 자동 삭제될 수 있다 → 우리 shell 머티리얼은 코드가 관리하므로 끈다 |
+| Opaque/Transparent Layer Mask | `OutlineShell` 제외 (`m_Bits: 4294963199`) | **적용 완료** — shell 본체 패스 억제(§3.2에서 검증) |
+| 카메라 컬링 마스크 | 변경 없음(`-1`) | cullResults에 남아야 피처가 그릴 수 있다 |
 
 > **미니맵 주의**: 씬에 `MinMapCamera`(cullingMask `-1`, depth 0)와 `Main Camera`(`-1`, depth -1)가 있다. 그대로 두면 **미니맵에도 아웃라인이 나온다.** 미니맵에 표시할지 결정하고, 표시하지 않을 거면 `MinMapCamera`의 컬링 마스크에서 `OutlineShell`을 제외한다. → **TODO(구현 시 결정)**
 
@@ -277,7 +318,7 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 | Shift로 그룹에서 제거 | 코디네이터 `RefreshHighlight` diff가 `OnGroupDeselected` → 즉시 해제(WL-087 표면 재발 없음) |
 | 밤 전환 | 코디네이터 `HandleDayToNight`가 집합 리셋 → 그룹 초록·핑크 해제. 단일 초록은 `MouseManager` 선택이 유지되는 동안 남는다(§5.1 의도된 동작) |
 | 합성 소모·철거·사망 | 타워 GO 파괴 → shell은 자식이라 함께 파괴. 코디네이터는 `Tower.ActiveChanged` → `Prune`(WL-076b)로 죽은 참조 정리 |
-| 컴포넌트 파괴 | 런타임 생성물 중 **파괴할 것이 없다**(메시 공유, 머티리얼 static 공유). shell GO는 자식이라 자동. → `RangeCircle`처럼 `OnDestroy`에서 Mesh/Material을 파괴하는 코드가 **필요 없다**는 점을 주석으로 남긴다(PR#115 리뷰 맥락과 다른 이유로 안전) |
+| 컴포넌트 파괴 | 런타임 생성물 중 **대상별로 파괴할 것이 없다** — shell 메시는 원본/프리베이크 에셋 공유, 프록시는 static 유닛 큐브 공유, 머티리얼 3개도 static 공유다. shell GO는 자식이라 자동 파괴. → `RangeCircle`(PR#115 리뷰)처럼 `OnDestroy`에서 Mesh/Material을 파괴할 필요가 **없는 이유**를 주석으로 명시한다. 단 static 공유물(머티리얼 3개·유닛 큐브)은 도메인 리로드까지 유지되므로 **대상별 인스턴스를 만들지 않는 규칙을 깨지 말 것** |
 
 ---
 
@@ -297,18 +338,26 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 
 ---
 
-## 10. 구현 전 검증 스파이크 (필수)
+## 10. 검증 스파이크 결과 (2026-07-27, GameScene 편집 모드)
 
-코드 본 작업 전에 **에디터에서 다음을 확인**한다. 실패 시 §2.4의 폴백을 재검토한다.
+`unity-cli exec`로 임시 타워(`ArcherTower`, `SodaTower`)를 세우고 shell을 붙여 씬 뷰 캡처로 확인했다. 스파이크 오브젝트·임시 머티리얼·스무스 사본은 모두 파괴하고 씬은 저장하지 않았다(잔재 0, 콘솔 에러 0).
 
-1. `OutlineShell` 레이어 신설 + `ObjectOutlineRendererFeature`를 PC/Mobile 렌더러에 추가.
-2. 타워 하나에 shell 1개를 임시 부착(`unity-cli exec`)하고, `Opaque/Transparent Layer Mask` 제외만으로 **본체 패스가 안 그려지는지**(z-파이팅 없음) 확인. 안 되면 알파 클립 폴백을 시도.
-3. **PC(Deferred)와 Mobile 렌더러 양쪽**에서 아웃라인이 보이는지 스크린샷으로 확인(`unity-cli screenshot`, 가이드 §4.J의 편집모드 프리뷰 우선).
-4. 아웃라인이 켜진 상태에서 **선택·호버 레이캐스트가 그대로 동작**하는지(shell에 콜라이더가 없으므로 구조적으로 안전하나 실측).
-5. 줌 인/아웃에서 선 굵기가 쓸 만한지(`_OutlineWidth`·`_CameraDistanceImpact` 초기값 잡기).
-6. `MinMapCamera`에 아웃라인이 나오는지 확인 → §7 TODO 결정.
+| # | 항목 | 결과 |
+|---|---|---|
+| 1 | `OutlineShell` 레이어(12) 신설 + 피처를 PC/Mobile에 추가 | ✅ 적용, 커밋 대상 |
+| 2 | `Opaque/Transparent Layer Mask` 제외만으로 shell 본체 패스 억제 | ✅ **z-파이팅 없음 → 알파 클립 불필요(T1 종결)** |
+| 3 | PC(**Deferred**) 렌더러에서 아웃라인 렌더 | ✅ 확인 |
+| 3b | Mobile(Forward) 렌더러에서 아웃라인 렌더 | ⚠️ **미확인** — 품질 레벨 전환이 필요해 보류(T9) |
+| 4 | 레이캐스트 비간섭 | ✅ 구조적 보장(shell에 콜라이더를 만들지 않음) |
+| 5 | 직교 카메라 파라미터 확정 | ✅ §3.4 표 — `impact=1`, `depthOffset=0`, `width = 35/orthoSize` |
+| 6 | 하드 노멀 아웃라인 품질 | ❌ 게임 줌에서 점선 프린지 → **스무스 노멀 필수(§6.4)** |
+| 7 | 스무스 노멀 적용 후 품질 | ✅ size 70에서 연속된 테두리로 읽힘(폭 0.5). size 300에서는 폭 0.117로 스케일해야 얇은 프린지 유지 |
+| 8 | 에디터에서 `isReadable == false` 메시 읽기 | ✅ 가능 → 프리베이크 경로 성립(§6.4) |
+| 9 | `MinMapCamera` 아웃라인 노출 | ⚠️ 미확인, 컬링 마스크가 `-1`이라 나올 것으로 예상(T2) |
 
-검증 명령 규약은 `Docs/Tools/unity-cli-guide.md`를 따른다(`.cs` 수정 후 `editor refresh --compile` → `console --type error` 0건, 에셋 텍스트 편집 후 `reserialize`).
+**부수 발견**: `AssetDatabase.SaveAssets()`가 무관한 더티 에셋(JP 폰트 아틀라스, 미니맵 RenderTexture)까지 저장한다 → 스파이크 후 `git checkout`으로 되돌렸다. 또 URP 렌더러 에셋을 에디터가 저장하면 `m_AssetVersion 2→3` 포맷 마이그레이션(신규 필드 `m_PrepassLayerMask`·`xrSystemData`·`m_DepthAttachmentFormat` 등)이 함께 기록된다 — 불가피하므로 이 브랜치에 포함한다.
+
+검증 명령 규약은 `Docs/Tools/unity-cli-guide.md`를 따른다(`.cs` 수정 후 `editor refresh --compile` → `console --type error` 0건, 에셋 텍스트 편집 후 `reserialize`). 씬 뷰 캡처는 `sv.pivot/rotation/size` 설정 후 **`sv.Focus()`** 를 호출해야 카메라가 실제로 갱신된다(백그라운드 에디터에서는 `Repaint()`만으로는 이전 프레임이 찍힌다 — 게임 뷰 캡처는 편집 모드에서 갱신되지 않아 판단 근거로 쓰지 말 것).
 
 ---
 
@@ -335,13 +384,16 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 
 | # | 항목 | 결정권 |
 |---|---|---|
-| T1 | shell 본체 패스 억제 방식(Layer Mask 제외 vs 알파 클립) | §10 스파이크 결과 |
-| T2 | 미니맵(`MinMapCamera`)에 아웃라인 표시 여부 | 기획/아트 |
+| ~~T1~~ | ~~shell 본체 패스 억제 방식~~ | **종결** — Layer Mask 제외로 확정(§10-2) |
+| T2 | 미니맵(`MinMapCamera`)에 아웃라인 표시 여부 | 기획/아트 (미확인, 컬링 마스크 `-1`) |
 | T3 | 렌더러 수집 상한 값(초안 16)과 프록시 실루엣 품질 수용선 | 구현 중 실측 → 아트 |
 | T4 | 임시 3색의 최종 색·선 굵기 | 아트 TBD |
 | T5 | 큰 건물 저폴리 실루엣 프록시 메시 제작 | #148/#138 |
 | T6 | 관통(엑스레이) 표시 필요 여부 | 기획 |
 | T7 | `Soldier` 레이어(8) 등 리젝된 시스템 잔재 정리 | 별건 |
+| T8 | 폭 드라이버 상수(C ≈ 35)와 상·하한 클램프 최종값 | 실기 튜닝 |
+| T9 | **Mobile(Forward) 렌더러 시각 검증** — 품질 레벨 전환 후 캡처 | 구현 중 필수 |
+| T10 | 스무스 사본이 없는 메시의 폴백 정책(원본 사용 + 경고 vs 아웃라인 생략) | 구현 중 |
 
 ---
 
@@ -350,3 +402,4 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 | 날짜 | 내용 |
 |---|---|
 | 2026-07-27 | 최초 작성 — #213 착수 전 조사·결정 기록(shell 방식 확정, 컨버전은 #148로 분리). 구현 미착수 |
+| 2026-07-27 | 렌더 경로 스파이크 완료 — 레이어(12)·렌더러 피처 PC/Mobile 적용, T1 종결(Layer Mask 제외), 직교 파라미터 확정(§3.4), 스무스 노멀 프리베이크 필수 판정(§6.4). Mobile 시각 검증(T9)·미니맵(T2) 미확인 |
