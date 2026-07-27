@@ -115,17 +115,29 @@ public class BuildingAsset : ScriptableObject
         public ResourceAsset InputResource;
 
         // 마법 연구소 등 스킬 건물의 업그레이드 레벨 테이블. index i = 레벨 (i+1). 비어 있으면 업그레이드 불가(최대 레벨 = Count).
-        // 생산 건물(UpgradeLevels)과 달리 주민당량 같은 즉시 효과값이 없다 — 각 레벨은 도달 비용(마나석)만 authoring하고,
-        // 강화 효과(스킬 강화 등)는 소비 시스템이 건물 레벨을 참조해 정한다(결합도 최소, 효과는 TODO). BuildingUpgrade.md §1.
+        // 도달 비용(마나석)과 강화 배율을 같은 리스트에 authoring한다(#205) — 비용과 배율이 서로 다른 파일에
+        // 나뉘어 레벨 개수가 어긋나는 문제(PR#216 리뷰)를 원천 차단. 배율은 소비 시스템(SkillManager/
+        // BuffSkillManager)이 자기가 쓸 필드만 읽는다(결합도 최소, BuildingUpgrade.md §1·§8).
         public List<SkillUpgradeLevel> UpgradeLevels = new List<SkillUpgradeLevel>();
     }
 
     // 스킬/업그레이드 전용 건물(마법 연구소 등)의 업그레이드 한 단계. 생산 건물의 UpgradeLevel과 달리
-    // 주민당량 필드가 없다(효과는 레벨을 참조하는 소비 시스템이 정함) — 이 단계는 도달 비용만 갖는다.
+    // 주민당량 필드가 없다 — 도달 비용 + 소비 시스템이 참조하는 강화 배율을 갖는다.
     [System.Serializable]
     public class SkillUpgradeLevel
     {
         // 이 레벨에 도달하기 위해 소모하는 비용(ManagementController.TrySpend 게이트웨이 경유). 마법 연구소는 마나석.
         public List<ResourceCost> Cost = new List<ResourceCost>();
+
+        // 감전(SkillManager, #205) 기본 스탯 배율. 1 = 강화 없음(효과 없음).
+        public float DamageMultiplier = 1f;
+        public float RadiusMultiplier = 1f;
+        public float CooldownMultiplier = 1f;
+
+        // 버프(BuffSkillManager, #205) 기본 스탯 배율. 1 = 강화 없음(효과 없음).
+        public float BuffDamageMultiplierScale = 1f;
+        public float BuffAttackSpeedMultiplierScale = 1f;
+        public float BuffDurationMultiplier = 1f;
+        public float BuffCooldownMultiplier = 1f;
     }
 }
