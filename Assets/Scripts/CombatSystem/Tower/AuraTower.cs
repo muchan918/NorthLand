@@ -164,16 +164,37 @@ namespace NorthLand.Combat
 
         void OnEnable()
         {
-            // Tower.OnEnable의 Magic 오부착 가드와 대칭(WL-100). AuraTower는 Magic 타워 전용이므로
-            // 비-Magic(또는 null) 에셋·Magic 데이터 미할당은 오라가 조용히 안 도는 무증상 실수 → 즉시 드러낸다.
+            // Tower.OnEnable의 Magic 오부착 가드와 대칭(WL-100). AuraTower는 Magic 타워 전용이다.
+            // Unity가 중첩 Serializable(Magic)을 항상 인스턴스화하므로 data.Magic null 검사는 무의미 —
+            // 실제 무증상 오작성은 (a) MagicEffectType 미선택(None) (b) 활성 오라 블록이 비어 있음이며, 아래에서 드러낸다.
             if (!IsMagic)
             {
                 Debug.LogError("[AuraTower] Magic TowerAsset이 아님(미할당 또는 비-Magic) — Magic 타워 전용 컴포넌트입니다", this);
                 return;
             }
-            if (data.Magic == null)
+            if (IsDebuff)
             {
-                Debug.LogError("[AuraTower] Magic 데이터 블록(Magic) 미할당 — 오라가 동작하지 않습니다", this);
+                var d = DebuffAura;
+                bool hasDot = d != null && d.Damage != null && d.Damage.HasDamage;
+                bool hasSlow = d != null && ComputeSlowMultiplier(d.Modifiers) < 1f;
+                if (d == null || d.Radius <= 0f || (!hasDot && !hasSlow))
+                {
+                    Debug.LogError("[AuraTower] Debuff 오라 내용 없음(반경 0 또는 DoT·슬로우 모두 없음) — 아무 효과도 적용되지 않습니다", this);
+                    return;
+                }
+            }
+            else if (IsBuff)
+            {
+                var b = BuffAura;
+                if (b == null || b.Modifiers == null || b.Modifiers.Count == 0)
+                {
+                    Debug.LogError("[AuraTower] Buff 오라 Modifiers 없음 — 아무 효과도 적용되지 않습니다", this);
+                    return;
+                }
+            }
+            else
+            {
+                Debug.LogError("[AuraTower] MagicEffectType이 None — Buff/Debuff를 선택해야 합니다", this);
                 return;
             }
 
