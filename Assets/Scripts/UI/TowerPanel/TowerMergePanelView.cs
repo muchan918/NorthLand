@@ -78,6 +78,9 @@ public class TowerMergePanelView : MonoBehaviour
             var captured = recipe; // 클로저 캡처(루프 변수 캡처 함정 회피)
             button.onClick.AddListener(() => { if (_coordinator != null) _coordinator.RequestMerge(captured); });
 
+            // 호버 시 소모될 재료 타워만 핑크 아웃라인(#213 §5.3). 버튼 프리팹을 편집하지 않고 런타임 부착한다.
+            button.gameObject.AddComponent<TowerMergeCandidateHover>().Init(_coordinator, captured);
+
             button.gameObject.SetActive(false); // 기본 숨김 — 매칭 시 켠다
             _candidates.Add((button, recipe));
         }

@@ -203,7 +203,7 @@ public class MouseManager : MonoBehaviour
     private void SetHover(IHoverable next)
     {
         if (ReferenceEquals(_hovered, next)) return;
-        _hovered?.OnHoverExit();
+        if (IsAlive(_hovered)) _hovered.OnHoverExit();
         _hovered = next;
         _hovered?.OnHoverEnter();
         OnHoverChanged?.Invoke(_hovered);
@@ -214,10 +214,21 @@ public class MouseManager : MonoBehaviour
     private void Select(ISelectable next)
     {
         if (_selected == next) return;
-        _selected?.OnDeselected();
+        if (IsAlive(_selected)) _selected.OnDeselected();
         _selected = next;
         _selected?.OnSelected();
         OnSelectionChanged?.Invoke(_selected);
+    }
+
+    // 이전 대상이 그새 파괴됐을 수 있다(합성 소모·철거·사망). ISelectable/IHoverable은 **인터페이스** 타입이라
+    // Unity의 파괴 감지(오버로드된 ==)를 타지 않고, C#의 `?.`는 순수 참조 null 검사라 죽은 대상도 통과시킨다
+    // → 그대로 호출하면 대상 내부에서 MissingReferenceException이 난다(합성 후 타워 재선택 시 실제 발생).
+    // HandleSceneLoaded가 필드만 리셋하는 것과 같은 계열의 함정(WL-033) — 통지 전에 생존을 확인한다.
+    private static bool IsAlive(object target)
+    {
+        if (target == null) return false;
+        if (target is Component component) return component != null; // Unity 오버로드 == 파괴 감지
+        return true;
     }
 
     // ── Placement: 배치 (요구사항 ①) ──────────────────────────────

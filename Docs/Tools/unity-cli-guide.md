@@ -180,6 +180,7 @@ unity-cli screenshot --output_path captures/after.png  # 경로 지정 (기본 �
 **사용 시점**: 비주얼 작업의 핵심 반복 도구. 사용자가 비주얼 작업을 요청했으면 자유롭게 캡처한다(규칙 A8의 비주얼 예외). 비시각 작업에선 투기적 캡처 금지.
 
 **철칙**:
+- **프레이밍이 결정적으로 중요하면 씬 뷰 대신 임시 카메라 + `RenderTexture`로 직접 렌더한다.** 에디터 창이 백그라운드일 때 `sv.LookAt(...)`/`pivot`+`Repaint()` 직후 찍은 `--view scene` 캡처가 **이전 프레이밍 그대로** 나오는 것을 실측했다(2026-07-27, #213 §10.1). 확실한 경로: `new GameObject` + `Camera` + `UniversalAdditionalCameraData` → `targetTexture` → `cam.Render()` → `ReadPixels` → `EncodeToPNG` → 캡처 후 `DestroyImmediate`. URP 파이프라인 결과를 그대로 얻으면서 카메라 포즈·해상도가 코드로 고정된다(전/후 A/B에 적합).
 - **씬 뷰 캡처는 플레이 모드가 필요 없다** — 편집 모드의 머티리얼·포스트프로세싱·라이팅·`Simulate`된 파티클을 그대로 찍는다(§5.8). 게임 뷰 캡처가 플레이 모드를 요구하면 A8이 함께 적용.
 - **before/after는 반드시 다른 `--output_path`로.** 기본 경로는 덮어써서 비교가 사라진다.
 - 결정론적 비교 규율은 §5.8, UI 레이아웃 캡처 전 강제 리빌드는 §5.5.

@@ -49,6 +49,14 @@
 - 반복 임팩트(Count)에서도 Burn/Bomb이 정상 발동한다 — 조합 시너지 의도.
 - **웨이브 종료 시** 진행 중이던 추가시전 반복분·미폭발 폭탄은 취소된다(§5 규약, #200).
 
+### 3.1 마법 연구소 기본 스탯 배율 (#205, 보상 축과 독립)
+
+마법 연구소(`magic_lab`) 업그레이드 레벨은 위 보상 특수효과(`SkillEffect.Level`)와는 **완전히 별개인 두 번째 축**이다 —
+연구소 레벨 = **기본 스탯 배율**(`SkillManager`의 damage/radius/cooldown, `BuffSkillManager`의 공격력·공속 배율/지속시간/쿨다운), 보상 = **특수 효과 레벨**(불변). 두 축은 동시 스택된다(`BuildingUpgrade.md` §8 착지점 확정).
+
+- `SkillManager`/`BuffSkillManager`가 `ManagementController.GetUpgradeLevel(magicLabAsset)`로 레벨(int)만 pull하고, 레벨→배율 매핑(인스펙터 authoring 리스트, 수치 placeholder)은 각 스킬 클래스가 소유한다. `ManagementController`는 "스킬"을 전혀 모른다.
+- 시전 시점에 캐싱된 유효값(`effectiveDamage` 등)을 사용 — `ImpactResolved`/`BuffResolved` 이벤트 발행이나 `SkillEffect` 구독 흐름은 건드리지 않는다. 보상 효과들은 여전히 자기 소유 필드 × `Level`로 완전히 독립 계산한다(§3 표 참고).
+
 ## 4. 새 특수효과 추가 절차
 
 1. `WaveRewardType`에 값 추가 — **반드시 맨 뒤에**(enum은 int 직렬화라 순서 바꾸면 기존 보상 에셋이 다른 타입이 됨).
@@ -58,7 +66,7 @@
 3. `GameScene`의 `SkillEffectManager` 오브젝트에 컴포넌트 부착 + 인스펙터 수치 입력.
 4. 보상 에셋(`WaveRewardData`)의 `rewardType`을 새 타입으로 지정해 풀에 등록.
 
-`SkillManager`/`BuffSkillManager`/`SkillEffectManager`는 **수정하지 않는 것이 정상**이다. 수정이 필요해 보이면 구조가 어긋난 것.
+`SkillManager`/`BuffSkillManager`/`SkillEffectManager`의 **이벤트 구독 흐름(`ImpactResolved`/`BuffResolved`, `SkillEffect` 구독 관리)은 수정하지 않는 것이 정상**이다. 수정이 필요해 보이면 구조가 어긋난 것. (예외: §3.1의 마법 연구소 기본 스탯 배율은 시전 시점 base 값 계산에 얹는 별개 축이라 이 제약 밖 — 구독 흐름 자체는 그대로다.)
 
 ## 5. 규약과 함정
 
