@@ -12151,7 +12151,7 @@ MonoBehaviour:
   dummyGridHeight: 50
   dummyAttackRange: 48
   rangeColor: {r: 0.2, g: 0.8, b: 1, a: 0.9}
-  rangeSegments: 48
+  rangeFillColor: {r: 0.2, g: 0.8, b: 1, a: 0.15}
   validCellColor: {r: 0.2, g: 1, b: 0.3, a: 0.78431374}
   invalidCellColor: {r: 1, g: 0.25, b: 0.2, a: 0.78431374}
   tileBuffRules: {fileID: 11400000, guid: 4e66e06684a153f4b80a97f47b2debfc, type: 2}
