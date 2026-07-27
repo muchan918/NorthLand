@@ -1,17 +1,18 @@
 # 상호작용 아웃라인(Interaction Outline) — 설계 명세
 
-> **상태**: **렌더 경로 스파이크 검증 완료(§10) · 컴포넌트 구현 미착수(C# 0줄)**. 검증으로 확정된 것은 URP 설정 2개(`PC_Renderer`/`Mobile_Renderer`에 아웃라인 렌더러 피처 추가 + 레이어 마스크 제외)와 `OutlineShell` 레이어(12) 신설이며 **이미 커밋 대상**이다. 아래 "구현 예정 파일" 중 `.cs`·SO는 **아직 존재하지 않는다**. 구현이 진행되면 각 절의 `TODO`를 실제 동작으로 갱신한다.
+> **상태**: **호버 노랑 / 선택·그룹 초록 / 합성 프리뷰 핑크 구현 완료**(§11 체크리스트). 남은 것은 **영지 섬·산 대상(§5.4)**, **Mobile 렌더러 시각 검증(T9)**, **미니맵 노출 여부(T2)**, 그리고 `MouseManager.md`·`TowerMerge.md`·SystemMap 갱신이다. 색·선 굵기는 전부 **임시(아트 TBD)**.
 > **소유**: n0wst4ndup(#213)
 > **이슈**: #213 [Feature] 상호작용 아웃라인 — 호버=노란색 / 선택=초록색(그룹 포함) / 합성 후보 버튼 호버 시 재료 타워만 핑크색
-> **구현 예정 파일**(전부 신규 또는 수정 예정 — 미착수):
-> - `Assets/Scripts/GameManager/MouseManager/Highlight/OutlineHighlight.cs` — (신규) 아웃라인 표시 컴포넌트, 상태 플래그·색 우선순위·shell 생성/정리
-> - `Assets/Scripts/GameManager/MouseManager/Highlight/OutlineInteractionDriver.cs` — (신규) MouseManager 이벤트 구독 → 호버 노랑·단일 선택 초록 구동
-> - `Assets/Scripts/GameManager/MouseManager/Highlight/IOutlineTargetProvider.cs` — (신규) 아웃라인 대상 GO를 대신 지정하는 훅(영지 노드용)
-> - `Assets/Scripts/GameManager/MouseManager/TowerPlacement/TowerGroupSelectable.cs` — (수정) 하늘색 쿼드 제거, `IHoverable` 추가 구현, 그룹 초록
-> - `Assets/Scripts/GameManager/MouseManager/TowerPlacement/TowerMergeCoordinator.cs` — (수정) `PreviewMerge`/`ClearMergePreview` 추가
-> - `Assets/Scripts/UI/TowerPanel/TowerMergeCandidateHover.cs` — (신규) 후보 버튼 EventSystem 호버 → 코디네이터 프리뷰 호출
-> - `Assets/Scripts/UI/TowerPanel/TowerMergePanelView.cs` — (수정) `BuildCandidates`에서 위 컴포넌트 배선
-> - `Assets/Scripts/ManagementSpace/Territory/View/TerritoryNodeStateVisual.cs` — (수정) `IOutlineTargetProvider` 구현(회오리=null, 섬=인스턴스)
+> **구현 파일**:
+> - `Assets/Scripts/GameManager/MouseManager/Highlight/OutlineHighlight.cs` — (**구현 완료**) 아웃라인 표시 컴포넌트, 상태 플래그·색 우선순위·shell 생성
+> - `Assets/Scripts/GameManager/MouseManager/Highlight/OutlineInteractionDriver.cs` — (**구현 완료**) MouseManager 이벤트 구독 → 호버 노랑·단일 선택 초록 구동 + 줌 대응 폭 갱신
+> - `Assets/Scripts/GameManager/MouseManager/Highlight/IOutlineTargetProvider.cs` — (**구현 완료**) 아웃라인 대상 GO를 대신 지정하는 훅(영지 노드용 — 구현체는 아직 없음)
+> - `Assets/Scripts/GameManager/MouseManager/TowerPlacement/TowerGroupSelectable.cs` — (**수정 완료**) 하늘색 쿼드 제거, `IHoverable` 추가 구현, 그룹 초록
+> - `Assets/Scripts/GameManager/MouseManager/TowerPlacement/TowerMergeCoordinator.cs` — (**수정 완료**) `PreviewMerge`/`ClearMergePreview` 추가
+> - `Assets/Scripts/UI/TowerPanel/TowerMergeCandidateHover.cs` — (**구현 완료**) 후보 버튼 EventSystem 호버 → 코디네이터 프리뷰 호출
+> - `Assets/Scripts/UI/TowerPanel/TowerMergePanelView.cs` — (**수정 완료**) `BuildCandidates`에서 위 컴포넌트 런타임 배선
+> - `Assets/Scripts/GameManager/MouseManager/MouseManager.cs` · `Assets/Scripts/CombatSystem/Tower/Tower.cs` — (**수정 완료**) 파괴된 선택/호버 대상 통지 방어(§8, WL-033 계열 버그 수정)
+> - `Assets/Scripts/ManagementSpace/Territory/View/TerritoryNodeStateVisual.cs` — (미착수) `IOutlineTargetProvider` 구현(회오리=null, 섬=인스턴스)
 > - `Assets/Scripts/Editor/OutlineSmoothMeshBaker.cs` — (**구현 완료**, 에디터) 대상 메시의 스무스 노멀 사본을 에셋으로 굽는 메뉴(§6.4)
 > - `Assets/Scripts/GameManager/MouseManager/Highlight/OutlineSmoothMeshRegistry.cs` — (**구현 완료**) 원본 메시 → 스무스 사본 매핑 SO(런타임 부착 컴포넌트가 인스펙터 배선 없이 `Resources.Load`로 조회)
 > - `Assets/Resources/Outline/OutlineSmoothMeshRegistry.asset` + `Assets/Meshes/OutlineSmooth/*.asset`(13개) — (**생성 완료**) 베이크 산출물
@@ -156,7 +157,9 @@ FlatKit의 per-object 아웃라인은 **`FlatKit/Stylized Surface` 셰이더의 
 
 ### 3.3 색 — 임시 3종을 한 곳에서
 
-`OutlineHighlight`가 **static 공유 머티리얼 3개**를 지연 생성한다(`Shader.Find("FlatKit/Stylized Surface")` — `RangeCircle`의 `Shader.Find` 선례와 동일하게 인스펙터 배선 없이 런타임 부착 대상에서도 동작해야 한다).
+`OutlineHighlight`가 **static 공유 머티리얼을 [색 3종 × 스무스 노멀 여부 2] = 최대 6개** 지연 생성한다(`Shader.Find("FlatKit/Stylized Surface")` — `RangeCircle`의 `Shader.Find` 선례와 동일하게 인스펙터 배선 없이 런타임 부착 대상에서도 동작해야 한다).
+
+`uv3`가 없는 메시에 `DR_OUTLINE_SMOOTH_NORMALS`를 켜면 셰이더가 노멀을 0으로 읽어 **아웃라인이 깨진다** → shell 생성 시 `mesh.HasVertexAttribute(TexCoord2)`로 판정해 키워드를 켠/끈 변형을 골라 쓴다. 스무스 사본이 아직 베이크되지 않은 메시(§6.4 폴백)도 이 경로로 안전하게 표시된다.
 
 | 상태 | 임시 색 | 비고 |
 |---|---|---|
@@ -189,7 +192,7 @@ public void Set(OutlineKind kind, bool on);   // 멱등
 
 ### 5.1 노랑·초록 — 드라이버 1개가 이벤트로 구동 (핵심 결정)
 
-`OutlineInteractionDriver`(씬에 1개, MouseManager와 같은 오브젝트 권장)가 두 이벤트만 구독한다.
+`OutlineInteractionDriver`가 두 이벤트만 구독한다. **씬 파일을 건드리지 않도록 `[RuntimeInitializeOnLoadMethod(AfterSceneLoad)]`로 스스로 부팅해 `DontDestroyOnLoad`로 남는다** — 정본 씬/개인 복사 병합 규칙(`Docs/Core/SceneWorkflow.md`)과 충돌을 피하기 위한 선택이고, `TowerGroupSelectable`이 런타임 부착인 것과 같은 계보다. 대가로 튜닝값(폭 계수·클램프)은 인스펙터가 아니라 코드 상수다(`RangeCircle` 선례). MouseManager가 늦게 등장하는 씬도 있어 구독은 붙을 때까지 매 프레임 확인하고, 씬 전환 시 참조를 비운다(WL-033).
 
 | 이벤트 | 시그니처 | 구동 |
 |---|---|---|
@@ -253,14 +256,17 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 3. **제외**: 이미 만든 `OutlineShell` 자신(재수집 시 무한 증식 방지).
 4. 수집은 **첫 표시 시 1회**, 결과를 캐시한다. 사거리 원은 첫 선택 때 지연 생성되므로 수집 시점이 그 전/후 어느 쪽이든 조상 검사로 안전해야 한다.
 
-### 6.2 렌더러가 많은 대상 — 프록시 폴백
+### 6.2 렌더러가 많은 대상 — 상한과 그 이유 (프록시 계획은 폐기)
 
-`Castle.prefab`은 루트에 `BoxCollider` + `BuildingInfo` + `BuildingTooltipSource`가 붙은 정상 호버 대상인데 내용물이 Sweet_Land 소품 조립이라 **462 렌더러**(Terrace 128, TerraceRail 130, Balustrade 48, MainHall_L1 54 …)다. 자식을 전부 씌우면 커서를 올리는 동안 +462 드로우 + 스킨드 21개 이중 스키닝 → 못 쓴다.
+`Castle.prefab`은 루트에 `BoxCollider` + `BuildingInfo` + `BuildingTooltipSource`가 붙은 정상 호버 대상인데 내용물이 Sweet_Land 소품 조립이라 **462 렌더러**(Terrace 128, TerraceRail 130, Balustrade 48, MainHall_L1 54 …)다. `Mine`도 44개다.
 
-**정책**: 수집 결과가 상한(**초안 16개**, 인스펙터 노출)을 넘으면 자동 수집을 버리고 **프록시 shell 1개**로 폴백한다 + `Debug.LogWarning`으로 대상 이름과 렌더러 수를 남긴다(조용한 품질 저하 금지).
+**박스 프록시는 원리상 불가능해 폐기했다.** 인버티드 헐은 **원본 지오메트리가 깊이를 써서 헐의 안쪽 면을 가려줄 때만** 테두리로 보인다. 대상보다 큰 박스는 가려주는 것이 없어 헐이 화면에 그대로 남아 **통째로 칠해진다**(실측 확인). 대체로 `RangeCircle` 바닥 링을 붙여봤지만 그 컴포넌트는 **편집 모드 씬 뷰에서 렌더되지 않아**(기존 `Sprites/Default` 경로 문제 — 이 이슈 범위 밖) 검증 자체가 불가능했다 → 검증할 수 없는 대체 경로를 남기지 않고 삭제했다(`RangeCircle`에 넣던 폭 인자도 원복).
 
-- 프록시 형상 1순위: 루트 `Collider`(주로 `BoxCollider`) 기반 박스 실루엣 → 1 드로우. 정확한 실루엣은 아니지만 "이 건물이 지금 대상"은 충분히 읽힌다. 구현은 **정점 위치가 공유된 유닛 큐브 메시 1개를 static으로 만들고**(uv3에 평균 노멀을 코드로 채워 §6.4의 스무스 노멀 요건을 처음부터 충족) shell 트랜스폼의 스케일로 콜라이더 bounds에 맞춘다 → 대상마다 메시를 만들지 않으므로 파괴 대상이 늘지 않는다.
-- 프록시 형상 2순위(후속): 아트가 만든 저폴리 실루엣 메시를 `OutlineHighlight`에 직접 지정 → #148/#138에서 개선.
+**현재 정책**
+
+- 상한 `k_MaxShellRenderers = 512` — 실측 최대인 Castle(462)을 통과시킨다. shell은 전부 같은 머티리얼이라 SRP Batcher로 묶이고, 비용은 "호버 중인 그 오브젝트를 한 번 더 그리는 것"이다. 첫 호버 시 shell 462개 생성이 **약 17ms(1회)**, 이후 0.
+- 상한 초과 시 **아웃라인 생략 + 경고 로그**(대상 이름·렌더러 수). 조용히 누락시키지 않는다.
+- 부품마다 테두리가 생겨 Castle 같은 대상은 다소 번잡하다 — 저폴리 실루엣 프록시 메시는 아트 작업으로 #138/#148에 남긴다(T5).
 
 ### 6.3 SkinnedMeshRenderer 처리
 
@@ -378,18 +384,18 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 
 ## 11. 완료 기준 (이슈 #213 체크리스트 매핑)
 
-- [ ] 호버 대상(건물·배치된 타워·확보된 섬/산)에 커서를 올리면 노란 아웃라인 on, 벗어나면 off → §5.1, §5.4
-- [ ] `ISelectable` 클릭 시 초록 on, 다른 대상·빈 곳·Esc에서 off → §5.1
-- [ ] Shift 다중 선택도 같은 초록, 다시 Shift로 빼면 즉시 off(WL-087 표면 재발 없음) → §5.2
-- [ ] 선택된(초록) 대상에 호버해도 노랑으로 밀리지 않음 → §4
-- [ ] 후보 버튼 호버 시 **소모될 재료만** 핑크, 여분은 초록 유지 → §5.3
-- [ ] 버튼에서 벗어나거나 패널이 닫히거나 집합이 바뀌면 핑크 잔존 없음 → §5.3 표
-- [ ] 합성 소모·철거된 타워의 아웃라인이 월드에 남지 않음 → §8
-- [ ] 아웃라인이 클릭/호버 레이캐스트를 막지 않음 → §3.1, §10-4
-- [ ] `TowerGroupSelectable`의 하늘색 바닥 쿼드가 아웃라인으로 대체됨 → §5.2
-- [ ] 임시 색 3종을 한 곳에서 변경 가능 → §3.3
-- [ ] PC/Mobile URP 양쪽에서 보임 → §7, §10-3
-- [ ] 런타임 생성물 누수 없음(이 설계에서는 파괴 대상이 없음을 주석으로 명시) → §8
+- [x] 호버 대상(건물·배치된 타워)에 커서를 올리면 노란 아웃라인 on, 벗어나면 off → §5.1 · 영지 섬/산(§5.4)은 미착수
+- [x] `ISelectable` 클릭 시 초록 on, 다른 대상·빈 곳·Esc에서 off → §5.1
+- [x] Shift 다중 선택도 같은 초록, 다시 Shift로 빼면 즉시 off(WL-087 표면 재발 없음) → §5.2
+- [x] 선택된(초록) 대상에 호버해도 노랑으로 밀리지 않음 → §4 (편집 모드 캡처로 확인)
+- [x] 후보 버튼 호버 시 **소모될 재료만** 핑크, 여분은 초록 유지 → §5.3
+- [x] 버튼에서 벗어나거나 패널이 닫히거나 집합이 바뀌면 핑크 잔존 없음 → §5.3 표
+- [x] 합성 소모·철거된 타워의 아웃라인이 월드에 남지 않음 → §8 (shell이 자식이라 함께 파괴)
+- [x] 아웃라인이 클릭/호버 레이캐스트를 막지 않음 → §3.1, §10-4
+- [x] `TowerGroupSelectable`의 하늘색 바닥 쿼드가 아웃라인으로 대체됨 → §5.2
+- [x] 임시 색 3종을 한 곳에서 변경 가능 → §3.3
+- [ ] PC/Mobile URP 양쪽에서 보임 → PC(Deferred) 확인, **Mobile 미확인(T9)**
+- [x] 런타임 생성물 누수 없음(이 설계에서는 파괴 대상이 없음을 주석으로 명시) → §8
 - [ ] `Docs/Core/MouseManager.md` §8 · `Docs/Core/TowerMerge.md` §8.4 갱신 + `Docs/Review/SystemMap.md` 반영
 - [ ] #138(건물 시인성) 범위 정리 — 이 이슈의 호버 노랑이 #138 후보 중 하나를 실질적으로 구현한다. #138을 닫거나 "버튼 UI"로 좁힌다
 
@@ -401,9 +407,9 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 |---|---|---|
 | ~~T1~~ | ~~shell 본체 패스 억제 방식~~ | **종결** — Layer Mask 제외로 확정(§10-2) |
 | T2 | 미니맵(`MinMapCamera`)에 아웃라인 표시 여부 | 기획/아트 (미확인, 컬링 마스크 `-1`) |
-| T3 | 렌더러 수집 상한 값(초안 16)과 프록시 실루엣 품질 수용선 | 구현 중 실측 → 아트 |
+| ~~T3~~ | ~~렌더러 수집 상한 값~~ | **종결** — 512로 확정, 초과 시 생략+경고(§6.2) |
 | T4 | 임시 3색의 최종 색·선 굵기 | 아트 TBD |
-| T5 | 큰 건물 저폴리 실루엣 프록시 메시 제작 | #148/#138 |
+| T5 | 큰 건물 저폴리 실루엣 프록시 메시 제작(부품별 테두리 번잡함 완화) | #148/#138 |
 | T6 | 관통(엑스레이) 표시 필요 여부 | 기획 |
 | T7 | `Soldier` 레이어(8) 등 리젝된 시스템 잔재 정리 | 별건 |
 | T8 | 폭 드라이버 상수(C ≈ 35)와 상·하한 클램프 최종값 | 실기 튜닝 |
@@ -419,3 +425,4 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 | 2026-07-27 | 최초 작성 — #213 착수 전 조사·결정 기록(shell 방식 확정, 컨버전은 #148로 분리). 구현 미착수 |
 | 2026-07-27 | 렌더 경로 스파이크 완료 — 레이어(12)·렌더러 피처 PC/Mobile 적용, T1 종결(Layer Mask 제외), 직교 파라미터 확정(§3.4), 스무스 노멀 프리베이크 필수 판정(§6.4). Mobile 시각 검증(T9)·미니맵(T2) 미확인 |
 | 2026-07-27 | 스무스 노멀 베이커·레지스트리 구현 완료(§6.4) — 대상 16 프리팹 → 유니크 메시 13개 베이크, 산출물은 gitignore되지 않는 `Assets/Meshes/OutlineSmooth`. T10 종결 |
+| 2026-07-27 | 표시 경로 구현 완료 — `OutlineHighlight`/`OutlineInteractionDriver`/`IOutlineTargetProvider`, 타워 `IHoverable` 추가로 호버 노랑, 그룹 초록으로 하늘색 쿼드 대체, 합성 프리뷰 핑크. 박스 프록시 폐기·상한 512로 확정(§6.2), 머티리얼을 스무스 여부까지 6변형으로(§3.3), 드라이버는 런타임 부트스트랩(§5.1). 파괴 대상 통지 예외(WL-033 계열) 수정. T3 종결 |
