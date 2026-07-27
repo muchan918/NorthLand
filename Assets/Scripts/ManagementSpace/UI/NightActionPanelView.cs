@@ -83,7 +83,17 @@ public class NightActionPanelView : MonoBehaviour
             Debug.LogWarning("[낮 종료] ManagementController를 찾을 수 없습니다.");
             return;
         }
-        _controller.RequestAdvancePhase();
+
+        // 확인 팝업 경유(#219). 팝업이 씬에 없으면 곧장 종료(배선 누락 방어).
+        ManagementEndDayConfirmPopup popup = ManagementEndDayConfirmPopup.Instance;
+        if (popup != null)
+        {
+            popup.RequestEndDay(_controller);
+        }
+        else
+        {
+            _controller.EndDay();
+        }
     }
 
     private void HandleWaveSuccess()

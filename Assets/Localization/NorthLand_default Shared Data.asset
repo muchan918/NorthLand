@@ -151,6 +151,26 @@ MonoBehaviour:
     m_Key: game.merge.selected_towers
     m_Metadata:
       m_Items: []
+  - m_Id: 6385287444471808
+    m_Key: game.btn.proceed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6385287469637632
+    m_Key: game.btn.cancel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6385287469637633
+    m_Key: game.management.confirm_end_day.no_territory
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6385287469637634
+    m_Key: game.management.confirm_end_day.idle_villagers
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6385287469637635
+    m_Key: game.management.confirm_end_day.question
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

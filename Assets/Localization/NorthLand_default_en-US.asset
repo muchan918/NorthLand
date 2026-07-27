@@ -154,6 +154,26 @@ MonoBehaviour:
     m_Localized: Selected Towers
     m_Metadata:
       m_Items: []
+  - m_Id: 6385287444471808
+    m_Localized: Proceed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6385287469637632
+    m_Localized: Cancel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6385287469637633
+    m_Localized: "\xB7 You haven't expanded territory today."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6385287469637634
+    m_Localized: "\xB7 {0} villager(s) are not assigned."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6385287469637635
+    m_Localized: Proceed to night anyway?
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

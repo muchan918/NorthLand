@@ -58,7 +58,7 @@ public class ManagementPanelView : MonoBehaviour
         if (_endDayButton != null)
         {
             _endDayButton.onClick.RemoveAllListeners();
-            _endDayButton.onClick.AddListener(_controller.RequestAdvancePhase);
+            _endDayButton.onClick.AddListener(HandleEndDayClicked);
         }
 
         _controller.OnChanged += Refresh;
@@ -70,6 +70,26 @@ public class ManagementPanelView : MonoBehaviour
         if (_controller != null)
         {
             _controller.OnChanged -= Refresh;
+        }
+    }
+
+    // 낮 종료 버튼(#219): 확인 팝업이 있으면 조건 점검 후 팝업/진행을 위임하고,
+    // 팝업이 씬에 없으면(배선 누락) 곧장 낮을 종료해 흐름이 막히지 않게 한다.
+    private void HandleEndDayClicked()
+    {
+        if (_controller == null)
+        {
+            return;
+        }
+
+        ManagementEndDayConfirmPopup popup = ManagementEndDayConfirmPopup.Instance;
+        if (popup != null)
+        {
+            popup.RequestEndDay(_controller);
+        }
+        else
+        {
+            _controller.EndDay();
         }
     }
 
