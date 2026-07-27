@@ -1,7 +1,16 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections.Generic;
 
-public class GameSpeed : MonoBehaviour
+public enum GamePauseReason
+{
+    Reward,
+    Settings,
+    GameOver,
+    Cutscene
+}
+
+public class GameSpeedController : MonoBehaviour
 {
     private const float NormalSpeed = 1f;
     private const float FastSpeed = 2f;
@@ -16,11 +25,35 @@ public class GameSpeed : MonoBehaviour
     public float CurrentSpeed { get; private set; } = NormalSpeed;
     //public bool IsPaused { get; private set; }
 
-    private bool isRewardPaused;
+    private readonly HashSet<GamePauseReason> pauseReasons = new();
     private ColorBlock[] defaultButtonColors;
+    public static GameSpeedController Instance { get; private set; }
+
+    [SerializeField]
+    private CanvasGroup speedControls;
+
+    [SerializeField]
+    [Range(0f, 1f)]
+    private float pausedControlsAlpha = 0.8f;
+
+    private bool controlsLocked;
+    private bool interactableBeforePause;
+    private float alphaBeforePause;
+
 
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Debug.LogError(
+                "[GameSpeedController] 씬에 컨트롤러가 두 개 존재합니다.",
+                this);
+
+            return;
+        }
+
+        Instance = this;
+
         if (speedButtons == null)
         {
             speedButtons = new Button[0];
@@ -86,10 +119,23 @@ public class GameSpeed : MonoBehaviour
         SetSpeed(VeryFastSpeed, 2);
     }
 
-    public void SetRewardPaused(bool paused)
+    public void SetPaused(GamePauseReason reason,bool paused)
     {
-        isRewardPaused = paused;
-        ApplyTimeScale();
+        bool changed;
+
+        if (paused)
+        {
+            changed = pauseReasons.Add(reason);
+        }
+        else
+        {
+            changed = pauseReasons.Remove(reason);
+        }
+
+        if (changed)
+        {
+            ApplyTimeScale();
+        }
     }
 
     private void SetSpeed(float speed, int buttonIndex)
@@ -103,9 +149,39 @@ public class GameSpeed : MonoBehaviour
 
     private void ApplyTimeScale()
     {
-        Time.timeScale = isRewardPaused? 0f: CurrentSpeed;
+        bool paused = pauseReasons.Count > 0;
+
+        Time.timeScale = paused? 0f: CurrentSpeed;
+
+        UpdateControlsLock(paused);
     }
 
+    private void UpdateControlsLock(bool paused)
+    {
+        if (speedControls == null)
+        {
+            return;
+        }
+
+        if (paused && !controlsLocked)
+        {
+            interactableBeforePause =speedControls.interactable;
+
+            alphaBeforePause =speedControls.alpha;
+
+            speedControls.interactable = false;
+            speedControls.alpha = pausedControlsAlpha;
+            controlsLocked = true;
+        }
+        else if (!paused && controlsLocked)
+        {
+            speedControls.interactable =interactableBeforePause;
+
+            speedControls.alpha =alphaBeforePause;
+
+            controlsLocked = false;
+        }
+    }
 
 
     private void UpdateSelectedButton(int selectedIndex)
@@ -135,6 +211,12 @@ public class GameSpeed : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (Instance != this)
+        {
+            return;
+        }
+
+        Instance = null;
         Time.timeScale = NormalSpeed;
     }
 }

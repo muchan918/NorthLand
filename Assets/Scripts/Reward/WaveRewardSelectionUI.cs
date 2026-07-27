@@ -30,17 +30,12 @@ public class WaveRewardSelectionUI : MonoBehaviour
     [FormerlySerializedAs("Openpanel")]
     private GameObject openPanel;
 
-    [SerializeField]
-    private CanvasGroup gameSpeedControls;
-
-    private bool wasGameSpeedControlsInteractable;
-
     public bool Camerastop => panel != null && panel.activeSelf;
 
     private UniTaskCompletionSource<WaveRewardData> selectionSource;
 
     [SerializeField]
-    private GameSpeed gameSpeedController;
+    private GameSpeedController gameSpeedController;
 
 
     private void Awake()
@@ -97,18 +92,9 @@ public class WaveRewardSelectionUI : MonoBehaviour
         ClearButtonListeners();
         ShowCandidates(candidates);
 
-        if (gameSpeedControls != null)
-        {
-            wasGameSpeedControlsInteractable =
-                gameSpeedControls.interactable;
-
-            gameSpeedControls.interactable = false;
-            gameSpeedControls.alpha = 0.8f;
-        }
-
         if (gameSpeedController != null)
         {
-            gameSpeedController.SetRewardPaused(true);
+            gameSpeedController.SetPaused(GamePauseReason.Reward,true);
         }
         else
         {
@@ -138,13 +124,7 @@ public class WaveRewardSelectionUI : MonoBehaviour
             ClearButtonListeners();
             if (gameSpeedController != null)
             {
-                gameSpeedController.SetRewardPaused(false);
-            }
-
-            if (gameSpeedControls != null)
-            {
-                gameSpeedControls.interactable =wasGameSpeedControlsInteractable;
-                gameSpeedControls.alpha = 1f;
+                gameSpeedController.SetPaused(GamePauseReason.Reward,false);
             }
 
             if (panel != null)
