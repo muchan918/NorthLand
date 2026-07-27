@@ -28,6 +28,16 @@ public class SkillManager : MonoBehaviour
     [SerializeField] GameObject impactEffectPrefab;
     [SerializeField] AudioClip impactSfx;
 
+    // 마법 연구소(#205) — 레벨 비례로 기본 스탯(damage/radius/cooldown)을 배율 강화한다.
+    // 컨트롤러는 레벨(int)만 노출하고, 레벨→배율 매핑은 `_magicLabAsset.Skill.UpgradeLevels`(SO)에
+    // authoring한다 — 비용과 배율이 같은 리스트라 레벨 개수가 어긋날 수 없다(PR#216 리뷰, 씬 리스트 제거).
+    // 보상 특수효과(#169, SkillEffect.Level)와는 독립 축 — ImpactResolved 구독 흐름은 건드리지 않는다.
+    [Header("마법 연구소 강화 (#205)")]
+    [Tooltip("비우면 강화 없음(레벨 0 취급)")]
+    [SerializeField] BuildingAsset _magicLabAsset;
+    [Tooltip("비우면 씬에서 자동 탐색")]
+    [SerializeField] ManagementController _managementController;
+
     // 임팩트(착탄) 1회가 끝날 때마다 발행 — 보상으로 획득한 특수효과(SkillEffect)가 구독한다.
     // 컨텍스트의 HitTargets는 임팩트마다 재사용되는 버퍼라 이벤트 처리 중에만 유효.
     public event Action<SkillCastContext> ImpactResolved;
@@ -40,9 +50,15 @@ public class SkillManager : MonoBehaviour
     // 웨이브 종료(밤→낮) 시 Cancel해 낮으로 넘어간 반복 착탄이 뒤늦게 발동하지 않게 한다(#200 ②).
     CancellationTokenSource repeatCts;
 
-    public float Radius => radius;
+    // 마법 연구소 레벨로 계산한 유효 스탯(레벨 0/미배선이면 기본값과 동일).
+    float effectiveDamage;
+    float effectiveRadius;
+    float effectiveCooldown;
+    int lastMagicLabLevel = -1; // 레벨 변경 시에만 로그를 남기기 위한 캐시(-1: 최초 1회는 무조건 로그).
+
+    public float Radius => effectiveRadius;
     public bool IsReady => cooldownTimer <= 0f;
-    public float CooldownRemaining01 => cooldown <= 0f ? 0f : Mathf.Clamp01(cooldownTimer / cooldown);
+    public float CooldownRemaining01 => effectiveCooldown <= 0f ? 0f : Mathf.Clamp01(cooldownTimer / effectiveCooldown);
 
     void Awake()
     {
@@ -69,6 +85,13 @@ public class SkillManager : MonoBehaviour
         // 그러지 않으면 예약된 추가 착탄이 결과 화면 뒤에서 계속 발동한다.
         if (GameManager.Instance != null)
             GameManager.Instance.OnResultDecided += HandleResultDecided;
+
+        // 마법 연구소(#205) — 비워두면 씬에서 자동 탐색(BuildingInfoUI와 동일 관례).
+        if (_managementController == null)
+            _managementController = FindFirstObjectByType<ManagementController>();
+        if (_managementController != null)
+            _managementController.OnChanged += RefreshUpgrade;
+        RefreshUpgrade();
     }
 
     void OnDestroy()
@@ -77,11 +100,49 @@ public class SkillManager : MonoBehaviour
             DayNightManager.Instance.OnNightToDay -= HandleWaveEnd;
         if (GameManager.Instance != null)
             GameManager.Instance.OnResultDecided -= HandleResultDecided;
+        if (_managementController != null)
+            _managementController.OnChanged -= RefreshUpgrade;
 
         repeatCts?.Cancel();
         repeatCts?.Dispose();
         repeatCts = null;
     }
+
+    // 마법 연구소 레벨(미배선·미보유 시 0)로 유효 스탯을 다시 계산한다. 레벨 0/범위 밖 = 배율 1.0(기본값 그대로).
+    void RefreshUpgrade()
+    {
+        int level = (_managementController != null && _magicLabAsset != null)
+            ? _managementController.GetUpgradeLevel(_magicLabAsset)
+            : 0;
+
+        List<BuildingAsset.SkillUpgradeLevel> levels = _magicLabAsset != null ? _magicLabAsset.Skill?.UpgradeLevels : null;
+        if (levels != null && levels.Count > 0 && level > 0)
+        {
+            // 레벨이 테이블 크기를 넘으면(비정상 상태 — 컨트롤러가 레벨을 이 SO에서 산출하므로 실제로는
+            // 발생하지 않지만) base로 되돌리지 않고 마지막 엔트리를 유지한다(PR#216 리뷰, 방어적 clamp).
+            BuildingAsset.SkillUpgradeLevel scaling = levels[Mathf.Clamp(level, 1, levels.Count) - 1];
+            effectiveDamage = damage * PositiveOr1(scaling.DamageMultiplier);
+            effectiveRadius = radius * PositiveOr1(scaling.RadiusMultiplier);
+            effectiveCooldown = cooldown * PositiveOr1(scaling.CooldownMultiplier);
+        }
+        else
+        {
+            effectiveDamage = damage;
+            effectiveRadius = radius;
+            effectiveCooldown = cooldown;
+        }
+
+        if (level != lastMagicLabLevel)
+        {
+            Debug.Log($"[Skill] 마법 연구소 Lv{level} 적용 — 감전 데미지={effectiveDamage}(x{effectiveDamage / damage:F2}), 사거리={effectiveRadius}(x{effectiveRadius / radius:F2}), 쿨다운={effectiveCooldown}(x{effectiveCooldown / cooldown:F2})");
+            lastMagicLabLevel = level;
+        }
+    }
+
+    // BuildingAsset.SkillUpgradeLevel의 배율 필드 기본값이 1이라 이 헬퍼는 대부분 no-op이지만, 과거
+    // 데이터나 실수로 0/음수가 들어와도 1.0(배율 없음)으로 취급해 방어한다(PR#216 리뷰) — 쿨다운 0=무한
+    // 연발, 사거리 0=미적중 같은 조용한 파괴적 결과를 막는다.
+    static float PositiveOr1(float multiplier) => multiplier > 0f ? multiplier : 1f;
 
     // 웨이브 종료: 예약된 추가 착탄을 취소한다. 다음 시전에서 CastAt이 새 링크 소스를 만든다.
     void HandleWaveEnd()
@@ -134,7 +195,7 @@ public class SkillManager : MonoBehaviour
             RepeatImpactsAsync(context, repeatCts.Token).Forget();
         }
 
-        cooldownTimer = cooldown;
+        cooldownTimer = effectiveCooldown;
         return true;
     }
 
@@ -157,7 +218,7 @@ public class SkillManager : MonoBehaviour
     {
         hitTargets.Clear();
 
-        int count = Physics.OverlapSphereNonAlloc(position, radius, hitBuffer, enemyLayerMask);
+        int count = Physics.OverlapSphereNonAlloc(position, effectiveRadius, hitBuffer, enemyLayerMask);
         int damagedCount = 0;
         for (int i = 0; i < count; i++)
         {
@@ -166,7 +227,7 @@ public class SkillManager : MonoBehaviour
             // 현재 DamageInfo.Source는 어디서도 역참조하지 않아 안전(StatusEffectHandler.cs 참고).
             if (damageable != null && damageable.Faction == Faction.Enemy && !damageable.IsDead)
             {
-                damageable.TakeDamage(new DamageInfo(damage, null));
+                damageable.TakeDamage(new DamageInfo(effectiveDamage, null));
                 damagedCount++;
                 if (!damageable.IsDead)   // 즉사한 적은 특수효과 대상에서 제외
                     hitTargets.Add(damageable);
@@ -174,7 +235,7 @@ public class SkillManager : MonoBehaviour
         }
 
         // 쿨다운이 있어 자주 호출되지 않으므로 로그 스팸 걱정 없이 시전마다 요약을 남긴다(테스트용).
-        Debug.Log($"[Skill] 감전 시전: 위치={position}, 적중={damagedCount}마리, 데미지={damage}");
+        Debug.Log($"[Skill] 감전 시전: 위치={position}, 적중={damagedCount}마리, 데미지={effectiveDamage}");
 
         ApplyImpact(position);
     }
