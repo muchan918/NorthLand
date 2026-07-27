@@ -50,16 +50,12 @@ public class GameSpeedController : MonoBehaviour
 
         if (speedControls == null)
         {
-            Debug.LogError(
-                "[GameSpeedController] CanvasGroup이 연결되지 않았습니다.",
-                this);
+            Debug.LogError("[GameSpeedController] CanvasGroup이 연결되지 않았습니다.",this);
         }
 
         if (Instance != null && Instance != this)
         {
-            Debug.LogError(
-                "[GameSpeedController] 씬에 컨트롤러가 두 개 존재합니다.",
-                this);
+            Debug.LogError("[GameSpeedController] 씬에 컨트롤러가 두 개 존재합니다.",this);
 
             return;
         }
