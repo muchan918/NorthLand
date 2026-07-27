@@ -8657,7 +8657,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapGenerator
   settings: {fileID: 11400000, guid: 55271131c48cc86498c6c7303fa95f80, type: 2}
   seed: 1
-  maxGenerationAttempts: 456841
+  maxGenerationAttempts: 5
   validatedSeeds: 0100000002000000030000000400000005000000
   stabilityTestStartSeed: 1
   stabilityTestCount: 100
