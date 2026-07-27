@@ -109,7 +109,7 @@ namespace NorthLand.Combat
         public float SpeedMultiplier => speedMultiplier;
 
         // 이동속도 배수 설정(가감속 패턴). 기준 이동속도에 배수를 곱해 movement에 반영한다.
-        // 음수 방지로 클램프. movement 미부착 시 배수만 저장(다음 SetMoveSpeed 시 반영).
+        // 음수 방지로 클램프. movement 미부착 시 배수만 저장되지만 재적용 지점이 없다(Awake의 movement 경고 참조).
         public void SetSpeedMultiplier(float multiplier)
         {
             speedMultiplier = Mathf.Max(0f, multiplier);
