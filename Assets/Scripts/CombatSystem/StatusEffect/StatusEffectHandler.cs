@@ -48,7 +48,9 @@ namespace NorthLand.Combat
         void Awake()
         {
             owner = GetComponent<IDamageable>();
-            mover = GetComponent<IMovementAgent>();
+            // mover는 자식 GO까지 탐색한다(WL-099 A안). Enemy.cs·MonsterSpawn·MonsterStateMachine의
+            // GetComponentInChildren 탐색과 정합 — MonsterMove가 자식에 있어도 CC(슬로우/스턴)가 적용된다.
+            mover = GetComponentInChildren<IMovementAgent>();
         }
 
         // 타워가 사거리 내에서 매 Interval마다 호출.

@@ -224,7 +224,9 @@
 - CSV POCO는 PascalCase 프로퍼티(CsvHelper), SO는 CreateAssetMenu
 - 테스트: XxxTest.cs MonoBehaviour + 개인 테스트 씬 Play 확인 (유닛 테스트 없음)
 - 커밋: `Feat|Fix: 한국어 요약 #이슈번호`
-- **적 프리팹 불변식(mover 위치)**: `MonsterMove`(`IMovementAgent` 구현)는 반드시
-  `Enemy`(`IDamageable`)와 **동일한 GameObject**에 부착한다. `StatusEffectHandler`(슬로우/스턴)가
-  `GetComponent<IMovementAgent>`(같은 GO)로 mover를 찾으므로, 자식 GO에 두면 CC(슬로우/스턴)가
-  에러 없이 조용히 무효가 된다(WL-099). 신규 적 프리팹 작성·리뷰 시 필수 확인 항목.
+- **적 프리팹 mover 탐색 규약**: `MonsterMove`(`IMovementAgent` 구현)는 `Enemy` 루트 또는 그 자식
+  GameObject 어디에 있어도 된다. mover를 참조하는 모든 지점이 `GetComponentInChildren`로 통일돼 있다
+  (`Enemy.cs:56·72`, `MonsterSpawn.cs:327`, `MonsterStateMachine.cs:32`, `StatusEffectHandler.cs:51` —
+  WL-099 A안 채택, main #212가 WL-093 수정으로 확정한 방향과 정합). 따라서 자식 GO에 둔 mover도
+  이동·보스 램프·CC(슬로우/스턴)가 모두 정상 동작한다. 신규 적 프리팹은 이 탐색 규약을 벗어난
+  이중 mover(루트+자식 동시 부착)만 피하면 된다.
