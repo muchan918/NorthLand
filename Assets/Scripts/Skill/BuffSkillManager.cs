@@ -19,23 +19,14 @@ public class BuffSkillManager : MonoBehaviour
     [SerializeField] float cooldown = 20f;
 
     // 마법 연구소(#205) — 레벨 비례로 기본 스탯(공격력·공속 배율/지속시간/쿨다운)을 배율 강화한다.
-    // 컨트롤러는 레벨(int)만 노출하고, 레벨→배율 매핑은 이 클래스(소비 측)가 소유한다(BuildingUpgrade.md §8).
+    // 컨트롤러는 레벨(int)만 노출하고, 레벨→배율 매핑은 `_magicLabAsset.Skill.UpgradeLevels`(SO)에
+    // authoring한다 — 비용과 배율이 같은 리스트라 레벨 개수가 어긋날 수 없다(PR#216 리뷰, 씬 리스트 제거).
     // 보상 특수효과(#169, SkillEffect.Level)와는 독립 축 — BuffResolved 구독 흐름은 건드리지 않는다.
-    [Header("마법 연구소 강화 (#205, 수치는 placeholder)")]
+    [Header("마법 연구소 강화 (#205)")]
     [Tooltip("비우면 강화 없음(레벨 0 취급)")]
     [SerializeField] BuildingAsset _magicLabAsset;
     [Tooltip("비우면 씬에서 자동 탐색")]
     [SerializeField] ManagementController _managementController;
-    [SerializeField] List<BuffUpgradeLevel> _upgradeLevels;
-
-    [Serializable]
-    struct BuffUpgradeLevel
-    {
-        public float damageMultiplierScale;
-        public float attackSpeedMultiplierScale;
-        public float durationMultiplier;
-        public float cooldownMultiplier;
-    }
 
     // 버프 시전이 끝날 때마다 발행 — 보상으로 획득한 버프 계열 특수효과(SkillEffect 파생,
     // 예: BurnBuff)가 구독한다. 구독자가 없으면 기본 버프 그대로. (감전의 ImpactResolved와 동일 구조)
@@ -91,13 +82,16 @@ public class BuffSkillManager : MonoBehaviour
             ? _managementController.GetUpgradeLevel(_magicLabAsset)
             : 0;
 
-        if (_upgradeLevels != null && level > 0 && level <= _upgradeLevels.Count)
+        List<BuildingAsset.SkillUpgradeLevel> levels = _magicLabAsset != null ? _magicLabAsset.Skill?.UpgradeLevels : null;
+        if (levels != null && levels.Count > 0 && level > 0)
         {
-            BuffUpgradeLevel scaling = _upgradeLevels[level - 1];
-            effectiveDamageMultiplier = damageMultiplier * scaling.damageMultiplierScale;
-            effectiveAttackSpeedMultiplier = attackSpeedMultiplier * scaling.attackSpeedMultiplierScale;
-            effectiveDuration = buffDuration * scaling.durationMultiplier;
-            effectiveCooldown = cooldown * scaling.cooldownMultiplier;
+            // 레벨이 테이블 크기를 넘으면(비정상 상태 — 컨트롤러가 레벨을 이 SO에서 산출하므로 실제로는
+            // 발생하지 않지만) base로 되돌리지 않고 마지막 엔트리를 유지한다(PR#216 리뷰, 방어적 clamp).
+            BuildingAsset.SkillUpgradeLevel scaling = levels[Mathf.Clamp(level, 1, levels.Count) - 1];
+            effectiveDamageMultiplier = damageMultiplier * PositiveOr1(scaling.BuffDamageMultiplierScale);
+            effectiveAttackSpeedMultiplier = attackSpeedMultiplier * PositiveOr1(scaling.BuffAttackSpeedMultiplierScale);
+            effectiveDuration = buffDuration * PositiveOr1(scaling.BuffDurationMultiplier);
+            effectiveCooldown = cooldown * PositiveOr1(scaling.BuffCooldownMultiplier);
         }
         else
         {
@@ -113,6 +107,11 @@ public class BuffSkillManager : MonoBehaviour
             lastMagicLabLevel = level;
         }
     }
+
+    // 인스펙터에서 리스트에 새 레벨 엔트리를 추가하면 필드 기본값이 1이라 이 헬퍼는 대부분 no-op이지만,
+    // 과거 데이터나 실수로 0/음수가 들어와도 1.0(배율 없음)으로 취급해 방어한다(PR#216 리뷰) — 쿨다운
+    // 0=무한 연발 같은 조용한 파괴적 결과를 막는다.
+    static float PositiveOr1(float multiplier) => multiplier > 0f ? multiplier : 1f;
 
     void Update()
     {

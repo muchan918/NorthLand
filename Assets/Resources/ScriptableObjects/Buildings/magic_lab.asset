@@ -25,9 +25,30 @@ MonoBehaviour:
     - Cost:
       - Resource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
         Amount: 20
+      DamageMultiplier: 1.2
+      RadiusMultiplier: 1.2
+      CooldownMultiplier: 0.9
+      BuffDamageMultiplierScale: 1.1
+      BuffAttackSpeedMultiplierScale: 1.1
+      BuffDurationMultiplier: 1.1
+      BuffCooldownMultiplier: 0.9
     - Cost:
       - Resource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
         Amount: 40
+      DamageMultiplier: 1.4
+      RadiusMultiplier: 1.4
+      CooldownMultiplier: 0.8
+      BuffDamageMultiplierScale: 1.3
+      BuffAttackSpeedMultiplierScale: 1.3
+      BuffDurationMultiplier: 1.3
+      BuffCooldownMultiplier: 0.7
     - Cost:
       - Resource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
         Amount: 60
+      DamageMultiplier: 1.6
+      RadiusMultiplier: 1.6
+      CooldownMultiplier: 0.7
+      BuffDamageMultiplierScale: 1.6
+      BuffAttackSpeedMultiplierScale: 1.6
+      BuffDurationMultiplier: 1.6
+      BuffCooldownMultiplier: 0.5

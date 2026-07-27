@@ -166,16 +166,16 @@ asmdef 부재로 순수 유닛 테스트 불가(Resources.md §7) — UI도 다�
 |---|---|---|
 | 소유 배열 | `_productionBuildings` → `_sources`/라인 | `_upgradeBuildings` → `_upgradeBuildingRefs` |
 | 레벨 상태 | `_level[]`(런타임, WL-016) | `_upgradeLevel[]`(런타임, 동일 계보) |
-| 수치 출처 | `BuildingAsset.Production.UpgradeLevels`(비용+주민당량) | `BuildingAsset.Skill.UpgradeLevels`(**비용만**, `SkillUpgradeLevel`) |
+| 수치 출처 | `BuildingAsset.Production.UpgradeLevels`(비용+주민당량) | `BuildingAsset.Skill.UpgradeLevels`(**비용+스킬 강화 배율**, `SkillUpgradeLevel`, #205) |
 | 비용 차감 | `TrySpend(costs)` 게이트웨이(원자적) | **동일** `TrySpend(costs)` 게이트웨이 |
 | 업그레이드 효과 | 주민당량↑(즉시, 정산 반영) | 레벨만 오르고, 강화는 소비 시스템(`SkillManager`/`BuffSkillManager`, #205)이 레벨을 참조해 기본 스탯 배율로 적용 |
 | UI | `BuildingInfoUI`(클릭→패널→버튼) | **동일** `BuildingInfoUI`(별 분기). 효과 줄은 생산의 "주민당 5→7" 자리에 여전히 **"스킬 강화 (추후 구현)"** placeholder를 표시(`building.upgrade.skill_pending`) — 실제 강화 내용 표시로 교체는 후속 과제(#205 범위 밖, 선택사항) |
 
 ### 데이터 (SO)
 - `BuildingAsset.Skill.UpgradeLevels : List<SkillUpgradeLevel>` — index i = 레벨 (i+1), 최대 레벨 = `Count`.
-  `SkillUpgradeLevel`은 **도달 비용(`Cost`)만** 갖는다(생산의 `UpgradeLevel`에 있는 `AmountPerVillager`가 없음 — 효과값은 SO가 아니라 스킬 시스템이 레벨로 정함).
-- **현재 placeholder(TBD)**: `magic_lab` = Lv1 마나 20 / Lv2 마나 40 / Lv3 마나 60. (`Assets/Resources/ScriptableObjects/Buildings/magic_lab.asset`)
-- 씬 배선: `GameScene`의 `ManagementController._upgradeBuildings[0]` = `magic_lab`.
+  `SkillUpgradeLevel`은 **도달 비용(`Cost`)** + **스킬 강화 배율 7종**(`DamageMultiplier`/`RadiusMultiplier`/`CooldownMultiplier`(감전)·`BuffDamageMultiplierScale`/`BuffAttackSpeedMultiplierScale`/`BuffDurationMultiplier`/`BuffCooldownMultiplier`(버프))을 **같은 리스트**에 authoring한다(#205, PR#216 리뷰 반영 — 비용·배율이 서로 다른 파일에 있어 레벨 개수가 어긋나던 문제를 원천 차단).
+- **현재 placeholder(TBD)**: `magic_lab` = Lv1 마나 20 / Lv2 마나 40 / Lv3 마나 60, 배율은 Lv1×1.2~1.6까지 단계적 증가(정확한 값은 SO 참고). (`Assets/Resources/ScriptableObjects/Buildings/magic_lab.asset`)
+- 씬 배선: `GameScene`의 `ManagementController._upgradeBuildings[0]` = `magic_lab`. `SkillManager`/`BuffSkillManager`는 씬에 배율 리스트를 따로 갖지 않고 `_magicLabAsset.Skill.UpgradeLevels`를 직접 읽는다 — 밸런싱 패스가 씬 파일을 안 건드리게 됐다.
 
 ### 공개 API (`ManagementController`)
 - `int UpgradeIndexOf(BuildingAsset)` — 업그레이드 건물 index(아니면 -1). BuildingInfoUI가 클릭한 건물이 이 트랙인지 판정.
@@ -187,7 +187,7 @@ asmdef 부재로 순수 유닛 테스트 불가(Resources.md §7) — UI도 다�
 > 연구소 레벨 = **기본 스킬 스탯 배율**, 보상 = **특수 효과 레벨**(`SkillEffect.Level`, #169) — 두 축은 독립적으로 동시 스택된다. muchan 사인오프 완료. 상세: `Docs/Skill/PlayerSkill.md`.
 - 메커니즘: 컨트롤러는 **레벨(int)만 노출**하고, 레벨→강화효과 매핑은 **소비 측(`SkillManager`/`BuffSkillManager`)이 소유**한다 —
   컨트롤러는 "스킬"을 전혀 모르고, 각 스킬은 마법 연구소 건물 SO 참조와 `GetUpgradeLevel`만 안다. 레벨 변경은 `OnChanged`로 통지되므로 구독 후 재-pull(BuildingInfoUI와 동일 패턴). **컨트롤러/UI 무수정**으로 스킬 쪽에만 배선이 붙었다.
-- 레벨→배율 매핑은 각 스킬 클래스 내부의 인스펙터 authoring 리스트(`SkillManager.SkillUpgradeLevel`/`BuffSkillManager.BuffUpgradeLevel`, index i = 레벨 i+1)로 소유한다 — CSV 미사용(WL-015와 동일 축). 수치는 **placeholder(TBD, 밸런싱 후속)**.
+- 레벨→배율 매핑은 `BuildingAsset.Skill.UpgradeLevels`(SO, index i = 레벨 i+1)에 authoring한다 — CSV 미사용(WL-015와 동일 축), 씬이 아니라 SO라 밸런싱 패스가 `GameScene.unity`를 안 건드린다(PR#216 리뷰 반영). 수치는 **placeholder(TBD, 밸런싱 후속)**.
 - `SkillManager`/`BuffSkillManager`는 공통 베이스클래스로 묶지 않고 동일 패턴을 각자 구현했다(기존 "스킬 2개뿐이라 추상화 안 함" 방침 유지).
 
 ### 잔여 / TODO
