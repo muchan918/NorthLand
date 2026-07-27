@@ -51,7 +51,7 @@ namespace NorthLand.Combat
 
             currentHp = Stat != null ? Stat.MaxHp : 0f;
 
-            // 자식까지 탐색(WL-089): MonsterMove가 자식 오브젝트에 붙는 프리팹에서도 movement를 찾도록
+            // 자식까지 탐색(WL-093): MonsterMove가 자식 오브젝트에 붙는 프리팹에서도 movement를 찾도록
             // GetComponentInChildren 사용 — line 61·MonsterSpawn·MonsterStateMachine의 탐색 범위와 일치시킨다.
             movement = GetComponentInChildren<IMovementAgent>();
 
