@@ -19,6 +19,12 @@ namespace NorthLand.Combat
         // TODO(TBD): 대상 탐지 필터링을 LayerMask로 할지 Tag로 할지 미확정. 임시 LayerMask.
         [SerializeField] LayerMask enemyLayerMask;
 
+        // 선택 시 사거리 원 색(배치 미리보기와 구분되도록 초록 계열, #192). 채움은 반투명.
+        [Header("선택 사거리 표시")]
+        [SerializeField] Color selectionRangeColor = new Color(0.3f, 1f, 0.4f, 0.9f);
+        [SerializeField] Color selectionRangeFillColor = new Color(0.3f, 1f, 0.4f, 0.15f);
+        RangeCircle _rangeCircle; // lazy 생성, 자식 GO — 선택 시 표시/해제 시 숨김
+
         // 투사체 생성 위치(포신/머즐). 미할당 시 기존처럼 타워 루트(바닥)에서 생성(하위 호환).
         [SerializeField] Transform firePoint;
 
@@ -84,9 +90,24 @@ namespace NorthLand.Combat
             }
 
             TowerInfoUI.Instance.ShowInfo(data.Data.DescriptionKey, BuildStatsText());
+            ShowRangeCircle();
         }
 
-        public void OnDeselected() => TowerInfoUI.Instance.HideInfo();
+        public void OnDeselected()
+        {
+            _rangeCircle?.Hide();
+            TowerInfoUI.Instance.HideInfo();
+        }
+
+        // 선택 시 사거리 원(버프 반영 AttackRange)을 표시한다. 원은 자식 GO라 타워 파괴 시 함께 정리된다.
+        void ShowRangeCircle()
+        {
+            if (_rangeCircle == null)
+                _rangeCircle = RangeCircle.Create(transform, selectionRangeFillColor, selectionRangeColor, "TowerRangeSelection");
+
+            _rangeCircle.SetRadius(AttackRange);
+            _rangeCircle.Show();
+        }
 
         // 공통 공격 스탯(공격력/사거리/공격속도)을 정보 패널용 평문으로 조합한다. Magic 타워는 공통 Attack이
         // 없어 null 반환(패널은 통계 구간 없이 설명만 표시). 라벨은 game.tower.* 로컬라이즈 키(k_DefaultTable)에서 가져온다.
