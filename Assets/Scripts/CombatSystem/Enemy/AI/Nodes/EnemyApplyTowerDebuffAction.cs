@@ -1,0 +1,98 @@
+using NorthLand.Combat;
+using Unity.Behavior;
+using Unity.Properties;
+using UnityEngine;
+using Action = Unity.Behavior.Action;
+
+// 반경 안의 타워를 약화시킨다(#234). P3 마력 봉인의 본체.
+//
+// 신규 런타임 훅이 필요 없다 — Tower.ApplyBuff가 소스별 합산 구조로 열려 있어
+// 배율 1 미만을 넘기면 그대로 디버프가 된다. 타워를 파괴하지 않는다.
+//
+// 알려진 제약 2건:
+//  · 공격 간격이 Mathf.Max(finalSpeedMultiplier, 0.01f)로 클램프되어 완전 봉인은 불가능하다.
+//  · AuraTower는 Tower.Active에 등록되지 않아 대상에서 빠진다. 결과적으로 봉인 중에도
+//    오라 계열 감속이 살아남아 P1 파훼 수단이 유지된다.
+//
+// 만료는 Tower가 duration으로 스스로 처리하므로 종료 시 원복하지 않는다 —
+// 중단되어 상태를 남기지 않는다는 원칙은 이 노드에서 "타워가 스스로 만료시킨다"로 충족된다.
+// 되돌리면 예고를 보고 회피한 플레이어가 봉인을 공짜로 벗는다.
+//
+// 네임스페이스를 두지 않는다.
+[System.Serializable, GeneratePropertyBag]
+[NodeDescription(
+    name: "Enemy Apply Tower Debuff",
+    description: "반경 안의 타워에 공격력·공격속도 배율을 걸어 약화시킨다. 파괴하지 않는다.",
+    story: "[Agent] weakens towers within [Radius] for [Duration] seconds",
+    category: "Action/Enemy",
+    id: "aebf536f50364b9798afea7a75ac1eb9")]
+public partial class EnemyApplyTowerDebuffAction : Action
+{
+    [SerializeReference] public BlackboardVariable<EnemyAgent> Agent;
+
+    [SerializeReference] public BlackboardVariable<float> Radius;
+
+    // 1 미만이면 공격력 감소. 예: 0.5 = 절반.
+    [SerializeReference] public BlackboardVariable<float> DamageMultiplier;
+
+    // 1 미만이면 공격속도 감소.
+    [SerializeReference] public BlackboardVariable<float> AttackSpeedMultiplier;
+
+    [SerializeReference] public BlackboardVariable<float> Duration;
+
+    protected override Status OnStart()
+    {
+        EnemyAgent agent = Agent?.Value;
+
+        if (agent == null)
+        {
+            LogFailure("Enemy Apply Tower Debuff: Agent가 지정되지 않았습니다.");
+            return Status.Failure;
+        }
+
+        float radius = Radius != null ? Radius.Value : 0f;
+
+        if (radius <= 0f)
+        {
+            LogFailure("Enemy Apply Tower Debuff: Radius가 0 이하여서 대상이 없습니다.");
+            return Status.Failure;
+        }
+
+        // sourceId 채번: 이 에이전트 인스턴스 + 봉인이라는 효과 종류의 조합.
+        // GetInstanceID만 쓰면 같은 보스가 거는 다른 효과와 충돌하고, 고정 문자열만 쓰면
+        // 보스 여러 마리가 서로의 봉인을 덮어쓴다(기존 관례: 버프 타워=인스턴스별, 스킬=고정 문자열).
+        int sourceId = agent.GetInstanceID() ^ SourceKindHash;
+
+        float damageMul = DamageMultiplier != null ? DamageMultiplier.Value : 1f;
+        float speedMul = AttackSpeedMultiplier != null ? AttackSpeedMultiplier.Value : 1f;
+        float duration = Duration != null ? Duration.Value : 0f;
+
+        float sqrRadius = radius * radius;
+        Vector3 origin = agent.transform.position;
+
+        // Tower.Active를 순회한다 — 물리 질의가 필요 없다.
+        for (int i = 0; i < Tower.Active.Count; i++)
+        {
+            Tower tower = Tower.Active[i];
+
+            if (tower == null)
+            {
+                continue;
+            }
+
+            if ((tower.transform.position - origin).sqrMagnitude > sqrRadius)
+            {
+                continue;
+            }
+
+            tower.ApplyBuff(sourceId, damageMul, speedMul, duration);
+        }
+
+        // 범위에 타워가 없는 것은 실패가 아니다 — 분산 배치라는 파훼법이 통했다는 뜻이다.
+        return Status.Success;
+    }
+
+    // "마력 봉인" 효과 종류를 식별하는 고정 해시. 다른 소스(버프 타워·플레이어 스킬)와 겹치지 않게
+    // 이 노드 전용 문자열에서 뽑는다.
+    private static readonly int SourceKindHash = "EnemyApplyTowerDebuff".GetHashCode();
+}

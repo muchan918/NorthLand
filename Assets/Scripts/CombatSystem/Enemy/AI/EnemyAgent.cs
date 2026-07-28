@@ -23,6 +23,13 @@ public class EnemyAgent : MonoBehaviour
     [Tooltip("소환 패턴이 사용할 스포너. 비워두면 스폰 시점에 자동 주입된다(씬 배치 테스트용 칸).")]
     [SerializeField] private MonsterSpawn spawner;
 
+    // 반경 질의(주변 잡몹 수 / 최근접 대상)의 물리 프리필터.
+    // LayerMask는 Unity.Behavior가 지원하는 Blackboard 변수 타입이 아니라 노드 입력으로 받을 수 없다.
+    // 그래서 마스크는 프리팹 인스펙터에서 authoring하고, 진영 구분은 아래 Faction으로 사후 필터한다
+    // (Enemy.targetLayerMask와 같은 계보).
+    [Tooltip("주변 대상 질의에 쓸 레이어. 아군 잡몹 + 플레이어 유닛 + 본진을 모두 포함해야 한다.")]
+    [SerializeField] private LayerMask unitLayerMask;
+
     private Enemy enemy;
 
     // 구체 타입이 아니라 계약에 의존한다 — Enemy와 같은 이유(이동 구현에 결합하지 않는다).
@@ -145,6 +152,12 @@ public class EnemyAgent : MonoBehaviour
     public Vector3 Forward => facing != null ? facing.forward : transform.forward;
 
     public float HpRatio => enemy != null ? enemy.HpRatio : 0f;
+
+    // 반경 질의의 아군/적군 판정 기준. 노드를 플레이어 측 유닛에 붙여도 Ally/Hostile이 뒤집히지 않도록
+    // 진영을 상수로 박지 않고 여기서 읽는다. Enemy가 없으면 보수적으로 Enemy 진영으로 본다.
+    public Faction Faction => enemy != null ? enemy.Faction : Faction.Enemy;
+
+    public LayerMask UnitLayerMask => unitLayerMask;
 
     // ── 애니메이션 ─────────────────────────────
     // 재생 종료 판정은 normalizedTime 폴링이다. AnimationEvent 방식은 클립마다 이벤트를 심어야 해서
