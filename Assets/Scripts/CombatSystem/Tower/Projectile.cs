@@ -234,7 +234,7 @@ namespace NorthLand.Combat
                 var d = h.GetComponentInParent<IDamageable>();
                 if (d == null || d.Faction == source.Faction || d.IsDead) continue;
                 if (chainHitSet.Contains(d)) continue;
-                float sqr = (h.transform.position - center).sqrMagnitude;
+                float sqr = (d.HitPosition.position - center).sqrMagnitude;   // ← h.transform.position 에서 변경
                 if (sqr < closestSqr) { closestSqr = sqr; closest = d; }
             }
             return closest;
