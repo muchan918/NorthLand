@@ -68,7 +68,11 @@ namespace NorthLand.Combat
                 // 이동 액추에이터를 못 찾으면 보스 속도 가감속 패턴이 조용히 무동작하므로 경고로 드러낸다.
                 Debug.LogWarning($"[{name}] IMovementAgent를 찾지 못해 이동속도 패턴이 동작하지 않습니다.", this);
             }
-
+            if (hitPosition == null)
+            {
+                hitPosition = transform;
+                Debug.LogError($"[Enemy] {name}: hitPosition 미할당 — 피벗으로 폴백. 프리팹에 몸통 트랜스폼을 지정하라.", this);
+            }
             OnHpChanged?.Invoke(currentHp, MaxHp);
 
             monsterMove = GetComponentInChildren<MonsterMove>();
