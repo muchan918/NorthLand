@@ -29,6 +29,8 @@ namespace NorthLand.Combat
         public float AttackRange => data.attackRange;
         public float AttackInterval => data.attackInterval;
 
+        public Transform HitPosition => throw new System.NotImplementedException();
+
         void Update()
         {
             cooldownTimer -= Time.deltaTime;

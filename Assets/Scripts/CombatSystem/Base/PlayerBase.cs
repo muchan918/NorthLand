@@ -37,6 +37,9 @@ namespace NorthLand.Combat
         // HP UI(상단 본진 체력바)가 구독하는 공개 계약. Awake와 TakeDamage에서 통지.
         public float CurrentHp => currentHp;
         public float MaxHp => maxHp;
+
+        public Transform HitPosition => throw new NotImplementedException();
+
         public event Action<float, float> OnHpChanged;
 
         public void TakeDamage(DamageInfo info)
