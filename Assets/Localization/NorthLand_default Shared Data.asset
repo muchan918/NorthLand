@@ -151,6 +151,18 @@ MonoBehaviour:
     m_Key: game.merge.selected_towers
     m_Metadata:
       m_Items: []
+  - m_Id: 6349875270029312
+    m_Key: store.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6349875303583744
+    m_Key: store.exchange
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6349875303583745
+    m_Key: store.owned
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

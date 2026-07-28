@@ -169,7 +169,7 @@ asmdef 부재로 순수 유닛 테스트 불가(Resources.md §7) — UI도 다�
 | 수치 출처 | `BuildingAsset.Production.UpgradeLevels`(비용+주민당량) | `BuildingAsset.Skill.UpgradeLevels`(**비용+스킬 강화 배율**, `SkillUpgradeLevel`, #205) |
 | 비용 차감 | `TrySpend(costs)` 게이트웨이(원자적) | **동일** `TrySpend(costs)` 게이트웨이 |
 | 업그레이드 효과 | 주민당량↑(즉시, 정산 반영) | 레벨만 오르고, 강화는 소비 시스템(`SkillManager`/`BuffSkillManager`, #205)이 레벨을 참조해 기본 스탯 배율로 적용 |
-| UI | `BuildingInfoUI`(클릭→패널→버튼) | **동일** `BuildingInfoUI`(별 분기). 효과 줄은 생산의 "주민당 5→7" 자리에 여전히 **"스킬 강화 (추후 구현)"** placeholder를 표시(`building.upgrade.skill_pending`) — 실제 강화 내용 표시로 교체는 후속 과제(#205 범위 밖, 선택사항) |
+| UI | `BuildingInfoUI`(클릭→패널→버튼) | **동일** `BuildingInfoUI`(별 분기). (연금술사의 집은 예외 — 업그레이드 트랙이 아니라 교환소라 **별도 `StorePanelUI`** 를 띄운다, #211) 효과 줄은 생산의 "주민당 5→7" 자리에 여전히 **"스킬 강화 (추후 구현)"** placeholder를 표시(`building.upgrade.skill_pending`) — 실제 강화 내용 표시로 교체는 후속 과제(#205 범위 밖, 선택사항) |
 
 ### 데이터 (SO)
 - `BuildingAsset.Skill.UpgradeLevels : List<SkillUpgradeLevel>` — index i = 레벨 (i+1), 최대 레벨 = `Count`.
@@ -194,8 +194,11 @@ asmdef 부재로 순수 유닛 테스트 불가(Resources.md §7) — UI도 다�
 - [ ] **수치 밸런싱**: 레벨 수·레벨당 마나 비용(현재 placeholder 20/40/60), 스킬 강화 배율(현재 placeholder).
 - [ ] **클릭 오브젝트**: 마법 연구소를 클릭해 패널을 열려면 씬/프리팹에 `BuildingInfo`(+`Selectable` 레이어 콜라이더) 배치 필요 —
   생산 건물 클릭 오브젝트와 동일하게 건물 프리팹(Imported 사각지대 가능, WL-040) 쪽 작업.
-- [ ] **연금술사(Skill 타입)**: 같은 트랙에 SO만 추가(`Skill.UpgradeLevels` authoring + `_upgradeBuildings` 배선)하면 확장.
+- [~] **연금술사(Store 타입, #211)**: 먼저 **마나석 교환소**가 구현됐다(`BuildingType.Store` + `BuildingAsset.Exchange`, 상세는 `Docs/ManagementArea/Resources.md` §3). **업그레이드도 이 건물의 확정 설계다** — 마법 연구소와 같은 "마나석으로 레벨만 올리는" 트랙이고, 효과는 **교환 효율 개선**(지불 마나석 고정, 받는 자원량 × `GainMultiplier`). 데이터 형태도 `SkillUpgradeLevel`과 같은 계보로 `ExchangeUpgradeLevel { Cost, GainMultiplier }`를 한 리스트에 둔다.
+  - **#211에서는 교환만 구현했고 `Exchange.UpgradeLevels`는 비어 있다.**
+  - 아래 본성과 **동일한 선행 작업**이 필요하다. 즉 "같은 트랙에 SO만 추가하면 확장"이라던 종전 기술은 틀렸다: `BuildUpgradeBuildings()`가 `BuildingType`과 무관하게 `Skill.UpgradeLevels`만 하드코딩으로 읽으므로, `Exchange.UpgradeLevels`는 등록 자체가 안 된다.
 - [ ] **본성(General 타입)**: 레벨 테이블이 `Skill` 필드 그룹에 결박돼 있어 General 타입은 인스펙터 authoring 불가 — 필드를 **타입 중립 그룹으로 승격**하는 선행 작업 필요(리뷰 지적). "SO만 추가"로는 안 됨.
+- [ ] **선행 작업 — 레벨 테이블 타입 중립 승격** (본성·연금술사 공통): `ManagementController.BuildUpgradeBuildings()`의 `building.Skill?.UpgradeLevels` 하드코딩을 타입 중립 소스로 바꾼다. 컨트롤러가 이 테이블에서 실제로 읽는 건 **`Cost`뿐이므로**(`UpgradeBuildingCost`/`CanUpgradeBuilding`/`TryUpgradeBuilding`), 필드 그룹별 레벨 리스트에서 비용만 뽑아 주는 헬퍼 하나면 충분하다. 효과값은 지금처럼 소비 측이 자기 필드 그룹에서 직접 읽는다(`SkillManager`가 `Skill.UpgradeLevels`를, 교환이 `Exchange.UpgradeLevels.GainMultiplier`를). 이게 끝나면 **본성 업그레이드와 연금술사 교환 효율 업그레이드가 동시에 열린다.**
 
 ---
 
