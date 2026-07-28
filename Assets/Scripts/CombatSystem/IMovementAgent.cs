@@ -37,9 +37,13 @@ namespace NorthLand.Combat
     }
     public interface IRouteMovementAgent : IMovementAgent
     {
+        bool HasRouteRemaining { get; }
+
         event Action RouteCompleted;
 
         void SetRoute(IReadOnlyList<Vector3> routePoints);
+
+        void SetMoveEnabled(bool enabled);
     }
 
 }
