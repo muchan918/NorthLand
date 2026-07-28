@@ -185,6 +185,12 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 6629238200938496
     m_Key: game.setting.Laguage
+  - m_Id: 6579016888147968
+    m_Key: castle.add_villager
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6589878990462976
+    m_Key: castle.max_villagers
     m_Metadata:
       m_Items: []
   - m_Id: 6528311331823616

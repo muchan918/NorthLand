@@ -188,6 +188,12 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 6629238200938496
     m_Localized: "\uC5B8\uC5B4"
+  - m_Id: 6579016888147968
+    m_Localized: "\uC8FC\uBBFC \uB298\uB9AC\uAE30"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6589878990462976
+    m_Localized: "\uD604\uC7AC \uCD5C\uB300 \uC8FC\uBBFC \uC218:"
     m_Metadata:
       m_Items: []
   - m_Id: 6528311331823616

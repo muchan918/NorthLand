@@ -227,9 +227,13 @@
 - [x] **그래프 생성 방식**: **확정** — §4.1 런 시작 시 미리 전체 생성 + Delaunay 삼각분할 프루닝 + 프론티어 공개.
 - [ ] **노드 해금 조건·개수**: 최대 30 내에서 실제 활성/해금 개수와 "특정 조건마다 열림" 규칙 미정(TBD).
 - [x] **확장 규칙(하루 1회)**: **확정**(이슈 #67) — 낮 시작(`DayNightManager.OnDayStart`)마다
-      `TerritoryController.HasExpandedToday`를 초기화, `TryClaim`에서 하루 1회만 허용. 그 날 확장을
-      마쳐야 `ManagementController.CanAssignVillagers`가 열려 주민 배치가 가능해진다(GDD §6.1 "영토
-      확장을 통해 주민 획득"과 정합). 자원(마나 등) 비용 게이팅은 여전히 TBD.
+      `TerritoryController.HasExpandedToday`를 초기화, `TryClaim`에서 하루 1회만 허용. 자원(마나 등)
+      비용 게이팅은 여전히 TBD.
+      **⚠ #219에서 배치 선행 조건은 폐지됐다**: 종전에는 그 날 확장을 마쳐야 `ManagementController.CanAssignVillagers`가
+      열려 주민 배치가 가능했으나, 프론티어 소진 시 소프트락 경로가 생겨 제거했다(WL-035). 현재
+      `HasExpandedToday`는 `ManagementController.HasExpandedTerritory`로 노출되어 **낮 종료 확인 팝업의
+      경고 판정에만** 쓰인다 — 확장하지 않아도 주민 배치·밤 전환 모두 가능하다. GDD §6.1 "영토 확장을 통해
+      주민 획득"은 강제 게이트가 아니라 유도로 재해석됐다.
 - [x] **보상 수치 출처**: **확정 — 효과 SO에 직접 authoring**(CSV 아님, §5 결정). 주민 획득은 여전히 주민 시스템 의존(심).
 - [ ] **좌표계**: 2D 캔버스(uGUI) vs 3D 월드 노드. 비그리드지만 공간 선택·호버가 필요 → 입력/레이캐스트 방식 결정.
 - [~] **표시 문자열 소유권**: `TerritoryDefinition`에 표시명/설명 **스트링 테이블 키 필드 존재**(authored, #102 계보).
