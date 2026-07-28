@@ -166,6 +166,14 @@ MonoBehaviour:
     m_Localized: Owned
     m_Metadata:
       m_Items: []
+  - m_Id: 6579016888147968
+    m_Localized: Add Villager
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6589878990462976
+    m_Localized: 'Max Villagers:'
+    m_Metadata:
+      m_Items: []
   - m_Id: 6528311331823616
     m_Localized: Proceed
     m_Metadata:

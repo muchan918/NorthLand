@@ -21,8 +21,11 @@ public class ManagementController : MonoBehaviour
              "강화 효과는 소비 시스템(스킬 등)이 GetUpgradeLevel로 레벨을 읽어 적용한다(결합도 최소, 효과는 TODO).")]
     [SerializeField] BuildingAsset[] _upgradeBuildings;
 
-    [Tooltip("총 보유(최대) 주민 수. 주민 시스템 부재로 임시 placeholder. 전 라인 배치 합계 상한.")]
-    [SerializeField] int _maxVillagers = 5;
+    // ⚠ 필드명을 바꾸지 말 것 — GameScene의 인스턴스 오버라이드(_maxVillagers: 2)가 이름으로 매칭되므로
+    //   이름을 바꾸면 씬에 저장된 시작값이 유실되고 스크립트 기본값으로 되돌아간다.
+    [Tooltip("게임 시작 시 보유한 주민 수(#227). 본진에서 늘린 증가분은 런타임 상태(_bonusVillagers)로 따로 들고 있고, " +
+             "실제 상한은 둘을 합친 MaxVillagers다. 전 라인 배치 합계 상한.")]
+    [SerializeField] int _maxVillagers = 2;
 
     [Tooltip("웨이브 클리어(밤→낮 정산) 시 지급되는 마나석 고정량 (GDD §4.3)")]
     [SerializeField] int _manaPerWaveClear = 10;
@@ -57,6 +60,12 @@ public class ManagementController : MonoBehaviour
     private List<BuildingAsset.SkillUpgradeLevel>[] _upgradeLevelTables;
     private BuildingAsset[] _upgradeBuildingRefs;
 
+    // 본진에서 늘린 주민 수(#227). 시작값(_maxVillagers)과 분리해 런타임 상태로만 소유한다 —
+    // 공유 SO(castle.asset)에 쓰면 다른 런/인스턴스까지 오염된다(WL-016, 건물 레벨과 같은 취지).
+    // 이 값 자체가 곧 '소진한 비용 테이블 행 수'다 — 별도 카운터를 두면 둘이 어긋날 수 있어 하나로 겸한다.
+    // 밤→낮 전환은 배치(_villagerCounts)만 초기화하므로 늘어난 주민 수는 자동으로 다음날에도 유지된다.
+    private int _bonusVillagers;
+
     private DayNightManager _dayNight;
     private TerritoryController _territory;
 
@@ -64,7 +73,8 @@ public class ManagementController : MonoBehaviour
     private ResourceTable _resourceTable;
 
     public int LineCount => _sources != null ? _sources.Length : 0;
-    public int MaxVillagers => _maxVillagers;
+    // 총 보유 주민 수 = 시작값 + 본진에서 늘린 증가분(#227). 소비처는 항상 이 프로퍼티를 읽는다.
+    public int MaxVillagers => _maxVillagers + _bonusVillagers;
     public int AssignedTotal
     {
         get
@@ -92,7 +102,10 @@ public class ManagementController : MonoBehaviour
     public bool HasExpandedTerritory => _territory == null || _territory.HasExpandedToday;
 
     // 아직 배치되지 않은(유휴) 주민이 있는가 — 낮 종료 확인 팝업의 경고 판정용(#219).
-    public bool HasIdleVillagers => AssignedTotal < _maxVillagers;
+    // 기준은 시작값(_maxVillagers)이 아니라 본진 증가분을 더한 MaxVillagers다(#227) —
+    // 팝업이 표시하는 유휴 인원수(MaxVillagers - AssignedTotal)와 판정 기준이 어긋나면
+    // "2/5인데 경고가 안 뜬다" 같은 조용한 누락이 생긴다.
+    public bool HasIdleVillagers => AssignedTotal < MaxVillagers;
 
     // 페이즈 전환 버튼 활성 조건(#219): DayNight가 있으면 항상 활성. 강제 게이팅을 해제했고,
     // 낮 종료 조건 미충족(영토 미확장·유휴 주민)은 버튼 비활성이 아니라 확인 팝업으로 안내한다.
@@ -306,6 +319,84 @@ public class ManagementController : MonoBehaviour
 
     private bool IsValidUpgrade(int index) =>
         _upgradeBuildingRefs != null && index >= 0 && index < _upgradeBuildingRefs.Length;
+
+    // ── 주민 수 증가 게이트웨이 (본진, #227) ──────────────────────────────
+    // 업그레이드 트랙(_upgradeBuildings)과 같은 계보지만 별도 index 도메인을 만들지 않는다 —
+    // 본진은 씬에 하나뿐이라 배열 등록·와이어링 없이 BuildingAsset을 그대로 받는 편이 결합도가 낮다
+    // (GetUpgradeLevel(BuildingAsset)과 같은 형태). 비용은 동일한 TrySpend 게이트웨이를 쓴다.
+
+    /// <summary>주민을 늘릴 수 있는 총 횟수 = 비용 테이블 행 수. 상한을 별도 필드로 두지 않고
+    /// 행 수로 표현하므로(시작 2명 + 8행 = 최대 10명) 상한과 비용이 어긋날 수 없다.</summary>
+    public int VillagerGrowthSteps(BuildingAsset building) => VillagerLevels(building)?.Count ?? 0;
+
+    /// <summary>지금까지 늘린 횟수(= 소진한 행 수). 표시부가 "n/8" 같은 진행도를 그릴 때 쓴다.</summary>
+    public int VillagerGrowthCount => _bonusVillagers;
+
+    /// <summary>다음 회차 주민 증가 비용. 행을 모두 소진했거나 테이블이 없으면 null(표시부는 "MAX" 처리).</summary>
+    public IReadOnlyList<ResourceCost> NextVillagerCost(BuildingAsset building)
+    {
+        List<BuildingAsset.VillagerGrowthLevel> levels = VillagerLevels(building);
+        if (levels == null || _bonusVillagers >= levels.Count) return null;
+
+        BuildingAsset.VillagerGrowthLevel next = levels[_bonusVillagers];
+        return next?.Cost;
+    }
+
+    /// <summary>주민을 늘릴 수 있는지 — 낮이어야 하고, 남은 회차가 있어야 하고, 그 비용을 감당할 수 있어야 한다.</summary>
+    public bool CanIncreaseVillagers(BuildingAsset building)
+    {
+        if (!IsDay) return false;
+        IReadOnlyList<ResourceCost> cost = NextVillagerCost(building);
+        return cost != null && CanAfford(cost);
+    }
+
+    /// <summary>
+    /// 총 보유 주민 수를 1 늘린다 — 낮에만, 다음 회차 비용을 감당 가능할 때만.<br/>
+    /// 비용은 건물 업그레이드와 동일한 <see cref="TrySpend"/> 게이트웨이로 원자적 차감(WL-017/WL-048),
+    /// 성공 시 <see cref="MaxVillagers"/>가 즉시 올라가고 <see cref="OnChanged"/>로 뷰에 통지된다.<br/>
+    /// 늘어난 주민은 그날 바로 배치할 수 있고(<see cref="AssignVillager"/>의 상한이 <see cref="MaxVillagers"/>다),
+    /// 다음날에도 유지된다. 그날 배치하지 않아도 밤으로 넘어갈 수 있으며(#219로 강제 게이팅 해제),
+    /// 유휴로 남으면 낮 종료 확인 팝업이 <see cref="HasIdleVillagers"/>로 경고만 한다.
+    /// </summary>
+    public bool TryIncreaseVillagers(BuildingAsset building)
+    {
+        if (!IsDay)
+        {
+            Debug.Log("[경영] 밤에는 주민을 늘릴 수 없습니다.");
+            return false;
+        }
+
+        List<BuildingAsset.VillagerGrowthLevel> levels = VillagerLevels(building);
+        if (levels == null)
+        {
+            return false;
+        }
+        if (_bonusVillagers >= levels.Count)
+        {
+            Debug.Log($"[경영] 주민 수가 이미 최대입니다. ({MaxVillagers}명)");
+            return false;
+        }
+
+        BuildingAsset.VillagerGrowthLevel target = levels[_bonusVillagers];
+        if (target == null || !TrySpend(target.Cost))
+        {
+            Debug.Log($"[경영] 자원이 부족해 주민을 늘릴 수 없습니다. ({_bonusVillagers + 1}회차)");
+            return false;
+        }
+
+        _bonusVillagers++;
+        Debug.Log($"[경영] 주민 수 증가 → {MaxVillagers}명 ({_bonusVillagers}/{levels.Count}회차)");
+        OnChanged?.Invoke();
+        return true;
+    }
+
+    // 주민 증가 비용 테이블을 꺼낸다. 건물이 없거나 테이블이 비면 null — 호출부가 전부 null 가드를 탄다.
+    private static List<BuildingAsset.VillagerGrowthLevel> VillagerLevels(BuildingAsset building)
+    {
+        if (building == null || building.Villager == null) return null;
+        List<BuildingAsset.VillagerGrowthLevel> levels = building.Villager.Levels;
+        return levels != null && levels.Count > 0 ? levels : null;
+    }
 
     // ── 자원 교환 게이트웨이 (연금술사의 집, #211) ────────────────────────
     // 마나석 → 다른 자원 단방향 교환. 지갑에 '획득' 경로를 여는 유일한 소비자 대면 API이므로
@@ -546,9 +637,9 @@ public class ManagementController : MonoBehaviour
         {
             return;
         }
-        if (AssignedTotal >= _maxVillagers)
+        if (AssignedTotal >= MaxVillagers)
         {
-            Debug.Log($"[경영] 가용 주민이 없습니다. (배치 {AssignedTotal}/{_maxVillagers})");
+            Debug.Log($"[경영] 가용 주민이 없습니다. (배치 {AssignedTotal}/{MaxVillagers})");
             return;
         }
 
