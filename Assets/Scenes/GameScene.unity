@@ -1810,6 +1810,7 @@ MonoBehaviour:
   _villagerPoolText: {fileID: 1894582133}
   _phaseText: {fileID: 965220044}
   _endDayButton: {fileID: 1432297225}
+  _endDayConfirmPopup: {fileID: 1850162872}
   _lineContainer: {fileID: 1936288221}
   _linePrefab: {fileID: 8804924803633520923, guid: b804843ef97f64246a0a1cdd7713c23b, type: 3}
 --- !u!114 &227380441
@@ -13632,6 +13633,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1848733563}
   m_CullTransparentMesh: 1
+--- !u!114 &1850162872 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8207561281818052991, guid: d53307a6d398e5c44b5f8a8fc0a137f1, type: 3}
+  m_PrefabInstance: {fileID: 586166555}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c95d0bd7e1631ad4f949a36ac666ac7d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ManagementEndDayConfirmPopup
 --- !u!1 &1858614551
 GameObject:
   m_ObjectHideFlags: 0

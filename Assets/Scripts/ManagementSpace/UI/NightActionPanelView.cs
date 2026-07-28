@@ -29,6 +29,13 @@ public class NightActionPanelView : MonoBehaviour
 
         _controller = FindFirstObjectByType<ManagementController>();
 
+        // 배선 누락을 시작 시점에 드러낸다(#219) — 낮 종료 클릭까지 미루면 확인 팝업이
+        // 조용히 빠진 채 게임이 굴러가므로, 여기서 에러로 즉시 노출한다.
+        if (_endDayConfirmPopup == null)
+        {
+            Debug.LogError("[낮 종료] 확인 팝업이 연결되지 않았습니다. 인스펙터 배선을 확인하세요.");
+        }
+
         if (_endDayButton != null)
         {
             _endDayButton.onClick.RemoveAllListeners();
@@ -78,22 +85,8 @@ public class NightActionPanelView : MonoBehaviour
         if (_bossKillButton != null) _bossKillButton.gameObject.SetActive(!isDay);
     }
 
-    // 낮 종료(#219): 팝업이 배선돼 있으면 확인 경유, 없으면(배선 누락) 경고를 남기고 곧장 종료.
-    private void HandleEndDay()
-    {
-        if (_controller == null)
-        {
-            Debug.LogWarning("[낮 종료] ManagementController를 찾을 수 없습니다.");
-            return;
-        }
-        if (_endDayConfirmPopup != null)
-        {
-            _endDayConfirmPopup.Request(_controller);
-            return;
-        }
-        Debug.LogWarning("[낮 종료] 확인 팝업이 연결되지 않아 확인 없이 바로 종료합니다.");
-        _controller.EndDay();
-    }
+    // 낮 종료(#219): 조건 점검·표시·진행 판단은 전부 팝업이 소유한다(이 뷰는 호출만).
+    private void HandleEndDay() => _endDayConfirmPopup.Request(_controller);
 
     private void HandleWaveSuccess()
     {

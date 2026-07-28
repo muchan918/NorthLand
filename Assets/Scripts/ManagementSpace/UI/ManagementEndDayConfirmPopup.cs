@@ -17,9 +17,11 @@ using UnityEngine.UI;
 /// <br/>
 /// 배선 시점 규칙: 자기완결적 배선(버튼 리스너 등)은 <see cref="Awake"/>에서 — 스크립트
 /// 자신의 GameObject가 항상 활성이라는 전제만 있으면 다른 오브젝트 초기화 순서와 무관하게 안전하다.
-/// 다른 매니저(<see cref="DayNightManager"/>)에 의존하는 구독은 <see cref="OnEnable"/>/<see cref="OnDisable"/>
-/// 쌍으로 — Unity는 모든 오브젝트의 Awake를 끝낸 뒤에야 OnEnable을 호출하므로, 이 시점엔
-/// DayNightManager.Instance가 이미 세팅돼 있음이 보장된다(스크립트 실행 순서 설정 불필요).
+/// 다른 매니저(<see cref="DayNightManager"/>)에 의존하는 구독은 <c>Start</c>에서 — Unity는
+/// <c>Awake→OnEnable</c>을 오브젝트 단위로 묶어 실행하므로 <c>OnEnable</c>은 다른 오브젝트의
+/// <c>Awake</c>보다 앞설 수 있다(이 씬에서 실측: 그 시점 <c>DayNightManager.Instance</c>가 null).
+/// <c>Start</c>는 모든 <c>Awake</c> 이후이므로 안전하며, 해제는 <c>OnDestroy</c>로 대칭을 맞춘다.
+/// 실행 순서를 강제하는 장치는 이 저장소에 없으니, 구독 실패 시 경고를 남겨 즉시 드러낸다.
 /// </summary>
 public class ManagementEndDayConfirmPopup : MonoBehaviour
 {
@@ -61,16 +63,22 @@ public class ManagementEndDayConfirmPopup : MonoBehaviour
         }
     }
 
-    // DayNightManager 의존 구독은 OnEnable/OnDisable로 — 클래스 주석 참고(실행 순서 안전).
-    private void OnEnable()
+    // DayNightManager 의존 구독은 Start에서 — 클래스 주석 참고(OnEnable은 같은 오브젝트의 Awake
+    // 직후에 불려 다른 오브젝트의 Awake보다 앞설 수 있어, 실측에서 Instance가 아직 null이었다).
+    private void Start()
     {
         if (DayNightManager.Instance != null)
         {
             DayNightManager.Instance.OnDayToNight += Hide;
         }
+        else
+        {
+            // 구독 실패가 조용히 지나가면 "가끔 밤에 팝업이 안 닫힌다"로만 드러난다 — 여기서 즉시 알린다.
+            Debug.LogWarning("[경영] DayNightManager를 찾지 못해 밤 전환 자동 닫기가 비활성화됩니다.");
+        }
     }
 
-    private void OnDisable()
+    private void OnDestroy()
     {
         if (DayNightManager.Instance != null)
         {
@@ -79,7 +87,7 @@ public class ManagementEndDayConfirmPopup : MonoBehaviour
     }
 
     /// <summary>
-    /// 낮 종료 요청 진입점(#219) — 뷰가 인스펙터로 연결한 팝업 인스턴스에서 직접 호출한다.
+    /// 낮 종료 요청 진입점(#219) — 뷰가 인스펙터로 연결한 이 팝업 인스턴스에 직접 호출한다.
     /// 두 조건이 모두 충족이면 팝업 없이 바로 <see cref="ManagementController.EndDay"/>,
     /// 하나라도 미충족이면 미충족 항목을 담아 팝업을 띄운다.
     /// </summary>

@@ -54,6 +54,12 @@ public class ManagementPanelView : MonoBehaviour
             Debug.LogError("[경영패널] ManagementController를 찾을 수 없습니다.");
             return;
         }
+        // 배선 누락을 시작 시점에 드러낸다(#219) — 낮 종료 클릭까지 미루면 확인 팝업이
+        // 조용히 빠진 채 게임이 굴러가므로, 여기서 에러로 즉시 노출한다.
+        if (_endDayConfirmPopup == null)
+        {
+            Debug.LogError("[경영패널] 낮 종료 확인 팝업이 연결되지 않았습니다. 인스펙터 배선을 확인하세요.");
+        }
 
         BuildLines();
 
@@ -75,18 +81,8 @@ public class ManagementPanelView : MonoBehaviour
         }
     }
 
-    // 낮 종료 버튼(#219): 팝업이 배선돼 있으면 확인 경유, 없으면(배선 누락) 경고를 남기고
-    // 곧장 종료 — 확인 우회를 로그로 드러내 무증상 분기를 막는다.
-    private void HandleEndDayClicked()
-    {
-        if (_endDayConfirmPopup != null)
-        {
-            _endDayConfirmPopup.Request(_controller);
-            return;
-        }
-        Debug.LogWarning("[경영패널] 낮 종료 확인 팝업이 연결되지 않아 확인 없이 바로 종료합니다.");
-        _controller.EndDay();
-    }
+    // 낮 종료 버튼(#219): 조건 점검·표시·진행 판단은 전부 팝업이 소유한다(이 뷰는 호출만).
+    private void HandleEndDayClicked() => _endDayConfirmPopup.Request(_controller);
 
     // 고정 행을 한 번만 만든다(#166): 기본 자원 라인 → 마나석 → 특수 자원. 확보 시엔 재빌드 없이 Refresh만.
     private void BuildLines()
