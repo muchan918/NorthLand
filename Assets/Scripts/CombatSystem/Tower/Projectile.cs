@@ -90,8 +90,8 @@ namespace NorthLand.Combat
             {
                 // 평면 추적 시작점 + 초기 거리(아크 진행도 t 계산 기준) 스냅샷.
                 homingPos = transform.position;
-                var mb = target as MonoBehaviour;
-                Vector3 tp = mb != null ? mb.transform.position : transform.position;
+                var mb = target.HitPosition;
+                Vector3 tp = mb.transform.position;
                 totalDistance = Vector3.Distance(homingPos, tp);
             }
         }
@@ -208,7 +208,7 @@ namespace NorthLand.Combat
             DamageDealt?.Invoke(source, target);
             chainHitSet.Add(target);
 
-            Vector3 from = (target as MonoBehaviour).transform.position;
+            Vector3 from = target.HitPosition.transform.position;
 
             for (int i = 1; i < impact.MaxChainTargets; i++)
             {
@@ -219,7 +219,7 @@ namespace NorthLand.Combat
                 next.TakeDamage(new DamageInfo(dmg, source));
                 DamageDealt?.Invoke(source, next);
                 chainHitSet.Add(next);
-                from = (next as MonoBehaviour).transform.position;
+                from = next.HitPosition.transform.position;
             }
         }
 
