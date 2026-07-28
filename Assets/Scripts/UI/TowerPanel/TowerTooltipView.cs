@@ -23,16 +23,16 @@ public class TowerTooltipView : MonoBehaviour
 
     [Header("표시 대상")]
     [SerializeField] Canvas _canvas;           // scaleFactor 계산용(루트 캔버스). 비면 부모에서 자동 조회
-    [SerializeField] GameObject _panel;        // 보임/숨김 토글 대상 (루트가 아니라 이 자식)
-    [SerializeField] RectTransform _panelRect; // 배치 대상. 비면 _panel에서 자동 조회
+    private GameObject _panel;        // 보임/숨김 토글 대상 (루트가 아니라 이 자식)
+    private RectTransform _panelRect; // 배치 대상. 비면 _panel에서 자동 조회
 
-    [Header("내용 슬롯")]
-    [SerializeField] Image _icon;
-    [SerializeField] TextMeshProUGUI _nameText;
-    [SerializeField] TextMeshProUGUI _descText;
-    [SerializeField] TextMeshProUGUI _statsText;
-    [SerializeField] TextMeshProUGUI _costText;
 
+    private Image _icon;
+    private TextMeshProUGUI _nameText;   
+    private TextMeshProUGUI _descText;
+    private TextMeshProUGUI _statsText;
+    private TextMeshProUGUI _costText;
+ 
     [Header("배치")]
     // 호버한 버튼의 위쪽 가장자리 기준 오프셋(x=수평 이동, y=버튼과의 간격).
     [SerializeField] Vector2 _buttonOffset = new(0f, 8f);
