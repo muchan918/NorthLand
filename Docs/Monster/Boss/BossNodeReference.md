@@ -1,12 +1,12 @@
 # 보스 BT 노드 레퍼런스
 
-- 관련 이슈: 미생성 (신규 생성 예정)
-- 구현 위치: `Assets/Scripts/CombatSystem/Enemy/AI/` (예정)
+- 관련 이슈: #234 (리프 노드 세트), #233 (`EnemyAgent` + 기존 시스템 진입점)
+- 구현 위치: 노드 `Assets/Scripts/CombatSystem/Enemy/AI/Nodes/` · 보조 타입 `Assets/Scripts/CombatSystem/Enemy/AI/`
 - 설계 문서: `Docs/Monster/Boss/BossDesign.md`
 - 이 문서는 Unity Behavior 커스텀 리프 노드의 **정의 대장**이다. 노드는 보스가 늘어날수록 재사용되며 계속 추가된다. 노드를 새로 만들거나 파라미터를 바꾼 사람은 같은 PR에서 이 표의 행을 갱신한다.
-- 현재 **모든 노드가 미구현**이다. 상태 칸으로 구분한다.
+- Condition 3종 / Action 11종 / 보조 타입 4종 **구현 완료**(#234). 그래프 조립과 Play 검증은 #235에서 한다 — 현재 이 노드들을 쓰는 그래프 에셋이 없어 **런타임 동작은 미검증**이다. 검증된 것은 컴파일·GUID 유일성·에디터 노드 목록 등재·입력 타입 유효성이다.
 
-> `Assets/Scripts/CombatSystem/Enemy/MiniBoss/`의 기존 노드 4종은 이 대장에 포함되지 않는다. 중간보스 전용이며 재사용하지도, 참조하지도 않는다.
+> `Assets/Scripts/CombatSystem/Enemy/MiniBoss/`의 기존 노드 4종은 이 대장에 포함되지 않는다. 중간보스 전용이며 재사용하지도, 참조하지도 않는다. GUID 충돌은 없다(프로젝트 전체 18개 노드 전부 고유).
 
 ## 설계 원칙
 
@@ -34,33 +34,42 @@
 
 전자를 기본으로 한다. 그래프 1본으로 여러 보스를 돌릴 때 프리팹마다 배선을 다시 하지 않아도 된다.
 
-### EnemyAgent가 노출해야 하는 것
+### EnemyAgent가 노출하는 것
 
-노드가 요구하는 능력의 목록이다. `EnemyAgent`는 기존 `Enemy` / `MonsterMove` / `Animator`에 대한 얇은 파사드이며, 노드는 이 경계 너머를 알지 못한다.
+`EnemyAgent`는 기존 `Enemy` / `MonsterMove` / `Animator`에 대한 얇은 파사드이며, 노드는 이 경계 너머를 알지 못한다. 구현: `Assets/Scripts/CombatSystem/Enemy/AI/EnemyAgent.cs`.
 
-| 능력 | 용도 | 비고 |
+| 멤버 | 용도 | 비고 |
 |---|---|---|
-| 패턴 이동속도 배수 (읽기/쓰기) | 돌진 가속, 방어 태세 크롤 | 감속 디버프 축과 **곱해지는** 별도 축이어야 한다 |
-| 실효 이동속도 (읽기) | 돌진 충돌 피해 계산 | 배수가 아니라 디버프까지 반영된 최종 속도 |
-| 이동 소유권 (쓰기) | 준비 동작 중 정지 | `Enemy.Update`의 매 프레임 덮어쓰기를 차단해야 한다 |
-| 받는 피해 배수 (쓰기) | 방어 태세 | |
-| 애니메이션 트리거 | 준비 모션 | `EnemyAgent`가 `Animator`를 직접 들면 `MonsterAnimation` 수정이 불필요하다 |
-| 진행 방향 (읽기) | 앞뒤 판정 | |
-| HP 비율 (읽기) | 조건 분기, HP 연동 파라미터 | |
+| `PatternSpeedFactor` (읽기/쓰기) | 돌진 가속, 방어 태세 크롤 | `MonsterMove`의 패턴 축에 위임. 감속 디버프 축과 **곱해진다** |
+| `EffectiveMoveSpeed` (읽기) | 돌진 충돌 피해 계산 | 배수가 아니라 디버프까지 반영된 최종 속도 |
+| `MovementOwned` (읽기/쓰기) | 준비 동작 중 정지, 돌진 중 전진 유지 | `Enemy.MovementOwnedByBehavior`에 위임. 켜면 `Enemy.Update`가 `IsStopped`와 `SetHasTarget` 둘 다 건드리지 않는다 |
+| `MovementStopped` (읽기/쓰기) | 소유권 중 정지·재개 지시 | 속도 배수에 하한 클램프가 있어 **완전 정지는 이 축으로만** 가능하다 |
+| `DamageTakenFactor` (읽기/쓰기) | 방어 태세 | `Enemy`에 위임. 0=무적, 1 초과=취약 |
+| `TryPlayAnimation(trigger)` / `AnimationNormalizedTime` / `IsAnimatorInTransition` / `HasAnimator` | 준비 모션 + 재생 종료 판정 | `EnemyAgent`가 `Animator`를 직접 들어 `MonsterAnimation` 수정이 불필요하다 |
+| `Forward` (읽기) | 앞뒤 판정 | `MonsterMove`가 붙은 transform 기준(루트가 아님) |
+| `HpRatio` (읽기) | 조건 분기, HP 연동 파라미터 | |
+| `Faction` (읽기) | 반경 질의의 아군/적군 판정 | 진영을 상수로 박지 않아 노드를 플레이어 측 유닛에 붙여도 Ally/Hostile이 뒤집히지 않는다 |
+| `UnitLayerMask` (읽기) | 반경 질의의 물리 프리필터 | **`LayerMask`는 Blackboard 변수 지원 타입이 아니라** 노드 입력으로 못 받는다. 프리팹 인스펙터에서 authoring한다 |
+| `IsPatternReady(key, cooldown)` / `MarkPatternUsed(key)` | 패턴 게이트 | 무상태 원칙의 유일한 예외(`EnemyPatternMemory`) |
+| `SpawnMinion(prefab)` / `AliveMonsterCount` / `HasSpawner` / `BindSpawner(spawner)` | 지속 소환 | 스포너는 스폰 시점에 `MonsterSpawn`이 주입한다. 정적 싱글톤을 쓰지 않아 스포너 다중 구성이 가능하다 |
 
 ## 작성 규약
 
 Unity Behavior `com.unity.behavior` 1.0.16 기준이다.
 
-- **네임스페이스를 두지 않는다.** 따라서 **클래스 이름이 전역에서 유일**해야 한다. 새 노드를 만들기 전에 이름 중복을 확인한다.
-- Action은 `Unity.Behavior.Action`을, Condition은 `Unity.Behavior.Condition`을 상속한다. 네임스페이스 없는 파일에서는 `Action`이 `System.Action`과 충돌할 수 있으므로 별칭을 지정한다.
-- 클래스는 `partial`로 선언하고 직렬화 어트리뷰트와 속성 백 생성 어트리뷰트를 붙인다. 노드 설명 어트리뷰트에 표시 이름·설명·story·category·id를 채운다.
+- **네임스페이스를 두지 않는다.** 따라서 **클래스 이름이 전역에서 유일**해야 한다. 새 노드를 만들기 전에 이름 중복을 확인한다. (패키지는 네임스페이스가 있어도 동작하지만 — 기존 MiniBoss 노드가 `NorthLand.Combat.Boss`를 쓴다 — 신규 노드는 이 규약으로 통일한다.)
+- Action은 `Unity.Behavior.Action`을, Condition은 `Unity.Behavior.Condition`을 상속한다. 네임스페이스 없는 파일에서 `Action`은 `System.Action`과 충돌하므로 `using Action = Unity.Behavior.Action;` 별칭을 지정한다.
+- 클래스는 `partial`로 선언하고 `[System.Serializable, GeneratePropertyBag]`을 붙인다. Action은 `[NodeDescription(...)]`, Condition은 `[Condition(...)]`으로 표시 이름·설명·story·category·id를 채운다 (**어트리뷰트가 다르다**).
 - 노드 `id`는 32자리 16진수 GUID이며 **노드마다 새로 발급**한다. 복사해 쓰면 그래프에서 노드가 뒤섞인다.
 - `category`는 `Action/Enemy` 또는 `Conditions/Enemy`로 통일한다. 에디터 노드 목록의 분류에 쓰인다.
-- 입력 파라미터는 Blackboard 변수 필드로 선언한다. 상수를 코드에 박지 않는다.
-- 즉시 끝나는 동작은 시작 시점에 처리하고 성공을 반환한다. 시간이 걸리는 동작은 실행 중 상태를 유지하다가 완료 시 성공을 반환한다.
-- 실패는 한국어 메시지를 로그로 남기고 실패를 반환한다 (SystemMap §6 컨벤션).
+- 입력 파라미터는 `[SerializeReference] public BlackboardVariable<T>` 필드로 선언한다. 상수를 코드에 박지 않는다.
+- **`T`로 쓸 수 있는 타입이 제한된다**: `UnityEngine.Object` 파생 / 프리미티브 / enum / 패키지 지원 목록(`string`, `Color`, `Vector*`, `List<>` 등). `LayerMask`는 **쓸 수 없다** — `EnemyAgent`가 인스펙터에서 들고 노드가 읽는다.
+- enum은 `[BlackboardEnum]`을 붙이면 그래프 Blackboard의 변수 타입 목록에도 노출된다. 노드 입력으로만 쓸 거면 없어도 동작하지만, 수치를 Blackboard로 올리는 원칙상 붙인다.
+- 즉시 끝나는 동작은 `OnStart`에서 처리하고 성공을 반환한다. 시간이 걸리는 동작은 `OnUpdate`에서 Running을 유지하다가 완료 시 성공을 반환한다.
+- **상태를 바꾸는 노드는 `OnEnd`에서 원복한다.** `OnEnd`는 정상 종료와 상위 컴포지트에 의한 중단 모두 지나가는 유일한 경로다. 원복 대상은 상수(1 등)가 아니라 **진입 시점에 읽어둔 값**이어야 한다 — 상위에서 걸어둔 배수를 지우지 않도록.
+- 실패는 한국어 메시지를 `LogFailure`로 남기고 실패를 반환한다 (SystemMap §6 컨벤션).
 - `Agent`가 null이면 실패를 반환한다. 다만 `Target`이 null인 경우는 조건 노드에서 조용히 거짓으로 처리한다 — 본진은 밤에 런타임 스폰되므로 초반에 null인 것이 정상이다.
+- **"조건이 안 맞아 아무것도 안 한 것"은 실패가 아니라 성공이다.** 실패로 두면 상위 시퀀스가 매 틱 재시도한다(소환 상한 도달, 봉인 범위에 타워 없음, 실효 속도가 하한 미만 등).
 
 ## Condition 노드
 
@@ -68,11 +77,13 @@ Unity Behavior `com.unity.behavior` 1.0.16 기준이다.
 
 | 노드 | 파라미터 | 동작 | 사용처 | 상태 |
 |---|---|---|---|---|
-| `EnemyDistanceToTargetBelowCondition` | `Target`(GameObject), `Distance`(float) | `Target`까지 거리가 `Distance` 미만이면 참. `Target`이 null이면 거짓 | P1 | 미구현 |
-| `EnemyUnitsInRangeCondition` | `Filter`(Ally\|Tower\|Hostile), `Direction`(Any\|Forward\|Backward), `Radius`(float), `MinCount`(int), `LayerMask` | 지정 방향 반경 안의 대상 수가 `MinCount` 이상이면 참. 방향은 `Agent`의 진행 방향과의 내적 부호로 판정한다 | P2, P3 | 미구현 |
-| `EnemyPatternGateCondition` | `Key`(string), `CooldownSeconds`(float) | 해당 `Key`가 한 번도 사용되지 않았거나 마지막 사용 후 `CooldownSeconds`가 지났으면 참. `CooldownSeconds < 0`이면 1회 한정 | P1, P3 | 미구현 |
+| `EnemyDistanceToTargetBelowCondition` | `Target`(GameObject), `Distance`(float) | `Target`까지 거리가 `Distance` 미만이면 참. `Target`이 null이거나 `Distance` 0 이하면 거짓 | P1 | 구현 |
+| `EnemyUnitsInRangeCondition` | `Filter`(`EnemyUnitFilter`), `Direction`(`EnemyRelativeDirection`), `Radius`(float), `MinCount`(int) | 지정 방향 반경 안의 대상 수가 `MinCount` 이상이면 참. 방향은 `Agent.Forward`와의 내적 부호로 판정한다. `MinCount` 0 이하면 항상 참 | P2, P3 | 구현 |
+| `EnemyPatternGateCondition` | `Key`(string), `CooldownSeconds`(float) | 해당 `Key`가 한 번도 사용되지 않았거나 마지막 사용 후 `CooldownSeconds`가 지났으면 참. `CooldownSeconds < 0`이면 1회 한정. `Key`가 비면 거짓 | P1, P3 | 구현 |
 
-`Filter`가 `Tower`일 때는 `Tower.Active` 정적 리스트를 순회한다(물리 질의 불필요). `Ally` / `Hostile`은 `Physics.OverlapSphereNonAlloc`에 `LayerMask`를 적용한다. `AuraTower`는 `Tower.Active`에 등록되지 않으므로 `Tower` 필터에 잡히지 않는다.
+`LayerMask`는 노드 파라미터에서 빠졌다 — Blackboard 변수 지원 타입이 아니다. 대신 `EnemyAgent.UnitLayerMask`(프리팹 인스펙터 authoring)를 읽는다.
+
+반경 질의는 `EnemyNodeQuery`가 공유한다. `Filter`가 `Tower`면 `Tower.Active` 정적 리스트를 순회하고(물리 질의 불필요), `Ally` / `Hostile`은 `Physics.OverlapSphereNonAlloc` 후 `IDamageable.Faction`을 `Agent.Faction`과 비교해 가른다. 콜라이더가 여럿인 프리팹에서 중복 집계되지 않게 `IDamageable` 단위로 중복 제거하며, **자기 자신은 항상 제외**한다(보스가 자기를 세면 임계값이 1 어긋난다). `AuraTower`는 `Tower.Active`에 등록되지 않으므로 `Tower` 필터에 잡히지 않는다.
 
 ## Action 노드
 
@@ -80,36 +91,50 @@ Unity Behavior `com.unity.behavior` 1.0.16 기준이다.
 
 | 노드 | 파라미터 | 동작 | 사용처 | 상태 |
 |---|---|---|---|---|
-| `EnemyResolveTargetAction` | `TargetKind`(PlayerBase\|NearestTower\|NearestAlly\|Self), out `Target`(GameObject) | `TargetKind`에 해당하는 GameObject를 찾아 Blackboard 변수에 기록한다. 못 찾으면 실패 | P1 | 미구현 |
-| `EnemyMarkPatternUsedAction` | `Key`(string) | 패턴 사용 시각을 기록한다. `EnemyPatternGateCondition`과 짝을 이룬다 | P1, P3 | 미구현 |
-| `EnemyHoldPositionAction` | `Duration`(float) | 이동 소유권을 잡고 `Duration` 동안 제자리에 멈춘다. 종료 시 소유권을 반납한다 | P1 | 미구현 |
-| `EnemyPlayAnimationAction` | `Trigger`(string), `WaitForEnd`(bool) | 애니메이션 트리거를 발동한다. `WaitForEnd`면 재생이 끝날 때까지 실행 상태를 유지한다 | P1 | 미구현 |
-| `EnemyAccelerateAction` | `Target`(GameObject), `MaxFactor`(float), `AccelPerSecond`(float), `ArriveDistance`(float) | 매 프레임 패턴 속도 배수를 `AccelPerSecond`만큼 올리되 `MaxFactor`로 클램프한다. `Target`까지 거리가 `ArriveDistance` 이하가 되면 성공 | P1 | 미구현 |
-| `EnemyImpactTargetAction` | `Target`(GameObject), `DamagePerSpeedUnit`(float), `MinSpeed`(float) | `Target`의 `IDamageable`에 `실효 이동속도 × DamagePerSpeedUnit` 피해를 준다. 실효 속도가 `MinSpeed` 미만이면 피해 없이 성공 | P1 | 미구현 |
-| `EnemySetSpeedFactorAction` | `Factor`(float), `Duration`(float) | 패턴 속도 배수를 설정한다. `Duration > 0`이면 그 시간 뒤, 0이면 종료 시 원복한다 | P1, P2 | 미구현 |
-| `EnemySetDamageTakenFactorAction` | `Factor`(float), `Duration`(float) | 받는 피해 배수를 설정한다. 종료 시 원복한다 | P2 | 미구현 |
-| `EnemyApplyTowerDebuffAction` | `Radius`(float), `DamageMultiplier`(float), `AttackSpeedMultiplier`(float), `Duration`(float) | 반경 안의 `Tower.Active` 각각에 고유 sourceId로 `ApplyBuff`를 건다. 배율 1 미만이면 디버프가 된다 | P3 | 미구현 |
-| `EnemyShowTelegraphCircleAction` | `Radius`(float), `Duration`(float), `FillColor`, `OutlineColor` | `RangeCircle`로 예고 범위를 표시하고 `Duration` 뒤 숨긴다. 종료 시 정리한다 | P3 | 미구현 |
-| `EnemySpawnMinionsAction` | `Prefab`(GameObject), `Count`(int), `MaxAlive`(int) | 스폰 지점에 잡몹을 투입한다. `monsterParent` 자식으로 넣고 경로를 부여한다. 현재 생존 수가 `MaxAlive` 이상이면 스킵하고 성공 | P4 | 미구현 |
+| `EnemyResolveTargetAction` | `TargetKind`(`EnemyTargetKind`), `SearchRadius`(float), out `Target`(GameObject) | `TargetKind`에 해당하는 GameObject를 찾아 Blackboard 변수에 기록한다. 못 찾으면 실패(로그 없음 — 본진 미스폰이 정상 경로) | P1 | 구현 |
+| `EnemyMarkPatternUsedAction` | `Key`(string) | 패턴 사용 시각을 기록한다. `EnemyPatternGateCondition`과 짝을 이룬다. 중단 시 되돌리지 않는다 | P1, P3 | 구현 |
+| `EnemyHoldPositionAction` | `Duration`(float) | 이동 소유권을 잡고 `Duration` 동안 제자리에 멈춘다. 종료 시 정지를 풀고 소유권을 반납한다 | P1 | 구현 |
+| `EnemyPlayAnimationAction` | `Trigger`(string), `WaitForEnd`(bool), `MaxWaitSeconds`(float) | 애니메이션 트리거를 발동한다. `WaitForEnd`면 재생이 끝날 때까지 Running을 유지한다 | P1 | 구현 |
+| `EnemyAccelerateAction` | `Target`(GameObject), `MaxFactor`(float), `AccelPerSecond`(float), `ArriveDistance`(float) | 이동 소유권을 잡고, 매 프레임 패턴 속도 배수를 `AccelPerSecond`만큼 올리되 `MaxFactor`로 클램프한다. `Target`까지 거리가 `ArriveDistance` 이하가 되면 성공 | P1 | 구현 |
+| `EnemyImpactTargetAction` | `Target`(GameObject), `DamagePerSpeedUnit`(float), `MinSpeed`(float) | `Target`의 `IDamageable`에 `실효 이동속도 × DamagePerSpeedUnit` 피해를 준다. 실효 속도가 `MinSpeed` 미만이면 피해 없이 성공 | P1 | 구현 |
+| `EnemySetSpeedFactorAction` | `Factor`(float), `Duration`(float) | 패턴 속도 배수를 설정한다. `Duration > 0`이면 그 시간 유지 후 원복, **0 이하면 즉시 성공하며 원복하지 않는다**(기본 진군용) | P1, P2 | 구현 |
+| `EnemySetDamageTakenFactorAction` | `Factor`(float), `Duration`(float) | 받는 피해 배수를 설정한다. 원복 규칙은 위와 같다 | P2 | 구현 |
+| `EnemyApplyTowerDebuffAction` | `Radius`(float), `DamageMultiplier`(float), `AttackSpeedMultiplier`(float), `Duration`(float) | 반경 안의 `Tower.Active` 각각에 고유 sourceId로 `ApplyBuff`를 건다. 배율 1 미만이면 디버프가 된다. 범위에 타워가 없어도 성공 | P3 | 구현 |
+| `EnemyShowTelegraphCircleAction` | `Radius`(float), `Duration`(float), `FillColor`(Color), `OutlineColor`(Color) | `RangeCircle`을 `Agent`의 자식으로 만들어 예고 범위를 표시하고 `Duration` 뒤 파괴한다. 종료 시 정리한다 | P3 | 구현 |
+| `EnemySpawnMinionsAction` | `Prefab`(GameObject), `Count`(int), `MaxAlive`(int) | 스폰 지점에 잡몹을 투입한다. `monsterParent` 자식으로 넣고 경로를 부여한다. 상한은 마리마다 재확인하며, 상한에 걸려 한 마리도 못 넣어도 성공 | P4 | 구현 |
+
+표에서 벗어난 곳 3군데는 구현 중 필요해서 조정한 것이다.
+
+- **`EnemyResolveTargetAction`에 `SearchRadius` 추가.** `NearestTower` / `NearestAlly`가 탐색 반경 없이는 동작할 수 없다. `PlayerBase`와 `Self`는 이 값을 무시한다.
+- **`EnemyPlayAnimationAction`에 `MaxWaitSeconds` 추가.** 트리거 이름이 AnimatorController에 없으면 전이가 일어나지 않아 영구 Running이 되고 P1 시퀀스 전체가 멎는다. 재생 종료 판정은 `normalizedTime` 폴링을 택했고, "전이가 한 번 끝난 뒤"부터 진행도를 신뢰한다 — 그러지 않으면 트리거 직후 이전 상태의 진행도(이미 1 초과)가 읽혀 준비 모션이 시작 전에 끝난 것으로 오판된다.
+- **`EnemyAccelerateAction`의 원복이 비대칭이다.** 소유권은 항상 반납하지만 속도 배수는 **도달하지 못하고 끝난 경우에만** 되돌린다. 성공 시 유지하는 이유는 바로 뒤의 `EnemyImpactTargetAction`이 "충돌 시점의 실효 이동속도"를 읽어야 하기 때문이다 — 여기서 원복하면 평상시 속도가 읽혀 감속 파훼가 무의미해진다. 성공 후 배수 1 복귀는 그래프의 기본 진군 브랜치가 담당한다.
+
+`EnemyApplyTowerDebuffAction`의 sourceId는 `Agent.GetInstanceID() ^ "EnemyApplyTowerDebuff".GetHashCode()`다. 인스턴스 ID만 쓰면 같은 보스가 거는 다른 효과와 충돌하고, 고정 문자열만 쓰면 보스 여러 마리가 서로의 봉인을 덮어쓴다. 이 노드는 만료를 `Tower`가 duration으로 처리하므로 종료 시 원복하지 않는다 — 되돌리면 예고를 보고 회피한 플레이어가 봉인을 공짜로 벗는다.
 
 ## 보조 타입
 
 | 타입 | 역할 | 상태 |
 |---|---|---|
-| `EnemyAgent` | 노드가 참조하는 베이스 MonoBehaviour. `Enemy`와 병존하며 무상태 파사드로 동작한다. 위 「EnemyAgent가 노출해야 하는 것」 참조 | 미구현 |
-| `EnemyPatternMemory` | 패턴 `Key`별 마지막 사용 시각을 보관한다. `EnemyAgent`가 들고 있어도 되고 별도 컴포넌트로 분리해도 된다 | 미구현 |
+| `EnemyAgent` | 노드가 참조하는 베이스 MonoBehaviour. `Enemy`와 병존하며 무상태 파사드로 동작한다. 위 「EnemyAgent가 노출하는 것」 참조 | 구현 |
+| `EnemyPatternMemory` | 패턴 `Key`별 마지막 사용 시각을 보관한다. MonoBehaviour가 아니라 plain class로 `EnemyAgent`가 내부 필드로 든다 — 프리팹에 컴포넌트를 하나 더 요구하지 않기 위해 | 구현 |
+| `EnemyNodeQuery` | 반경 질의 공용 static 헬퍼. `EnemyUnitsInRangeCondition`과 `EnemyResolveTargetAction`이 공유해 앞뒤 판정 기준이 갈라지지 않게 한다 | 구현 |
+| `EnemyUnitFilter` / `EnemyRelativeDirection` / `EnemyTargetKind` | 노드 입력용 `[BlackboardEnum]` 열거형 3종 | 구현 |
 
 ## 기존 시스템에 필요한 변경
 
 `EnemyAgent`가 파사드 역할을 하므로 노드는 아래 클래스에 직접 닿지 않는다. 다만 `EnemyAgent`가 능력을 제공하려면 기존 클래스에 진입점이 필요하다. 상세는 설계 문서의 「선행 작업」 절을 따른다.
 
-| 대상 | 변경 | 필요 이유 |
+| 대상 | 변경 | 상태 |
 |---|---|---|
-| `MonsterMove` | 이동속도 다축 합성(패턴 축 × 디버프 축) + 하한 클램프 + 실효 속도 노출 | 감속 타워와 돌진 가속이 같은 값을 두고 경쟁해야 한다. **감속 타워 담당자와 공유 계약** |
-| `Enemy` | BT 이동 소유권 플래그 | `Update`가 매 프레임 `movement.IsStopped`를 덮어써 준비 동작 중 정지가 무효화된다 |
-| `Enemy.TakeDamage` | 받는 피해 배수 적용 지점 | 현재 감쇠·방어·무적 지점이 전혀 없다 |
-| `MonsterSpawn` | 공개 스폰 API | `SpawnPrefab` / `SpawnGroupAsync`가 private이다 |
-| `MonsterAnimation` | 없음 | `EnemyAgent`가 `Animator`를 직접 들면 수정이 불필요하다 |
+| `IMovementAgent` | 다축 합성 계약 추가 — `EffectiveMoveSpeed` / `PatternSpeedFactor` / `AddSpeedDebuff(sourceId, factor)` / `RemoveSpeedDebuff(sourceId)` | 완료(#233). **감속 타워 담당자와 공유 계약** — 구체 타입이 아니라 이 인터페이스로 부르면 된다 |
+| `MonsterMove` | 축별 소유 + 합성 + 하한 클램프(`minMoveSpeed` 0.15, 직렬화 필드). `SetMoveSpeed`는 **기준 속도 주입**으로 의미 재정의 | 완료(#233). 크롤 배수가 `fallbackMoveSpeed`(3)로 되돌아 오히려 빨라지던 함정 제거 |
+| `Enemy` | BT 이동 소유권 플래그 `MovementOwnedByBehavior` — 켜져 있으면 `Update`가 `IsStopped`와 `SetHasTarget` **둘 다** 건드리지 않는다 | 완료(#233) |
+| `Enemy.TakeDamage` | 받는 피해 배수 `DamageTakenFactor` 적용 | 완료(#233) |
+| `Enemy.SetSpeedMultiplier` | `movement`의 패턴 축 위임으로 전환. 로컬 `baseMoveSpeed` / `speedMultiplier` 필드 제거 | 완료(#233). 중간보스 그래프가 쓰는 진입점이라 시그니처 유지 |
+| `MonsterSpawn` | 공개 스폰 API `SpawnMonster(prefab)` / `AliveMonsterCount` + 스폰 시점에 `EnemyAgent`로 스포너 주입 | 완료(#233). 정적 싱글톤을 쓰지 않아 스포너 다중 구성이 가능하다 |
+| `MonsterAnimation` | 없음 | `EnemyAgent`가 `Animator`를 직접 든다 |
+
+`Enemy.Update`에서 `SetHasTarget`까지 함께 차단하는 것은 설계 문서에 없던 보강이다. `MonsterStateMachine`이 Attack 상태에서 `SetMoveEnabled(false)`를 걸기 때문에(`MonsterStateMachine.cs:141`) 타겟 통지를 살려두면 돌진이 본진 사거리에 진입하는 순간 멈춰 P1이 절름발이가 된다. 부수 효과로 소유권 중에는 근접 평타가 나가지 않는다 — 충돌 피해가 그 역할을 대신한다.
 
 ## 새 노드 추가 절차
 
@@ -121,14 +146,43 @@ Unity Behavior `com.unity.behavior` 1.0.16 기준이다.
 6. 이 문서의 표에 행을 추가하고 상태 칸을 채운다.
 7. 수치는 그래프 노드 입력에 인라인으로 박지 말고 Blackboard 변수로 올린다.
 
+### 검증 스니펫
+
+`unity-cli exec`로 노드가 제대로 등록됐는지 확인할 수 있다. 에디터가 실행 중이어야 한다.
+
+```csharp
+// GUID 유일성 — NodeDescriptionAttribute의 속성은 internal이라 리플렉션으로 읽는다.
+// 속성 이름은 Id가 아니라 GUID다.
+var flags = System.Reflection.BindingFlags.Instance
+          | System.Reflection.BindingFlags.Public
+          | System.Reflection.BindingFlags.NonPublic;
+var ids = new System.Collections.Generic.Dictionary<string, string>();
+foreach (var t in typeof(EnemyAgent).Assembly.GetTypes())
+{
+    var nd = t.GetCustomAttributes(typeof(Unity.Behavior.NodeDescriptionAttribute), false);
+    var cd = t.GetCustomAttributes(typeof(Unity.Behavior.ConditionAttribute), false);
+    object a = nd.Length > 0 ? nd[0] : (cd.Length > 0 ? cd[0] : null);
+    if (a == null) continue;
+    string id = a.GetType().GetProperty("GUID", flags).GetValue(a).ToString();
+    if (ids.ContainsKey(id)) Debug.LogError($"GUID 중복: {t.Name} <-> {ids[id]}");
+    else ids[id] = t.Name;
+}
+```
+
+에디터 노드 목록 등재와 입력 타입 유효성은 `Unity.Behavior.NodeRegistry`(내부 타입, `Unity.Behavior.Authoring` 어셈블리)의 `GetInfo(Type)` / `IsBlackboardVariableTypeValid(FieldInfo, ref Type)`로 확인한다. 후자가 거짓이면 그 입력은 그래프 에디터에 노출되지 않는다.
+
 ## 미확정 / TODO
 
-- [ ] 모든 노드 미구현. `EnemyAgent`와 선행 변경이 들어간 뒤 착수한다.
-- [ ] `EnemyUnitsInRangeCondition`의 `Filter` / `Direction`을 열거형 Blackboard 변수로 받을 수 있는지 에디터에서 확인 필요. 불가하면 노드를 방향별로 분리한다.
-- [ ] `EnemySpawnMinionsAction`의 `Prefab`을 Blackboard 변수로 프리팹 에셋 참조할 수 있는지 확인 필요. 불가하면 웨이브 SO나 `EnemyAgent`에서 참조를 받는다.
-- [ ] `EnemyPlayAnimationAction`의 재생 종료 판정 방식 미정. `normalizedTime` 폴링과 AnimationEvent 콜백 중 선택.
-- [ ] `EnemyApplyTowerDebuffAction`의 sourceId 채번 규칙 미정. 기존 관례는 TowerID 해시 / `GetInstanceID` / 고유 문자열 해시이며 다른 소스와 겹치지 않아야 한다.
-- [ ] 노드 타이밍이 전부 스케일드 타임이라 게임 배속에 비례한다. 의도인지 확인 필요.
+- [x] Condition 3종 / Action 11종 / 보조 타입 4종 구현 완료(#234).
+- [x] `EnemyUnitsInRangeCondition`의 `Filter` / `Direction`을 열거형 Blackboard 변수로 받을 수 있다. `[BlackboardEnum]`으로 확인했고 노드를 방향별로 분리하지 않았다.
+- [x] `EnemySpawnMinionsAction`의 `Prefab`을 `BlackboardVariable<GameObject>`로 받을 수 있다. `GameObject`가 기본 Blackboard 타입이고 `UnityEngine.Object` 파생 변수는 `ObjectValue`로 에셋 참조를 직렬화한다.
+- [x] `EnemyPlayAnimationAction`의 재생 종료 판정은 `normalizedTime` 폴링으로 정했다. AnimationEvent는 클립마다 이벤트를 심어야 해서 아직 없는 보스 AnimatorController(#235)의 저작 부담을 노드로 떠넘긴다.
+- [x] `EnemyApplyTowerDebuffAction`의 sourceId는 `Agent.GetInstanceID() ^ 고정 문자열 해시`로 정했다(위 Action 절 참조).
+- [ ] **런타임 동작 미검증.** 이 노드들을 쓰는 그래프 에셋이 아직 없다. 검증된 것은 컴파일 / GUID 유일성(프로젝트 전체 18개 고유) / 에디터 노드 목록 등재 14/14 / 입력 타입 유효성 14/14 / `PropertyBag` 생성 14/14다. 패턴 동작·중단 시 원복은 #235 Play 검증에서 확인한다.
+- [ ] `EnemyAgent.UnitLayerMask`가 프리팹마다 채워져야 한다. 비어 있으면 반경 질의가 항상 0을 반환해 P2·P3가 조용히 발동하지 않는다 — #235에서 프리팹 작성 시 확인.
+- [ ] `AliveMonsterCount`가 `monsterParent.childCount`라 **보스 자신과 사망 연출 중인 몬스터(`destroyDelay` 2초)가 포함된다**. `MaxAlive` 실효값이 의도보다 빡빡해진다. WL-038의 미해소 잔여와 같은 축 — #235 Play 검증에서 실측해 보정할지 판단한다.
+- [ ] 노드 타이밍이 전부 스케일드 타임이라 게임 배속에 비례한다(`Time.deltaTime` / `Time.time`). BT 내장 `Wait`도 같은 성질이라 전체를 함께 정해야 한다. 의도인지 확인 필요.
+- [ ] `EnemyNodeQuery`의 물리 버퍼가 64개 고정이다. 잡몹이 반경 안에 64체를 넘으면 초과분이 집계에서 빠진다 — P4 소환 상한과 함께 판단.
 
 ## 참고
 

@@ -1,9 +1,9 @@
 # 보스 몬스터 설계
 
-- 관련 이슈: 미생성 (이 문서를 근거로 신규 생성 예정)
-- 구현 위치: `Assets/Scripts/CombatSystem/Enemy/AI/Nodes/` (예정)
+- 관련 이슈: #232(상위) / #233(기반, 완료) / #234(리프 노드 세트, 완료) / #235(패턴 그래프·에셋, 미착수)
+- 구현 위치: 노드 `Assets/Scripts/CombatSystem/Enemy/AI/Nodes/` · 보조 타입 `Assets/Scripts/CombatSystem/Enemy/AI/`
 - 노드 레퍼런스: `Docs/Monster/Boss/BossNodeReference.md`
-- 이 문서는 **구현 전 합의된 설계**를 기록한 것이다. 현재 코드는 한 줄도 작성되지 않았다. 구현이 들어가면 실제 코드에 맞춰 이 문서를 갱신하고, 미확정 항목은 [미확정 / TODO](#미확정--todo)에 모아둔다.
+- 기반과 리프 노드는 구현됐고 **패턴 그래프·보스 프리팹·AnimatorController·`EnemyAsset`은 아직 없다**(#235). 따라서 아래 「행동 패턴」은 여전히 **설계 의도**이며 플레이로 검증된 것이 아니다. 실제 코드와 어긋나는 지점은 각 절에 인라인으로 표시했다. 미확정 항목은 [미확정 / TODO](#미확정--todo)에 모아둔다.
 
 > `Assets/Scripts/CombatSystem/Enemy/MiniBoss/`의 중간보스 노드 4종(`BossHealSelfAction` / `BossHpBelowCondition` / `BossRampSpeedMultiplierAction` / `BossSetSpeedMultiplierAction`)과 `MidBossBehavior.asset`은 이 보스와 무관하다. **재사용하지 않고 참조하지도 않는다.** 이 보스의 리프 노드는 전부 신규 작성한다.
 
@@ -51,7 +51,11 @@
   - 충돌 직후 보스가 본진 앞에 고정되므로 화력 집중 구간이 생긴다
 - **사용 노드**: `EnemyResolveTargetAction` · `EnemyPatternGateCondition` · `EnemyMarkPatternUsedAction` · `EnemyDistanceToTargetBelowCondition` · `EnemyPlayAnimationAction` · `EnemyHoldPositionAction` · `EnemyAccelerateAction` · `EnemyImpactTargetAction`
 
-> 피해 계산의 입력은 `Enemy.SpeedMultiplier`가 아니라 **`MonsterMove`의 실효 속도**여야 한다. 배수를 읽으면 감속 디버프가 반영되지 않아 "슬로우로 파훼"가 성립하지 않는다.
+> 피해 계산의 입력은 `Enemy.SpeedMultiplier`가 아니라 **`MonsterMove`의 실효 속도**여야 한다. 배수를 읽으면 감속 디버프가 반영되지 않아 "슬로우로 파훼"가 성립하지 않는다. → 구현에서는 `EnemyImpactTargetAction`이 `EnemyAgent.EffectiveMoveSpeed`를 읽는다.
+>
+> 이 때문에 `EnemyAccelerateAction`의 원복이 비대칭이다: 소유권은 항상 반납하지만 속도 배수는 **도달 실패로 끝난 경우에만** 되돌린다. 도달 성공 시 원복하면 바로 뒤의 충돌 피해가 평상시 속도를 읽는다. 성공 후 배수 1 복귀는 아래 그래프 구조의 기본 진군 브랜치가 담당한다 — **그래프에 기본 진군 브랜치가 없으면 돌진 배수가 고착된다.**
+>
+> P1은 이동 소유권 중에 근접 평타를 내지 않는다(`Enemy.MovementOwnedByBehavior`가 타겟 통지까지 막는다). 충돌 피해가 그 역할을 대신하고, 소유권을 반납하는 4단계에서 `Enemy.Update`가 근접 공격을 이어받는다.
 
 ### P2. 방어 태세
 
@@ -62,7 +66,7 @@
 - **파훼법**: 보스 뒤쪽 잡몹을 정리하면 조건이 풀린다. 보스는 다시 빨라지지만 방어력을 잃는다 — 속도와 방어력 중 무엇을 먼저 깰지가 플레이어의 판단이 된다
 - **사용 노드**: `EnemyUnitsInRangeCondition` · `EnemySetSpeedFactorAction` · `EnemySetDamageTakenFactorAction`
 
-> 속도 배수에는 **하한 클램프가 필수**다. 크롤 배수에 감속 디버프가 곱해지면 0에 수렴하는데, 현재 `MonsterMove.SetMoveSpeed`는 0 이하를 받으면 `fallbackMoveSpeed`(3)로 되돌려 오히려 빨라진다(`Assets/Scripts/Monster/MonsterMoveMent/MonsterMove.cs:41-50`).
+> **해소(#233)**: 하한 클램프가 들어갔다. `MonsterMove.minMoveSpeed`(직렬화 필드, 기본 0.15)가 합성 결과의 하한이고, `SetMoveSpeed`는 이제 기준 속도만 받는다 — 크롤 배수가 `fallbackMoveSpeed`(3)로 되돌아 오히려 빨라지던 경로는 사라졌다. 대신 **완전 정지가 속도 축으로 불가능**해졌다(의도) — 정지는 `EnemyAgent.MovementStopped`(이동 소유권 축)로만 표현한다. 감속 타워로 몬스터를 영구 정지시켜 웨이브를 소프트락하는 경로도 함께 막혔다.
 
 ### P3. 마력 봉인
 
@@ -90,7 +94,9 @@
 - **파훼법**: 보스를 죽이는 것이 유입을 멈추는 유일한 방법이다
 - **사용 노드**: `EnemySpawnMinionsAction`
 
-> 소환체는 반드시 `MonsterSpawn`의 `monsterParent` 자식으로 넣어야 한다. 웨이브 클리어 판정이 `monsterParent.childCount == 0`이라(`Assets/Scripts/Monster/MonsterSpawn/MonsterSpawn.cs:230`), 밖에 두면 보스 사망 즉시 웨이브가 종료되면서 잡몹이 남는다. 안에 두면 "보스를 죽여야 물결이 멎는다"가 성립해 최종 웨이브 승리 조건과 맞물린다.
+> 소환체는 반드시 `MonsterSpawn`의 `monsterParent` 자식으로 넣어야 한다. 웨이브 클리어 판정이 `monsterParent.childCount == 0`이라, 밖에 두면 보스 사망 즉시 웨이브가 종료되면서 잡몹이 남는다. 안에 두면 "보스를 죽여야 물결이 멎는다"가 성립해 최종 웨이브 승리 조건과 맞물린다. → 구현에서는 `MonsterSpawn.SpawnMonster`가 웨이브 스폰과 같은 경로를 타므로 자동으로 충족된다.
+>
+> 동시 생존 상한(`MaxAlive`)의 집계는 `monsterParent.childCount`다. **보스 자신과 사망 연출 중인 몬스터(`destroyDelay` 2초)가 포함**되므로 실효 상한이 의도보다 빡빡해진다 — 수치를 정할 때 감안하거나 #235 Play 검증에서 보정한다(WL-038과 같은 축).
 
 ## 패턴 간 상호작용
 
@@ -125,9 +131,9 @@ Root: Run In Parallel
 
 `Repeat` / `Selector` / `Run In Parallel` / `Wait` 는 Unity Behavior 내장 노드를 그대로 쓴다.
 
-## 선행 작업 (신규 훅)
+## 선행 작업 (신규 훅) — 완료(#233)
 
-패턴 구현 전에 열어야 하는 지점이다. P3를 제외한 모든 패턴이 여기에 의존한다.
+패턴 구현 전에 열어야 하는 지점이다. P3를 제외한 모든 패턴이 여기에 의존한다. **AnimatorController를 제외하고 전부 구현됐다.** 실제 시그니처와 상태는 `Docs/Monster/Boss/BossNodeReference.md` 「기존 시스템에 필요한 변경」 표를 정본으로 본다.
 
 먼저 베이스 컴포넌트 `EnemyAgent`를 만든다. BT 리프 노드는 전부 `EnemyAgent`만 참조한다. 노드가 요구하는 능력의 전체 목록은 노드 레퍼런스 문서의 「EnemyAgent가 노출해야 하는 것」에 있다.
 
@@ -135,14 +141,14 @@ Root: Run In Parallel
 
 그 다음 `EnemyAgent`가 능력을 제공할 수 있도록 기존 클래스에 진입점을 연다.
 
-| 훅 | 대상 | 용도 | 비고 |
+| 훅 | 대상 | 용도 | 상태 |
 |---|---|---|---|
-| 이동속도 다축 합성 + 하한 클램프 | `MonsterMove` | P1 파훼, P2 | **이동속도 감소 타워 담당자와 공유 계약** — 아래 참조 |
-| 실효 이동속도 노출 | `MonsterMove` | P1 충돌 피해 계산 | 배수가 아니라 최종 속도를 읽어야 한다 |
-| BT 이동 소유권 플래그 | `Enemy` | P1 준비 동작 중 정지 | `Update`의 `movement.IsStopped = hasTarget` 매 프레임 덮어쓰기를 차단해야 한다 (`Enemy.cs:166-169`) |
-| 받는 피해 배수 | `Enemy.TakeDamage` | P2 | 현재 감쇠·방어·무적 지점이 전혀 없다 (`Enemy.cs:187-197`) |
-| 공개 스폰 API | `MonsterSpawn` | P4 | `SpawnPrefab` / `SpawnGroupAsync`가 private. `monsterParent` 자식 + 경로 부여 |
-| 보스 전용 AnimatorController | 보스 프리팹 | P1 준비 모션 | 신규 제작 |
+| 이동속도 다축 합성 + 하한 클램프 | `MonsterMove` + `IMovementAgent` | P1 파훼, P2 | 완료. **이동속도 감소 타워 담당자와 공유 계약** — 아래 참조. 계약은 구체 타입이 아니라 `IMovementAgent`에 올렸다 |
+| 실효 이동속도 노출 | `MonsterMove` | P1 충돌 피해 계산 | 완료 — `IMovementAgent.EffectiveMoveSpeed` |
+| BT 이동 소유권 플래그 | `Enemy` | P1 준비 동작 중 정지, 돌진 중 전진 유지 | 완료 — `Enemy.MovementOwnedByBehavior`. `IsStopped`뿐 아니라 `SetHasTarget`까지 차단한다(설계에 없던 보강, P1 절 참조) |
+| 받는 피해 배수 | `Enemy.TakeDamage` | P2 | 완료 — `Enemy.DamageTakenFactor` |
+| 공개 스폰 API | `MonsterSpawn` | P4 | 완료 — `SpawnMonster` / `AliveMonsterCount` + 스폰 시점 스포너 주입(정적 싱글톤 미사용) |
+| 보스 전용 AnimatorController | 보스 프리팹 | P1 준비 모션 | **미착수(#235)**. 노드 쪽 준비는 끝났다(`EnemyPlayAnimationAction`, `normalizedTime` 폴링) |
 
 애니메이션은 `EnemyAgent`가 `Animator`를 직접 들면 되므로 `MonsterAnimation` 수정이 필요 없다. 현재 `MonsterAnimation`은 `IsMove` / `IsAttack` / `IsDie` Bool 3개만 노출하며 임의 클립을 재생할 수단이 없다.
 
@@ -157,7 +163,18 @@ Root: Run In Parallel
               (하한 클램프)
 ```
 
-두 축이 곱해지면 "가속하는 보스를 감속 타워가 끌어내린다"가 별도 밸런싱 없이 성립한다. 이 구조를 누가 어느 PR에서 넣을지는 미확정이다.
+두 축이 곱해지면 "가속하는 보스를 감속 타워가 끌어내린다"가 별도 밸런싱 없이 성립한다.
+
+**#233에서 보스 쪽이 골격을 넣었다.** 감속 타워는 `IMovementAgent`(구현체 `MonsterMove`)의 아래 창구를 쓰면 된다 — 구체 타입에 묶이지 않는다.
+
+```csharp
+movementAgent.AddSpeedDebuff(sourceId, 0.5f);   // 소스별 곱산 중첩, 같은 sourceId는 갱신만
+movementAgent.RemoveSpeedDebuff(sourceId);      // 해제는 이 창구로만(시간 만료 없음)
+```
+
+`sourceId` 채번은 `Tower.ApplyBuff`와 같은 관례를 따른다(인스턴스별이면 `GetInstanceID`, 종류별이면 고정 문자열/TowerID 해시). 자동 만료가 없으므로 **타워가 해제 책임을 진다** — 밤 종료·철거·비활성화 시 `RemoveSpeedDebuff`를 부르지 않으면 감속이 고착된다.
+
+Play 검증으로 두 축이 서로를 지우지 않는 것을 확인했다: 기준 10 × 패턴 3 × 감속 0.5 × 0.5 = 7.5이며, 패턴 축을 매 프레임 다시 써도 감속이 살아남는다.
 
 ## 스탯·수치 authoring 위치
 
@@ -167,17 +184,24 @@ Root: Run In Parallel
 |---|---|
 | 보스 기본 스탯 (MaxHp / MoveSpeed / AttackDamage / AttackRange / AttackInterval) | `Assets/Resources/ScriptableObjects/Enemies/<EnemyID>.asset` 의 `Boss.Stat` — 인스펙터 직접 입력. CSV 경유 아님 |
 | 패턴 수치 (거리 임계, 가속도, 배수, 지속시간, 잡몹 수 임계, 소환 간격) | BT 그래프 에셋의 **Blackboard 변수** |
+| 이동속도 하한 | `MonsterMove.minMoveSpeed` (프리팹 인스펙터, 기본 0.15) — 몬스터 공통이라 보스 그래프가 아니다 |
+| 반경 질의 레이어 마스크 | `EnemyAgent.unitLayerMask` (프리팹 인스펙터) — `LayerMask`가 Blackboard 지원 타입이 아니다 |
 
 패턴 수치는 노드 입력에 인라인으로 박지 않고 Blackboard 변수로 올린다. 노드 입력에 직접 넣으면 그래프를 열어야만 수치를 볼 수 있고 보스별 그래프 공유가 막힌다 (WL-094와 같은 축).
+
+`float` / `int` / `bool` / `string` / `Color` / `GameObject`(프리팹 에셋 포함) / `[BlackboardEnum]` enum은 Blackboard 변수로 올릴 수 있다. `LayerMask`는 안 된다 — 위 표의 예외가 그 이유다.
 
 ## 미확정 / TODO
 
 - [ ] **보스 이름·컨셉 미정.** 몬스터 테마 자체가 GDD §8에서 미확정이다. 이름이 정해지면 이 문서를 보스 이름으로 개명한다 — 보스가 늘어나면 보스마다 설계 문서를 1본씩 둔다. 노드 대장(`BossNodeReference.md`)만 보스 공용이다.
 - [ ] **웨이브 배치 미정.** 보스를 웨이브 10 또는 14에 넣을지, 기존 중간보스를 앞 웨이브로 당길지 결정되지 않았다. 현재 중간보스(`ogre_king`)가 최종 웨이브 7을 점유하고 있고, 최종 웨이브는 `WaveCompletionCoordinator`가 보상을 건너뛰고 `TriggerVictory()`를 호출하는 자리다 (WL-096). SUNJIN 조율 필요.
 - [x] **HP 기반 에스컬레이션은 도입하지 않는다.** 4개 패턴을 전부 상황 트리거(본진까지 거리 / 주변 잡몹 수 / 타워 밀집)로 유지한다. 보스 HP 구간에 따라 압박이 강해지는 장치는 두지 않는다.
-- [ ] **이동속도 합성 계약의 소유권.** 감속 타워 담당자와 공동 작업할지, 보스 쪽에서 골격을 먼저 넣을지.
+- [x] **이동속도 합성 계약의 소유권 — 보스 쪽에서 골격을 먼저 넣었다**(#233). 감속 타워는 `IMovementAgent.AddSpeedDebuff` / `RemoveSpeedDebuff`를 얹으면 된다. 저장소에 감속 타워 코드가 아직 없어 충돌 대상이 없었다(`slow_tower.asset`은 전 필드가 비어 있음). **해제 책임은 타워 쪽** — 자동 만료가 없다.
 - [ ] **이동속도 감소 타워가 `Tower` 계열인지 `AuraTower` 계열인지 확인 필요.** `AuraTower`면 P3 마력 봉인 대상에서 제외된다. 현재 `slow_tower.asset`은 Magic/Debuff 타입이나 전 필드가 비어 있어 판단할 수 없다.
 - [ ] **패턴 수치 일체 미정.** 밸런싱은 구현 후 플레이 검증으로 잡는다.
+- [ ] **패턴의 런타임 동작 미검증.** #234까지 리프 노드가 다 있지만 이를 쓰는 그래프 에셋이 없어 P1~P4가 실제로 도는 것을 본 적이 없다. 이 문서의 「행동 패턴」은 #235 Play 검증 후 실제 거동에 맞춰 다시 손봐야 한다.
+- [ ] **그래프에 기본 진군 브랜치가 반드시 있어야 한다.** 없으면 P1 돌진 성공 후 속도 배수가 고착된다(`EnemyAccelerateAction`이 도달 성공 시 원복하지 않는 이유는 P1 절 참조).
+- [ ] **`EnemyAgent.unitLayerMask`가 비면 P2·P3가 조용히 발동하지 않는다.** 반경 질의가 항상 0을 반환한다. #235 프리팹 작성 시 확인.
 - [ ] 보스 전용 HP UI / 등장 연출 도입 여부. 현재 프로젝트에 경고 배너 UI가 없고 카메라에 연출 API가 없다.
 - [ ] 게임 배속(`Time.timeScale`)과 패턴 타이밍의 관계. BT의 `Wait`과 노드의 `Time.deltaTime`이 전부 스케일드 타임이라 2배속에서 패턴 쿨다운도 2배 빨라진다.
 
