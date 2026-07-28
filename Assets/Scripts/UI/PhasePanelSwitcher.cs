@@ -45,6 +45,14 @@ public class PhasePanelSwitcher : MonoBehaviour
         // 밤 진입 시 진행 중인 배치(일반 타워/합성 결과 공통)를 취소한다 — 확정 순간이 밤으로 넘어가는 것을 방지.
         // 페이즈 전환 시 입력 모드 취소 책임을 여기로 일원화(ShowDay의 스킬 조준 취소와 대칭, WL-002 축 완화).
         MouseManager.Instance?.CancelPlacement();
+
+        // 선택도 함께 해제한다(WL-086). 코디네이터가 HandleDayToNight에서 집합을 비우며 인포·사거리 원을
+        // 내리지만 MouseManager의 _selected는 남아, **그 타워를 밤에 다시 클릭해도 아무것도 안 뜨고**
+        // (Select의 중복 제거가 삼킨다) 초록 아웃라인만 월드에 남는다 — InteractionOutline.md §4-4의
+        // "밤에도 초록·사거리 원·인포가 함께 뜬다" 불변식이 깨진다. 코디네이터와 호출 순서는 무관하다
+        // (어느 쪽이 먼저 돌아도 OnDeselected는 멱등이고, 이쪽 OnPrimarySelect는 밤 게이트에 막혀 무해).
+        // 반대 방향(밤→낮)은 표시와 _selected가 어긋나지 않으므로 ShowDay는 그대로 둔다.
+        MouseManager.Instance?.ClearSelection();
         ApplyPhase(DayNightManager.Phase.Night);
     }
 

@@ -144,18 +144,21 @@
 현재 `MouseManager`는 완전 단일 선택(`_selected` 단일 참조)이고 Idle에는 우클릭/Esc 처리가 없다. #183은 다음을 **추가**한다(기존 `OnSelectionChanged(ISelectable)` 시그니처는 무변경 — 기존 구독자 보호):
 
 - **추가 선택 키 = Shift**(확정, 필요 시 재조정). 키 판정은 MouseManager가 소유(게임플레이 코드의 `Keyboard.current` 직접 폴링 금지, 계약 #1). *WL-073 유의: 우클릭이 카메라 드래그와 이미 이중 점유 → 추가 선택 키를 우클릭이 아닌 Shift로 두어 충돌을 피한다.*
-- **그룹 토글 이벤트**(예: `OnGroupSelectToggled(IGroupSelectable)`) 신설: **Shift + 마커 대상** 클릭 시 발행. 이때 단일 `_selected`는 건드리지 않는다.
+- **그룹 토글 이벤트**(예: `OnGroupSelectToggled(IGroupSelectable)`) 신설: **Shift + 마커 대상** 클릭 시 발행. 발행 직전에 **`Select(null)`로 단일 `_selected`를 비운다**(WL-087 수정, 원안은 "건드리지 않음"이었다). 이후 무엇을 보일지는 §8.1 스위처가 집합 크기로 결정하므로, 단일 선택 상태를 남겨두면 그 부수 표시(사거리 원·인포)를 아무도 못 내린다. **마커 없는 대상(건물·빈 곳)에는 적용하지 않는다** — 집합이 안 바뀌는데 `_selected`만 비면 "집합엔 있는데 화면엔 아무것도 없는" 어긋난 상태가 된다. 순서도 계약이다: 토글 **뒤**에 비우면 `count==1` 복귀에서 스위처가 켠 인포·원을 도로 끈다.
+  - 부수 효과: `AuraTower`(마법 타워)·건물처럼 그룹에 못 들어가는 대상을 선택해 둔 채 Shift로 타워를 담기 시작해도 그쪽 사거리 원·패널이 함께 정리된다. 스위처는 `Tower`만 알기 때문에 이 경로가 아니면 못 잡는다.
+  - 밤에는 코디네이터가 토글을 무시하므로(§10 게이팅) Shift+타워 클릭이 "단일 선택 해제"로만 끝난다 — 밤에 합성이 잠긴 상태에서의 무의미한 입력이라 의도된 동작으로 둔다.
 - **평클릭·Esc·빈 곳 해제 = `OnPrimarySelect` 신설**(F3 + WL-085): 평클릭(해석된 `ISelectable`)·Esc·빈 곳 클릭 시 `OnPrimarySelect(ISelectable|null)`를 **중복 제거 없이 항상** 발행한다. 코디네이터가 이걸로 그룹을 리셋(타워면 `SetSingle`)/해제(그 외·null)한다. → 기존엔 이 신호를 `Select(null)`의 `OnSelectionChanged`로 받으려 했으나 `if (_selected == next) return;` 중복 제거에 삼켜졌다(**Shift로만 선택 시 `_selected==null` → Esc·빈 곳 해제 불발**, 이미 선택된 타워 재평클릭 시 단일화 불발 — WL-085). `OnSelectionChanged`는 기존 단일 선택 구독자용으로 그대로 두고, 그룹 경로만 이 새 이벤트로 분리. **우클릭은 해제에 쓰지 않는다**(카메라 드래그 이중 점유 WL-073, 이슈 AC에서 의도적 이탈 — F3).
 
 ### 7.3 입력 규칙 (이슈 §상세)
 | 입력 | 동작 |
 | --- | --- |
 | 키 없이 타워 클릭 | 집합 전체 해제 후 그 타워 **단일 선택** |
-| Shift + 미선택 타워 | 집합 **끝에 추가**(순서 보존) |
-| Shift + 이미 선택된 타워 | 집합에서 **토글 제거**(나머지 순서 유지) |
-| Shift + 건물/영지 노드 등 비-타워 | **무시**(집합 불변 — 마커 없음) |
+| Shift + 미선택 타워 | 단일 선택 해제 후 집합 **끝에 추가**(순서 보존) |
+| Shift + 이미 선택된 타워 | 단일 선택 해제 후 집합에서 **토글 제거**(나머지 순서 유지) |
+| Shift + 건물/영지 노드 등 비-타워 | **무시**(집합·단일 선택 둘 다 불변 — 마커 없음) |
 | 빈 곳 클릭 / Esc | **전체 해제** |
 | 우클릭 | 해제 아님 — 카메라 드래그·배치/조준 취소 전용(WL-073, F3) |
+| (입력 아님) 배치 시작 | **전체 해제** — `MouseManager.BeginPlacement`가 Esc와 같은 `ClearSelection()`을 호출(WL-086). 자원 배치·합성 배치 모두 해당하며, 고스트를 든 화면에 이전 선택의 사거리 원·초록·인포/합성 패널이 남지 않는다 |
 
 ### 7.4 집합 = `TowerMergeGroup` (이음매, 단일 리스트)
 - 코디네이터는 **순수 C# `TowerMergeGroup` 하나를 유일한 백킹 스토어로 직접 조작**한다(`Add`/`Remove`/`Clear`/`Prune`)(F4). 별도 동기화 리스트가 없어 어긋날 표면이 없다. 그룹의 `OnChanged`(Add/Remove/Clear/Prune 성공 시 발행) 하나로 하이라이트·패널·실행부 소모까지 모든 변경이 단일 통지된다 — 코디네이터가 구독해 `RefreshHighlight`/`RefreshPanel`/`OnGroupChanged` 발행.
@@ -172,7 +175,9 @@
 - **1개** → 인포 패널만. 그 타워의 정보 표시는 **멤버 타워의 `OnSelected()`를 (재)호출해 재사용**한다(스탯 조립을 재구현하지 않음). 특히 **2→1 축소**는 단일선택 `OnSelected`가 재발화되지 않으므로 스위처가 명시적으로 호출.
 - **2개 이상** → 합성 패널 표시 + 스위처가 **능동적으로 `TowerInfoUI.HideInfo()`**(직전 단일선택이 띄워둔 인포를 확실히 내림).
 
-두 패널은 **동시에 보이지 않는다.** `_selected`(MouseManager) vs 집합(코디네이터)의 관계: **count≤1에선 사실상 일치, count≥2에선 `_selected`는 마지막 평클릭 대상일 뿐 합성 흐름은 쓰지 않는다.** 표시/숨김이 idempotent라 기존 MouseManager 경로가 같은 인포를 한 번 더 켜/꺼도 무해 — 단 "무엇을 보일지"의 판단은 항상 스위처가 이긴다.
+**`OnSelected`를 직접 부르면 `OnDeselected`도 스위처가 진다**(WL-087 수정). `TowerInfoUI.HideInfo()`만으로는 부족하다 — 이 훅 쌍에는 정보 패널뿐 아니라 **사거리 원**(#192, `Tower`/`AuraTower`가 자식 GO로 소유)이 함께 묶여 있고, 스위처는 남의 사거리 원을 직접 끄는 창구가 없기 때문이다. 인포를 띄워준 대상을 `_infoShownFor` 슬롯 하나로 기억하고, 대상이 바뀌거나(1→다른 타워) 사라질 때(1→0, 1→2+, 밤 리셋) 그 대상의 `OnDeselected()`를 부른다 — `RefreshHighlight`의 `_highlighted` diff와 같은 패턴의 1개짜리 축소판이며, 파괴된 참조는 Unity 오버로드 `==`로 거른다.
+
+두 패널은 **동시에 보이지 않는다.** `_selected`(MouseManager) vs 집합(코디네이터)의 관계: **평클릭 경로에선 사실상 일치, Shift 경로에선 `_selected`가 비고(§7.2) 집합만 남는다.** 표시/숨김이 idempotent라 기존 MouseManager 경로가 같은 인포를 한 번 더 켜/꺼도 무해 — 단 "무엇을 보일지"의 판단은 항상 스위처가 이긴다.
 
 ### 8.2 합성 패널 구성
 - **상단 Vertical Scroll View — 선택 리스트**: 선택된 재료 타워를 **선택 순서대로** 한 행씩. 집합 변경 시 즉시 갱신. 행 라벨 = `tower.Asset.TowerID` → `TowerData.NameKey` → 로컬라이즈(`NorthLand_Towers`, `LocalizationHelper.Get`). (행별 제거 버튼은 선택.)
@@ -191,22 +196,30 @@
 
 ### 8.4 시각 피드백
 - 집합에 든 타워를 월드에서 강조(아웃라인/하이라이트). 코디네이터가 마커의 그룹 훅(§7.1)으로 켜고 끈다 — **단일 선택 하이라이트와 별개**. 아트·연출 방식 TBD.
+- 색 규약은 `InteractionOutline.md`(#213): 그룹 재료 = 초록, **그 레시피가 실제로 소모할 재료 = 핑크**.
+- 핑크는 후보 버튼 **호버**에서 켜지고, 버튼을 **클릭해 결과 타워 배치가 시작되면 배치가 끝날 때까지 고정**된다(`_previewCommitted`). 잠그지 않으면 클릭과 동시에 커서가 버튼을 벗어나 `OnPointerExit`가 핑크를 걷어가, 정작 배치 중에 "무엇이 소모되는지"가 안 보인다. 해제는 배치 종료 콜백(`TowerPlacer` → `TryFuse(onEnded)` → `EndMergeCommit`) 하나뿐 — 확정이면 재료가 소멸하고, 취소면 그룹 초록으로 복귀한다. 상세·순서 계약은 `InteractionOutline.md` §5.3.
 
 ---
 
 ## 9. 실행 흐름 (#195, 완료 — 후보 버튼이 부르는 대상)
 
 ```
-후보 버튼 onClick → 코디네이터.RequestMerge(recipe) → TowerFusionController.TryFuse(recipe, group)
+후보 버튼 onClick → 코디네이터.RequestMerge(recipe) → TowerFusionController.TryFuse(recipe, group, onEnded) : bool
   ① 그룹 타워 → TowerID 목록 (null/파괴/Asset 없음 제외)
   ② TowerFusionMatcher.BuildRequired(recipe) → (TowerID,개수) 집계
-  ③ TowerFusionMatcher.TryResolve → 소모할 타워 인덱스 확정 (부족 시 중단·로그)
+  ③ TowerFusionMatcher.TryResolve → 소모할 타워 인덱스 확정 (부족 시 false 반환·로그)
   ④ ManagementController.CanAfford(recipe.ExtraCost) (관리 없으면 무료)
   ⑤ 결과 SO의 런타임 Data 방어 채움(패널 경로 안 거칠 때 대비)
-  ⑥ TowerPlacer.BeginTowerPlacement(recipe.Result, recipe.ExtraCost, onConfirmed)
+  ⑥ TowerPlacer.BeginTowerPlacement(recipe.Result, recipe.ExtraCost, onConfirmed, onEnded) : bool
        고스트 → 타일 확정 → ExtraCost TrySpend + 결과 Instantiate
        → onConfirmed: 소모 대상 타워 group.Remove(OnChanged 발행) + Destroy
+       → onEnded  : 확정/취소 무관 배치 세션 종료 1회 (EndPlacement에서 발화)
+  ⑦ (반환 true일 때만) 코디네이터가 소모 대상을 핑크로 고정 — §8.4
 ```
+
+> ⑥의 `BeginTowerPlacement`는 `MouseManager.BeginPlacement`를 거치며 **선택 집합을 통째로 비운다**(§7.3 마지막 행) → 합성 패널이 닫히고 그룹 초록도 꺼진다. 그래서 코디네이터는 ⑦에서 칠할 소모 대상을 **⑥ 이전에 스냅샷**해 둔다. `TryFuse`가 쓰는 `toConsume`도 같은 이유로 ⑥ 앞에서 확정되므로(①~③) 집합이 비어도 소모는 정상 동작하며, `ConsumeMaterials`의 `group.Remove`는 빈 집합에 대한 무해한 no-op이 된다.
+>
+> **부작용(수용)**: 고스트를 취소하면 재료·비용은 보존되지만 **선택 집합은 돌아오지 않는다** — 다시 합성하려면 재료를 다시 고른다.
 
 - **소모 시점 = 배치 확정 시점**(고스트 Esc 취소 시 재료·비용 보존). 재료 소모(`Destroy`)는 `Tower.OnDisable`로 `Tower.Active`에서 자동 해제되고, `TowerFootprint`(배치 인스턴스 부착)가 `OnDestroy`로 점유 타일을 해제한다 → 소모 자리 재배치 가능.
 - **알려진 제약(F2, 현행 유지)**: 소모가 확정 시점이라 **재료가 점유한 타일에는 결과를 즉시 놓을 수 없다**(재료는 확정 후에야 `Destroy`되어 타일 해제). 지금은 이 제약을 안고 가고, 향후 커맨드 패턴('클릭 즉시 소모 + 취소 시 원복')으로 개선 예정(§13).
@@ -251,6 +264,7 @@
 **선택/패널 UI (#183) — 코드 구현·컴파일 완료 / 아래는 정본 씬 배선 후 E2E로 확정할 인수 항목**
 - [ ] 타워 1개 선택 → 인포 패널(기존 동작 회귀 없음).
 - [ ] Shift로 타워 2개 이상 선택 → 인포 숨김 + 합성 패널 표시.
+- [ ] 위 전환에서 **직전 단일 선택의 초록 사거리 원도 함께 사라진다**(WL-087 회귀 감시 — 원이 남으면 합성 패널 시인성을 해친다). 1개로 축소하면 다시 뜨고, 0·빈 곳·Esc·밤 전환에서도 남지 않는다. `AuraTower`(마법 타워)나 건물을 선택해 둔 채 Shift로 타워를 담기 시작한 경우도 동일.
 - [ ] 합성 패널 상단 리스트가 **선택 순서대로** 채워지고 집합 변경 시 즉시 갱신.
 - [ ] Shift+이미 선택된 타워 → 리스트에서 토글 제거(순서 유지).
 - [ ] 선택 1개로 축소 시 인포 복귀, 0이면 숨김.

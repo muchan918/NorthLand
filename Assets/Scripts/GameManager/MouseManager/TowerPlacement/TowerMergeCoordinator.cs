@@ -23,6 +23,19 @@ public class TowerMergeCoordinator : MonoBehaviour
     // 후보 버튼 호버 프리뷰로 핑크가 켜진 타워(#213 §5.3). 그룹 하이라이트와 같은 diff 패턴.
     private readonly HashSet<Tower> _previewed = new();
 
+    // 후보 버튼을 **클릭**해 결과 타워 배치가 시작된 동안 켜진다. 이 구간의 핑크는 "호버 프리뷰"가 아니라
+    // "지금 소모가 확정 대기 중인 재료" 표시라, 커서가 버튼을 떠나도(OnPointerExit)·패널 버튼이 꺼져도
+    // (OnDisable) 풀리면 안 된다 — 잠그지 않으면 클릭하는 순간 커서가 버튼을 벗어나며 초록으로 되돌아간다.
+    // 해제 신호는 단 하나, 배치 세션 종료(확정 or 취소) 콜백 EndMergeCommit.
+    private bool _previewCommitted;
+
+    // RefreshPanel이 인포를 띄워준 타워(= OnSelected를 직접 호출한 대상). 대칭 OnDeselected를 부를 상대를
+    // 기억해 두는 1개짜리 diff 슬롯 — _highlighted HashSet과 같은 패턴의 축소판이다(WL-087).
+    // 이게 없으면 OnSelected에 묶인 부수 표시(정보 패널 + **사거리 원**)에서 원만 잔존한다:
+    // RefreshPanel은 TowerInfoUI.HideInfo()밖에 모르고, Shift 경로는 MouseManager._selected를 안 건드려
+    // 나중의 Select(null)도 그 타워의 OnDeselected를 부르지 못하기 때문.
+    private Tower _infoShownFor;
+
     // ── 파사드 (패널 뷰가 쓰는 것) ────────────────────────────────────
     public IReadOnlyList<Tower> SelectedTowers => _group.Towers;
     /// 선택 집합이 바뀔 때 발행(패널 뷰가 구독해 리스트·후보 버튼을 갱신).
@@ -35,7 +48,15 @@ public class TowerMergeCoordinator : MonoBehaviour
     /// TowerFusionController.TryFuse와 **똑같이** null/Asset 없는 타워를 걸러낸 리스트로 맞춘다.
     public void PreviewMerge(TowerRecipe recipe)
     {
-        if (recipe == null || !IsDay) { ClearMergePreview(); return; }
+        if (_previewCommitted) return; // 배치 중엔 클릭 시점에 고정된 재료가 이긴다(다른 버튼 호버 무시)
+        ApplyPreview(ResolveConsumeTargets(recipe)); // 매칭 불가(null)면 그대로 해제 — 버튼이 꺼져 있어야 정상
+    }
+
+    /// 이 레시피가 현재 집합에서 **실제로 소모할** 타워들. 매칭 불가·밤이면 null.
+    /// 클릭 경로(RequestMerge)가 집합이 비워지기 전에 스냅샷을 뜨는 데도 쓰므로 판정만 하고 표시는 하지 않는다.
+    private HashSet<Tower> ResolveConsumeTargets(TowerRecipe recipe)
+    {
+        if (recipe == null || !IsDay) return null;
 
         var towers = new List<Tower>();
         var towerIds = new List<string>();
@@ -48,18 +69,20 @@ public class TowerMergeCoordinator : MonoBehaviour
 
         var required = TowerFusionMatcher.BuildRequired(recipe);
         if (required.Count == 0 || !TowerFusionMatcher.TryResolve(towerIds, required, out var consumeIndices))
-        {
-            ClearMergePreview(); // 매칭이 안 되면 프리뷰할 대상도 없다(버튼이 꺼져 있어야 정상)
-            return;
-        }
+            return null;
 
         var next = new HashSet<Tower>();
         foreach (int i in consumeIndices) next.Add(towers[i]);
-        ApplyPreview(next);
+        return next;
     }
 
     /// 커서가 후보 버튼을 벗어남·버튼 비활성·집합 변경·밤 전환 시 프리뷰를 해제한다(잔존 방지).
-    public void ClearMergePreview() => ApplyPreview(null);
+    /// 단 배치 확정 대기 중(`_previewCommitted`)에는 무시한다 — 그 구간의 유일한 해제 권한은 EndMergeCommit.
+    public void ClearMergePreview()
+    {
+        if (_previewCommitted) return;
+        ApplyPreview(null);
+    }
 
     private void ApplyPreview(HashSet<Tower> next)
     {
@@ -92,7 +115,29 @@ public class TowerMergeCoordinator : MonoBehaviour
         if (recipe == null) return;
         if (!IsDay) return; // 방어(패널도 밤엔 숨김)
         if (_controller == null) { Debug.LogError("[TowerMerge] TowerFusionController가 연결되지 않았습니다."); return; }
-        _controller.TryFuse(recipe, _group);
+
+        // 판정은 **먼저**, 칠하기는 **나중**. 사이에 낀 TryFuse가 배치를 시작하면서
+        // MouseManager.BeginPlacement → 전체 해제로 선택 집합을 비우기 때문이다:
+        //   - 먼저 판정: 집합이 비면 소모 대상을 계산할 근거 자체가 사라진다.
+        //   - 나중에 칠하기: BeginPlacement가 직전 배치를 취소하며 그쪽 EndMergeCommit(+집합 해제→ClearMergePreview)을
+        //     발화시키므로, 먼저 칠하면 방금 켠 핑크가 그 정리에 지워진다.
+        // 판정 출처는 호버 프리뷰와 동일(TowerFusionMatcher)이라 TryFuse가 고른 재료와 일치한다.
+        var consume = ResolveConsumeTargets(recipe);
+
+        // 배치가 실제로 시작된 경우에만 핑크를 고정한다. 재료·코스트 부족으로 반려되면(=false) 종료 콜백도
+        // 오지 않으므로 잠갔다간 핑크가 영구 잔류한다.
+        if (!_controller.TryFuse(recipe, _group, EndMergeCommit)) return;
+
+        ApplyPreview(consume);
+        _previewCommitted = true;
+    }
+
+    /// 결과 타워 배치 세션이 끝났다(확정 or 취소) → 핑크 고정 해제. 확정이면 재료는 이미 파괴 중이고,
+    /// 취소면 재료가 그대로 남아 그룹 초록으로 되돌아간다.
+    private void EndMergeCommit()
+    {
+        _previewCommitted = false;
+        ClearMergePreview();
     }
 
     // ── 수명주기 ──────────────────────────────────────────────────────
@@ -175,6 +220,9 @@ public class TowerMergeCoordinator : MonoBehaviour
     // 담당한다(낮 진입 스킬 조준 취소와 대칭) — 코디네이터는 전역 CancelPlacement를 더 이상 호출하지 않는다.
     private void HandleDayToNight()
     {
+        // 밤 진입 시 진행 중 배치는 PhasePanelSwitcher.ShowNight가 취소한다 → 그 경로로도 EndMergeCommit이
+        // 오지만, 구독 순서(어느 쪽이 먼저 도는지)에 기대지 않도록 여기서 잠금을 직접 푼다.
+        _previewCommitted = false;
         ClearMergePreview(); // 패널이 닫히면 OnPointerExit가 오지 않을 수 있다
         _group.Clear();
     }
@@ -219,9 +267,18 @@ public class TowerMergeCoordinator : MonoBehaviour
     }
 
     // 우측 패널 단일 권위(F1). 0=둘 다 숨김 / 1=인포(멤버 OnSelected 재사용) / 2개↑=합성 패널.
+    // OnSelected/OnDeselected를 **쌍으로** 호출한다 — 이 훅에는 정보 패널만이 아니라 사거리 원(#192)도
+    // 묶여 있어서, 켜기만 하고 끄지 않으면 합성 패널 위에 직전 타워의 초록 원이 남는다(WL-087).
     private void RefreshPanel()
     {
         int count = _group.Count;
+        Tower single = count == 1 ? _group.Towers[0] : null;
+
+        // 인포 대상이 바뀌거나 사라지면 이전 대상을 먼저 내린다(정보 패널 + 사거리 원).
+        // 파괴된 참조는 Unity 오버로드 ==로 걸러 MissingReferenceException을 피한다(WL-033 계열).
+        if (_infoShownFor != null && _infoShownFor != single) _infoShownFor.OnDeselected();
+        _infoShownFor = single;
+
         if (count >= 2)
         {
             TowerInfoUI.Instance?.HideInfo();
@@ -230,14 +287,13 @@ public class TowerMergeCoordinator : MonoBehaviour
         else
         {
             if (_mergePanel != null) _mergePanel.SetActive(false);
-            if (count == 1)
+            if (single != null)
             {
                 // 2→1 복귀 시 단일 선택 OnSelected가 재발화되지 않으므로 스위처가 명시적으로 인포를 표시.
                 // 표시는 idempotent라 평클릭 경로(MouseManager가 이미 OnSelected 호출)와 겹쳐도 무해.
-                var t = _group.Towers[0];
-                if (t != null) t.OnSelected();
+                single.OnSelected();
             }
-            else // count == 0
+            else // count == 0 (또는 멤버가 파괴돼 표시할 게 없음)
             {
                 TowerInfoUI.Instance?.HideInfo();
             }
