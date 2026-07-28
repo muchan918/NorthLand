@@ -173,9 +173,19 @@ public class MouseManager : MonoBehaviour
         if (additive)
         {
             // Shift 추가 선택: 그룹 선택 가능(IGroupSelectable 마커) 대상만 토글 통지.
-            // 건물·영지 노드·빈 곳 등 마커 없는 대상은 무시(집합 불변). 단일 _selected도 건드리지 않는다.
+            // 건물·영지 노드·빈 곳 등 마커 없는 대상은 무시(집합 불변 — _selected도 유지).
             if (hitSelectable && hit.collider.TryGetComponent(out IGroupSelectable grp))
+            {
+                // 토글이 실제로 일어나는 경우에만, 그룹 경로로 넘어가기 전에 단일 선택을 먼저 비운다.
+                // 단일 선택의 부수 표시(사거리 원 + 인포 패널)는 대상의 OnDeselected로만 꺼지는데, 이 경로에서
+                // _selected를 그대로 두면 아무도 그걸 부르지 않아 **합성 패널 위에 직전 타워의 사거리 원이 잔존**한다
+                // (코디네이터 RefreshPanel은 TowerInfoUI만 내릴 수 있고 남의 사거리 원은 모른다 — WL-087 계열).
+                // 이후 표시는 집합 크기가 결정한다: 1개면 코디네이터가 그 타워의 OnSelected를 재호출해 복구,
+                // 2개 이상이면 합성 패널만. 초록 아웃라인은 GroupSelected 플래그가 이어받으므로 끊기지 않는다.
+                // 순서 주의: 토글 뒤에 비우면 count==1로 복귀할 때 코디네이터가 켠 인포·원을 도로 끈다.
+                Select(null);
                 OnGroupSelectToggled?.Invoke(grp);
+            }
             return;
         }
 

@@ -70,7 +70,7 @@
   질의 `ResourceCount`/`LineCount`/`LineKind`/`LineExpectedProduction`/`AssignedTotal`/`IsDay`/`CanAdvancePhase`, `event OnChanged`(뷰 갱신).
   UI(`ManagementPanelView`/`ProductionLineView`)는 이 컨트롤러만 구독·호출 — UI 아트 교체 시 뷰 참조만 재연결
 - `MouseManager.Instance.BeginPlacement(PlacementRequest)` / `CancelPlacement()` / `event OnSelectionChanged`
-- `MouseManager.Instance` `event OnGroupSelectToggled(IGroupSelectable)`(#183) — Shift(추가 선택 키)+마커 클릭 시 토글 발행. 이 경로에선 `_selected`를 안 건드림.
+- `MouseManager.Instance` `event OnGroupSelectToggled(IGroupSelectable)`(#183) — Shift(추가 선택 키)+마커 클릭 시 토글 발행. **토글이 실제로 일어날 때만 발행 직전에 `Select(null)`**로 단일 선택을 비운다(마커 없는 대상은 무시 — 집합·`_selected` 둘 다 불변). 표시 권한을 그룹 경로에 통째로 넘기기 위한 것으로, 안 비우면 직전 단일 선택의 사거리 원이 합성 패널 위에 잔존한다(WL-087)
 - `MouseManager.Instance` `event OnPrimarySelect(ISelectable)`(#183) — 평클릭(해석된 대상)·Esc·빈 곳 클릭 시 **중복 제거 없이 항상** 발행(그룹 선택 코디네이터 전용). `OnSelectionChanged`는 `_selected` 변화만 deduped 통지라 Shift-only 선택(`_selected==null`)에서 Esc·빈 곳 해제가 삼켜지던 문제(WL-085) 해소. **우클릭은 해제에 쓰지 않음**(카메라 드래그 이중 점유, WL-073)
 - `MouseManager.Instance.PointerPosition`(포인터 화면 좌표 — Mouse.current 직접 폴링 대신 이걸 쓴다) /
   `event OnHoverChanged(IHoverable)`(커서 밑 호버 대상, 없으면 null. Idle에서만 통지)

@@ -23,6 +23,13 @@ public class TowerMergeCoordinator : MonoBehaviour
     // 후보 버튼 호버 프리뷰로 핑크가 켜진 타워(#213 §5.3). 그룹 하이라이트와 같은 diff 패턴.
     private readonly HashSet<Tower> _previewed = new();
 
+    // RefreshPanel이 인포를 띄워준 타워(= OnSelected를 직접 호출한 대상). 대칭 OnDeselected를 부를 상대를
+    // 기억해 두는 1개짜리 diff 슬롯 — _highlighted HashSet과 같은 패턴의 축소판이다(WL-087).
+    // 이게 없으면 OnSelected에 묶인 부수 표시(정보 패널 + **사거리 원**)에서 원만 잔존한다:
+    // RefreshPanel은 TowerInfoUI.HideInfo()밖에 모르고, Shift 경로는 MouseManager._selected를 안 건드려
+    // 나중의 Select(null)도 그 타워의 OnDeselected를 부르지 못하기 때문.
+    private Tower _infoShownFor;
+
     // ── 파사드 (패널 뷰가 쓰는 것) ────────────────────────────────────
     public IReadOnlyList<Tower> SelectedTowers => _group.Towers;
     /// 선택 집합이 바뀔 때 발행(패널 뷰가 구독해 리스트·후보 버튼을 갱신).
@@ -219,9 +226,18 @@ public class TowerMergeCoordinator : MonoBehaviour
     }
 
     // 우측 패널 단일 권위(F1). 0=둘 다 숨김 / 1=인포(멤버 OnSelected 재사용) / 2개↑=합성 패널.
+    // OnSelected/OnDeselected를 **쌍으로** 호출한다 — 이 훅에는 정보 패널만이 아니라 사거리 원(#192)도
+    // 묶여 있어서, 켜기만 하고 끄지 않으면 합성 패널 위에 직전 타워의 초록 원이 남는다(WL-087).
     private void RefreshPanel()
     {
         int count = _group.Count;
+        Tower single = count == 1 ? _group.Towers[0] : null;
+
+        // 인포 대상이 바뀌거나 사라지면 이전 대상을 먼저 내린다(정보 패널 + 사거리 원).
+        // 파괴된 참조는 Unity 오버로드 ==로 걸러 MissingReferenceException을 피한다(WL-033 계열).
+        if (_infoShownFor != null && _infoShownFor != single) _infoShownFor.OnDeselected();
+        _infoShownFor = single;
+
         if (count >= 2)
         {
             TowerInfoUI.Instance?.HideInfo();
@@ -230,14 +246,13 @@ public class TowerMergeCoordinator : MonoBehaviour
         else
         {
             if (_mergePanel != null) _mergePanel.SetActive(false);
-            if (count == 1)
+            if (single != null)
             {
                 // 2→1 복귀 시 단일 선택 OnSelected가 재발화되지 않으므로 스위처가 명시적으로 인포를 표시.
                 // 표시는 idempotent라 평클릭 경로(MouseManager가 이미 OnSelected 호출)와 겹쳐도 무해.
-                var t = _group.Towers[0];
-                if (t != null) t.OnSelected();
+                single.OnSelected();
             }
-            else // count == 0
+            else // count == 0 (또는 멤버가 파괴돼 표시할 게 없음)
             {
                 TowerInfoUI.Instance?.HideInfo();
             }

@@ -212,7 +212,7 @@ public void Set(OutlineKind kind, bool on);   // 멱등
 - 최종 색 우선순위: **MergePreview > (Selected ‖ GroupSelected) > Hover**. 하나도 없으면 shell off.
   - 선택된 타워에 커서를 올려도 초록이 노랑으로 밀리지 않는다.
   - 후보 버튼 호버 시 핑크가 초록을 덮는다.
-- `Selected`(MouseManager 단일 선택)와 `GroupSelected`(코디네이터 그룹)를 **분리한 이유**: 둘은 서로 다른 주체가 쓰고 수명이 다르다. 한 플래그를 공유하면 "Shift로 그룹에서 뺀 타워가 아직 MouseManager `_selected`인 경우" 한쪽이 다른 쪽 상태를 지운다.
+- `Selected`(MouseManager 단일 선택)와 `GroupSelected`(코디네이터 그룹)를 **분리한 이유**: 둘은 서로 다른 주체가 쓰고 수명이 다르다. 한 플래그를 공유하면 한쪽이 다른 쪽 상태를 지운다. WL-087 수정으로 Shift 클릭이 `_selected`를 비우게 된 뒤에도 분리는 그대로 값을 한다 — 그때 드라이버가 `Set(Selected,false)`를 걸지만 코디네이터가 켜 둔 `GroupSelected`는 살아 있어 **초록이 끊기지 않는다**(공유 플래그였다면 Shift로 담는 순간 재료 타워의 초록이 꺼졌을 것).
 
 ---
 
@@ -229,7 +229,7 @@ public void Set(OutlineKind kind, bool on);   // 멱등
 
 **왜 각 대상의 `ISelectable`/`IHoverable` 훅 안에서 직접 켜지 않는가**
 1. 두 이벤트는 항상 "현재 대상"을 실어 오고 드라이버가 `_lastHovered`/`_lastSelected`를 들고 있으므로 **대칭이 구조적으로 보장**된다.
-2. 그래서 **WL-087**(코디네이터 `RefreshPanel`이 `count==1`에서 `t.OnSelected()`만 부르고 대칭 `OnDeselected()`가 없음)에 걸리지 않는다. WL-087 자체는 정보 패널 쪽 버그로 **남는다**(이 이슈에서 고치지 않음). 2→1 복귀 시 남은 타워는 그룹에 있으므로 `GroupSelected`로 초록이 유지된다.
+2. 그래서 **WL-087**(코디네이터 `RefreshPanel`이 `count==1`에서 `t.OnSelected()`만 부르고 대칭 `OnDeselected()`가 없음)에 걸리지 않는다. 2→1 복귀 시 남은 타워는 그룹에 있으므로 `GroupSelected`로 초록이 유지된다. *(WL-087 자체는 이 이슈에서 고치지 않은 채 남았다가, 사거리 원 잔존으로 드러나 `_infoShownFor` diff + Shift 경로의 `Select(null)`로 종결 — `TowerMerge.md` §7.2·§8.1.)*
 3. `Tower.cs`(Combat 소유)·`BuildingInfo`·`AuraTower`·`TerritoryNodeView`를 **한 줄도 수정하지 않는다**.
 4. `MouseManager.Select`는 **낮/밤 게이트가 없다** → **밤에 타워를 클릭해도 초록이 뜬다**(사거리 원·정보 패널과 피드백이 일치). 코디네이터의 `IsDay` 게이트는 그대로 유지된다(밤에는 그룹·합성이 잠긴 채 단일 초록만 뜬다).
 
