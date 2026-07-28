@@ -55,6 +55,16 @@
    아무것도 고칠 필요 없이 다음 로드부터 바로 새 내용을 읽는다.
 3. 번호 붙은 스냅샷 파일은 정본 확정 이후에도 그 주 동안은 삭제하지 않고 히스토리로 남겨둔다
    (§5에서 일괄 정리).
+4. **정본 씬 diff 셀프 체크**: 커밋 전에 `git diff -- Assets/Scenes/GameScene.unity`로 변경 범위를
+   확인한다. 특히 작업과 무관한 `RectTransform` 구동값(`m_AnchorMin`/`m_AnchorMax`/
+   `m_AnchoredPosition`/`m_SizeDelta`), TMP 글꼴 크기, Canvas 설정이 함께 재저장되지 않았는지
+   검사하고 비의도 변경은 되돌린다. 큰 diff에서는 다음 명령으로 레이아웃 구동값을 제외한 변경을
+   먼저 확인하되, 최종적으로는 제외하지 않은 전체 diff도 검토한다.
+
+   ```powershell
+   git diff -- Assets/Scenes/GameScene.unity |
+     rg -v "m_AnchorMin|m_AnchorMax|m_AnchoredPosition|m_SizeDelta"
+   ```
 
 ## 5. 주간 빌드 시 정리
 

@@ -7,35 +7,57 @@ using UnityEngine.UI;
 /// 타워 전용 호버 툴팁 뷰(#141). 건물과 공유하는 범용 <see cref="TooltipUI"/>(헤더+본문 텍스트뿐)와 달리
 /// 타워 정보에 맞춘 독립 슬롯(아이콘/이름/스탯/코스트)을 갖는다.
 /// <br/>
-/// 씬에 미리 배치하지 않고 <see cref="EnsureExists"/>로 <b>최초 필요 시 스스로 UI를 생성</b>한다(전용 오버레이
-/// 캔버스 + 패널 계층을 코드로 구성). 덕분에 정본/스냅샷 어느 씬에서나 씬 편집 없이 자동 동작하고,
-/// PR이 씬 파일을 건드리지 않아 씬 병합 절차(Docs/Core/SceneWorkflow.md)와 분리된다.
+/// <b>씬 배치(권장)</b>: <see cref="TooltipUI"/>와 같은 계보로, 인스펙터 슬롯을 채워 <c>UICanvas</c>의
+/// 마지막 자식으로 배치한다(HUD 위·모달 아래 — Docs/Core/UIZOrder.md §4).
+/// (주의) 루트 오브젝트는 '활성'으로 둬야 Awake가 실행되어 Instance가 등록된다. 숨김은 자식
+/// <c>_panel</c> 토글로 처리하므로 루트를 미리 꺼두지 말 것.
+/// <br/>
+/// <b>폴백</b>: 슬롯이 비어 있으면 <see cref="BuildFallback"/>이 계층을 코드로 만든다. 이때도 자체 캔버스를
+/// 만들지 않고 씬의 HUD 캔버스(<see cref="UILayer.Hud"/>) 아래로 붙는다 — 테스트 씬처럼 HUD 캔버스가
+/// 아예 없을 때만 표준 sortingOrder로 캔버스를 생성한다.
 /// <see cref="TowerTooltipSource"/>가 버튼 호버를 감지해 <see cref="Show"/>를 호출한다.
 /// </summary>
 public class TowerTooltipView : MonoBehaviour
 {
     public static TowerTooltipView Instance { get; private set; }
 
-    // 호버한 버튼의 위쪽 가장자리 기준 오프셋(x=수평 이동, y=버튼과의 간격).
-    private readonly Vector2 _buttonOffset = new(0f, 8f);
+    [Header("표시 대상")]
+    [SerializeField] Canvas _canvas;           // scaleFactor 계산용(루트 캔버스). 비면 부모에서 자동 조회
+    private GameObject _panel;        // 보임/숨김 토글 대상 (루트가 아니라 이 자식)
+    private RectTransform _panelRect; // 배치 대상. 비면 _panel에서 자동 조회
 
-    // 코드로 생성한 UI 참조(인스펙터 없음 — Build에서 채움).
-    private Canvas _canvas;
-    private GameObject _panel;
-    private RectTransform _panelRect;
+
     private Image _icon;
-    private TextMeshProUGUI _nameText;
+    private TextMeshProUGUI _nameText;   
     private TextMeshProUGUI _descText;
     private TextMeshProUGUI _statsText;
     private TextMeshProUGUI _costText;
-    private ResourceTable _resourceTable;
+ 
+    [Header("배치")]
+    // 호버한 버튼의 위쪽 가장자리 기준 오프셋(x=수평 이동, y=버튼과의 간격).
+    [SerializeField] Vector2 _buttonOffset = new(0f, 8f);
 
-    /// <summary>인스턴스를 반환하되, 없으면 자체 생성한다(씬 배치 불필요). 첫 호버 시 호출된다.</summary>
+    private ResourceTable _resourceTable;
+    private bool _ready; // 슬롯이 온전한가 — Show가 외부에서 직접 불리므로 enabled 대신 이 플래그로 가드
+
+    /// <summary>
+    /// 인스턴스를 반환한다. 씬에 배치된 뷰를 최우선으로 쓰고, 없을 때만 자체 생성한다. 첫 호버 시 호출된다.
+    /// </summary>
     public static TowerTooltipView EnsureExists()
     {
         if (Instance != null) return Instance;
-        var go = new GameObject("TowerTooltipView (auto)");
-        return go.AddComponent<TowerTooltipView>(); // Awake에서 Build + Instance 등록
+
+        // 씬에 배치돼 있는데 루트가 비활성이면 Awake가 아직 안 돌아 Instance가 비어 있다.
+        // Include로 찾아 활성화하면 그 순간 Awake가 Instance를 등록한다 — 중복 생성 방지.
+        var existing = FindFirstObjectByType<TowerTooltipView>(FindObjectsInactive.Include);
+        if (existing != null)
+        {
+            if (!existing.gameObject.activeSelf) existing.gameObject.SetActive(true);
+            return Instance != null ? Instance : existing; // 부모가 비활성이면 Awake가 여전히 안 돈다
+        }
+
+        var go = new GameObject("TowerTooltipView (auto)", typeof(RectTransform));
+        return go.AddComponent<TowerTooltipView>(); // Awake에서 BuildFallback + Instance 등록
     }
 
     private void Awake()
@@ -46,7 +68,21 @@ public class TowerTooltipView : MonoBehaviour
             return;
         }
         Instance = this;
-        Build();
+
+        if (_panel == null) BuildFallback(); // 씬 와이어링이 없을 때만 코드로 생성
+
+        _panelRect ??= _panel != null ? _panel.GetComponent<RectTransform>() : null;
+        _canvas ??= GetComponentInParent<Canvas>();
+        if (_canvas != null) _canvas = _canvas.rootCanvas; // scaleFactor는 루트 기준
+
+        _ready = _panel != null && _panelRect != null && _nameText != null
+                 && _descText != null && _statsText != null && _costText != null;
+        if (!_ready)
+        {
+            Debug.LogError("TowerTooltipView: 필수 슬롯(_panel/_panelRect/_nameText/_descText/_statsText/_costText) 미할당", this);
+            return; // Hide() 호출 전에 빠져 첫 프레임 NRE 방지
+        }
+
         Hide();
     }
 
@@ -58,6 +94,7 @@ public class TowerTooltipView : MonoBehaviour
     /// <summary>타워 정보를 채워 <paramref name="anchor"/>(호버한 버튼) 바로 위에 툴팁을 표시한다. tower가 null이면 숨긴다.</summary>
     public void Show(TowerAsset tower, RectTransform anchor)
     {
+        if (!_ready) return;
         if (tower == null) { Hide(); return; }
 
         _nameText.text = ResolveHeader(tower);
@@ -79,26 +116,17 @@ public class TowerTooltipView : MonoBehaviour
         if (_panel != null) _panel.SetActive(false);
     }
 
-    // ----- UI 구성(런타임 코드 생성) -----
+    // ----- 폴백 UI 구성(런타임 코드 생성) -----
+    // 씬 와이어링이 없을 때만 실행된다. 씬에 배치했다면 이 경로는 전혀 타지 않는다.
 
-    private void Build()
+    private void BuildFallback()
     {
-        // 전용 오버레이 캔버스: 다른 씬 캔버스에 의존하지 않고 항상 최상단에 그린다.
-        _canvas = gameObject.AddComponent<Canvas>();
-        _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        _canvas.sortingOrder = short.MaxValue;
-        // 게임의 다른 캔버스와 스케일을 맞춘다(전부 ScaleWithScreenSize 1920×1080) — 고해상도/모바일에서
-        // 버튼만 커지고 툴팁 텍스트가 상대적으로 작아지는 어긋남 방지.
-        var scaler = gameObject.AddComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-        // GraphicRaycaster는 붙이지 않는다 — 툴팁은 입력을 받지 않는다(패널도 raycastTarget off).
-
+        Transform root = ResolveRoot();
         TMP_FontAsset font = ResolveFont();
 
         // 패널(배경 + 세로 레이아웃 + 자동 크기). pivot 하단중앙 → 버튼 위로 자라남.
         _panel = new GameObject("Panel", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-        _panel.transform.SetParent(transform, false);
+        _panel.transform.SetParent(root, false);
         _panelRect = _panel.GetComponent<RectTransform>();
         _panelRect.anchorMin = _panelRect.anchorMax = new Vector2(0f, 0f);
         _panelRect.pivot = new Vector2(0.5f, 0f);
@@ -143,6 +171,45 @@ public class TowerTooltipView : MonoBehaviour
         _costText = MakeText("Cost", _panel.transform, font, 18f, FontStyles.Normal, new Color(1f, 0.92f, 0.60f));
     }
 
+    /// <summary>
+    /// 폴백 계층을 담을 부모를 정한다. 씬의 HUD 캔버스(<see cref="UILayer.Hud"/>) 아래 마지막 자식으로
+    /// 들어가므로 일반 HUD보다 위·보상/결과 모달보다 아래에 그려진다(UIZOrder.md §3·§4).
+    /// HUD 캔버스가 없는 씬(테스트 씬 등)에서만 자체 캔버스를 만들되 sortingOrder는 표준값을 쓴다.
+    /// </summary>
+    private Transform ResolveRoot()
+    {
+        // 이름(GameObject.Find("UICanvas")) 대신 표준 sortingOrder로 식별한다 — 이름 변경에 안 깨진다.
+        foreach (Canvas c in FindObjectsByType<Canvas>(FindObjectsSortMode.None))
+        {
+            if (!c.isRootCanvas || c.renderMode != RenderMode.ScreenSpaceOverlay) continue;
+            if (c.sortingOrder != UILayer.Hud) continue;
+
+            _canvas = c;
+            transform.SetParent(c.transform, false); // 마지막 sibling = UICanvas 내 최상단
+            var rt = transform as RectTransform;
+            if (rt != null)
+            {
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.offsetMin = rt.offsetMax = Vector2.zero;
+            }
+            // 스케일은 UICanvas의 CanvasScaler(ScaleWithScreenSize 1920×1080)를 그대로 상속한다.
+            return transform;
+        }
+
+        // HUD 캔버스가 없는 씬 — 표준 레이어를 지켜 자체 캔버스를 만든다(임의의 큰 값 금지).
+        _canvas = gameObject.AddComponent<Canvas>();
+        _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        _canvas.sortingOrder = UILayer.Hud;
+        // 게임의 다른 캔버스와 스케일을 맞춘다(전부 ScaleWithScreenSize 1920×1080) — 고해상도/모바일에서
+        // 버튼만 커지고 툴팁 텍스트가 상대적으로 작아지는 어긋남 방지.
+        var scaler = gameObject.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        // GraphicRaycaster는 붙이지 않는다 — 툴팁은 입력을 받지 않는다(패널도 raycastTarget off).
+        return transform;
+    }
+
     private static TextMeshProUGUI MakeText(string n, Transform parent, TMP_FontAsset font, float size, FontStyles style, Color col)
     {
         var go = new GameObject(n, typeof(RectTransform));
@@ -160,7 +227,7 @@ public class TowerTooltipView : MonoBehaviour
     // 씬에 이미 쓰이는 TMP 폰트를 재사용(한글 지원 폰트 일치). 없으면 TMP 기본 폰트.
     private static TMP_FontAsset ResolveFont()
     {
-        var any = Object.FindFirstObjectByType<TextMeshProUGUI>();
+        var any = FindFirstObjectByType<TextMeshProUGUI>();
         if (any != null && any.font != null) return any.font;
         return TMP_Settings.defaultFontAsset;
     }
@@ -185,7 +252,7 @@ public class TowerTooltipView : MonoBehaviour
         _panelRect.position = pos;
     }
 
-    // ----- 내용 조립 -----
+    // ----- 내용 조립 (변경 없음) -----
 
     // 헤더 = 타워 이름 (+ 역할, 있으면). Data 미채움 시 TowerID로 폴백.
     // BuildingTooltipSource의 "이름 - 역할" 표기와 같은 계열.

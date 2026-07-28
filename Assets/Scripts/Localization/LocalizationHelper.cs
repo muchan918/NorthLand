@@ -29,6 +29,14 @@ public static class LocalizationHelper
         => LocalizationSettings.StringDatabase.GetLocalizedString(table, entry);
 
     /// <summary>
+    /// 인자(스마트 스트링 <c>{0}</c>·<c>{1}</c>…)를 채워 (테이블, 키)를 동기 해석한다.
+    /// 예: "· 미배치 주민 {0}명" + <paramref name="args"/>=[2] → "· 미배치 주민 2명".
+    /// 지속형 표시엔 부적합(로케일 변경 자동 갱신 없음) — 조회 시점 pull 경로에서만 쓴다.
+    /// </summary>
+    public static string Get(TableReference table, TableEntryReference entry, params object[] args)
+        => LocalizationSettings.StringDatabase.GetLocalizedString(table, entry, args);
+
+    /// <summary>
     /// 시작 시 테이블을 미리 로드해 첫 조회 히치를 없앤다(선택). 로컬 Addressables 기준 동기 완료.
     /// 동기 <see cref="Get"/>만으로도 키 노출은 없지만, 최초 로드 비용을 부팅 시점으로 옮기고 싶을 때 호출한다.
     /// </summary>
