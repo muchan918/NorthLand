@@ -32,9 +32,9 @@ MonoBehaviour:
     ProjectileSpeed: 0
   Boss:
     Stat:
-      MaxHp: 1500
+      MaxHp: 800
       MoveSpeed: 12
       AttackDamage: 80
       AttackRange: 3
       AttackInterval: 2.5
-    BehaviorTree: {fileID: 0}
+    BehaviorTree: {fileID: -3802654377710565703, guid: b452562c5fd4efa48b4be9c0964e798e, type: 2}
