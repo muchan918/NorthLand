@@ -11,6 +11,7 @@ NorthLand: Last Stand (팀 유유아) 프로젝트 문서 모음.
 | [Core/DayNightManager.md](Core/DayNightManager.md) | 낮/밤 페이즈 전환 매니저·이벤트 훅 설계·구현 현황 (#6) |
 | [Core/TowerMerge.md](Core/TowerMerge.md) | 타워 합성(Merge) — 레시피·매칭·실행(#194/#195) + 멀티 선택·합성 패널(#183) 단일 진실 원천 |
 | [Core/InteractionOutline.md](Core/InteractionOutline.md) | 상호작용 아웃라인(호버/선택/합성 프리뷰) 설계·측정 근거·#148 이행 경로 (#213) — **구현 미착수** |
+| [Core/UIZOrder.md](Core/UIZOrder.md) | HUD·모달 Canvas 표시 우선순위와 상위 패널 입력 차단 규칙 (#188) |
 | [ManagementArea/Resources.md](ManagementArea/Resources.md) | 경영 자원 시스템(지갑·생산처·패널) + 확장 자원 방향(§5.5) |
 | [ManagementArea/TerritoryGraph.md](ManagementArea/TerritoryGraph.md) | 경영 영토 확장(그래프 노드) — **영토=미개척 영지 방향 전환(§0)** |
 | [ManagementArea/BuildingUpgrade.md](ManagementArea/BuildingUpgrade.md) | 생산 건물 업그레이드(주민당 획득량 증가) 설계 (#139) |
