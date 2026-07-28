@@ -64,6 +64,11 @@ public class ManagementEndDayConfirmPopup : MonoBehaviour
             _cancelButton.onClick.RemoveAllListeners();
             _cancelButton.onClick.AddListener(Hide);
         }
+
+        if(DayNightManager.Instance != null)
+        {
+            DayNightManager.Instance.OnDayToNight += Hide;
+        }
     }
 
     private void OnDestroy()
