@@ -27,7 +27,12 @@ public class EnemyAgent : MonoBehaviour
     // LayerMask는 Unity.Behavior가 지원하는 Blackboard 변수 타입이 아니라 노드 입력으로 받을 수 없다.
     // 그래서 마스크는 프리팹 인스펙터에서 authoring하고, 진영 구분은 아래 Faction으로 사후 필터한다
     // (Enemy.targetLayerMask와 같은 계보).
-    [Tooltip("주변 대상 질의에 쓸 레이어. 아군 잡몹 + 플레이어 유닛 + 본진을 모두 포함해야 한다.")]
+    // 넓게 잡는 것이 맞다. 이 마스크는 "질의 후보 집합"이고 아군/적군 판정은
+    // EnemyNodeQuery.TryAccept가 IDamageable.Faction으로 사후에 한다. 마스크에서 빠진 레이어는
+    // 진영 필터에 닿기도 전에 사라지므로, 부분적으로 비어 있으면 Hostile 조건이
+    // 예외도 로그도 없이 항상 0을 반환한다 — 값이 아예 비었을 때보다 찾기 어렵다.
+    [Tooltip("주변 대상 질의의 후보 레이어. Enemy(7) + Soldier(8) + PlayerBase(9)를 모두 포함할 것. " +
+             "빠진 레이어는 진영 판정 전에 걸러져 조용한 무동작이 된다.")]
     [SerializeField] private LayerMask unitLayerMask;
 
     private Enemy enemy;
