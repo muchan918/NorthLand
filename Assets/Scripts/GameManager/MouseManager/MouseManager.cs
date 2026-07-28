@@ -112,7 +112,8 @@ public class MouseManager : MonoBehaviour
     {
         CancelPlacement();
         CancelSkillTargeting();
-        ClearHover(); // 배치 중에는 툴팁을 띄우지 않는다
+        ClearHover();     // 배치 중에는 툴팁을 띄우지 않는다
+        ClearSelection(); // 고스트를 드는 순간 이전 선택의 잔재(사거리 원·초록 아웃라인·인포/합성 패널)를 전부 내린다(WL-086)
         _request = request;
         _ghost = Instantiate(request.GhostPrefab);
         _mode = Mode.Placement;
@@ -157,8 +158,7 @@ public class MouseManager : MonoBehaviour
         // (우클릭은 카메라 드래그·조준 취소와 이미 이중 점유라 해제에 쓰지 않는다 — WL-073)
         if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {
-            Select(null);
-            OnPrimarySelect?.Invoke(null); // 중복 제거와 무관하게 항상 발행 — 그룹 해제 신호(WL-085)
+            ClearSelection();
             return;
         }
 
@@ -173,9 +173,19 @@ public class MouseManager : MonoBehaviour
         if (additive)
         {
             // Shift 추가 선택: 그룹 선택 가능(IGroupSelectable 마커) 대상만 토글 통지.
-            // 건물·영지 노드·빈 곳 등 마커 없는 대상은 무시(집합 불변). 단일 _selected도 건드리지 않는다.
+            // 건물·영지 노드·빈 곳 등 마커 없는 대상은 무시(집합 불변 — _selected도 유지).
             if (hitSelectable && hit.collider.TryGetComponent(out IGroupSelectable grp))
+            {
+                // 토글이 실제로 일어나는 경우에만, 그룹 경로로 넘어가기 전에 단일 선택을 먼저 비운다.
+                // 단일 선택의 부수 표시(사거리 원 + 인포 패널)는 대상의 OnDeselected로만 꺼지는데, 이 경로에서
+                // _selected를 그대로 두면 아무도 그걸 부르지 않아 **합성 패널 위에 직전 타워의 사거리 원이 잔존**한다
+                // (코디네이터 RefreshPanel은 TowerInfoUI만 내릴 수 있고 남의 사거리 원은 모른다 — WL-087 계열).
+                // 이후 표시는 집합 크기가 결정한다: 1개면 코디네이터가 그 타워의 OnSelected를 재호출해 복구,
+                // 2개 이상이면 합성 패널만. 초록 아웃라인은 GroupSelected 플래그가 이어받으므로 끊기지 않는다.
+                // 순서 주의: 토글 뒤에 비우면 count==1로 복귀할 때 코디네이터가 켠 인포·원을 도로 끈다.
+                Select(null);
                 OnGroupSelectToggled?.Invoke(grp);
+            }
             return;
         }
 
@@ -210,6 +220,19 @@ public class MouseManager : MonoBehaviour
     }
 
     private void ClearHover() => SetHover(null);
+
+    /// 단일 선택 + 그룹 선택을 함께 비우는 **선택 해제의 유일한 창구**. Esc·배치 시작·페이즈 전환이 공유한다.
+    /// 두 신호를 함께 보내는 이유는 선택에 딸린 표시가 정보 패널 하나가 아니라 사거리 원·아웃라인·합성 패널까지
+    /// 퍼져 있고, 그 소유자도 대상 자신(ISelectable 훅)과 코디네이터(그룹)로 나뉘어 있기 때문이다.
+    /// OnPrimarySelect는 중복 제거를 타지 않으므로 Shift로만 선택한 상태(_selected==null)에서도 그룹이 풀린다(WL-085).
+    ///
+    /// ⚠️ 선택 상태를 "표시만" 내리고 _selected를 남기면 그 대상은 **재클릭해도 다시 뜨지 않는다**
+    /// (Select의 `_selected == next` 중복 제거가 삼킨다). 표시를 내려야 하는 곳은 반드시 이 메서드를 쓸 것.
+    public void ClearSelection()
+    {
+        Select(null);
+        OnPrimarySelect?.Invoke(null);
+    }
 
     private void Select(ISelectable next)
     {

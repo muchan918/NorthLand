@@ -18,14 +18,17 @@ public class TowerFusionController : MonoBehaviour
     }
 
     /// 후보 버튼 onClick → 코디네이터(RequestMerge)를 거쳐 호출된다. group은 현재 선택 집합.
-    public void TryFuse(TowerRecipe recipe, TowerMergeGroup group)
+    /// onEnded는 배치 세션이 확정/취소 어느 쪽으로든 끝날 때 1회(코디네이터의 핑크 고정 해제용).
+    /// **반환값 = 결과 타워 배치가 실제로 시작됐는가.** false면 onEnded도 오지 않으므로, 호출부가
+    /// "배치 동안 유지"할 상태를 걸어두면 안 된다(재료·코스트 부족으로 조용히 반려되는 경로가 있다).
+    public bool TryFuse(TowerRecipe recipe, TowerMergeGroup group, System.Action onEnded = null)
     {
-        if (recipe == null) { Debug.LogError("[TowerFusion] recipe가 지정되지 않았습니다."); return; }
-        if (recipe.Result == null) { Debug.LogError("[TowerFusion] recipe.Result가 비어 있습니다."); return; }
+        if (recipe == null) { Debug.LogError("[TowerFusion] recipe가 지정되지 않았습니다."); return false; }
+        if (recipe.Result == null) { Debug.LogError("[TowerFusion] recipe.Result가 비어 있습니다."); return false; }
         if (group == null || _placer == null)
         {
             Debug.LogError("[TowerFusion] group/placer가 연결되지 않았습니다.");
-            return;
+            return false;
         }
 
         // 1. 그룹 타워 → TowerID 목록 (null/파괴/SO 없음 제외)
@@ -43,21 +46,21 @@ public class TowerFusionController : MonoBehaviour
         if (required.Count == 0)
         {
             Debug.LogWarning("[TowerFusion] 레시피에 유효한 재료가 없습니다.");
-            return;
+            return false;
         }
 
         // 3. 포함 매칭
         if (!TowerFusionMatcher.TryResolve(towerIds, required, out var consumeIndices))
         {
             Debug.Log("[TowerFusion] 재료가 부족해 합성할 수 없습니다.");
-            return;
+            return false;
         }
 
         // 4. 코스트 확인 (관리 시스템이 있을 때만)
         if (_management != null && !_management.CanAfford(recipe.ExtraCost))
         {
             Debug.Log("[TowerFusion] 합성 코스트가 부족합니다.");
-            return;
+            return false;
         }
 
         // 소모 대상 타워 확정
@@ -69,7 +72,7 @@ public class TowerFusionController : MonoBehaviour
             recipe.Result.Data = DataTableManager.Get<TowerTable>("TowerTable")?.Get(recipe.Result.TowerID);
 
         // 5. 배치 시작. 확정(고스트→타일)되면 ExtraCost 차감(TowerPlacer) 후 재료 소모.
-        _placer.BeginTowerPlacement(recipe.Result, recipe.ExtraCost, () => ConsumeMaterials(group, toConsume));
+        return _placer.BeginTowerPlacement(recipe.Result, recipe.ExtraCost, () => ConsumeMaterials(group, toConsume), onEnded);
     }
 
     private void ConsumeMaterials(TowerMergeGroup group, List<Tower> towers)
