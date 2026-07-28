@@ -85,8 +85,9 @@ public class MonsterSpawn : MonoBehaviour
     }
 
     // 성문(gatePrefab)을 경로 끝점 — 몬스터가 도달해 제거되는 지점 — 에 배치한다.
-    // 몬스터는 GetSpawnRoute()(route를 뒤집은 경로)를 따라가다 마지막 지점에서 MonsterMove에 의해
-    // 제거되며, 그 지점은 route[0]에 해당한다. 경로가 갱신되면(스테이지 재생성 등) 위치를 옮긴다.
+    // 몬스터는 GetSpawnRoute()(route를 뒤집은 경로)를 따라가며,
+    // 경로 완료 시 Enemy가 IRouteMovementAgent.RouteCompleted를 받아 제거한다.
+    // 그 지점은 route[0]에 해당한다. 경로가 갱신되면(스테이지 재생성 등) 위치를 옮긴다.
     // monsterParent에 붙이지 않는다 — 웨이브 클리어는 monsterParent.childCount로 판정하므로(WL-037).
     private void UpdateGate()
     {
@@ -342,15 +343,13 @@ public class MonsterSpawn : MonoBehaviour
         GameObject monster = Instantiate(prefab,position,rotation,monsterParent);
 
         Enemy enemy = monster.GetComponent<Enemy>();
-        MonsterMove monsterMove = monster.GetComponentInChildren<MonsterMove>();
+        IRouteMovementAgent routeMovement = monster.GetComponentInChildren<IRouteMovementAgent>();
 
-        if (enemy == null || monsterMove == null)
+        if (enemy == null || routeMovement == null)
         {
-            Debug.LogError($"[몬스터 스포너] '{monster.name}' 필수 컴포넌트 누락: Enemy={enemy != null}, MonsterMove={monsterMove != null}. " +
-                "전투 몬스터 프리팹에는 Enemy와 MonsterMove가 모두 필요합니다.",
-                monster
-            );
-
+            Debug.LogError($"[몬스터 스포너] '{monster.name}' 필수 컴포넌트 누락: " +
+                  $"Enemy={enemy != null}, IRouteMovementAgent={routeMovement != null}. " +
+                  "전투 몬스터 프리팹에는 Enemy와 경로 이동 컴포넌트가 필요합니다.",monster);
             Destroy(monster);
             return null;
         }
@@ -365,9 +364,9 @@ public class MonsterSpawn : MonoBehaviour
             agent.BindSpawner(this);
         }
 
-        // Enemy가 MonsterMove.RouteCompleted를 구독하여
+        // Enemy가 IRouteMovementAgent.RouteCompleted를 구독하여
         // 경로 끝 도달 시 몬스터 루트 오브젝트를 제거한다.
-        monsterMove.SetRoute(GetSpawnRoute());
+        routeMovement.SetRoute(GetSpawnRoute());
 
         return monster;
     }
