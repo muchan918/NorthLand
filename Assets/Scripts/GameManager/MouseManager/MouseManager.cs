@@ -112,7 +112,8 @@ public class MouseManager : MonoBehaviour
     {
         CancelPlacement();
         CancelSkillTargeting();
-        ClearHover(); // 배치 중에는 툴팁을 띄우지 않는다
+        ClearHover();     // 배치 중에는 툴팁을 띄우지 않는다
+        ClearSelection(); // 고스트를 드는 순간 이전 선택의 잔재(사거리 원·초록 아웃라인·인포/합성 패널)를 전부 내린다(WL-086)
         _request = request;
         _ghost = Instantiate(request.GhostPrefab);
         _mode = Mode.Placement;
@@ -157,8 +158,7 @@ public class MouseManager : MonoBehaviour
         // (우클릭은 카메라 드래그·조준 취소와 이미 이중 점유라 해제에 쓰지 않는다 — WL-073)
         if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {
-            Select(null);
-            OnPrimarySelect?.Invoke(null); // 중복 제거와 무관하게 항상 발행 — 그룹 해제 신호(WL-085)
+            ClearSelection();
             return;
         }
 
@@ -220,6 +220,16 @@ public class MouseManager : MonoBehaviour
     }
 
     private void ClearHover() => SetHover(null);
+
+    // 단일 선택 + 그룹 선택을 함께 비우는 "전체 해제". Esc와 배치 시작이 공유한다 —
+    // 선택에 딸린 표시가 정보 패널 하나가 아니라 사거리 원·아웃라인·합성 패널까지 퍼져 있고,
+    // 그 소유자도 대상 자신(ISelectable 훅)과 코디네이터(그룹)로 나뉘어 있어 두 신호가 모두 필요하다.
+    // OnPrimarySelect는 중복 제거를 타지 않으므로 Shift로만 선택한 상태(_selected==null)에서도 그룹이 풀린다(WL-085).
+    private void ClearSelection()
+    {
+        Select(null);
+        OnPrimarySelect?.Invoke(null);
+    }
 
     private void Select(ISelectable next)
     {

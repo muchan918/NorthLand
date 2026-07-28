@@ -158,6 +158,7 @@
 | Shift + 건물/영지 노드 등 비-타워 | **무시**(집합·단일 선택 둘 다 불변 — 마커 없음) |
 | 빈 곳 클릭 / Esc | **전체 해제** |
 | 우클릭 | 해제 아님 — 카메라 드래그·배치/조준 취소 전용(WL-073, F3) |
+| (입력 아님) 배치 시작 | **전체 해제** — `MouseManager.BeginPlacement`가 Esc와 같은 `ClearSelection()`을 호출(WL-086). 자원 배치·합성 배치 모두 해당하며, 고스트를 든 화면에 이전 선택의 사거리 원·초록·인포/합성 패널이 남지 않는다 |
 
 ### 7.4 집합 = `TowerMergeGroup` (이음매, 단일 리스트)
 - 코디네이터는 **순수 C# `TowerMergeGroup` 하나를 유일한 백킹 스토어로 직접 조작**한다(`Add`/`Remove`/`Clear`/`Prune`)(F4). 별도 동기화 리스트가 없어 어긋날 표면이 없다. 그룹의 `OnChanged`(Add/Remove/Clear/Prune 성공 시 발행) 하나로 하이라이트·패널·실행부 소모까지 모든 변경이 단일 통지된다 — 코디네이터가 구독해 `RefreshHighlight`/`RefreshPanel`/`OnGroupChanged` 발행.

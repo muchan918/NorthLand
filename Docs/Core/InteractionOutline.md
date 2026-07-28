@@ -373,7 +373,8 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 |---|---|
 | 배치 모드·스킬 조준 진입 | `MouseManager.BeginPlacement`/`BeginSkillTargeting`이 `ClearHover()`를 호출 → `OnHoverChanged(null)` → 드라이버가 노랑 해제. **모드 전환 순간 노란 아웃라인이 남지 않는지 확인 필요** |
 | 배치·조준 취소 | `CancelPlacement`/`CancelSkillTargeting`은 `_mode = Idle`만 되돌린다 → 다음 `UpdateHover`에서 자연 복구 |
-| Esc / 빈 곳 클릭 | `Select(null)` + `OnPrimarySelect(null)` → 단일 초록·그룹 초록 동시 해제 |
+| Esc / 빈 곳 클릭 | `MouseManager.ClearSelection()`(= `Select(null)` + `OnPrimarySelect(null)`) → 단일 초록·그룹 초록 동시 해제 |
+| **배치 시작** | `BeginPlacement`가 같은 `ClearSelection()`을 부른다 → 고스트를 드는 순간 초록(단일·그룹)·사거리 원·인포/합성 패널이 전부 내려간다(WL-086). 합성 경로에서 그 직후 켜지는 재료 핑크만 남는다(§5.3) |
 | Shift로 그룹에서 제거 | 코디네이터 `RefreshHighlight` diff가 `OnGroupDeselected` → 즉시 해제(WL-087 표면 재발 없음) |
 | 밤 전환 | 코디네이터 `HandleDayToNight`가 집합 리셋 → 그룹 초록·핑크 해제. 단일 초록은 `MouseManager` 선택이 유지되는 동안 남는다(§5.1 의도된 동작) |
 | 합성 소모·철거·사망 | 타워 GO 파괴 → shell은 자식이라 함께 파괴. 코디네이터는 `Tower.ActiveChanged` → `Prune`(WL-076b)로 죽은 참조 정리 |
