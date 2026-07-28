@@ -3,5 +3,5 @@ woodcutter_house,buildings.woodcutter.name,Production,buildings.woodcutter.role,
 mine,buildings.mine.name,Production,buildings.mine.role,buildings.mine.desc
 farm,buildings.farm.name,Production,buildings.farm.role,buildings.farm.desc
 castle,buildings.castle.name,General,buildings.castle.role,buildings.castle.desc
-alchemist_house,buildings.alchemist.name,Skill,buildings.alchemist.role,buildings.alchemist.desc
+alchemist_house,buildings.alchemist.name,Store,buildings.alchemist.role,buildings.alchemist.desc
 magic_lab,buildings.lab.name,Skill,buildings.lab.role,buildings.lab.desc
