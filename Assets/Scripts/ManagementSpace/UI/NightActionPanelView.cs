@@ -14,6 +14,8 @@ public class NightActionPanelView : MonoBehaviour
     [SerializeField] Button _waveSuccessButton;
     [SerializeField] Button _waveFailButton;
     [SerializeField] Button _bossKillButton;
+    [Tooltip("낮 종료 확인 팝업(#219) — 싱글톤 아님, 이 뷰가 직접 참조를 들고 호출한다.")]
+    [SerializeField] ManagementEndDayConfirmPopup _endDayConfirmPopup;
 
     private ManagementController _controller;
 
@@ -76,8 +78,22 @@ public class NightActionPanelView : MonoBehaviour
         if (_bossKillButton != null) _bossKillButton.gameObject.SetActive(!isDay);
     }
 
-    // 확인 경유·폴백 라우팅은 팝업 클래스 한 곳(Request)에 캡슐화(#219).
-    private void HandleEndDay() => ManagementEndDayConfirmPopup.Request(_controller);
+    // 낮 종료(#219): 팝업이 배선돼 있으면 확인 경유, 없으면(배선 누락) 경고를 남기고 곧장 종료.
+    private void HandleEndDay()
+    {
+        if (_controller == null)
+        {
+            Debug.LogWarning("[낮 종료] ManagementController를 찾을 수 없습니다.");
+            return;
+        }
+        if (_endDayConfirmPopup != null)
+        {
+            _endDayConfirmPopup.Request(_controller);
+            return;
+        }
+        Debug.LogWarning("[낮 종료] 확인 팝업이 연결되지 않아 확인 없이 바로 종료합니다.");
+        _controller.EndDay();
+    }
 
     private void HandleWaveSuccess()
     {

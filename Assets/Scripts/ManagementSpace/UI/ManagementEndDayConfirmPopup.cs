@@ -11,9 +11,15 @@ using UnityEngine.UI;
 /// <item>[취소] → 팝업만 닫고 낮 유지.</item>
 /// <item>두 조건 모두 충족이면 팝업 없이 바로 밤으로 진행.</item>
 /// </list>
-/// 표시 전용 씬 스코프 싱글톤 — <see cref="NorthLand.UI.ResultUIManager"/>와 동일한 패턴
-/// (패널 참조 + SetActive + 버튼 onClick). "언제 넘어갈지"의 판정 데이터는 컨트롤러가 소유하고,
-/// 이 컴포넌트는 그 데이터를 읽어 팝업을 띄우거나 곧장 종료할 뿐이다.
+/// 표시 전용 컴포넌트(비-싱글톤) — 이 팝업은 뷰(경영 패널·NightAction 패널)가 각자
+/// <c>[SerializeField]</c>로 직접 들고 호출한다. "언제 넘어갈지"의 판정 데이터는 컨트롤러가
+/// 소유하고, 이 컴포넌트는 그 데이터를 읽어 팝업을 띄우거나 곧장 종료할 뿐이다.<br/>
+/// <br/>
+/// 배선 시점 규칙: 자기완결적 배선(버튼 리스너 등)은 <see cref="Awake"/>에서 — 스크립트
+/// 자신의 GameObject가 항상 활성이라는 전제만 있으면 다른 오브젝트 초기화 순서와 무관하게 안전하다.
+/// 다른 매니저(<see cref="DayNightManager"/>)에 의존하는 구독은 <see cref="OnEnable"/>/<see cref="OnDisable"/>
+/// 쌍으로 — Unity는 모든 오브젝트의 Awake를 끝낸 뒤에야 OnEnable을 호출하므로, 이 시점엔
+/// DayNightManager.Instance가 이미 세팅돼 있음이 보장된다(스크립트 실행 순서 설정 불필요).
 /// </summary>
 public class ManagementEndDayConfirmPopup : MonoBehaviour
 {
@@ -24,9 +30,8 @@ public class ManagementEndDayConfirmPopup : MonoBehaviour
     private const string k_KeyIdleVillagers = "game.management.confirm_end_day.idle_villagers"; // 스마트 스트링 {0}=유휴 수
     private const string k_KeyQuestion = "game.management.confirm_end_day.question";
 
-    public static ManagementEndDayConfirmPopup Instance { get; private set; }
-
-    [Tooltip("팝업 루트 오브젝트 — 표시/숨김 토글 대상.")]
+    [Tooltip("팝업 루트 오브젝트 — 표시/숨김 토글 대상. 이 스크립트가 얹힌 오브젝트와 달라야 한다" +
+             "(같으면 최초 SetActive(false) 직후 Awake/OnEnable이 돌지 않아 배선이 통째로 누락된다).")]
     [SerializeField] GameObject _panel;
 
     [Tooltip("미충족 조건 안내 문구를 표시할 텍스트.")]
@@ -42,18 +47,8 @@ public class ManagementEndDayConfirmPopup : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-        Instance = this;
-
         SetActiveSafe(false); // 시작 시 숨김 — 요청 시에만 노출.
-    }
 
-    private void Start()
-    {
         if (_proceedButton != null)
         {
             _proceedButton.onClick.RemoveAllListeners();
@@ -64,48 +59,31 @@ public class ManagementEndDayConfirmPopup : MonoBehaviour
             _cancelButton.onClick.RemoveAllListeners();
             _cancelButton.onClick.AddListener(Hide);
         }
+    }
 
-        if(DayNightManager.Instance != null)
+    // DayNightManager 의존 구독은 OnEnable/OnDisable로 — 클래스 주석 참고(실행 순서 안전).
+    private void OnEnable()
+    {
+        if (DayNightManager.Instance != null)
         {
             DayNightManager.Instance.OnDayToNight += Hide;
         }
     }
 
-    private void OnDestroy()
+    private void OnDisable()
     {
-        if (Instance == this)
+        if (DayNightManager.Instance != null)
         {
-            Instance = null;
+            DayNightManager.Instance.OnDayToNight -= Hide;
         }
-        if (DayNightManager.Instance != null) DayNightManager.Instance.OnDayToNight -= Hide;
     }
 
     /// <summary>
-    /// 낮 종료 요청 단일 진입점(#219) — 모든 뷰는 이 한 줄만 호출한다.
-    /// 팝업이 씬에 있으면 확인 팝업 경유, 없으면(배선 누락) 경고를 남기고 곧장 EndDay 폴백
-    /// — 확인 우회를 로그로 드러내 무증상 분기를 막는다.
-    /// </summary>
-    public static void Request(ManagementController controller)
-    {
-        if (controller == null)
-        {
-            return;
-        }
-        if (Instance != null)
-        {
-            Instance.RequestEndDay(controller);
-            return;
-        }
-        Debug.LogWarning("[경영] 낮 종료 확인 팝업이 씬에 없어 확인 없이 바로 종료합니다. 팝업 배선을 확인하세요.");
-        controller.EndDay();
-    }
-
-    /// <summary>
-    /// 조건을 점검해 팝업을 띄우거나(미충족) 바로 종료한다(충족). 외부 진입은 <see cref="Request"/>로만.
+    /// 낮 종료 요청 진입점(#219) — 뷰가 인스펙터로 연결한 팝업 인스턴스에서 직접 호출한다.
     /// 두 조건이 모두 충족이면 팝업 없이 바로 <see cref="ManagementController.EndDay"/>,
     /// 하나라도 미충족이면 미충족 항목을 담아 팝업을 띄운다.
     /// </summary>
-    private void RequestEndDay(ManagementController controller)
+    public void Request(ManagementController controller)
     {
         if (controller == null || !controller.IsDay)
         {

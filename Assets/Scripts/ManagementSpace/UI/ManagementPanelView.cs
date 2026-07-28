@@ -31,6 +31,8 @@ public class ManagementPanelView : MonoBehaviour
     [SerializeField] TMP_Text _villagerPoolText;
     [SerializeField] TMP_Text _phaseText;
     [SerializeField] Button _endDayButton;
+    [Tooltip("낮 종료 확인 팝업(#219) — 싱글톤 아님, 이 뷰가 직접 참조를 들고 호출한다.")]
+    [SerializeField] ManagementEndDayConfirmPopup _endDayConfirmPopup;
 
     [Header("생산/자원 라인")]
     [SerializeField] Transform _lineContainer;
@@ -73,8 +75,18 @@ public class ManagementPanelView : MonoBehaviour
         }
     }
 
-    // 낮 종료 버튼(#219): 확인 경유·폴백 라우팅은 팝업 클래스 한 곳(Request)에 캡슐화.
-    private void HandleEndDayClicked() => ManagementEndDayConfirmPopup.Request(_controller);
+    // 낮 종료 버튼(#219): 팝업이 배선돼 있으면 확인 경유, 없으면(배선 누락) 경고를 남기고
+    // 곧장 종료 — 확인 우회를 로그로 드러내 무증상 분기를 막는다.
+    private void HandleEndDayClicked()
+    {
+        if (_endDayConfirmPopup != null)
+        {
+            _endDayConfirmPopup.Request(_controller);
+            return;
+        }
+        Debug.LogWarning("[경영패널] 낮 종료 확인 팝업이 연결되지 않아 확인 없이 바로 종료합니다.");
+        _controller.EndDay();
+    }
 
     // 고정 행을 한 번만 만든다(#166): 기본 자원 라인 → 마나석 → 특수 자원. 확보 시엔 재빌드 없이 Refresh만.
     private void BuildLines()
