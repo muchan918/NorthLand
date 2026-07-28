@@ -6,6 +6,10 @@ public enum BuildingType
     General,
     Skill,
     Store,
+    // 본진(#227). General('그 외' 버킷)에서 분리했다 — 주민 증가 테이블이라는 고유 데이터 그룹과
+    // 전용 패널을 갖게 되어 Production/Skill/Store와 동급의 1급 분류가 됐다.
+    // ⚠ 이 타입은 인스펙터 authoring 분류일 뿐 동작 스위치가 아니다 — 패널 분기는 여전히 데이터 유무로 건다.
+    Castle,
 }
 
 public class BuildingData

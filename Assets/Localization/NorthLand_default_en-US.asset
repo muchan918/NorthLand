@@ -166,6 +166,36 @@ MonoBehaviour:
     m_Localized: Owned
     m_Metadata:
       m_Items: []
+  - m_Id: 6627005447090176
+    m_Localized: Settings
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6627348180447232
+    m_Localized: Close
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6627824745656320
+    m_Localized: title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6628086369562624
+    m_Localized: replay
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6628387554144256
+    m_Localized: Quit Game
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6629238200938496
+    m_Localized: Laguage
+  - m_Id: 6579016888147968
+    m_Localized: Add Villager
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6589878990462976
+    m_Localized: 'Max Villagers:'
+    m_Metadata:
+      m_Items: []
   - m_Id: 6528311331823616
     m_Localized: Proceed
     m_Metadata:
