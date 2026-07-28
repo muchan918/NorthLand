@@ -90,8 +90,8 @@ namespace NorthLand.Combat
             {
                 // 평면 추적 시작점 + 초기 거리(아크 진행도 t 계산 기준) 스냅샷.
                 homingPos = transform.position;
-                var mb = target.HitPosition;
-                Vector3 tp = mb.transform.position;
+                var at = target.HitPosition;
+                Vector3 tp = at.transform.position;
                 totalDistance = Vector3.Distance(homingPos, tp);
             }
         }
@@ -234,7 +234,7 @@ namespace NorthLand.Combat
                 var d = h.GetComponentInParent<IDamageable>();
                 if (d == null || d.Faction == source.Faction || d.IsDead) continue;
                 if (chainHitSet.Contains(d)) continue;
-                float sqr = (d.HitPosition.position - center).sqrMagnitude;   // ← h.transform.position 에서 변경
+                float sqr = (d.HitPosition.position - center).sqrMagnitude;   
                 if (sqr < closestSqr) { closestSqr = sqr; closest = d; }
             }
             return closest;
