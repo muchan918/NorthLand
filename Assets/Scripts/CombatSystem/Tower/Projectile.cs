@@ -83,16 +83,15 @@ namespace NorthLand.Combat
             {
                 // 발사 순간의 대상 위치를 착탄점으로 고정 (이후 대상 이동/사망과 무관)
                 startPos = transform.position;
-                var mb = target as MonoBehaviour;
-                landingPos = mb != null ? mb.transform.position : transform.position;
+                landingPos = target.HitPosition.position;
                 totalDistance = Vector3.Distance(startPos, landingPos);
             }
             else // Homing
             {
                 // 평면 추적 시작점 + 초기 거리(아크 진행도 t 계산 기준) 스냅샷.
                 homingPos = transform.position;
-                var mb = target as MonoBehaviour;
-                Vector3 tp = mb != null ? mb.transform.position : transform.position;
+                var at = target.HitPosition;
+                Vector3 tp = at.transform.position;
                 totalDistance = Vector3.Distance(homingPos, tp);
             }
         }
@@ -108,14 +107,14 @@ namespace NorthLand.Combat
         // 살아있는 대상을 매 프레임 추적하는 유도탄. arcHeight>0이면 평면 추적 위에 포물선 높이를 얹어 곡사로 보이게 한다.
         void UpdateHoming()
         {
-            var targetObj = target as MonoBehaviour;
-            if (targetObj == null || target.IsDead)
+            var targetTransform = target.HitPosition;
+            if (targetTransform == null || target.IsDead)
             {
                 Destroy(gameObject);   // 대상이 도중에 사라지면 소멸
                 return;
             }
 
-            Vector3 targetPos = targetObj.transform.position;
+            Vector3 targetPos = targetTransform.position;
             Vector3 prevPos = transform.position;
 
             // 평면(비아크) 추적 위치를 대상으로 이동. 아크는 이 위에 시각적 높이만 더한다.
@@ -209,7 +208,7 @@ namespace NorthLand.Combat
             DamageDealt?.Invoke(source, target);
             chainHitSet.Add(target);
 
-            Vector3 from = (target as MonoBehaviour).transform.position;
+            Vector3 from = target.HitPosition.transform.position;
 
             for (int i = 1; i < impact.MaxChainTargets; i++)
             {
@@ -220,7 +219,7 @@ namespace NorthLand.Combat
                 next.TakeDamage(new DamageInfo(dmg, source));
                 DamageDealt?.Invoke(source, next);
                 chainHitSet.Add(next);
-                from = (next as MonoBehaviour).transform.position;
+                from = next.HitPosition.transform.position;
             }
         }
 
@@ -235,7 +234,7 @@ namespace NorthLand.Combat
                 var d = h.GetComponentInParent<IDamageable>();
                 if (d == null || d.Faction == source.Faction || d.IsDead) continue;
                 if (chainHitSet.Contains(d)) continue;
-                float sqr = (h.transform.position - center).sqrMagnitude;
+                float sqr = (d.HitPosition.position - center).sqrMagnitude;   
                 if (sqr < closestSqr) { closestSqr = sqr; closest = d; }
             }
             return closest;
