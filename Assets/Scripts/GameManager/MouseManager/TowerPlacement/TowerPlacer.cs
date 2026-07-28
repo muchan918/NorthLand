@@ -58,6 +58,9 @@ public class TowerPlacer : MonoBehaviour
     private TowerPlacementData _activeData; // 현재 배치 중인 타워의 데이터(주입 또는 더미)
     private IReadOnlyList<ResourceCost> _activeCost; // 현재 배치 중인 타워의 비용(확정 시 차감)
     private System.Action _onConfirmed; // 배치 확정 후 1회 콜백(합성 재료 소모 등). 확정 직후 소비하고 비운다.
+    // 배치 세션 종료(확정 복귀·취소·다른 배치로 교체) 1회 콜백. 확정 여부와 무관하게 "이 배치는 끝났다"만 알린다.
+    // 합성이 클릭 시점에 고정한 핑크 프리뷰(#213 §5.3)를 되돌리는 신호로 쓴다 — 확정/취소 어느 쪽으로 끝나든 필요.
+    private System.Action _onEnded;
     private ManagementController _management; // 자원 차감 게이트웨이(WL-017). null이면 무료 배치(테스트 씬).
 
     // 프레임당 풋프린트를 1회만 계산해 캐시(스냅에서 채우고, 검증·하이라이트가 공유).
@@ -118,24 +121,27 @@ public class TowerPlacer : MonoBehaviour
     // ── 진입점 ─────────────────────────────────────────────────────────────────────
     /// 더미 데이터 + 인스펙터 프리팹으로 배치 시작. UI 버튼 OnClick에 연결(현재 테스트 경로).
     /// 비용은 so.Cost, 확정 콜백 없음(일반 타워 배치).
-    public void BeginTowerPlacement(TowerAsset so)
+    public bool BeginTowerPlacement(TowerAsset so)
         => BeginTowerPlacement(so, so != null ? so.Cost : null, null);
 
     /// 비용·확정 콜백을 주입하는 오버로드. 합성(#195)이 결과 타워를 결과 코스트(ExtraCost)로 배치하고,
     /// 배치 확정 직후 onConfirmed(재료 소모)를 실행하는 데 쓴다. 배치 코어는 단일인자 경로와 동일.
-    public void BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost, System.Action onConfirmed)
+    /// onEnded는 확정/취소 무관하게 배치 세션이 끝날 때 1회. **반환값 = 배치 세션이 실제로 시작됐는가** —
+    /// false면 onEnded도 영영 오지 않으므로, 호출부가 배치 동안 유지하려던 상태(합성 핑크 고정 등)를
+    /// 걸어두면 안 된다는 신호다.
+    public bool BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost, System.Action onConfirmed, System.Action onEnded = null)
     {
         if (so == null)
         {
             Debug.LogError("[TowerPlacer] null TowerAsset은 배치할 수 없습니다.");
-            return;
+            return false;
         }
 
         // Data는 패널(TowerSelectPanelView)이 SO 주입 시 채운다 — 여기선 방어만.
         if (so.Data == null)
         {
             Debug.LogError($"[TowerPlacer] TowerData 미주입(TowerID={so.TowerID}) — 패널에서 SO 주입 시 Data를 채웠는지 확인하세요.");
-            return;
+            return false;
         }
 
         towerPrefab = so.TowerPrefab;
@@ -149,22 +155,18 @@ public class TowerPlacer : MonoBehaviour
         switch (type)
         {
             case TowerType.Single:
-                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Single.Attack.AttackRange), onConfirmed);
-                break;
+                return StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Single.Attack.AttackRange), onConfirmed, onEnded);
             case TowerType.Area:
-                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Area.Attack.AttackRange), onConfirmed);
-                break;
+                return StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Area.Attack.AttackRange), onConfirmed, onEnded);
             case TowerType.Chain:
-                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Chain.Attack.AttackRange), onConfirmed);
-                break;
+                return StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Chain.Attack.AttackRange), onConfirmed, onEnded);
             case TowerType.Magic:
                 // 마법 타워는 오라 반경을 사거리 미리보기로 사용(#111 완료기준 #4).
                 // 반경 규칙은 TowerAsset.MagicRadius 단일 출처(WL-056) — AuraTower 실효과와 공유.
-                StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.MagicRadius), onConfirmed);
-                break;
+                return StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.MagicRadius), onConfirmed, onEnded);
             default:
                 Debug.LogError($"[TowerPlacer] 알 수 없는 TowerType={type}입니다.");
-                return;
+                return false;
         }
     }
 
@@ -177,18 +179,18 @@ public class TowerPlacer : MonoBehaviour
 
     // 실제 배치 시작 코어(진입 방식과 무관). 게이트웨이/더미 어느 경로든 이 메서드를 호출한다.
     // onConfirmed(합성 재료 소모 등)는 BeginPlacement 이후에 설정한다(순서 주의 — 아래 참고).
-    private void StartPlacement(TowerPlacementData data, System.Action onConfirmed = null)
+    private bool StartPlacement(TowerPlacementData data, System.Action onConfirmed = null, System.Action onEnded = null)
     {
         if (MouseManager.Instance == null)
         {
             Debug.LogError("[TowerPlacer] MouseManager가 씬에 없습니다.");
-            return;
+            return false;
         }
 
         if (ghostPrefab == null || towerPrefab == null)
         {
             Debug.LogError("[TowerPlacer] ghostPrefab/towerPrefab을 인스펙터에서 지정하세요.");
-            return;
+            return false;
         }
 
         _activeData = data;
@@ -203,9 +205,11 @@ public class TowerPlacer : MonoBehaviour
             KeepPlacingAfterConfirm = keepPlacing,
         });
 
-        // 확정 콜백은 반드시 BeginPlacement '이후'에 설정한다 — 위 BeginPlacement 내부의
-        // CancelPlacement→이전 배치 EndPlacement가 _onConfirmed을 null로 지우기 때문(프리뷰와 동일한 순서 이슈).
+        // 확정/종료 콜백은 반드시 BeginPlacement '이후'에 설정한다 — 위 BeginPlacement 내부의
+        // CancelPlacement→이전 배치 EndPlacement가 _onConfirmed/_onEnded를 소비·null 처리하기 때문
+        // (프리뷰와 동일한 순서 이슈). 이 순서 덕분에 "이전 배치 종료 통지 → 새 배치 콜백 등록"이 보장된다.
         _onConfirmed = onConfirmed;
+        _onEnded = onEnded;
 
         // 프리뷰는 BeginPlacement 이후에 만든다.
         // (BeginPlacement 내부의 CancelPlacement가 이전 배치의 OnEnded=EndPlacement를 먼저 발화해
@@ -214,6 +218,7 @@ public class TowerPlacer : MonoBehaviour
         previewFootprintInitialized = false;
         CreateRangeIndicator(_activeData.AttackRange);
         CreateCellHighlights(_activeData.GridWidth * _activeData.GridHeight);
+        return true;
     }
 
     // ── 스냅: 앵커(히트 타일) 기준 W×H 풋프린트의 중심 월드 좌표 ─────────────────────
@@ -421,6 +426,12 @@ public class TowerPlacer : MonoBehaviour
         _onConfirmed = null; // 취소로 끝났으면 확정 콜백은 실행하지 않는다(재료 보존).
         lastPreviewAnchor = null;
         previewFootprintInitialized = false;
+
+        // 종료 통지는 정리 뒤 마지막에, 먼저 비우고 호출한다 — 구독자가 이 콜백 안에서 새 배치를 시작해도
+        // (또는 EndPlacement가 재진입해도) 같은 콜백이 두 번 불리지 않게.
+        var ended = _onEnded;
+        _onEnded = null;
+        ended?.Invoke();
     }
 
     private float CalculatePreviewRange()

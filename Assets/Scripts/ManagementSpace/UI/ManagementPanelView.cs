@@ -31,6 +31,8 @@ public class ManagementPanelView : MonoBehaviour
     [SerializeField] TMP_Text _villagerPoolText;
     [SerializeField] TMP_Text _phaseText;
     [SerializeField] Button _endDayButton;
+    [Tooltip("낮 종료 확인 팝업(#219) — 싱글톤 아님, 이 뷰가 직접 참조를 들고 호출한다.")]
+    [SerializeField] ManagementEndDayConfirmPopup _endDayConfirmPopup;
 
     [Header("생산/자원 라인")]
     [SerializeField] Transform _lineContainer;
@@ -52,13 +54,19 @@ public class ManagementPanelView : MonoBehaviour
             Debug.LogError("[경영패널] ManagementController를 찾을 수 없습니다.");
             return;
         }
+        // 배선 누락을 시작 시점에 드러낸다(#219) — 낮 종료 클릭까지 미루면 확인 팝업이
+        // 조용히 빠진 채 게임이 굴러가므로, 여기서 에러로 즉시 노출한다.
+        if (_endDayConfirmPopup == null)
+        {
+            Debug.LogError("[경영패널] 낮 종료 확인 팝업이 연결되지 않았습니다. 인스펙터 배선을 확인하세요.");
+        }
 
         BuildLines();
 
         if (_endDayButton != null)
         {
             _endDayButton.onClick.RemoveAllListeners();
-            _endDayButton.onClick.AddListener(_controller.RequestAdvancePhase);
+            _endDayButton.onClick.AddListener(HandleEndDayClicked);
         }
 
         _controller.OnChanged += Refresh;
@@ -72,6 +80,9 @@ public class ManagementPanelView : MonoBehaviour
             _controller.OnChanged -= Refresh;
         }
     }
+
+    // 낮 종료 버튼(#219): 조건 점검·표시·진행 판단은 전부 팝업이 소유한다(이 뷰는 호출만).
+    private void HandleEndDayClicked() => _endDayConfirmPopup.Request(_controller);
 
     // 고정 행을 한 번만 만든다(#166): 기본 자원 라인 → 마나석 → 특수 자원. 확보 시엔 재빌드 없이 Refresh만.
     private void BuildLines()

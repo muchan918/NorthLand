@@ -136,7 +136,7 @@ public class ProductionLineView : MonoBehaviour
         if (_villagerText != null) _villagerText.text = _controller.LineVillagers(_lineIndex).ToString();
         if (_expectedText != null) _expectedText.text = $"+{_controller.LineExpectedProduction(_lineIndex)}";
 
-        bool editable = _controller.IsDay && _controller.CanAssignVillagers;
+        bool editable = _controller.IsDay; // 영토 확장 여부와 무관하게 낮이면 배치 편집 가능(#219)
         if (_plusButton != null) _plusButton.interactable = editable;
         if (_minusButton != null) _minusButton.interactable = editable;
 
