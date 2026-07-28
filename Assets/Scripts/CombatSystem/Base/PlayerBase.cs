@@ -38,7 +38,8 @@ namespace NorthLand.Combat
         public float CurrentHp => currentHp;
         public float MaxHp => maxHp;
 
-        public Transform HitPosition => throw new NotImplementedException();
+        // 본진은 별도 피격 지점을 두지 않고 피벗을 그대로 쓴다(기존 동작 유지).
+        public Transform HitPosition => transform;
 
         public event Action<float, float> OnHpChanged;
 

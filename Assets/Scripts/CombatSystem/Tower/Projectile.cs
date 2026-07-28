@@ -82,7 +82,7 @@ namespace NorthLand.Combat
             if (flightMode == FlightMode.Ballistic)
             {
                 // 발사 순간의 대상 위치를 착탄점으로 고정 (이후 대상 이동/사망과 무관)
-                //var mb = target as MonoBehaviour;
+                startPos = transform.position;
                 landingPos = target.HitPosition.position;
                 totalDistance = Vector3.Distance(startPos, landingPos);
             }
