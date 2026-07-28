@@ -3,7 +3,7 @@ using NorthLand.Combat;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class MonsterMove : MonoBehaviour, IMovementAgent
+public class MonsterMove : MonoBehaviour, IRouteMovementAgent
 {
 
 
@@ -90,6 +90,7 @@ public class MonsterMove : MonoBehaviour, IMovementAgent
         }
     }
 
+
     public void AddSpeedDebuff(int sourceId, float factor)
     {
         speedDebuffs[sourceId] = Mathf.Max(0f, factor);
@@ -126,7 +127,7 @@ public class MonsterMove : MonoBehaviour, IMovementAgent
     }
 
 
-    public void SetRoute(List<Vector3> routePoints)
+    public void SetRoute(IReadOnlyList<Vector3> routePoints)
     {
         route.Clear();
         currentRouteIndex = 0;
@@ -196,4 +197,6 @@ public class MonsterMove : MonoBehaviour, IMovementAgent
     {
         canMove = enabled;
     }
+
+
 }

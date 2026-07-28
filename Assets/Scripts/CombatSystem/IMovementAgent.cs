@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
 namespace NorthLand.Combat
 {
     public interface IMovementAgent
@@ -29,5 +33,13 @@ namespace NorthLand.Combat
         void AddSpeedDebuff(int sourceId, float factor);
 
         void RemoveSpeedDebuff(int sourceId);
+
     }
+    public interface IRouteMovementAgent : IMovementAgent
+    {
+        event Action RouteCompleted;
+
+        void SetRoute(IReadOnlyList<Vector3> routePoints);
+    }
+
 }
