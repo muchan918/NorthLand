@@ -196,22 +196,30 @@
 
 ### 8.4 시각 피드백
 - 집합에 든 타워를 월드에서 강조(아웃라인/하이라이트). 코디네이터가 마커의 그룹 훅(§7.1)으로 켜고 끈다 — **단일 선택 하이라이트와 별개**. 아트·연출 방식 TBD.
+- 색 규약은 `InteractionOutline.md`(#213): 그룹 재료 = 초록, **그 레시피가 실제로 소모할 재료 = 핑크**.
+- 핑크는 후보 버튼 **호버**에서 켜지고, 버튼을 **클릭해 결과 타워 배치가 시작되면 배치가 끝날 때까지 고정**된다(`_previewCommitted`). 잠그지 않으면 클릭과 동시에 커서가 버튼을 벗어나 `OnPointerExit`가 핑크를 걷어가, 정작 배치 중에 "무엇이 소모되는지"가 안 보인다. 해제는 배치 종료 콜백(`TowerPlacer` → `TryFuse(onEnded)` → `EndMergeCommit`) 하나뿐 — 확정이면 재료가 소멸하고, 취소면 그룹 초록으로 복귀한다. 상세·순서 계약은 `InteractionOutline.md` §5.3.
 
 ---
 
 ## 9. 실행 흐름 (#195, 완료 — 후보 버튼이 부르는 대상)
 
 ```
-후보 버튼 onClick → 코디네이터.RequestMerge(recipe) → TowerFusionController.TryFuse(recipe, group)
+후보 버튼 onClick → 코디네이터.RequestMerge(recipe) → TowerFusionController.TryFuse(recipe, group, onEnded) : bool
   ① 그룹 타워 → TowerID 목록 (null/파괴/Asset 없음 제외)
   ② TowerFusionMatcher.BuildRequired(recipe) → (TowerID,개수) 집계
-  ③ TowerFusionMatcher.TryResolve → 소모할 타워 인덱스 확정 (부족 시 중단·로그)
+  ③ TowerFusionMatcher.TryResolve → 소모할 타워 인덱스 확정 (부족 시 false 반환·로그)
   ④ ManagementController.CanAfford(recipe.ExtraCost) (관리 없으면 무료)
   ⑤ 결과 SO의 런타임 Data 방어 채움(패널 경로 안 거칠 때 대비)
-  ⑥ TowerPlacer.BeginTowerPlacement(recipe.Result, recipe.ExtraCost, onConfirmed)
+  ⑥ TowerPlacer.BeginTowerPlacement(recipe.Result, recipe.ExtraCost, onConfirmed, onEnded) : bool
        고스트 → 타일 확정 → ExtraCost TrySpend + 결과 Instantiate
        → onConfirmed: 소모 대상 타워 group.Remove(OnChanged 발행) + Destroy
+       → onEnded  : 확정/취소 무관 배치 세션 종료 1회 (EndPlacement에서 발화)
+  ⑦ (반환 true일 때만) 코디네이터가 소모 대상을 핑크로 고정 — §8.4
 ```
+
+> ⑥의 `BeginTowerPlacement`는 `MouseManager.BeginPlacement`를 거치며 **선택 집합을 통째로 비운다**(§7.3 마지막 행) → 합성 패널이 닫히고 그룹 초록도 꺼진다. 그래서 코디네이터는 ⑦에서 칠할 소모 대상을 **⑥ 이전에 스냅샷**해 둔다. `TryFuse`가 쓰는 `toConsume`도 같은 이유로 ⑥ 앞에서 확정되므로(①~③) 집합이 비어도 소모는 정상 동작하며, `ConsumeMaterials`의 `group.Remove`는 빈 집합에 대한 무해한 no-op이 된다.
+>
+> **부작용(수용)**: 고스트를 취소하면 재료·비용은 보존되지만 **선택 집합은 돌아오지 않는다** — 다시 합성하려면 재료를 다시 고른다.
 
 - **소모 시점 = 배치 확정 시점**(고스트 Esc 취소 시 재료·비용 보존). 재료 소모(`Destroy`)는 `Tower.OnDisable`로 `Tower.Active`에서 자동 해제되고, `TowerFootprint`(배치 인스턴스 부착)가 `OnDestroy`로 점유 타일을 해제한다 → 소모 자리 재배치 가능.
 - **알려진 제약(F2, 현행 유지)**: 소모가 확정 시점이라 **재료가 점유한 타일에는 결과를 즉시 놓을 수 없다**(재료는 확정 후에야 `Destroy`되어 타일 해제). 지금은 이 제약을 안고 가고, 향후 커맨드 패턴('클릭 즉시 소모 + 취소 시 원복')으로 개선 예정(§13).

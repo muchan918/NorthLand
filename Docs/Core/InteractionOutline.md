@@ -243,7 +243,7 @@ public void Set(OutlineKind kind, bool on);   // 멱등
 
 평클릭도 `OnPrimarySelect → HandlePrimarySelect → TowerMergeGroup.SetSingle`로 **그룹 집합에 들어간다**(단일/다중 구분 없음) → 잔존 없음. 하늘색 쿼드(`k_HighlightColor`, `k_HighlightSize`, `CreateHighlight`)는 삭제한다.
 
-### 5.3 핑크 — 합성 후보 버튼 호버
+### 5.3 핑크 — 합성 후보 버튼 호버 + 배치 확정 대기
 
 - **UI 측**: `TowerMergeCandidateHover`(`IPointerEnterHandler`/`IPointerExitHandler`, 선례 `Assets/Scripts/UI/TowerPanel/TowerTooltipSource.cs` — 월드 레이캐스트가 아니라 EventSystem 경로). `TowerMergePanelView.BuildCandidates()`가 레시피당 버튼 1개를 **`Awake`에서 미리 생성**하므로(`_candidates` 리스트, 매칭 시 `SetActive`) 그 자리에서 `captured` 레시피와 함께 배선한다.
 - **뷰는 코디네이터 파사드만 호출한다**(현행 계약 유지) → 코디네이터에 `PreviewMerge(TowerRecipe)` / `ClearMergePreview()`를 추가하고, 월드 하이라이트 구동 권한은 계속 코디네이터가 단독으로 갖는다.
@@ -258,6 +258,16 @@ public void Set(OutlineKind kind, bool on);   // 멱등
 | 코디네이터 `HandleGroupChanged` | 선택 집합이 바뀌면 프리뷰 근거가 사라진다 |
 | 코디네이터 `HandleDayToNight` | 밤 전환 시 집합 리셋과 함께 |
 | 패널 루트 비활성화 | `RefreshPanel`이 2개 미만에서 `_mergePanel.SetActive(false)` |
+
+**단, 버튼을 클릭한 뒤에는 위 트리거가 전부 막힌다 — `_previewCommitted` 잠금**
+
+호버 프리뷰만 있으면 **클릭하는 순간 커서가 버튼을 벗어나며 `OnPointerExit`가 즉시 핑크를 걷어가고**, 재료가 초록으로 되돌아간 채 결과 타워 고스트를 들고 다니게 된다. 정작 "이 타워들이 지금 소모될 예정"이라는 정보가 가장 필요한 구간이 배치 중이므로, 클릭 시점의 소모 대상을 **배치 세션이 끝날 때까지 고정**한다.
+
+- 코디네이터 `RequestMerge`가 `TowerFusionController.TryFuse(recipe, group, onEnded)`의 **반환값이 true(배치가 실제로 시작됨)일 때만** 칠하고 `_previewCommitted = true`. 재료·코스트 부족으로 반려되면 종료 콜백도 오지 않으므로 잠그면 안 된다.
+- 잠금 중에는 `PreviewMerge`/`ClearMergePreview`가 no-op — 배치 중 다른 후보 버튼에 커서가 스쳐도 재료 표시가 흔들리지 않는다.
+- 유일한 해제 경로는 `onEnded` → `EndMergeCommit`. 신호는 `TowerPlacer.EndPlacement`(= `PlacementRequest.OnEnded`)에서 오며 **확정·취소·다른 배치로 교체 전부**를 덮는다. 확정이면 재료가 `Destroy`되고, 취소면 재료가 남되 **선택 집합은 이미 비어 있으므로 아무 아웃라인도 없는 상태로** 돌아간다(배치 시작 시 전체 해제 — 위 §5.1 표).
+- **호출 순서가 계약이다**: `ResolveConsumeTargets`(판정) → `TryFuse` → (성공 시) `ApplyPreview` → 잠금. 가운데 낀 `TryFuse`가 `BeginPlacement`를 부르고, 그게 **① 전체 해제로 선택 집합을 비우고 ② 직전 배치를 취소하며 그쪽 `EndMergeCommit`을 발화**시킨다. 그래서 판정은 집합이 살아 있는 **앞**에서, 칠하기는 정리가 끝난 **뒤**에 해야 한다. 순서를 바꾸면 각각 "소모 대상 계산 불가" / "방금 켠 핑크가 지워짐"으로 조용히 깨진다(`TowerPlacer._onConfirmed`를 `BeginPlacement` 이후에 대입하는 것과 같은 계열의 함정).
+- 밤 전환은 `HandleDayToNight`에서 잠금을 직접 푼다 — 배치 취소(`PhasePanelSwitcher.ShowNight`)로도 풀리지만 이벤트 구독 순서에 기대지 않기 위해.
 
 ### 5.4 영지 노드 — 섬/산만, 회오리는 제외 (**구현 완료**)
 
@@ -445,6 +455,7 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 - [x] 선택된(초록) 대상에 호버해도 노랑으로 밀리지 않음 → §4 (편집 모드 캡처로 확인)
 - [x] 후보 버튼 호버 시 **소모될 재료만** 핑크, 여분은 초록 유지 → §5.3
 - [x] 버튼에서 벗어나거나 패널이 닫히거나 집합이 바뀌면 핑크 잔존 없음 → §5.3 표
+- [x] 버튼 **클릭 후 고스트 배치 중에도** 재료가 핑크 유지, 확정·취소 시점에 해제 → §5.3 `_previewCommitted`
 - [x] 합성 소모·철거된 타워의 아웃라인이 월드에 남지 않음 → §8 (shell이 자식이라 함께 파괴)
 - [x] 아웃라인이 클릭/호버 레이캐스트를 막지 않음 → §3.1, §10-4
 - [x] `TowerGroupSelectable`의 하늘색 바닥 쿼드가 아웃라인으로 대체됨 → §5.2
