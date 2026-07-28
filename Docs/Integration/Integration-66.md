@@ -42,6 +42,9 @@ Combat의 실제 웨이브 클리어·보스 처치 판정이 아직 없는 상�
   실행되도록 순서를 고정. 즉 그 밤을 무사히 넘겨야(웨이브 성공) 그 밤 동안 배치한 주민 몫의 자원을 받는다.
 - `ManagementController.RequestAdvancePhase()`는 이제 낮→밤(`EndDay()`)만 담당한다. 밤→낮(`EndNight()`)
   호출은 아래 4항의 "웨이브 성공" 버튼으로 이동했다(WL-018 갱신).
+- **(#219 갱신)** 이후 `RequestAdvancePhase()`는 `EndDay()`로 **개명**됐고, 주민 배치 초기화는 **제거**됐다
+  (전날 배치 유지). 위 "정산이 초기화보다 먼저"라는 순서 고정은 초기화가 사라지면서 의미를 잃었다 —
+  현재는 `HandleNightToDay()`가 정산만 한다.
 
 ## 4. 밤 전용 임시 버튼 (`NightActionPanelView`)
 
@@ -50,7 +53,7 @@ Combat의 실제 웨이브 클리어·보스 처치 판정이 아직 없는 상�
 
 | 버튼 | 노출 시점 | 동작 |
 |---|---|---|
-| 낮 종료 | 낮 | `ManagementController.RequestAdvancePhase()` (기존 로직 재사용, 잉여 주민 게이트 포함) |
+| 낮 종료 | 낮 | `ManagementController.RequestAdvancePhase()` (기존 로직 재사용, 잉여 주민 게이트 포함) → **#219에서 `ManagementEndDayConfirmPopup.Request(controller)` 경유로 변경, 잉여 주민 게이트는 확인 팝업 경고로 강등** |
 | 웨이브 성공 | 밤 | `DayNightManager.Instance.EndNight()` — 정산+초기화+WaveCount 증가, 증가 로그 출력 |
 | 웨이브 실패 | 밤 | `GameManager.Instance.TriggerGameOver()`만 호출(`EndNight()` 호출 안 함 — 정산 없음) |
 | 보스 처치 | 밤 | `GameManager.Instance.TriggerVictory()` |

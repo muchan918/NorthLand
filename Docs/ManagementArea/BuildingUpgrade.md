@@ -121,7 +121,7 @@
 - [x] **데이터 출처 합의**(쟁점3): **SO 확정** — `BuildingAsset.Production.UpgradeLevels`에 authoring(CSV 아님, WL-015 선례).
 - [x] **레벨 상태 소유 확정**(쟁점1·2, WL-016/WL-021): **완료** — `ManagementController` 라인별 런타임 배열(`_level`·`_amountPerVillager`), 라인 소스 `BuildingAsset[]` 이관.
 - [x] **레벨 상한·리셋 정책**: **확정** — 상한 = 테이블 길이(`LineMaxLevel`), 런 내 유지(세이브 미도입 → Play/런 시작 시 초기화).
-- [x] **업그레이드 게이팅**: **낮 전용 확정**(`IsDay`). 영토확장 완료 요구 없음. 잉여 주민 게이트(CanEndDay)와 독립.
+- [x] **업그레이드 게이팅**: **낮 전용 확정**(`IsDay`). 영토확장 완료 요구 없음. 잉여 주민과도 독립 — 애초에 독립이었고, #219에서 잉여 주민 게이트(`CanEndDay`) 자체가 폐지돼 확인 팝업 경고(`HasIdleVillagers`)로 강등됐다.
 - [ ] **UI 통합**(다음 이슈): 경영 패널에 레벨 표시·업그레이드 버튼(`TryUpgrade`/`CanUpgrade`/`LineLevel`/`LineUpgradeCost` 바인딩).
 - [ ] **세이브/로드**: 업그레이드 레벨 영속화(전역 세이브 미도입 상태).
 - [x] **마법 연구소 업그레이드**: **업그레이드 전용 건물 트랙으로 구현됨**(§8). 마나석 비용·레벨 추적 + 강화 효과(스킬 기본 스탯 배율, #205) 구현 완료.

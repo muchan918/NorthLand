@@ -29,22 +29,25 @@ GDD의 경영 공간(§4.1)·자원 흐름(§4.2)·하루 루프(§5)를 런타�
 ### 로직/뷰 분리 (실제 UI 교체 대비)
 컨트롤러는 UI를 모르고, 뷰는 로직을 갖지 않는다(위젯 참조 + 렌더링만). **실제 UI 아트로 교체할 때 뷰의
 인스펙터 참조만 다시 연결**하면 컨트롤러·모델·지갑·생산처는 그대로다. `AssignVillager`/`UnassignVillager`/
-`RequestAdvancePhase`는 public이라 어떤 UI든 그대로 호출한다.
+`EndDay`는 public이라 어떤 UI든 그대로 호출한다.
 
 ## 2. 낮/밤 루프 연동 (muchan `DayNightManager`)
 
 컨트롤러가 `DayNightManager`의 전환 이벤트를 구독해 GDD §5·팀 계약 #5를 구현한다.
 
 - **낮→밤 (`OnDayToNight`)**: 각 생산처 `Produce(주민 수)` 실행 → 자원이 지갑에 정산된다.
-- **밤→낮 (`OnNightToDay`)**: 주민 배치를 0으로 초기화한다(배치는 매일 초기화).
-- **페이즈 전환 요청**: 패널 버튼 → `ManagementController.RequestAdvancePhase()` → 낮이면
-  `DayNightManager.EndDay()`(전원 배치돼야 활성 — 잉여 주민 게이트), 밤이면 `DayNightManager.EndNight()`.
+- **밤→낮 (`OnNightToDay`)**: 초기화하는 것이 **없다**(#219) — 주민 배치는 전날 그대로 유지된다(매일 재배치 강제 제거).
+- **페이즈 전환 요청**: 패널 버튼 → `ManagementEndDayConfirmPopup.Request(controller)` → 낮 프로세스 조건
+  (① 오늘 영토 확장 `HasExpandedTerritory`, ② 유휴 주민 없음 `!HasIdleVillagers`)을 점검해 **둘 다 충족이면 곧장**,
+  하나라도 미충족이면 **확인 팝업을 띄우고 [계속] 선택 시** `ManagementController.EndDay()` → `DayNightManager.EndDay()`.
+  **강제 게이트는 없다**(#219, WL-022) — 버튼은 항상 활성이고 조건은 경고일 뿐이다.
+  밤→낮(`EndNight()`)은 이 경로가 아니라 "웨이브 성공" 버튼이 직접 호출한다(WL-018).
 
 ### ⚠️ 밤→낮 전환 버튼은 임시다 (WL-018)
 현재 패널이 밤→낮 전환(`EndNight()`)을 **임시로** 트리거한다. 이 씬엔 Combat이 없어 웨이브를 끝낼 주체가
 없기 때문이다. **정식 게임에서 밤을 끝내는 책임은 밤을 끝내는 주체(Combat 웨이브 클리어 등)가 가져가야
 하며**, 그때 경영 패널의 이 전환 호출은 제거/이관한다. 낮→밤(`EndDay`)은 경영의 정당한 책임이므로 유지.
-(`ManagementController.RequestAdvancePhase` 주석에도 명시)
+(`ManagementController.EndDay` 주석에도 명시)
 
 ## 3. 자원 흐름 아키텍처
 
@@ -165,9 +168,11 @@ GDD의 경영 공간(§4.1)·자원 흐름(§4.2)·하루 루프(§5)를 런타�
 현재는 **씬 Play + 패널 조작**으로 검증한다(팀 관행, SystemMap §6).
 
 **절차**: `ManagementSystem` 씬 Play →
-1. 생산 라인 +/- 로 주민 배치(총 `_maxVillagers`까지). 밤에는 배치 불가.
-2. 전환 버튼 → 낮→밤 정산(자원이 HUD에 증가). 잉여 주민 있으면 버튼 비활성.
-3. 전환 버튼 → 밤→낮(임시). 주민 0 초기화 + Wave 증가, 자원은 유지.
+1. 생산 라인 +/- 로 주민 배치(총 `MaxVillagers`까지 = 시작값 + 본진 증가분 #227). 밤에는 배치 불가.
+   영토를 확장하지 않아도 배치할 수 있다(#219).
+2. 낮 종료 버튼 → 유휴 주민·영토 미확장이면 **확인 팝업**, [계속]이면 낮→밤 정산(자원이 HUD에 증가).
+   조건을 다 채웠으면 팝업 없이 바로 넘어간다. 버튼은 어느 경우에도 비활성화되지 않는다(#219).
+3. 웨이브 성공 버튼 → 밤→낮(임시). Wave 증가, **자원·주민 배치 모두 유지**(초기화 없음, #219).
 
 **확인된 행동 계약** (Play 실동작):
 - 낮→밤에 `주민당량 × 주민수`가 올바른 `ResourceKind`로 지갑에 정산된다.
