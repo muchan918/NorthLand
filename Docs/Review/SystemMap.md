@@ -21,6 +21,7 @@
 | Management(Resource) (자원 지갑·생산처)     | n0wst4ndup | `Assets/Scripts/ManagementSpace`                              | 지갑·생산처(#42) + 경영 패널 UI·DayNightManager 낮/밤 루프 연동(#43, #66). 정산+주민 배치 초기화=OnNightToDay(정산 먼저). **밤→낮 전환은 이제 밤 전용 임시 UI(`NightActionPanelView`)의 "웨이브 성공" 버튼이 트리거(WL-018)** — 경영 패널(`RequestAdvancePhase`)은 낮→밤(`EndDay`)만 담당. 주민 수는 placeholder(주민 시스템 부재). 소비처·마나석 생산 후속. **✅ 확장 자원 라인 구현(#166)**: 미개척 영지(영토 해금) = 특수 자원(금/루비/사파이어/다이아) **매일 자동 수급** — `HandleNightToDay`가 Owned 노드에서 `SupplyDaily`만큼 `Add`(주민 배치 무관). 패널은 **고정 8행**(기본3+마나+특수4, 동적 등록 아님): 특수/마나는 +/- 숨김, 특수는 "+n"(일일 수급)·**미개방 시 회색**·활성 우선 재정렬, 마나 "+n"=`ManaPerWaveClear`. `ProductionLineView`에 Villager/Supply/Mana 모드. **지갑(보유량) 표기를 탑 바 → 각 행의 지갑 칸(`_balanceText`→ProdRow Wallet)으로 이관**(#166): 탑 바 `Wood/Iron/Food/Mana_hud` 비활성화, 주민 풀·페이즈만 탑 바 유지. **🔀 잔여 방향**: ②생산 건물 3종 업그레이드(#139 구현됨), ③탑 바 HUD 오브젝트 완전 삭제는 후속. **✅ 마법 연구소 업그레이드**: 생산 라인과 별개인 **업그레이드 전용 건물 트랙**(`_upgradeBuildings`)으로 구현 — 마나석 비용·레벨 추적 + 강화 효과(스킬 시스템이 `GetUpgradeLevel`로 레벨 참조, 결합도 최소)도 **구현 완료(#205)**. BuildingUpgrade.md §8 |
 | TerritoryGraph (경영 영토 확장)             | n0wst4ndup (View 비주얼: muchan) | `Assets/Scripts/ManagementSpace/Territory`                    | 그래프 생성(Delaunay+프루닝)·클레임(`ISelectable`)·점진 공개·호버 하이라이트(`IHoverable`) 구현, `GameScene`에 씬 통합 완료(#18, #67). 하루 1회 확장 게이팅(`HasExpandedToday`, `DayNightManager.OnDayStart` 연동)도 #67에서 추가. **노드 비주얼 에셋 적용(#127, PR#128, muchan)**: `TerritoryNodeStateVisual`(상태→비주얼 스왑: Selectable=절차 생성 소용돌이 `VortexVisual`, Owned=산 에셋, 본진=씬 지형)+확보 연출(UniTask). `GameScene`의 `TerritoryGraphView._nodePrefab`=`TerritoryNodeV2`(간격 튜닝 세트와 결합 — WL-059). 구형 프리팹은 기존 색상 경로 폴백. **엣지 배 연출(#93, muchan)**: 엣지 선(LineRenderer)을 `SweetBoat` 랜덤 1척이 왕복하는 `TerritoryEdgeShip` 연출로 교체(선은 `_drawEdgeLines` 기본 꺼짐), 양끝이 모두 `Owned`일 때만 표시(`TerritoryGraph.IsOwned`). **🔀 영토 = 미개척 영지 자원 재설계 완료(#166)**: 효과 SO 계층(`TerritoryEffect`/`Grant`/`GainResident`/`ProductionMultiplier`/`Context`)을 **폐기·삭제**하고 `TerritoryDefinition`을 "자원 영지 정의"(`Kind`/`IslandPrefab`/`Min·MaxDaily`)로 리셰이프. 노드는 주입 시점에 `DailyYield`를 [Min,Max]에서 1회 롤(`TerritoryNode.DailyYield`, 시드 결정성). **확보 즉시 지급은 없고**, 매일 정산 시 `ManagementController`가 Owned 노드에서 자동 수급(GDD §3.2·§5.3). 섬 프리팹도 SO 소유로 이관(`TerritoryNodeStateVisual._mountainPrefabs`는 폴백만). `OnNodeClaimed` 훅은 뷰 확보 연출용으로 잔존하나 자원 적용엔 더 이상 안 씀(WL-030 종결) |
 | TowerFusion (타워 합성/Merge, #194/#195/#183)          | muchan(데이터·실행) · n0wst4ndup(선택·패널 #183) | `Assets/Scripts/GameManager/MouseManager/TowerPlacement`(Wallet/Matcher/Controller), `Assets/Scripts/Data/Tower/TowerRecipe.cs` | 레시피 SO(`TowerRecipe`: 재료 TowerID별 개수→결과 `TowerAsset`+`ExtraCost`, CSV 미경유 인스펙터 손입력) + 포함 매칭(`TowerFusionMatcher`, 순수 함수) + `TowerPlacer` 재사용 배치. 후보 버튼 클릭 시 재료 소모(`Destroy`, 확정 시점)+`ExtraCost` 지불+결과 타워 고스트 배치(#195). 결과=일반 `TowerAsset`(신규 CSV 행/SO). 재료 소모/철거 시 타일 점유는 `TowerFootprint`(배치 인스턴스에 부착, `OnDestroy`로 `BattleTile.Occupied` 해제)가 되돌림 — 소모 자리 재배치 가능. **선택/패널 UI(#183)는 명세 확정·구현 예정**: 코디네이터+마커(`IGroupSelectable`)로 멀티 선택(MouseManager 제네릭 유지), **집합=`TowerWallet` 단일 백킹 스토어**(이음매), 패널 스위처가 우측 패널 단일 권위(1개=`TowerInfoUI`/2개↑=합성 패널), 후보 버튼 활성=`TowerFusionMatcher.CanFuse`, 우클릭 해제 없음(Esc/빈곳만, WL-073), 밤 전환 시 진행 중 배치까지 취소, **낮 전용**. 현재는 임시 `TowerWallet`(씬 타워 인스펙터 드래그)가 선택셋 스탠드인. **⚠ 네이밍**: 문서·기획=합성/Merge, 코드 접두=`Fusion`(리네임 별건). 단일 진실 원천: `Docs/Core/TowerMerge.md`(구 `TowerFusion.md` 폐기·이관 완료) |
+| BossAI (보스 BT 패턴 AI, #232/#233/#234/#235) | n0wst4ndup | `Assets/Scripts/CombatSystem/Enemy/AI`(`EnemyAgent`/`EnemyPatternMemory`/`EnemyNodeQuery`/열거형), `Assets/Scripts/CombatSystem/Enemy/AI/Nodes`(리프 노드 14종) | 기반(#233)·리프 노드 세트(#234) 구현 완료. **패턴 그래프·보스 프리팹·AnimatorController·`EnemyAsset`(#235)은 미착수** — 노드를 쓰는 그래프가 없어 런타임 동작 미검증(컴파일·GUID 유일성·에디터 노드 목록 등재·입력 타입은 14/14 검증). `EnemyAgent`는 `Enemy`를 상속하지 않고 **병존**하는 무상태 파사드로, 값은 `MonsterMove`/`Enemy`가 소유하고 전달만 한다(유일한 예외는 패턴 쿨다운 기록). 노드는 `Enemy`/`MonsterMove`/`Animator`에 직접 닿지 않고 `EnemyAgent` 경계만 안다. **네임스페이스를 두지 않는 규약**이라 노드·보조 타입 클래스 이름이 전역 유일해야 한다(기존 MiniBoss 노드 4종은 `NorthLand.Combat.Boss`를 쓰며 이 세트와 무관·GUID 충돌 없음). 수치는 코드가 아니라 그래프 Blackboard 변수로 authoring한다(WL-094와 같은 축). 단 **`LayerMask`는 Blackboard 지원 타입이 아니라** `EnemyAgent.UnitLayerMask`(프리팹 인스펙터)에 둔다. **⚠ AuraTower 리팩토링 접점**: P3 마력 봉인의 대상 집합을 `Tower.Active` 등록 여부가 아니라 공격 스탯 보유 여부(`EnemyNodeQuery.IsAttackTower` = `Tower.AttackInterval > 0`)로 판정한다 — `AuraTower : Tower` 상속 리팩토링이 예정돼 있고, 등록 여부로 판정하면 이동속도 감소 타워가 봉인 대상에 들어와 "봉인 중에도 감속은 살아남는다"(P1 파훼 수단 유지)는 설계 의도가 조용히 뒤집힌다. 현재는 no-op. **리팩토링 시 확인**: `AuraTower`가 `Tower`를 상속해도 데이터가 Magic 타입(공격 스탯 없음)으로 남는지. 보스 이름은 프로토타입 임시명 `Tank`이며 웨이브 편성은 프로토타입에서 조정하지 않는다(임의 웨이브에 `Count: 1`, WL-096은 이 이슈 범위 밖). 설계 `Docs/Monster/Boss/BossDesign.md` · 노드 대장 `Docs/Monster/Boss/BossNodeReference.md` |
 
 ## 2. 공개 API (다른 시스템이 소비해도 되는 것)
 
@@ -57,6 +58,36 @@
   — HP UI(`Assets/Scripts/UI/HealthUI`, #100)가 구독하는 공개 계약. `PlayerBase.Instance`는 성문
   (BaseGate) 런타임 스폰 시점(`MonsterSpawn.UpdateGate`)에 설정됨 — `TowerInfoUI`/`DayNightManager`와
   동일한 씬 싱글톤 계보
+- **`IMovementAgent` 이동속도 다축 합성 계약(#233)** — `float EffectiveMoveSpeed { get; }`,
+  `float PatternSpeedFactor { get; set; }`, `void AddSpeedDebuff(int sourceId, float factor)`,
+  `void RemoveSpeedDebuff(int sourceId)`. namespace `NorthLand.Combat`, 구현체는 `MonsterMove`.
+  `최종 속도 = 기준 속도(SetMoveSpeed) × 패턴 배수 × Π 디버프 배수`(하한 클램프 `minMoveSpeed` 0.15).
+  **이동속도 감소 타워가 소비할 창구** — 축이 분리돼 있어 보스 돌진 가속(패턴 축)과 서로를 지우지 않는다.
+  소스별 곱산 중첩이며 같은 `sourceId`는 갱신만 된다(`Tower.ApplyBuff`와 같은 규약). 구체 타입
+  `MonsterMove`가 아니라 이 인터페이스로 부를 것. **완전 정지는 이 축이 아니라 `IsStopped`로 표현한다** —
+  하한 클램프가 있어 배수 0으로도 멈추지 않는다(감속으로 웨이브를 소프트락하는 경로 차단)
+- `Enemy.MovementOwnedByBehavior` (bool, #233) — BT 이동 소유권. 켜져 있는 동안 `Enemy.Update`가
+  `movement.IsStopped`를 건드리지 않고, `monsterStateMachine.SetHasTarget(false)`를 매 프레임 내려준다.
+  타겟 통지를 다루는 이유: `MonsterStateMachine`이 Attack 상태에서 `SetMoveEnabled(false)`를 걸어
+  (`MonsterStateMachine.cs:141`) 돌진이 본진 사거리 진입 시 멈추기 때문. **통지를 막는 것만으로는
+  부족하다** — `MonsterMove`는 `IsStopped`(`:147`)와 `canMove`(`:159`) 두 게이트가 독립이라, 소유권
+  획득 전 Attack 상태였으면 `canMove == false`가 latch되어 돌진 노드가 보스를 움직일 수 없다.
+  부수 효과로 소유권 중에는 근접 평타가 나가지 않는다. **켠 쪽이 반드시 반납할 책임을 진다**
+- `Enemy.DamageTakenFactor` (float, #233) — 받는 피해 배수. `TakeDamage` 한 곳에서만 적용된다.
+  0 미만은 클램프(0=무적), 상한 없음(1 초과=취약)
+- `Enemy.SetSpeedMultiplier(float)` / `Enemy.SpeedMultiplier` — #233 이후 `movement`의 **패턴 축 위임**.
+  값 소유자는 `MonsterMove`이며 `Enemy`는 로컬 필드를 들지 않는다. 중간보스 그래프
+  (`MidBossBehavior.asset`)가 쓰는 진입점이라 시그니처를 유지했다. 신규 노드는 `EnemyAgent`를 경유할 것
+- `MonsterSpawn.SpawnMonster(GameObject prefab)` / `MonsterSpawn.AliveMonsterCount` (#233) —
+  런타임 소환 창구. 웨이브 스폰과 같은 경로를 타 소환체도 `monsterParent` 자식으로 들어가고 경로를 받는다
+  (웨이브 클리어 판정이 `monsterParent.childCount == 0`이라 밖에 두면 보스 사망 즉시 웨이브가 끝난다).
+  **정적 싱글톤을 노출하지 않는다** — 스포너 다중 구성을 막지 않기 위해, 소환체는 스폰 시점에
+  `EnemyAgent.BindSpawner`로 자기를 만든 스포너에 묶인다(경로 주입과 같은 자리).
+  ⚠ `AliveMonsterCount`는 `childCount`라 **보스 자신과 사망 연출 중인 몬스터(`destroyDelay` 2초)를 포함**한다
+- `EnemyAgent` (#233, 네임스페이스 없음) — 보스 BT 리프 노드가 참조하는 **유일한** 컴포넌트.
+  `Enemy`와 병존하는 무상태 파사드. 노출 멤버 전체 목록은 `Docs/Monster/Boss/BossNodeReference.md`
+  「EnemyAgent가 노출하는 것」. 잡몹 프리팹에 이 컴포넌트만 추가하면 같은 노드를 재사용할 수 있고,
+  보스별 고유 능력은 이 클래스를 상속한 파생 컴포넌트로 얹는다(노드 입력 타입이 `EnemyAgent`라 그대로 들어간다)
 - `ResourceWallet` (경영 자원 상태 저장소, 순수 C#) — `Get(ResourceKind)`, `CanAfford(kind, amount)`,
   `Add(kind, amount)`, `bool TrySpend(kind, amount)`(부족 시 false+로그, 차감 안 함),
   `event Action<ResourceKind,int> OnChanged`(종류, 변경 후 값). 자원 획득/차감은 이 창구로만(팀 계약 #3·#6)
