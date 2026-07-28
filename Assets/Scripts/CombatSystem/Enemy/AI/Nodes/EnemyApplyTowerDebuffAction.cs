@@ -75,7 +75,10 @@ public partial class EnemyApplyTowerDebuffAction : Action
         {
             Tower tower = Tower.Active[i];
 
-            if (tower == null)
+            // 공격 스탯이 없는 타워는 건너뛴다. 배율을 걸어도 효과가 없어 죽은 버프 엔트리만 쌓이고,
+            // EnemyUnitsInRangeCondition의 Tower 필터와 대상 집합이 어긋난다.
+            // 판정을 등록 여부가 아니라 카테고리로 두는 근거는 EnemyNodeQuery.IsAttackTower 주석 참조.
+            if (!EnemyNodeQuery.IsAttackTower(tower))
             {
                 continue;
             }

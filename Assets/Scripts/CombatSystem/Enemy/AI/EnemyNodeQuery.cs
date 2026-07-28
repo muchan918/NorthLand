@@ -58,6 +58,23 @@ public static class EnemyNodeQuery
             : FindNearestDamageable(agent, filter, direction, radius);
     }
 
+    // 공격 스탯을 가진 타워인지. `EnemyUnitFilter.Tower`가 가리키는 집합의 정의이며,
+    // 오라·유틸 계열(Magic 타입 — haste / poison / 이동속도 감소)은 여기서 빠진다.
+    //
+    // 등록 여부(`Tower.Active` 멤버십)로 정의하지 않는 이유: 그러면 P3 마력 봉인의 대상 집합이
+    // 다른 시스템의 상속 구조에 좌우된다. 지금은 `AuraTower`가 `MonoBehaviour` 직접 파생으로
+    // `Tower.Active`에 등록되지 않아 자동으로 빠지지만, `AuraTower : Tower` 리팩토링이 예정돼 있어
+    // 그때 이동속도 감소 타워가 봉인 대상에 들어온다 — "봉인 중에도 감속은 살아남아 P1 파훼 수단이
+    // 유지된다"는 설계 의도가 조용히 뒤집힌다.
+    //
+    // `Tower.AttackInterval`은 공개이고 공격 스탯이 없는 타입에서 0을 반환하며, 공격속도 배율이
+    // 실제로 나누는 값이 바로 이것이다. 따라서 이 판정은 "봉인 배율이 효과를 갖는 타워"와 일치하고,
+    // 리팩토링 전후로 거동이 같다(현재는 no-op — 오라 타워가 애초에 리스트에 없다).
+    public static bool IsAttackTower(Tower tower)
+    {
+        return tower != null && tower.AttackInterval > 0f;
+    }
+
     // 진행 방향 기준 앞뒤 판정. y를 버리고 수평면에서만 본다 —
     // 경로가 평면이고 대상의 높이 차이(공중 유닛·타워 높이)가 앞뒤 판정을 뒤집으면 안 된다.
     public static bool MatchesDirection(
@@ -94,7 +111,9 @@ public static class EnemyNodeQuery
         {
             Tower tower = Tower.Active[i];
 
-            if (tower == null)
+            // 트리거와 실제 봉인 대상의 집합을 같게 유지한다 — 약화되지 않는 타워를 세면
+            // 봉인해도 아무것도 안 걸리는 타워 뭉치에 P3가 발동한다.
+            if (!IsAttackTower(tower))
             {
                 continue;
             }
@@ -132,7 +151,8 @@ public static class EnemyNodeQuery
         {
             Tower tower = Tower.Active[i];
 
-            if (tower == null)
+            // Count 쪽과 같은 집합을 본다 — 같은 Filter 값이 두 메서드에서 다른 집합을 뜻하면 함정이 된다.
+            if (!IsAttackTower(tower))
             {
                 continue;
             }

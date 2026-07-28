@@ -83,7 +83,11 @@ Unity Behavior `com.unity.behavior` 1.0.16 기준이다.
 
 `LayerMask`는 노드 파라미터에서 빠졌다 — Blackboard 변수 지원 타입이 아니다. 대신 `EnemyAgent.UnitLayerMask`(프리팹 인스펙터 authoring)를 읽는다.
 
-반경 질의는 `EnemyNodeQuery`가 공유한다. `Filter`가 `Tower`면 `Tower.Active` 정적 리스트를 순회하고(물리 질의 불필요), `Ally` / `Hostile`은 `Physics.OverlapSphereNonAlloc` 후 `IDamageable.Faction`을 `Agent.Faction`과 비교해 가른다. 콜라이더가 여럿인 프리팹에서 중복 집계되지 않게 `IDamageable` 단위로 중복 제거하며, **자기 자신은 항상 제외**한다(보스가 자기를 세면 임계값이 1 어긋난다). `AuraTower`는 `Tower.Active`에 등록되지 않으므로 `Tower` 필터에 잡히지 않는다.
+반경 질의는 `EnemyNodeQuery`가 공유한다. `Filter`가 `Tower`면 `Tower.Active` 정적 리스트를 순회하고(물리 질의 불필요), `Ally` / `Hostile`은 `Physics.OverlapSphereNonAlloc` 후 `IDamageable.Faction`을 `Agent.Faction`과 비교해 가른다. 콜라이더가 여럿인 프리팹에서 중복 집계되지 않게 `IDamageable` 단위로 중복 제거하며, **자기 자신은 항상 제외**한다(보스가 자기를 세면 임계값이 1 어긋난다).
+
+`Tower` 필터의 집합은 **공격 타워**다 — `EnemyNodeQuery.IsAttackTower`(= `Tower.AttackInterval > 0`)로 판정하며 오라·유틸 계열(Magic 타입: haste / poison / 이동속도 감소)은 빠진다. `EnemyApplyTowerDebuffAction`도 같은 판정을 쓴다.
+
+**`Tower.Active` 등록 여부로 판정하지 않는 이유**: 지금은 `AuraTower`가 `MonoBehaviour` 직접 파생이라 리스트에 아예 없어 두 방식의 결과가 같지만, `AuraTower : Tower` 리팩토링이 예정돼 있다. 등록 여부로 판정하면 그때 이동속도 감소 타워가 봉인 대상에 들어와 "봉인 중에도 감속은 살아남는다"는 설계 의도가 조용히 뒤집힌다. 카테고리 판정은 리팩토링 전후로 거동이 같다(현재는 no-op). 트리거(Condition)와 payload(Action)에 같은 판정을 쓰는 이유는 집합이 어긋나면 봉인해도 아무것도 안 걸리는 오라 타워 뭉치에 P3가 발동하기 때문이다.
 
 ## Action 노드
 
@@ -99,7 +103,7 @@ Unity Behavior `com.unity.behavior` 1.0.16 기준이다.
 | `EnemyImpactTargetAction` | `Target`(GameObject), `DamagePerSpeedUnit`(float), `MinSpeed`(float) | `Target`의 `IDamageable`에 `실효 이동속도 × DamagePerSpeedUnit` 피해를 준다. 실효 속도가 `MinSpeed` 미만이면 피해 없이 성공 | P1 | 구현 |
 | `EnemySetSpeedFactorAction` | `Factor`(float), `Duration`(float) | 패턴 속도 배수를 설정한다. `Duration > 0`이면 그 시간 유지 후 원복, **0 이하면 즉시 성공하며 원복하지 않는다**(기본 진군용) | P1, P2 | 구현 |
 | `EnemySetDamageTakenFactorAction` | `Factor`(float), `Duration`(float) | 받는 피해 배수를 설정한다. 원복 규칙은 위와 같다 | P2 | 구현 |
-| `EnemyApplyTowerDebuffAction` | `Radius`(float), `DamageMultiplier`(float), `AttackSpeedMultiplier`(float), `Duration`(float) | 반경 안의 `Tower.Active` 각각에 고유 sourceId로 `ApplyBuff`를 건다. 배율 1 미만이면 디버프가 된다. 범위에 타워가 없어도 성공 | P3 | 구현 |
+| `EnemyApplyTowerDebuffAction` | `Radius`(float), `DamageMultiplier`(float), `AttackSpeedMultiplier`(float), `Duration`(float) | 반경 안의 **공격 타워**(`IsAttackTower`) 각각에 고유 sourceId로 `ApplyBuff`를 건다. 배율 1 미만이면 디버프가 된다. 범위에 타워가 없어도 성공 | P3 | 구현 |
 | `EnemyShowTelegraphCircleAction` | `Radius`(float), `Duration`(float), `FillColor`(Color), `OutlineColor`(Color) | `RangeCircle`을 `Agent`의 자식으로 만들어 예고 범위를 표시하고 `Duration` 뒤 파괴한다. 종료 시 정리한다 | P3 | 구현 |
 | `EnemySpawnMinionsAction` | `Prefab`(GameObject), `Count`(int), `MaxAlive`(int) | 스폰 지점에 잡몹을 투입한다. `monsterParent` 자식으로 넣고 경로를 부여한다. 상한은 마리마다 재확인하며, 상한에 걸려 한 마리도 못 넣어도 성공 | P4 | 구현 |
 
@@ -117,7 +121,7 @@ Unity Behavior `com.unity.behavior` 1.0.16 기준이다.
 |---|---|---|
 | `EnemyAgent` | 노드가 참조하는 베이스 MonoBehaviour. `Enemy`와 병존하며 무상태 파사드로 동작한다. 위 「EnemyAgent가 노출하는 것」 참조 | 구현 |
 | `EnemyPatternMemory` | 패턴 `Key`별 마지막 사용 시각을 보관한다. MonoBehaviour가 아니라 plain class로 `EnemyAgent`가 내부 필드로 든다 — 프리팹에 컴포넌트를 하나 더 요구하지 않기 위해 | 구현 |
-| `EnemyNodeQuery` | 반경 질의 공용 static 헬퍼. `EnemyUnitsInRangeCondition`과 `EnemyResolveTargetAction`이 공유해 앞뒤 판정 기준이 갈라지지 않게 한다 | 구현 |
+| `EnemyNodeQuery` | 반경 질의 공용 static 헬퍼. `EnemyUnitsInRangeCondition`·`EnemyResolveTargetAction`·`EnemyApplyTowerDebuffAction`이 공유해 앞뒤 판정과 타워 집합 정의(`IsAttackTower`)가 갈라지지 않게 한다 | 구현 |
 | `EnemyUnitFilter` / `EnemyRelativeDirection` / `EnemyTargetKind` | 노드 입력용 `[BlackboardEnum]` 열거형 3종 | 구현 |
 
 ## 기존 시스템에 필요한 변경
