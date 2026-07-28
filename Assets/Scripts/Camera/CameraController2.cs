@@ -6,12 +6,12 @@ using UnityEngine.InputSystem;
 // 영토 확장 구조(#67) 확인용 쿼터뷰 카메라. 기존 CameraController(다른 공간 정본)는 건드리지 않고
 // 별도 Cinemachine 가상 카메라를 새로 만들어 이걸로 제어한다. 카메라 구도가 정식으로 정해지면
 // 교체될 수 있는 임시 성격의 컨트롤러.
+
 public class CameraController2 : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private CinemachineCamera cinemachineCamera;
     [SerializeField] private Transform cameraTarget;
-    [SerializeField] private WaveRewardSelectionUI waveRewardSelectionUI;
 
     [Header("Move (WASD)")]
     [SerializeField] private float moveSpeed = 15f;
@@ -42,6 +42,13 @@ public class CameraController2 : MonoBehaviour
     private Vector2 _dragStartScreenPos;
     private Vector3 _dragStartTargetPos;
 
+    [SerializeField]
+    private WaveRewardSelectionUI waveRewardSelectionUI;
+
+    [SerializeField]
+    private SettingUI settingUI;
+
+
 
     private void Awake()
     {
@@ -65,13 +72,7 @@ public class CameraController2 : MonoBehaviour
             hasMissingReference = true;
         }
 
-        if (waveRewardSelectionUI == null)
-        {
-            Debug.LogWarning(
-                "CameraController2: WaveRewardSelectionUI가 연결되지 않았습니다. " +
-                "보상 선택 중 카메라 정지 기능이 작동하지 않습니다.",
-                this);
-        }
+        
 
         if (hasMissingReference)
         {
@@ -99,12 +100,18 @@ public class CameraController2 : MonoBehaviour
 
     private void Update()
     {
-        if (Mouse.current == null)
+        bool rewardPanelOpen = waveRewardSelectionUI != null && waveRewardSelectionUI.Camerastop;
+
+        bool settingPanelOpen = settingUI != null && settingUI.IsOpen;
+
+        if (rewardPanelOpen || settingPanelOpen)
         {
+            _isDragging = false;
+            CancelMinimapMove();
             return;
         }
 
-        if (waveRewardSelectionUI != null && waveRewardSelectionUI.Camerastop)
+        if (Mouse.current == null)
         {
             return;
         }
@@ -121,7 +128,7 @@ public class CameraController2 : MonoBehaviour
             return;
         }
 
-      
+
 
         Vector3 moveDirection = Vector3.zero;
 

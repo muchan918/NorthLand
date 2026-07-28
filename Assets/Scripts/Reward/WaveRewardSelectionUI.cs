@@ -64,6 +64,7 @@ public class WaveRewardSelectionUI : MonoBehaviour
         {
             openPanel.SetActive(true);
         }
+        gameSpeedController.SetPaused(GamePauseReason.Reward, true);
     }
     public void OpenPanel()
     {
@@ -76,6 +77,8 @@ public class WaveRewardSelectionUI : MonoBehaviour
         {
             openPanel.SetActive(false);
         }
+
+        gameSpeedController.SetPaused(GamePauseReason.Reward, true);
     }
 
   

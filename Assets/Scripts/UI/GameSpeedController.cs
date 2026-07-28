@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 public enum GamePauseReason
 {
+    Manual,
     Reward,
     Settings,
     GameOver,
@@ -23,7 +24,7 @@ public class GameSpeedController : MonoBehaviour
     private Color selectedButtonColor = Color.gray;
 
     public float CurrentSpeed { get; private set; } = NormalSpeed;
-    //public bool IsPaused { get; private set; }
+    public bool IsPaused => pauseReasons.Count > 0;
 
     private readonly HashSet<GamePauseReason> pauseReasons = new();
     private ColorBlock[] defaultButtonColors;
@@ -80,37 +81,36 @@ public class GameSpeedController : MonoBehaviour
         SetSpeed(NormalSpeed, 0);
     }
 
+    public void PauseGame()
+    {
+        bool pause =!pauseReasons.Contains(GamePauseReason.Manual);
 
-    //일시 정지 일단은 구현만 해두고 사용할지 안할지는 나중에 결정
-    //public void PauseGame()
-    //{
-    //    IsPaused = !IsPaused;
-    //    ApplyTimeScale();
+        SetPaused(GamePauseReason.Manual, pause);
 
-    //    if (IsPaused)
-    //    {
-    //        UpdateSelectedButton(0);
-    //    }
-    //    else
-    //    {
-    //        UpdateSelectedButton(GetSpeedButtonIndex());
-    //    }
-    //}
+        if (pause)
+        {
+            UpdateSelectedButton(0);
+        }
+        else
+        {
+            UpdateSelectedButton(GetSpeedButtonIndex());
+        }
+    }
 
-    //private int GetSpeedButtonIndex()
-    //{
-    //    if (Mathf.Approximately(CurrentSpeed, VeryFastSpeed))
-    //    {
-    //        return 3;
-    //    }
+    private int GetSpeedButtonIndex()
+    {
+        if (Mathf.Approximately(CurrentSpeed, VeryFastSpeed))
+        {
+            return 3;
+        }
 
-    //    if (Mathf.Approximately(CurrentSpeed, FastSpeed))
-    //    {
-    //        return 2;
-    //    }
+        if (Mathf.Approximately(CurrentSpeed, FastSpeed))
+        {
+            return 2;
+        }
 
-    //    return 1;
-    //}
+        return 1;
+    }
 
     public void SetNormalSpeed()
     {
@@ -127,7 +127,7 @@ public class GameSpeedController : MonoBehaviour
         SetSpeed(VeryFastSpeed, 2);
     }
 
-    public void SetPaused(GamePauseReason reason,bool paused)
+    public void SetPaused(GamePauseReason reason, bool paused)
     {
         bool changed;
 
@@ -149,7 +149,6 @@ public class GameSpeedController : MonoBehaviour
     private void SetSpeed(float speed, int buttonIndex)
     {
         CurrentSpeed = speed;
-        //IsPaused = false;
 
         ApplyTimeScale();
         UpdateSelectedButton(buttonIndex);
@@ -157,11 +156,8 @@ public class GameSpeedController : MonoBehaviour
 
     private void ApplyTimeScale()
     {
-        bool paused = pauseReasons.Count > 0;
-
-        Time.timeScale = paused? 0f: CurrentSpeed;
-
-        UpdateControlsLock(paused);
+        Time.timeScale = IsPaused ? 0f : CurrentSpeed;
+        UpdateControlsLock(IsPaused);
     }
 
     private void UpdateControlsLock(bool paused)

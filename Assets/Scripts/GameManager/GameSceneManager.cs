@@ -37,10 +37,15 @@ namespace NorthLand.Core
             DontDestroyOnLoad(gameObject);
         }
 
+
         // 메인 메뉴로 전환한다. (게임 클리어/오버 패널의 "메인으로" 버튼 등에서 호출)
         public void LoadMainMenu() => SceneManager.LoadScene(TitleScene);
 
         // 경영 공간(게임 본편)으로 전환한다. (메인 메뉴의 "게임 시작" 버튼에서 호출)
         public void LoadManageSpace() => SceneManager.LoadScene(GameScene);
+
+        public void QuitGame() => Application.Quit();
+
+
     }
 }
