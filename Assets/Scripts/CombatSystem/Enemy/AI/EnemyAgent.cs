@@ -47,7 +47,12 @@ public class EnemyAgent : MonoBehaviour
 
     private void Awake()
     {
-        enemy = GetComponent<Enemy>();
+        // 조상까지 탐색: 이 컴포넌트를 모델 자식에 붙여도 루트의 Enemy를 찾아야 한다.
+        // MonsterSpawn의 주입이 GetComponentInChildren<EnemyAgent>로 자식까지 훑기 때문에
+        // GetComponent로 좁히면 "주입은 성공했는데 enemy만 null"인 조합이 생기고,
+        // 받는 피해 배수·이동 소유권·HP 조건이 조용히 무동작한다. 탐색 범위를 넓게
+        // 통일한다는 WL-093의 판단과 같은 방향이다.
+        enemy = GetComponentInParent<Enemy>();
 
         // 자식까지 탐색(WL-093): MonsterMove·Animator가 자식 오브젝트에 붙는 프리팹이 있다.
         movement = GetComponentInChildren<IMovementAgent>();

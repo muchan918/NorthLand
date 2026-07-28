@@ -37,6 +37,10 @@ public partial class EnemySpawnMinionsAction : Action
     // (MonsterSpawn.AliveMonsterCount 주석 — destroyDelay 2초).
     [SerializeReference] public BlackboardVariable<int> MaxAlive;
 
+    // 0 경고를 노드 인스턴스당 1회만 남기기 위한 래치. P4는 반복 소환이라 래치가 없으면
+    // 콘솔이 잠긴다.
+    private bool warnedNoCap;
+
     protected override Status OnStart()
     {
         EnemyAgent agent = Agent?.Value;
@@ -70,6 +74,18 @@ public partial class EnemySpawnMinionsAction : Action
         }
 
         int maxAlive = MaxAlive != null ? MaxAlive.Value : 0;
+
+        // 0 이하면 상한 가드가 꺼져 매 사이클 Count만큼 무제한 유입된다. 설계는 "동시 생존 수
+        // 상한을 둔다"이고 Blackboard 미연결 기본값이 하필 0이라, 조용히 통과시키면
+        // 잡몹이 무한히 쌓인다. 스폰 자체는 막지 않는다 — 상한 없는 소환이 의도인 그래프도
+        // 있을 수 있고, 여기서 실패를 반환하면 P4 브랜치가 아무것도 안 하게 된다.
+        if (maxAlive <= 0 && !warnedNoCap)
+        {
+            warnedNoCap = true;
+
+            Debug.LogWarning($"[{agent.name}] 지속 소환의 MaxAlive가 {maxAlive}이라 동시 생존 상한 없이 " +
+                "매 사이클 투입됩니다. Blackboard 변수 연결 누락일 수 있습니다.", agent);
+        }
 
         for (int i = 0; i < count; i++)
         {

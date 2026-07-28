@@ -58,6 +58,20 @@ public partial class EnemyApplyTowerDebuffAction : Action
             return Status.Failure;
         }
 
+        float duration = Duration != null ? Duration.Value : 0f;
+
+        // 0 이하를 거부한다. Tower.ApplyBuff는 duration이 0 이하면 Expiry를 PositiveInfinity로
+        // 저장하고(Tower.cs:232), 이 노드는 설계상 RemoveBuff를 부르지 않으므로
+        // 해제 경로가 존재하지 않는 영구 타워 약화가 된다. Blackboard 변수를 연결하지 않았을 때의
+        // 기본값이 하필 0이라, 막지 않으면 그래프 저작 실수 하나가 프로토타입 내내 모든 공격 타워를
+        // 영구히 약화시킨다 — 로그도 없고 노드는 성공을 반환해서 원인이 보이지 않는다.
+        if (duration <= 0f)
+        {
+            LogFailure("Enemy Apply Tower Debuff: Duration이 0 이하입니다. " +
+                "이 노드는 해제 경로가 없어 영구 디버프를 걸 수 없습니다. Duration을 0보다 크게 설정하세요.");
+            return Status.Failure;
+        }
+
         // sourceId 채번: 이 에이전트 인스턴스 + 봉인이라는 효과 종류의 조합.
         // GetInstanceID만 쓰면 같은 보스가 거는 다른 효과와 충돌하고, 고정 문자열만 쓰면
         // 보스 여러 마리가 서로의 봉인을 덮어쓴다(기존 관례: 버프 타워=인스턴스별, 스킬=고정 문자열).
@@ -65,7 +79,6 @@ public partial class EnemyApplyTowerDebuffAction : Action
 
         float damageMul = DamageMultiplier != null ? DamageMultiplier.Value : 1f;
         float speedMul = AttackSpeedMultiplier != null ? AttackSpeedMultiplier.Value : 1f;
-        float duration = Duration != null ? Duration.Value : 0f;
 
         float sqrRadius = radius * radius;
         Vector3 origin = agent.transform.position;

@@ -86,6 +86,16 @@ Unity Behavior `com.unity.behavior` 1.0.16 기준이다.
 - 실패는 한국어 메시지를 `LogFailure`로 남기고 실패를 반환한다 (SystemMap §6 컨벤션).
 - `Agent`가 null이면 실패를 반환한다. 다만 `Target`이 null인 경우는 조건 노드에서 조용히 거짓으로 처리한다 — 본진은 밤에 런타임 스폰되므로 초반에 null인 것이 정상이다.
 - **"조건이 안 맞아 아무것도 안 한 것"은 실패가 아니라 성공이다.** 실패로 두면 상위 시퀀스가 매 틱 재시도한다(소환 상한 도달, 봉인 범위에 타워 없음, 실효 속도가 하한 미만 등).
+- **Blackboard 변수를 연결하지 않았을 때의 기본값이 0이다. 0이 "영구 / 무제한"으로 해석되는 자리를 만들지 말 것.** 그래프 저작 실수는 컴파일도 통과하고 로그도 남지 않으며 노드는 성공을 반환하므로, 밸런싱 이상으로 보이지 원인 노드로 보이지 않는다. 각 파라미터에 대해 "미설정 = 0일 때 무슨 일이 일어나는가"를 확인하고, 위험한 쪽이면 실패로 막거나 경고를 1회 남긴다. 조건 노드와 반복 실행되는 액션은 매 틱 로그가 쌓이므로 **경고에 래치 필드가 필요하다**. 현재 방어 지점:
+
+  | 노드 | 파라미터 | 0일 때 | 처리 |
+  |---|---|---|---|
+  | `EnemyApplyTowerDebuffAction` | `Duration` | `Tower.ApplyBuff`가 `Expiry = PositiveInfinity`로 저장하고 이 노드는 `RemoveBuff`를 부르지 않아 **해제 경로 없는 영구 약화** | `LogFailure` + 실패 |
+  | `EnemyApplyTowerDebuffAction` | `Radius` | 대상 없음 | `LogFailure` + 실패 |
+  | `EnemyPatternGateCondition` | `CooldownSeconds` | 제한 없음 → 패턴이 매 사이클 발동 | 경고 1회(래치) |
+  | `EnemySpawnMinionsAction` | `MaxAlive` | 상한 없음 → 잡몹 무한 유입 | 경고 1회(래치) |
+  | `EnemyAccelerateAction` | `MaxDuration` | 상한 없음 → 영구 Running 가능(「실행 모델」) | 그래프에서 설정 필요 |
+  | `EnemyPlayAnimationAction` | `MaxWaitSeconds` | 상한 없음 → 영구 Running 가능 | 그래프에서 설정 필요 |
 
 ## Condition 노드
 
@@ -95,7 +105,7 @@ Unity Behavior `com.unity.behavior` 1.0.16 기준이다.
 |---|---|---|---|---|
 | `EnemyDistanceToTargetBelowCondition` | `Target`(GameObject), `Distance`(float) | `Target`까지 거리가 `Distance` 미만이면 참. `Target`이 null이거나 `Distance` 0 이하면 거짓 | P1 | 구현 |
 | `EnemyUnitsInRangeCondition` | `Filter`(`EnemyUnitFilter`), `Direction`(`EnemyRelativeDirection`), `Radius`(float), `MinCount`(int) | 지정 방향 반경 안의 대상 수가 `MinCount` 이상이면 참. 방향은 `Agent.Forward`와의 내적 부호로 판정한다. `MinCount` 0 이하면 항상 참 | P2, P3 | 구현 |
-| `EnemyPatternGateCondition` | `Key`(string), `CooldownSeconds`(float) | 해당 `Key`가 한 번도 사용되지 않았거나 마지막 사용 후 `CooldownSeconds`가 지났으면 참. `CooldownSeconds < 0`이면 1회 한정. `Key`가 비면 거짓 | P1, P3 | 구현 |
+| `EnemyPatternGateCondition` | `Key`(string), `CooldownSeconds`(float) | 해당 `Key`가 한 번도 사용되지 않았거나 마지막 사용 후 `CooldownSeconds`가 지났으면 참. `CooldownSeconds < 0`이면 1회 한정, `== 0`이면 제한 없음(경고 1회). `Key`가 비면 거짓 | P1, P3 | 구현 |
 
 `LayerMask`는 노드 파라미터에서 빠졌다 — Blackboard 변수 지원 타입이 아니다. 대신 `EnemyAgent.UnitLayerMask`(프리팹 인스펙터 authoring)를 읽는다.
 
@@ -119,9 +129,9 @@ Unity Behavior `com.unity.behavior` 1.0.16 기준이다.
 | `EnemyImpactTargetAction` | `Target`(GameObject), `DamagePerSpeedUnit`(float), `MinSpeed`(float) | `Target`의 `IDamageable`에 `실효 이동속도 × DamagePerSpeedUnit` 피해를 준다. 실효 속도가 `MinSpeed` 미만이면 피해 없이 성공 | P1 | 구현 |
 | `EnemySetSpeedFactorAction` | `Factor`(float), `Duration`(float) | 패턴 속도 배수를 설정한다. `Duration > 0`이면 그 시간 유지 후 원복, **0 이하면 즉시 성공하며 원복하지 않는다**(기본 진군용) | P1, P2 | 구현 |
 | `EnemySetDamageTakenFactorAction` | `Factor`(float), `Duration`(float) | 받는 피해 배수를 설정한다. 원복 규칙은 위와 같다 | P2 | 구현 |
-| `EnemyApplyTowerDebuffAction` | `Radius`(float), `DamageMultiplier`(float), `AttackSpeedMultiplier`(float), `Duration`(float) | 반경 안의 **공격 타워**(`IsAttackTower`) 각각에 고유 sourceId로 `ApplyBuff`를 건다. 배율 1 미만이면 디버프가 된다. 범위에 타워가 없어도 성공 | P3 | 구현 |
+| `EnemyApplyTowerDebuffAction` | `Radius`(float), `DamageMultiplier`(float), `AttackSpeedMultiplier`(float), `Duration`(float) | 반경 안의 **공격 타워**(`IsAttackTower`) 각각에 고유 sourceId로 `ApplyBuff`를 건다. 배율 1 미만이면 디버프가 된다. 범위에 타워가 없어도 성공. `Radius` 또는 `Duration`이 0 이하면 실패 | P3 | 구현 |
 | `EnemyShowTelegraphCircleAction` | `Radius`(float), `Duration`(float), `FillColor`(Color), `OutlineColor`(Color) | `RangeCircle`을 `Agent`의 자식으로 만들어 예고 범위를 표시하고 `Duration` 뒤 파괴한다. 종료 시 정리한다 | P3 | 구현 |
-| `EnemySpawnMinionsAction` | `Prefab`(GameObject), `Count`(int), `MaxAlive`(int) | 스폰 지점에 잡몹을 투입한다. `monsterParent` 자식으로 넣고 경로를 부여한다. 상한은 마리마다 재확인하며, 상한에 걸려 한 마리도 못 넣어도 성공 | P4 | 구현 |
+| `EnemySpawnMinionsAction` | `Prefab`(GameObject), `Count`(int), `MaxAlive`(int) | 스폰 지점에 잡몹을 투입한다. `monsterParent` 자식으로 넣고 경로를 부여한다. 상한은 마리마다 재확인하며, 상한에 걸려 한 마리도 못 넣어도 성공. `MaxAlive`가 0 이하면 상한 없이 투입(경고 1회) | P4 | 구현 |
 
 표에서 벗어난 곳 3군데는 구현 중 필요해서 조정한 것이다.
 
@@ -148,13 +158,17 @@ Unity Behavior `com.unity.behavior` 1.0.16 기준이다.
 |---|---|---|
 | `IMovementAgent` | 다축 합성 계약 추가 — `EffectiveMoveSpeed` / `PatternSpeedFactor` / `AddSpeedDebuff(sourceId, factor)` / `RemoveSpeedDebuff(sourceId)` | 완료(#233). **감속 타워 담당자와 공유 계약** — 구체 타입이 아니라 이 인터페이스로 부르면 된다 |
 | `MonsterMove` | 축별 소유 + 합성 + 하한 클램프(`minMoveSpeed` 0.15, 직렬화 필드). `SetMoveSpeed`는 **기준 속도 주입**으로 의미 재정의 | 완료(#233). 크롤 배수가 `fallbackMoveSpeed`(3)로 되돌아 오히려 빨라지던 함정 제거 |
-| `Enemy` | BT 이동 소유권 플래그 `MovementOwnedByBehavior` — 켜져 있으면 `Update`가 `IsStopped`와 `SetHasTarget` **둘 다** 건드리지 않는다 | 완료(#233) |
+| `Enemy` | BT 이동 소유권 플래그 `MovementOwnedByBehavior` — 켜져 있으면 `Update`가 `IsStopped`를 건드리지 않고, **타겟 없음을 매 프레임 한 번 내려준다** | 완료(#233) |
 | `Enemy.TakeDamage` | 받는 피해 배수 `DamageTakenFactor` 적용 | 완료(#233) |
 | `Enemy.SetSpeedMultiplier` | `movement`의 패턴 축 위임으로 전환. 로컬 `baseMoveSpeed` / `speedMultiplier` 필드 제거 | 완료(#233). 중간보스 그래프가 쓰는 진입점이라 시그니처 유지 |
 | `MonsterSpawn` | 공개 스폰 API `SpawnMonster(prefab)` / `AliveMonsterCount` + 스폰 시점에 `EnemyAgent`로 스포너 주입 | 완료(#233). 정적 싱글톤을 쓰지 않아 스포너 다중 구성이 가능하다 |
 | `MonsterAnimation` | 없음 | `EnemyAgent`가 `Animator`를 직접 든다 |
 
-`Enemy.Update`에서 `SetHasTarget`까지 함께 차단하는 것은 설계 문서에 없던 보강이다. `MonsterStateMachine`이 Attack 상태에서 `SetMoveEnabled(false)`를 걸기 때문에(`MonsterStateMachine.cs:141`) 타겟 통지를 살려두면 돌진이 본진 사거리에 진입하는 순간 멈춰 P1이 절름발이가 된다. 부수 효과로 소유권 중에는 근접 평타가 나가지 않는다 — 충돌 피해가 그 역할을 대신한다.
+`Enemy.Update`가 소유권 중에 타겟 통지까지 다루는 것은 설계 문서에 없던 보강이다. `MonsterStateMachine`이 Attack 상태에서 `SetMoveEnabled(false)`를 걸기 때문에(`MonsterStateMachine.cs:141`) 타겟 통지를 살려두면 돌진이 본진 사거리에 진입하는 순간 멈춰 P1이 절름발이가 된다. 부수 효과로 소유권 중에는 근접 평타가 나가지 않는다 — 충돌 피해가 그 역할을 대신한다.
+
+**통지를 막는 것만으로는 부족하다.** `MonsterMove`에는 `IsStopped`(`MonsterMove.cs:147`)와 `canMove`(`:159`) 두 개의 독립된 게이트가 있고 노드는 `IsStopped`만 만진다. 소유권 획득 전에 이미 `hasTarget == true`(Attack 상태, `canMove == false`)였다면 통지만 막아도 그 상태가 그대로 latch되어 `EnemyAccelerateAction`이 `IsStopped = false`를 매 프레임 써도 **보스가 제자리에서 배수만 올린다.** 그러다 `MaxDuration`으로 실패하는데 `EnemyMarkPatternUsedAction`은 이미 기록돼 1회 래치가 소모되고, P4는 병렬 브랜치라 계속 돌아 겉보기로는 정상이다. 그래서 소유권 브랜치가 `SetHasTarget(false)`로 상태를 내려준다(`ChangeState`가 동일 상태를 걸러내므로 매 프레임 호출해도 무해하다).
+
+이 경로는 P1 거리 임계값이 `AttackRange` 이하일 때 실재한다 — 플레이어 측 `IDamageable`이 사실상 `PlayerBase` 하나뿐(병사 리젝)이라 그 조합에서만 나오지만, 실패가 조용하고 래치를 소모하므로 방어해 둔다.
 
 ## 새 노드 추가 절차
 

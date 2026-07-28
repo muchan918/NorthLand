@@ -145,9 +145,16 @@ namespace NorthLand.Combat
         // BT 이동 소유권. 켜져 있는 동안 Update가 이동·타겟 통지를 건드리지 않으므로
         // 노드가 정지와 전진을 직접 지시할 수 있다(P1 준비 동작 중 정지, 돌진 중 전진 유지).
         //
-        // IsStopped 뿐 아니라 SetHasTarget까지 함께 차단하는 이유: MonsterStateMachine이
+        // IsStopped 뿐 아니라 타겟 통지까지 함께 다루는 이유: MonsterStateMachine이
         // Attack 상태에서 SetMoveEnabled(false)를 걸기 때문에(MonsterStateMachine.cs:141),
         // 타겟 통지를 살려두면 돌진이 본진 사거리에 진입하는 순간 멈춰 P1이 절름발이가 된다.
+        //
+        // 통지를 "막는 것"만으로는 부족하다. MonsterMove에는 IsStopped(:147)와 canMove(:159)
+        // 두 개의 독립된 게이트가 있고 노드는 IsStopped만 만진다. 소유권 획득 전에 이미
+        // hasTarget=true(Attack 상태, canMove=false)였다면 통지만 막아도 그 상태가 그대로 latch되어
+        // 돌진 노드가 IsStopped=false를 매 프레임 써도 보스가 제자리에서 배수만 올린다.
+        // 그래서 Update가 소유권 브랜치에서 SetHasTarget(false)로 상태를 내려준다.
+        //
         // 부수 효과로 소유권 중에는 근접 평타가 나가지 않는다 — 충돌 피해가 그 역할을 대신한다.
         public bool MovementOwnedByBehavior { get; set; }
 
@@ -184,10 +191,16 @@ namespace NorthLand.Combat
                 return;
             }
 
-            // BT가 이동을 소유한 동안은 이동·타겟 통지·공격에서 손을 뗀다(MovementOwnedByBehavior 주석 참조).
+            // BT가 이동을 소유한 동안은 이동·공격에서 손을 뗀다(MovementOwnedByBehavior 주석 참조).
+            //
+            // 타겟 없음을 한 번 내려주는 것이 핵심이다. 소유권 진입 전에 남아 있던 Attack 상태를
+            // 풀지 않으면 MonsterMove.canMove가 false로 고착돼 돌진 노드가 보스를 움직일 수 없다.
+            // ChangeState가 동일 상태를 걸러내므로 매 프레임 호출해도 무해하다.
+            //
             // 쿨다운은 계속 흘려보낸다 — 소유권 반납 직후 인위적인 공격 지연이 생기지 않게.
             if (MovementOwnedByBehavior)
             {
+                monsterStateMachine?.SetHasTarget(false);
                 cooldownTimer -= Time.deltaTime;
                 return;
             }

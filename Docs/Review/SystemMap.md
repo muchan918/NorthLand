@@ -67,10 +67,12 @@
   `MonsterMove`가 아니라 이 인터페이스로 부를 것. **완전 정지는 이 축이 아니라 `IsStopped`로 표현한다** —
   하한 클램프가 있어 배수 0으로도 멈추지 않는다(감속으로 웨이브를 소프트락하는 경로 차단)
 - `Enemy.MovementOwnedByBehavior` (bool, #233) — BT 이동 소유권. 켜져 있는 동안 `Enemy.Update`가
-  `movement.IsStopped`와 `monsterStateMachine.SetHasTarget`을 **둘 다** 건드리지 않는다.
-  `SetHasTarget`까지 막는 이유: `MonsterStateMachine`이 Attack 상태에서 `SetMoveEnabled(false)`를 걸어
-  (`MonsterStateMachine.cs:141`) 돌진이 본진 사거리 진입 시 멈추기 때문. 부수 효과로 소유권 중에는
-  근접 평타가 나가지 않는다. **켠 쪽이 반드시 반납할 책임을 진다**
+  `movement.IsStopped`를 건드리지 않고, `monsterStateMachine.SetHasTarget(false)`를 매 프레임 내려준다.
+  타겟 통지를 다루는 이유: `MonsterStateMachine`이 Attack 상태에서 `SetMoveEnabled(false)`를 걸어
+  (`MonsterStateMachine.cs:141`) 돌진이 본진 사거리 진입 시 멈추기 때문. **통지를 막는 것만으로는
+  부족하다** — `MonsterMove`는 `IsStopped`(`:147`)와 `canMove`(`:159`) 두 게이트가 독립이라, 소유권
+  획득 전 Attack 상태였으면 `canMove == false`가 latch되어 돌진 노드가 보스를 움직일 수 없다.
+  부수 효과로 소유권 중에는 근접 평타가 나가지 않는다. **켠 쪽이 반드시 반납할 책임을 진다**
 - `Enemy.DamageTakenFactor` (float, #233) — 받는 피해 배수. `TakeDamage` 한 곳에서만 적용된다.
   0 미만은 클램프(0=무적), 상한 없음(1 초과=취약)
 - `Enemy.SetSpeedMultiplier(float)` / `Enemy.SpeedMultiplier` — #233 이후 `movement`의 **패턴 축 위임**.
