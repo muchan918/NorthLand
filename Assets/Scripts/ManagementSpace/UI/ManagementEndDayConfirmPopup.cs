@@ -75,11 +75,31 @@ public class ManagementEndDayConfirmPopup : MonoBehaviour
     }
 
     /// <summary>
-    /// 낮 종료 요청 진입점(#219) — 뷰의 [다음] 버튼이 호출한다. 낮이 아니면 무시한다.
+    /// 낮 종료 요청 단일 진입점(#219) — 모든 뷰는 이 한 줄만 호출한다.
+    /// 팝업이 씬에 있으면 확인 팝업 경유, 없으면(배선 누락) 경고를 남기고 곧장 EndDay 폴백
+    /// — 확인 우회를 로그로 드러내 무증상 분기를 막는다.
+    /// </summary>
+    public static void Request(ManagementController controller)
+    {
+        if (controller == null)
+        {
+            return;
+        }
+        if (Instance != null)
+        {
+            Instance.RequestEndDay(controller);
+            return;
+        }
+        Debug.LogWarning("[경영] 낮 종료 확인 팝업이 씬에 없어 확인 없이 바로 종료합니다. 팝업 배선을 확인하세요.");
+        controller.EndDay();
+    }
+
+    /// <summary>
+    /// 조건을 점검해 팝업을 띄우거나(미충족) 바로 종료한다(충족). 외부 진입은 <see cref="Request"/>로만.
     /// 두 조건이 모두 충족이면 팝업 없이 바로 <see cref="ManagementController.EndDay"/>,
     /// 하나라도 미충족이면 미충족 항목을 담아 팝업을 띄운다.
     /// </summary>
-    public void RequestEndDay(ManagementController controller)
+    private void RequestEndDay(ManagementController controller)
     {
         if (controller == null || !controller.IsDay)
         {

@@ -73,25 +73,8 @@ public class ManagementPanelView : MonoBehaviour
         }
     }
 
-    // 낮 종료 버튼(#219): 확인 팝업이 있으면 조건 점검 후 팝업/진행을 위임하고,
-    // 팝업이 씬에 없으면(배선 누락) 곧장 낮을 종료해 흐름이 막히지 않게 한다.
-    private void HandleEndDayClicked()
-    {
-        if (_controller == null)
-        {
-            return;
-        }
-
-        ManagementEndDayConfirmPopup popup = ManagementEndDayConfirmPopup.Instance;
-        if (popup != null)
-        {
-            popup.RequestEndDay(_controller);
-        }
-        else
-        {
-            _controller.EndDay();
-        }
-    }
+    // 낮 종료 버튼(#219): 확인 경유·폴백 라우팅은 팝업 클래스 한 곳(Request)에 캡슐화.
+    private void HandleEndDayClicked() => ManagementEndDayConfirmPopup.Request(_controller);
 
     // 고정 행을 한 번만 만든다(#166): 기본 자원 라인 → 마나석 → 특수 자원. 확보 시엔 재빌드 없이 Refresh만.
     private void BuildLines()

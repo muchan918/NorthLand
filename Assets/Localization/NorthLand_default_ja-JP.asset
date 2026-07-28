@@ -167,23 +167,23 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 6528311331823616
-    m_Localized: Proceed
+    m_Localized: "\u7D9A\u3051\u308B"
     m_Metadata:
       m_Items: []
   - m_Id: 6528712261148672
-    m_Localized: Cancel
+    m_Localized: "\u30AD\u30E3\u30F3\u30BB\u30EB"
     m_Metadata:
       m_Items: []
   - m_Id: 6528762240475136
-    m_Localized: "\xB7 You haven't expanded territory today."
+    m_Localized: "\u30FB\u672C\u65E5\u307E\u3060\u9818\u5730\u3092\u62E1\u5F35\u3057\u3066\u3044\u307E\u305B\u3093\u3002"
     m_Metadata:
       m_Items: []
   - m_Id: 6529158073720832
-    m_Localized: "\xB7 {0} villager(s) are not assigned."
+    m_Localized: "\u30FB\u672A\u914D\u7F6E\u306E\u4F4F\u6C11\u304C{0}\u4EBA\u3044\u307E\u3059\u3002"
     m_Metadata:
       m_Items: []
   - m_Id: 6529174079184896
-    m_Localized: Proceed to night anyway?
+    m_Localized: "\u3053\u306E\u307E\u307E\u591C\u306B\u9032\u307F\u307E\u3059\u304B\uFF1F"
     m_Metadata:
       m_Items: []
   references:

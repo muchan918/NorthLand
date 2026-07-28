@@ -76,25 +76,8 @@ public class NightActionPanelView : MonoBehaviour
         if (_bossKillButton != null) _bossKillButton.gameObject.SetActive(!isDay);
     }
 
-    private void HandleEndDay()
-    {
-        if (_controller == null)
-        {
-            Debug.LogWarning("[낮 종료] ManagementController를 찾을 수 없습니다.");
-            return;
-        }
-
-        // 확인 팝업 경유(#219). 팝업이 씬에 없으면 곧장 종료(배선 누락 방어).
-        ManagementEndDayConfirmPopup popup = ManagementEndDayConfirmPopup.Instance;
-        if (popup != null)
-        {
-            popup.RequestEndDay(_controller);
-        }
-        else
-        {
-            _controller.EndDay();
-        }
-    }
+    // 확인 경유·폴백 라우팅은 팝업 클래스 한 곳(Request)에 캡슐화(#219).
+    private void HandleEndDay() => ManagementEndDayConfirmPopup.Request(_controller);
 
     private void HandleWaveSuccess()
     {
