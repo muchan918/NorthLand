@@ -163,6 +163,30 @@ MonoBehaviour:
     m_Key: store.owned
     m_Metadata:
       m_Items: []
+  - m_Id: 6627005447090176
+    m_Key: game.setting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6627348180447232
+    m_Key: game.setting.close
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6627824745656320
+    m_Key: game.setting.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6628086369562624
+    m_Key: game.setting.replay
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6628387554144256
+    m_Key: game.setting.quitgame
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6629238200938496
+    m_Key: game.setting.Laguage
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
