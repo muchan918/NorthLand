@@ -8,7 +8,7 @@ using UnityEngine;
 /// 이 컨트롤러만 구독·호출하므로, 실제 UI 아트로 교체해도 이 클래스는 바뀌지 않는다.<br/>
 /// <br/>
 /// - 낮→밤(OnDayToNight): 주민 배치 확정 (자원 정산 없음, 팀 계약 #5)<br/>
-/// - 밤→낮(OnNightToDay): 각 생산처 Produce로 자원 정산(먼저) + 주민 배치 초기화(그 다음) (팀 계약 #5)<br/>
+/// - 밤→낮(OnNightToDay): 각 생산처 Produce로 자원 정산 (주민 배치는 초기화하지 않고 유지 — #219)<br/>
 /// - 주민 수·풀(maxVillagers)은 주민 시스템 부재로 임시 placeholder — 주민 시스템이 생기면 이 부분만 교체.<br/>
 /// (Docs/ManagementArea/Resources.md — 이슈 #43)
 /// </summary>
@@ -88,14 +88,15 @@ public class ManagementController : MonoBehaviour
     // 지금 준비/진행 중인 웨이브 번호(1부터) — 패널 표시용. DayNightManager가 없으면 1일차로 간주.
     public int CurrentWave => _dayNight != null ? _dayNight.CurrentWave : 1;
 
-    // 영토가 씬에 없으면(null) 게이트 없이 배치 허용(permissive) — IsDay와 동일한 패턴.
-    public bool CanAssignVillagers => _territory == null || _territory.HasExpandedToday;
+    // 오늘 영토를 확장했는가 — 낮 종료 확인 팝업의 경고 판정용(#219). 영토가 씬에 없으면(null) permissive(true).
+    public bool HasExpandedTerritory => _territory == null || _territory.HasExpandedToday;
 
-    // 잉여 주민이 없어야(전원 배치) 밤으로 전환 가능.
-    public bool CanEndDay => IsDay && AssignedTotal >= _maxVillagers;
+    // 아직 배치되지 않은(유휴) 주민이 있는가 — 낮 종료 확인 팝업의 경고 판정용(#219).
+    public bool HasIdleVillagers => AssignedTotal < _maxVillagers;
 
-    // 페이즈 전환 버튼 활성 조건: 낮이면 전원 배치돼야, 밤이면 언제든 가능(웨이브 종료 대역).
-    public bool CanAdvancePhase => _dayNight != null && (!IsDay || CanEndDay);
+    // 페이즈 전환 버튼 활성 조건(#219): DayNight가 있으면 항상 활성. 강제 게이팅을 해제했고,
+    // 낮 종료 조건 미충족(영토 미확장·유휴 주민)은 버튼 비활성이 아니라 확인 팝업으로 안내한다.
+    public bool CanAdvancePhase => _dayNight != null;
 
     public int ResourceCount(ResourceKind kind) => _wallet != null ? _wallet.Get(kind) : 0;
 
@@ -609,9 +610,10 @@ public class ManagementController : MonoBehaviour
         return true;
     }
 
-    // 페이즈 전환 버튼: 낮이면 밤으로(잉여 주민 게이트). 밤→낮(EndNight)은 이제 웨이브 성공
-    // 버튼이 전담한다(WL-018) — 이 버튼은 밤에는 아무 동작도 하지 않는다.
-    public void RequestAdvancePhase()
+    // 낮→밤 전환을 수행한다(#219): 강제 조건 없음 — 영토 미확장·유휴 주민이어도 넘어간다.
+    // 조건 미충족 시의 확인은 UI(ManagementEndDayConfirmPopup)가 담당한다. 밤→낮(EndNight)은
+    // 웨이브 성공 버튼이 전담(WL-018)하므로, 이 메서드는 밤에는 아무 동작도 하지 않는다.
+    public void EndDay()
     {
         if (_dayNight == null)
         {
@@ -624,11 +626,6 @@ public class ManagementController : MonoBehaviour
             return;
         }
 
-        if (!CanEndDay)
-        {
-            Debug.Log($"[경영] 잉여 주민이 있어 밤으로 전환할 수 없습니다. (배치 {AssignedTotal}/{_maxVillagers})");
-            return;
-        }
         _dayNight.EndDay();
     }
 
@@ -650,10 +647,7 @@ public class ManagementController : MonoBehaviour
             Debug.Log($"[정산] {LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, _lineAssets[i].Data.NameKey)}: 주민 {_villagerCounts[i]}명 → +{produced}");
         }
 
-        for (int i = 0; i < _villagerCounts.Length; i++)
-        {
-            _villagerCounts[i] = 0;
-        }
+        // 주민 배치는 초기화하지 않고 전날 배치를 그대로 유지한다(#219) — 매일 재배치 강제를 없앤다.
 
         // 미개척 영지 일일 자동 수급(#166): 확보(Owned)한 영지가 매일 자기 자원을 DailyYield만큼 지급한다.
         // 주민 배치와 무관한 패시브 수입 — 확보한 영지 수·종류가 늘수록 총 수급이 늘어난다(GDD §3.2).
@@ -662,7 +656,7 @@ public class ManagementController : MonoBehaviour
         _wallet.Add(ResourceKind.Mana, _manaPerWaveClear);
         Debug.Log($"[정산] 웨이브 클리어 보상: 마나석 +{_manaPerWaveClear}");
 
-        Debug.Log($"[경영] 밤 → 낮 (Wave {WaveCount}): 자원 정산 + 주민 배치 초기화");
+        Debug.Log($"[경영] 밤 → 낮 (Wave {WaveCount}): 자원 정산 (주민 배치 유지, #219)");
         OnChanged?.Invoke();
     }
 
@@ -723,11 +717,7 @@ public class ManagementController : MonoBehaviour
             Debug.Log("[경영] 밤에는 배치를 변경할 수 없습니다.");
             return false;
         }
-        if (!CanAssignVillagers)
-        {
-            Debug.Log("[경영] 오늘 아직 영토를 확장하지 않아 주민을 배치할 수 없습니다.");
-            return false;
-        }
+        // 영토 확장 선행 조건 제거(#219) — 영토를 확장하지 않아도 주민을 배치할 수 있다(밤 게이팅만 유지).
         return IsValidLine(index);
     }
 
