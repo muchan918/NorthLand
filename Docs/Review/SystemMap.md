@@ -38,8 +38,13 @@
   삭제됨) — 잔여 종류 값 채움은 WL-001 참고. `BossFields.BehaviorTree`는 실제 BT 에셋 타입 미정 상태의 placeholder 필드
 - `ResourceAsset.Data` / `BuildingAsset.Data` / `TowerAsset.Data` / `EnemyAsset.Data` — **호출부가
   Start()에서 직접 채우는 규약** (저장 안 됨)
-- `BuildingInfoUI.Instance.ShowInfo(string)` / `HideInfo()` — 경영 공간 전용 정보 패널. `TowerInfoUI`와
+- `BuildingInfoUI.Instance.ShowInfo(BuildingAsset)` / `HideInfo()` — 경영 공간 전용 정보 패널. `TowerInfoUI`와
   동일 구조의 별도 씬 싱글톤 (공간 분리 계약상 Combat의 `TowerInfoUI`와 공유하지 않음)
+- `StorePanelUI.Instance.Show(BuildingAsset)` / `Hide()` — 교환 상점 패널(#211, 연금술사의 집). `BuildingInfoUI`와
+  **같은 계보의 별도 씬 싱글톤**(정보 표시가 아니라 행마다 액션 버튼이 있는 목록이라 갱신 방식이 다르다 —
+  행을 한 번만 만들고 `OnChanged`마다 `interactable`만 토글한다. 매번 재생성하면 클릭을 처리하는 도중 그 버튼이 파괴된다).
+  둘 중 어느 패널을 열지는 **`BuildingInfo.OnSelected`가 `Exchange.Offers` 유무로 분기**한다 — `BuildingType`으로 분기하지
+  않는다(타입은 인스펙터 authoring 분류일 뿐, 동작 게이트는 '데이터 존재'로 건다는 기존 컨벤션)
 - `LocalizationHelper.Get(table, entry)` — static 동기 조회(현재 로케일). **풀(pull) 경로 전용** —
   호버 툴팁 등 호출 시점 1회 값이 필요한 경우만. 지속형 표시(상세 패널 등, 로케일 변경 시 자동 갱신
   필요)는 `LocalizeStringEvent`/`LocalizedString.StringChanged`를 쓴다. 테이블명 상수
@@ -67,10 +72,17 @@
   `IReadOnlyList<ResourceCost> UpgradeBuildingCost(int)`·`bool CanUpgradeBuilding(int)`·`bool TryUpgradeBuilding(int)` — 낮 전용, 비용은 `BuildingAsset.Skill.UpgradeLevels`(마나석, 효과값 없음),
   같은 `TrySpend` 게이트웨이 경유. **`int GetUpgradeLevel(BuildingAsset)`** = 소비 시스템(스킬 강화 등)이 레벨을 읽는 저결합 창구(효과 적용은 소비 측 소유 — **`SkillManager`/`BuffSkillManager`가 구현 완료, #205**) — BuildingUpgrade.md §8,
   **소비 게이트웨이** `bool CanAfford/TrySpend(IReadOnlyList<ResourceCost>)`(소비처는 지갑 직접 접근 대신 경유, 원자 차감 — WL-017),
+  **자원 교환 게이트웨이**(#211, 연금술사의 집): `bool CanExchange(BuildingAsset, ExchangeOffer)`·`bool TryExchange(BuildingAsset, ExchangeOffer)` — 낮 전용,
+  지불 자원 차감과 대상 자원 지급이 **한 트랜잭션**(차감 실패 시 지급하지 않음). 지갑에 자원을 넣는 **유일한 소비자 대면 API**이며,
+  `ResourceWallet.Add`를 public으로 열지 않기 위한 형태다(팀 계약 #3·#6, WL-042 해소 근거). 교환비는 `BuildingAsset.Exchange.Offers`(SO),
   질의 `ResourceCount`/`LineCount`/`LineKind`/`LineExpectedProduction`/`AssignedTotal`/`IsDay`/`CanAdvancePhase`, `event OnChanged`(뷰 갱신).
   UI(`ManagementPanelView`/`ProductionLineView`)는 이 컨트롤러만 구독·호출 — UI 아트 교체 시 뷰 참조만 재연결
-- `MouseManager.Instance.BeginPlacement(PlacementRequest)` / `CancelPlacement()` / `event OnSelectionChanged`
-- `MouseManager.Instance` `event OnGroupSelectToggled(IGroupSelectable)`(#183) — Shift(추가 선택 키)+마커 클릭 시 토글 발행. 이 경로에선 `_selected`를 안 건드림.
+- `MouseManager.Instance.BeginPlacement(PlacementRequest)` / `CancelPlacement()` / `event OnSelectionChanged` —
+  `BeginPlacement`는 진입 시 호버와 **선택(단일+그룹)을 전부 해제**한다(`ClearSelection()`). 선택에 딸린 표시가 정보 패널·사거리 원·아웃라인·합성 패널로 퍼져 있어, 고스트를 든 화면에 남으면 시인성을 해치기 때문(WL-086). 자원 배치·합성 배치 공통. **잔여: `BeginSkillTargeting`은 아직 호버만 해제한다**
+- `MouseManager.Instance.ClearSelection()`(WL-086) — **선택 해제의 유일한 창구.** 단일(`Select(null)` → 대상의 `OnDeselected` = 정보 패널·사거리 원, 드라이버의 `Selected` 아웃라인)과 그룹(`OnPrimarySelect(null)` → 코디네이터 집합 해제 = `GroupSelected` 아웃라인·합성 패널)을 **함께** 비운다. 현재 호출자 3곳: Idle Esc / `BeginPlacement` / `PhasePanelSwitcher.ShowNight`.
+  ⚠️ **표시만 내리고 `_selected`를 남기면 그 대상은 재클릭해도 다시 뜨지 않는다** — `Select`의 `_selected == next` 중복 제거가 삼킨다. 선택 표시를 내려야 하는 새 경로는 자체 처리하지 말고 이 메서드를 부를 것.
+  `OnPrimarySelect`는 원래 "평클릭·Esc·빈 곳 클릭"(입력) 신호였으나 이 창구를 통해 모드·페이즈 전환도 태운다 — 지금은 구독자가 코디네이터 1곳이라 무해하고, "사용자 클릭"과 "시스템 정리"를 구분해야 하는 **3번째 소비자가 붙을 때** `OnSelectionCleared` 분리를 검토한다(WL-085의 판단 시점 패턴)
+- `MouseManager.Instance` `event OnGroupSelectToggled(IGroupSelectable)`(#183) — Shift(추가 선택 키)+마커 클릭 시 토글 발행. **토글이 실제로 일어날 때만 발행 직전에 `Select(null)`**로 단일 선택을 비운다(마커 없는 대상은 무시 — 집합·`_selected` 둘 다 불변). 표시 권한을 그룹 경로에 통째로 넘기기 위한 것으로, 안 비우면 직전 단일 선택의 사거리 원이 합성 패널 위에 잔존한다(WL-087)
 - `MouseManager.Instance` `event OnPrimarySelect(ISelectable)`(#183) — 평클릭(해석된 대상)·Esc·빈 곳 클릭 시 **중복 제거 없이 항상** 발행(그룹 선택 코디네이터 전용). `OnSelectionChanged`는 `_selected` 변화만 deduped 통지라 Shift-only 선택(`_selected==null`)에서 Esc·빈 곳 해제가 삼켜지던 문제(WL-085) 해소. **우클릭은 해제에 쓰지 않음**(카메라 드래그 이중 점유, WL-073)
 - `MouseManager.Instance.PointerPosition`(포인터 화면 좌표 — Mouse.current 직접 폴링 대신 이걸 쓴다) /
   `event OnHoverChanged(IHoverable)`(커서 밑 호버 대상, 없으면 null. Idle에서만 통지)
@@ -105,8 +117,10 @@
 - `Tower.RemoveBuff(int sourceId)`(`NorthLand.Combat`) — 해당 소스의 버프를 즉시 제거(#164, 버프 타워 철거/비활성 시)
 - `Tower.Asset`(`TowerAsset`, 읽기 전용, `NorthLand.Combat`, #195 muchan) — 배치된 타워의 원본 SO 조회(합성 재료 TowerID 매칭용). 순수 읽기
 - `TowerRecipe`(SO, `Assets/Scripts/Data/Tower/TowerRecipe.cs`, #194) — `Materials`(재료 `TowerAsset`+개수)/`Result`(결과 `TowerAsset`)/`ExtraCost`(`List<ResourceCost>`). **인스펙터 손입력(CSV 미경유** — 재료·결과가 SO 참조라 ID 문자열 resolve보다 직접 드래그가 자연스러움)
-- `TowerPlacer.BeginTowerPlacement(TowerAsset result, IReadOnlyList<ResourceCost> cost, System.Action onConfirmed)`(#195) — 비용·확정 콜백 주입 오버로드(합성 결과 배치용, 확정 직후 콜백에서 재료 소모). 기존 `BeginTowerPlacement(TowerAsset)`은 `cost=so.Cost, onConfirmed=null`로 위임(동작 불변). 확정 시 `_management.TrySpend(cost)` 후 `Instantiate`
-- `TowerFusionController.TryFuse(TowerRecipe recipe, TowerMergeGroup group)`(#195, #183에서 시그니처 변경) — 합성 실행. 포함 매칭+`CanAfford` 검증→`TowerPlacer` 배치→확정 시 `group.Remove`+재료 `Destroy`. 코디네이터 `RequestMerge`가 그룹을 물려 호출(구 `TryFuseSelected`+`_wallet` SerializeField는 폐기)
+- `bool TowerPlacer.BeginTowerPlacement(TowerAsset result, IReadOnlyList<ResourceCost> cost, System.Action onConfirmed, System.Action onEnded = null)`(#195) — 비용·확정 콜백 주입 오버로드(합성 결과 배치용, 확정 직후 콜백에서 재료 소모). 기존 `BeginTowerPlacement(TowerAsset)`은 `cost=so.Cost, onConfirmed=null`로 위임(동작 불변). 확정 시 `_management.TrySpend(cost)` 후 `Instantiate`.
+  **`onEnded`** = 확정/취소/다른 배치로 교체 무관 **배치 세션 종료 1회**(`PlacementRequest.OnEnded`→`EndPlacement`에서 발화, 먼저 비우고 호출). **반환값** = 세션이 실제로 시작됐는가 — false면 `onEnded`도 오지 않으므로 호출부가 "배치 동안 유지"할 상태를 걸면 안 된다(합성 핑크 고정이 이 신호를 쓴다).
+  ⚠️ `onConfirmed`/`onEnded`는 `MouseManager.BeginPlacement` **이후에** 대입해야 한다 — `BeginPlacement` 내부 `CancelPlacement`가 직전 세션의 `EndPlacement`를 발화해 콜백을 소비·초기화하기 때문
+- `bool TowerFusionController.TryFuse(TowerRecipe recipe, TowerMergeGroup group, System.Action onEnded = null)`(#195, #183에서 시그니처 변경) — 합성 실행. 포함 매칭+`CanAfford` 검증→`TowerPlacer` 배치→확정 시 `group.Remove`+재료 `Destroy`. 반환값·`onEnded`는 위 `BeginTowerPlacement`를 그대로 통과시킨다. 코디네이터 `RequestMerge`가 그룹을 물려 호출(구 `TryFuseSelected`+`_wallet` SerializeField는 폐기)
 - `TowerMergeGroup`(#183, 순수 C#) — 선택 재료 집합. `IReadOnlyList<Tower> Towers`/`Add`/`Remove`/`Clear`/`SetSingle(tower)`(원자 단일화, 통지 1회)/`Prune(Predicate<Tower>)`(주입 판정으로 죽은 항목 제거) + `event Action OnChanged`(변경 시 발행, 코디네이터가 구독해 UI·하이라이트 갱신). **`TowerMergeCoordinator`가 소유**(씬 오브젝트 아님) — 구 임시 `TowerWallet`(#195) 대체·폐기
 - `TowerMergeCoordinator`(#183, MonoBehaviour) — 합성 선택 두뇌·실행 오케스트레이터. `MouseManager.OnPrimarySelect`(평클릭/Esc/빈곳 → 그룹 리셋·해제)/`OnGroupSelectToggled`(Shift 토글)·`DayNightManager.OnDayToNight`(그룹만 리셋)·`Tower.ActiveChanged`(→ `Prune(t=>t==null||!Tower.Active.Contains(t))` stale 정리)·`TowerMergeGroup.OnChanged` 구독(낮 게이팅·하이라이트·우측 패널 스왑 1개=`TowerInfoUI`/2개↑=합성 패널). 마커→타워 해석은 `grp is TowerGroupSelectable`로 코디네이터가 흡수. 파사드: `SelectedTowers`/`event OnGroupChanged`/`CanMerge(recipe)`/`RequestMerge(recipe)`. `OnDestroy`에서 구독 해제(F7). **진행 중 배치 취소(밤)는 여기가 아니라 `PhasePanelSwitcher.ShowNight`가 담당**(페이즈 취소 책임 일원화)
 - `IGroupSelectable { OnGroupSelected(); OnGroupDeselected() }`(#183, **도메인 완전 중립 — Tower 미참조**) + `TowerGroupSelectable`(타워 구현, `TowerPlacer.PlaceTower`가 `TowerFootprint`와 같은 지점에서 런타임 `AddComponent`) — MouseManager가 마커 유무로만 그룹 선택 자격 판정(타워 무지 → 제네릭). 마커→타워 해석은 소비처(`TowerMergeCoordinator`)가 `grp is TowerGroupSelectable` 캐스팅으로. 그룹 하이라이트 훅은 단일선택 `ISelectable`과 분리
@@ -182,7 +196,12 @@
    영토 확장·전투 보상에서만.
    - **방향 전환(GDD v0.3)**: **미개척 영지 자원**(영토 해금)은 주민 배치 없이 **매일 정산마다 일정량이 자동
      수급**된다(영토 확장 보상의 일종) — 영토 해금이라는 정당한 원천이므로 계약 위반 아님. (직전 '식량 소모 →
-     확장 자원 변환' 모델은 폐기, WL-042 참고.) 그 밖의 우회 경로(마나석→기본 자원 교환 건물 등)는 여전히 금지/미결.
+     확장 자원 변환' 모델은 폐기, WL-042 참고.)
+   - **마나석 교환(#211, WL-042 해소)**: **연금술사의 집**(`BuildingType.Store`)이 마나석 → 자원 7종 **단방향** 교환을 제공한다
+     (낮 전용, 역교환 없음). 이것은 새 획득 경로가 **아니라 마나석 소비처**다 — 지갑의 획득 API(`ResourceWallet.Add`)는
+     계속 비공개이고, 소비처에 열린 것은 **차감+지급이 한 트랜잭션인 `ManagementController.TryExchange` 단일 진입점**뿐이라
+     마나석 없이 자원이 생기는 경로가 없다. 신규 기능이 자원을 늘려야 할 때도 `Add`를 public으로 열지 말고 이 패턴을 따를 것.
+   - 그 밖의 우회 경로(본진 업그레이드 마나석 소모 등)는 여전히 금지/미결(WL-042 잔여).
 4. **공간 분리** (GDD §4.1/§6.2): 경영 공간 = 건물, 전투 공간 = 타워. 두 영토는 독립 관리 —
    한쪽 확장이 다른 쪽 상태에 의존 금지.
 5. **낮/밤 전환 계약** (GDD §5, Build0 계획): 낮 시작=본진 회복, 밤 시작(`OnDayToNight`)=전투 스테이지 확장+몬스터 스폰(#17), 밤→낮=주민 배치 기반 자원 정산(먼저)+
@@ -227,12 +246,12 @@
 - **적 프리팹 mover 탐색 규약**: `MonsterMove`(`IMovementAgent` 구현)는 `Enemy` 루트 또는 그 자식
   GameObject 어디에 있어도 된다. mover를 참조하는 모든 지점이 `GetComponentInChildren`로 통일돼 있다
   (`Enemy.cs:56·72`, `MonsterSpawn.cs:327`, `MonsterStateMachine.cs:32`, `StatusEffectHandler.cs:51` —
-  WL-105 A안 채택, main #212가 WL-093 수정으로 확정한 방향과 정합). 따라서 자식 GO에 둔 mover도
+  WL-111 A안 채택, main #212가 WL-093 수정으로 확정한 방향과 정합). 따라서 자식 GO에 둔 mover도
   이동·보스 램프·CC(슬로우/스턴)가 모두 정상 동작한다. 신규 적 프리팹은 이 탐색 규약을 벗어난
   이중 mover(루트+자식 동시 부착)만 피하면 된다.
 - **Ghost 프리팹 규약(시각 전용)**: 배치 프리뷰 Ghost 프리팹에는 게임플레이 컴포넌트(`Tower`,
   `AuraTower`, `TowerReloadVisual` 등)를 붙이지 않는다 — 메시/머티리얼 등 시각 요소만. `MouseManager`가
   고스트를 컴포넌트 비활성 없이 `Instantiate`하므로(`MouseManager.cs:117`), live 컴포넌트가 실리면
   프리뷰가 실제 게임플레이를 실행한다(`Tower`=자가 등록, `AuraTower` 버프 경로=페이즈 게이팅 없이 즉시
-  주변 타워 버프). WL-066(Tower)·WL-104/WL-066 확장(AuraTower)의 정본 규약. 신규 타워 고스트 작성·프리팹
+  주변 타워 버프). WL-066(Tower)·WL-110/WL-066 확장(AuraTower)의 정본 규약. 신규 타워 고스트 작성·프리팹
   스왑 시 필수 확인(muchan/n0wst4ndup 게이트).

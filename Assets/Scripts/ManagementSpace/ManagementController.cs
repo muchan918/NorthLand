@@ -8,7 +8,7 @@ using UnityEngine;
 /// 이 컨트롤러만 구독·호출하므로, 실제 UI 아트로 교체해도 이 클래스는 바뀌지 않는다.<br/>
 /// <br/>
 /// - 낮→밤(OnDayToNight): 주민 배치 확정 (자원 정산 없음, 팀 계약 #5)<br/>
-/// - 밤→낮(OnNightToDay): 각 생산처 Produce로 자원 정산(먼저) + 주민 배치 초기화(그 다음) (팀 계약 #5)<br/>
+/// - 밤→낮(OnNightToDay): 각 생산처 Produce로 자원 정산 (주민 배치는 초기화하지 않고 유지 — #219)<br/>
 /// - 주민 수·풀(maxVillagers)은 주민 시스템 부재로 임시 placeholder — 주민 시스템이 생기면 이 부분만 교체.<br/>
 /// (Docs/ManagementArea/Resources.md — 이슈 #43)
 /// </summary>
@@ -60,6 +60,9 @@ public class ManagementController : MonoBehaviour
     private DayNightManager _dayNight;
     private TerritoryController _territory;
 
+    // ResourceAsset.Data 채움용 지연 캐시(호출부 채움 규약, SystemMap §2).
+    private ResourceTable _resourceTable;
+
     public int LineCount => _sources != null ? _sources.Length : 0;
     public int MaxVillagers => _maxVillagers;
     public int AssignedTotal
@@ -85,14 +88,15 @@ public class ManagementController : MonoBehaviour
     // 지금 준비/진행 중인 웨이브 번호(1부터) — 패널 표시용. DayNightManager가 없으면 1일차로 간주.
     public int CurrentWave => _dayNight != null ? _dayNight.CurrentWave : 1;
 
-    // 영토가 씬에 없으면(null) 게이트 없이 배치 허용(permissive) — IsDay와 동일한 패턴.
-    public bool CanAssignVillagers => _territory == null || _territory.HasExpandedToday;
+    // 오늘 영토를 확장했는가 — 낮 종료 확인 팝업의 경고 판정용(#219). 영토가 씬에 없으면(null) permissive(true).
+    public bool HasExpandedTerritory => _territory == null || _territory.HasExpandedToday;
 
-    // 잉여 주민이 없어야(전원 배치) 밤으로 전환 가능.
-    public bool CanEndDay => IsDay && AssignedTotal >= _maxVillagers;
+    // 아직 배치되지 않은(유휴) 주민이 있는가 — 낮 종료 확인 팝업의 경고 판정용(#219).
+    public bool HasIdleVillagers => AssignedTotal < _maxVillagers;
 
-    // 페이즈 전환 버튼 활성 조건: 낮이면 전원 배치돼야, 밤이면 언제든 가능(웨이브 종료 대역).
-    public bool CanAdvancePhase => _dayNight != null && (!IsDay || CanEndDay);
+    // 페이즈 전환 버튼 활성 조건(#219): DayNight가 있으면 항상 활성. 강제 게이팅을 해제했고,
+    // 낮 종료 조건 미충족(영토 미확장·유휴 주민)은 버튼 비활성이 아니라 확인 팝업으로 안내한다.
+    public bool CanAdvancePhase => _dayNight != null;
 
     public int ResourceCount(ResourceKind kind) => _wallet != null ? _wallet.Get(kind) : 0;
 
@@ -128,34 +132,43 @@ public class ManagementController : MonoBehaviour
     }
 
     // Cost 리스트를 (ResourceKind → 합산 수량)으로 해석한다. Resource 미지정·수량 0 항목은 스킵.
-    // ResourceAsset.Data는 호출부 채움 규약(SystemMap §2) — null이면 ResourceTable에서 채운다.
     private Dictionary<ResourceKind, int> AggregateCost(IReadOnlyList<ResourceCost> costs)
     {
         var totals = new Dictionary<ResourceKind, int>();
         if (costs == null) return totals;
 
-        ResourceTable table = null;
         for (int i = 0; i < costs.Count; i++)
         {
             ResourceCost cost = costs[i];
-            if (cost == null || cost.Resource == null || cost.Amount <= 0) continue;
+            if (cost == null || cost.Amount <= 0) continue;
+            if (!TryResolveKind(cost.Resource, out ResourceKind kind)) continue;
 
-            if (cost.Resource.Data == null)
-            {
-                table ??= DataTableManager.Get<ResourceTable>("ResourceTable");
-                if (table != null) cost.Resource.Data = table.Get(cost.Resource.ResourceID);
-            }
-            if (cost.Resource.Data == null)
-            {
-                Debug.LogError($"[경영] 비용 자원 '{cost.Resource.ResourceID}' Data를 채우지 못했습니다.");
-                continue;
-            }
-
-            ResourceKind kind = cost.Resource.Data.Kind;
             totals.TryGetValue(kind, out int cur);
             totals[kind] = cur + cost.Amount;
         }
         return totals;
+    }
+
+    // ResourceAsset → ResourceKind. ResourceAsset.Data는 호출부 채움 규약(SystemMap §2)이라
+    // null이면 여기서 ResourceTable로 채운다. 해석 실패는 authoring 실수이므로 에러 로그를 남긴다.
+    private bool TryResolveKind(ResourceAsset resource, out ResourceKind kind)
+    {
+        kind = default;
+        if (resource == null) return false;
+
+        if (resource.Data == null)
+        {
+            _resourceTable ??= DataTableManager.Get<ResourceTable>("ResourceTable");
+            if (_resourceTable != null) resource.Data = _resourceTable.Get(resource.ResourceID);
+        }
+        if (resource.Data == null)
+        {
+            Debug.LogError($"[경영] 자원 '{resource.ResourceID}' Data를 채우지 못했습니다.");
+            return false;
+        }
+
+        kind = resource.Data.Kind;
+        return true;
     }
 
     public string LineDisplayName(int index) => IsValidLine(index) ? LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, _lineAssets[index].Data.NameKey) : "-";
@@ -294,6 +307,81 @@ public class ManagementController : MonoBehaviour
     private bool IsValidUpgrade(int index) =>
         _upgradeBuildingRefs != null && index >= 0 && index < _upgradeBuildingRefs.Length;
 
+    // ── 자원 교환 게이트웨이 (연금술사의 집, #211) ────────────────────────
+    // 마나석 → 다른 자원 단방향 교환. 지갑에 '획득' 경로를 여는 유일한 소비자 대면 API이므로
+    // Add를 public으로 열지 않고 '차감+지급이 한 몸인' 진입점만 노출한다(팀 계약 #3·#6, WL-017).
+    // 교환 자체가 제2 자원 획득 경로라 팀 합의가 필요했던 지점 — GDD §3.2·WatchList WL-042 참고.
+
+    /// <summary>교환 가능 여부 — 낮이어야 하고, offer가 유효하고, 지불 자원을 감당할 수 있어야 한다.</summary>
+    public bool CanExchange(BuildingAsset building, BuildingAsset.ExchangeOffer offer)
+    {
+        if (!IsDay || _wallet == null) return false;
+        if (!TryResolveExchange(building, offer, out ResourceKind payKind, out _)) return false;
+
+        return _wallet.CanAfford(payKind, offer.PayAmount);
+    }
+
+    /// <summary>
+    /// 지불 자원을 차감하고 대상 자원을 지급한다 — 낮에만, 지불량을 감당할 수 있을 때만.<br/>
+    /// 차감에 실패하면 아무것도 지급하지 않는다(원자적). 성공 시 <see cref="OnChanged"/>로 통지한다.
+    /// </summary>
+    public bool TryExchange(BuildingAsset building, BuildingAsset.ExchangeOffer offer)
+    {
+        if (!IsDay)
+        {
+            Debug.Log("[경영] 밤에는 교환할 수 없습니다.");
+            return false;
+        }
+        if (_wallet == null || !TryResolveExchange(building, offer, out ResourceKind payKind, out ResourceKind gainKind))
+        {
+            return false;
+        }
+
+        if (!_wallet.CanAfford(payKind, offer.PayAmount))
+        {
+            Debug.Log($"[경영] {payKind}이(가) 부족해 교환할 수 없습니다. (필요 {offer.PayAmount}, 보유 {_wallet.Get(payKind)})");
+            return false;
+        }
+        _wallet.TrySpend(payKind, offer.PayAmount);
+
+        int gained = ExchangeGainAmount(building, offer);
+        _wallet.Add(gainKind, gained);
+        Debug.Log($"[경영] 교환: {payKind} -{offer.PayAmount} → {gainKind} +{gained}");
+        OnChanged?.Invoke();
+        return true;
+    }
+
+    // 교환 행의 지불/획득 자원 종류를 해석한다. authoring이 불완전하면(자원 미지정·수량 0 이하) false.
+    // 수량 검증까지 여기서 하는 이유: 무료 교환·0 지급이 조용히 성공하는 걸 막기 위해서다
+    // (BuildingAsset.ValidateExchangeOffers가 에디터에서 경고하는 것과 같은 조건의 런타임 방어선).
+    private bool TryResolveExchange(BuildingAsset building, BuildingAsset.ExchangeOffer offer,
+        out ResourceKind payKind, out ResourceKind gainKind)
+    {
+        payKind = default;
+        gainKind = default;
+
+        if (building == null || building.Exchange == null || offer == null) return false;
+        if (offer.PayAmount <= 0 || offer.GainAmount <= 0) return false;
+
+        return TryResolveKind(building.Exchange.PayResource, out payKind)
+            && TryResolveKind(offer.GainResource, out gainKind);
+    }
+
+    // 교환으로 실제 받는 수량. 교환 효율 업그레이드(#211 범위 밖)가 붙으면 여기서 배율이 곱해진다.
+    // UpgradeLevels가 비어 있거나 레벨 0이면 offer.GainAmount 그대로다.
+    // 레벨 클램프는 SkillManager(#205)와 같은 방식 — 레벨 테이블보다 레벨이 높아도 마지막 단계를 쓴다.
+    private int ExchangeGainAmount(BuildingAsset building, BuildingAsset.ExchangeOffer offer)
+    {
+        List<BuildingAsset.ExchangeUpgradeLevel> levels = building.Exchange.UpgradeLevels;
+        if (levels == null || levels.Count == 0) return offer.GainAmount;
+
+        int level = GetUpgradeLevel(building);
+        if (level <= 0) return offer.GainAmount;
+
+        float multiplier = levels[Mathf.Clamp(level, 1, levels.Count) - 1].GainMultiplier;
+        return Mathf.Max(1, Mathf.RoundToInt(offer.GainAmount * multiplier));
+    }
+
     // 라인 산출 자원의 현재 생산 배율(레지스트리 미준비 시 1.0).
     private float ProductionMultiplier(int index) =>
         _productionModifiers != null && IsValidLine(index) ? _productionModifiers.GetMultiplier(_lineAssets[index].Data.Kind) : 1f;
@@ -316,6 +404,7 @@ public class ManagementController : MonoBehaviour
         if (_dayNight != null)
         {
             _dayNight.OnNightToDay -= HandleNightToDay;
+            _dayNight.OnDayToNight -= HandleDayToNight;
         }
         if (_territory != null)
         {
@@ -430,6 +519,7 @@ public class ManagementController : MonoBehaviour
         }
 
         _dayNight.OnNightToDay += HandleNightToDay;
+        _dayNight.OnDayToNight += HandleDayToNight;
     }
 
     private void SubscribeTerritory()
@@ -520,9 +610,10 @@ public class ManagementController : MonoBehaviour
         return true;
     }
 
-    // 페이즈 전환 버튼: 낮이면 밤으로(잉여 주민 게이트). 밤→낮(EndNight)은 이제 웨이브 성공
-    // 버튼이 전담한다(WL-018) — 이 버튼은 밤에는 아무 동작도 하지 않는다.
-    public void RequestAdvancePhase()
+    // 낮→밤 전환을 수행한다(#219): 강제 조건 없음 — 영토 미확장·유휴 주민이어도 넘어간다.
+    // 조건 미충족 시의 확인은 UI(ManagementEndDayConfirmPopup)가 담당한다. 밤→낮(EndNight)은
+    // 웨이브 성공 버튼이 전담(WL-018)하므로, 이 메서드는 밤에는 아무 동작도 하지 않는다.
+    public void EndDay()
     {
         if (_dayNight == null)
         {
@@ -535,15 +626,14 @@ public class ManagementController : MonoBehaviour
             return;
         }
 
-        if (!CanEndDay)
-        {
-            Debug.Log($"[경영] 잉여 주민이 있어 밤으로 전환할 수 없습니다. (배치 {AssignedTotal}/{_maxVillagers})");
-            return;
-        }
         _dayNight.EndDay();
     }
 
     // ── DayNightManager 이벤트 훅 (팀 계약 #5) ──────────────────────────
+    // 낮→밤은 배치 확정만 하고 정산은 없다(팀 계약 #5) — IsDay 게이트를 쓰는 버튼(교환/업그레이드)이
+    // 전환 즉시 비활성화되도록 OnChanged만 재발행한다(WL-104).
+    private void HandleDayToNight() => OnChanged?.Invoke();
+
     private void HandleNightToDay()
     {
         for (int i = 0; i < _sources.Length; i++)
@@ -557,10 +647,7 @@ public class ManagementController : MonoBehaviour
             Debug.Log($"[정산] {LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, _lineAssets[i].Data.NameKey)}: 주민 {_villagerCounts[i]}명 → +{produced}");
         }
 
-        for (int i = 0; i < _villagerCounts.Length; i++)
-        {
-            _villagerCounts[i] = 0;
-        }
+        // 주민 배치는 초기화하지 않고 전날 배치를 그대로 유지한다(#219) — 매일 재배치 강제를 없앤다.
 
         // 미개척 영지 일일 자동 수급(#166): 확보(Owned)한 영지가 매일 자기 자원을 DailyYield만큼 지급한다.
         // 주민 배치와 무관한 패시브 수입 — 확보한 영지 수·종류가 늘수록 총 수급이 늘어난다(GDD §3.2).
@@ -569,7 +656,7 @@ public class ManagementController : MonoBehaviour
         _wallet.Add(ResourceKind.Mana, _manaPerWaveClear);
         Debug.Log($"[정산] 웨이브 클리어 보상: 마나석 +{_manaPerWaveClear}");
 
-        Debug.Log($"[경영] 밤 → 낮 (Wave {WaveCount}): 자원 정산 + 주민 배치 초기화");
+        Debug.Log($"[경영] 밤 → 낮 (Wave {WaveCount}): 자원 정산 (주민 배치 유지, #219)");
         OnChanged?.Invoke();
     }
 
@@ -630,11 +717,7 @@ public class ManagementController : MonoBehaviour
             Debug.Log("[경영] 밤에는 배치를 변경할 수 없습니다.");
             return false;
         }
-        if (!CanAssignVillagers)
-        {
-            Debug.Log("[경영] 오늘 아직 영토를 확장하지 않아 주민을 배치할 수 없습니다.");
-            return false;
-        }
+        // 영토 확장 선행 조건 제거(#219) — 영토를 확장하지 않아도 주민을 배치할 수 있다(밤 게이팅만 유지).
         return IsValidLine(index);
     }
 

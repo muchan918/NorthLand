@@ -20,7 +20,7 @@ namespace NorthLand.Combat
     {
         [SerializeField] TowerAsset data;
 
-        // 배치된 타워의 원본 SO 읽기 접근자(Tower.Asset과 대칭). 배치 후 프리팹↔SO 정합 검증에 쓴다(WL-106).
+        // 배치된 타워의 원본 SO 읽기 접근자(Tower.Asset과 대칭). 배치 후 프리팹↔SO 정합 검증에 쓴다(WL-112).
         public TowerAsset Asset => data;
 
         // 디버프=적 레이어 / 버프=아군 레이어. 프리팹에서 지정.
@@ -164,7 +164,7 @@ namespace NorthLand.Combat
 
         void OnEnable()
         {
-            // Tower.OnEnable의 Magic 오부착 가드와 대칭(WL-106). AuraTower는 Magic 타워 전용이다.
+            // Tower.OnEnable의 Magic 오부착 가드와 대칭(WL-112). AuraTower는 Magic 타워 전용이다.
             // Unity가 중첩 Serializable(Magic)을 항상 인스턴스화하므로 data.Magic null 검사는 무의미 —
             // 실제 무증상 오작성은 (a) MagicEffectType 미선택(None) (b) 활성 오라 블록이 비어 있음이며, 아래에서 드러낸다.
             if (!IsMagic)

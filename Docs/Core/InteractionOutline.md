@@ -212,7 +212,7 @@ public void Set(OutlineKind kind, bool on);   // 멱등
 - 최종 색 우선순위: **MergePreview > (Selected ‖ GroupSelected) > Hover**. 하나도 없으면 shell off.
   - 선택된 타워에 커서를 올려도 초록이 노랑으로 밀리지 않는다.
   - 후보 버튼 호버 시 핑크가 초록을 덮는다.
-- `Selected`(MouseManager 단일 선택)와 `GroupSelected`(코디네이터 그룹)를 **분리한 이유**: 둘은 서로 다른 주체가 쓰고 수명이 다르다. 한 플래그를 공유하면 "Shift로 그룹에서 뺀 타워가 아직 MouseManager `_selected`인 경우" 한쪽이 다른 쪽 상태를 지운다.
+- `Selected`(MouseManager 단일 선택)와 `GroupSelected`(코디네이터 그룹)를 **분리한 이유**: 둘은 서로 다른 주체가 쓰고 수명이 다르다. 한 플래그를 공유하면 한쪽이 다른 쪽 상태를 지운다. WL-087 수정으로 Shift 클릭이 `_selected`를 비우게 된 뒤에도 분리는 그대로 값을 한다 — 그때 드라이버가 `Set(Selected,false)`를 걸지만 코디네이터가 켜 둔 `GroupSelected`는 살아 있어 **초록이 끊기지 않는다**(공유 플래그였다면 Shift로 담는 순간 재료 타워의 초록이 꺼졌을 것).
 
 ---
 
@@ -229,9 +229,10 @@ public void Set(OutlineKind kind, bool on);   // 멱등
 
 **왜 각 대상의 `ISelectable`/`IHoverable` 훅 안에서 직접 켜지 않는가**
 1. 두 이벤트는 항상 "현재 대상"을 실어 오고 드라이버가 `_lastHovered`/`_lastSelected`를 들고 있으므로 **대칭이 구조적으로 보장**된다.
-2. 그래서 **WL-087**(코디네이터 `RefreshPanel`이 `count==1`에서 `t.OnSelected()`만 부르고 대칭 `OnDeselected()`가 없음)에 걸리지 않는다. WL-087 자체는 정보 패널 쪽 버그로 **남는다**(이 이슈에서 고치지 않음). 2→1 복귀 시 남은 타워는 그룹에 있으므로 `GroupSelected`로 초록이 유지된다.
+2. 그래서 **WL-087**(코디네이터 `RefreshPanel`이 `count==1`에서 `t.OnSelected()`만 부르고 대칭 `OnDeselected()`가 없음)에 걸리지 않는다. 2→1 복귀 시 남은 타워는 그룹에 있으므로 `GroupSelected`로 초록이 유지된다. *(WL-087 자체는 이 이슈에서 고치지 않은 채 남았다가, 사거리 원 잔존으로 드러나 `_infoShownFor` diff + Shift 경로의 `Select(null)`로 종결 — `TowerMerge.md` §7.2·§8.1.)*
 3. `Tower.cs`(Combat 소유)·`BuildingInfo`·`AuraTower`·`TerritoryNodeView`를 **한 줄도 수정하지 않는다**.
 4. `MouseManager.Select`는 **낮/밤 게이트가 없다** → **밤에 타워를 클릭해도 초록이 뜬다**(사거리 원·정보 패널과 피드백이 일치). 코디네이터의 `IsDay` 게이트는 그대로 유지된다(밤에는 그룹·합성이 잠긴 채 단일 초록만 뜬다).
+   - **이 "셋이 함께 뜨고 함께 진다"가 불변식이다.** 셋 중 일부만 내리는 경로를 만들면 `_selected`가 남아 그 대상이 재클릭에도 반응하지 않는다 → 표시를 내릴 땐 항상 `MouseManager.ClearSelection()`(SystemMap §2)을 쓴다. 페이즈 전환에서 실제로 깨졌던 지점이다(WL-086).
 
 **타워 호버는 훅이 없다**: `Tower`는 `IAttacker`·`ISelectable`만 구현하므로 `hit.collider.TryGetComponent(out IHoverable)`가 잡지 못해 이벤트 자체가 오지 않는다 → `TowerGroupSelectable`이 `IHoverable`을 **추가 구현**한다(`GetTooltipContent()` → `null`, 계약상 "색만 바꾸는 호버 대상"으로 허용). 이 마커는 `TowerPlacer.cs:298`이 배치 시 `AddComponent`하므로 **합성 결과 타워까지 자동 부착**된다.
 
@@ -243,7 +244,7 @@ public void Set(OutlineKind kind, bool on);   // 멱등
 
 평클릭도 `OnPrimarySelect → HandlePrimarySelect → TowerMergeGroup.SetSingle`로 **그룹 집합에 들어간다**(단일/다중 구분 없음) → 잔존 없음. 하늘색 쿼드(`k_HighlightColor`, `k_HighlightSize`, `CreateHighlight`)는 삭제한다.
 
-### 5.3 핑크 — 합성 후보 버튼 호버
+### 5.3 핑크 — 합성 후보 버튼 호버 + 배치 확정 대기
 
 - **UI 측**: `TowerMergeCandidateHover`(`IPointerEnterHandler`/`IPointerExitHandler`, 선례 `Assets/Scripts/UI/TowerPanel/TowerTooltipSource.cs` — 월드 레이캐스트가 아니라 EventSystem 경로). `TowerMergePanelView.BuildCandidates()`가 레시피당 버튼 1개를 **`Awake`에서 미리 생성**하므로(`_candidates` 리스트, 매칭 시 `SetActive`) 그 자리에서 `captured` 레시피와 함께 배선한다.
 - **뷰는 코디네이터 파사드만 호출한다**(현행 계약 유지) → 코디네이터에 `PreviewMerge(TowerRecipe)` / `ClearMergePreview()`를 추가하고, 월드 하이라이트 구동 권한은 계속 코디네이터가 단독으로 갖는다.
@@ -258,6 +259,16 @@ public void Set(OutlineKind kind, bool on);   // 멱등
 | 코디네이터 `HandleGroupChanged` | 선택 집합이 바뀌면 프리뷰 근거가 사라진다 |
 | 코디네이터 `HandleDayToNight` | 밤 전환 시 집합 리셋과 함께 |
 | 패널 루트 비활성화 | `RefreshPanel`이 2개 미만에서 `_mergePanel.SetActive(false)` |
+
+**단, 버튼을 클릭한 뒤에는 위 트리거가 전부 막힌다 — `_previewCommitted` 잠금**
+
+호버 프리뷰만 있으면 **클릭하는 순간 커서가 버튼을 벗어나며 `OnPointerExit`가 즉시 핑크를 걷어가고**, 재료가 초록으로 되돌아간 채 결과 타워 고스트를 들고 다니게 된다. 정작 "이 타워들이 지금 소모될 예정"이라는 정보가 가장 필요한 구간이 배치 중이므로, 클릭 시점의 소모 대상을 **배치 세션이 끝날 때까지 고정**한다.
+
+- 코디네이터 `RequestMerge`가 `TowerFusionController.TryFuse(recipe, group, onEnded)`의 **반환값이 true(배치가 실제로 시작됨)일 때만** 칠하고 `_previewCommitted = true`. 재료·코스트 부족으로 반려되면 종료 콜백도 오지 않으므로 잠그면 안 된다.
+- 잠금 중에는 `PreviewMerge`/`ClearMergePreview`가 no-op — 배치 중 다른 후보 버튼에 커서가 스쳐도 재료 표시가 흔들리지 않는다.
+- 유일한 해제 경로는 `onEnded` → `EndMergeCommit`. 신호는 `TowerPlacer.EndPlacement`(= `PlacementRequest.OnEnded`)에서 오며 **확정·취소·다른 배치로 교체 전부**를 덮는다. 확정이면 재료가 `Destroy`되고, 취소면 재료가 남되 **선택 집합은 이미 비어 있으므로 아무 아웃라인도 없는 상태로** 돌아간다(배치 시작 시 전체 해제 — 위 §5.1 표).
+- **호출 순서가 계약이다**: `ResolveConsumeTargets`(판정) → `TryFuse` → (성공 시) `ApplyPreview` → 잠금. 가운데 낀 `TryFuse`가 `BeginPlacement`를 부르고, 그게 **① 전체 해제로 선택 집합을 비우고 ② 직전 배치를 취소하며 그쪽 `EndMergeCommit`을 발화**시킨다. 그래서 판정은 집합이 살아 있는 **앞**에서, 칠하기는 정리가 끝난 **뒤**에 해야 한다. 순서를 바꾸면 각각 "소모 대상 계산 불가" / "방금 켠 핑크가 지워짐"으로 조용히 깨진다(`TowerPlacer._onConfirmed`를 `BeginPlacement` 이후에 대입하는 것과 같은 계열의 함정).
+- 밤 전환은 `HandleDayToNight`에서 잠금을 직접 푼다 — 배치 취소(`PhasePanelSwitcher.ShowNight`)로도 풀리지만 이벤트 구독 순서에 기대지 않기 위해.
 
 ### 5.4 영지 노드 — 섬/산만, 회오리는 제외 (**구현 완료**)
 
@@ -373,9 +384,10 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 |---|---|
 | 배치 모드·스킬 조준 진입 | `MouseManager.BeginPlacement`/`BeginSkillTargeting`이 `ClearHover()`를 호출 → `OnHoverChanged(null)` → 드라이버가 노랑 해제. **모드 전환 순간 노란 아웃라인이 남지 않는지 확인 필요** |
 | 배치·조준 취소 | `CancelPlacement`/`CancelSkillTargeting`은 `_mode = Idle`만 되돌린다 → 다음 `UpdateHover`에서 자연 복구 |
-| Esc / 빈 곳 클릭 | `Select(null)` + `OnPrimarySelect(null)` → 단일 초록·그룹 초록 동시 해제 |
+| Esc / 빈 곳 클릭 | `MouseManager.ClearSelection()`(= `Select(null)` + `OnPrimarySelect(null)`) → 단일 초록·그룹 초록 동시 해제 |
+| **배치 시작** | `BeginPlacement`가 같은 `ClearSelection()`을 부른다 → 고스트를 드는 순간 초록(단일·그룹)·사거리 원·인포/합성 패널이 전부 내려간다(WL-086). 합성 경로에서 그 직후 켜지는 재료 핑크만 남는다(§5.3) |
 | Shift로 그룹에서 제거 | 코디네이터 `RefreshHighlight` diff가 `OnGroupDeselected` → 즉시 해제(WL-087 표면 재발 없음) |
-| 밤 전환 | 코디네이터 `HandleDayToNight`가 집합 리셋 → 그룹 초록·핑크 해제. 단일 초록은 `MouseManager` 선택이 유지되는 동안 남는다(§5.1 의도된 동작) |
+| 밤 전환 | 코디네이터 `HandleDayToNight`가 집합 리셋 → 그룹 초록·핑크 해제 **+ `PhasePanelSwitcher.ShowNight`가 `MouseManager.ClearSelection()`** → 단일 초록·사거리 원·인포도 함께 해제. 코디네이터만 내리면 `_selected`가 남아 **초록만 잔존하고 그 타워는 밤에 재클릭해도 안 뜬다**(중복 제거에 삼킴) — §4-4 불변식 위반이라 두 신호를 짝지어 보낸다(WL-086) |
 | 합성 소모·철거·사망 | 타워 GO 파괴 → shell은 자식이라 함께 파괴. 코디네이터는 `Tower.ActiveChanged` → `Prune`(WL-076b)로 죽은 참조 정리 |
 | 컴포넌트 파괴 | 런타임 생성물 중 **대상별로 파괴할 것이 없다** — shell 메시는 원본/프리베이크 에셋 공유, 프록시는 static 유닛 큐브 공유, 머티리얼 3개도 static 공유다. shell GO는 자식이라 자동 파괴. → `RangeCircle`(PR#115 리뷰)처럼 `OnDestroy`에서 Mesh/Material을 파괴할 필요가 **없는 이유**를 주석으로 명시한다. 단 static 공유물(머티리얼 3개·유닛 큐브)은 도메인 리로드까지 유지되므로 **대상별 인스턴스를 만들지 않는 규칙을 깨지 말 것** |
 
@@ -444,6 +456,7 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 - [x] 선택된(초록) 대상에 호버해도 노랑으로 밀리지 않음 → §4 (편집 모드 캡처로 확인)
 - [x] 후보 버튼 호버 시 **소모될 재료만** 핑크, 여분은 초록 유지 → §5.3
 - [x] 버튼에서 벗어나거나 패널이 닫히거나 집합이 바뀌면 핑크 잔존 없음 → §5.3 표
+- [x] 버튼 **클릭 후 고스트 배치 중에도** 재료가 핑크 유지, 확정·취소 시점에 해제 → §5.3 `_previewCommitted`
 - [x] 합성 소모·철거된 타워의 아웃라인이 월드에 남지 않음 → §8 (shell이 자식이라 함께 파괴)
 - [x] 아웃라인이 클릭/호버 레이캐스트를 막지 않음 → §3.1, §10-4
 - [x] `TowerGroupSelectable`의 하늘색 바닥 쿼드가 아웃라인으로 대체됨 → §5.2
