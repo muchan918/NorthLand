@@ -5,7 +5,7 @@
 - 노드 레퍼런스: `Docs/Monster/Boss/BossNodeReference.md`
 - 이 문서는 **구현 전 합의된 설계**를 기록한 것이다. 현재 코드는 한 줄도 작성되지 않았다. 구현이 들어가면 실제 코드에 맞춰 이 문서를 갱신하고, 미확정 항목은 [미확정 / TODO](#미확정--todo)에 모아둔다.
 
-> `Assets/Scripts/CombatSystem/Enemy/Boss/`의 중간보스 노드 4종(`BossHealSelfAction` / `BossHpBelowCondition` / `BossRampSpeedMultiplierAction` / `BossSetSpeedMultiplierAction`)과 `MidBossBehavior.asset`은 이 보스와 무관하다. **재사용하지 않고 참조하지도 않는다.** 이 보스의 리프 노드는 전부 신규 작성한다.
+> `Assets/Scripts/CombatSystem/Enemy/MiniBoss/`의 중간보스 노드 4종(`BossHealSelfAction` / `BossHpBelowCondition` / `BossRampSpeedMultiplierAction` / `BossSetSpeedMultiplierAction`)과 `MidBossBehavior.asset`은 이 보스와 무관하다. **재사용하지 않고 참조하지도 않는다.** 이 보스의 리프 노드는 전부 신규 작성한다.
 
 ## 개요
 
