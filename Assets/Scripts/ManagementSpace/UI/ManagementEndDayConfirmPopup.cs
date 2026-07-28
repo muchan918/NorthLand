@@ -77,6 +77,7 @@ public class ManagementEndDayConfirmPopup : MonoBehaviour
         {
             Instance = null;
         }
+        if (DayNightManager.Instance != null) DayNightManager.Instance.OnDayToNight -= Hide;
     }
 
     /// <summary>
