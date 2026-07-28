@@ -32,6 +32,8 @@ namespace NorthLand.Combat
 
         private IRouteMovementAgent routeMovement;
 
+        public MovementMode MovementMode => data != null ? data.MovementMode : global::MovementMode.Ground;
+
         // 보스 BehaviorTree 실행 주체(보스가 아니면 null). 정지 핸들 확보용 필드 —
         // 게임 종료·사망 시 이 에이전트를 꺼서 그래프 틱을 멈춘다.
         private Unity.Behavior.BehaviorGraphAgent behaviorAgent;

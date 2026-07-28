@@ -11,7 +11,8 @@
 | ------------------------------------------- | ---------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | DataTable (CSV→static 레지스트리→SO)        | muchan     | `Assets/Scripts/Data`                                             | Resource, Building, Tower, Enemy 4종 구현. Tower/Enemy는 Combat(`Tower.cs`/`Enemy.cs`)이 `TowerAsset`/`EnemyAsset`을 직접 소비하도록 이관 완료(PR#80) — 잔여 종류 값 채움 + Soldier 이관은 진행 중(WL-001, 부분 착수). Territory/Reward 확장 예정. **Skill(#103)은 CSV 파이프라인을 쓰지 않기로 확정** — 밸런싱 수치 미정 + 스킬 1~2개뿐이라 과설계로 판단, `PlayerSkill` 시스템 행 참고                                |
 | Combat (타워/몬스터 공격·데미지)            | SUNGSOO    | `Assets/Scripts/CombatSystem` | 공격/데미지 코어만. 이동·사망처리·투사체 없음. HP 조회 공개 API(`CurrentHp`/`MaxHp`/`OnHpChanged`) + `PlayerBase` 씬 싱글톤(`Instance`/`OnBaseSpawned`) 추가(#100, HP UI 연동용). `Tower.cs`에 PlayerSkill(#103, muchan)이 버프 배율 필드(`damageMultiplier`/`attackSpeedMultiplier`)와 자가 등록 정적 리스트 `Tower.Active`를 추가함 — 기존 공격 로직·필드는 무수정. `Projectile.cs`에 PlayerSkill(#169, muchan)이 static 명중 이벤트 `Projectile.DamageDealt(IAttacker, IDamageable)` 추가(단일/스플래시/체인 데미지 4지점 직후 발행, 순수 추가 — 기존 로직 무수정. static이라 구독 해제는 구독자 책임, 현재 구독자는 `BurnBuff`). **`Tower.cs`에 TowerFusion(#195, muchan)이 읽기 접근자 `Asset`(=data) 추가 — 순수 읽기(배치된 타워의 원본 SO 조회, 합성 재료 TowerID 매칭용), 기존 로직·필드 무수정** |
-| BattleMapBuilder (절차적 전투 맵)           | SUNJIN     | `Assets/Scripts/CombatSpace/MapBuilder`                          | 7×7 블록 경로 생성 구현. 싸이클 버그 해결이 다음 빌드 목표                                                                                                              |
+| BattleMapBuilder (절차적 전투 맵)           | SUNJIN     | `Assets/Scripts/CombatSpace/MapBuilder`                          | 7×7 블록 경로 생성 구현. 싸이클 버그 해결이 다음 빌드 목표      
+| MonsterMovement (지상/공중 경로 이동)       | SUNJIN     | `Assets/Scripts/Monster/MonsterMoveMent`, `Assets/Scripts/CombatSystem/IMovementAgent.cs` | `IMovementAgent`에서 경로 추종 계약을 `IRouteMovementAgent`로 분리. 지상은 `MonsterMove`, 공중은 `FlyingMonsterMove`가 구현한다. 공중 이동은 기존 경로를 일정 간격으로 샘플링하고 고도 오프셋을 적용해 선택된 지점 사이를 직선 비행한다. 이동속도 다축 합성은 순수 C# `MoveSpeedComposer` 한 곳에서 계산하며 두 이동 컴포넌트가 위임한다. `Enemy`·`MonsterSpawn`·`MonsterStateMachine`은 구체 이동 타입이 아니라 인터페이스를 소비한다(#209). |
 | MouseManager (입력/선택/배치)               | n0wst4ndup | `Assets/Scripts/GameManager/MouseManager`                            | 3상태 머신 구현(Idle/Placement/SkillTargeting, #103에서 SkillTargeting 추가). Snap 항등·CanPlaceAt 항상 true (TODO). 스킬 타겟팅은 전투 타일 전체 허용(`CombatMapTileView` 유무 질의, 도로 전용 제한 제거)                                                                                                                  |
 | PlayerSkill (플레이어 스킬, #103)           | muchan     | `Assets/Scripts/Skill`                                                | 클릭 시전 감전 스킬(기본 스킬 1종). 밤 게이팅(`Tower.cs`와 동일하게 `DayNightManager.CurrentPhase` 직접 폴링)·쿨다운·범위 데미지(`IDamageable`/`DamageInfo` 재사용, 새 데미지 경로 없음). 수치는 CSV가 아니라 `SkillManager` 인스펙터 직접 입력(WL-015와 같은 축). **버프 스킬 구현 완료**(2번째 스킬, `BuffSkillManager`) — 타겟팅 없이 클릭 즉시 발동, `Tower.Active` 순회해 씬의 모든 Tower에 공격력/공격속도 배율을 일정 시간 부여(`Tower.ApplyBuff`). AuraTower(Magic 타입)는 `AttackFields` 자체가 없어 버프 대상 아님. 보상 기반 특수효과 업그레이드(#169, 레벨 중첩) 진행 중 — **이벤트 구독 구조**(이슈 원문의 "enum+중앙 컨트롤러" 방침에서 변경): `SkillManager`가 임팩트마다 `ImpactResolved(SkillCastContext)` 이벤트 발행(효과 존재 모름, 구독자 0이면 기본 감전만). 특수효과는 추상 `SkillEffect`(MonoBehaviour, `SkillEffectManager` 오브젝트에 부착) 파생 — 레벨 0→1 시 스스로 이벤트 구독, 재선택은 `Level` 변수만 가산, 파괴 시 해제. `SkillEffectManager`는 라우터로 축소(`ApplyReward`→타입 매칭 효과에 위임, `GetLevel` 조회). `SkillCastContext`(착탄 위치·맞은 적 버퍼·`ExtraImpacts` 가산 필드)로 시전 계열 효과(추가시전: `ImpactIndex==0` 재귀 가드)까지 같은 이벤트로 수용. **화상(`BurnEffect`) 구현 완료** — 대상의 `StatusEffectHandler.ApplyOrRefresh` 재사용(AuraTower 패턴, effectId=`"skill_burn"` 해시, Combat 무수정), 틱 데미지 = 레벨 × 인스펙터 수치. **폭탄(`BombEffect`+`SkillBomb`) 구현 완료** — 착탄 지점에 `Assets/Prefabs/Skill/SkillBomb.prefab` 설치 → 지연 후 반경 폭발(OverlapSphere, 감전과 동일 LayerMask/DamageInfo 규약), 폭발 데미지 = 레벨 × 인스펙터 수치. **추가시전(`CountEffect`) 구현 완료** — 총 발동 = 1+레벨, 반복분은 UniTask로 `repeatInterval`(기본 0.5s) 간격 발동(`ImpactIndex==0` 재귀 가드, 반복분에서도 화상·폭탄 정상 발동). **버프 화상(`BurnBuff`) 구현 완료** — `SkillEffect`의 구독 대상이 가상화됨(`TrySubscribe`/`Unsubscribe` override, 기본은 감전): BurnBuff는 `BuffSkillManager.BuffResolved(BuffCastContext)`에 구독, 버프 지속시간 창 동안 `Projectile.DamageDealt`를 구독해 타워 투사체에 명중당한 적에게 화상(effectId=`"buff_burn"`, 재시전 시 창 연장, 창 밖 구독 해제). 새 효과 추가 = `SkillEffect` 파생 1개 + 씬 컴포넌트 부착(스킬·매니저 무수정). **웨이브 종료 취소(#200)**: `SkillManager`(추가시전 반복분)·`SkillBomb`(지연 폭탄)이 `DayNightManager.OnNightToDay` 구독 → 밤→낮 시 진행 중 효과 취소(낮 잔존 발동 방지). 조준 모드 취소는 `PhasePanelSwitcher`가 `OnDayStart`에서 담당(기존). **마법 연구소 기본 스탯 배율 강화 구현 완료(#205)** — `SkillManager`/`BuffSkillManager`가 각자 `magic_lab` `BuildingAsset` 참조 + `ManagementController.GetUpgradeLevel`로 레벨을 pull, 레벨→배율 매핑은 `BuildingAsset.Skill.UpgradeLevels`(SO, 도달 비용과 같은 리스트, WL-015와 같은 축)에 authoring — 씬에는 배율 데이터가 없어 밸런싱이 `GameScene.unity`를 안 건드린다(PR#216 리뷰 반영). 시전 시점 base damage/radius/cooldown·버프 배율/지속시간/쿨다운에 배율로 적용 — 보상 기반 특수효과(`SkillEffect.Level`, 위) 축과는 완전히 독립, 이벤트 구독 흐름 무수정(`PlayerSkill.md` §3.1) |
 | WaveReward (웨이브 클리어 3택1 보상)        | SUNJIN     | `Assets/Scripts/Reward`                                               | 3택1 선택 UI(`WaveRewardSelectionUI`, timeScale 0 정지 + UniTask 대기)·랜덤 추출(`WaveRewardPool`)·웨이브 클리어 트리거(`WaveCompletionCoordinator`) 배선 완료(#132/#133, PR#150). `WaveRewardController.GrantReward`는 로그 + `SkillEffectManager.ApplyReward` 호출(#169 1단계, 매니저 없어도 동작). `WaveRewardType`(Burn/Bomb/Count/BuffBurn — 전부 스킬 특수효과, 임시 슬롯 소진)별로 매니저가 레벨 누적. 타입 확정·`NorthLand_Rewards` 로컬라이즈 키 정리는 #169 후속 단계(WL-043) |
@@ -58,25 +59,47 @@
   — HP UI(`Assets/Scripts/UI/HealthUI`, #100)가 구독하는 공개 계약. `PlayerBase.Instance`는 성문
   (BaseGate) 런타임 스폰 시점(`MonsterSpawn.UpdateGate`)에 설정됨 — `TowerInfoUI`/`DayNightManager`와
   동일한 씬 싱글톤 계보
-- **`IMovementAgent` 이동속도 다축 합성 계약(#233)** — `float EffectiveMoveSpeed { get; }`,
-  `float PatternSpeedFactor { get; set; }`, `void AddSpeedDebuff(int sourceId, float factor)`,
-  `void RemoveSpeedDebuff(int sourceId)`. namespace `NorthLand.Combat`, 구현체는 `MonsterMove`.
-  `최종 속도 = 기준 속도(SetMoveSpeed) × 패턴 배수 × Π 디버프 배수`(하한 클램프 `minMoveSpeed` 0.15).
-  **이동속도 감소 타워가 소비할 창구** — 축이 분리돼 있어 보스 돌진 가속(패턴 축)과 서로를 지우지 않는다.
-  소스별 곱산 중첩이며 같은 `sourceId`는 갱신만 된다(`Tower.ApplyBuff`와 같은 규약). 구체 타입
-  `MonsterMove`가 아니라 이 인터페이스로 부를 것. **완전 정지는 이 축이 아니라 `IsStopped`로 표현한다** —
-  하한 클램프가 있어 배수 0으로도 멈추지 않는다(감속으로 웨이브를 소프트락하는 경로 차단)
+- **`IMovementAgent` 이동속도 다축 합성 계약(#233/#209)** —
+  `bool IsStopped { get; set; }`, `void SetMoveSpeed(float moveSpeed)`,
+  `float EffectiveMoveSpeed { get; }`, `float PatternSpeedFactor { get; set; }`,
+  `void AddSpeedDebuff(int sourceId, float factor)`,
+  `void RemoveSpeedDebuff(int sourceId)`. namespace `NorthLand.Combat`.
+  구현체는 `MonsterMove`와 `FlyingMonsterMove`이며, 구체 타입이 아니라 이 인터페이스로 소비한다.
+  최종 속도는 순수 C# `MoveSpeedComposer`가 한 곳에서
+  `기준 속도(SetMoveSpeed) × 패턴 배수 × Π 디버프 배수`로 계산하고
+  `minMoveSpeed`(기본 0.15) 하한을 적용한다.
+  이동속도 감소 타워와 보스 BT가 소비하는 공통 창구이며, 패턴 축과 디버프 축이 분리되어
+  서로의 값을 덮어쓰지 않는다. 디버프는 소스별 곱산 중첩이고 같은 `sourceId`는 갱신만 한다.
+  **완전 정지는 속도 배수가 아니라 `IsStopped`로 표현한다** — 하한 클램프가 있어
+  배수를 0으로 설정해도 완전히 정지하지 않는다.
+- **`IRouteMovementAgent : IMovementAgent` 경로 이동 계약(#209)** —
+  `bool HasRouteRemaining { get; }`, `event Action RouteCompleted`,
+  `void SetRoute(IReadOnlyList<Vector3> routePoints)`,
+  `void SetMoveEnabled(bool enabled)`.
+  구현체는 지상 이동 `MonsterMove`와 공중 이동 `FlyingMonsterMove`.
+  `MonsterSpawn`은 스폰 시 이 인터페이스를 찾아 경로를 주입하며,
+  `Enemy`와 `MonsterStateMachine`도 같은 인터페이스로 정지·이동·경로 완료를 제어한다.
+  `FlyingMonsterMove`는 전달받은 지상 경로에서 일정 간격의 지점을 샘플링하고
+  고도 오프셋을 적용해 지점 사이를 직선으로 이동한다. 마지막 경로 지점은
+  샘플링 간격과 관계없이 반드시 포함한다.
+- **`Enemy.MovementMode` 공중/지상 런타임 판별 창구(#209)** —
+  `EnemyAsset.MovementMode`를 읽는 공개 접근자이며 데이터가 없으면 `Ground`를 반환한다.
+  타워의 후속 안티에어 타겟팅 등 외부 시스템은 이동 컴포넌트 타입을 직접 검사하지 않고
+  이 접근자를 사용한다. `MonsterSpawn.SpawnPrefab`은 `MovementMode.Flying`인데
+  `FlyingMonsterMove`가 없는 프리팹을 오류로 처리하고 제거해 데이터와 실제 이동 구현의
+  불일치를 스폰 시점에 차단한다. 공중/지상 분리를 위한 별도 Unity 레이어는 사용하지 않는다.
 - `Enemy.MovementOwnedByBehavior` (bool, #233) — BT 이동 소유권. 켜져 있는 동안 `Enemy.Update`가
   `movement.IsStopped`를 건드리지 않고, `monsterStateMachine.SetHasTarget(false)`를 매 프레임 내려준다.
   타겟 통지를 다루는 이유: `MonsterStateMachine`이 Attack 상태에서 `SetMoveEnabled(false)`를 걸어
   (`MonsterStateMachine.cs:141`) 돌진이 본진 사거리 진입 시 멈추기 때문. **통지를 막는 것만으로는
-  부족하다** — `MonsterMove`는 `IsStopped`(`:147`)와 `canMove`(`:159`) 두 게이트가 독립이라, 소유권
-  획득 전 Attack 상태였으면 `canMove == false`가 latch되어 돌진 노드가 보스를 움직일 수 없다.
+부족하다 — `IRouteMovementAgent` 구현체(`MonsterMove`/`FlyingMonsterMove`)는 `IsStopped`와
+`SetMoveEnabled`가 제어하는 내부 이동 허용 게이트가 독립이라, 소유권 획득 전 Attack 상태였다면
+내부 이동 허용 값이 `false`로 남아 돌진 노드가 몬스터를 움직일 수 없다.
   부수 효과로 소유권 중에는 근접 평타가 나가지 않는다. **켠 쪽이 반드시 반납할 책임을 진다**
 - `Enemy.DamageTakenFactor` (float, #233) — 받는 피해 배수. `TakeDamage` 한 곳에서만 적용된다.
   0 미만은 클램프(0=무적), 상한 없음(1 초과=취약)
 - `Enemy.SetSpeedMultiplier(float)` / `Enemy.SpeedMultiplier` — #233 이후 `movement`의 **패턴 축 위임**.
-  값 소유자는 `MonsterMove`이며 `Enemy`는 로컬 필드를 들지 않는다. 중간보스 그래프
+ 값 소유자는 현재 이동 구현체가 위임하는 `MoveSpeedComposer`이며 `Enemy`는 로컬 필드를 들지 않는다. 중간보스 그래프
   (`MidBossBehavior.asset`)가 쓰는 진입점이라 시그니처를 유지했다. 신규 노드는 `EnemyAgent`를 경유할 것
 - `MonsterSpawn.SpawnMonster(GameObject prefab)` / `MonsterSpawn.AliveMonsterCount` (#233) —
   런타임 소환 창구. 웨이브 스폰과 같은 경로를 타 소환체도 `monsterParent` 자식으로 들어가고 경로를 받는다

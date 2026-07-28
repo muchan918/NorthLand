@@ -1,16 +1,14 @@
 using System;
-using NorthLand.Combat;
 using System.Collections.Generic;
+using NorthLand.Combat;
 using UnityEngine;
 
 public class FlyingMonsterMove : MonoBehaviour, IRouteMovementAgent
 {
-
-
-    [SerializeField] private float arriveDistance = 0.05f;
+    [SerializeField]
+    private float arriveDistance = 0.05f;
 
     [Header("Flying Movement")]
-
     [SerializeField, Min(0f)]
     private float altitude = 4f;
 
@@ -20,121 +18,75 @@ public class FlyingMonsterMove : MonoBehaviour, IRouteMovementAgent
     [SerializeField, Min(0f)]
     private float turnSpeed = 6f;
 
-    private bool canMove = true;
+    [Header("Move Speed")]
+    [SerializeField]
+    private float fallbackMoveSpeed = 3f;
+
+    // 완전 정지는 속도를 0으로 만드는 대신 IsStopped로 처리한다.
+    // 감속 효과로 몬스터가 영구 정지해 웨이브가 막히는 것을 방지한다.
+    [SerializeField]
+    private float minMoveSpeed = 0.15f;
 
     private readonly List<Vector3> route = new List<Vector3>();
+
     private int currentRouteIndex;
-
-    public bool HasRouteRemaining => currentRouteIndex < route.Count;
-    public bool CanMove => canMove;
-    public bool IsStopped { get; set; }
-
-    [SerializeField] private float fallbackMoveSpeed = 3f;
-
-    // 이동속도 다축 합성의 하한(#233). 패턴 배수와 디버프 배수가 곱해져 0에 수렴해도
-    // 이 값 아래로는 내려가지 않는다. 완전 정지는 속도 축이 아니라 IsStopped로만 표현한다 —
-    // 감속으로 몬스터를 영구 정지시켜 웨이브를 소프트락하는 경로를 막기 위함이다.
-    [SerializeField] private float minMoveSpeed = 0.15f;
-
-    // 기준 이동속도(Enemy가 Stat.MoveSpeed로 주입). 배수가 곱해지기 전의 값이다.
-    private float baseMoveSpeed;
-    private bool hasInjectedMoveSpeed;
-
-    // 패턴 축 — BT 노드가 소유(돌진 가속 / 방어 태세 크롤).
-    private float patternSpeedFactor = 1f;
-
-    // 디버프 축 — 소스별 곱산 중첩(이동속도 감소 타워 등). product는 캐시다.
-    private readonly Dictionary<int, float> speedDebuffs = new Dictionary<int, float>();
-    private float speedDebuffProduct = 1f;
-
-    // 합성 결과. Update가 매 프레임 곱셈을 다시 하지 않도록 축이 바뀔 때만 재계산한다.
-    private float effectiveMoveSpeed;
-
-    public event Action RouteCompleted;
-
+    private bool canMove = true;
     private bool routeCompleted;
     private bool hasRoute;
 
-    private void Awake()
-    {
-        if (!hasInjectedMoveSpeed)
-        {
-            baseMoveSpeed = fallbackMoveSpeed;
-        }
+    private MoveSpeedComposer speedComposer;
 
-        RecomputeEffectiveMoveSpeed();
-    }
+    public bool HasRouteRemaining => currentRouteIndex < route.Count;
 
-    // 기준 이동속도를 주입한다(배수 축은 건드리지 않는다).
-    // 0 이하는 데이터 오류로 보고 폴백을 쓴다 — 배수가 0에 수렴하는 경우는 minMoveSpeed가 받아내므로
-    // 이 폴백 경로에 걸리지 않는다(#233 이전에는 크롤 배수가 여기 걸려 오히려 빨라졌다).
-    public void SetMoveSpeed(float value)
-    {
-        if (value > 0f)
-        {
-            baseMoveSpeed = value;
-        }
-        else
-        {
-            baseMoveSpeed = Mathf.Max(0.01f, fallbackMoveSpeed);
+    public bool CanMove => canMove;
 
-            Debug.LogWarning($"[{name}] 유효한 MoveSpeed가 없어 폴백값 {baseMoveSpeed}을 사용합니다.",this);
-        }
+    public bool IsStopped { get; set; }
 
-        hasInjectedMoveSpeed = true;
-
-        RecomputeEffectiveMoveSpeed();
-    }
-
-    // ── 이동속도 다축 합성(IMovementAgent 계약) ─────────────────────────────
-
-    public float EffectiveMoveSpeed => effectiveMoveSpeed;
+    public float EffectiveMoveSpeed => SpeedComposer.EffectiveMoveSpeed;
 
     public float PatternSpeedFactor
     {
-        get => patternSpeedFactor;
-        set
-        {
-            patternSpeedFactor = Mathf.Max(0f, value);
+        get => SpeedComposer.PatternSpeedFactor;
+        set => SpeedComposer.PatternSpeedFactor = value;
+    }
 
-            RecomputeEffectiveMoveSpeed();
+    public event Action RouteCompleted;
+
+    private MoveSpeedComposer SpeedComposer
+    {
+        get
+        {
+            speedComposer ??= new MoveSpeedComposer(fallbackMoveSpeed,minMoveSpeed);
+
+            return speedComposer;
         }
     }
 
+    private void Awake()
+    {
+        // Enemy와 이동 컴포넌트의 Awake 실행 순서와 관계없이
+        // 속도 컴포저가 사용할 준비가 되도록 초기화한다.
+        _ = SpeedComposer;
+    }
+
+    public void SetMoveSpeed(float value)
+    {
+        bool usedFallback =SpeedComposer.SetBaseMoveSpeed(value);
+
+        if (usedFallback)
+        {
+            Debug.LogWarning($"[{name}] 유효한 MoveSpeed가 없어 폴백값 {fallbackMoveSpeed}을 사용합니다.",this);
+        }
+    }
 
     public void AddSpeedDebuff(int sourceId, float factor)
     {
-        speedDebuffs[sourceId] = Mathf.Max(0f, factor);
-
-        RecomputeSpeedDebuffProduct();
+        SpeedComposer.AddSpeedDebuff(sourceId, factor);
     }
 
     public void RemoveSpeedDebuff(int sourceId)
     {
-        if (speedDebuffs.Remove(sourceId))
-        {
-            RecomputeSpeedDebuffProduct();
-        }
-    }
-
-    private void RecomputeSpeedDebuffProduct()
-    {
-        speedDebuffProduct = 1f;
-
-        foreach (float factor in speedDebuffs.Values)
-        {
-            speedDebuffProduct *= factor;
-        }
-
-        RecomputeEffectiveMoveSpeed();
-    }
-
-    private void RecomputeEffectiveMoveSpeed()
-    {
-        effectiveMoveSpeed = Mathf.Max(
-            minMoveSpeed,
-            baseMoveSpeed * patternSpeedFactor * speedDebuffProduct
-        );
+        SpeedComposer.RemoveSpeedDebuff(sourceId);
     }
 
     public void SetRoute(IReadOnlyList<Vector3> routePoints)
@@ -155,12 +107,15 @@ public class FlyingMonsterMove : MonoBehaviour, IRouteMovementAgent
         int safeWaypointStep = Mathf.Max(1, waypointStep);
         int lastAddedIndex = -1;
 
+        // 지상 경로의 모든 지점을 따라가지 않고 일정 간격으로 샘플링한다.
+        // 선택한 지점 사이를 직선으로 이동하여 경로 모서리를 가로지른다.
         for (int i = 0; i < routePoints.Count; i += safeWaypointStep)
         {
             route.Add(ApplyAltitude(routePoints[i]));
             lastAddedIndex = i;
         }
 
+        // 마지막 지점은 샘플링 간격과 관계없이 반드시 포함한다.
         int finalIndex = routePoints.Count - 1;
 
         if (lastAddedIndex != finalIndex)
@@ -175,11 +130,12 @@ public class FlyingMonsterMove : MonoBehaviour, IRouteMovementAgent
             return;
         }
 
-        // 지면에서 생성된 뒤 상승하지 않고 처음부터 공중에서 시작한다.
+        // 지상에서 생성된 뒤 상승하지 않고 처음부터 비행 고도에서 시작한다.
         transform.position = route[0];
 
         SkipReachedPoints();
     }
+
     private Vector3 ApplyAltitude(Vector3 point)
     {
         point.y += altitude;
@@ -195,8 +151,7 @@ public class FlyingMonsterMove : MonoBehaviour, IRouteMovementAgent
 
         if (currentRouteIndex >= route.Count)
         {
-            routeCompleted = true;
-            RouteCompleted?.Invoke();
+            CompleteRoute();
             return;
         }
 
@@ -206,49 +161,56 @@ public class FlyingMonsterMove : MonoBehaviour, IRouteMovementAgent
         }
 
         Vector3 targetPosition = route[currentRouteIndex];
-
         Vector3 direction = targetPosition - transform.position;
 
-        Vector3 lookDirection = direction;
-        lookDirection.y = 0f;
+        RotateTowards(direction);
 
-        if (lookDirection.sqrMagnitude > 0.001f)
-        {
-            Quaternion targetRotation =
-                Quaternion.LookRotation(lookDirection);
+        transform.position = Vector3.MoveTowards(transform.position,targetPosition,EffectiveMoveSpeed * Time.deltaTime);
 
-            transform.rotation = Quaternion.Slerp(
-                transform.rotation,
-                targetRotation,
-                turnSpeed * Time.deltaTime
-            );
-        }
-
-        transform.position = Vector3.MoveTowards(
-            transform.position,
-            targetPosition,
-            effectiveMoveSpeed * Time.deltaTime
-        );
-
-        if (Vector3.Distance(transform.position, targetPosition) <= arriveDistance)
+        if (Vector3.Distance(transform.position,targetPosition) <= arriveDistance)
         {
             currentRouteIndex++;
             SkipReachedPoints();
         }
     }
 
+    private void RotateTowards(Vector3 direction)
+    {
+        // 고도는 유지하면서 수평 이동 방향으로만 회전한다.
+        direction.y = 0f;
+
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            return;
+        }
+
+        Quaternion targetRotation = Quaternion.LookRotation(direction);
+
+        transform.rotation = Quaternion.Slerp(transform.rotation,targetRotation,turnSpeed * Time.deltaTime);
+    }
+
     private void SkipReachedPoints()
     {
-        while (currentRouteIndex < route.Count && Vector3.Distance(transform.position, route[currentRouteIndex]) <= arriveDistance)
+        while (currentRouteIndex < route.Count &&Vector3.Distance(transform.position,route[currentRouteIndex]) <= arriveDistance
+        )
         {
             currentRouteIndex++;
         }
+    }
+
+    private void CompleteRoute()
+    {
+        if (routeCompleted)
+        {
+            return;
+        }
+
+        routeCompleted = true;
+        RouteCompleted?.Invoke();
     }
 
     public void SetMoveEnabled(bool enabled)
     {
         canMove = enabled;
     }
-
-
 }

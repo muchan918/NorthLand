@@ -87,6 +87,18 @@ MonoBehaviour:
     m_Key: enemies.grummy.blue.desc
     m_Metadata:
       m_Items: []
+  - m_Id: 3094128003018752
+    m_Key: enemies.bat.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3094256038342656
+    m_Key: enemies.bat.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3094377413111808
+    m_Key: enemies.bat.desc
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

@@ -354,6 +354,16 @@ public class MonsterSpawn : MonoBehaviour
             return null;
         }
 
+
+        if (enemy.MovementMode == MovementMode.Flying && routeMovement is not FlyingMonsterMove)
+        {
+            Debug.LogError($"[{monster.name}] MovementMode는 Flying이지만 " + $"FlyingMonsterMove가 연결되지 않았습니다.", monster);
+
+            Destroy(monster);
+            return null;
+        }
+
+
         // BT 소환 노드가 스포너를 거쳐야 소환체를 monsterParent에 넣을 수 있는데, 프리팹은
         // 씬 참조를 들 수 없다. 그래서 경로를 주입하는 이 자리에서 스포너 자신도 주입한다.
         // EnemyAgent가 없는 프리팹(일반 잡몹)은 그냥 건너뛴다 — 선택적 의존이다.

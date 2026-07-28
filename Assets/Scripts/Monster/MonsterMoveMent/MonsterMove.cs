@@ -25,106 +25,75 @@ public class MonsterMove : MonoBehaviour, IRouteMovementAgent
     // 감속으로 몬스터를 영구 정지시켜 웨이브를 소프트락하는 경로를 막기 위함이다.
     [SerializeField] private float minMoveSpeed = 0.15f;
 
-    // 기준 이동속도(Enemy가 Stat.MoveSpeed로 주입). 배수가 곱해지기 전의 값이다.
-    private float baseMoveSpeed;
-    private bool hasInjectedMoveSpeed;
-
-    // 패턴 축 — BT 노드가 소유(돌진 가속 / 방어 태세 크롤).
-    private float patternSpeedFactor = 1f;
-
-    // 디버프 축 — 소스별 곱산 중첩(이동속도 감소 타워 등). product는 캐시다.
-    private readonly Dictionary<int, float> speedDebuffs = new Dictionary<int, float>();
-    private float speedDebuffProduct = 1f;
-
-    // 합성 결과. Update가 매 프레임 곱셈을 다시 하지 않도록 축이 바뀔 때만 재계산한다.
-    private float effectiveMoveSpeed;
-
     public event Action RouteCompleted;
 
     private bool routeCompleted;
     private bool hasRoute;
 
+    private MoveSpeedComposer speedComposer;
+
+    private MoveSpeedComposer SpeedComposer
+    {
+        get
+        {
+            speedComposer ??= new MoveSpeedComposer(fallbackMoveSpeed,minMoveSpeed);
+            return speedComposer;
+        }
+    }
+
     private void Awake()
     {
-        if (!hasInjectedMoveSpeed)
-        {
-            baseMoveSpeed = fallbackMoveSpeed;
-        }
-
-        RecomputeEffectiveMoveSpeed();
+        _ = SpeedComposer;
     }
+
 
     // 기준 이동속도를 주입한다(배수 축은 건드리지 않는다).
     // 0 이하는 데이터 오류로 보고 폴백을 쓴다 — 배수가 0에 수렴하는 경우는 minMoveSpeed가 받아내므로
     // 이 폴백 경로에 걸리지 않는다(#233 이전에는 크롤 배수가 여기 걸려 오히려 빨라졌다).
+  
+
+
     public void SetMoveSpeed(float value)
     {
-        if (value > 0f)
+        bool usedFallback = SpeedComposer.SetBaseMoveSpeed(value);
+
+        if (usedFallback)
         {
-            baseMoveSpeed = value;
+            Debug.LogWarning(
+                $"[{name}] 유효한 MoveSpeed가 없어 폴백값 " +
+                $"{fallbackMoveSpeed}을 사용합니다.",
+                this
+            );
         }
-        else
-        {
-            baseMoveSpeed = Mathf.Max(0.01f, fallbackMoveSpeed);
-
-            Debug.LogWarning($"[{name}] 유효한 MoveSpeed가 없어 폴백값 {baseMoveSpeed}을 사용합니다.",this);
-        }
-
-        hasInjectedMoveSpeed = true;
-
-        RecomputeEffectiveMoveSpeed();
     }
+
+ 
+
+
 
     // ── 이동속도 다축 합성(IMovementAgent 계약) ─────────────────────────────
 
-    public float EffectiveMoveSpeed => effectiveMoveSpeed;
+    public float EffectiveMoveSpeed => SpeedComposer.EffectiveMoveSpeed;
 
     public float PatternSpeedFactor
     {
-        get => patternSpeedFactor;
-        set
-        {
-            patternSpeedFactor = Mathf.Max(0f, value);
-
-            RecomputeEffectiveMoveSpeed();
-        }
+        get => SpeedComposer.PatternSpeedFactor;
+        set => SpeedComposer.PatternSpeedFactor = value;
     }
+
 
 
     public void AddSpeedDebuff(int sourceId, float factor)
     {
-        speedDebuffs[sourceId] = Mathf.Max(0f, factor);
-
-        RecomputeSpeedDebuffProduct();
+        SpeedComposer.AddSpeedDebuff(sourceId, factor);
     }
 
     public void RemoveSpeedDebuff(int sourceId)
     {
-        if (speedDebuffs.Remove(sourceId))
-        {
-            RecomputeSpeedDebuffProduct();
-        }
+        SpeedComposer.RemoveSpeedDebuff(sourceId);
     }
 
-    private void RecomputeSpeedDebuffProduct()
-    {
-        speedDebuffProduct = 1f;
 
-        foreach (float factor in speedDebuffs.Values)
-        {
-            speedDebuffProduct *= factor;
-        }
-
-        RecomputeEffectiveMoveSpeed();
-    }
-
-    private void RecomputeEffectiveMoveSpeed()
-    {
-        effectiveMoveSpeed = Mathf.Max(
-            minMoveSpeed,
-            baseMoveSpeed * patternSpeedFactor * speedDebuffProduct
-        );
-    }
 
 
     public void SetRoute(IReadOnlyList<Vector3> routePoints)
@@ -172,11 +141,7 @@ public class MonsterMove : MonoBehaviour, IRouteMovementAgent
             transform.rotation = Quaternion.LookRotation(direction);
         }
 
-        transform.position = Vector3.MoveTowards(
-            transform.position,
-            targetPosition,
-            effectiveMoveSpeed * Time.deltaTime
-        );
+        transform.position = Vector3.MoveTowards(transform.position,targetPosition,EffectiveMoveSpeed * Time.deltaTime);
 
         if (Vector3.Distance(transform.position, targetPosition) <= arriveDistance)
         {
