@@ -1,7 +1,7 @@
 # Tank(임시명) BT 그래프 배선 스펙
 
 - 관련 이슈: #235
-- 그래프 에셋: `Assets/Behavior/TankBehavior.asset` (신규 — Project 우클릭 → Create → Behavior → Behavior Graph)
+- 그래프 에셋: `Assets/Behavior/TankBossBehavior.asset`
 - 보스 에셋: `Assets/Resources/ScriptableObjects/Enemies/tank.asset`
 - 보스 프리팹: `Assets/Prefabs/Monster/Tank.prefab`
 - 설계 근거: `BossDesign.md` 「행동 패턴」 / 노드 정의: `BossNodeReference.md`
@@ -61,7 +61,7 @@
    │        │        └─ Enemy Apply Tower Debuff
    │        │
    │        ├─ Sequence                                         ── P2 방어 태세
-   │        │  ├─ Conditional Guard (Action)
+   │        │  ├─ Conditional Guard          
    │        │  │     · Enemy Units In Range   (Ally / Backward)
    │        │  └─ Run In Parallel             [Mode: Until Any Complete]
    │        │     ├─ Enemy Show Telegraph Circle                (디버그: 파랑)
@@ -80,6 +80,24 @@
          ├─ Wait (Seconds)
          └─ Enemy Spawn Minions
 ```
+
+## ⚠ 감속 파훼 불변식 — 수치를 튜닝할 때 반드시 지킬 것
+
+#232는 "모든 패턴에 파훼법이 있다"를 설계 축으로 못박았다. P1의 파훼 수단은 이동속도 감소 타워이고, 그것이 성립하려면 **감속 n중첩에서 실효 속도가 `P1_MinSpeed` 아래로 떨어져야** 한다.
+
+```text
+Boss.Stat.MoveSpeed × P1_MaxFactor × slowFactor^n  <  P1_MinSpeed
+```
+
+현재 값(`MoveSpeed 12` × `MaxFactor 7` = 84, 감속 타워 배율 0.5 가정):
+
+| 감속 중첩 | 실효 속도 | vs `MinSpeed 25` | 충돌 피해 |
+|---|---|---|---|
+| 0 | 84 | — | 126 (성문 HP 1000의 12.6%) |
+| 1 | 42 | 초과 | 63 (절반) |
+| 2 | 21 | **미달** | **0 — 완전 파훼** |
+
+**`MaxFactor`를 올리거나 `MinSpeed`를 내리면 이 부등식이 깨진다.** 실제로 `MaxFactor`를 3→7로 올렸을 때 2중첩에서도 피해가 남아 파훼가 무력화됐고(WL-122), `MinSpeed`를 15→25로 올려 복원했다. **파훼 가능성은 밸런스가 아니라 설계 불변식이다** — 밸런싱으로 수치를 만질 때 이 표를 다시 계산할 것.
 
 ### 구조상 반드시 지켜야 하는 것
 
@@ -105,24 +123,24 @@
 |---|---|---|---|
 | `P1_Key` | String | `dash` | 게이트 ↔ 기록 노드가 같은 값을 써야 한다 |
 | `P1_Gate` | Float | `-1` | **음수 = 1회 한정.** 0이면 무제한이 되어 경고가 뜬다 |
-| `P1_TriggerDistance` | Float | `30` | 본진까지 이 거리 미만이면 발동 |
+| `P1_TriggerDistance` | Float | `100` | 본진까지 이 거리 미만이면 발동 |
 | `P1_HoldDuration` | Float | `1.5` | 예고(제자리 정지) 길이 |
-| `P1_MaxFactor` | Float | `3` | 속도 배수 상한 → 실효 36 |
-| `P1_AccelPerSecond` | Float | `2` | 1→3까지 약 1초 |
+| `P1_MaxFactor` | Float | `7` | 속도 배수 상한 → 실효 84. **파훼 불변식 참조** |
+| `P1_AccelPerSecond` | Float | `3` | 1→7까지 2초 |
 | `P1_ArriveDistance` | Float | `5` | **`AttackRange`(3)보다 크게.** 아래 「경로 끝 파괴」 참조 |
-| `P1_DamagePerSpeedUnit` | Float | `1.5` | 실효 36 × 1.5 = 54 피해 |
-| `P1_MinSpeed` | Float | `15` | 기본 속도 12보다 높게 — 감속되면 피해 0 |
+| `P1_DamagePerSpeedUnit` | Float | `1.5` | 실효 84 × 1.5 = 126 피해 (성문 HP 1000의 12.6%) |
+| `P1_MinSpeed` | Float | `25` | 이 속도 미만이면 피해 0. **파훼 불변식이 이 값에 걸린다** |
 | `P1_MaxDuration` | Float | `15` | 돌진 상한. **0이면 영구 Running 위험** |
 
 ### P2 방어 태세
 
 | 변수 | 타입 | 값 | 비고 |
 |---|---|---|---|
-| `P2_BackRadius` | Float | `15` | 뒤쪽 판정 반경 |
+| `P2_BackRadius` | Float | `40` | 뒤쪽 판정 반경 |
 | `P2_MinAllies` | Int | `3` | 이 수 이상이면 발동 |
-| `P2_SpeedFactor` | Float | `0.15` | 크롤. 하한 클램프(0.15) 때문에 완전 정지는 안 된다 |
+| `P2_SpeedFactor` | Float | `0.24` | 크롤. 하한 클램프(0.15) 때문에 완전 정지는 안 된다 |
 | `P2_DamageTakenFactor` | Float | `0.4` | 받는 피해 40% |
-| `P2_Duration` | Float | `1.5` | **짧게 유지.** 길면 조건이 풀린 뒤에도 크롤이 이어진다(비선점 Selector) |
+| `P2_Duration` | Float | `3` | **짧게 유지.** 길면 조건이 풀린 뒤에도 크롤이 이어진다(비선점 Selector) |
 
 ### P3 마력 봉인
 
@@ -130,9 +148,9 @@
 |---|---|---|---|
 | `P3_Key` | String | `seal` | |
 | `P3_Cooldown` | Float | `15` | **0이면 무제한 발동 + 경고** |
-| `P3_ForwardRadius` | Float | `18` | 앞쪽 판정 반경 |
-| `P3_MinTowers` | Int | `2` | 공격 타워만 집계(오라 타워 제외) |
-| `P3_MinAllies` | Int | `2` | |
+| `P3_ForwardRadius` | Float | `30` | 앞쪽 판정 반경 |
+| `P3_MinTowers` | Int | `3` | 공격 타워만 집계(오라 타워 제외) |
+| `P3_MinAllies` | Int | `3` | |
 | `P3_TelegraphDuration` | Float | `0.5` | **짧게.** 예고 원이 보스를 따라 움직여 길면 범위가 어긋난다 |
 | `P3_SealRadius` | Float | `18` | 예고 원과 봉인 반경을 같은 값으로 |
 | `P3_DamageMul` | Float | `0.5` | 1 미만이면 디버프 |
@@ -145,10 +163,10 @@
 
 | 변수 | 타입 | 값 | 비고 |
 |---|---|---|---|
-| `P4_Interval` | Float | `6` | 소환 간격 |
-| `P4_Prefab` | GameObject | `Blue_Grummy.prefab` | `Assets/Imported/@NorthLand/Prefabs/Monster/` |
-| `P4_Count` | Int | `2` | 1회 투입 수 |
-| `P4_MaxAlive` | Int | `15` | **0이면 상한 없음 + 경고.** 보스 자신과 사망 연출 중인 몬스터도 집계에 포함된다 |
+| `P4_Interval` | Float | `2` | 소환 간격 |
+| `P4_Prefab` | GameObject | `Yellow_Grummy.prefab` | `Assets/Imported/@NorthLand/Prefabs/Monster/` |
+| `P4_Count` | Int | `1` | 1회 투입 수 |
+| `P4_MaxAlive` | Int | `30` | **0이면 상한 없음 + 경고.** 보스 자신과 사망 연출 중인 몬스터도 집계에 포함된다 |
 
 ### 기본 진군
 
@@ -163,6 +181,8 @@
 |---|---|---|
 | `Dbg_Radius` | Float | `8` |
 | `Dbg_Duration` | Float | `999` |
+
+**서클을 한 번에 끄는 방법: `Dbg_Radius`를 0으로 둔다.** `EnemyShowTelegraphCircleAction`이 `Radius` 또는 `Duration`이 0 이하면 원을 만들지 않고 즉시 성공을 반환하므로(노드 코드 참조), 그래프 구조를 건드리지 않고 값 하나로 스캐폴딩을 무력화할 수 있다. 제거를 잊어도 사고가 나지 않는다 — 다만 **보스를 정본 웨이브에 편성하기 전에는 반드시 0으로 내리거나 서클 노드를 지울 것.** 현재는 보스가 정본 웨이브에 미편성이라 새어나갈 경로가 없다.
 
 **디버그 서클의 색은 Blackboard로 올리지 않고 노드 입력에 직접 넣는다.** 임시 스캐폴딩이라 Blackboard 변수를 10개 늘릴 값이 아니다. `Until Any Complete` 부모가 형제(패턴 본체)의 완료와 함께 서클 노드를 중단시키고, 서클의 `OnEnd`가 원을 파괴한다 — `Duration`은 패턴보다 길기만 하면 된다.
 
@@ -223,11 +243,13 @@ P3는 서클이 **두 개** 겹친다(디버그 보라 + 실제 예고 노랑). 
 | 상태 | 실효 속도 | 충돌 피해(계수 1.5) |
 |---|---|---|
 | 기본 | 12 | 18 |
-| 돌진 배수 3 | 36 | 54 |
-| + 감속 0.5 | 18 | 27 |
-| + 감속 0.5 하나 더 | 9 | **0** (`P1_MinSpeed` 15 미달) |
+| 돌진 배수 7 | 84 | 126 |
+| + 감속 0.5 | 42 | 63 |
+| + 감속 0.5 하나 더 | 21 | **0** (`P1_MinSpeed` 25 미달) |
 
-패턴 배수는 3으로 유지된 채 실효 속도만 줄어든다 — **두 축이 서로를 지우지 않는다.** 감속 타워 2개로 돌진을 완전 무력화할 수 있다. 타워 기반 검증은 감속 타워 구현 후로 미룬다.
+패턴 배수는 유지된 채 실효 속도만 줄어든다 — **두 축이 서로를 지우지 않는다.** 감속 타워 2개로 돌진을 완전 무력화할 수 있다. 타워 기반 검증은 감속 타워 구현 후로 미룬다.
+
+> 위 표는 `MaxFactor 7` / `MinSpeed 25` 기준이다. 최초 검증은 `MaxFactor 3` / `MinSpeed 15`에서 했고, 그 뒤 `MaxFactor`가 7로 튜닝되면서 2중첩 파훼가 깨졌다 — `MinSpeed`를 25로 올려 복원했다(WL-122). 「감속 파훼 불변식」 절 참조.
 
 ### P2/P3를 인위적으로 만들 때의 함정 3개
 
