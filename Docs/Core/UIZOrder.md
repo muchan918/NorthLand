@@ -39,14 +39,14 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 `UICanvas` 내부 UI는 Hierarchy의 sibling 순서를 사용한다. 현재 정본 씬의 아래→위 순서는 다음과
 같다.
 
-1. `Minimap`
-2. `ManagementCanvas`
-3. `TooltipUI`
-4. `TowerPanel`
-5. `SkillPanel`
-6. `BaseHealthBar`
-7. `TowerInfoPanel`
-8. `BalanceTestPanel`
+1. `ManagementCanvas`
+2. `TooltipUI`
+3. `TowerPanel`
+4. `SkillPanel`
+5. `BaseHealthBar`
+6. `TowerInfoPanel`
+7. `BalanceTestPanel`
+8. `Minimap`
 
 `Minimap`은 `UICanvas`의 자식 Canvas이며 `overrideSorting = false`, `sortingOrder = 0`이다.
 따라서 루트 Canvas처럼 별도 전역 레이어를 차지하지 않고 `UICanvas`의 순서를 따른다.
@@ -95,6 +95,7 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 - [x] 보상 패널이 미니맵과 일반 HUD보다 위에 표시되는지 플레이 모드에서 확인한다.
 - [x] 보상 패널이 열린 동안 미니맵 클릭 이동이 발생하지 않는지 확인한다.
 - [x] 게임오버·승리 화면이 열린 동안 아래 HUD 버튼이 입력을 받지 않는지 확인한다.
+
 ## 8. 관련 파일
 
 - `Assets/Scenes/GameScene.unity` — Canvas 계층과 표준 정렬값의 정본
