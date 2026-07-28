@@ -4,6 +4,11 @@ public enum EnemyType
     Ranged,
     Boss,
 }
+public enum MovementMode
+{
+    Ground = 0,
+    Flying = 1,
+}
 
 public class EnemyData
 {
