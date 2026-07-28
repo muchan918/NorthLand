@@ -38,8 +38,13 @@
   삭제됨) — 잔여 종류 값 채움은 WL-001 참고. `BossFields.BehaviorTree`는 실제 BT 에셋 타입 미정 상태의 placeholder 필드
 - `ResourceAsset.Data` / `BuildingAsset.Data` / `TowerAsset.Data` / `EnemyAsset.Data` — **호출부가
   Start()에서 직접 채우는 규약** (저장 안 됨)
-- `BuildingInfoUI.Instance.ShowInfo(string)` / `HideInfo()` — 경영 공간 전용 정보 패널. `TowerInfoUI`와
+- `BuildingInfoUI.Instance.ShowInfo(BuildingAsset)` / `HideInfo()` — 경영 공간 전용 정보 패널. `TowerInfoUI`와
   동일 구조의 별도 씬 싱글톤 (공간 분리 계약상 Combat의 `TowerInfoUI`와 공유하지 않음)
+- `StorePanelUI.Instance.Show(BuildingAsset)` / `Hide()` — 교환 상점 패널(#211, 연금술사의 집). `BuildingInfoUI`와
+  **같은 계보의 별도 씬 싱글톤**(정보 표시가 아니라 행마다 액션 버튼이 있는 목록이라 갱신 방식이 다르다 —
+  행을 한 번만 만들고 `OnChanged`마다 `interactable`만 토글한다. 매번 재생성하면 클릭을 처리하는 도중 그 버튼이 파괴된다).
+  둘 중 어느 패널을 열지는 **`BuildingInfo.OnSelected`가 `Exchange.Offers` 유무로 분기**한다 — `BuildingType`으로 분기하지
+  않는다(타입은 인스펙터 authoring 분류일 뿐, 동작 게이트는 '데이터 존재'로 건다는 기존 컨벤션)
 - `LocalizationHelper.Get(table, entry)` — static 동기 조회(현재 로케일). **풀(pull) 경로 전용** —
   호버 툴팁 등 호출 시점 1회 값이 필요한 경우만. 지속형 표시(상세 패널 등, 로케일 변경 시 자동 갱신
   필요)는 `LocalizeStringEvent`/`LocalizedString.StringChanged`를 쓴다. 테이블명 상수
@@ -67,6 +72,9 @@
   `IReadOnlyList<ResourceCost> UpgradeBuildingCost(int)`·`bool CanUpgradeBuilding(int)`·`bool TryUpgradeBuilding(int)` — 낮 전용, 비용은 `BuildingAsset.Skill.UpgradeLevels`(마나석, 효과값 없음),
   같은 `TrySpend` 게이트웨이 경유. **`int GetUpgradeLevel(BuildingAsset)`** = 소비 시스템(스킬 강화 등)이 레벨을 읽는 저결합 창구(효과 적용은 소비 측 소유 — **`SkillManager`/`BuffSkillManager`가 구현 완료, #205**) — BuildingUpgrade.md §8,
   **소비 게이트웨이** `bool CanAfford/TrySpend(IReadOnlyList<ResourceCost>)`(소비처는 지갑 직접 접근 대신 경유, 원자 차감 — WL-017),
+  **자원 교환 게이트웨이**(#211, 연금술사의 집): `bool CanExchange(BuildingAsset, ExchangeOffer)`·`bool TryExchange(BuildingAsset, ExchangeOffer)` — 낮 전용,
+  지불 자원 차감과 대상 자원 지급이 **한 트랜잭션**(차감 실패 시 지급하지 않음). 지갑에 자원을 넣는 **유일한 소비자 대면 API**이며,
+  `ResourceWallet.Add`를 public으로 열지 않기 위한 형태다(팀 계약 #3·#6, WL-042 해소 근거). 교환비는 `BuildingAsset.Exchange.Offers`(SO),
   질의 `ResourceCount`/`LineCount`/`LineKind`/`LineExpectedProduction`/`AssignedTotal`/`IsDay`/`CanAdvancePhase`, `event OnChanged`(뷰 갱신).
   UI(`ManagementPanelView`/`ProductionLineView`)는 이 컨트롤러만 구독·호출 — UI 아트 교체 시 뷰 참조만 재연결
 - `MouseManager.Instance.BeginPlacement(PlacementRequest)` / `CancelPlacement()` / `event OnSelectionChanged`
@@ -182,7 +190,12 @@
    영토 확장·전투 보상에서만.
    - **방향 전환(GDD v0.3)**: **미개척 영지 자원**(영토 해금)은 주민 배치 없이 **매일 정산마다 일정량이 자동
      수급**된다(영토 확장 보상의 일종) — 영토 해금이라는 정당한 원천이므로 계약 위반 아님. (직전 '식량 소모 →
-     확장 자원 변환' 모델은 폐기, WL-042 참고.) 그 밖의 우회 경로(마나석→기본 자원 교환 건물 등)는 여전히 금지/미결.
+     확장 자원 변환' 모델은 폐기, WL-042 참고.)
+   - **마나석 교환(#211, WL-042 해소)**: **연금술사의 집**(`BuildingType.Store`)이 마나석 → 자원 7종 **단방향** 교환을 제공한다
+     (낮 전용, 역교환 없음). 이것은 새 획득 경로가 **아니라 마나석 소비처**다 — 지갑의 획득 API(`ResourceWallet.Add`)는
+     계속 비공개이고, 소비처에 열린 것은 **차감+지급이 한 트랜잭션인 `ManagementController.TryExchange` 단일 진입점**뿐이라
+     마나석 없이 자원이 생기는 경로가 없다. 신규 기능이 자원을 늘려야 할 때도 `Add`를 public으로 열지 말고 이 패턴을 따를 것.
+   - 그 밖의 우회 경로(본진 업그레이드 마나석 소모 등)는 여전히 금지/미결(WL-042 잔여).
 4. **공간 분리** (GDD §4.1/§6.2): 경영 공간 = 건물, 전투 공간 = 타워. 두 영토는 독립 관리 —
    한쪽 확장이 다른 쪽 상태에 의존 금지.
 5. **낮/밤 전환 계약** (GDD §5, Build0 계획): 낮 시작=본진 회복, 밤 시작(`OnDayToNight`)=전투 스테이지 확장+몬스터 스폰(#17), 밤→낮=주민 배치 기반 자원 정산(먼저)+

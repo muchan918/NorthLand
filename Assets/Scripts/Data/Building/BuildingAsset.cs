@@ -17,6 +17,7 @@ public class BuildingAsset : ScriptableObject
 
     public ProductionFields Production;
     public SkillFields Skill;
+    public ExchangeFields Exchange;
 
 #if UNITY_EDITOR
     // 에디터 authoring 가드: 업그레이드 수치를 잘못 적으면 조용히 생산 하락/무료 업그레이드가 되므로 경고한다(수치=SO, WL-015 축).
@@ -24,6 +25,7 @@ public class BuildingAsset : ScriptableObject
     {
         ValidateProductionUpgrades();
         ValidateUpgradeCosts();
+        ValidateExchangeOffers();
     }
 
     // 생산 건물: 주민당량이 base(레벨0)부터 단조 증가하지 않으면 경고한다.
@@ -79,6 +81,48 @@ public class BuildingAsset : ScriptableObject
             if (total <= 0)
             {
                 Debug.LogWarning($"[BuildingAsset] {BuildingID}: 업그레이드 Lv{i + 1} 비용이 비어 있습니다(총액 0) — 무료로 업그레이드됩니다. 마나석 등 비용을 설정하세요.", this);
+            }
+        }
+    }
+
+    // 교환 건물(연금술사의 집 등): 교환 행이 무료(PayAmount 0)이거나 아무것도 주지 않으면(GainAmount 0) 경고한다.
+    // 무료 교환은 무한 자원 획득 경로라 위 무료 업그레이드보다 파급이 크다(#211).
+    // ⚠ 게이트는 BuildingType이 아니라 '교환 데이터 존재'로 건다 — 진입 경로(BuildingInfo.HasExchange)와 같은 키여야 한다.
+    private void ValidateExchangeOffers()
+    {
+        if (Exchange == null || Exchange.Offers == null || Exchange.Offers.Count == 0)
+        {
+            return;
+        }
+
+        if (Exchange.PayResource == null)
+        {
+            Debug.LogWarning($"[BuildingAsset] {BuildingID}: 교환 지불 자원(PayResource)이 비어 있습니다 — 교환이 동작하지 않습니다.", this);
+        }
+
+        for (int i = 0; i < Exchange.Offers.Count; i++)
+        {
+            ExchangeOffer offer = Exchange.Offers[i];
+            if (offer == null)
+            {
+                continue;
+            }
+            if (offer.GainResource == null)
+            {
+                Debug.LogWarning($"[BuildingAsset] {BuildingID}: 교환 {i + 1}번 행의 획득 자원이 비어 있습니다.", this);
+                continue;
+            }
+            if (offer.PayAmount <= 0)
+            {
+                Debug.LogWarning($"[BuildingAsset] {BuildingID}: 교환 {i + 1}번 행({offer.GainResource.ResourceID})의 지불량이 0 이하 — 무료로 자원을 얻게 됩니다.", this);
+            }
+            if (offer.GainAmount <= 0)
+            {
+                Debug.LogWarning($"[BuildingAsset] {BuildingID}: 교환 {i + 1}번 행({offer.GainResource.ResourceID})의 획득량이 0 이하 — 지불만 하고 아무것도 얻지 못합니다.", this);
+            }
+            if (Exchange.PayResource != null && offer.GainResource == Exchange.PayResource)
+            {
+                Debug.LogWarning($"[BuildingAsset] {BuildingID}: 교환 {i + 1}번 행의 획득 자원이 지불 자원과 같습니다 — 자기 자신 교환은 의미가 없습니다.", this);
             }
         }
     }
@@ -139,5 +183,43 @@ public class BuildingAsset : ScriptableObject
         public float BuffAttackSpeedMultiplierScale = 1f;
         public float BuffDurationMultiplier = 1f;
         public float BuffCooldownMultiplier = 1f;
+    }
+
+    // 교환 건물(연금술사의 집, #211). 마나석 등 지불 자원 1종을 여러 자원으로 바꿔주는 단방향 상점.
+    // 생산 라인·업그레이드 트랙과 별개 축이라 필드 그룹을 따로 둔다(BuildingAssetEditor가 Store 타입에서만 그린다).
+    [System.Serializable]
+    public class ExchangeFields
+    {
+        // 모든 교환 행이 공통으로 소모하는 자원(연금술사의 집 = 마나석). 행마다 지불 자원이 다를 일은 없다.
+        public ResourceAsset PayResource;
+
+        // 교환 행 목록. 행 추가/삭제는 코드 변경 없이 이 리스트만 편집하면 된다(대상 자원 범위 조정이 인스펙터 작업).
+        public List<ExchangeOffer> Offers = new List<ExchangeOffer>();
+
+        // 교환 효율 업그레이드 테이블(GDD: 업그레이드 시 획득량 증가). #211 범위 밖 — 지금은 비워 둔다.
+        // ⚠ 이 리스트를 실제로 쓰려면 선행 작업이 필요하다: ManagementController.BuildUpgradeBuildings가
+        //   BuildingType과 무관하게 Skill.UpgradeLevels만 하드코딩으로 읽으므로, 레벨 테이블을 타입 중립
+        //   소스로 승격해야 한다(BuildingUpgrade.md §8 — 본성 업그레이드와 공유하는 선행 작업).
+        public List<ExchangeUpgradeLevel> UpgradeLevels = new List<ExchangeUpgradeLevel>();
+    }
+
+    // 교환 한 줄. "PayResource를 PayAmount만큼 내고 GainResource를 GainAmount만큼 받는다".
+    [System.Serializable]
+    public class ExchangeOffer
+    {
+        public ResourceAsset GainResource;
+        public int PayAmount;
+        public int GainAmount;
+    }
+
+    // 교환 효율 업그레이드 한 단계(#211 범위 밖, 자리만 확보).
+    // 비용과 효과를 같은 리스트에 두는 건 SkillUpgradeLevel과 같은 이유다(레벨 개수 어긋남 원천 차단, PR#216 리뷰).
+    [System.Serializable]
+    public class ExchangeUpgradeLevel
+    {
+        public List<ResourceCost> Cost = new List<ResourceCost>();
+
+        // 획득량 배율. 1 = 강화 없음. (예: 1.5면 마나 10 → 나무 10 이 나무 15가 된다)
+        public float GainMultiplier = 1f;
     }
 }
