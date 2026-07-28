@@ -85,4 +85,32 @@ public class SettingUI : MonoBehaviour
 
         GameSceneManager.Instance.QuitGame();
     }
+
+    public void LoadMainMenu()
+    {
+        if (GameSceneManager.Instance == null)
+        {
+            Debug.LogError(
+                $"[{nameof(SettingUI)}] GameSceneManager 인스턴스를 찾을 수 없습니다.",
+                this);
+
+            return;
+        }
+
+        GameSceneManager.Instance.LoadMainMenu();
+    }
+
+    public void RetryGame()
+    {
+        if (GameSceneManager.Instance == null)
+        {
+            Debug.LogError(
+                $"[{nameof(SettingUI)}] GameSceneManager 인스턴스를 찾을 수 없습니다.",
+                this);
+
+            return;
+        }
+
+        GameSceneManager.Instance.LoadManageSpace();
+    }
 }
