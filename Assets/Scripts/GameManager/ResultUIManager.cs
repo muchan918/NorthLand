@@ -92,14 +92,16 @@ namespace NorthLand.UI
             }
             panel.SetActive(active);
         }
-
         public void QuitGame()
         {
-#if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
-#else
-        Application.Quit();
-#endif
+            if (GameSceneManager.Instance == null)
+            {
+                Debug.LogError("[ResultUIManager] GameSceneManager.Instance를 찾을 수 없습니다.");
+                return;
+            }
+
+            GameSceneManager.Instance.QuitGame();
         }
+
     }
 }

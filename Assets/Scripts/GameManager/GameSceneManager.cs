@@ -44,8 +44,13 @@ namespace NorthLand.Core
         // 경영 공간(게임 본편)으로 전환한다. (메인 메뉴의 "게임 시작" 버튼에서 호출)
         public void LoadManageSpace() => SceneManager.LoadScene(GameScene);
 
-        public void QuitGame() => Application.Quit();
-
-
+        public void QuitGame()
+        {
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
+        }
     }
 }

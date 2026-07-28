@@ -1,28 +1,28 @@
+using NorthLand.Core;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class SettingUI : MonoBehaviour
+public class TitleSettingUI : MonoBehaviour
 {
     [SerializeField] private GameObject settingPanel;
 
     [SerializeField]
-    private GameSpeedController gameSpeedController;
-
+    private LocalizationManager localizationManager;
     public bool IsOpen =>settingPanel != null &&settingPanel.activeSelf;
 
     private void Awake()
     {
         if (settingPanel == null)
         {
-            Debug.LogError($"[{nameof(SettingUI)}] Setting Panel이 연결되지 않았습니다.",this);
+            Debug.LogError($"[{nameof(TitleSettingUI)}] Setting Panel이 연결되지 않았습니다.",this);
 
             enabled = false;
             return;
         }
 
-        if (gameSpeedController == null)
+        if (localizationManager == null)
         {
-            Debug.LogError($"[{nameof(SettingUI)}] GameSpeedController가 연결되지 않았습니다.",this);
+            Debug.LogError($"[{nameof(TitleSettingUI)}] localizationManager가 연결되지 않았습니다.", this);
 
             enabled = false;
             return;
@@ -43,10 +43,13 @@ public class SettingUI : MonoBehaviour
     {
         if (settingPanel.activeSelf)
         {
+
+            localizationManager.OnClose();
             ClosePanel();
         }
         else
         {
+            localizationManager.OnClose();
             OpenPanel();
         }
     }
@@ -57,23 +60,24 @@ public class SettingUI : MonoBehaviour
             return;
 
         settingPanel.SetActive(true);
-
-        if (gameSpeedController != null)
-        {
-            gameSpeedController.SetPaused(GamePauseReason.Settings,true);
-        }
     }
 
-    public void ClosePanel()
+    private void ClosePanel()
     {
         if (settingPanel == null)
             return;
 
         settingPanel.SetActive(false);
 
-        if (gameSpeedController != null)
+    }
+    public void QuitGame()
+    {
+        if (GameSceneManager.Instance == null)
         {
-            gameSpeedController.SetPaused(GamePauseReason.Settings,false);
+            Debug.LogError("[ResultUIManager] GameSceneManager.Instance를 찾을 수 없습니다.");
+            return;
         }
+
+        GameSceneManager.Instance.QuitGame();
     }
 }

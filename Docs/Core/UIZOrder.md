@@ -1,8 +1,8 @@
 # UI 표시 레이어(z-order) 규칙
 
-> 관련 이슈: #188  
+> 관련 이슈: #188, #221  
 > 정본 씬: `Assets/Scenes/GameScene.unity`  
-> 상태: 씬 구조 반영 완료, 일부 모달 및 플레이 모드 검증 필요
+> 상태: 씬 구조 및 설정 모달 규칙 반영 완료, 일부 모달 및 플레이 모드 검증 필요
 
 ## 1. 목적
 
@@ -36,10 +36,15 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 |---:|---|---:|---|
 | 기본 | `UICanvas` | `100` | 일반 HUD, 미니맵, 관리·타워·스킬·정보 패널 |
 | 상위 모달 | `RewardCanvas` | `500` | 보상 선택 화면 |
+| 설정 모달 | `SettingCanvas` | `700` | 인게임 설정 화면. 일반 HUD와 보상 화면보다 위, 결과 화면보다 아래 |
 | 최상위 모달 | `ResultCanvas` | `900` | 게임오버·승리 결과 화면 |
 | 코드 생성 오버레이 | `TowerTooltipView` | `32767` (`short.MaxValue`) | 입력을 받지 않는 최상단 툴팁 |
 
 새 루트 Canvas를 추가할 때는 임의의 큰 숫자를 사용하지 않는다. 위 범주 중 하나에 포함시키고, 새 범주가 꼭 필요하면 이 표를 먼저 갱신한다.
+
+`SettingCanvas`와 `ResultCanvas`는 서로 다른 `sortingOrder`를 사용한다. 두 루트 Canvas가 같은 값을 사용하면 씬 계층이나 Canvas 등록 순서에 따라 그리기 순서가 달라질 수 있기 때문이다.
+
+게임오버 또는 승리 결과 화면과 설정 화면이 동시에 활성화되더라도 `ResultCanvas`가 항상 `SettingCanvas`보다 위에 표시되어야 한다.
 
 `TowerTooltipView`는 런타임에 전용 Canvas를 생성하는 예외적인 읽기 전용 오버레이다. 포인터 입력을 받는 일반 패널이나 모달에 `short.MaxValue`를 사용하지 않는다.
 
@@ -83,7 +88,8 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 
 | 모달 | 정렬 방식 | 입력 차단 Graphic | 일시정지 |
 |---|---|---|---|
-| 보상 선택 | `RewardCanvas`, Order `500` | `Rewardpanel`의 전체 화면 `Image` | `GamePauseReason.Reward` |
+| 보상 선택 | `RewardCanvas`, Order `500` | `RewardPanel`의 전체 화면 `Image` | `GamePauseReason.Reward` |
+| 설정 | `SettingCanvas`, Order `700` | `GuardPanel`의 전체 화면 투명 `Image` | `GamePauseReason.Settings` |
 | 게임오버 | `ResultCanvas`, Order `900` | `GameOverPanel`의 전체 화면 `Image` | 정책 확정 필요 |
 | 승리 | `ResultCanvas`, Order `900` | `VictoryPanel`의 전체 화면 `Image` | 정책 확정 필요 |
 | 낮 종료 확인 | `UICanvas`의 마지막 sibling | `EndDayConfirmPopup`의 전체 화면 Blocker Image | 필요 여부 확정 및 검증 필요 |
@@ -105,6 +111,26 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 - 모달을 닫을 때 자신이 등록한 일시정지 사유만 해제한다.
 - 다른 모달의 일시정지 상태를 함께 해제하지 않는다.
 
+### 설정 모달
+
+설정 화면은 `SettingCanvas` 루트 Canvas를 사용하며 다음 규칙을 따른다.
+
+- `SettingCanvas`의 `sortingOrder`는 `700`으로 고정한다.
+- 일반 HUD와 `RewardCanvas`보다 위에 표시한다.
+- 최상위 모달인 `ResultCanvas`보다 아래에 표시한다.
+- 설정 화면이 열리면 `GuardPanel`을 함께 활성화한다.
+- `GuardPanel`은 전체 화면 Stretch Anchor를 사용한다.
+- `GuardPanel`은 화면을 시각적으로 가리지 않도록 투명하게 유지한다.
+- `GuardPanel`의 `raycastTarget`은 활성화하여 하위 UI 입력을 차단한다.
+- 설정 패널은 `GuardPanel`보다 뒤 sibling에 배치하여 입력을 받을 수 있도록 한다.
+- 설정 화면이 닫히면 `GuardPanel`도 함께 비활성화한다.
+- 설정 화면을 열 때 `GamePauseReason.Settings`로 일시정지를 요청한다.
+- 설정 화면을 닫을 때 `GamePauseReason.Settings`에 해당하는 요청만 해제한다.
+- 설정 화면에서 `Time.timeScale`을 직접 변경하지 않는다.
+- 다른 시스템이 등록한 일시정지 사유는 설정 화면을 닫더라도 해제하지 않는다.
+
+설정 화면의 기본 토글 입력은 `F1`이다. 설정 UI는 `ESC`를 직접 읽거나 소비하지 않는다. `ESC`는 선택 해제, 배치 취소 및 스킬 조준 취소 등 전투 영역 입력을 담당하는 시스템의 규약을 따른다.
+
 ## 6. 변경 절차
 
 1. 씬 작업은 `Docs/Core/SceneWorkflow.md`를 따른다.
@@ -116,7 +142,8 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 7. `UICanvas` 내부 모달이라면 항상 일반 HUD보다 뒤에 배치한다.
 8. 모든 모달에 §5의 전체 화면 입력 차단 Graphic을 배치한다.
 9. 게임 진행을 멈춰야 하는 모달에는 전용 `GamePauseReason`을 적용한다.
-10. 아래 대표 겹침 및 입력 테스트를 수행한다.
+10. 새 루트 Canvas 또는 새로운 모달 범주를 추가하면 이 문서의 §3과 §5를 함께 갱신한다.
+11. 아래 대표 겹침 및 입력 테스트를 수행한다.
 
 ## 7. 검증 체크리스트
 
@@ -124,7 +151,9 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 
 - [x] `UICanvas`의 `sortingOrder`가 `100`이다.
 - [x] `RewardCanvas`의 `sortingOrder`가 `500`이다.
+- [x] `SettingCanvas`의 `sortingOrder`가 `700`이다.
 - [x] `ResultCanvas`의 `sortingOrder`가 `900`이다.
+- [x] `SettingCanvas`와 `ResultCanvas`가 동일한 `sortingOrder`를 사용하지 않는다.
 - [x] `ResultUI`가 전체 화면 Stretch, Position `(0,0)`, Size Delta `(0,0)`, Scale `(1,1,1)`이다.
 - [x] `Minimap`이 `UICanvas` 아래에 있고 독립 전역 정렬을 사용하지 않는다.
 - [ ] `Minimap` 자식 Canvas의 `sortingOrder`가 `0`인지 확인한다.
@@ -133,21 +162,37 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 ### 입력 차단
 
 - [x] 보상 패널에 전체 화면 raycast 차단 Graphic이 있다.
+- [x] 설정 패널에 전체 화면 `GuardPanel`이 있다.
+- [x] `GuardPanel`이 전체 화면 Stretch Anchor를 사용한다.
+- [x] `GuardPanel`이 투명하고 `raycastTarget = true`로 설정되어 있다.
 - [x] 게임오버 패널에 전체 화면 raycast 차단 Graphic이 있다.
 - [x] 승리 패널에 전체 화면 raycast 차단 Graphic이 있다.
 - [ ] `EndDayConfirmPopup` 프리팹이 저장소에 정상적으로 포함되어 있다.
 - [ ] `EndDayConfirmPopup`에 전체 화면 입력 차단 Graphic이 있다.
 - [ ] `EndDayConfirmPopup`의 차단 Graphic에 `raycastTarget = true`가 설정되어 있다.
 
+### 일시정지
+
+- [x] 설정 화면이 `Time.timeScale`을 직접 변경하지 않는다.
+- [x] 설정 화면이 `GamePauseReason.Settings`를 사용한다.
+- [x] 설정 화면을 닫을 때 `GamePauseReason.Settings`만 해제한다.
+- [ ] 설정 화면과 다른 일시정지 사유가 중첩된 상태에서 한쪽 사유만 정상적으로 해제되는지 확인한다.
+
 ### Hierarchy
 
 - [ ] `EndDayConfirmPopup`이 `UICanvas`의 마지막 sibling에 있는지 확인한다.
 - [ ] 새 일반 HUD가 `EndDayConfirmPopup`보다 뒤에 배치되지 않았는지 확인한다.
+- [x] 설정 패널이 `GuardPanel`보다 뒤 sibling에 배치되어 있다.
 
 ### 플레이 모드
 
 - [x] 보상 패널이 미니맵과 일반 HUD보다 위에 표시되는지 확인한다.
 - [x] 보상 패널이 열린 동안 미니맵 클릭 이동이 발생하지 않는지 확인한다.
+- [ ] 설정 화면이 일반 HUD와 보상 화면보다 위에 표시되는지 확인한다.
+- [ ] 설정 화면이 열린 동안 미니맵과 하위 HUD가 입력을 받지 않는지 확인한다.
+- [ ] `F1`로 설정 화면을 열고 닫을 수 있는지 확인한다.
+- [ ] 설정 화면을 열고 닫을 때 `GamePauseReason.Settings`가 정상적으로 등록 및 해제되는지 확인한다.
+- [ ] 설정 화면과 결과 화면이 동시에 활성화됐을 때 `ResultCanvas`가 위에 표시되는지 확인한다.
 - [x] 게임오버·승리 화면이 열린 동안 아래 HUD 버튼이 입력을 받지 않는지 확인한다.
 - [ ] 게임오버·승리 화면이 1920×1080에서 중앙에 정상 표시되는지 확인한다.
 - [ ] 낮 종료 확인 팝업이 일반 HUD보다 위에 표시되는지 확인한다.
@@ -157,6 +202,8 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 ## 8. 관련 파일
 
 - `Assets/Scenes/GameScene.unity` — Canvas 계층과 표준 정렬값의 정본
+- `Assets/Personal/SUNJIN/Prefabs/SettingCanvas.prefab` — 설정 모달, `GuardPanel` 및 Canvas 정렬 설정
+- `Assets/Scripts/SettingUI/SettingUI.cs` — 설정 화면 표시, 입력 및 설정 일시정지 제어
 - `Assets/Scripts/UI/GameSpeedController.cs` — 모달별 게임 일시정지 사유 관리
 - `Assets/Scripts/UI/PhasePanelSwitcher.cs` — 낮/밤 하단 패널 활성 전환
 - `Assets/Scripts/UI/TowerPanel/TowerTooltipView.cs` — 코드 생성 최상단 툴팁 오버레이

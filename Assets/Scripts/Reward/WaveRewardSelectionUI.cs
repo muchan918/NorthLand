@@ -64,8 +64,8 @@ public class WaveRewardSelectionUI : MonoBehaviour
         {
             openPanel.SetActive(true);
         }
-        gameSpeedController.SetPaused(GamePauseReason.Reward, true);
     }
+
     public void OpenPanel()
     {
         if (panel != null)
@@ -77,11 +77,9 @@ public class WaveRewardSelectionUI : MonoBehaviour
         {
             openPanel.SetActive(false);
         }
-
-        gameSpeedController.SetPaused(GamePauseReason.Reward, true);
     }
 
-  
+
 
     public async UniTask<WaveRewardData> SelectRewardAsync(IReadOnlyList<WaveRewardData> candidates,CancellationToken cancellationToken)
     {

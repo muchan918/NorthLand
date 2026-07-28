@@ -83,6 +83,11 @@ public class LocalizationManager : MonoBehaviour
         LocalizationPanel.SetActive(true);
     }
 
+    public void OnClose()
+    {
+        LocalizationPanel.SetActive(false);
+    }
+
 
 
 

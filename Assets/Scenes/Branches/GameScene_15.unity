@@ -1815,6 +1815,7 @@ MonoBehaviour:
   _villagerPoolText: {fileID: 1894582133}
   _phaseText: {fileID: 965220044}
   _endDayButton: {fileID: 1432297225}
+  _endDayConfirmPopup: {fileID: 0}
   _lineContainer: {fileID: 1936288221}
   _linePrefab: {fileID: 8804924803633520923, guid: b804843ef97f64246a0a1cdd7713c23b, type: 3}
 --- !u!114 &227380441
@@ -4572,7 +4573,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 60.35
+  m_fontSize: 54.75
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -6218,7 +6219,7 @@ Canvas:
   m_AdditionalShaderChannelsFlag: 0
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
-  m_SortingOrder: 800
+  m_SortingOrder: 900
   m_TargetDisplay: 0
 --- !u!224 &816512764
 RectTransform:
@@ -16913,6 +16914,10 @@ PrefabInstance:
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
       objectReference: {fileID: 879316588}
+    - target: {fileID: 4510846880676795576, guid: 1ca45b441416ca346b2d4f82ea5b0c95, type: 3}
+      propertyPath: m_SortingOrder
+      value: 700
+      objectReference: {fileID: 0}
     - target: {fileID: 5710613972390280766, guid: 1ca45b441416ca346b2d4f82ea5b0c95, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 

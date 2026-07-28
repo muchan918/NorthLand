@@ -101,15 +101,15 @@ public class GameSpeedController : MonoBehaviour
     {
         if (Mathf.Approximately(CurrentSpeed, VeryFastSpeed))
         {
-            return 3;
+            return 2;
         }
 
         if (Mathf.Approximately(CurrentSpeed, FastSpeed))
         {
-            return 2;
+            return 1;
         }
 
-        return 1;
+        return 0;
     }
 
     public void SetNormalSpeed()
