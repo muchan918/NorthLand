@@ -221,11 +221,14 @@ public class MouseManager : MonoBehaviour
 
     private void ClearHover() => SetHover(null);
 
-    // 단일 선택 + 그룹 선택을 함께 비우는 "전체 해제". Esc와 배치 시작이 공유한다 —
-    // 선택에 딸린 표시가 정보 패널 하나가 아니라 사거리 원·아웃라인·합성 패널까지 퍼져 있고,
-    // 그 소유자도 대상 자신(ISelectable 훅)과 코디네이터(그룹)로 나뉘어 있어 두 신호가 모두 필요하다.
-    // OnPrimarySelect는 중복 제거를 타지 않으므로 Shift로만 선택한 상태(_selected==null)에서도 그룹이 풀린다(WL-085).
-    private void ClearSelection()
+    /// 단일 선택 + 그룹 선택을 함께 비우는 **선택 해제의 유일한 창구**. Esc·배치 시작·페이즈 전환이 공유한다.
+    /// 두 신호를 함께 보내는 이유는 선택에 딸린 표시가 정보 패널 하나가 아니라 사거리 원·아웃라인·합성 패널까지
+    /// 퍼져 있고, 그 소유자도 대상 자신(ISelectable 훅)과 코디네이터(그룹)로 나뉘어 있기 때문이다.
+    /// OnPrimarySelect는 중복 제거를 타지 않으므로 Shift로만 선택한 상태(_selected==null)에서도 그룹이 풀린다(WL-085).
+    ///
+    /// ⚠️ 선택 상태를 "표시만" 내리고 _selected를 남기면 그 대상은 **재클릭해도 다시 뜨지 않는다**
+    /// (Select의 `_selected == next` 중복 제거가 삼킨다). 표시를 내려야 하는 곳은 반드시 이 메서드를 쓸 것.
+    public void ClearSelection()
     {
         Select(null);
         OnPrimarySelect?.Invoke(null);

@@ -232,6 +232,7 @@ public void Set(OutlineKind kind, bool on);   // 멱등
 2. 그래서 **WL-087**(코디네이터 `RefreshPanel`이 `count==1`에서 `t.OnSelected()`만 부르고 대칭 `OnDeselected()`가 없음)에 걸리지 않는다. 2→1 복귀 시 남은 타워는 그룹에 있으므로 `GroupSelected`로 초록이 유지된다. *(WL-087 자체는 이 이슈에서 고치지 않은 채 남았다가, 사거리 원 잔존으로 드러나 `_infoShownFor` diff + Shift 경로의 `Select(null)`로 종결 — `TowerMerge.md` §7.2·§8.1.)*
 3. `Tower.cs`(Combat 소유)·`BuildingInfo`·`AuraTower`·`TerritoryNodeView`를 **한 줄도 수정하지 않는다**.
 4. `MouseManager.Select`는 **낮/밤 게이트가 없다** → **밤에 타워를 클릭해도 초록이 뜬다**(사거리 원·정보 패널과 피드백이 일치). 코디네이터의 `IsDay` 게이트는 그대로 유지된다(밤에는 그룹·합성이 잠긴 채 단일 초록만 뜬다).
+   - **이 "셋이 함께 뜨고 함께 진다"가 불변식이다.** 셋 중 일부만 내리는 경로를 만들면 `_selected`가 남아 그 대상이 재클릭에도 반응하지 않는다 → 표시를 내릴 땐 항상 `MouseManager.ClearSelection()`(SystemMap §2)을 쓴다. 페이즈 전환에서 실제로 깨졌던 지점이다(WL-086).
 
 **타워 호버는 훅이 없다**: `Tower`는 `IAttacker`·`ISelectable`만 구현하므로 `hit.collider.TryGetComponent(out IHoverable)`가 잡지 못해 이벤트 자체가 오지 않는다 → `TowerGroupSelectable`이 `IHoverable`을 **추가 구현**한다(`GetTooltipContent()` → `null`, 계약상 "색만 바꾸는 호버 대상"으로 허용). 이 마커는 `TowerPlacer.cs:298`이 배치 시 `AddComponent`하므로 **합성 결과 타워까지 자동 부착**된다.
 
@@ -386,7 +387,7 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 | Esc / 빈 곳 클릭 | `MouseManager.ClearSelection()`(= `Select(null)` + `OnPrimarySelect(null)`) → 단일 초록·그룹 초록 동시 해제 |
 | **배치 시작** | `BeginPlacement`가 같은 `ClearSelection()`을 부른다 → 고스트를 드는 순간 초록(단일·그룹)·사거리 원·인포/합성 패널이 전부 내려간다(WL-086). 합성 경로에서 그 직후 켜지는 재료 핑크만 남는다(§5.3) |
 | Shift로 그룹에서 제거 | 코디네이터 `RefreshHighlight` diff가 `OnGroupDeselected` → 즉시 해제(WL-087 표면 재발 없음) |
-| 밤 전환 | 코디네이터 `HandleDayToNight`가 집합 리셋 → 그룹 초록·핑크 해제. 단일 초록은 `MouseManager` 선택이 유지되는 동안 남는다(§5.1 의도된 동작) |
+| 밤 전환 | 코디네이터 `HandleDayToNight`가 집합 리셋 → 그룹 초록·핑크 해제 **+ `PhasePanelSwitcher.ShowNight`가 `MouseManager.ClearSelection()`** → 단일 초록·사거리 원·인포도 함께 해제. 코디네이터만 내리면 `_selected`가 남아 **초록만 잔존하고 그 타워는 밤에 재클릭해도 안 뜬다**(중복 제거에 삼킴) — §4-4 불변식 위반이라 두 신호를 짝지어 보낸다(WL-086) |
 | 합성 소모·철거·사망 | 타워 GO 파괴 → shell은 자식이라 함께 파괴. 코디네이터는 `Tower.ActiveChanged` → `Prune`(WL-076b)로 죽은 참조 정리 |
 | 컴포넌트 파괴 | 런타임 생성물 중 **대상별로 파괴할 것이 없다** — shell 메시는 원본/프리베이크 에셋 공유, 프록시는 static 유닛 큐브 공유, 머티리얼 3개도 static 공유다. shell GO는 자식이라 자동 파괴. → `RangeCircle`(PR#115 리뷰)처럼 `OnDestroy`에서 Mesh/Material을 파괴할 필요가 **없는 이유**를 주석으로 명시한다. 단 static 공유물(머티리얼 3개·유닛 큐브)은 도메인 리로드까지 유지되므로 **대상별 인스턴스를 만들지 않는 규칙을 깨지 말 것** |
 

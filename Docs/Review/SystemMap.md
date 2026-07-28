@@ -70,7 +70,10 @@
   질의 `ResourceCount`/`LineCount`/`LineKind`/`LineExpectedProduction`/`AssignedTotal`/`IsDay`/`CanAdvancePhase`, `event OnChanged`(뷰 갱신).
   UI(`ManagementPanelView`/`ProductionLineView`)는 이 컨트롤러만 구독·호출 — UI 아트 교체 시 뷰 참조만 재연결
 - `MouseManager.Instance.BeginPlacement(PlacementRequest)` / `CancelPlacement()` / `event OnSelectionChanged` —
-  `BeginPlacement`는 진입 시 호버와 **선택(단일+그룹)을 전부 해제**한다(Esc와 같은 내부 `ClearSelection()`). 선택에 딸린 표시가 정보 패널·사거리 원·아웃라인·합성 패널로 퍼져 있어, 고스트를 든 화면에 남으면 시인성을 해치기 때문(WL-086). 자원 배치·합성 배치 공통. **잔여: `BeginSkillTargeting`은 아직 호버만 해제한다**
+  `BeginPlacement`는 진입 시 호버와 **선택(단일+그룹)을 전부 해제**한다(`ClearSelection()`). 선택에 딸린 표시가 정보 패널·사거리 원·아웃라인·합성 패널로 퍼져 있어, 고스트를 든 화면에 남으면 시인성을 해치기 때문(WL-086). 자원 배치·합성 배치 공통. **잔여: `BeginSkillTargeting`은 아직 호버만 해제한다**
+- `MouseManager.Instance.ClearSelection()`(WL-086) — **선택 해제의 유일한 창구.** 단일(`Select(null)` → 대상의 `OnDeselected` = 정보 패널·사거리 원, 드라이버의 `Selected` 아웃라인)과 그룹(`OnPrimarySelect(null)` → 코디네이터 집합 해제 = `GroupSelected` 아웃라인·합성 패널)을 **함께** 비운다. 현재 호출자 3곳: Idle Esc / `BeginPlacement` / `PhasePanelSwitcher.ShowNight`.
+  ⚠️ **표시만 내리고 `_selected`를 남기면 그 대상은 재클릭해도 다시 뜨지 않는다** — `Select`의 `_selected == next` 중복 제거가 삼킨다. 선택 표시를 내려야 하는 새 경로는 자체 처리하지 말고 이 메서드를 부를 것.
+  `OnPrimarySelect`는 원래 "평클릭·Esc·빈 곳 클릭"(입력) 신호였으나 이 창구를 통해 모드·페이즈 전환도 태운다 — 지금은 구독자가 코디네이터 1곳이라 무해하고, "사용자 클릭"과 "시스템 정리"를 구분해야 하는 **3번째 소비자가 붙을 때** `OnSelectionCleared` 분리를 검토한다(WL-085의 판단 시점 패턴)
 - `MouseManager.Instance` `event OnGroupSelectToggled(IGroupSelectable)`(#183) — Shift(추가 선택 키)+마커 클릭 시 토글 발행. **토글이 실제로 일어날 때만 발행 직전에 `Select(null)`**로 단일 선택을 비운다(마커 없는 대상은 무시 — 집합·`_selected` 둘 다 불변). 표시 권한을 그룹 경로에 통째로 넘기기 위한 것으로, 안 비우면 직전 단일 선택의 사거리 원이 합성 패널 위에 잔존한다(WL-087)
 - `MouseManager.Instance` `event OnPrimarySelect(ISelectable)`(#183) — 평클릭(해석된 대상)·Esc·빈 곳 클릭 시 **중복 제거 없이 항상** 발행(그룹 선택 코디네이터 전용). `OnSelectionChanged`는 `_selected` 변화만 deduped 통지라 Shift-only 선택(`_selected==null`)에서 Esc·빈 곳 해제가 삼켜지던 문제(WL-085) 해소. **우클릭은 해제에 쓰지 않음**(카메라 드래그 이중 점유, WL-073)
 - `MouseManager.Instance.PointerPosition`(포인터 화면 좌표 — Mouse.current 직접 폴링 대신 이걸 쓴다) /
