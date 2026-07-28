@@ -126,7 +126,7 @@
 - [ ] **세이브/로드**: 업그레이드 레벨 영속화(전역 세이브 미도입 상태).
 - [x] **마법 연구소 업그레이드**: **업그레이드 전용 건물 트랙으로 구현됨**(§8). 마나석 비용·레벨 추적 + 강화 효과(스킬 기본 스탯 배율, #205) 구현 완료.
 - [ ] **연금술사 업그레이드**(범위 밖): `alchemist_house`는 **Skill 타입**이라 마법 연구소와 동일하게 `Skill.UpgradeLevels` authoring + `_upgradeBuildings` 배선만으로 확장 가능.
-- [ ] **본성 업그레이드**(범위 밖): `castle`/`headquarters`는 **General 타입**이라 현재 `BuildingAssetEditor`가 업그레이드 필드를 노출하지 않는다 → **SO만 추가로는 authoring 불가**. 착수하려면 레벨 테이블 필드를 타입 중립 그룹으로 승격(또는 에디터 노출 규칙 변경)이 선행돼야 한다(§8 참고, 리뷰 지적).
+- [ ] **본성 업그레이드**(범위 밖): `castle.asset`(#227에서 `headquarters.asset`에서 개명, WL-061 해소)은 **`BuildingType.Castle`**(#227에서 General에서 분리, enum 끝에 추가)이며 `BuildingAssetEditor`가 이 타입에 그리는 건 **주민 증가 테이블(`Villager`)뿐**이라 업그레이드 레벨 테이블은 여전히 authoring 불가 → **SO만 추가로는 안 된다.** 착수하려면 레벨 테이블 필드를 타입 중립 그룹으로 승격(또는 에디터가 `Castle`에도 레벨 테이블을 그리게)하는 선행 작업이 필요하다(§8 참고, 리뷰 지적). **#227 진전**: 패널(`CastlePanelUI`)과 업그레이드 버튼 자리·레벨 표시는 이미 있다 — 레벨은 `GetUpgradeLevel(본진)+1`로 읽으므로 본진을 `_upgradeBuildings`에 등록하는 순간 **UI 수정 없이 연동된다.**
 
 ---
 
@@ -197,7 +197,8 @@ asmdef 부재로 순수 유닛 테스트 불가(Resources.md §7) — UI도 다�
 - [~] **연금술사(Store 타입, #211)**: 먼저 **마나석 교환소**가 구현됐다(`BuildingType.Store` + `BuildingAsset.Exchange`, 상세는 `Docs/ManagementArea/Resources.md` §3). **업그레이드도 이 건물의 확정 설계다** — 마법 연구소와 같은 "마나석으로 레벨만 올리는" 트랙이고, 효과는 **교환 효율 개선**(지불 마나석 고정, 받는 자원량 × `GainMultiplier`). 데이터 형태도 `SkillUpgradeLevel`과 같은 계보로 `ExchangeUpgradeLevel { Cost, GainMultiplier }`를 한 리스트에 둔다.
   - **#211에서는 교환만 구현했고 `Exchange.UpgradeLevels`는 비어 있다.**
   - 아래 본성과 **동일한 선행 작업**이 필요하다. 즉 "같은 트랙에 SO만 추가하면 확장"이라던 종전 기술은 틀렸다: `BuildUpgradeBuildings()`가 `BuildingType`과 무관하게 `Skill.UpgradeLevels`만 하드코딩으로 읽으므로, `Exchange.UpgradeLevels`는 등록 자체가 안 된다.
-- [ ] **본성(General 타입)**: 레벨 테이블이 `Skill` 필드 그룹에 결박돼 있어 General 타입은 인스펙터 authoring 불가 — 필드를 **타입 중립 그룹으로 승격**하는 선행 작업 필요(리뷰 지적). "SO만 추가"로는 안 됨.
+- [ ] **본성(`BuildingType.Castle`, #227에서 General에서 분리)**: 레벨 테이블이 `Skill` 필드 그룹에 결박돼 있어 Castle 타입도 인스펙터 authoring 불가 — 필드를 **타입 중립 그룹으로 승격**하는 선행 작업 필요(리뷰 지적). "SO만 추가"로는 안 됨.
+  - 참고: **주민 증가(#227)는 이 트랙을 타지 않는다.** `Villager.Levels`를 독립 데이터 그룹으로 두고 `BuildingAsset`을 직접 받는 별도 게이트웨이(`TryIncreaseVillagers`)로 갔기 때문에, 아래 선행 작업 없이 구현됐다. 즉 선행 작업은 **본성 '업그레이드'에만** 필요하다.
 - [ ] **선행 작업 — 레벨 테이블 타입 중립 승격** (본성·연금술사 공통): `ManagementController.BuildUpgradeBuildings()`의 `building.Skill?.UpgradeLevels` 하드코딩을 타입 중립 소스로 바꾼다. 컨트롤러가 이 테이블에서 실제로 읽는 건 **`Cost`뿐이므로**(`UpgradeBuildingCost`/`CanUpgradeBuilding`/`TryUpgradeBuilding`), 필드 그룹별 레벨 리스트에서 비용만 뽑아 주는 헬퍼 하나면 충분하다. 효과값은 지금처럼 소비 측이 자기 필드 그룹에서 직접 읽는다(`SkillManager`가 `Skill.UpgradeLevels`를, 교환이 `Exchange.UpgradeLevels.GainMultiplier`를). 이게 끝나면 **본성 업그레이드와 연금술사 교환 효율 업그레이드가 동시에 열린다.**
 
 ---

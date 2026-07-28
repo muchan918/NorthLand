@@ -61,7 +61,7 @@ public class ManagementController : MonoBehaviour
     private BuildingAsset[] _upgradeBuildingRefs;
 
     // 본진에서 늘린 주민 수(#227). 시작값(_maxVillagers)과 분리해 런타임 상태로만 소유한다 —
-    // 공유 SO(headquarters.asset)에 쓰면 다른 런/인스턴스까지 오염된다(WL-016, 건물 레벨과 같은 취지).
+    // 공유 SO(castle.asset)에 쓰면 다른 런/인스턴스까지 오염된다(WL-016, 건물 레벨과 같은 취지).
     // 이 값 자체가 곧 '소진한 비용 테이블 행 수'다 — 별도 카운터를 두면 둘이 어긋날 수 있어 하나로 겸한다.
     // 밤→낮 전환은 배치(_villagerCounts)만 초기화하므로 늘어난 주민 수는 자동으로 다음날에도 유지된다.
     private int _bonusVillagers;
