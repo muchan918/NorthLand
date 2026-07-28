@@ -53,6 +53,22 @@
 | `IsPatternReady(key, cooldown)` / `MarkPatternUsed(key)` | 패턴 게이트 | 무상태 원칙의 유일한 예외(`EnemyPatternMemory`) |
 | `SpawnMinion(prefab)` / `AliveMonsterCount` / `HasSpawner` / `BindSpawner(spawner)` | 지속 소환 | 스포너는 스폰 시점에 `MonsterSpawn`이 주입한다. 정적 싱글톤을 쓰지 않아 스포너 다중 구성이 가능하다 |
 
+## 실행 모델 (그래프 저작 전 필독)
+
+패키지 소스에서 확인한 동작이며, 패턴 그래프를 짤 때(#235) 전제가 되는 내용이다.
+
+**Selector(`Try In Order`)는 선점하지 않는다.** 현재 자식이 Running인 동안 `SelectorComposite.OnUpdate`는 `Status.Waiting`만 반환하고 **앞선 자식의 조건을 다시 평가하지 않는다.** 한 브랜치에 진입하면 그 브랜치가 성공/실패로 끝날 때까지 트리는 거기 잔류한다.
+
+따라서:
+
+- **패턴 간 상호 배타는 우선순위가 아니라 이 잔류 성질이 보장한다.** 어느 순간에도 한 브랜치만 돈다. 우선순위는 "이전 브랜치가 끝나고 다시 평가하는 시점에 누가 뽑히는지"만 정한다.
+- **조건이 풀렸는데도 패턴이 계속되는 구간이 생긴다.** P2 방어 태세를 짧은 지속시간으로 반복 갱신하는 설계가 바로 이 성질에 대한 대응이다 — 길게 잡으면 잡몹을 다 정리한 뒤에도 크롤이 유지된다.
+- **Running이 끝나지 않는 노드는 패턴 Selector 전체를 영구 봉인한다.** 이때 P4 지속 소환은 별도 병렬 브랜치라 계속 돌기 때문에 겉보기로는 보스가 정상 동작하는 것처럼 보여 원인을 찾기 어렵다. **시간이 걸리는 노드에는 반드시 상한이 있어야 한다** — 이 세트에서는 `EnemyAccelerateAction.MaxDuration`, `EnemyPlayAnimationAction.MaxWaitSeconds`, 나머지는 `Duration`이 그 역할을 한다. 내장 `Time Out`(`Flow`) 데코레이터로 감싸는 방법도 있다.
+
+**선점이 필요하면 `Priority Abort`를 쓴다.** `Flow/Abort` 카테고리의 `ObserverAbortModifier`가 조건 목록을 감시하다가 성립하면 낮은 우선순위 형제를 중단시키고 부모 컴포지트를 처음부터 재평가시킨다(`AbortTarget` = `LowerPriority` / `Self` / `Both`). 예: "돌진 준비 중에 본진이 파괴되면 즉시 중단" 같은 요구가 생기면 이걸 얹는다. 현재 설계는 선점 없이 성립하므로 기본 그래프에는 쓰지 않는다.
+
+**노드가 Running이라고 보스가 멈추는 것이 아니다.** 이동은 `MonsterMove.Update`가 BT와 무관하게 구동한다. 정지는 `EnemyHoldPositionAction`이 이동 소유권을 잡고 `IsStopped`를 켤 때만 일어난다. 그래서 P3 마력 봉인의 예고 구간에도 보스는 계속 전진하며, 예고 원이 `Agent`의 자식이라 **원이 보스를 따라 움직인다** — 예고한 범위와 실제 봉인이 걸리는 범위가 어긋난다(아래 「미확정 / TODO」).
+
 ## 작성 규약
 
 Unity Behavior `com.unity.behavior` 1.0.16 기준이다.
@@ -99,7 +115,7 @@ Unity Behavior `com.unity.behavior` 1.0.16 기준이다.
 | `EnemyMarkPatternUsedAction` | `Key`(string) | 패턴 사용 시각을 기록한다. `EnemyPatternGateCondition`과 짝을 이룬다. 중단 시 되돌리지 않는다 | P1, P3 | 구현 |
 | `EnemyHoldPositionAction` | `Duration`(float) | 이동 소유권을 잡고 `Duration` 동안 제자리에 멈춘다. 종료 시 정지를 풀고 소유권을 반납한다 | P1 | 구현 |
 | `EnemyPlayAnimationAction` | `Trigger`(string), `WaitForEnd`(bool), `MaxWaitSeconds`(float) | 애니메이션 트리거를 발동한다. `WaitForEnd`면 재생이 끝날 때까지 Running을 유지한다 | P1 | 구현 |
-| `EnemyAccelerateAction` | `Target`(GameObject), `MaxFactor`(float), `AccelPerSecond`(float), `ArriveDistance`(float) | 이동 소유권을 잡고, 매 프레임 패턴 속도 배수를 `AccelPerSecond`만큼 올리되 `MaxFactor`로 클램프한다. `Target`까지 거리가 `ArriveDistance` 이하가 되면 성공 | P1 | 구현 |
+| `EnemyAccelerateAction` | `Target`(GameObject), `MaxFactor`(float), `AccelPerSecond`(float), `ArriveDistance`(float), `MaxDuration`(float) | 이동 소유권을 잡고, 매 프레임 패턴 속도 배수를 `AccelPerSecond`만큼 올리되 `MaxFactor`로 클램프한다. `Target`까지 거리가 `ArriveDistance` 이하가 되면 성공. `MaxDuration` 초과 시 경고 로그 + 실패 | P1 | 구현 |
 | `EnemyImpactTargetAction` | `Target`(GameObject), `DamagePerSpeedUnit`(float), `MinSpeed`(float) | `Target`의 `IDamageable`에 `실효 이동속도 × DamagePerSpeedUnit` 피해를 준다. 실효 속도가 `MinSpeed` 미만이면 피해 없이 성공 | P1 | 구현 |
 | `EnemySetSpeedFactorAction` | `Factor`(float), `Duration`(float) | 패턴 속도 배수를 설정한다. `Duration > 0`이면 그 시간 유지 후 원복, **0 이하면 즉시 성공하며 원복하지 않는다**(기본 진군용) | P1, P2 | 구현 |
 | `EnemySetDamageTakenFactorAction` | `Factor`(float), `Duration`(float) | 받는 피해 배수를 설정한다. 원복 규칙은 위와 같다 | P2 | 구현 |
@@ -110,7 +126,7 @@ Unity Behavior `com.unity.behavior` 1.0.16 기준이다.
 표에서 벗어난 곳 3군데는 구현 중 필요해서 조정한 것이다.
 
 - **`EnemyResolveTargetAction`에 `SearchRadius` 추가.** `NearestTower` / `NearestAlly`가 탐색 반경 없이는 동작할 수 없다. `PlayerBase`와 `Self`는 이 값을 무시한다.
-- **`EnemyPlayAnimationAction`에 `MaxWaitSeconds` 추가.** 트리거 이름이 AnimatorController에 없으면 전이가 일어나지 않아 영구 Running이 되고 P1 시퀀스 전체가 멎는다. 재생 종료 판정은 `normalizedTime` 폴링을 택했고, "전이가 한 번 끝난 뒤"부터 진행도를 신뢰한다 — 그러지 않으면 트리거 직후 이전 상태의 진행도(이미 1 초과)가 읽혀 준비 모션이 시작 전에 끝난 것으로 오판된다.
+- **`EnemyPlayAnimationAction`에 `MaxWaitSeconds`, `EnemyAccelerateAction`에 `MaxDuration` 추가.** 둘 다 영구 Running 방지용이다. 트리거 이름이 AnimatorController에 없으면 전이가 일어나지 않고, 돌진은 `ArriveDistance`가 너무 작거나 대상이 경로에서 닿을 수 없으면 도달하지 못한다. 선점이 없는 Selector에서 영구 Running은 패턴 Selector 전체를 봉인한다(「실행 모델」 참조). 돌진 상한 초과는 **실패**로 반환한다 — 성공으로 두면 뒤이은 충돌 피해가 도달하지도 않은 채 터진다. 재생 종료 판정은 `normalizedTime` 폴링을 택했고, "전이가 한 번 끝난 뒤"부터 진행도를 신뢰한다 — 그러지 않으면 트리거 직후 이전 상태의 진행도(이미 1 초과)가 읽혀 준비 모션이 시작 전에 끝난 것으로 오판된다.
 - **`EnemyAccelerateAction`의 원복이 비대칭이다.** 소유권은 항상 반납하지만 속도 배수는 **도달하지 못하고 끝난 경우에만** 되돌린다. 성공 시 유지하는 이유는 바로 뒤의 `EnemyImpactTargetAction`이 "충돌 시점의 실효 이동속도"를 읽어야 하기 때문이다 — 여기서 원복하면 평상시 속도가 읽혀 감속 파훼가 무의미해진다. 성공 후 배수 1 복귀는 그래프의 기본 진군 브랜치가 담당한다.
 
 `EnemyApplyTowerDebuffAction`의 sourceId는 `Agent.GetInstanceID() ^ "EnemyApplyTowerDebuff".GetHashCode()`다. 인스턴스 ID만 쓰면 같은 보스가 거는 다른 효과와 충돌하고, 고정 문자열만 쓰면 보스 여러 마리가 서로의 봉인을 덮어쓴다. 이 노드는 만료를 `Tower`가 duration으로 처리하므로 종료 시 원복하지 않는다 — 되돌리면 예고를 보고 회피한 플레이어가 봉인을 공짜로 벗는다.
@@ -186,6 +202,7 @@ foreach (var t in typeof(EnemyAgent).Assembly.GetTypes())
 - [ ] `EnemyAgent.UnitLayerMask`가 프리팹마다 채워져야 한다. 비어 있으면 반경 질의가 항상 0을 반환해 P2·P3가 조용히 발동하지 않는다 — #235에서 프리팹 작성 시 확인.
 - [ ] `AliveMonsterCount`가 `monsterParent.childCount`라 **보스 자신과 사망 연출 중인 몬스터(`destroyDelay` 2초)가 포함된다**. `MaxAlive` 실효값이 의도보다 빡빡해진다. WL-038의 미해소 잔여와 같은 축 — #235 Play 검증에서 실측해 보정할지 판단한다.
 - [ ] 노드 타이밍이 전부 스케일드 타임이라 게임 배속에 비례한다(`Time.deltaTime` / `Time.time`). BT 내장 `Wait`도 같은 성질이라 전체를 함께 정해야 한다. 의도인지 확인 필요.
+- [ ] **P3 예고 범위와 실제 봉인 범위가 어긋난다.** 예고 중에도 보스가 전진하고(BT Running이 이동을 멈추지 않는다) 예고 원이 `Agent` 자식이라 함께 움직이므로, `EnemyApplyTowerDebuffAction`이 도는 시점의 보스 위치가 예고를 시작한 위치와 다르다. 선택지 3개 — ① 예고 앞에 `EnemyHoldPositionAction`을 두어 시전 중 정지(예고 신뢰도 최고, 대신 보스가 멈춰 화력 집중 구간이 하나 더 생긴다) ② 예고 원을 월드 고정으로 바꾼다(노드 수정 필요) ③ 드리프트를 그대로 수용하고 예고 시간을 짧게 잡는다. #235에서 결정.
 - [ ] `EnemyNodeQuery`의 물리 버퍼가 64개 고정이다. 잡몹이 반경 안에 64체를 넘으면 초과분이 집계에서 빠진다 — P4 소환 상한과 함께 판단.
 
 ## 참고

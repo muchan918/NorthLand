@@ -76,6 +76,7 @@
 
 - **발동 조건**: 보스 앞쪽(진행 방향) 반경 안에 타워 N개 이상 **그리고** 아군 잡몹 M체 이상. 쿨다운 있음
 - **진행**: 예고 범위를 표시한 뒤, 범위 내 타워에 `Tower.ApplyBuff(sourceId, damageMul < 1, attackSpeedMul < 1, duration)`을 건다. 타워를 파괴하지는 않는다
+- **⚠ 이 패턴은 보스를 멈추지 않는다.** BT 노드가 Running이어도 이동은 `MonsterMove`가 계속 구동한다. 예고 원이 보스를 따라 움직여 예고 범위와 실제 봉인 범위가 어긋나므로, 시전 중 정지시킬지는 #235에서 결정한다(`BossNodeReference.md` 「미확정 / TODO」에 선택지 3개)
 - **파훼법**: 타워를 분산 배치하면 한 번에 걸리는 수가 줄어든다. 플레이어 버프 스킬은 같은 소스 합산 구조라 봉인을 부분 상쇄한다
 - **사용 노드**: `EnemyUnitsInRangeCondition` · `EnemyPatternGateCondition` · `EnemyMarkPatternUsedAction` · `EnemyShowTelegraphCircleAction` · `EnemyApplyTowerDebuffAction`
 
@@ -119,7 +120,9 @@
 -> 보스는 본진 접근 -> P1 돌진
 ```
 
-P1과 P2는 같은 패턴 속도 배수 축을 쓰므로 동시에 성립할 수 없다. BT의 Selector 우선순위로 P1을 위에 두어 상호 배타를 보장한다.
+P1과 P2는 같은 패턴 속도 배수 축을 쓰므로 동시에 성립할 수 없다. **상호 배타를 보장하는 것은 우선순위가 아니라 Selector의 비선점 성질이다** — 한 브랜치에 진입하면 그 브랜치가 끝날 때까지 트리가 잔류하므로 어느 순간에도 한 패턴만 돈다. 우선순위는 "이전 브랜치가 끝나고 다시 평가하는 시점에 누가 뽑히는지"만 정한다.
+
+그래서 각 패턴 브랜치의 길이가 반응성을 결정한다. 조건이 풀려도 진행 중인 브랜치는 끝까지 간다 — P2를 짧은 지속시간으로 반복 갱신하는 설계가 이 성질에 대한 대응이다. 반대로 **끝나지 않는 브랜치는 패턴 Selector 전체를 영구 봉인**하며, 이때 P4는 별도 병렬 브랜치라 계속 돌아 겉보기로는 정상 동작처럼 보인다. 자세한 내용과 선점이 필요할 때 쓰는 `Priority Abort`는 `BossNodeReference.md` 「실행 모델」 참조.
 
 ## BT 그래프 구조
 
