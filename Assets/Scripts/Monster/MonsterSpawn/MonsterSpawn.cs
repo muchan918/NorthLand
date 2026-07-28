@@ -309,16 +309,34 @@ public class MonsterSpawn : MonoBehaviour
         return false;
     }
 
-    private void SpawnPrefab(GameObject prefab)
+    // ── 런타임 소환 창구(#233) ─────────────────────────────
+    // 보스 BT의 지속 소환 패턴이 EnemyAgent를 경유해 호출한다. 웨이브 스폰과 같은 경로를 쓰므로
+    // 소환체도 monsterParent 자식으로 들어가고 경로를 받는다 — 웨이브 클리어 판정이
+    // monsterParent.childCount == 0이라(line 230 참조) 소환체를 밖에 두면 보스 사망 즉시
+    // 웨이브가 종료되면서 잡몹이 남는다. 안에 두면 "보스를 죽여야 물결이 멎는다"가 성립한다.
+    //
+    // 스포너를 정적 싱글톤으로 노출하지 않는다 — 스포너가 여러 개인 구성을 막지 않기 위해
+    // 소환체는 자기를 만든 스포너에 스폰 시점 주입으로 묶인다(SpawnPrefab 참조).
+    public GameObject SpawnMonster(GameObject prefab)
+    {
+        return SpawnPrefab(prefab);
+    }
+
+    // 현재 살아있는 몬스터 수(= monsterParent 자식 수). 소환 상한(MaxAlive) 판정용.
+    // 주의 2건: ① 보스 자신도 포함된다 ② 사망 연출 중인 몬스터도 destroyDelay(2초) 동안
+    // 포함된다(MonsterStateMachine.cs:152, WL-038). 상한값을 정할 때 이 오차를 감안해야 한다.
+    public int AliveMonsterCount => monsterParent != null ? monsterParent.childCount : 0;
+
+    private GameObject SpawnPrefab(GameObject prefab)
     {
         if (prefab == null)
         {
-            return;
+            return null;
         }
 
         if (!TryGetSpawnPose(out Vector3 position, out Quaternion rotation))
         {
-            return;
+            return null;
         }
 
         GameObject monster = Instantiate(prefab,position,rotation,monsterParent);
@@ -334,12 +352,24 @@ public class MonsterSpawn : MonoBehaviour
             );
 
             Destroy(monster);
-            return;
+            return null;
+        }
+
+        // BT 소환 노드가 스포너를 거쳐야 소환체를 monsterParent에 넣을 수 있는데, 프리팹은
+        // 씬 참조를 들 수 없다. 그래서 경로를 주입하는 이 자리에서 스포너 자신도 주입한다.
+        // EnemyAgent가 없는 프리팹(일반 잡몹)은 그냥 건너뛴다 — 선택적 의존이다.
+        EnemyAgent agent = monster.GetComponentInChildren<EnemyAgent>();
+
+        if (agent != null)
+        {
+            agent.BindSpawner(this);
         }
 
         // Enemy가 MonsterMove.RouteCompleted를 구독하여
         // 경로 끝 도달 시 몬스터 루트 오브젝트를 제거한다.
         monsterMove.SetRoute(GetSpawnRoute());
+
+        return monster;
     }
 
     private List<Vector3> GetSpawnRoute()
