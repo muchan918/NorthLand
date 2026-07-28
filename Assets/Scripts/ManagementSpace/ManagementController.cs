@@ -327,7 +327,7 @@ public class ManagementController : MonoBehaviour
 
     /// <summary>주민을 늘릴 수 있는 총 횟수 = 비용 테이블 행 수. 상한을 별도 필드로 두지 않고
     /// 행 수로 표현하므로(시작 2명 + 8행 = 최대 10명) 상한과 비용이 어긋날 수 없다.</summary>
-    public int VillagerGrowthMax(BuildingAsset building) => VillagerLevels(building)?.Count ?? 0;
+    public int VillagerGrowthSteps(BuildingAsset building) => VillagerLevels(building)?.Count ?? 0;
 
     /// <summary>지금까지 늘린 횟수(= 소진한 행 수). 표시부가 "n/8" 같은 진행도를 그릴 때 쓴다.</summary>
     public int VillagerGrowthCount => _bonusVillagers;

@@ -69,7 +69,7 @@ public class CastlePanelUI : MonoBehaviour
         }
         if (_closeButton != null)
         {
-            _closeButton.onClick.AddListener(Hide);
+            _closeButton.onClick.AddListener(HandleCloseClicked);
         }
         Hide(); // Instance 등록 후 숨기므로 안전
     }
@@ -87,7 +87,7 @@ public class CastlePanelUI : MonoBehaviour
         }
         if (_closeButton != null)
         {
-            _closeButton.onClick.RemoveListener(Hide);
+            _closeButton.onClick.RemoveListener(HandleCloseClicked);
         }
         Instance = null;
     }
@@ -113,6 +113,22 @@ public class CastlePanelUI : MonoBehaviour
         ClearCostRows();
         _building = null;
         gameObject.SetActive(false);
+    }
+
+    // 닫기는 Hide()를 직접 부르지 않고 선택 해제를 거친다. 표시만 내리고 MouseManager의 _selected를 남기면
+    // 선택 아웃라인이 안 지워지고(OnSelectionChanged 미발행) 같은 건물을 재클릭해도 다시 열리지 않는다
+    // (Select의 `_selected == next` 중복 제거가 삼킨다 — MouseManager.cs 주석이 금지하는 패턴, #228).
+    // ClearSelection이 OnDeselected → BuildingInfo.HideAll로 이 패널까지 닫아주므로 Hide 호출은 불필요하다.
+    private void HandleCloseClicked()
+    {
+        if (MouseManager.Instance != null)
+        {
+            MouseManager.Instance.ClearSelection();
+        }
+        else
+        {
+            Hide(); // 입력 매니저가 없는 부분 씬/테스트 폴백
+        }
     }
 
     private void HandleAddVillagerClicked()
