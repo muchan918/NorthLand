@@ -18,10 +18,12 @@
 | `Repeat` | Flow | 인스펙터 Mode = `Forever` |
 | `Try In Order` | Flow | Selector. 자식이 실패하면 다음 자식으로 |
 | `Sequence` | Flow | |
-| `Conditional Guard (Action)` | Action/Conditional | 조건 리스트를 담는 **리프 액션**. 조건 통과=성공, 실패=실패. `Requires All Conditions` 토글로 AND/OR |
+| `Conditional Guard` | — | 조건 리스트를 담고 자식을 게이팅한다. 조건 실패 시 Failure를 반환해 상위 `Try In Order`가 다음 브랜치로 넘어간다. `Requires All Conditions` 토글로 AND/OR |
 | `Wait (Seconds)` | Action/Delay | |
 
-`Conditional Guard (Modifier)`와 `Run In Parallel Until Any Completes`는 검색창에 뜨지 않는다(패키지가 숨김). 위 표의 것으로만 만든다.
+`Conditional Guard`에는 두 변종이 있다. 검색창에 뜨는 것은 `Action/Conditional`의 **Action 변종**(리프, 자식 없음)이고, 실제 그래프는 자식을 감싸는 **Modifier 변종**(`ConditionalGuardModifier`)을 쓴다 — 검색에는 안 뜨지만 조건을 노드 위로 끌어다 놓는 식으로 만들어진다. 둘 다 "조건 통과 시 통과, 실패 시 Failure"라 Selector 브랜치 게이팅으로는 동등하다. Modifier 쪽이 자식을 직접 감싸 구조가 한 단계 얕다.
+
+`Run In Parallel Until Any Completes`도 검색창에 뜨지 않는다 — `Run In Parallel`을 놓고 인스펙터 Mode를 `Until Any Complete`로 바꾼다.
 
 ## 그래프 구조
 
@@ -35,7 +37,7 @@
    │     └─ Try In Order
    │        │
    │        ├─ Sequence                                         ── P1 본진 돌진
-   │        │  ├─ Conditional Guard (Action)   [Requires All ✔]
+   │        │  ├─ Conditional Guard            [Requires All ✔]
    │        │  │     · Enemy Pattern Gate
    │        │  │     · Enemy Distance To Target Below
    │        │  └─ Run In Parallel             [Mode: Until Any Complete]
@@ -47,7 +49,7 @@
    │        │        └─ Enemy Impact Target                     (충돌 피해)
    │        │
    │        ├─ Sequence                                         ── P3 마력 봉인
-   │        │  ├─ Conditional Guard (Action)   [Requires All ✔]
+   │        │  ├─ Conditional Guard            [Requires All ✔]
    │        │  │     · Enemy Pattern Gate
    │        │  │     · Enemy Units In Range   (Tower / Forward)
    │        │  │     · Enemy Units In Range   (Ally  / Forward)
@@ -200,6 +202,40 @@ P3는 서클이 **두 개** 겹친다(디버그 보라 + 실제 예고 노랑). 
 | P4 `Wait (Seconds)` | `Duration` = `P4_Interval` |
 | P4 `Enemy Spawn Minions` | `Prefab` = `P4_Prefab` · `Count` = `P4_Count` · `MaxAlive` = `P4_MaxAlive` |
 | 디버그 서클 4개 | `Radius` = `Dbg_Radius` · `Duration` = `Dbg_Duration` · 색은 인라인 |
+
+## 검증 결과 (#235, 캡슐 몸체 · AnimatorController 없음)
+
+| 항목 | 결과 |
+|---|---|
+| 기본 진군 | ✅ 초록 서클, 배수 1 |
+| P2 방어 태세 | ✅ 뒤쪽 아군 3체 → 파랑 서클 + 배수 0.15 + 피해배수 0.4. 잡몹 제거 시 기본 진군 복귀 |
+| P3 마력 봉인 | ✅ 앞쪽 타워 4 + 아군 3 → 보라(디버그)+노랑(예고) 서클 → 타워 `AttackInterval` 1 → 2 (배율 0.5). 진군 복귀 후에도 `P3_SealDuration`(6초)간 유지 — 만료를 노드가 아니라 `Tower`가 소유하는 설계대로다 |
+| P1 본진 돌진 | ✅ 본진 근처에서 발동 |
+| P4 지속 소환 | ✅ 간격마다 잡몹 유입 |
+| 감속 파훼 | ✅ 아래 별도 표 |
+| **P1 충돌 후 보스 생존** | ❌ **미검증** — 경로 끝 `RouteCompleted → Destroy` 회피 여부 |
+| AnimatorController | ❌ **미착수** — #235 완료 기준 중 이 항목은 충족되지 않았다 |
+
+### 감속 파훼 (대체 검증)
+
+이동속도 감소 타워가 저장소에 없어(`slow_tower.asset` 전 필드 공백) `IMovementAgent.AddSpeedDebuff`를 직접 걸어 계약을 확인했다.
+
+| 상태 | 실효 속도 | 충돌 피해(계수 1.5) |
+|---|---|---|
+| 기본 | 12 | 18 |
+| 돌진 배수 3 | 36 | 54 |
+| + 감속 0.5 | 18 | 27 |
+| + 감속 0.5 하나 더 | 9 | **0** (`P1_MinSpeed` 15 미달) |
+
+패턴 배수는 3으로 유지된 채 실효 속도만 줄어든다 — **두 축이 서로를 지우지 않는다.** 감속 타워 2개로 돌진을 완전 무력화할 수 있다. 타워 기반 검증은 감속 타워 구현 후로 미룬다.
+
+### P2/P3를 인위적으로 만들 때의 함정 3개
+
+조건이 "주변에 뭐가 있느냐"라서 상황을 만들어야 하는데, 그 과정에서 다음에 걸린다.
+
+1. **보스가 경로 216 유닛을 18초에 주파한다.** `exec` 몇 번 하는 사이 본진에 도착한다. `MonsterMove.enabled = false`로 얼려도 **BT는 계속 돈다** — P2/P3는 이동이 아니라 주변 상황이 조건이라 정지 상태로도 유효하다.
+2. **`monsterParent`를 비우면 안 된다.** `childCount == 0`이 웨이브 클리어 트리거라(`MonsterSpawn.cs:230`) 보상 흐름이 돌고 **보스까지 정리된다.** 파괴하지 말고 멀리 격리한다.
+3. **P4 소환체가 성문을 파괴하면 GameOver**가 되고, `Enemy.Update`가 `behaviorAgent.enabled = false`로 BT를 꺼서 배수·서클이 그 상태로 얼어붙는다. 검증 중에는 테스트 대상 외 몬스터를 계속 동결해야 한다.
 
 ## 배선 후 할 일
 

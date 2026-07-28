@@ -212,7 +212,7 @@ foreach (var t in typeof(EnemyAgent).Assembly.GetTypes())
 - [x] `EnemySpawnMinionsAction`의 `Prefab`을 `BlackboardVariable<GameObject>`로 받을 수 있다. `GameObject`가 기본 Blackboard 타입이고 `UnityEngine.Object` 파생 변수는 `ObjectValue`로 에셋 참조를 직렬화한다.
 - [x] `EnemyPlayAnimationAction`의 재생 종료 판정은 `normalizedTime` 폴링으로 정했다. AnimationEvent는 클립마다 이벤트를 심어야 해서 아직 없는 보스 AnimatorController(#235)의 저작 부담을 노드로 떠넘긴다.
 - [x] `EnemyApplyTowerDebuffAction`의 sourceId는 `Agent.GetInstanceID() ^ 고정 문자열 해시`로 정했다(위 Action 절 참조).
-- [ ] **런타임 동작 미검증.** 이 노드들을 쓰는 그래프 에셋이 아직 없다. 검증된 것은 컴파일 / GUID 유일성(프로젝트 전체 18개 고유) / 에디터 노드 목록 등재 14/14 / 입력 타입 유효성 14/14 / `PropertyBag` 생성 14/14다. 패턴 동작·중단 시 원복은 #235 Play 검증에서 확인한다.
+- [x] **런타임 동작 검증됨(#235).** `TankBossBehavior.asset` 그래프로 패턴 4종 + 기본 진군이 Play에서 동작하는 것을 확인했다. 검증 상세와 캡슐 단계의 한계는 `TankGraphSpec.md` 「검증 결과」 참조. 다만 `EnemyPlayAnimationAction`은 **아직 실행 경로에 들어간 적이 없다** — 캡슐 프리팹에 `Animator`가 없어 P1에서 제외했다.
 - [ ] `EnemyAgent.UnitLayerMask`가 프리팹마다 채워져야 한다. 비어 있으면 반경 질의가 항상 0을 반환해 P2·P3가 조용히 발동하지 않는다 — #235에서 프리팹 작성 시 확인.
 - [ ] `AliveMonsterCount`가 `monsterParent.childCount`라 **보스 자신과 사망 연출 중인 몬스터(`destroyDelay` 2초)가 포함된다**. `MaxAlive` 실효값이 의도보다 빡빡해진다. WL-038의 미해소 잔여와 같은 축 — #235 Play 검증에서 실측해 보정할지 판단한다.
 - [ ] 노드 타이밍이 전부 스케일드 타임이라 게임 배속에 비례한다(`Time.deltaTime` / `Time.time`). BT 내장 `Wait`도 같은 성질이라 전체를 함께 정해야 한다. 의도인지 확인 필요.
