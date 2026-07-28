@@ -1,47 +1,48 @@
+using NorthLand.Core;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class SettingUI : MonoBehaviour
 {
-    [SerializeField] private GameObject settingPanel;
+    [SerializeField]
+    private GameObject settingPanel;
 
+    [SerializeField]
+    private LocalizationManager localizationManager;
+
+    // 인게임에서만 연결한다. 타이틀에서는 비워 둔다.
     [SerializeField]
     private GameSpeedController gameSpeedController;
 
-    public bool IsOpen =>settingPanel != null &&settingPanel.activeSelf;
+    public bool IsOpen =>
+        settingPanel != null &&
+        settingPanel.activeSelf;
 
     private void Awake()
     {
         if (settingPanel == null)
         {
-            Debug.LogError($"[{nameof(SettingUI)}] Setting Panel이 연결되지 않았습니다.",this);
+            Debug.LogError($"[{nameof(SettingUI)}] SettingPanel이 연결되지 않았습니다.",this);
 
             enabled = false;
             return;
         }
 
-        if (gameSpeedController == null)
+        if (localizationManager == null)
         {
-            Debug.LogError($"[{nameof(SettingUI)}] GameSpeedController가 연결되지 않았습니다.",this);
+            Debug.LogError($"[{nameof(SettingUI)}] LocalizationManager가 연결되지 않았습니다.",this);
 
             enabled = false;
             return;
         }
 
+        // GameSpeedController는 타이틀에 없으므로 필수 검사를 하지 않는다.
+        localizationManager.OnClose();
         settingPanel.SetActive(false);
-    }
-
-    private void Update()
-    {
-        if (Keyboard.current != null &&Keyboard.current.f1Key.wasPressedThisFrame)
-        {
-            TogglePanel();
-        }
     }
 
     public void TogglePanel()
     {
-        if (settingPanel.activeSelf)
+        if (IsOpen)
         {
             ClosePanel();
         }
@@ -51,17 +52,15 @@ public class SettingUI : MonoBehaviour
         }
     }
 
-    private void OpenPanel()
+    public void OpenPanel()
     {
         if (settingPanel == null)
             return;
 
+        localizationManager?.OnClose();
         settingPanel.SetActive(true);
 
-        if (gameSpeedController != null)
-        {
-            gameSpeedController.SetPaused(GamePauseReason.Settings,true);
-        }
+        gameSpeedController?.SetPaused(GamePauseReason.Settings,true);
     }
 
     public void ClosePanel()
@@ -69,11 +68,21 @@ public class SettingUI : MonoBehaviour
         if (settingPanel == null)
             return;
 
+        localizationManager?.OnClose();
         settingPanel.SetActive(false);
 
-        if (gameSpeedController != null)
+        gameSpeedController?.SetPaused(GamePauseReason.Settings,false);
+    }
+
+    public void QuitGame()
+    {
+        if (GameSceneManager.Instance == null)
         {
-            gameSpeedController.SetPaused(GamePauseReason.Settings,false);
+            Debug.LogError($"[{nameof(SettingUI)}] GameSceneManager 인스턴스를 찾을 수 없습니다.",this);
+
+            return;
         }
+
+        GameSceneManager.Instance.QuitGame();
     }
 }
