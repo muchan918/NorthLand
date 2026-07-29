@@ -213,6 +213,23 @@ namespace NorthLand.Combat
                 return;
             }
 
+            // 스턴은 이동뿐 아니라 공격도 막는다(#164). 이동만 막으면 본진·병사에 붙어 때리는
+            // 몬스터에게는 효과가 0이다 — 아래 :IsStopped 대입이 이미 정지를 세워둔 상태라
+            // 관측 가능한 변화가 없다. 성문 앞 난전이 소다 타워를 사는 이유인데 거기서만
+            // 안 먹히는 결과가 된다.
+            //
+            // 타겟 없음을 내려주는 이유: MonsterStateMachine이 hasTarget을 먼저 평가하므로
+            // 통지를 남겨두면 스턴 중에도 공격 모션이 계속 재생된다.
+            //
+            // 쿨다운은 계속 흘려보낸다 — 소유권 브랜치와 같은 규칙. 스턴 지속시간이 곧 효과이고,
+            // 여기서 쿨다운까지 얼리면 스턴 해제 후 눈에 안 보이는 추가 지연이 붙는다.
+            if (movement != null && movement.IsStunned)
+            {
+                monsterStateMachine?.SetHasTarget(false);
+                cooldownTimer -= Time.deltaTime;
+                return;
+            }
+
             IDamageable target = FindTarget();
             bool hasTarget = target != null;
 
