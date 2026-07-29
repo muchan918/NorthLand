@@ -22,8 +22,6 @@ MonoBehaviour:
     Amount: 40
   - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
     Amount: 20
-  - Resource: {fileID: 11400000, guid: 090c2a0d275ad8f4493045612eb0e1da, type: 2}
-    Amount: 5
   Single:
     Attack:
       AttackDamage: 0
@@ -60,9 +58,9 @@ MonoBehaviour:
     DebuffAura:
       Radius: 30
       Interval: 1
-      Duration: 3
+      Duration: 4
       Modifiers: []
       Damage:
         HasDamage: 1
-        DamageAmount: 3
+        DamageAmount: 5
         TickInterval: 1

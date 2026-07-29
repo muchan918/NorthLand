@@ -30,36 +30,38 @@ MonoBehaviour:
     Levels:
     - Cost:
       - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-        Amount: 20
+        Amount: 15
     - Cost:
       - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-        Amount: 40
+        Amount: 25
     - Cost:
       - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-        Amount: 60
+        Amount: 35
+      - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+        Amount: 10
     - Cost:
       - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-        Amount: 60
+        Amount: 45
       - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
         Amount: 20
     - Cost:
       - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-        Amount: 70
+        Amount: 55
       - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
-        Amount: 40
+        Amount: 30
     - Cost:
       - Resource: {fileID: 11400000, guid: 89825fd4ccdc8c0479da28304786292e, type: 2}
-        Amount: 5
+        Amount: 3
       - Resource: {fileID: 11400000, guid: 4a2d92e532482ff4dbafa7b361759b00, type: 2}
-        Amount: 5
+        Amount: 3
     - Cost:
       - Resource: {fileID: 11400000, guid: 89825fd4ccdc8c0479da28304786292e, type: 2}
-        Amount: 10
+        Amount: 6
       - Resource: {fileID: 11400000, guid: 4a2d92e532482ff4dbafa7b361759b00, type: 2}
-        Amount: 10
+        Amount: 6
     - Cost:
       - Resource: {fileID: 11400000, guid: 090c2a0d275ad8f4493045612eb0e1da, type: 2}
-        Amount: 5
+        Amount: 3
       - Resource: {fileID: 11400000, guid: 4a2d92e532482ff4dbafa7b361759b00, type: 2}
         Amount: 5
   Castle:

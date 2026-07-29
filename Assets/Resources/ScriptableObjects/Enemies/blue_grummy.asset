@@ -14,11 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAsset
   EnemyID: blue_grummy
   EnemyType: 0
+  MovementMode: 0
   Melee:
     Stat:
-      MaxHp: 80
+      MaxHp: 120
       MoveSpeed: 20
-      AttackDamage: 50
+      AttackDamage: 20
       AttackRange: 3
       AttackInterval: 3
   Ranged:
