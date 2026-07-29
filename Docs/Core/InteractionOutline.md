@@ -37,7 +37,7 @@
 
 **In**
 - 호버 노랑: 건물(`BuildingTooltipSource`), 배치된 타워, 영지 노드의 **확보 후 섬/산**
-- 선택 초록: `ISelectable` 단일 선택(건물·`AuraTower`·타워) + `IGroupSelectable` 그룹 선택(타워 다중)
+- 선택 초록: `ISelectable` 단일 선택(건물·타워 — 마법 타워 포함, #164 리팩토링으로 타워는 단일 `Tower` 타입) + `IGroupSelectable` 그룹 선택(타워 다중)
 - 합성 프리뷰 핑크: 합성 패널 후보 버튼 호버 시 **실제로 소모될 재료 타워만**
 - `TowerGroupSelectable`의 임시 하늘색 바닥 쿼드 제거
 
@@ -230,7 +230,7 @@ public void Set(OutlineKind kind, bool on);   // 멱등
 **왜 각 대상의 `ISelectable`/`IHoverable` 훅 안에서 직접 켜지 않는가**
 1. 두 이벤트는 항상 "현재 대상"을 실어 오고 드라이버가 `_lastHovered`/`_lastSelected`를 들고 있으므로 **대칭이 구조적으로 보장**된다.
 2. 그래서 **WL-087**(코디네이터 `RefreshPanel`이 `count==1`에서 `t.OnSelected()`만 부르고 대칭 `OnDeselected()`가 없음)에 걸리지 않는다. 2→1 복귀 시 남은 타워는 그룹에 있으므로 `GroupSelected`로 초록이 유지된다. *(WL-087 자체는 이 이슈에서 고치지 않은 채 남았다가, 사거리 원 잔존으로 드러나 `_infoShownFor` diff + Shift 경로의 `Select(null)`로 종결 — `TowerMerge.md` §7.2·§8.1.)*
-3. `Tower.cs`(Combat 소유)·`BuildingInfo`·`AuraTower`·`TerritoryNodeView`를 **한 줄도 수정하지 않는다**.
+3. `Tower.cs`(Combat 소유)·`BuildingInfo`·`TerritoryNodeView`를 **한 줄도 수정하지 않는다**. (작성 시점엔 `AuraTower`도 대상이었으나 #164 리팩토링으로 `Tower`에 통합됐다 — 드라이버가 구상 타입을 몰랐던 덕에 그 통합에도 아웃라인 코드는 무수정이었다.)
 4. `MouseManager.Select`는 **낮/밤 게이트가 없다** → **밤에 타워를 클릭해도 초록이 뜬다**(사거리 원·정보 패널과 피드백이 일치). 코디네이터의 `IsDay` 게이트는 그대로 유지된다(밤에는 그룹·합성이 잠긴 채 단일 초록만 뜬다).
    - **이 "셋이 함께 뜨고 함께 진다"가 불변식이다.** 셋 중 일부만 내리는 경로를 만들면 `_selected`가 남아 그 대상이 재클릭에도 반응하지 않는다 → 표시를 내릴 땐 항상 `MouseManager.ClearSelection()`(SystemMap §2)을 쓴다. 페이즈 전환에서 실제로 깨졌던 지점이다(WL-086).
 
@@ -299,7 +299,7 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 ### 6.1 수집 규칙
 
 1. `GetComponentsInChildren<MeshRenderer>(true)` + `GetComponentsInChildren<SkinnedMeshRenderer>(true)` — 타워·건물은 시각물이 자식에 있다(`TerritoryNodeView._visual` 분리 구조와 동일 계보). 타입을 이 둘로 한정하면 `LineRenderer`·`TrailRenderer`·`ParticleSystemRenderer`가 자동 배제된다.
-2. **제외**: 조상에 `RangeCircle`이 있는 렌더러 — `Tower.cs:106`/`AuraTower.cs:127`이 사거리 원을 **타워 자식**(`"TowerRangeSelection"`)으로 생성하므로 제외하지 않으면 사거리 원판에 테두리가 생긴다. `RangeCircle`의 `Fill` 자식이 MeshRenderer라 타입 필터로는 걸러지지 않는다.
+2. **제외**: 조상에 `RangeCircle`이 있는 렌더러 — `Tower.ShowRangeCircle`이 사거리 원을 **타워 자식**(`"TowerRangeSelection"`)으로 생성하므로 제외하지 않으면 사거리 원판에 테두리가 생긴다. `RangeCircle`의 `Fill` 자식이 MeshRenderer라 타입 필터로는 걸러지지 않는다.
 3. **제외**: 이미 만든 `OutlineShell` 자신(재수집 시 무한 증식 방지).
 4. 수집은 **첫 표시 시 1회**, 결과를 캐시한다. 사거리 원은 첫 선택 때 지연 생성되므로 수집 시점이 그 전/후 어느 쪽이든 조상 검사로 안전해야 한다.
 5. **단, 캐시한 shell 중 하나라도 파괴됐으면(= 원본 렌더러가 사라졌으면) 살아남은 shell까지 정리하고 다시 수집한다.** 대상의 시각물이 런타임에 교체되는 경우(영지 노드 회오리→섬)에 1회 캐시를 고정하면 죽은 참조만 남아 **아웃라인이 조용히 사라진다**(§5.4 표). 검사 비용은 캐시 리스트 순회 1회뿐이고 정상 대상은 첫 조건에서 빠져나간다. 대상 자체를 바꿔치기할 수 있으면 `IOutlineTargetProvider`(§5.4)를 쓰는 것이 우선이고, 이 규칙은 그 훅이 없는 대상까지 받쳐주는 안전망이다.

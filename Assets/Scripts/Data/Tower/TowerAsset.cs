@@ -43,6 +43,8 @@ public class TowerAsset : ScriptableObject
         public float AttackInterval;
         public GameObject ProjectilePrefab;
         public float ProjectileSpeed;
+        // >0이면 투사체 명중 시 대상에 스턴(초) 부여(#164 소다타워). 0=없음. 슬로우 인프라(StatusEffectHandler) 재사용.
+        public float OnHitStunDuration;
     }
 
     [System.Serializable]

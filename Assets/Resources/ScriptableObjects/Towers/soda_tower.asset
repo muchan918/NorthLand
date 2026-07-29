@@ -10,24 +10,24 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
-  m_Name: archer_tower
+  m_Name: soda_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
-  TowerID: archer_tower
-  TowerPrefab: {fileID: 6801833135963741600, guid: af8de5afe47137043ad4ec48d2323017, type: 3}
-  GhostPrefab: {fileID: 6801833135963741600, guid: 5d9bff6eeac419349bde17bbdae0e99c, type: 3}
+  TowerID: soda_tower
+  TowerPrefab: {fileID: 6801833135963741600, guid: 11821cec09aec2147a7c1035fbbc8668, type: 3}
+  GhostPrefab: {fileID: 6801833135963741600, guid: 47a1f592ba98e2447bb40b61de36868a, type: 3}
   TowerType: 0
   MagicEffectType: 0
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-    Amount: 20
+    Amount: 40
   Single:
     Attack:
-      AttackDamage: 12
-      AttackRange: 45
-      AttackInterval: 1
+      AttackDamage: 10
+      AttackRange: 40
+      AttackInterval: 3
       ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
       ProjectileSpeed: 800
-      OnHitStunDuration: 0
+      OnHitStunDuration: 0.7
   Area:
     Attack:
       AttackDamage: 0

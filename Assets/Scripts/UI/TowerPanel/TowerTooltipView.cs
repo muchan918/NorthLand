@@ -277,22 +277,16 @@ public class TowerTooltipView : MonoBehaviour
         return LocalizationHelper.Get(LocalizationHelper.k_TowersTable, t.Data.DescriptionKey);
     }
 
-    // 공격력/사거리/공속을 game.tower.* 로컬라이즈 라벨로 조합(Tower.BuildStatsText와 동일 규칙).
-    // Magic 타워는 공통 공격 스탯이 없어 오라 반경(=사거리)으로 대체 표기한다.
+    // 배치 **전** 툴팁이라 인스턴스가 없다 → SO 원본 값을 쓴다(타일 버프·오라 버프가 반영되기 전 값).
+    // 라벨과 서식은 인스턴스 경로(AttackBehaviour.DescribeStats)와 같은 포매터를 공유한다(WL-079).
     private string BuildStats(TowerAsset t)
     {
-        TowerAsset.AttackFields atk = AttackOf(t);
-        if (atk != null)
-        {
-            string d = LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, "game.tower.attack_damage");
-            string r = LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, "game.tower.attack_range");
-            string s = LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, "game.tower.attack_speed");
-            float rate = atk.AttackInterval > 0f ? 1f / atk.AttackInterval : 0f;
-            return $"{d}: {atk.AttackDamage:0.#}\n{r}: {atk.AttackRange:0.#}\n{s}: {rate:0.##}";
-        }
+        TowerAsset.AttackFields atk = NorthLand.Combat.TowerBehaviourFactory.ResolveAttackFields(t);
 
-        string rr = LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, "game.tower.attack_range");
-        return $"{rr}: {t.MagicRadius:0.#}";
+        return atk != null
+            ? NorthLand.Combat.TowerStatsFormatter.BuildAttackLines(atk.AttackDamage, atk.AttackRange, atk.AttackInterval)
+            // 오라 타워는 공통 공격 스탯이 없어 반경으로 대체 표기한다.
+            : NorthLand.Combat.TowerStatsFormatter.BuildRangeLine(t.MagicRadius);
     }
 
     // 코스트: '자원명 x수량' 줄 나열(자원명은 default 테이블 로컬라이즈, BuildingInfoUI 표기와 동일 계열).
@@ -313,15 +307,6 @@ public class TowerTooltipView : MonoBehaviour
         }
         return sb.ToString();
     }
-
-    // TowerType별 공통 공격 스탯 해석(Tower.Attack과 동일 규칙). Magic/미할당 → null.
-    private static TowerAsset.AttackFields AttackOf(TowerAsset t) => t.TowerType switch
-    {
-        TowerType.Single => t.Single?.Attack,
-        TowerType.Area => t.Area?.Attack,
-        TowerType.Chain => t.Chain?.Attack,
-        _ => null,
-    };
 
     // ResourceAsset.Data 채움(호출부 채움 규약, SystemMap §2) — BuildingInfoUI.ResolveData와 동일.
     private ResourceData ResolveResourceData(ResourceAsset resource)

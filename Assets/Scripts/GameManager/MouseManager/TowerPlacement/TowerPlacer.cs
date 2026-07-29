@@ -56,6 +56,9 @@ public class TowerPlacer : MonoBehaviour
     private Material _cellMatValid;
     private Material _cellMatInvalid;
     private TowerPlacementData _activeData; // 현재 배치 중인 타워의 데이터(주입 또는 더미)
+    // 현재 배치 중인 타워의 원본 SO. 확정 시 Tower.Build에 넘겨 인스턴스를 이 SO로 조립한다 —
+    // "패널에서 산 것"과 "실제로 배치된 것"을 같게 만드는 유일한 연결선이다(WL-129).
+    private TowerAsset _activeAsset;
     private IReadOnlyList<ResourceCost> _activeCost; // 현재 배치 중인 타워의 비용(확정 시 차감)
     private System.Action _onConfirmed; // 배치 확정 후 1회 콜백(합성 재료 소모 등). 확정 직후 소비하고 비운다.
     // 배치 세션 종료(확정 복귀·취소·다른 배치로 교체) 1회 콜백. 확정 여부와 무관하게 "이 배치는 끝났다"만 알린다.
@@ -147,27 +150,34 @@ public class TowerPlacer : MonoBehaviour
         towerPrefab = so.TowerPrefab;
         ghostPrefab = so.GhostPrefab;
         _activeCost = cost;
+        _activeAsset = so;
         // _onConfirmed은 StartPlacement가 BeginPlacement '이후'에 설정한다 — BeginPlacement 내부의
         // CancelPlacement가 이전 배치의 OnEnded=EndPlacement를 발화해 _onConfirmed을 null로 지우므로,
         // 여기서 미리 대입하면 합성 재료 소모 콜백이 유실된다(무료 합성 버그).
 
-        TowerType type = so.TowerType;
-        switch (type)
+        // 프리뷰 반경. `TowerType→AttackFields` 해석은 여기서 다시 분기하지 않고
+        // `TowerBehaviourFactory.ResolveAttackFields` 단일 출처를 쓴다(WL-079) — 예전에는 이 switch가
+        // 같은 해석의 4번째 복제였고, 새 타워 타입을 추가할 때 빠뜨리기 쉬운 자리였다.
+        TowerAsset.AttackFields attack = NorthLand.Combat.TowerBehaviourFactory.ResolveAttackFields(so);
+        float previewRange;
+
+        if (attack != null)
         {
-            case TowerType.Single:
-                return StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Single.Attack.AttackRange), onConfirmed, onEnded);
-            case TowerType.Area:
-                return StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Area.Attack.AttackRange), onConfirmed, onEnded);
-            case TowerType.Chain:
-                return StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Chain.Attack.AttackRange), onConfirmed, onEnded);
-            case TowerType.Magic:
-                // 마법 타워는 오라 반경을 사거리 미리보기로 사용(#111 완료기준 #4).
-                // 반경 규칙은 TowerAsset.MagicRadius 단일 출처(WL-056) — AuraTower 실효과와 공유.
-                return StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.MagicRadius), onConfirmed, onEnded);
-            default:
-                Debug.LogError($"[TowerPlacer] 알 수 없는 TowerType={type}입니다.");
-                return false;
+            previewRange = attack.AttackRange;
         }
+        else if (so.TowerType == TowerType.Magic)
+        {
+            // 마법 타워는 오라 반경을 사거리 미리보기로 사용(#111 완료기준 #4).
+            // 반경 규칙은 TowerAsset.MagicRadius 단일 출처(WL-056) — 오라 행동의 실효과와 공유.
+            previewRange = so.MagicRadius;
+        }
+        else
+        {
+            Debug.LogError($"[TowerPlacer] 공격 스탯도 오라 반경도 해석할 수 없는 TowerType={so.TowerType}입니다.");
+            return false;
+        }
+
+        return StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, previewRange), onConfirmed, onEnded);
     }
 
     // 게이트웨이(예정): tower/ghost 프리팹 + footprint/range를 담은 SO가 생기면 아래 오버로드를 추가한다.
@@ -298,7 +308,7 @@ public class TowerPlacer : MonoBehaviour
         // TowerFootprint.OnDestroy가 그 타일들의 Occupied를 되돌려 재배치를 허용한다.
         var placed = Instantiate(towerPrefab, snappedPos, Quaternion.identity);
         var occupant = placed.AddComponent<TowerFootprint>();
-        // 배치된 타워를 합성(#183) 그룹 선택 대상으로 표시(마커 런타임 부착 — Tower.cs 무편집).
+        // 배치된 타워를 합성(#183) 그룹 선택 대상으로 표시(마커 런타임 부착).
         // 합성 결과 타워도 이 경로로 배치되므로 다단 합성의 재료가 될 수 있다.
         placed.AddComponent<TowerGroupSelectable>();
         foreach ((Vector3 _, BattleTile tile) in _footprint)
@@ -315,7 +325,25 @@ public class TowerPlacer : MonoBehaviour
         {
             towerTileBuff = placed.AddComponent<TowerTileBuff>();
         }
+
+        // ⚠ 순서 주의: 타일 버프를 Tower.Build **앞에** 적용한다. 버프 오라는 조립 시점에 자기 반경으로
+        // 대상을 한 번 훑는데, 그 반경이 타일 버프(사거리)에 의존하기 때문이다. 순서가 뒤바뀌면
+        // 첫 적용이 버프 이전 반경으로 계산된다 — 구 AuraTower가 Start에서 반경을 재계산하던 우회로가
+        // 정확히 이 순서 문제였다. 여기서 한 번 정해두면 그 우회로가 필요 없다.
         towerTileBuff.Initialize(CalculateTileBuff(occupant.Tiles));
+
+        // 배치 확정된 SO로 조립한다. **패널에서 산 SO가 프리팹이 물고 있는 SO를 이긴다** —
+        // 둘이 다르면 Tower.Build가 경고를 내고 산 쪽으로 재조립한다(WL-129의 무증상 불일치 해소).
+        if (placed.TryGetComponent(out NorthLand.Combat.Tower placedTower))
+        {
+            placedTower.Build(_activeAsset);
+        }
+        else
+        {
+            Debug.LogError(
+                $"[TowerPlacer] 배치한 프리팹({placed.name})에 Tower 컴포넌트가 없습니다 — " +
+                "게임플레이가 동작하지 않습니다. 타워 프리팹 구성을 확인하세요.", placed);
+        }
 
         // 확정 콜백(합성 재료 소모 등)은 배치 성공 후 1회만 실행한다.
         // 먼저 비우고 호출해 연속 배치(keepPlacing)에서도 재실행되지 않게 한다.

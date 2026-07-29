@@ -34,6 +34,21 @@ namespace NorthLand.Combat
 
         void RemoveSpeedDebuff(int sourceId);
 
+        // ── 스턴 축(#164) ─────────────────────────────
+        // 속도 축·이동 소유권 어느 쪽과도 독립된 정지 축이다. 속도 축은 하한 클램프 때문에 배수를 0으로
+        // 내려도 멈추지 않고, 이동 소유권은 보스 BT가 잡고 반납하는 주인이라 스턴이 끼어들면 반납 시점이
+        // 엉킨다. 그래서 정지 의미를 갖는 CC는 이 축으로만 표현한다.
+        //
+        // 소프트락 우려가 속도 축과 다른 이유: 스턴은 지속시간이 있는 효과라 부여자가 만료 시 반드시
+        // 해제한다(StatusEffectHandler가 소진 소유). 반면 감속은 갱신이 계속 들어오면 무한히 유지된다.
+        //
+        // 소스별로 카운트되므로 여러 스턴이 겹쳐도 마지막 하나가 풀릴 때까지 정지가 유지된다.
+        bool IsStunned { get; }
+
+        void AddStun(int sourceId);
+
+        void RemoveStun(int sourceId);
+
     }
     public interface IRouteMovementAgent : IMovementAgent
     {

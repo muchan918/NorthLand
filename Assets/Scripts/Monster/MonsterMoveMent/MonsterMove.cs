@@ -33,6 +33,9 @@ public class MonsterMove : MonoBehaviour, IRouteMovementAgent
 
     private MoveSpeedComposer speedComposer;
 
+    // 스턴 축은 속도 컴포저와 독립이다(StunGate 주석 참조).
+    private readonly StunGate stunGate = new StunGate();
+
     private MoveSpeedComposer SpeedComposer
     {
         get
@@ -94,6 +97,14 @@ public class MonsterMove : MonoBehaviour, IRouteMovementAgent
         SpeedComposer.RemoveSpeedDebuff(sourceId);
     }
 
+    // ── 스턴 축(IMovementAgent 계약) ─────────────────────────────
+
+    public bool IsStunned => stunGate.IsStunned;
+
+    public void AddStun(int sourceId) => stunGate.Add(sourceId);
+
+    public void RemoveStun(int sourceId) => stunGate.Remove(sourceId);
+
 
 
 
@@ -115,7 +126,9 @@ public class MonsterMove : MonoBehaviour, IRouteMovementAgent
 
     private void Update()
     {
-        if (!hasRoute || IsStopped || routeCompleted)
+        // IsStunned를 IsStopped와 별개 게이트로 두는 이유: IsStopped는 Enemy.Update가 매 프레임
+        // 덮어쓰는 값이라 스턴이 여기에 얹히면 1프레임 만에 지워진다.
+        if (!hasRoute || IsStopped || IsStunned || routeCompleted)
         {
             return;
         }

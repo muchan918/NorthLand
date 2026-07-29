@@ -16,6 +16,7 @@ namespace NorthLand.Combat
         public float ChainRadius;         // Chain
         public int MaxChainTargets;     // Chain: 최초 대상 포함 총 타격 수
         public float ChainDamageFalloff;  // Chain: 홉마다 곱해지는 계수(예 0.8)
+        public float StunDuration;        // >0이면 명중 대상에 스턴(초) 부여(#164 소다타워). 타워가 발사 시 세팅
 
         public static ProjectileImpact MakeSingle()
             => new ProjectileImpact { Kind = ImpactKind.Single };
@@ -178,9 +179,24 @@ namespace NorthLand.Combat
                     {
                         target.TakeDamage(new DamageInfo(damage, source));
                         DamageDealt?.Invoke(source, target);
+                        if (impact.StunDuration > 0f) ApplyStun(target);
                     }
                     break;
             }
+        }
+
+        // 명중 시 스턴 부여(#164). CC 인프라 공유: 배율 0을 넘기면 StatusEffectHandler가 속도 축이 아니라
+        // 스턴 축(IMovementAgent.AddStun)으로 보낸다 — 속도 축은 하한 클램프 때문에 배율 0으로도 멈추지 않는다.
+        // 공유 effectId라 중첩 없이 갱신만 된다.
+        static readonly int StunEffectId = "onhit.stun".GetHashCode();
+        void ApplyStun(IDamageable enemy)
+        {
+            if (impact.StunDuration <= 0f) return;
+            if (enemy is not Component c) return;
+
+            var handler = c.GetComponent<StatusEffectHandler>();
+            if (handler == null) handler = c.gameObject.AddComponent<StatusEffectHandler>();
+            handler.ApplySlow(StunEffectId, 0f, impact.StunDuration);
         }
 
         // 명중 지점 반경 내 모든 적에게 동일 데미지

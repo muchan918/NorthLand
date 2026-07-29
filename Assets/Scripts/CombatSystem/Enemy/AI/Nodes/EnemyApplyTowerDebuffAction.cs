@@ -11,8 +11,8 @@ using Action = Unity.Behavior.Action;
 //
 // 알려진 제약 2건:
 //  · 공격 간격이 Mathf.Max(finalSpeedMultiplier, 0.01f)로 클램프되어 완전 봉인은 불가능하다.
-//  · AuraTower는 Tower.Active에 등록되지 않아 대상에서 빠진다. 결과적으로 봉인 중에도
-//    오라 계열 감속이 살아남아 P1 파훼 수단이 유지된다.
+//  · 오라 계열 타워는 공격 행동이 없어 EnemyNodeQuery.IsAttackTower에서 걸러진다. 결과적으로
+//    봉인 중에도 감속이 살아남아 P1 파훼 수단이 유지된다(설계 의도 — TankGraphSpec.md).
 //
 // 만료는 Tower가 duration으로 스스로 처리하므로 종료 시 원복하지 않는다 —
 // 중단되어 상태를 남기지 않는다는 원칙은 이 노드에서 "타워가 스스로 만료시킨다"로 충족된다.
