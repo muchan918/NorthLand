@@ -62,7 +62,7 @@ MonoBehaviour:
       Duration: 2
       Modifiers:
       - Stat: 2
-        Amount: -40
+        Amount: -20
         IsPercentage: 1
       Damage:
         HasDamage: 0

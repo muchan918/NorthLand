@@ -35,10 +35,17 @@ namespace NorthLand.Combat
             aura = context.Asset.Magic?.DebuffAura;
             targetLayerMask = context.EnemyLayerMask;
 
-            // 같은 TowerID끼리 하나의 효과를 공유·갱신한다(구 AuraTower 거동 유지).
-            // ⚠ 이 채번은 같은 종류 감속 타워가 중첩되지 않는 원인이다 — 별도 커밋에서 고친다.
-            string towerId = context.Asset.TowerID;
-            effectId = !string.IsNullOrEmpty(towerId) ? towerId.GetHashCode() : GetInstanceID();
+            // 소스키는 **인스턴스별**이다. 예전에는 TowerID 해시를 썼는데, 그러면 같은 종류 오라 타워
+            // 여러 개가 대상의 StatusEffectHandler에서 한 슬롯을 공유해 서로를 갱신만 했다:
+            //
+            //   · 감속: MoveSpeedComposer가 소스별 곱산으로 합성하도록 만들어져 있는데(#233), 키가 뭉개져
+            //     감속 타워 2개를 지어도 배율이 1중첩에 머물렀다. 이는 P1 돌진의 유일한 파훼 수단을
+            //     무력화한다 — 파훼 불변식이 slow^n 을 요구한다(Docs/Monster/Boss/TankGraphSpec.md).
+            //   · DoT: 같은 종류 타워를 더 지어도 틱 데미지가 늘지 않았다.
+            //
+            // 인스턴스별로 채번하면 버프 오라(#164)와 소스키 도메인이 대칭이 되고, 두 문제가 함께 해소된다.
+            // ⚠ 밸런스 영향: 같은 종류 오라 타워를 겹쳐 지을 때 감속·DoT가 실제로 중첩된다.
+            effectId = GetInstanceID();
 
             tickTimer = 0f;   // 밤 진입 직후 첫 Tick에서 즉시 1회 적용
         }
