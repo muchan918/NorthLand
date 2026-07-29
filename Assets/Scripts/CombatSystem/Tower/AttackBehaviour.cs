@@ -37,6 +37,9 @@ namespace NorthLand.Combat
                 ? 0f
                 : fields.AttackInterval / Mathf.Max(owner.Stats.Evaluate(TowerStat.AttackSpeed, 1f), 0.01f);
 
+        // 선택 사거리 원은 실제 교전 사거리를 그린다(원장 합성값 = 타일 버프·버프 오라 반영).
+        public float DisplayRange => Range;
+
         public void Initialize(in TowerBuildContext context)
         {
             owner = context.Owner;

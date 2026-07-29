@@ -24,10 +24,12 @@ namespace NorthLand.Combat
         public static string BuildRangeLine(float range)
             => $"{Label("game.tower.attack_range")}: {range:0.#}";
 
-        /// 지속 피해 한 줄. 없으면 null.
-        public static string BuildDotLine(OptionalDamage damage)
-            => damage != null && damage.HasDamage
-                ? $"DoT: {damage.DamageAmount:0.#} / {damage.TickInterval:0.#}s"
+        /// 지속 피해 한 줄. 피해가 없으면 null.
+        /// **SO 원본이 아니라 실효값(원장 합성 후)을 넘길 것** — 패널 표기와 실제 효과가 어긋나면
+        /// WL-079/WL-130이 지적한 "표시부와 적용부가 규칙을 각자 쓰는" 문제가 재발한다.
+        public static string BuildDotLine(float damagePerTick, float tickInterval)
+            => damagePerTick > 0f && tickInterval > 0f
+                ? $"DoT: {damagePerTick:0.#} / {tickInterval:0.#}s"
                 : null;
 
         /// 감속 한 줄. 감속이 없으면(배율 1) null.

@@ -71,10 +71,18 @@ namespace NorthLand.Combat
 
         /// 기본값에 이 원장의 modifier를 합성한 최종 값.
         /// 배율형 스탯(공격속도)은 baseValue에 1f를 넘겨 순수 배율로 받는다.
+        ///
+        /// **0 하한이 필수다.** 배율 모드는 보너스를 합산하므로(1.0 → +0, 0.5 → −0.5) 디버프 방향 소스가
+        /// 겹치면 합이 −1 아래로 내려가 결과가 음수가 된다. 예: 보스 P3 마력 봉인은 sourceId가 에이전트별이라
+        /// 보스 2기가 각각 damageMul 0.5를 걸면 보너스 합 −1.0(=데미지 0), 3기면 음수다.
+        /// 하류에 클램프가 없어(`AttackBehaviour` → `Projectile` → `Enemy.currentHp -= amount`) 음수 데미지가
+        /// 그대로 **회복**이 된다. 원장이 단일 출처이므로 여기 한 줄이 전 소비처를 덮는다.
         public float Evaluate(TowerStat stat, float baseValue)
         {
             int i = (int)stat;
-            return (baseValue + flat[i]) * (1f + percent[i] / 100f) * (1f + multiplierBonus[i]);
+            float result = (baseValue + flat[i]) * (1f + percent[i] / 100f) * (1f + multiplierBonus[i]);
+
+            return result > 0f ? result : 0f;
         }
 
         /// 한 소스의 modifier 묶음을 등록·갱신한다(교체 semantics).

@@ -92,7 +92,12 @@ namespace NorthLand.Combat
                 return;
             }
 
-            ReinitializeBehaviours();   // 풀 재사용 등으로 다시 켜진 경우 행동을 재무장
+            // 재활성화(풀 재사용 등): OnDisable이 원장을 비웠으므로 되돌려야 한다.
+            // 버프 오라가 준 modifier는 Register()→ActiveChanged→각 오라의 Reapply로 자동 복원되지만,
+            // 타일 버프는 배치 시 1회 푸시라 스스로 돌아올 경로가 없다 → 여기서 다시 밀어준다.
+            if (TryGetComponent(out TowerTileBuff tileBuff)) ApplyTileBuff(tileBuff.Result);
+
+            ReinitializeBehaviours();   // 행동을 재무장
             Register();
         }
 
@@ -272,8 +277,25 @@ namespace NorthLand.Combat
             if (_rangeCircle == null)
                 _rangeCircle = RangeCircle.Create(transform, selectionRangeFillColor, selectionRangeColor, "TowerRangeSelection");
 
-            _rangeCircle.SetRadius(AttackRange);
+            _rangeCircle.SetRadius(DisplayRange);
             _rangeCircle.Show();
+        }
+
+        // 표시용 반경 = 행동들이 보고한 값 중 최대. `AttackRange`를 쓰면 공격 행동이 없는 오라 타워에서
+        // 0이 되어 원이 아예 그려지지 않는다(#192 회귀). 최대값을 쓰는 이유는 공격+오라 하이브리드 타워에서
+        // 더 넓은 쪽이 플레이어가 알아야 할 영향 범위이기 때문.
+        float DisplayRange
+        {
+            get
+            {
+                float result = 0f;
+                for (int i = 0; i < behaviours.Count; i++)
+                {
+                    float range = behaviours[i].DisplayRange;
+                    if (range > result) result = range;
+                }
+                return result;
+            }
         }
 
         // 정보 패널용 스탯 텍스트. 각 행동이 자기 설명을 만들고 호스트는 붙이기만 한다 —

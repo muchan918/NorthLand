@@ -27,6 +27,9 @@ namespace NorthLand.Combat
         public float Radius =>
             aura == null ? 0f : owner.Stats.Evaluate(TowerStat.AttackRange, aura.Radius);
 
+        // 선택 사거리 원은 오라 반경을 그린다(디버프 오라와 동일 규칙).
+        public float DisplayRange => Radius;
+
         public void Initialize(in TowerBuildContext context)
         {
             owner = context.Owner;

@@ -155,23 +155,29 @@ public class TowerPlacer : MonoBehaviour
         // CancelPlacement가 이전 배치의 OnEnded=EndPlacement를 발화해 _onConfirmed을 null로 지우므로,
         // 여기서 미리 대입하면 합성 재료 소모 콜백이 유실된다(무료 합성 버그).
 
-        TowerType type = so.TowerType;
-        switch (type)
+        // 프리뷰 반경. `TowerType→AttackFields` 해석은 여기서 다시 분기하지 않고
+        // `TowerBehaviourFactory.ResolveAttackFields` 단일 출처를 쓴다(WL-079) — 예전에는 이 switch가
+        // 같은 해석의 4번째 복제였고, 새 타워 타입을 추가할 때 빠뜨리기 쉬운 자리였다.
+        TowerAsset.AttackFields attack = NorthLand.Combat.TowerBehaviourFactory.ResolveAttackFields(so);
+        float previewRange;
+
+        if (attack != null)
         {
-            case TowerType.Single:
-                return StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Single.Attack.AttackRange), onConfirmed, onEnded);
-            case TowerType.Area:
-                return StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Area.Attack.AttackRange), onConfirmed, onEnded);
-            case TowerType.Chain:
-                return StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.Chain.Attack.AttackRange), onConfirmed, onEnded);
-            case TowerType.Magic:
-                // 마법 타워는 오라 반경을 사거리 미리보기로 사용(#111 완료기준 #4).
-                // 반경 규칙은 TowerAsset.MagicRadius 단일 출처(WL-056) — AuraTower 실효과와 공유.
-                return StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, so.MagicRadius), onConfirmed, onEnded);
-            default:
-                Debug.LogError($"[TowerPlacer] 알 수 없는 TowerType={type}입니다.");
-                return false;
+            previewRange = attack.AttackRange;
         }
+        else if (so.TowerType == TowerType.Magic)
+        {
+            // 마법 타워는 오라 반경을 사거리 미리보기로 사용(#111 완료기준 #4).
+            // 반경 규칙은 TowerAsset.MagicRadius 단일 출처(WL-056) — 오라 행동의 실효과와 공유.
+            previewRange = so.MagicRadius;
+        }
+        else
+        {
+            Debug.LogError($"[TowerPlacer] 공격 스탯도 오라 반경도 해석할 수 없는 TowerType={so.TowerType}입니다.");
+            return false;
+        }
+
+        return StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, previewRange), onConfirmed, onEnded);
     }
 
     // 게이트웨이(예정): tower/ghost 프리팹 + footprint/range를 담은 SO가 생기면 아래 오버로드를 추가한다.

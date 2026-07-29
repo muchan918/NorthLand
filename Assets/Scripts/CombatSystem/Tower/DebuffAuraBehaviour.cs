@@ -26,8 +26,31 @@ namespace NorthLand.Combat
         public float Radius =>
             aura == null ? 0f : owner.Stats.Evaluate(TowerStat.AttackRange, aura.Radius);
 
+        // 선택 사거리 원은 오라 반경을 그린다 — 배치 프리뷰 원(TowerPlacer가 MagicRadius로 그림)과 같은 값이라
+        // "놓을 때 보이던 원이 선택하면 사라진다"는 비일관이 생기지 않는다.
+        public float DisplayRange => Radius;
+
         // 0 이하 폭주 방지 하한.
+        //
+        // 이 값은 원장을 거치지 않는다(공속 modifier에 반응하지 않음). 재스캔 주기를 빠르게 해도
+        // DoT는 이미 대상이 소유하고 있어 갱신만 더 자주 될 뿐 피해가 늘지 않기 때문이다 —
+        // 독 타워에서 "공속"의 의미를 갖는 축은 DotTickInterval(아래)이다.
         float Interval => Mathf.Max(aura != null ? aura.Interval : 0f, 0.05f);
+
+        // ── 원장이 합성한 실효 DoT 수치 ────────────────────────────────────
+        // 예전에는 SO 값을 그대로 대상에 넘겨, 타일 버프의 공격력·공속이 오라에 전혀 먹히지 않았다.
+        // 사거리(Radius)만 원장을 거쳐서 "사거리 타일은 먹히는데 공격력 타일은 무반응"이라는
+        // 예측 불가능한 비대칭이 있었다. 세 축을 모두 원장에 연결해 그 구멍을 닫는다.
+        bool HasDot => aura?.Damage != null && aura.Damage.HasDamage;
+
+        float DotDamage =>
+            HasDot ? owner.Stats.Evaluate(TowerStat.AttackDamage, aura.Damage.DamageAmount) : 0f;
+
+        // 공속이 오를수록 틱 간격이 짧아진다(공격 타워의 AttackInterval과 같은 규칙).
+        float DotTickInterval =>
+            HasDot
+                ? aura.Damage.TickInterval / Mathf.Max(owner.Stats.Evaluate(TowerStat.AttackSpeed, 1f), 0.01f)
+                : 0f;
 
         public void Initialize(in TowerBuildContext context)
         {
@@ -70,9 +93,13 @@ namespace NorthLand.Combat
 
         void ApplyDebuff()
         {
-            OptionalDamage dot = aura.Damage;
-            bool hasDot = dot != null && dot.HasDamage;
+            // 실효값을 루프 밖에서 한 번 계산한다(대상 수와 무관하게 같은 값).
+            bool hasDot = HasDot;
+            float dotDamage = DotDamage;
+            float dotTickInterval = DotTickInterval;
 
+            // 슬로우 강도는 원장을 거치지 않는다 — TowerStat에 "CC 강도" 축이 없고, 감속을
+            // 공격력/공속 축에 억지로 매핑하면 의미가 어긋난다. 필요해지면 축 신설이 선행 과제다.
             float slowMultiplier = AuraModifiers.ComputeSlowMultiplier(aura.Modifiers);
             bool hasSlow = slowMultiplier < 1f;
 
@@ -94,18 +121,19 @@ namespace NorthLand.Combat
                     handler = target.gameObject.AddComponent<StatusEffectHandler>();
                 }
 
-                if (hasDot) handler.ApplyOrRefresh(effectId, dot.DamageAmount, dot.TickInterval, aura.Duration, owner);
+                if (hasDot) handler.ApplyOrRefresh(effectId, dotDamage, dotTickInterval, aura.Duration, owner);
                 if (hasSlow) handler.ApplySlow(effectId, slowMultiplier, aura.Duration);
             }
         }
 
         // 정보 패널에 이 오라가 기여할 줄. 반경 + 효과 요약(DoT / 슬로우).
+        // 세 값 모두 **실효값**(원장 합성 후)이라 패널 표기와 실제 효과가 일치한다.
         public string DescribeStats()
             => aura == null
                 ? null
                 : TowerStatsFormatter.Join(
                     TowerStatsFormatter.BuildRangeLine(Radius),
-                    TowerStatsFormatter.BuildDotLine(aura.Damage),
+                    TowerStatsFormatter.BuildDotLine(DotDamage, DotTickInterval),
                     TowerStatsFormatter.BuildSlowLine(AuraModifiers.ComputeSlowMultiplier(aura.Modifiers)));
 
 #if UNITY_EDITOR

@@ -177,6 +177,19 @@
   `(기본값 + Σflat) × (1 + Σpercent/100) × (1 + Σ배율보너스)`. 축은 `TowerStat`(AttackDamage/AttackRange/AttackSpeed)
   3종, 모드는 `TowerModifierMode`(Flat/Percentage/Multiplier). 소스별 합산 중첩, 같은 소스키는 교체(refresh).
   `Apply(sourceId, modifiers, duration, now)` / `Remove(sourceId)` / `Prune(now)` / `Evaluate(stat, baseValue)`.
+  ⚠️ **`Evaluate`는 0 하한을 건다.** 배율 모드가 보너스를 합산하므로(0.5 → −0.5) 디버프 방향 소스가 겹치면
+  합이 −1 아래로 내려가 결과가 음수가 되고, 하류에 클램프가 없어(`Enemy.currentHp -= amount`) **음수 데미지가
+  회복이 된다**. 예: 보스 P3 마력 봉인은 sourceId가 에이전트별이라 보스 3기가 각각 `damageMul 0.5`를 걸면 음수.
+  원장이 단일 출처이므로 이 하한 하나가 전 소비처를 덮는다.
+  **원장 축 커버리지(오라 타워 포함)**: 공격 타워는 3축 전부, 오라 타워는 `Radius`(=AttackRange 축) +
+  DoT의 `DamageAmount`(AttackDamage 축) + `TickInterval`(AttackSpeed 축)이 원장을 거친다 →
+  **타일 버프 3종이 오라 타워에도 동일하게 먹힌다.** 예전에는 반경만 반영돼 "사거리 타일은 먹히는데
+  공격력 타일은 무반응"이라는 예측 불가능한 비대칭이 있었다.
+  의도적으로 원장을 거치지 **않는** 2가지 —
+  ① 오라 재스캔 주기(`DebuffAuraFields.Interval`): 빠르게 해도 DoT는 이미 대상이 소유하므로 갱신만
+  잦아지고 피해가 늘지 않는다(독 타워에서 "공속"의 의미를 갖는 축은 `TickInterval`이다).
+  ② 슬로우 강도(`Modifiers`의 MoveSpeed): `TowerStat`에 "CC 강도" 축이 없고 공격력·공속에 매핑하면
+  의미가 어긋난다 → 순수 감속 타워(choco)는 타일에서 사거리만 이득을 본다(축 신설이 선행 과제)
   **MonoBehaviour가 아닌 순수 C#이고 `Time.time`을 주입받는다** → 씬 없이 EditMode 테스트 가능
   (구 `Tower.activeBuffs`(배율만) ↔ `TowerTileBuff`(Flat+%) 이원화를 통합 — 구 WL-050/WL-081)
 - `Tower.Active`(`static List<Tower>`, `NorthLand.Combat`) — 씬에 존재하는 **조립된** 모든 Tower.
@@ -198,16 +211,22 @@
   훑고, 그 반경이 타일 버프(사거리)에 의존하기 때문(구 `AuraTower`가 `Start`에서 반경을 재계산하던 우회로의 원인)
 - `Tower.Asset`(`TowerAsset`, 읽기 전용, `NorthLand.Combat`, #195 muchan) — 배치된 타워의 원본 SO 조회(합성 재료 TowerID 매칭용). 순수 읽기
 - `ITowerBehaviour`(`NorthLand.Combat`) — 타워 행동 한 조각. `ActivePhase`(NightOnly/Always) / `Initialize(in TowerBuildContext)` /
-  `Tick(dt)` / `Dispose()` / `DescribeStats()`. 구현 3종: `AttackBehaviour`(Single/Area/Chain — 차이는 `ProjectileImpact`
+  `Tick(dt)` / `Dispose()` / `DisplayRange` / `DescribeStats()`. 구현 3종: `AttackBehaviour`(Single/Area/Chain — 차이는 `ProjectileImpact`
   전략뿐) · `BuffAuraBehaviour`(이벤트 구동, Always) · `DebuffAuraBehaviour`(Tick 폴링, NightOnly).
   **규약**: ⓐ Awake/OnEnable/Start에서 아무것도 하지 않는다(초기화는 `Initialize`만) ⓑ 스스로 `Update`를 돌지 않는다
   (호스트가 게이팅 후 `Tick`) ⓒ 외부에 남긴 상태는 `Dispose`에서 걷어낸다. **페이즈 게이팅을 호스트가 한 곳에서
   처리**하는 것이 구 WL-044(Tower엔 밤 게이팅, AuraTower 버프 경로엔 없음)의 재발 방지책이다.
   런타임 `AddComponent`로 붙으므로 직렬화 필드가 없다 → 프리팹 계층 참조(`firePoint`)와 `enemyLayerMask`는
-  `Tower`에 남기고 `TowerBuildContext`로 주입한다
+  `Tower`에 남기고 `TowerBuildContext`로 주입한다.
+  **`DisplayRange`**: 선택 시 그릴 사거리 원의 반경(공격=교전 사거리 / 오라=오라 반경 / 없으면 0).
+  호스트는 행동들이 보고한 값의 **최대치**로 원을 그린다. `AttackRange`로 대신 그리면 공격 행동이 없는
+  오라 타워에서 0이 되어 원이 사라진다(#192 회귀 — 정보 패널엔 반경이 뜨는데 바닥 원만 없어 더 눈에 띈다).
+  `DescribeStats`와 같은 "행동이 자기 표시를 안다" 규약
 - `TowerBehaviourFactory`(`NorthLand.Combat`) — **`TowerType`/`MagicEffectType` switch가 사는 유일한 곳.**
   `Create(host, asset, result)`(행동 조립) + `ResolveAttackFields(asset)`(TowerType→AttackFields 단일 출처).
-  신규 타워 종류 = `ITowerBehaviour` 구현 1개 + 여기 분기 1줄
+  신규 타워 종류 = `ITowerBehaviour` 구현 1개 + 여기 분기 1줄.
+  `ResolveAttackFields` 소비처 3곳: 행동 조립 / `TowerTooltipView`(배치 전 툴팁) / `TowerPlacer`(프리뷰 반경).
+  세 곳 다 자체 switch를 갖고 있었고 전부 흡수했다 — 다음 타워 타입 추가 시 빠뜨릴 자리가 없다
 - `TowerStatsFormatter`(`NorthLand.Combat`) — 스탯 표시 문자열 단일 출처(구 WL-079: `Tower`/`AuraTower`/`TowerTooltipView`
   3벌 복제 해소). 표시 경로는 둘로 갈리지만(배치 **전** 툴팁은 인스턴스가 없어 SO 원본을 본다) **라벨과 서식은 여기 한 곳**
 - `AuraModifiers`(`NorthLand.Combat`, 순수 static) — SO의 `StatModifier` → 적용 값 환산.
