@@ -96,18 +96,56 @@ namespace NorthLand.Combat
             {
                 slows[effectId] = new SlowEffect { multiplier = multiplier, remaining = duration };
             }
-            RecomputeSlow();
+            PushToMover(effectId, multiplier);
         }
 
-        // 활성 슬로우/스턴 중 가장 강한 것(최소 배율)을 이동 에이전트에 적용. 없으면 1(원복).
-        void RecomputeSlow()
+        // 효과 하나를 이동 에이전트의 해당 축에 밀어넣는다. 여러 효과를 여기서 합치지 않는 이유:
+        // MoveSpeedComposer가 소스별 곱산으로 이미 합성하므로(#233), 예전처럼 최소 배율 하나만
+        // 골라 보내면 두 번째 감속 타워가 조용히 무시된다.
+        //
+        // 매번 두 축을 함께 지시하는 이유: 같은 effectId가 갱신될 때 감속↔스턴으로 성격이 바뀔 수 있어
+        // (데이터 수정, 같은 타워의 impact 재사용), 반대 축에 남은 잔재를 그 시점에 걷어내야 한다.
+        void PushToMover(int effectId, float multiplier)
         {
-            float m = 1f;
-            foreach (var s in slows.Values)
-                if (s.multiplier < m) m = s.multiplier;
+            if (mover == null) return;
 
-            mover?.SetSlowMultiplier(m);
-            if (debugLog) Debug.Log($"[Status] {name}: 슬로우 배율={m:F2} (활성 {slows.Count}개)");
+            // 배율 0은 스턴 축으로 보낸다 — 속도 축은 minMoveSpeed 하한 클램프가 걸려 있어
+            // 배율 0을 넣어도 멈추지 않고 서행한다(StunGate 주석 참조).
+            if (multiplier <= 0f)
+            {
+                mover.RemoveSpeedDebuff(effectId);
+                mover.AddStun(effectId);
+            }
+            else
+            {
+                mover.RemoveStun(effectId);
+                mover.AddSpeedDebuff(effectId, multiplier);
+            }
+
+            if (debugLog)
+                Debug.Log($"[Status] {name}: {(multiplier <= 0f ? "스턴" : $"감속 배율={multiplier:F2}")} 적용 (활성 {slows.Count}개)");
+        }
+
+        // 만료·사망 시 두 축에서 모두 걷어낸다 — 어느 축에 들어갔는지 따로 기억하지 않고,
+        // 없는 sourceId 제거는 양쪽 다 무해하므로 분기 없이 둘 다 호출한다.
+        void ReleaseFromMover(int effectId)
+        {
+            if (mover == null) return;
+
+            mover.RemoveSpeedDebuff(effectId);
+            mover.RemoveStun(effectId);
+        }
+
+        // 대상 사망/유실 시 전량 해제. 이동 에이전트는 대상과 생명주기가 같지만, 풀링 도입 시
+        // 재사용체가 이전 생명주기의 감속·스턴을 물려받지 않으려면 여기서 확실히 비워야 한다.
+        void ReleaseAllSlows()
+        {
+            if (slows.Count == 0) return;
+
+            foreach (int effectId in slows.Keys)
+                ReleaseFromMover(effectId);
+
+            slows.Clear();
         }
 
         void Update()
@@ -116,7 +154,7 @@ namespace NorthLand.Combat
             if (owner == null || owner.IsDead)
             {
                 if (effects.Count > 0) effects.Clear();
-                if (slows.Count > 0) { slows.Clear(); mover?.SetSlowMultiplier(1f); }
+                ReleaseAllSlows();
                 return;
             }
 
@@ -144,7 +182,7 @@ namespace NorthLand.Combat
                     if (owner.IsDead)
                     {
                         effects.Clear();
-                        if (slows.Count > 0) { slows.Clear(); mover?.SetSlowMultiplier(1f); }
+                        ReleaseAllSlows();
                         return;
                     }
                     if (e.remaining <= 0f) expiredBuffer.Add(kv.Key);
@@ -162,11 +200,12 @@ namespace NorthLand.Combat
                     kv.Value.remaining -= dt;
                     if (kv.Value.remaining <= 0f) expiredSlowBuffer.Add(kv.Key);
                 }
-                if (expiredSlowBuffer.Count > 0)
+                for (int i = 0; i < expiredSlowBuffer.Count; i++)
                 {
-                    for (int i = 0; i < expiredSlowBuffer.Count; i++)
-                        slows.Remove(expiredSlowBuffer[i]);
-                    RecomputeSlow();   // 만료분 제거 후 재계산(남은 게 없으면 1로 원복)
+                    // 만료분만 해제한다 — 남은 효과는 컴포저·스턴 게이트가 그대로 유지하므로
+                    // 예전처럼 전체를 재계산할 필요가 없다.
+                    slows.Remove(expiredSlowBuffer[i]);
+                    ReleaseFromMover(expiredSlowBuffer[i]);
                 }
             }
         }

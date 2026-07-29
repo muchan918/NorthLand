@@ -18,6 +18,7 @@ public class BuildingAsset : ScriptableObject
     public ProductionFields Production;
     public SkillFields Skill;
     public ExchangeFields Exchange;
+    public VillagerFields Villager;
 
 #if UNITY_EDITOR
     // 에디터 authoring 가드: 업그레이드 수치를 잘못 적으면 조용히 생산 하락/무료 업그레이드가 되므로 경고한다(수치=SO, WL-015 축).
@@ -26,6 +27,7 @@ public class BuildingAsset : ScriptableObject
         ValidateProductionUpgrades();
         ValidateUpgradeCosts();
         ValidateExchangeOffers();
+        ValidateVillagerCosts();
     }
 
     // 생산 건물: 주민당량이 base(레벨0)부터 단조 증가하지 않으면 경고한다.
@@ -126,6 +128,39 @@ public class BuildingAsset : ScriptableObject
             }
         }
     }
+
+    // 주민 증가 건물(본진, #227): 회차 비용이 비었거나 총액 0이면 경고한다.
+    // 빈 비용은 ManagementController.TrySpend가 무료 성공을 반환해 조용히 '공짜 주민'이 된다
+    // (ValidateUpgradeCosts와 같은 실패 모드 — 비용 authoring 누락을 조기에 드러낸다).
+    // ⚠ 게이트는 BuildingType이 아니라 '주민 증가 데이터 존재'로 건다 — 진입 경로(BuildingInfo)와 같은 키여야 한다.
+    private void ValidateVillagerCosts()
+    {
+        if (Villager == null || Villager.Levels == null || Villager.Levels.Count == 0)
+        {
+            return;
+        }
+
+        for (int i = 0; i < Villager.Levels.Count; i++)
+        {
+            VillagerGrowthLevel level = Villager.Levels[i];
+            int total = 0;
+            if (level != null && level.Cost != null)
+            {
+                for (int c = 0; c < level.Cost.Count; c++)
+                {
+                    ResourceCost cost = level.Cost[c];
+                    if (cost != null && cost.Resource != null && cost.Amount > 0)
+                    {
+                        total += cost.Amount;
+                    }
+                }
+            }
+            if (total <= 0)
+            {
+                Debug.LogWarning($"[BuildingAsset] {BuildingID}: 주민 증가 {i + 1}회차 비용이 비어 있습니다(총액 0) — 주민이 무료로 늘어납니다. 비용을 설정하세요.", this);
+            }
+        }
+    }
 #endif
 
     [System.Serializable]
@@ -221,5 +256,28 @@ public class BuildingAsset : ScriptableObject
 
         // 획득량 배율. 1 = 강화 없음. (예: 1.5면 마나 10 → 나무 10 이 나무 15가 된다)
         public float GainMultiplier = 1f;
+    }
+
+    // 주민 수 증가(본진, #227). 자원을 소모해 총 보유 주민 수를 1명씩 늘린다.
+    // 생산 라인·업그레이드 트랙과 별개 축이라 필드 그룹을 따로 둔다 — 기존 업그레이드 트랙
+    // (ManagementController._upgradeBuildings)에 태우지 않으므로 레벨 테이블 타입 중립 승격이 필요 없다.
+    [System.Serializable]
+    public class VillagerFields
+    {
+        // 주민 증가 비용 테이블. index i = i+1회차 증가.
+        // ⚠ 상한을 별도 필드로 두지 않는다 — 행 수가 곧 증가 가능 횟수다(시작 2명 + 8행 = 최대 10명).
+        //   상한과 비용이 한 곳에 있어 서로 어긋날 수 없다(UpgradeLevels와 같은 방식).
+        //   행을 모두 소진하면 비용 조회가 null을 반환하고 표시부가 MAX로 전환된다.
+        public List<VillagerGrowthLevel> Levels = new List<VillagerGrowthLevel>();
+    }
+
+    // 주민 1명을 늘리는 한 단계. UpgradeLevel/SkillUpgradeLevel과 달리 효과값 필드가 없다
+    // — 증가량은 항상 1로 고정이라 authoring할 수치가 비용뿐이다.
+    [System.Serializable]
+    public class VillagerGrowthLevel
+    {
+        // 이 회차에 소모하는 비용(ManagementController.TrySpend 게이트웨이 경유, WL-017/WL-048).
+        // 리스트라서 회차가 오를수록 요구 자원 종류를 늘릴 수 있다(예: 나무 20 + 철 10).
+        public List<ResourceCost> Cost = new List<ResourceCost>();
     }
 }

@@ -8,6 +8,7 @@ public class EnemyAsset : ScriptableObject
     // BuildingAsset/TowerAsset과 동일한 이유로 Data 캐시가 아닌 일반 필드로 노출한다
     // (EnemyAssetEditor가 Play 이전 편집 모드에서 타입별 필드 그룹을 골라 보여줘야 함).
     public EnemyType EnemyType;
+    public MovementMode MovementMode;
 
     [HideInInspector]
     public EnemyData Data;

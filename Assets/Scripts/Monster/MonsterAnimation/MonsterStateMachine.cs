@@ -1,3 +1,4 @@
+using NorthLand.Combat;
 using NorthLand.Core;
 using UnityEngine;
 
@@ -11,7 +12,8 @@ public enum MonsterState
 
 public class MonsterStateMachine : MonoBehaviour
 {
-    [SerializeField] private MonsterMove monsterMove;
+    private IRouteMovementAgent routeMovement;
+
     [SerializeField] private MonsterAnimation monsterAnimation;
 
 
@@ -27,10 +29,7 @@ public class MonsterStateMachine : MonoBehaviour
 
     private void Awake()
     {
-        if (monsterMove == null)
-        {
-            monsterMove = GetComponentInChildren<MonsterMove>();
-        }
+        routeMovement = GetComponentInChildren<IRouteMovementAgent>();
 
         if (monsterAnimation == null)
         {
@@ -59,9 +58,9 @@ public class MonsterStateMachine : MonoBehaviour
             return;
         }
 
-        if (monsterMove != null &&
-            !monsterMove.IsStopped &&
-            monsterMove.HasRouteRemaining)
+        // IsStunned도 함께 본다 — 스턴 중에는 이동이 멈추므로(MonsterMove.Update) 걷기 애니메이션이
+        // 제자리에서 재생되면 안 된다.
+        if (routeMovement != null && !routeMovement.IsStopped && !routeMovement.IsStunned && routeMovement.HasRouteRemaining)
         {
             ChangeState(MonsterState.Move);
             return;
@@ -128,25 +127,25 @@ public class MonsterStateMachine : MonoBehaviour
         switch (state)
         {
             case MonsterState.Idle:
-                monsterMove?.SetMoveEnabled(false);
+                routeMovement?.SetMoveEnabled(false);
                 monsterAnimation?.SetMoveAnimation(false);
                 monsterAnimation?.SetAttackAnimation(false);
                 break;
             case MonsterState.Move:
                 monsterAnimation?.SetAttackAnimation(false);
-                monsterMove?.SetMoveEnabled(true);
+                routeMovement?.SetMoveEnabled(true);
                 monsterAnimation?.SetMoveAnimation(true);
                 break;
             case MonsterState.Attack:
-                monsterMove?.SetMoveEnabled(false);
+                routeMovement?.SetMoveEnabled(false);
                 monsterAnimation?.SetMoveAnimation(false);
                 monsterAnimation?.SetAttackAnimation(true);
                 break;
             case MonsterState.Death:
-                if (monsterMove != null)
+                if (routeMovement != null)
                 {
-                    monsterMove.IsStopped = true;
-                    monsterMove.SetMoveEnabled(false);
+                    routeMovement.IsStopped = true;
+                    routeMovement.SetMoveEnabled(false);
                 }
                 monsterAnimation?.PlayDeathAnimation();
                 Destroy(gameObject, destroyDelay);

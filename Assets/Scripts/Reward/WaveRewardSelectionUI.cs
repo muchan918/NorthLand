@@ -65,6 +65,7 @@ public class WaveRewardSelectionUI : MonoBehaviour
             openPanel.SetActive(true);
         }
     }
+
     public void OpenPanel()
     {
         if (panel != null)
@@ -78,7 +79,7 @@ public class WaveRewardSelectionUI : MonoBehaviour
         }
     }
 
-  
+
 
     public async UniTask<WaveRewardData> SelectRewardAsync(IReadOnlyList<WaveRewardData> candidates,CancellationToken cancellationToken)
     {

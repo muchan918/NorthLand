@@ -13,6 +13,8 @@ namespace NorthLand.Sungsoo
         public Faction Faction => Faction.Enemy;
         public bool IsDead => currentHp <= 0f;
 
+        public Transform HitPosition => throw new System.NotImplementedException();
+
         void Awake() => currentHp = maxHp;
 
         public void TakeDamage(DamageInfo info)
