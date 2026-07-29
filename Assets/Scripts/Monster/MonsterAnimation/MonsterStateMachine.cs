@@ -52,15 +52,25 @@ public class MonsterStateMachine : MonoBehaviour
             return;
         }
 
+        // 스턴 검사가 hasTarget보다 먼저 온다 — 스턴 중에는 공격·걷기 어느 모션도 재생되지 않아야 한다.
+        // 순서가 뒤집히면 본진에 붙어 때리던 몬스터가 스턴 중에도 Attack 상태로 남는다(Enemy가
+        // SetHasTarget(false)를 내려주므로 지금은 가려지지만, hasTarget을 세우는 경로가 하나 늘면 조용히 재발한다).
+        //
+        // 전용 스턴 상태를 두지 않고 Idle로 묶는다 — MonsterState에 Stun이 없고, 추가하면 애니메이터
+        // 작업이 따라온다. 스턴 중 몬스터는 제자리에 서 있는 모습이 된다.
+        if (routeMovement != null && routeMovement.IsStunned)
+        {
+            ChangeState(MonsterState.Idle);
+            return;
+        }
+
         if (hasTarget)
         {
             ChangeState(MonsterState.Attack);
             return;
         }
 
-        // IsStunned도 함께 본다 — 스턴 중에는 이동이 멈추므로(MonsterMove.Update) 걷기 애니메이션이
-        // 제자리에서 재생되면 안 된다.
-        if (routeMovement != null && !routeMovement.IsStopped && !routeMovement.IsStunned && routeMovement.HasRouteRemaining)
+        if (routeMovement != null && !routeMovement.IsStopped && routeMovement.HasRouteRemaining)
         {
             ChangeState(MonsterState.Move);
             return;
