@@ -14,6 +14,7 @@ public class MonsterMove : MonoBehaviour, IRouteMovementAgent
     private readonly List<Vector3> route = new List<Vector3>();
     private int currentRouteIndex;
 
+    public MovementMode SupportedMode => MovementMode.Ground;
     public bool HasRouteRemaining => currentRouteIndex < route.Count;
     public bool CanMove => canMove;
     public bool IsStopped { get; set; }

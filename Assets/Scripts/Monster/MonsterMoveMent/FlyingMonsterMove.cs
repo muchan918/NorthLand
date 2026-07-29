@@ -36,6 +36,7 @@ public class FlyingMonsterMove : MonoBehaviour, IRouteMovementAgent
 
     private MoveSpeedComposer speedComposer;
 
+    public MovementMode SupportedMode => MovementMode.Flying;
     public bool HasRouteRemaining => currentRouteIndex < route.Count;
 
     public bool CanMove => canMove;

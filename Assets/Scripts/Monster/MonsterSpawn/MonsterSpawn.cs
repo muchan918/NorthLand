@@ -345,19 +345,32 @@ public class MonsterSpawn : MonoBehaviour
         Enemy enemy = monster.GetComponent<Enemy>();
         IRouteMovementAgent routeMovement = monster.GetComponentInChildren<IRouteMovementAgent>();
 
+        // 1. 필수 컴포넌트부터 검사
         if (enemy == null || routeMovement == null)
         {
-            Debug.LogError($"[몬스터 스포너] '{monster.name}' 필수 컴포넌트 누락: " +
-                  $"Enemy={enemy != null}, IRouteMovementAgent={routeMovement != null}. " +
-                  "전투 몬스터 프리팹에는 Enemy와 경로 이동 컴포넌트가 필요합니다.",monster);
+            Debug.LogError(
+                $"[{monster.name}] Enemy 또는 IRouteMovementAgent가 연결되지 않았습니다.",
+                monster
+            );
+
             Destroy(monster);
             return null;
         }
 
-
-        if (enemy.MovementMode == MovementMode.Flying && routeMovement is not FlyingMonsterMove)
+        // 2. 데이터와 이동 컴포넌트의 모드가 일치하는지 검사
+        if (enemy.MovementMode != routeMovement.SupportedMode)
         {
-            Debug.LogError($"[{monster.name}] MovementMode는 Flying이지만 " + $"FlyingMonsterMove가 연결되지 않았습니다.", monster);
+            Debug.LogError($"[{monster.name}] 이동 모드가 일치하지 않습니다. EnemyAsset: {enemy.MovementMode}, " +
+                $"MovementAgent: {routeMovement.SupportedMode}",monster);
+
+            Destroy(monster);
+            return null;
+        }
+
+        // 3. 공중 이동 컴포넌트는 몬스터 루트에 있어야 함
+        if (routeMovement.SupportedMode == MovementMode.Flying &&routeMovement is MonoBehaviour movementComponent &&movementComponent.transform != monster.transform)
+        {
+            Debug.LogError($"[{monster.name}] 공중 이동 컴포넌트는 몬스터 루트에 연결해야 합니다.",monster);
 
             Destroy(monster);
             return null;

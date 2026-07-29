@@ -37,6 +37,8 @@ namespace NorthLand.Combat
     }
     public interface IRouteMovementAgent : IMovementAgent
     {
+        MovementMode SupportedMode { get; }
+
         bool HasRouteRemaining { get; }
 
         event Action RouteCompleted;
