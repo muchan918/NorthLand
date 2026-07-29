@@ -9,7 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2940606444978905484}
-  - component: {fileID: 1458718130094091261}
   m_Layer: 0
   m_Name: CannonTowerTest-Ghost
   m_TagString: Untagged
@@ -33,22 +32,6 @@ Transform:
   - {fileID: 5602526394943997844}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1458718130094091261
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4828097712758218341}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 76c1645faf600e94e9cd5231388979f5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NorthLand.Combat.Tower
-  data: {fileID: 11400000, guid: a752545bbde5030438f8995ae4ee0849, type: 2}
-  enemyLayerMask:
-    serializedVersion: 2
-    m_Bits: 128
 --- !u!1 &8232323428684293120
 GameObject:
   m_ObjectHideFlags: 0
