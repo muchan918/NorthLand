@@ -16,7 +16,8 @@ MonoBehaviour:
     m_Code: en-US
   m_SharedData: {fileID: 11400000, guid: 1d3165e14f060034fbf1f02d9888408b, type: 2}
   m_Metadata:
-    m_Items: []
+    m_Items:
+    - rid: 5763336045537525835
   m_TableData:
   - m_Id: 742551334912
     m_Localized: Game Start
@@ -188,6 +189,8 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 6629238200938496
     m_Localized: Laguage
+    m_Metadata:
+      m_Items: []
   - m_Id: 6579016888147968
     m_Localized: Add Villager
     m_Metadata:
@@ -216,6 +219,17 @@ MonoBehaviour:
     m_Localized: Proceed to night anyway?
     m_Metadata:
       m_Items: []
+  - m_Id: 6894325276794880
+    m_Localized: Requires Castle Lv {0}
+    m_Metadata:
+      m_Items:
+      - rid: 5763336045537525835
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 5763336045537525835
+      type: {class: SmartFormatTag, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_Entries: 
+        m_SharedEntries:
+        - id: 6894325276794880

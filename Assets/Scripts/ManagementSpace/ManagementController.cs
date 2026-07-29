@@ -56,9 +56,15 @@ public class ManagementController : MonoBehaviour
     // 생산 라인과 같은 계보로 레벨만 런타임 상태로 소유하고(공유 SO 오염 금지, WL-016), 비용 차감은 동일한 TrySpend 게이트웨이를 쓴다.
     // _upgradeLevel[i]=현재 레벨(0=미업그레이드), _upgradeLevelTables[i]=그 건물의 레벨 테이블(비용, SO에서 추출한 읽기 전용),
     // _upgradeBuildingRefs[i]=index → 원본 건물 SO(건물→인덱스 매핑용).
+    // 레벨 테이블은 타입 중립 소스(BuildingAsset.UpgradeSteps)로 받는다 — 컨트롤러가 여기서 읽는 건
+    // 비용과 본진 요구치뿐이라 구체 타입을 알 필요가 없다(#229 선행 작업, BuildingUpgrade.md §8).
     private int[] _upgradeLevel;
-    private List<BuildingAsset.SkillUpgradeLevel>[] _upgradeLevelTables;
+    private IReadOnlyList<BuildingAsset.UpgradeStep>[] _upgradeLevelTables;
     private BuildingAsset[] _upgradeBuildingRefs;
+
+    // 업그레이드 트랙 중 본진의 index(없으면 -1). 하위 건물 해금·교환 배율이 전부 이 레벨 하나를 기준으로 삼는다.
+    // 별도 SerializeField를 두지 않는다 — 씬 배선은 _upgradeBuildings에 본진 SO를 넣는 것 하나로 끝난다.
+    private int _castleIndex = -1;
 
     // 본진에서 늘린 주민 수(#227). 시작값(_maxVillagers)과 분리해 런타임 상태로만 소유한다 —
     // 공유 SO(castle.asset)에 쓰면 다른 런/인스턴스까지 오염된다(WL-016, 건물 레벨과 같은 취지).
@@ -191,10 +197,44 @@ public class ManagementController : MonoBehaviour
     public int LineExpectedProduction(int index) =>
         IsValidLine(index) ? Mathf.RoundToInt(_amountPerVillager[index] * LineVillagers(index) * ProductionMultiplier(index)) : 0;
 
+    // ── 본진 레벨 · 해금 판정 (#229) ──────────────────────────────────────
+    /// <summary>현재 본진 레벨(0 = 미업그레이드). 하위 건물 Max 해금·연금술사 교환 배율의 단일 기준.</summary>
+    public int CastleLevel => _castleIndex >= 0 ? _upgradeLevel[_castleIndex] : 0;
+
+    // 현재 본진 레벨에서 열려 있는 레벨 수. 앞에서부터 '연속으로' 요구치를 만족하는 데까지만 센다.
+    // 첫 미충족 행에서 멈추는 이유: 잠긴 행을 건너뛰어 뒷행이 되살아나면 레벨 번호와 실제 도달 단계가
+    // 어긋난다(레벨은 순차 증가여야 한다). 비단조 authoring은 BuildingAsset.OnValidate가 경고한다.
+    // ignoreGate=true는 본진 자신 — 자기 요구치로 스스로 잠기는 데드락을 막는다.
+    private int EffectiveMaxLevel(IReadOnlyList<BuildingAsset.UpgradeStep> levels, bool ignoreGate = false)
+    {
+        if (levels == null) return 0;
+        if (ignoreGate) return levels.Count;
+
+        int castle = CastleLevel;
+        for (int i = 0; i < levels.Count; i++)
+        {
+            if (levels[i] == null || levels[i].RequiredCastleLevel > castle) return i;
+        }
+        return levels.Count;
+    }
+
+    // 잠긴 다음 레벨이 요구하는 본진 레벨(잠기지 않았거나 진짜 최대면 0) — 표시부의 "본진 Lv n 필요" 안내용.
+    private int RequiredCastleLevelAt(IReadOnlyList<BuildingAsset.UpgradeStep> levels, int current, int effectiveMax)
+    {
+        if (levels == null || current != effectiveMax || effectiveMax >= levels.Count) return 0;
+        return levels[effectiveMax]?.RequiredCastleLevel ?? 0;
+    }
+
     // ── 건물 업그레이드 조회 API (다음 이슈의 UI가 바인딩할 계약) ──────────
     public int LineLevel(int index) => IsValidLine(index) ? _level[index] : 0;
-    public int LineMaxLevel(int index) => IsValidLine(index) ? _lineUpgradeLevels[index].Count : 0;
+    // 실질 Max — 행 수가 아니라 '본진 레벨로 열려 있는 만큼'이다(#229).
+    public int LineMaxLevel(int index) => IsValidLine(index) ? EffectiveMaxLevel(_lineUpgradeLevels[index]) : 0;
     public int LineAmountPerVillager(int index) => IsValidLine(index) ? _amountPerVillager[index] : 0;
+
+    /// <summary>이 라인의 다음 레벨이 본진 레벨 부족으로 잠겨 있으면 필요한 본진 레벨, 아니면 0(#229).<br/>
+    /// ⚠ 반환값은 <see cref="CastleLevel"/>과 같은 <b>내부</b> 도메인(0 = 미업그레이드)이다 — 화면에 쓸 땐 +1.</summary>
+    public int LineRequiredCastleLevel(int index) =>
+        IsValidLine(index) ? RequiredCastleLevelAt(_lineUpgradeLevels[index], _level[index], LineMaxLevel(index)) : 0;
 
     // 다음 레벨(=현재 레벨 인덱스)의 비용. 최대 레벨이거나 라인 무효면 null(표시부는 "MAX" 처리).
     public IReadOnlyList<ResourceCost> LineUpgradeCost(int index)
@@ -202,16 +242,16 @@ public class ManagementController : MonoBehaviour
         if (!IsValidLine(index)) return null;
         List<BuildingAsset.UpgradeLevel> levels = _lineUpgradeLevels[index];
         int next = _level[index];
-        return next < levels.Count ? levels[next].Cost : null;
+        return next < EffectiveMaxLevel(levels) ? levels[next].Cost : null;
     }
 
-    // 업그레이드 가능 여부: 낮이어야 하고, 다음 레벨이 있어야 하고, 그 비용을 감당할 수 있어야 한다.
+    // 업그레이드 가능 여부: 낮이어야 하고, 다음 레벨이 열려 있어야 하고, 그 비용을 감당할 수 있어야 한다.
     public bool CanUpgrade(int index)
     {
         if (!IsDay || !IsValidLine(index)) return false;
         List<BuildingAsset.UpgradeLevel> levels = _lineUpgradeLevels[index];
         int next = _level[index];
-        return next < levels.Count && CanAfford(levels[next].Cost);
+        return next < EffectiveMaxLevel(levels) && CanAfford(levels[next].Cost);
     }
 
     // 건물 SO가 몇 번 라인인지. 생산 라인(업그레이드 대상)이 아니면 -1.
@@ -231,7 +271,7 @@ public class ManagementController : MonoBehaviour
         if (!IsValidLine(index)) return 0;
         List<BuildingAsset.UpgradeLevel> levels = _lineUpgradeLevels[index];
         int next = _level[index];
-        return next < levels.Count ? levels[next].AmountPerVillager : _amountPerVillager[index];
+        return next < EffectiveMaxLevel(levels) ? levels[next].AmountPerVillager : _amountPerVillager[index];
     }
 
     // ── 업그레이드 전용 건물(마법 연구소 등) 조회/실행 API ─────────────────
@@ -249,24 +289,33 @@ public class ManagementController : MonoBehaviour
     }
 
     public int UpgradeBuildingLevel(int index) => IsValidUpgrade(index) ? _upgradeLevel[index] : 0;
-    public int UpgradeBuildingMaxLevel(int index) => IsValidUpgrade(index) ? _upgradeLevelTables[index].Count : 0;
+    // 실질 Max — 행 수가 아니라 '본진 레벨로 열려 있는 만큼'이다(#229). 본진 자신은 게이팅에서 제외한다.
+    public int UpgradeBuildingMaxLevel(int index) =>
+        IsValidUpgrade(index) ? EffectiveMaxLevel(_upgradeLevelTables[index], index == _castleIndex) : 0;
+
+    /// <summary>이 건물의 다음 레벨이 본진 레벨 부족으로 잠겨 있으면 필요한 본진 레벨, 아니면 0(#229).<br/>
+    /// ⚠ 반환값은 <see cref="CastleLevel"/>과 같은 <b>내부</b> 도메인(0 = 미업그레이드)이다 — 화면에 쓸 땐 +1.</summary>
+    public int UpgradeBuildingRequiredCastleLevel(int index) =>
+        IsValidUpgrade(index)
+            ? RequiredCastleLevelAt(_upgradeLevelTables[index], _upgradeLevel[index], UpgradeBuildingMaxLevel(index))
+            : 0;
 
     // 다음 레벨(=현재 레벨 인덱스)의 비용. 최대 레벨이거나 index 무효면 null(표시부는 "MAX" 처리).
     public IReadOnlyList<ResourceCost> UpgradeBuildingCost(int index)
     {
         if (!IsValidUpgrade(index)) return null;
-        List<BuildingAsset.SkillUpgradeLevel> levels = _upgradeLevelTables[index];
+        IReadOnlyList<BuildingAsset.UpgradeStep> levels = _upgradeLevelTables[index];
         int next = _upgradeLevel[index];
-        return next < levels.Count ? levels[next].Cost : null;
+        return next < UpgradeBuildingMaxLevel(index) ? levels[next].Cost : null;
     }
 
-    // 업그레이드 가능 여부: 낮이어야 하고, 다음 레벨이 있어야 하고, 그 비용(마나석)을 감당할 수 있어야 한다.
+    // 업그레이드 가능 여부: 낮이어야 하고, 다음 레벨이 열려 있어야 하고, 그 비용(마나석)을 감당할 수 있어야 한다.
     public bool CanUpgradeBuilding(int index)
     {
         if (!IsDay || !IsValidUpgrade(index)) return false;
-        List<BuildingAsset.SkillUpgradeLevel> levels = _upgradeLevelTables[index];
+        IReadOnlyList<BuildingAsset.UpgradeStep> levels = _upgradeLevelTables[index];
         int next = _upgradeLevel[index];
-        return next < levels.Count && CanAfford(levels[next].Cost);
+        return next < UpgradeBuildingMaxLevel(index) && CanAfford(levels[next].Cost);
     }
 
     /// <summary>
@@ -286,11 +335,16 @@ public class ManagementController : MonoBehaviour
             return false;
         }
 
-        List<BuildingAsset.SkillUpgradeLevel> levels = _upgradeLevelTables[index];
+        IReadOnlyList<BuildingAsset.UpgradeStep> levels = _upgradeLevelTables[index];
         int next = _upgradeLevel[index];
-        if (next >= levels.Count)
+        if (next >= UpgradeBuildingMaxLevel(index))
         {
-            Debug.Log($"[경영] {_upgradeBuildingRefs[index].BuildingID}: 이미 최대 레벨입니다. (Lv{_upgradeLevel[index]})");
+            // 잠금(본진 레벨 부족)과 진짜 최대를 구분해 로그를 남긴다 — 왜 못 올리는지가 로그만으로 드러나야 한다.
+            // 본진 레벨은 표시 규약(+1)에 맞춰 찍는다 — 로그와 화면이 다른 수를 말하면 추적이 어긋난다.
+            int required = UpgradeBuildingRequiredCastleLevel(index);
+            Debug.Log(required > 0
+                ? $"[경영] {_upgradeBuildingRefs[index].BuildingID}: 다음 레벨은 본진 Lv{required + 1}부터 열립니다. (현재 본진 Lv{CastleLevel + 1})"
+                : $"[경영] {_upgradeBuildingRefs[index].BuildingID}: 이미 최대 레벨입니다. (Lv{_upgradeLevel[index]})");
             return false;
         }
 
@@ -458,18 +512,30 @@ public class ManagementController : MonoBehaviour
             && TryResolveKind(offer.GainResource, out gainKind);
     }
 
-    // 교환으로 실제 받는 수량. 교환 효율 업그레이드(#211 범위 밖)가 붙으면 여기서 배율이 곱해진다.
-    // UpgradeLevels가 비어 있거나 레벨 0이면 offer.GainAmount 그대로다.
-    // 레벨 클램프는 SkillManager(#205)와 같은 방식 — 레벨 테이블보다 레벨이 높아도 마지막 단계를 쓴다.
-    private int ExchangeGainAmount(BuildingAsset building, BuildingAsset.ExchangeOffer offer)
+    /// <summary>
+    /// 교환으로 실제 받는 수량 — 본진 레벨에 따른 교환 효율 배율이 반영된 값(#229).<br/>
+    /// 표시부(<see cref="StorePanelUI"/>)가 원본 <c>offer.GainAmount</c> 대신 이걸 보여줘야 표시와 실지급이 일치한다.<br/>
+    /// <br/>
+    /// 이 축만 <c>RequiredCastleLevel</c>의 의미가 다르다 — 다른 트랙에선 '이 레벨이 열린다'지만
+    /// 연금술사에겐 '본진 몇 레벨부터 이 배율'이다(자체 업그레이드 버튼이 없어 레벨 개념 자체가 없다).
+    /// 그래서 index 클램프가 아니라 요구치를 만족하는 마지막 행을 고른다.
+    /// </summary>
+    public int ExchangeGainAmount(BuildingAsset building, BuildingAsset.ExchangeOffer offer)
     {
-        List<BuildingAsset.ExchangeUpgradeLevel> levels = building.Exchange.UpgradeLevels;
+        if (building == null || offer == null) return 0;
+
+        List<BuildingAsset.ExchangeUpgradeLevel> levels = building.Exchange?.UpgradeLevels;
         if (levels == null || levels.Count == 0) return offer.GainAmount;
 
-        int level = GetUpgradeLevel(building);
-        if (level <= 0) return offer.GainAmount;
+        int castle = CastleLevel;
+        float multiplier = 1f;
+        for (int i = 0; i < levels.Count; i++)
+        {
+            if (levels[i] == null || levels[i].RequiredCastleLevel > castle) continue;
+            multiplier = levels[i].GainMultiplier;
+        }
+        if (multiplier <= 0f) return offer.GainAmount; // 배율 미authoring(0) 방어 — SkillManager.PositiveOr1과 같은 취지
 
-        float multiplier = levels[Mathf.Clamp(level, 1, levels.Count) - 1].GainMultiplier;
         return Mathf.Max(1, Mathf.RoundToInt(offer.GainAmount * multiplier));
     }
 
@@ -579,7 +645,8 @@ public class ManagementController : MonoBehaviour
     private void BuildUpgradeBuildings()
     {
         var refs = new List<BuildingAsset>();
-        var tables = new List<List<BuildingAsset.SkillUpgradeLevel>>();
+        var tables = new List<IReadOnlyList<BuildingAsset.UpgradeStep>>();
+        _castleIndex = -1;
 
         int count = _upgradeBuildings != null ? _upgradeBuildings.Length : 0;
         for (int i = 0; i < count; i++)
@@ -591,13 +658,59 @@ public class ManagementController : MonoBehaviour
                 continue;
             }
 
+            // 본진은 '데이터 존재'로 식별한다(BuildingType 분기 금지 — BuildingInfo.OnSelected 계보).
+            if (building.Castle != null && building.Castle.UpgradeLevels != null && building.Castle.UpgradeLevels.Count > 0)
+            {
+                if (_castleIndex >= 0)
+                {
+                    Debug.LogError($"[경영] 본진 업그레이드 테이블을 가진 건물이 둘 이상입니다({refs[_castleIndex].BuildingID}, {building.BuildingID}) — 해금 기준이 하나여야 합니다. 먼저 등록된 쪽을 씁니다.");
+                }
+                else
+                {
+                    _castleIndex = refs.Count;
+                }
+            }
+
             refs.Add(building);
-            tables.Add(building.Skill?.UpgradeLevels ?? new List<BuildingAsset.SkillUpgradeLevel>());
+            tables.Add(building.UpgradeSteps);
         }
 
         _upgradeBuildingRefs = refs.ToArray();
         _upgradeLevelTables = tables.ToArray();
         _upgradeLevel = new int[_upgradeBuildingRefs.Length];
+
+        WarnUnreachableCastleRequirements();
+    }
+
+    // 본진 테이블로 도달 불가능한 요구치를 Play 시작 시 1회 경고한다(#229).
+    // BuildingAsset.OnValidate는 SO 하나만 보므로 이 교차 검증을 할 수 없다 — 본진 최대 레벨을 알려면
+    // 다른 SO를 참조해야 하고 SO는 서로를 모르기 때문. 등록이 끝난 이 시점에만 판정할 수 있다.
+    private void WarnUnreachableCastleRequirements()
+    {
+        int castleMax = _castleIndex >= 0 ? _upgradeLevelTables[_castleIndex].Count : 0;
+
+        for (int i = 0; i < _upgradeBuildingRefs.Length; i++)
+        {
+            if (i == _castleIndex) continue;
+            WarnIfUnreachable(_upgradeBuildingRefs[i], _upgradeLevelTables[i], castleMax);
+        }
+        for (int i = 0; i < _lineBuildings.Length; i++)
+        {
+            WarnIfUnreachable(_lineBuildings[i], _lineUpgradeLevels[i], castleMax);
+        }
+    }
+
+    private static void WarnIfUnreachable(BuildingAsset building, IReadOnlyList<BuildingAsset.UpgradeStep> levels, int castleMax)
+    {
+        if (building == null || levels == null) return;
+
+        for (int i = 0; i < levels.Count; i++)
+        {
+            if (levels[i] != null && levels[i].RequiredCastleLevel > castleMax)
+            {
+                Debug.LogWarning($"[경영] {building.BuildingID}: Lv{i + 1}의 요구 본진 레벨({levels[i].RequiredCastleLevel})이 본진 최대 레벨({castleMax})을 넘어 영원히 열리지 않습니다.");
+            }
+        }
     }
 
     private void SubscribeDayNight()
@@ -681,9 +794,13 @@ public class ManagementController : MonoBehaviour
 
         List<BuildingAsset.UpgradeLevel> levels = _lineUpgradeLevels[index];
         int next = _level[index];
-        if (next >= levels.Count)
+        if (next >= EffectiveMaxLevel(levels))
         {
-            Debug.Log($"[경영] {LineDisplayName(index)}: 이미 최대 레벨입니다. (Lv{_level[index]})");
+            // 잠금(본진 레벨 부족)과 진짜 최대를 구분해 로그를 남긴다. 본진 레벨은 표시 규약(+1)에 맞춘다.
+            int required = LineRequiredCastleLevel(index);
+            Debug.Log(required > 0
+                ? $"[경영] {LineDisplayName(index)}: 다음 레벨은 본진 Lv{required + 1}부터 열립니다. (현재 본진 Lv{CastleLevel + 1})"
+                : $"[경영] {LineDisplayName(index)}: 이미 최대 레벨입니다. (Lv{_level[index]})");
             return false;
         }
 

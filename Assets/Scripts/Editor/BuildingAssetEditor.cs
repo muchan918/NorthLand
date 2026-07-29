@@ -31,7 +31,9 @@ public class BuildingAssetEditor : Editor
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("Exchange"), true);
                 break;
             case BuildingType.Castle:
+                // 본진은 축이 둘이다 — 주민 수 증가(#227)와 본진 레벨 업그레이드(#229). 둘 다 그린다.
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("Villager"), true);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("Castle"), true);
                 break;
             case BuildingType.General:
                 EditorGUILayout.HelpBox("General 타입은 추가 필드가 없습니다.", MessageType.None);

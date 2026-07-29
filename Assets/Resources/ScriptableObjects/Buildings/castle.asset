@@ -62,3 +62,19 @@ MonoBehaviour:
         Amount: 5
       - Resource: {fileID: 11400000, guid: 4a2d92e532482ff4dbafa7b361759b00, type: 2}
         Amount: 5
+  Castle:
+    UpgradeLevels:
+    - Cost:
+      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
+        Amount: 100
+      - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+        Amount: 50
+      RequiredCastleLevel: 0
+    - Cost:
+      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
+        Amount: 200
+      - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+        Amount: 120
+      - Resource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
+        Amount: 30
+      RequiredCastleLevel: 0

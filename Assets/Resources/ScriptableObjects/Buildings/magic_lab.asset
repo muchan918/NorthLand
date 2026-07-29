@@ -25,6 +25,7 @@ MonoBehaviour:
     - Cost:
       - Resource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
         Amount: 20
+      RequiredCastleLevel: 0
       DamageMultiplier: 1.2
       RadiusMultiplier: 1.2
       CooldownMultiplier: 0.9
@@ -35,6 +36,7 @@ MonoBehaviour:
     - Cost:
       - Resource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
         Amount: 40
+      RequiredCastleLevel: 0
       DamageMultiplier: 1.4
       RadiusMultiplier: 1.4
       CooldownMultiplier: 0.8
@@ -45,6 +47,7 @@ MonoBehaviour:
     - Cost:
       - Resource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
         Amount: 60
+      RequiredCastleLevel: 0
       DamageMultiplier: 1.6
       RadiusMultiplier: 1.6
       CooldownMultiplier: 0.7
@@ -52,3 +55,33 @@ MonoBehaviour:
       BuffAttackSpeedMultiplierScale: 1.6
       BuffDurationMultiplier: 1.6
       BuffCooldownMultiplier: 0.5
+    - Cost:
+      - Resource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
+        Amount: 90
+      RequiredCastleLevel: 1
+      DamageMultiplier: 1.8
+      RadiusMultiplier: 1.8
+      CooldownMultiplier: 0.6
+      BuffDamageMultiplierScale: 1.9
+      BuffAttackSpeedMultiplierScale: 1.9
+      BuffDurationMultiplier: 1.9
+      BuffCooldownMultiplier: 0.45
+    - Cost:
+      - Resource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
+        Amount: 130
+      RequiredCastleLevel: 2
+      DamageMultiplier: 2
+      RadiusMultiplier: 2
+      CooldownMultiplier: 0.55
+      BuffDamageMultiplierScale: 2.2
+      BuffAttackSpeedMultiplierScale: 2.2
+      BuffDurationMultiplier: 2.2
+      BuffCooldownMultiplier: 0.4
+  Exchange:
+    PayResource: {fileID: 0}
+    Offers: []
+    UpgradeLevels: []
+  Villager:
+    Levels: []
+  Castle:
+    UpgradeLevels: []
