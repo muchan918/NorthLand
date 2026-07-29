@@ -215,6 +215,10 @@ MonoBehaviour:
     m_Key: game.management.confirm_end_day.question
     m_Metadata:
       m_Items: []
+  - m_Id: 6894325276794880
+    m_Key: building.upgrade.require_castle
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

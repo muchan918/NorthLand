@@ -53,13 +53,23 @@ public class StoreOfferRow : MonoBehaviour
         {
             _costText.text = $"{payName} {payAmount}";
         }
-        if (_gainText != null)
-        {
-            _gainText.text = $"→ {gainName} {gainAmount}";
-        }
+        SetGain(gainName, gainAmount);
         if (_buttonLabel != null)
         {
             _buttonLabel.text = buttonText;
+        }
+    }
+
+    /// <summary>
+    /// 획득량 표시만 갱신한다(#229). 본진 레벨이 오르면 교환 효율 배율이 바뀌므로, 상점을 연 채로도
+    /// 이 값이 따라 움직여야 표시와 실지급이 어긋나지 않는다.<br/>
+    /// 행 재생성이 아니라 갱신인 이유는 <see cref="SetInteractable"/>과 같다 — 클릭 처리 도중 행이 파괴되면 안 된다.
+    /// </summary>
+    public void SetGain(string gainName, int gainAmount)
+    {
+        if (_gainText != null)
+        {
+            _gainText.text = $"→ {gainName} {gainAmount}";
         }
     }
 

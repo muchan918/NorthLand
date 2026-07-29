@@ -41,15 +41,19 @@ public class StorePanelUI : MonoBehaviour
     private ResourceTable _resourceTable; // 자원 표시명 해석용 Data 채움(호출부 채움 규약, SystemMap §2)
 
     // 생성된 행과 그 행이 대표하는 교환 항목. Refresh가 행을 다시 만들지 않고 이 쌍만 훑는다.
+    // GainName(로컬라이즈된 획득 자원명)을 함께 캐시하는 이유: 획득량이 본진 레벨에 따라 바뀌어(#229)
+    // 매 Refresh마다 다시 써야 하는데, 그때마다 자원명을 재조회할 필요는 없기 때문이다.
     private readonly struct RowBinding
     {
         public readonly StoreOfferRow Row;
         public readonly BuildingAsset.ExchangeOffer Offer;
+        public readonly string GainName;
 
-        public RowBinding(StoreOfferRow row, BuildingAsset.ExchangeOffer offer)
+        public RowBinding(StoreOfferRow row, BuildingAsset.ExchangeOffer offer, string gainName)
         {
             Row = row;
             Offer = offer;
+            GainName = gainName;
         }
     }
 
@@ -148,9 +152,11 @@ public class StorePanelUI : MonoBehaviour
 
             StoreOfferRow row = Instantiate(_rowPrefab, _offerContent, false);
             BuildingAsset.ExchangeOffer captured = offer; // 클로저 캡처(루프 변수 캡처 함정 회피)
-            row.Bind(payName, offer.PayAmount, ResolveName(offer.GainResource), offer.GainAmount,
+            string gainName = ResolveName(offer.GainResource);
+            // 원본 GainAmount가 아니라 본진 레벨 배율이 반영된 실지급량을 표시한다 — 표시와 실제가 어긋나면 안 된다(#229).
+            row.Bind(payName, offer.PayAmount, gainName, _controller.ExchangeGainAmount(_building, offer),
                 buttonText, () => HandleExchangeClicked(captured));
-            _rows.Add(new RowBinding(row, offer));
+            _rows.Add(new RowBinding(row, offer, gainName));
         }
     }
 
@@ -178,7 +184,8 @@ public class StorePanelUI : MonoBehaviour
         _controller.TryExchange(_building, offer);
     }
 
-    // 자원이 변할 때마다 호출된다. 행 구성은 그대로 두고 보유량 표시 + 버튼 활성 상태만 갱신한다.
+    // 자원이 변할 때마다 호출된다. 행 구성은 그대로 두고 보유량 표시 + 획득량 + 버튼 활성 상태만 갱신한다.
+    // 획득량까지 갱신하는 이유: 상점을 연 채로 본진을 업그레이드하면 교환 효율이 그 자리에서 바뀐다(#229).
     private void Refresh()
     {
         if (_building == null || _controller == null)
@@ -196,6 +203,7 @@ public class StorePanelUI : MonoBehaviour
             {
                 continue;
             }
+            binding.Row.SetGain(binding.GainName, _controller.ExchangeGainAmount(_building, binding.Offer));
             binding.Row.SetInteractable(_controller.CanExchange(_building, binding.Offer));
         }
     }
