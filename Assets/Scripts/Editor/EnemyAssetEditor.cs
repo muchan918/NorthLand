@@ -12,7 +12,9 @@ public class EnemyAssetEditor : Editor
 
         EditorGUILayout.PropertyField(serializedObject.FindProperty("EnemyID"));
         EditorGUILayout.PropertyField(enemyTypeProp);
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("MovementMode"));
         EditorGUILayout.Space();
+   
 
         // enumValueIndex는 enum 선언 순서상의 인덱스. TowerAssetEditor와 동일한 주의사항:
         // EnemyType이 명시적 값 없이 선언 순서 그대로라 (int)value와 일치하지만,

@@ -5,4 +5,5 @@ ogre_king,enemies.ogre.king.name,Boss,enemies.ogre.king.role,enemies.ogre.king.d
 yellow_grummy,enemies.grummy.yellow.name,Melee,enemies.grummy.yellow.role,enemies.grummy.yellow.desc
 red_grummy,enemies.grummy.red.name,Melee,enemies.grummy.red.role,enemies.grummy.red.desc
 blue_grummy,enemies.grummy.blue.name,Melee,enemies.grummy.blue.role,enemies.grummy.blue.desc
+flying_bat,enemies.bat.name,Melee,enemies.bat.role,enemies.bat.desc
 tank,enemies.tank.name,Boss,enemies.tank.role,enemies.tank.desc

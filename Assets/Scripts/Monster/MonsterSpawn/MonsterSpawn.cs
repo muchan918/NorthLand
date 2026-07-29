@@ -85,8 +85,9 @@ public class MonsterSpawn : MonoBehaviour
     }
 
     // 성문(gatePrefab)을 경로 끝점 — 몬스터가 도달해 제거되는 지점 — 에 배치한다.
-    // 몬스터는 GetSpawnRoute()(route를 뒤집은 경로)를 따라가다 마지막 지점에서 MonsterMove에 의해
-    // 제거되며, 그 지점은 route[0]에 해당한다. 경로가 갱신되면(스테이지 재생성 등) 위치를 옮긴다.
+    // 몬스터는 GetSpawnRoute()(route를 뒤집은 경로)를 따라가며,
+    // 경로 완료 시 Enemy가 IRouteMovementAgent.RouteCompleted를 받아 제거한다.
+    // 그 지점은 route[0]에 해당한다. 경로가 갱신되면(스테이지 재생성 등) 위치를 옮긴다.
     // monsterParent에 붙이지 않는다 — 웨이브 클리어는 monsterParent.childCount로 판정하므로(WL-037).
     private void UpdateGate()
     {
@@ -342,18 +343,39 @@ public class MonsterSpawn : MonoBehaviour
         GameObject monster = Instantiate(prefab,position,rotation,monsterParent);
 
         Enemy enemy = monster.GetComponent<Enemy>();
-        MonsterMove monsterMove = monster.GetComponentInChildren<MonsterMove>();
+        IRouteMovementAgent routeMovement = monster.GetComponentInChildren<IRouteMovementAgent>();
 
-        if (enemy == null || monsterMove == null)
+        // 1. 필수 컴포넌트부터 검사
+        if (enemy == null || routeMovement == null)
         {
-            Debug.LogError($"[몬스터 스포너] '{monster.name}' 필수 컴포넌트 누락: Enemy={enemy != null}, MonsterMove={monsterMove != null}. " +
-                "전투 몬스터 프리팹에는 Enemy와 MonsterMove가 모두 필요합니다.",
+            Debug.LogError(
+                $"[{monster.name}] Enemy 또는 IRouteMovementAgent가 연결되지 않았습니다.",
                 monster
             );
 
             Destroy(monster);
             return null;
         }
+
+        // 2. 데이터와 이동 컴포넌트의 모드가 일치하는지 검사
+        if (enemy.MovementMode != routeMovement.SupportedMode)
+        {
+            Debug.LogError($"[{monster.name}] 이동 모드가 일치하지 않습니다. EnemyAsset: {enemy.MovementMode}, " +
+                $"MovementAgent: {routeMovement.SupportedMode}",monster);
+
+            Destroy(monster);
+            return null;
+        }
+
+        // 3. 공중 이동 컴포넌트는 몬스터 루트에 있어야 함
+        if (routeMovement.SupportedMode == MovementMode.Flying &&routeMovement is MonoBehaviour movementComponent &&movementComponent.transform != monster.transform)
+        {
+            Debug.LogError($"[{monster.name}] 공중 이동 컴포넌트는 몬스터 루트에 연결해야 합니다.",monster);
+
+            Destroy(monster);
+            return null;
+        }
+
 
         // BT 소환 노드가 스포너를 거쳐야 소환체를 monsterParent에 넣을 수 있는데, 프리팹은
         // 씬 참조를 들 수 없다. 그래서 경로를 주입하는 이 자리에서 스포너 자신도 주입한다.
@@ -365,9 +387,9 @@ public class MonsterSpawn : MonoBehaviour
             agent.BindSpawner(this);
         }
 
-        // Enemy가 MonsterMove.RouteCompleted를 구독하여
+        // Enemy가 IRouteMovementAgent.RouteCompleted를 구독하여
         // 경로 끝 도달 시 몬스터 루트 오브젝트를 제거한다.
-        monsterMove.SetRoute(GetSpawnRoute());
+        routeMovement.SetRoute(GetSpawnRoute());
 
         return monster;
     }

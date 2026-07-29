@@ -32,7 +32,9 @@ namespace NorthLand.Combat
 
         private MonsterStateMachine monsterStateMachine;
 
-        private MonsterMove monsterMove;
+        private IRouteMovementAgent routeMovement;
+
+        public MovementMode MovementMode => data != null ? data.MovementMode : global::MovementMode.Ground;
 
         // 보스 BehaviorTree 실행 주체(보스가 아니면 null). 정지 핸들 확보용 필드 —
         // 게임 종료·사망 시 이 에이전트를 꺼서 그래프 틱을 멈춘다.
@@ -74,11 +76,11 @@ namespace NorthLand.Combat
             }
             OnHpChanged?.Invoke(currentHp, MaxHp);
 
-            monsterMove = GetComponentInChildren<MonsterMove>();
+            routeMovement = GetComponentInChildren<IRouteMovementAgent>();
 
-            if (monsterMove != null)
+            if (routeMovement != null)
             {
-                monsterMove.RouteCompleted += HandleRouteCompleted;
+                routeMovement.RouteCompleted += HandleRouteCompleted;
             }
 
             // 보스 데이터 주도 AI: EnemyAsset.Boss.BehaviorTree에 그래프가 지정돼 있으면
@@ -310,9 +312,9 @@ namespace NorthLand.Combat
 
         private void OnDestroy()
         {
-            if (monsterMove != null)
+            if (routeMovement != null)
             {
-                monsterMove.RouteCompleted -= HandleRouteCompleted;
+                routeMovement.RouteCompleted -= HandleRouteCompleted;
             }
         }
         private void HandleRouteCompleted()
@@ -320,6 +322,11 @@ namespace NorthLand.Combat
             if (isDying)
             {
                 return;
+            }
+
+            if (data != null&& data.MovementMode == MovementMode.Flying)
+            {
+                Debug.LogWarning($"[{name}] 공중 경로 끝까지 본진을 발견하지 못해 제거합니다.",this);
             }
 
             Destroy(gameObject);

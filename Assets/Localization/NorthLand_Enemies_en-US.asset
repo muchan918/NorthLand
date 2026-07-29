@@ -90,6 +90,19 @@ MonoBehaviour:
     m_Localized: Fat Monster
     m_Metadata:
       m_Items: []
+  - m_Id: 3094128003018752
+    m_Localized: Bat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3094256038342656
+    m_Localized: Flying Melee Monster
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3094377413111808
+    m_Localized: A flying monster that crosses sampled route points and attacks the
+      base
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []
