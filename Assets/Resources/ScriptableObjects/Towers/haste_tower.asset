@@ -19,9 +19,9 @@ MonoBehaviour:
   MagicEffectType: 1
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-    Amount: 35
+    Amount: 30
   - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
-    Amount: 25
+    Amount: 20
   Single:
     Attack:
       AttackDamage: 0
@@ -49,10 +49,10 @@ MonoBehaviour:
     ChainDamageFalloff: 0
   Magic:
     BuffAura:
-      Radius: 28
+      Radius: 34
       Modifiers:
       - Stat: 1
-        Amount: 20
+        Amount: 35
         IsPercentage: 1
       Damage:
         HasDamage: 0
