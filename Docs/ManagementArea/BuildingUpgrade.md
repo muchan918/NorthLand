@@ -1,11 +1,11 @@
-# BuildingUpgrade — 생산 건물 업그레이드 (주민당 획득량 증가)
+# BuildingUpgrade — 건물 업그레이드 (생산 · 마법 연구소 · 본진 해금 · 교환 효율)
 
-> **담당**: n0wst4ndup
-> **이슈**: #139 (feature/139-building-upgrade)
+> **담당**: n0wst4ndup (#139 생산 트랙) · muchan (#205 스킬 강화, #229 본진 해금)
+> **이슈**: #139 (feature/139-building-upgrade) · #205 (마법 연구소 강화) · #229 (본진 업그레이드)
 > **경로(코드)**: `Assets/Scripts/ManagementSpace`
-> **상태**: ✅ **로직 구현·검증 완료**(#139) — 라인 소스를 `BuildingAsset`로 이관 + 라인별 레벨/주민당량 런타임
-> 상태 + 업그레이드 공개 API. PlayMode 검증 26/26 PASS(§6). **UI 통합은 다음 이슈**(경영 패널 레벨 표시·업그레이드
-> 버튼). 레벨수·비용·증가폭 **수치는 placeholder TBD**(밸런싱 후속).
+> **상태**: ✅ **세 트랙 모두 구현 완료**. ①생산 라인 업그레이드(#139, PlayMode 26/26 PASS §6) ②업그레이드 전용
+> 건물 트랙 + 스킬 강화 연동(#205, §8) ③**본진 레벨 해금 + 연금술사 교환 효율(#229, §9)** — 레벨 테이블
+> 타입 중립 승격으로 §8이 남겨둔 선행 작업이 종결됐다. 레벨수·비용·증가폭 **수치는 밸런싱 TBD**.
 > 확정되지 않은 항목은 본문에서 **TBD**로 명시한다(docs-are-dev-reference 규약).
 > **GDD 근거**: §5.7(건물 업그레이드) · §3.2(자원 흐름) · §4.1(낮—건물 업그레이드)
 
@@ -24,9 +24,10 @@
   - 생산량 = `주민당량 × 주민 수 × 생산배율`(현재 정산식, `Resources.md §3`). 업그레이드는 **주민당량** 항을 키운다.
 - **레벨 구조**(제안): 건물마다 이산 레벨(Lv1→2→3…), 레벨업 시 자원 비용 소모 + 주민당량 +Δ.
 
-### ❌ 범위 밖 (TBD / 후속)
-- **본성 · 연금술사의 집** 등의 업그레이드 — 효과·구조 미정, 이번 이슈에 없음.
-  - **마법 연구소는 후속으로 구현됨** — 생산 라인이 아니라 **업그레이드 전용 건물 트랙**으로 별도 구현했다(마나석 비용, 강화 효과는 TODO). §8 참고.
+### ❌ #139 범위 밖 (후속 이슈에서 해소됨)
+- **본성 · 연금술사의 집** 등의 업그레이드 — #139 시점엔 효과·구조 미정이었으나 **#229에서 확정·구현 완료**(§9).
+  본성은 레벨을 올려 하위 건물 Max를 해금하고, 연금술사는 자체 레벨 없이 본진 레벨이 곧 교환 효율이다.
+  - **마법 연구소는 후속으로 구현됨** — 생산 라인이 아니라 **업그레이드 전용 건물 트랙**으로 별도 구현했다(마나석 비용, 강화 효과는 #205 완료). §8 참고.
 - **미개척 영지 확장 자원 라인**의 업그레이드(우선 기본 3종만).
 - **밸런싱 수치 전부**: 레벨 수, 레벨당 비용, 레벨당 주민당량 증가폭 — **전부 TBD**(사용자 확인: "수치·비용 전부 TBD").
 - 상단 자원 UI(top bar) 재설계(GDD §8 TODO, 별도).
@@ -125,8 +126,8 @@
 - [ ] **UI 통합**(다음 이슈): 경영 패널에 레벨 표시·업그레이드 버튼(`TryUpgrade`/`CanUpgrade`/`LineLevel`/`LineUpgradeCost` 바인딩).
 - [ ] **세이브/로드**: 업그레이드 레벨 영속화(전역 세이브 미도입 상태).
 - [x] **마법 연구소 업그레이드**: **업그레이드 전용 건물 트랙으로 구현됨**(§8). 마나석 비용·레벨 추적 + 강화 효과(스킬 기본 스탯 배율, #205) 구현 완료.
-- [ ] **연금술사 업그레이드**(범위 밖): `alchemist_house`는 **Skill 타입**이라 마법 연구소와 동일하게 `Skill.UpgradeLevels` authoring + `_upgradeBuildings` 배선만으로 확장 가능.
-- [ ] **본성 업그레이드**(범위 밖): `castle.asset`(#227에서 `headquarters.asset`에서 개명, WL-061 해소)은 **`BuildingType.Castle`**(#227에서 General에서 분리, enum 끝에 추가)이며 `BuildingAssetEditor`가 이 타입에 그리는 건 **주민 증가 테이블(`Villager`)뿐**이라 업그레이드 레벨 테이블은 여전히 authoring 불가 → **SO만 추가로는 안 된다.** 착수하려면 레벨 테이블 필드를 타입 중립 그룹으로 승격(또는 에디터가 `Castle`에도 레벨 테이블을 그리게)하는 선행 작업이 필요하다(§8 참고, 리뷰 지적). **#227 진전**: 패널(`CastlePanelUI`)과 업그레이드 버튼 자리·레벨 표시는 이미 있다 — 레벨은 `GetUpgradeLevel(본진)+1`로 읽으므로 본진을 `_upgradeBuildings`에 등록하는 순간 **UI 수정 없이 연동된다.**
+- [x] **연금술사 업그레이드**: **구현 완료(#229, §9)**. ⚠ 종전 기술("`alchemist_house`는 **Skill 타입**이라 `Skill.UpgradeLevels` authoring + 배선만으로 확장 가능")은 **틀렸다** — 실제로는 `BuildingType.Store`이고, 자체 업그레이드 버튼도 레벨도 없다. `Exchange.UpgradeLevels`에 배율 행을 두되 어느 행을 쓸지는 **본진 레벨**이 고른다(`_upgradeBuildings`에 등록하지 않는다).
+- [x] **본성 업그레이드**: **구현 완료(#229, §9)**. 레벨 테이블을 타입 중립 그룹(`UpgradeStep`/`UpgradeSteps`)으로 승격해 아래 선행 작업을 종결했고, `BuildingAssetEditor`가 Castle 타입에 `Villager`+`Castle` 두 그룹을 그린다. **#227이 예고한 대로** 레벨 표시는 `GetUpgradeLevel(본진)+1`이라 본진을 `_upgradeBuildings`에 등록하는 것만으로 연동됐다(그 줄은 수정하지 않았다). 다만 업그레이드 **버튼 활성화와 비용 목록**은 새로 붙였다.
 
 ---
 
@@ -172,6 +173,10 @@ asmdef 부재로 순수 유닛 테스트 불가(Resources.md §7) — UI도 다�
 | UI | `BuildingInfoUI`(클릭→패널→버튼) | **동일** `BuildingInfoUI`(별 분기). (연금술사의 집은 예외 — 업그레이드 트랙이 아니라 교환소라 **별도 `StorePanelUI`** 를 띄운다, #211) 효과 줄은 생산의 "주민당 5→7" 자리에 여전히 **"스킬 강화 (추후 구현)"** placeholder를 표시(`building.upgrade.skill_pending`) — 실제 강화 내용 표시로 교체는 후속 과제(#205 범위 밖, 선택사항) |
 
 ### 데이터 (SO)
+> ⚠ **#229 이후**: 등록 경로가 `Skill.UpgradeLevels` 하드코딩에서 타입 중립 `BuildingAsset.UpgradeSteps`로 바뀌었고,
+> 최대 레벨도 `Count`가 아니라 **본진 레벨로 열려 있는 만큼**(실질 Max)이다. 아래 서술은 마법 연구소 기준이며
+> 규칙 전문은 §9를 따른다.
+
 - `BuildingAsset.Skill.UpgradeLevels : List<SkillUpgradeLevel>` — index i = 레벨 (i+1), 최대 레벨 = `Count`.
   `SkillUpgradeLevel`은 **도달 비용(`Cost`)** + **스킬 강화 배율 7종**(`DamageMultiplier`/`RadiusMultiplier`/`CooldownMultiplier`(감전)·`BuffDamageMultiplierScale`/`BuffAttackSpeedMultiplierScale`/`BuffDurationMultiplier`/`BuffCooldownMultiplier`(버프))을 **같은 리스트**에 authoring한다(#205, PR#216 리뷰 반영 — 비용·배율이 서로 다른 파일에 있어 레벨 개수가 어긋나던 문제를 원천 차단).
 - **현재 placeholder(TBD)**: `magic_lab` = Lv1 마나 20 / Lv2 마나 40 / Lv3 마나 60, 배율은 Lv1×1.2~1.6까지 단계적 증가(정확한 값은 SO 참고). (`Assets/Resources/ScriptableObjects/Buildings/magic_lab.asset`)
@@ -194,13 +199,115 @@ asmdef 부재로 순수 유닛 테스트 불가(Resources.md §7) — UI도 다�
 - [ ] **수치 밸런싱**: 레벨 수·레벨당 마나 비용(현재 placeholder 20/40/60), 스킬 강화 배율(현재 placeholder).
 - [ ] **클릭 오브젝트**: 마법 연구소를 클릭해 패널을 열려면 씬/프리팹에 `BuildingInfo`(+`Selectable` 레이어 콜라이더) 배치 필요 —
   생산 건물 클릭 오브젝트와 동일하게 건물 프리팹(Imported 사각지대 가능, WL-040) 쪽 작업.
-- [~] **연금술사(Store 타입, #211)**: 먼저 **마나석 교환소**가 구현됐다(`BuildingType.Store` + `BuildingAsset.Exchange`, 상세는 `Docs/ManagementArea/Resources.md` §3). **업그레이드도 이 건물의 확정 설계다** — 마법 연구소와 같은 "마나석으로 레벨만 올리는" 트랙이고, 효과는 **교환 효율 개선**(지불 마나석 고정, 받는 자원량 × `GainMultiplier`). 데이터 형태도 `SkillUpgradeLevel`과 같은 계보로 `ExchangeUpgradeLevel { Cost, GainMultiplier }`를 한 리스트에 둔다.
-  - **#211에서는 교환만 구현했고 `Exchange.UpgradeLevels`는 비어 있다.**
-  - 아래 본성과 **동일한 선행 작업**이 필요하다. 즉 "같은 트랙에 SO만 추가하면 확장"이라던 종전 기술은 틀렸다: `BuildUpgradeBuildings()`가 `BuildingType`과 무관하게 `Skill.UpgradeLevels`만 하드코딩으로 읽으므로, `Exchange.UpgradeLevels`는 등록 자체가 안 된다.
-- [ ] **본성(`BuildingType.Castle`, #227에서 General에서 분리)**: 레벨 테이블이 `Skill` 필드 그룹에 결박돼 있어 Castle 타입도 인스펙터 authoring 불가 — 필드를 **타입 중립 그룹으로 승격**하는 선행 작업 필요(리뷰 지적). "SO만 추가"로는 안 됨.
-  - 참고: **주민 증가(#227)는 이 트랙을 타지 않는다.** `Villager.Levels`를 독립 데이터 그룹으로 두고 `BuildingAsset`을 직접 받는 별도 게이트웨이(`TryIncreaseVillagers`)로 갔기 때문에, 아래 선행 작업 없이 구현됐다. 즉 선행 작업은 **본성 '업그레이드'에만** 필요하다.
-- [ ] **선행 작업 — 레벨 테이블 타입 중립 승격** (본성·연금술사 공통): `ManagementController.BuildUpgradeBuildings()`의 `building.Skill?.UpgradeLevels` 하드코딩을 타입 중립 소스로 바꾼다. 컨트롤러가 이 테이블에서 실제로 읽는 건 **`Cost`뿐이므로**(`UpgradeBuildingCost`/`CanUpgradeBuilding`/`TryUpgradeBuilding`), 필드 그룹별 레벨 리스트에서 비용만 뽑아 주는 헬퍼 하나면 충분하다. 효과값은 지금처럼 소비 측이 자기 필드 그룹에서 직접 읽는다(`SkillManager`가 `Skill.UpgradeLevels`를, 교환이 `Exchange.UpgradeLevels.GainMultiplier`를). 이게 끝나면 **본성 업그레이드와 연금술사 교환 효율 업그레이드가 동시에 열린다.**
+- [x] **연금술사(Store 타입, #211 교환 → #229 효율 업그레이드)**: 교환소가 먼저 구현되고(`BuildingAsset.Exchange`, 상세는 `Docs/ManagementArea/Resources.md` §3), **효율 업그레이드는 #229에서 완성**됐다(§9). 지불 마나석 고정, 받는 자원량 × `GainMultiplier`라는 효과는 종전 설계 그대로지만 **레벨의 출처가 바뀌었다** — 자체 레벨 트랙을 갖는 대신 본진 레벨이 배율 행을 고른다.
+- [x] **본성(`BuildingType.Castle`, #227에서 General에서 분리)**: **#229 구현 완료**(§9). 아래 선행 작업을 함께 처리했다.
+  - 참고: **주민 증가(#227)는 이 트랙을 타지 않는다.** `Villager.Levels`를 독립 데이터 그룹으로 두고 `BuildingAsset`을 직접 받는 별도 게이트웨이(`TryIncreaseVillagers`)로 갔기 때문에, 선행 작업 없이 구현됐다. 본진 패널은 지금 **두 축을 나란히** 보여준다(주민 증가 / 레벨 업그레이드).
+- [x] **선행 작업 — 레벨 테이블 타입 중립 승격** (본성·연금술사 공통): **#229에서 종결.** `BuildUpgradeBuildings()`의 `building.Skill?.UpgradeLevels` 하드코딩을 `building.UpgradeSteps`로 바꿨다. 예상대로 컨트롤러가 이 테이블에서 읽는 건 비용(+해금 요구치)뿐이었고, 효과값은 지금도 소비 측이 자기 필드 그룹에서 직접 읽는다(`SkillManager`가 `Skill.UpgradeLevels`를, 교환이 `Exchange.UpgradeLevels.GainMultiplier`를). 다만 **"비용만 뽑는 헬퍼"가 아니라 공통 베이스 클래스 추출**로 갔다 — 요구치 필드가 세 클래스에 모두 필요해져 반환 타입 자체가 공통 조상을 요구했기 때문이다(§9).
 
 ---
 
-*구현 완료 문서. 잔여 TBD(수치 밸런싱·세이브·UI 통합·스킬 강화 효과)는 §5·§8 참고.*
+## 9. 본진 레벨 해금 + 교환 효율 (#229)
+
+> **상태**: ✅ 구현 완료. §8이 남겨둔 "레벨 테이블 타입 중립 승격" 선행 작업을 함께 종결했다.
+
+본진을 업그레이드하면 두 가지가 일어난다.
+
+1. 생산 3종 + 마법 연구소의 **업그레이드 Max 레벨이 해금**된다.
+2. 연금술사의 집 **교환 효율이 오른다** — 지불 마나석 고정, 받는 자원량 증가.
+
+### 핵심 원칙 — 본진은 하위 건물을 모른다
+
+본진 SO에 "나무꾼은 몇 레벨, 광산은 몇 레벨" 목록을 두지 **않는다.** 대신 각 건물의 레벨 행이
+`RequiredCastleLevel`(이 레벨이 열리는 데 필요한 본진 레벨)을 소유한다. 그래서:
+
+- 건물이 추가돼도 **그 건물 SO만** 편집하면 된다 — 본진 asset도 코드도 손대지 않는다.
+- 레벨 행을 지우면 요구치도 함께 사라진다 — 행 개수와 요구치 개수가 어긋날 수 없다.
+
+### 데이터 구조 — 타입 중립 승격
+
+```csharp
+[System.Serializable]
+public abstract class UpgradeStep          // 신규 공통 베이스
+{
+    public List<ResourceCost> Cost;
+    public int RequiredCastleLevel;        // 0 = 처음부터 열림
+}
+```
+
+`UpgradeLevel`(생산) · `SkillUpgradeLevel` · `ExchangeUpgradeLevel` · `CastleUpgradeLevel`(신규)이 이를 상속하고,
+각자의 `Cost` 선언을 제거했다. **기존 `.asset`은 무손실** — Unity가 상속 직렬화 필드를 같은 이름으로 평탄하게
+저장하므로 YAML상 `Cost:` 위치가 그대로다(마이그레이션 불필요, 전 건물 덤프로 확인).
+
+`BuildingAsset.UpgradeSteps`가 채워진 필드 그룹 하나를 골라 `IReadOnlyList<UpgradeStep>`으로 돌려준다
+(`Castle` → `Skill` → `Production` → `Exchange` 순). `IReadOnlyList<out T>` 공변이라 복사·할당이 없고,
+분기 키는 `BuildingType`이 아니라 **'데이터 존재'**다(`BuildingInfo.OnSelected` 계보).
+
+본진 전용 그룹 `CastleFields.UpgradeLevels`는 **비용만** 갖는다 — 효과값이 없는 게 위 원칙의 표현이다.
+
+### 실질 Max — 앞에서부터 '연속으로'
+
+```
+실질 Max = 첫 행부터 훑다가 RequiredCastleLevel > 현재 본진 레벨인 행에서 멈춘 지점
+```
+
+잠긴 행을 건너뛰고 뒷행을 살리지 **않는다.** 레벨은 순차 증가여야 하는데 2단계를 건너뛰고 3단계에
+도달할 수는 없기 때문이다. 그래서 요구치가 비단조(`[0, 2, 1]`)면 3번째 행은 요구치를 만족해도 영원히
+잠긴다 — `OnValidate`가 이 authoring을 경고한다.
+
+**같은 요구치를 여러 행에 붙이면 본진 한 단계가 그만큼 한꺼번에 연다.** 건물마다 다른 성장 속도가
+이 숫자만으로 표현된다(현재 생산 3종 `[0,0,1,1,2,2]` = 단계당 2레벨, 마법 연구소 `[0,0,0,1,2]` = 기본 3레벨 + 단계당 1).
+
+**본진 자신은 게이팅에서 제외**한다(`ignoreGate`) — 자기 요구치로 스스로 잠기는 데드락을 막기 위해서다.
+본진 행의 `RequiredCastleLevel`은 무시되며 `OnValidate`가 0을 권고한다.
+
+### 연금술사만 의미가 다르다
+
+자체 업그레이드 버튼이 없어 **레벨이라는 개념 자체가 없다**(`_upgradeBuildings`에 등록하지 않는다).
+여기서 `RequiredCastleLevel`은 "이 레벨이 열린다"가 아니라 **"본진 몇 레벨부터 이 배율"**이고,
+계산도 연속 스캔이 아니라 **요구치를 만족하는 마지막 행**의 `GainMultiplier`를 쓴다.
+
+> ⚠ **곱셈 배율은 기본값이 작으면 해상도를 잃는다.** `GainAmount`가 1이면 `Mathf.RoundToInt` 때문에
+> 배율 1.5와 2.0이 **둘 다 2**가 되어 성장이 멈춘 것처럼 보인다(특수 자원 4종에서 실제로 발생).
+> 항목별 증가 폭을 조절할 땐 배율이 아니라 각 항목의 `GainAmount`(출발점)를 손봐야 한다 —
+> 배율은 모든 교환 항목에 공통으로 걸리기 때문이다.
+
+### 내부 레벨 vs 표시 레벨
+
+`RequiredCastleLevel`과 `CastleLevel`은 **내부값**(0 = 미업그레이드)이고, **UI는 +1해서** 보여준다
+(`CastlePanelUI`가 `GetUpgradeLevel + 1`로 제목을 그리는 규약). 잠금 안내 문구도 이 변환을 거쳐야 한다 —
+빠뜨리면 "본진 Lv2인데 Lv2 필요"처럼 이미 만족한 조건을 요구하는 것으로 보인다(실제 발생·수정됨).
+
+반면 **`OnValidate`·도달 불가 경고의 숫자는 내부값 그대로** 둔다. 인스펙터에 입력하는 값과 1:1로 대조하는
+authoring 진단이라, +1하면 필드값과 경고가 어긋나 새 혼동이 생긴다.
+
+### 공개 API 추가분 (`ManagementController`)
+
+- `int CastleLevel` — 현재 본진 레벨(내부값). 해금·교환 배율의 **단일 기준**. `_castleIndex`는 씬 배선 없이
+  `Castle.UpgradeLevels` 존재로 자동 탐색한다(씬 작업은 `_upgradeBuildings`에 본진 SO 추가 하나로 끝).
+- `int LineRequiredCastleLevel(int)` / `int UpgradeBuildingRequiredCastleLevel(int)` — 잠겼으면 필요한 본진
+  레벨(내부값), 잠기지 않았거나 진짜 최대면 0. **진짜 최대와 잠김을 구분**해 표시하기 위한 창구.
+- `int ExchangeGainAmount(BuildingAsset, ExchangeOffer)` — private에서 승격. 표시부가 원본 `GainAmount` 대신
+  이걸 써야 표시와 실지급이 일치한다.
+
+### 파급 전파 — 추가 배선 없음
+
+`TryUpgradeBuilding`이 이미 `OnChanged`를 발화하고 모든 패널이 컨트롤러에서 pull하므로, 본진을 올리면
+하위 건물 Max·교환 표시가 자동으로 따라온다. 상점을 연 채로 본진을 올려도 획득량이 갱신된다
+(`StoreOfferRow.SetGain` — 행 재생성은 금지, 클릭 처리 중 버튼이 파괴된다).
+
+### authoring 가드
+
+| 가드 | 위치 | 잡는 것 |
+|---|---|---|
+| `ValidateRequiredCastleLevels` | `BuildingAsset.OnValidate` | 음수·비단조(영구 잠김)·본진 자기참조·그룹 중복 |
+| `ValidateUpgradeCosts` | 〃 | 총액 0(무료 업그레이드). **Exchange는 스킵** — 배율 행은 도달 비용이 없는 게 정상 |
+| `WarnUnreachableCastleRequirements` | `BuildUpgradeBuildings` (Play 시작 1회) | 본진 최대 레벨을 넘는 요구치. SO는 서로를 모르므로 `OnValidate`로는 불가능 |
+
+### 잔여 / TODO
+
+- [ ] **수치 밸런싱**: 본진 비용(현재 나무100+철50 / 나무200+철120+마나30), 해금 폭, 교환 배율(1.5/2.0), 특수 자원 기본 획득량(2).
+- [ ] **세이브/로드**: 본진 레벨도 다른 레벨과 같이 런타임 상태라 영속화 미도입.
+
+---
+
+*구현 완료 문서. 잔여 TBD(수치 밸런싱·세이브·UI 통합)는 §5·§8·§9 참고.*

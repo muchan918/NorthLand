@@ -16,7 +16,7 @@ MonoBehaviour:
   BuildingType: 0
   Cost: []
   Production:
-    BaseAmountPerVillager: 5
+    BaseAmountPerVillager: 10
     OutputResource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
     UpgradeLevels:
     - Cost:
@@ -24,12 +24,51 @@ MonoBehaviour:
         Amount: 20
       - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
         Amount: 10
-      AmountPerVillager: 7
+      RequiredCastleLevel: 0
+      AmountPerVillager: 14
     - Cost:
       - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
         Amount: 40
       - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
         Amount: 20
-      AmountPerVillager: 9
+      RequiredCastleLevel: 0
+      AmountPerVillager: 18
+    - Cost:
+      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
+        Amount: 70
+      - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+        Amount: 35
+      RequiredCastleLevel: 1
+      AmountPerVillager: 22
+    - Cost:
+      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
+        Amount: 110
+      - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+        Amount: 55
+      RequiredCastleLevel: 1
+      AmountPerVillager: 26
+    - Cost:
+      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
+        Amount: 160
+      - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+        Amount: 80
+      RequiredCastleLevel: 2
+      AmountPerVillager: 30
+    - Cost:
+      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
+        Amount: 220
+      - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+        Amount: 110
+      RequiredCastleLevel: 2
+      AmountPerVillager: 34
   Skill:
     InputResource: {fileID: 0}
+    UpgradeLevels: []
+  Exchange:
+    PayResource: {fileID: 0}
+    Offers: []
+    UpgradeLevels: []
+  Villager:
+    Levels: []
+  Castle:
+    UpgradeLevels: []

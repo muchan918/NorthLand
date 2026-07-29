@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAsset
   EnemyID: tank
   EnemyType: 2
+  MovementMode: 0
   Melee:
     Stat:
       MaxHp: 0
@@ -32,9 +33,9 @@ MonoBehaviour:
     ProjectileSpeed: 0
   Boss:
     Stat:
-      MaxHp: 800
+      MaxHp: 1500
       MoveSpeed: 12
-      AttackDamage: 80
+      AttackDamage: 50
       AttackRange: 3
       AttackInterval: 2.5
     BehaviorTree: {fileID: -3802654377710565703, guid: b452562c5fd4efa48b4be9c0964e798e, type: 2}

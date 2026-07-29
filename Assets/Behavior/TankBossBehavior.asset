@@ -33,7 +33,7 @@ MonoBehaviour:
         BlackboardGroupReferences: []
         Root:
           rid: 853242566921421691
-        m_VersionTimestamp: 639209030491679454
+        m_VersionTimestamp: 639209271909059150
     - rid: 853242560534806607
       type: {class: BlackboardReference, ns: Unity.Behavior, asm: Unity.Behavior}
       data:
@@ -1553,7 +1553,7 @@ MonoBehaviour:
   - rid: 853242565550931978
   - rid: 853242565550932037
   - rid: 853242565550932089
-  m_VersionTimestamp: 639209030491679454
+  m_VersionTimestamp: 639209271909059150
   m_SerializedVersion: 3
   m_DebugInfo: {fileID: -922344266620719871}
   m_RuntimeGraph: {fileID: -3802654377710565703}
@@ -2222,7 +2222,7 @@ MonoBehaviour:
         LocalValue:
           rid: 853242560534806695
         LinkedVariable:
-          rid: 853242565550932191
+          rid: -2
     - rid: 853242560534806695
       type: {class: 'BlackboardVariable`1[[System.Single, mscorlib]]', ns: Unity.Behavior, asm: Unity.Behavior}
       data:
@@ -2230,7 +2230,7 @@ MonoBehaviour:
           m_Value0: 0
           m_Value1: 0
         Name: 
-        m_Value: 3
+        m_Value: 5
     - rid: 853242560534806709
       type: {class: ActionNodeModel, ns: Unity.Behavior, asm: Unity.Behavior.Authoring}
       data:
@@ -5532,16 +5532,6 @@ MonoBehaviour:
         m_NodeModel:
           rid: 853242565550932089
         m_Connections: []
-    - rid: 853242565550932191
-      type: {class: 'TypedVariableModel`1[[System.Single, mscorlib]]', ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
-      data:
-        ID:
-          m_Value0: 11086562544744974939
-          m_Value1: 10007246622304687321
-        Name: P4_Interval
-        IsExposed: 1
-        m_IsShared: 0
-        m_Value: 6
     - rid: 853242565550932192
       type: {class: 'TypedVariableModel`1[[UnityEngine.GameObject, UnityEngine.CoreModule]]', ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
       data:

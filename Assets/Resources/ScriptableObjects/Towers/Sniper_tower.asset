@@ -24,9 +24,9 @@ MonoBehaviour:
     Amount: 5
   Single:
     Attack:
-      AttackDamage: 50
-      AttackRange: 150
-      AttackInterval: 3
+      AttackDamage: 40
+      AttackRange: 90
+      AttackInterval: 2
       ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
       ProjectileSpeed: 1600
   Area:

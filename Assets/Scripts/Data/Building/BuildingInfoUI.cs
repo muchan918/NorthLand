@@ -18,6 +18,9 @@ public class BuildingInfoUI : MonoBehaviour
     // 마법 연구소 등 업그레이드 전용 건물의 효과 줄 라벨. 생산 건물의 "주민당 5→7" 자리에 표시된다 —
     // 강화 효과(스킬 강화)는 이번 범위 밖(추후 구현)이라 수치 대신 이 안내 문구를 보여준다.
     private const string k_SkillPendingKey = "building.upgrade.skill_pending";
+    // 본진 레벨 부족으로 다음 레벨이 잠긴 상태(#229). 진짜 최대(k_MaxKey)와 구분해야
+    // "왜 못 올리는지"가 보인다 — Smart String {0}에 필요한 본진 레벨이 들어간다.
+    private const string k_RequireCastleKey = "building.upgrade.require_castle";
 
     [Tooltip("업그레이드 데이터 소스. 비우면 씬에서 자동 탐색.")]
     [SerializeField] ManagementController _controller;
@@ -151,7 +154,9 @@ public class BuildingInfoUI : MonoBehaviour
         bool isMax = level >= max;
 
         SetText(_nameLevelText, $"{BuildingName()} ({L(k_LevelKey)} {level}/{max})");
-        SetText(_amountText, L(k_SkillPendingKey));
+        // 본진 레벨로 잠긴 상태면 강화 안내 대신 잠금 사유를 보여준다 — 지금 필요한 정보는 그쪽이다(#229).
+        string lockNotice = LockNotice(_controller.UpgradeBuildingRequiredCastleLevel(_upgradeIndex));
+        SetText(_amountText, lockNotice ?? L(k_SkillPendingKey));
         if (isMax)
         {
             ClearCostRows();
@@ -176,8 +181,10 @@ public class BuildingInfoUI : MonoBehaviour
         bool isMax = level >= max;
 
         SetText(_nameLevelText, $"{BuildingName()} ({L(k_LevelKey)} {level}/{max})");
+        // 잠긴 경우 괄호 안이 "MAX"가 아니라 "본진 Lv n 필요"가 된다 — 더 올릴 수 있다는 사실이 드러나야 한다(#229).
+        string lockNotice = LockNotice(_controller.LineRequiredCastleLevel(_lineIndex));
         SetText(_amountText, isMax
-            ? $"{L(k_PerVillagerKey)} {cur} ({L(k_MaxKey)})"
+            ? $"{L(k_PerVillagerKey)} {cur} ({lockNotice ?? L(k_MaxKey)})"
             : $"{L(k_PerVillagerKey)} {cur} → {_controller.LineNextAmountPerVillager(_lineIndex)}");
         if (isMax)
         {
@@ -194,6 +201,17 @@ public class BuildingInfoUI : MonoBehaviour
             _upgradeButton.interactable = _controller.CanUpgrade(_lineIndex);
         }
     }
+
+    // 다음 레벨이 본진 레벨 부족으로 잠겼으면 "본진 Lv n 필요", 아니면 null(호출부가 기존 MAX 표기로 폴백).
+    // 진짜 최대(더 이상 행이 없음)와 잠김(본진을 올리면 열림)은 플레이어에게 전혀 다른 정보다.
+    //
+    // ⚠ 인자는 컨트롤러가 주는 '내부' 레벨(0 = 미업그레이드)이고, 화면에 쓰는 본진 레벨은 +1한 값이다
+    //   (CastlePanelUI가 GetUpgradeLevel + 1로 제목을 그리는 것과 같은 규약). 여기서 변환하지 않으면
+    //   본진 Lv2인데 "본진 Lv2 필요"처럼 이미 만족한 조건을 요구하는 것으로 보인다.
+    private static string LockNotice(int requiredCastleLevel) =>
+        requiredCastleLevel > 0
+            ? LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, k_RequireCastleKey, requiredCastleLevel + 1)
+            : null;
 
     private string BuildingName()
     {
