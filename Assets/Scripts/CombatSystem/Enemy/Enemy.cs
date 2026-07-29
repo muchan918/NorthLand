@@ -7,7 +7,9 @@ namespace NorthLand.Combat
     public class Enemy : MonoBehaviour, IAttacker, IDamageable
     {
         [SerializeField] EnemyAsset data;
+        [SerializeField] Transform hitPosition;
 
+        public Transform HitPosition => hitPosition;
         // TODO(TBD): 대상 탐지 필터링을 LayerMask로 할지 Tag로 할지 미확정.
         //            현재는 임시로 LayerMask 방식 사용. 팀 컨벤션 회의 후 결정 및 수정 예정.
         [SerializeField] LayerMask targetLayerMask;   // 아군 유닛 + 본진 레이어
@@ -67,7 +69,11 @@ namespace NorthLand.Combat
                 // 이동 액추에이터를 못 찾으면 보스 속도 가감속 패턴이 조용히 무동작하므로 경고로 드러낸다.
                 Debug.LogWarning($"[{name}] IMovementAgent를 찾지 못해 이동속도 패턴이 동작하지 않습니다.", this);
             }
-
+            if (hitPosition == null)
+            {
+                hitPosition = transform;
+                Debug.LogError($"[Enemy] {name}: hitPosition 미할당 — 피벗으로 폴백. 프리팹에 몸통 트랜스폼을 지정하라.", this);
+            }
             OnHpChanged?.Invoke(currentHp, MaxHp);
 
             routeMovement = GetComponentInChildren<IRouteMovementAgent>();

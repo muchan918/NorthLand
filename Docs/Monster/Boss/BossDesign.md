@@ -2,10 +2,11 @@
 
 > **이름은 임시다.** 몬스터 테마가 GDD §8에서 미확정이라 프로토타입 동안 `Tank`로 부른다. 파일명은 바꾸지 않았다 — 임시명으로 개명하면 정식 이름이 정해질 때 또 옮겨야 하고, 그 사이 문서 링크가 두 번 깨진다. 정식 이름이 확정되면 그때 보스 이름으로 개명한다.
 
-- 관련 이슈: #232(상위) / #233(기반, 완료) / #234(리프 노드 세트, 완료) / #235(패턴 그래프·에셋, 미착수)
+- 관련 이슈: #232(상위) / #233(기반, 완료) / #234(리프 노드 세트, 완료) / #235(패턴 그래프·에셋, 진행 중)
 - 구현 위치: 노드 `Assets/Scripts/CombatSystem/Enemy/AI/Nodes/` · 보조 타입 `Assets/Scripts/CombatSystem/Enemy/AI/`
-- 노드 레퍼런스: `Docs/Monster/Boss/BossNodeReference.md`
-- 기반과 리프 노드는 구현됐고 **패턴 그래프·보스 프리팹·AnimatorController·`EnemyAsset`은 아직 없다**(#235). 따라서 아래 「행동 패턴」은 여전히 **설계 의도**이며 플레이로 검증된 것이 아니다. 실제 코드와 어긋나는 지점은 각 절에 인라인으로 표시했다. 미확정 항목은 [미확정 / TODO](#미확정--todo)에 모아둔다.
+- 그래프 `Assets/Behavior/TankBossBehavior.asset` · 프리팹 `Assets/Prefabs/Monster/Tank.prefab` · 스탯 `Assets/Resources/ScriptableObjects/Enemies/tank.asset`
+- 노드 레퍼런스: `Docs/Monster/Boss/BossNodeReference.md` · 그래프 배선·검증: `Docs/Monster/Boss/TankGraphSpec.md`
+- **패턴 4종이 Play에서 동작하는 것을 확인했다**(#235). 다만 두 가지가 남아 있다 — ① 보스 몸체가 **캡슐**이고 `AnimatorController`가 없어 P1 준비 모션이 그래프에서 빠져 있다 ② P1 충돌 후 보스 생존(경로 끝 파괴 회피)이 미검증이다. 수치는 전부 placeholder이며 밸런싱 전이다. 검증 상세는 `TankGraphSpec.md` 「검증 결과」.
 
 > `Assets/Scripts/CombatSystem/Enemy/MiniBoss/`의 중간보스 노드 4종(`BossHealSelfAction` / `BossHpBelowCondition` / `BossRampSpeedMultiplierAction` / `BossSetSpeedMultiplierAction`)과 `MidBossBehavior.asset`은 이 보스와 무관하다. **재사용하지 않고 참조하지도 않는다.** 이 보스의 리프 노드는 전부 신규 작성한다.
 
@@ -208,7 +209,11 @@ Play 검증으로 두 축이 서로를 지우지 않는 것을 확인했다: 기
 - [x] **이동속도 합성 계약의 소유권 — 보스 쪽에서 골격을 먼저 넣었다**(#233). 감속 타워는 `IMovementAgent.AddSpeedDebuff` / `RemoveSpeedDebuff`를 얹으면 된다. 저장소에 감속 타워 코드가 아직 없어 충돌 대상이 없었다(`slow_tower.asset`은 전 필드가 비어 있음). **해제 책임은 타워 쪽** — 자동 만료가 없다.
 - [x] **이동속도 감소 타워는 `AuraTower` 계열이다** — P3 마력 봉인 대상에서 제외된다(설계 의도대로). 단 **`AuraTower`를 `Tower` 상속으로 바꾸는 대규모 리팩토링이 예정**돼 있어 상속 구조는 확정이 아니다. 그래서 P3의 대상 판정을 `Tower.Active` 등록 여부가 아니라 공격 스탯 보유 여부로 두어 **리팩토링 결과에 불변**으로 만들었다(P3 절 참조). 리팩토링 담당자가 확인할 것: `AuraTower`가 `Tower`를 상속해도 데이터가 Magic 타입(공격 스탯 없음)으로 남는지 — 남지 않으면 봉인 대상에 들어와 P1 파훼 수단이 사라진다.
 - [ ] **패턴 수치 일체 미정.** 밸런싱은 구현 후 플레이 검증으로 잡는다. 단 P3 예고 `Duration`은 밸런싱과 별개로 **짧게(0.5초 수준) 잡아야 한다** — 예고 원 드리프트를 덮는 프로토타입 대응이 이 값에 의존한다(P3 절).
-- [ ] **패턴의 런타임 동작 미검증.** #234까지 리프 노드가 다 있지만 이를 쓰는 그래프 에셋이 없어 P1~P4가 실제로 도는 것을 본 적이 없다. 이 문서의 「행동 패턴」은 #235 Play 검증 후 실제 거동에 맞춰 다시 손봐야 한다.
+- [x] **패턴 런타임 동작 검증됨(#235).** P1~P4 + 기본 진군이 그래프로 동작한다. 상세는 `TankGraphSpec.md` 「검증 결과」.
+- [ ] **AnimatorController 미착수.** 보스 몸체가 캡슐이고 `Animator`가 없어 P1 준비 모션(`EnemyPlayAnimationAction`)이 그래프에서 빠져 있다 — 노드가 `Animator` 없으면 Failure를 반환해 P1 시퀀스가 끊기기 때문이다. #235 완료 기준 중 이 항목은 미충족이다. 모델·클립 선정은 별건으로 진행한다. 팩(`Assets/Imported/KSJ/Monsters Ultimate Pack 01`)이 **전부 Generic rig**라 외부 휴머노이드 리타게팅은 불가하고 같은 팩 클립만 쓸 수 있다.
+- [ ] **P1 충돌 후 보스 생존 미검증.** 돌진 중에는 이동 소유권이 `Enemy.Update`의 정지를 막으므로, `P1_ArriveDistance`가 작으면 보스가 경로 끝 웨이포인트를 지나쳐 `RouteCompleted → Destroy`로 충돌 피해도 없이 사라진다. 현재 5(`AttackRange` 3보다 크게)로 잡았으나 실제 통과 여부는 확인하지 못했다.
+- [ ] **패턴 임계값이 절대 월드 거리라 맵 시드에 노출된다.** 전투맵은 `TileSize 15`에 변 70타일(=1050유닛)이고 경로 웨이포인트를 8~12개 새로 뽑는다. `P1_TriggerDistance`(100)는 본진까지의 **직선 거리**라, 경로가 감기는 시드에서는 스폰 직후에도 100 아래일 수 있어 보스가 출발점에서 바로 돌진을 시작한다 — `P1_Gate = -1`(1회 한정)이라 잘못 발동하면 그 판의 P1은 끝이다. `P2_BackRadius`(40) / `P3_ForwardRadius`(30)도 같은 이유로 "항상 발동" ↔ "한 번도 발동 안 함" 사이를 시드가 결정한다. 트리거를 **남은 경로 진행도**로 잡는 편이 이 맵 생성기와 궁합이 맞다. 최소한 서로 다른 시드 3개에서 P1 발동 지점을 눈으로 확인한 뒤 값을 확정할 것 — 프로토타입 밸런싱의 첫 항목.
+- [ ] **보스 전용 HP UI 미도입.** 잡몹과 같은 `MonsterHealthBar`를 자식으로 붙여 최소한 체력이 보이게는 해뒀다(`Boss.Stat.MaxHp` 800이라 진행도 판단 수단이 없으면 밸런싱 피드백 자체가 안 돈다). 전용 UI·등장 연출 도입 여부는 여전히 미정이며, 오면 이 임시 체력바를 떼면 된다.
 - [ ] **그래프에 기본 진군 브랜치가 반드시 있어야 한다.** 없으면 P1 돌진 성공 후 속도 배수가 고착된다(`EnemyAccelerateAction`이 도달 성공 시 원복하지 않는 이유는 P1 절 참조).
 - [ ] **`EnemyAgent.unitLayerMask`가 비면 P2·P3가 조용히 발동하지 않는다.** 반경 질의가 항상 0을 반환한다. #235 프리팹 작성 시 확인.
 - [ ] 보스 전용 HP UI / 등장 연출 도입 여부. 현재 프로젝트에 경고 배너 UI가 없고 카메라에 연출 API가 없다.

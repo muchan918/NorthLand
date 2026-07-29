@@ -11,6 +11,8 @@ public class DummyDamageable : MonoBehaviour, IDamageable
     public Faction Faction => Faction.Enemy;
     public bool IsDead => false;
 
+    public Transform HitPosition => throw new System.NotImplementedException();
+
     private void Awake()
     {
         gameObject.layer = LayerMask.NameToLayer("Enemy");
