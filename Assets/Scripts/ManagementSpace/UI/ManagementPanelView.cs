@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Localization;
+using UnityEngine.Localization.Settings;
 
 /// <summary>
 /// 경영 패널 뷰. <see cref="ManagementController"/>를 구독해 자원 HUD·주민 풀·페이즈·생산/자원 라인을 렌더하고,
@@ -54,6 +56,9 @@ public class ManagementPanelView : MonoBehaviour
             Debug.LogError("[경영패널] ManagementController를 찾을 수 없습니다.");
             return;
         }
+
+        LocalizationSettings.SelectedLocaleChanged += HandleLocaleChanged;
+
         // 배선 누락을 시작 시점에 드러낸다(#219) — 낮 종료 클릭까지 미루면 확인 팝업이
         // 조용히 빠진 채 게임이 굴러가므로, 여기서 에러로 즉시 노출한다.
         if (_endDayConfirmPopup == null)
@@ -75,6 +80,8 @@ public class ManagementPanelView : MonoBehaviour
 
     private void OnDestroy()
     {
+        LocalizationSettings.SelectedLocaleChanged -= HandleLocaleChanged;
+
         if (_controller != null)
         {
             _controller.OnChanged -= Refresh;
@@ -112,6 +119,11 @@ public class ManagementPanelView : MonoBehaviour
             view.BindResourceDisplay(_controller, kind, ResourceNameKey(kind), false);
             _specialViews.Add(view);
         }
+    }
+
+    private void HandleLocaleChanged(Locale locale)
+    {
+        Refresh();
     }
 
     private void Refresh()
