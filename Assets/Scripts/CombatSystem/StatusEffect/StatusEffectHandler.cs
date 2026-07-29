@@ -45,6 +45,30 @@ namespace NorthLand.Combat
             public float remaining;   // 남은 지속시간(초)
         }
 
+        // ── 스턴 재적용 제한(#164) ─────────────────────────────
+        // 스턴 축은 minMoveSpeed 하한 클램프를 우회해 완전 정지를 만든다. 그래서 클램프가 막고 있던
+        // 소프트락을 이 클래스가 대신 막아야 한다. 규칙 두 개가 세트로 필요하다:
+        //  1) 스턴 중 재적용 무시 — 없으면 명중마다 remaining이 0.7로 리셋돼 만료가 영원히 오지 않는다.
+        //     soda는 AttackInterval 3 / StunDuration 0.7이고 Projectile의 StunEffectId가 static이라
+        //     모든 소다가 단일 소스를 공유한다. 5기가 균등 분산되면 명중 간격 0.6s < 0.7s로 끊기지 않는다.
+        //  2) 종료 후 면역 창 — 1)만으로는 만료 직후 재스턴이 가능해 가동률이 100%에 가깝다.
+        // 결과적으로 최대 가동률 = 스턴 지속 / (스턴 지속 + 면역 창)이 되어 타워를 몇 기 깔든 상한이 있다.
+        //
+        // 소스가 아니라 대상 기준으로 판정하는 이유: 소스 기준이면 서로 다른 스턴원 2개가 번갈아 걸어
+        // 다시 영구 정지가 만들어진다. "행동 불가"는 겹칠 이유가 없으므로 동시에 하나만 허용한다.
+        //
+        // 이 핸들러는 런타임 AddComponent로 붙으므로(클래스 주석 참조) 실제로는 아래 기본값이 쓰인다.
+        // 인스펙터 노출은 미리 부착된 경우의 튜닝용이고, 정식 수치는 GDD §7 CC 사인오프 대상이다(WL-026).
+        [SerializeField] float stunImmunityWindow = 1.4f;
+
+        // 이 시각 전에는 재스턴을 받지 않는다. 스턴이 끝나는 시점에 갱신된다.
+        float stunImmuneUntil;
+
+        // 현재 스턴을 보유한 소스. stunActive가 false면 의미 없다
+        // (effectId는 해시코드라 -1 같은 센티널을 쓸 수 없다).
+        bool stunActive;
+        int stunSource;
+
         void Awake()
         {
             owner = GetComponent<IDamageable>();
@@ -87,8 +111,22 @@ namespace NorthLand.Combat
             if (duration <= 0f) return;
             multiplier = Mathf.Clamp01(multiplier);
 
+            bool isStun = multiplier <= 0f;
+
+            // 스턴만 게이트한다 — 감속은 하한 클램프가 받아내므로 갱신이 이어져도 소프트락되지 않는다.
+            if (isStun && !CanStunNow())
+            {
+                if (debugLog)
+                    Debug.Log($"[Status] {name}: 스턴 무시 ({(stunActive ? "이미 스턴 중" : $"면역 창 {stunImmuneUntil - Time.time:F2}s 남음")})");
+                return;
+            }
+
             if (slows.TryGetValue(effectId, out var s))
             {
+                // 스턴이 감속으로 덮여 끝나는 경로. 여기서 면역 창을 시작하지 않으면 스턴이
+                // 조용히 사라지면서 상한도 함께 사라진다.
+                if (!isStun && stunActive && effectId == stunSource) EndStun();
+
                 s.multiplier = multiplier;
                 s.remaining = duration;
             }
@@ -96,7 +134,24 @@ namespace NorthLand.Combat
             {
                 slows[effectId] = new SlowEffect { multiplier = multiplier, remaining = duration };
             }
+
+            if (isStun)
+            {
+                stunActive = true;
+                stunSource = effectId;
+            }
+
             PushToMover(effectId, multiplier);
+        }
+
+        // 규칙 1(스턴 중 무시) + 규칙 2(종료 후 면역 창). 위 필드 주석 참조.
+        bool CanStunNow() => !stunActive && Time.time >= stunImmuneUntil;
+
+        // 스턴이 끝나는 모든 경로가 여기를 지나야 한다 — 만료, 감속으로 덮임, 대상 사망.
+        void EndStun()
+        {
+            stunActive = false;
+            stunImmuneUntil = Time.time + stunImmunityWindow;
         }
 
         // 효과 하나를 이동 에이전트의 해당 축에 밀어넣는다. 여러 효과를 여기서 합치지 않는 이유:
@@ -146,6 +201,11 @@ namespace NorthLand.Combat
                 ReleaseFromMover(effectId);
 
             slows.Clear();
+
+            // 사망 경로다. EndStun()이 아니라 직접 초기화하는 이유: 면역 창을 남기면 풀링
+            // 재사용체가 스턴 안 걸리는 상태로 부활한다.
+            stunActive = false;
+            stunImmuneUntil = 0f;
         }
 
         void Update()
@@ -204,8 +264,13 @@ namespace NorthLand.Combat
                 {
                     // 만료분만 해제한다 — 남은 효과는 컴포저·스턴 게이트가 그대로 유지하므로
                     // 예전처럼 전체를 재계산할 필요가 없다.
-                    slows.Remove(expiredSlowBuffer[i]);
-                    ReleaseFromMover(expiredSlowBuffer[i]);
+                    int expiredId = expiredSlowBuffer[i];
+
+                    slows.Remove(expiredId);
+                    ReleaseFromMover(expiredId);
+
+                    // 스턴이 자연 만료된 지점. 여기서 면역 창이 시작된다.
+                    if (stunActive && expiredId == stunSource) EndStun();
                 }
             }
         }
