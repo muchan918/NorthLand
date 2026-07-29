@@ -123,12 +123,14 @@
   **건물 업그레이드**(#139): `bool TryUpgrade(int)`·`bool CanUpgrade(int)`·`int LineLevel/LineMaxLevel/LineAmountPerVillager(int)`·
   `IReadOnlyList<ResourceCost> LineUpgradeCost(int)` — 낮 전용, 수치는 `BuildingAsset.Production.UpgradeLevels`(SO),
   **업그레이드 전용 건물 트랙**(마법 연구소 등, 생산 라인과 별개 index 도메인): `int UpgradeIndexOf(BuildingAsset)`·`int UpgradeBuildingLevel/UpgradeBuildingMaxLevel(int)`·
-  `IReadOnlyList<ResourceCost> UpgradeBuildingCost(int)`·`bool CanUpgradeBuilding(int)`·`bool TryUpgradeBuilding(int)` — 낮 전용, 비용은 `BuildingAsset.Skill.UpgradeLevels`(마나석, 효과값 없음),
+  `IReadOnlyList<ResourceCost> UpgradeBuildingCost(int)`·`bool CanUpgradeBuilding(int)`·`bool TryUpgradeBuilding(int)` — 낮 전용, 비용은 타입 중립 `BuildingAsset.UpgradeSteps`(#229, 종전 `Skill.UpgradeLevels` 하드코딩),
   같은 `TrySpend` 게이트웨이 경유. **`int GetUpgradeLevel(BuildingAsset)`** = 소비 시스템(스킬 강화 등)이 레벨을 읽는 저결합 창구(효과 적용은 소비 측 소유 — **`SkillManager`/`BuffSkillManager`가 구현 완료, #205**) — BuildingUpgrade.md §8,
+  **본진 해금**(#229): `int CastleLevel` = 하위 Max 해금·교환 배율의 단일 기준, `int LineRequiredCastleLevel(int)`·`int UpgradeBuildingRequiredCastleLevel(int)` = 잠겼으면 필요한 본진 레벨 아니면 0 — **셋 다 내부값(0=미업그레이드), 화면 표시는 +1**. ⚠ `*MaxLevel`은 행 수가 아니라 **실질 Max**(연속 만족분) — BuildingUpgrade.md §9,
   **소비 게이트웨이** `bool CanAfford/TrySpend(IReadOnlyList<ResourceCost>)`(소비처는 지갑 직접 접근 대신 경유, 원자 차감 — WL-017),
   **자원 교환 게이트웨이**(#211, 연금술사의 집): `bool CanExchange(BuildingAsset, ExchangeOffer)`·`bool TryExchange(BuildingAsset, ExchangeOffer)` — 낮 전용,
   지불 자원 차감과 대상 자원 지급이 **한 트랜잭션**(차감 실패 시 지급하지 않음). 지갑에 자원을 넣는 **유일한 소비자 대면 API**이며,
   `ResourceWallet.Add`를 public으로 열지 않기 위한 형태다(팀 계약 #3·#6, WL-042 해소 근거). 교환비는 `BuildingAsset.Exchange.Offers`(SO),
+  **`int ExchangeGainAmount(BuildingAsset, ExchangeOffer)`**(#229, private→public) = 본진 레벨 배율이 반영된 **실지급량** — 표시부는 원본 `offer.GainAmount` 대신 이걸 써야 표시=실지급이 맞는다,
   질의 `ResourceCount`/`LineCount`/`LineKind`/`LineExpectedProduction`/`AssignedTotal`/`IsDay`/`CanAdvancePhase`, `event OnChanged`(뷰 갱신).
   UI(`ManagementPanelView`/`ProductionLineView`)는 이 컨트롤러만 구독·호출 — UI 아트 교체 시 뷰 참조만 재연결
 - `MouseManager.Instance.BeginPlacement(PlacementRequest)` / `CancelPlacement()` / `event OnSelectionChanged` —
@@ -255,7 +257,7 @@
      (낮 전용, 역교환 없음). 이것은 새 획득 경로가 **아니라 마나석 소비처**다 — 지갑의 획득 API(`ResourceWallet.Add`)는
      계속 비공개이고, 소비처에 열린 것은 **차감+지급이 한 트랜잭션인 `ManagementController.TryExchange` 단일 진입점**뿐이라
      마나석 없이 자원이 생기는 경로가 없다. 신규 기능이 자원을 늘려야 할 때도 `Add`를 public으로 열지 말고 이 패턴을 따를 것.
-   - 그 밖의 우회 경로(본진 업그레이드 마나석 소모 등)는 여전히 금지/미결(WL-042 잔여).
+   - **본진 업그레이드 비용(#229, WL-042 완전 종결)**: 자원 종류 자유 authoring(현재 나무·철·마나석), 차감은 동일한 `TrySpend` 경유 — 지갑을 늘리지 않는 **순수 소비 경로**라 계약 위반이 아니다.
 4. **공간 분리** (GDD §4.1/§6.2): 경영 공간 = 건물, 전투 공간 = 타워. 두 영토는 독립 관리 —
    한쪽 확장이 다른 쪽 상태에 의존 금지.
 5. **낮/밤 전환 계약** (GDD §5, Build0 계획): 낮 시작=본진 회복, 밤 시작(`OnDayToNight`)=전투 스테이지 확장+몬스터 스폰(#17), 밤→낮=주민 배치 기반 자원 정산(먼저)+
