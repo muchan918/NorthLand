@@ -3696,7 +3696,7 @@ MonoBehaviour:
   minimapMoveSmoothTime: 0.15
   mainCamera: {fileID: 1459800175}
   waveRewardSelectionUI: {fileID: 1658482855}
-  settingUI: {fileID: 0}
+  settingUI: {fileID: 1891864976}
 --- !u!4 &522335600
 Transform:
   m_ObjectHideFlags: 0
@@ -14570,6 +14570,14 @@ PrefabInstance:
       propertyPath: m_SizeDelta.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1500180969359131881, guid: 64e00ecf2a7cff5439a745f5fe995529, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1500180969359131881, guid: 64e00ecf2a7cff5439a745f5fe995529, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3050388127877805030, guid: 64e00ecf2a7cff5439a745f5fe995529, type: 3}
       propertyPath: m_SizeDelta.y
       value: 0
@@ -14759,6 +14767,18 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6410140813477991067, guid: 64e00ecf2a7cff5439a745f5fe995529, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6410140813477991067, guid: 64e00ecf2a7cff5439a745f5fe995529, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6410140813477991067, guid: 64e00ecf2a7cff5439a745f5fe995529, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7858716109409172367, guid: 64e00ecf2a7cff5439a745f5fe995529, type: 3}
       propertyPath: m_SizeDelta.y
       value: 0
       objectReference: {fileID: 0}
