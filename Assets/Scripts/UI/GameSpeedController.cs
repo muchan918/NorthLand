@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
+using NorthLand.Core;
 
 public enum GamePauseReason
 {
@@ -41,6 +42,9 @@ public class GameSpeedController : MonoBehaviour
     private bool interactableBeforePause;
     private float alphaBeforePause;
 
+    private GameManager gameManager;
+
+
 
     private void Awake()
     {
@@ -79,6 +83,19 @@ public class GameSpeedController : MonoBehaviour
         }
 
         SetSpeed(NormalSpeed, 0);
+    }
+
+    private void Start()
+    {
+        gameManager = GameManager.Instance;
+
+        if (gameManager == null)
+        {
+            Debug.LogError("[GameSpeedController] GameManager를 찾지 못해 게임 종료 시 시간을 정지할 수 없습니다.",this);
+            return;
+        }
+
+        gameManager.OnResultDecided += HandleResultDecided;
     }
 
     public void PauseGame()
@@ -211,10 +228,23 @@ public class GameSpeedController : MonoBehaviour
             button.colors = colors;
         }
     }
+    private void HandleResultDecided(GameResult result)
+    {
+        if (result == GameResult.Playing)
+        {
+            return;
+        }
 
+        SetPaused(GamePauseReason.GameOver, true);
+    }
 
     private void OnDestroy()
     {
+        if (gameManager != null)
+        {
+            gameManager.OnResultDecided -= HandleResultDecided;
+        }
+
         if (Instance != this)
         {
             return;
