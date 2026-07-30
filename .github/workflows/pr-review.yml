@@ -12,15 +12,74 @@ jobs:
   review:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     permissions:
       contents: read
       pull-requests: write
-      issues: read
+      issues: write   # 사용량 원장 이슈 코멘트 + 잔류 트래킹 코멘트 정리
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0   # git log 히스토리 분석에 필요
+
+      # Imported 체크아웃: private repo(NorthLand-Imported)에서 코드 파일만 가져온다.
+      # sparse-checkout을 쓰면 actions/checkout이 자동으로 --filter=blob:none 부분 클론을 하므로
+      # 벤더 바이너리(446MB)는 내려오지 않는다 (검증: 코드 182개 = 작업트리 1.7MB + .git 2.0MB).
+      # 본 저장소가 나중에 public이 되어도 유료 에셋 소스는 이 저장소에 남지 않는다.
+      # 인증: IMPORTED_DEPLOY_KEY(권장, 읽기 전용 배포 키) 또는 IMPORTED_PAT(repo 스코프 PAT) 중 하나.
+      - uses: actions/checkout@v4
+        id: imported
+        continue-on-error: true   # 시크릿 미설정이어도 리뷰 자체는 진행 (Imported 검증만 생략)
+        with:
+          repository: muchan918/NorthLand-Imported
+          ssh-key: ${{ secrets.IMPORTED_DEPLOY_KEY }}
+          token: ${{ secrets.IMPORTED_PAT }}
+          path: Assets/Imported
+          persist-credentials: false   # 리뷰 실행 중 워크스페이스에 자격증명을 남기지 않는다
+          sparse-checkout: |
+            **/*.cs
+            **/*.asmdef
+            **/*.asmref
+            **/*.shader
+            **/*.shadergraph
+            **/*.hlsl
+            **/*.cginc
+            **/*.compute
+          sparse-checkout-cone-mode: false
+
+      # 0) 이전 런이 취소/강제종료되며 남긴 "Claude Code is working…" 코멘트 정리.
+      #    (취소된 런은 자기 정리 스텝을 실행할 기회가 거의 없으므로, 새 런 시작 시 청소가 가장 견고)
+      - name: Sweep stale tracking comments
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh api "repos/${{ github.repository }}/issues/$PR/comments" --paginate \
+            --jq '.[] | select(.user.type=="Bot") | select(.body | contains("Claude Code is working")) | .id' |
+          while read -r cid; do
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$cid" \
+              -f body="🤖 이전 자동 리뷰는 새 push로 대체되었습니다. (최신 리뷰 코멘트를 확인하세요)" >/dev/null
+          done
+
+      # 1) 토큰 라우팅: PR 작성자 본인의 구독 토큰 사용. 토큰 없는 팀원(*)은 n0wst4ndup,
+      #    failover는 muchan (작성자가 muchan이면 n0wst4ndup으로 교차)
+      - name: Pick OAuth token
+        id: token
+        env:
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          case "$AUTHOR" in
+            muchan918)  PRIMARY=MUCHAN_ANTHROPIC_OAUTH_TOKEN ;;
+            sunjin1222) PRIMARY=SUNJIN_ANTHROPIC_OAUTH_TOKEN ;;
+            N0WST4NDUP) PRIMARY=N0WST4NDUP_ANTHROPIC_OAUTH_TOKEN ;;
+            *)          PRIMARY=N0WST4NDUP_ANTHROPIC_OAUTH_TOKEN ;;  # KIM-SUNGSOO 등 토큰 미보유
+          esac
+          if [ "$PRIMARY" = "MUCHAN_ANTHROPIC_OAUTH_TOKEN" ]; then
+            FAILOVER=N0WST4NDUP_ANTHROPIC_OAUTH_TOKEN
+          else
+            FAILOVER=MUCHAN_ANTHROPIC_OAUTH_TOKEN
+          fi
+          { echo "primary=$PRIMARY"; echo "failover=$FAILOVER"; } >> "$GITHUB_OUTPUT"
 
       - name: Build review context
         id: ctx
@@ -38,8 +97,16 @@ jobs:
           # 1) 전체 변경 파일 목록 (에셋 포함)
           git diff --name-status "$BASE"...HEAD > "$CTX/changed_files.txt"
 
-          # 2) 코드 diff — Unity 직렬화 파일 제외
-          git diff "$BASE"...HEAD -- . "${EXCLUDE[@]}" > "$CTX/review.diff"
+          # 2) 코드 diff — Unity 직렬화 파일 + 문서 제외
+          git diff "$BASE"...HEAD -- . "${EXCLUDE[@]}" ':!Docs/' > "$CTX/code.diff"
+
+          # 2b) 문서 diff — 전체 통계 + 본문은 60KB 상한 (문서가 diff의 절반을 차지해 턴을 소진시키는 것 방지)
+          git diff --stat "$BASE"...HEAD -- 'Docs/' > "$CTX/docs.stat"
+          git diff "$BASE"...HEAD -- 'Docs/' > "$CTX/docs_full.diff"
+          head -c 60000 "$CTX/docs_full.diff" > "$CTX/docs.diff"
+          if [ "$(wc -c < "$CTX/docs_full.diff")" -gt 60000 ]; then
+            printf '\n# TRUNCATED: 60KB 초과분은 잘렸습니다. 전체 범위는 docs.stat으로 파악하세요.\n' >> "$CTX/docs.diff"
+          fi
 
           # 3) 전역 공유 설정 diff — 직렬화 필터의 유일한 예외
           #    레이어/태그/물리/렌더 설정과 패키지는 팀 전체가 공유하는 자원이라 리뷰 대상
@@ -51,10 +118,10 @@ jobs:
             printf '\n# TRUNCATED: 40KB 초과분은 잘렸습니다. 필요하면 git diff로 직접 확인하세요.\n' >> "$CTX/global_settings.diff"
           fi
 
-          # 4) synchronize 델타 diff (마지막 push 기준. force-push 등으로 계산 불가 시 빈 파일)
+          # 4) synchronize 델타 diff (마지막 push 기준, Docs 제외. force-push 등으로 계산 불가 시 빈 파일)
           : > "$CTX/delta.diff"
           if [ "$EVENT_ACTION" = "synchronize" ] && [ -n "$BEFORE_SHA" ] && git cat-file -e "$BEFORE_SHA" 2>/dev/null; then
-            git diff "$BEFORE_SHA"..HEAD -- . "${EXCLUDE[@]}" > "$CTX/delta.diff" || : > "$CTX/delta.diff"
+            git diff "$BEFORE_SHA"..HEAD -- . "${EXCLUDE[@]}" ':!Docs/' > "$CTX/delta.diff" || : > "$CTX/delta.diff"
           fi
 
           # 5) 커밋 이력: PR 커밋 목록 / 변경 .cs별 과거 이력 / base 최근 흐름 / C# 인벤토리
@@ -67,6 +134,10 @@ jobs:
           git log --oneline -n 15 "$BASE" > "$CTX/recent_commits.txt"
           git ls-files | grep -E '^Assets/.*\.cs$' | grep -v '^Assets/Imported/' > "$CTX/cs_inventory.txt" || true
 
+          # 5b) Imported 바이너리 인벤토리 — blobless sparse checkout이라 경로 목록은 ls-tree로 얻는다
+          git -C Assets/Imported ls-tree -r --name-only HEAD 2>/dev/null \
+            | grep -v '\.meta$' > "$CTX/imported_inventory.txt" || true
+
           # 6) PR 본문 + 연결 이슈 본문 사전 조회 (모델이 gh 호출에 턴을 쓰지 않도록)
           gh pr view "$PR" --json title,body,author,headRefName > "$CTX/pr.json"
           jq -r '"# PR: \(.title)\n- 작성자: \(.author.login) / 브랜치: \(.headRefName)\n\n\(.body // "(본문 없음)")"' \
@@ -78,21 +149,200 @@ jobs:
               >> "$CTX/pr_context.md" || true
           done
 
-          echo "code_bytes=$(wc -c < "$CTX/review.diff")" >> "$GITHUB_OUTPUT"
+          # 7) 리뷰 지시서 — 본 리뷰와 failover 리뷰가 동일한 지시를 공유한다 (YAML 중복 방지)
+          cat > "$CTX/prompt.md" <<'PROMPT_EOF'
+          이 PR을 시니어 게임 개발자 관점으로 리뷰하라.
+          문서-코드 일치 점검은 하지 마라 — 이 팀은 구현 후 문서를 코드에 맞춰 갱신하므로 둘은
+          항상 일치하며, 작성자 본인이 이 PR에서 갱신한 문서는 검증 근거가 아니다.
+          대신 "이 문서+코드 세트 자체가 팀과 GDD 관점에서 올바른 방향인가"를 본다.
+
+          [입력 데이터 — 전부 사전 준비됨. 탐색에 턴을 쓰지 말고 Read로 바로 읽어라]
+          - /tmp/ctx/pr_context.md : PR 제목/본문 + 연결 이슈 본문
+          - /tmp/ctx/code.diff : 코드 diff (Unity 직렬화 파일·Docs/ 제외. 크면 offset/limit으로 분할)
+          - /tmp/ctx/docs.stat : Docs/ 변경 전체 통계 (파일별 증감)
+          - /tmp/ctx/docs.diff : Docs/ diff 본문 (60KB 상한. 잘렸으면 docs.stat으로 전체 범위만 파악)
+          - /tmp/ctx/global_settings.diff : ProjectSettings(레이어/태그/물리/렌더)·패키지·URP 설정 diff.
+            비어있지 않으면 반드시 검토 — 레이어는 32개 한정, 전부 팀 전체 공유 전역 자원이다.
+          - /tmp/ctx/delta.diff : (synchronize일 때만) 마지막 push의 델타 diff (Docs/ 제외)
+          - /tmp/ctx/changed_files.txt : 전체 변경 파일 목록. 씬/프리팹/에셋 변경은 요약에 한 줄만
+          - /tmp/ctx/pr_commits.txt, file_history.txt, recent_commits.txt : 커밋 이력
+          - /tmp/ctx/cs_inventory.txt : 저장소 C# 파일 전체 목록 (시스템 지도 탐색용)
+          - /tmp/ctx/imported_inventory.txt : Assets/Imported의 바이너리 에셋 경로 목록 (존재 확인용)
+
+          [Assets/Imported — 별도 저장소에서 코드만 체크아웃됨]
+          Assets/Imported/는 별도 private repo(NorthLand-Imported)에서 코드 파일(.cs/.shader/
+          .asmdef/.hlsl 등)만 sparse checkout되어 있다. FlatKit 등 Imported의 API·셰이더명 참조는
+          Assets/Imported에서 직접 Read/Grep으로 확인하라. 바이너리 에셋(프리팹/머티리얼/메시)은
+          체크아웃되지 않는다 — 경로 존재 확인은 /tmp/ctx/imported_inventory.txt를 쓴다.
+          코드와 인벤토리 둘 다에 없을 때만 missing reference로 지적한다. Assets/Imported가
+          비어 있으면(체크아웃 실패) Imported 참조는 검증 불가로 간주하고 missing으로 지적하지
+          마라. Imported 내부 코드 자체는 벤더 코드라 리뷰 대상이 아니다.
+
+          [문서 diff 취급 — 턴 예산 절약]
+          docs.stat을 먼저 보고, 방향 판정이 필요한 문서만 docs.diff에서 읽는다. 문서는
+          "이 문서+코드 세트가 올바른 방향인가"와 GDD·SystemMap과의 충돌 여부만 판정하고,
+          오탈자·문체·서식은 지적하지 않는다. docs.diff가 잘려 있어도 원본 문서를 통째로 다시
+          읽지 마라 — 필요한 섹션만 Read(offset/limit)로 연다.
+
+          [0단계 — 리뷰 모드 결정]
+          EVENT가 synchronize이면 델타 리뷰 모드, 아니면 전체 리뷰 모드.
+          델타 리뷰 모드:
+          1. 컨텍스트에 포함된 이전 리뷰 코멘트에서 마지막 줄 "리뷰 기준 커밋: <sha>"를 찾는다.
+             (컨텍스트에 없으면 gh pr view --comments로 조회.) 그래도 없으면 전체 리뷰 모드로 전환.
+          2. 그 sha가 BEFORE SHA와 같으면 /tmp/ctx/delta.diff가 검토 대상이다. 다르면(리뷰 없이
+             지나간 push 존재) git diff <sha>..HEAD -- . ':!*.meta' ':!*.unity' ':!*.prefab'
+             ':!*.asset' ':!*.anim' ':!*.controller' ':!*.mat' ':!Docs/' 로 직접 델타를 얻는다.
+          3. 이전 지적(🔴/🟠)이 *올바르게* 수정됐는지 하나씩 검증한다 — 반영/부분 반영/미반영.
+             지적을 피상적으로 회피한 수정(예: 문제를 다른 잘못된 위치로 옮김)은 다시 지적한다.
+          4. 델타만 4관점(아래)으로 압축 검토하고, 코멘트는 "🔁 재리뷰" 형식으로 짧게 쓴다.
+          5. **델타 리뷰에서는 3단계의 기준 문서를 통독하지 마라** — 델타가 건드린 파일·시스템·용어로
+             SystemMap.md와 WatchList.md를 Grep해서 걸린 섹션·항목만 Read(offset/limit)한다.
+             이전 리뷰가 이미 전체 문맥을 검토했으므로 델타에 닿는 계약만 확인하면 된다.
+             단 델타가 전역 공유 자원(레이어/네임스페이스/좌표계/ProjectSettings)이나 팀 계약을
+             건드리면 해당 절(§4·§5)은 전문을 읽는다.
+
+          [1단계 — 의도 파악]
+          /tmp/ctx/pr_context.md로 PR 의도와 연결 이슈를 파악한다. 이슈의 완료 기준과 실제 구현
+          범위가 어긋나면(미완료 이슈를 Closes로 자동 종료하는 경우 포함) 지적한다.
+
+          [2단계 — 변경 읽기]
+          /tmp/ctx/code.diff와 /tmp/ctx/global_settings.diff를 읽고, 문서는 docs.stat(+필요시
+          docs.diff)로 파악한다. diff만으로 파악이 어려운 파일은 저장소에서 전체 파일을 Read로 읽는다.
+
+          [3단계 — 컨텍스트 수집 (이 리뷰의 핵심. 생략 금지)]
+          a. Docs/Review/SystemMap.md (필수) — 시스템 지도·공개 API·접점 매트릭스·팀 계약·미합의
+             전역 계약. 이 PR이 어떤 시스템에 속하고 어떤 접점을 건드리는지 특정한다.
+             §1(시스템·소유자)·§3(접점 매트릭스)·§4~§6(계약·컨벤션)은 판정 기준이므로 읽는다.
+             §2(공개 API)는 분량이 크다 — 이 PR이 건드리는 시스템의 항목만 Grep으로 찾아 읽어라.
+          b. Docs/Review/WatchList.md (필수) — **미해소** 이슈 원장(WL-번호). 이 PR이 항목을
+             해결/악화/신설하는지 대조한다. 해소된 항목은 이 파일에 없다.
+             Docs/Review/WatchList-Archive.md (통독 금지) — 해소·폐기 항목 보관소. 이 PR이 과거에
+             해소된 이슈를 되돌린 것으로 의심될 때만 해당 번호나 키워드를 Grep해서 조회한다.
+             재발이 확인되면 그 번호로 지적하고 "(WL-번호, 아카이브에서 재발)"로 표기한다.
+          c. 다른 팀원 코드 직접 확인 — SystemMap의 접점 매트릭스가 가리키는 상대 시스템 파일을
+             Read/Grep으로 직접 연다. 특히 이 PR이 새 API·데이터 구조·매니저·enum·용어를 도입하면,
+             같은 개념이 다른 팀원 폴더(Assets/Personal/*)에 이미 존재하는지 Grep으로 검색한다.
+             (예: 새 데이터 SO → muchan의 DataTable 파이프라인, 새 배치 로직 → n0wst4ndup의
+             PlacementRequest, 맵/좌표 로직 → SUNJIN의 MapBuilder, 공격/데미지 → SUNGSOO의 Combat)
+          d. GDD 대조 — Docs/GDD.md의 관련 섹션(§4~§7)과 §9 미확정 이슈, Docs/Build0/의 다음 빌드
+             계획을 읽는다. 변경 시스템의 설계 문서(Docs/Core/, Docs/Tools/, Docs/BattleMapBuilder/)와
+             코드 변경에 상응하는 문서 갱신이 PR에 포함됐는지도 확인한다.
+          e. 히스토리 — /tmp/ctx/file_history.txt를 보고, 필요하면 git log/show로 파고든다.
+             과거 커밋(특히 Fix)이 고친 문제를 이 PR이 되돌리지 않는지 본다.
+
+          [4단계 — 4관점 분석 (우선순위 순)]
+          ① 통합(다른 팀원 시스템) — 최우선.
+             - 이 PR의 산출물(API/이벤트/데이터)이 그것을 소비할 팀원 시스템 입장에서 쓸 수 있는
+               형태인가? (예: 경로를 만들면 순서 있는 공개 API인가, private/HashSet인가)
+             - 같은 문제를 푸는 코드·데이터 경로가 이미 있는데 새로 발명하고 있지 않은가?
+             - 전역 공유 자원(레이어, 네임스페이스, 용어, 좌표계, ProjectSettings)을 합의 없이
+               점유/변경하는가?
+             - SystemMap §4 팀 계약(입력 단일 창구, 데이터 파이프라인, 자원 흐름, 공간 분리 등)을
+               위반하는가?
+          ② 미래 설계 충돌(GDD)
+             - GDD가 계획한 미구현 시스템(낮/밤 페이즈, 주민 풀, 영토 확장, 보상 3택1)과 나중에
+               충돌할 구조인가? (페이즈 개념 없는 로직, 시드 없는 전역 Random, 웨이브 수 하드코딩 등)
+             - GDD §9 미확정 항목(병사/스킬 통합, 몬스터 테마, 스테이지 구성, 밸런싱 수치)에 강하게
+               결합된 코드는 결합을 느슨하게 하라고 제안한다. 밸런싱 수치의 코드/인스펙터 하드코딩은
+               CSV 데이터 테이블 대상이다.
+             - GDD에 없는 신규 디자인 결정(새 지형, 새 자원 경로, 새 용어)이 코드로 들어오면
+               GDD/팀 합의가 필요함을 명시한다.
+          ③ 아키텍처 일관성(과거)
+             - SystemMap §6 컨벤션과 일관적인가? 드리프트 진행 중인 축(매니저 수명주기, 네임스페이스,
+               에셋 로딩)에서 어느 쪽으로 기우는 변경인지 명시한다.
+             - 기존과 다른 방식 도입이 개선이면 팀 전체 적용을 제안하고, 드리프트면 지적한다.
+             - WatchList의 반복 이슈가 재발하면 "(WL-번호, N번째 재발)"로 표기하고 심각도를 올린다.
+          ④ 정확성·Unity 함정
+             - NRE(SO 미할당, Instance null, Mouse.current null), 수명주기 순서, 매 프레임 할당
+               (타워 디펜스는 오브젝트가 계속 는다 — OverlapSphere non-alloc 등), 이벤트 구독 해제
+               누락, 씬 전환/도메인 리로드 시 끊어지는 참조.
+
+          [5단계 — 출력]
+          mcp__github_comment__update_claude_comment 로 트래킹 코멘트를 아래 형식으로 갱신한다.
+          이 도구가 실패하면 gh pr comment로 같은 내용을 게시한다. 인라인 코멘트는 만들지 않는다.
+
+          전체 리뷰 형식:
+          ## 📋 구현 요약
+          (3~6줄. 씬/에셋 변경 1줄, 연결 이슈 충족 여부 포함)
+          ## 🔗 통합 리뷰 — 다른 팀원 시스템과의 접점
+          (접점별로: 무엇과 만나는지 → 현재 상태 → 판정. 실제로 읽은 상대 코드 파일:라인 근거 필수)
+          ## 🔮 미래 설계 충돌 — GDD 대조
+          (GDD 조항 인용. 충돌 없으면 "충돌 없음" 한 줄)
+          ## 🏛️ 아키텍처 일관성 — 히스토리·컨벤션
+          ## 🐛 세부 결함
+          ## 🧩 다음 통합 지점
+          (이 PR 이후 팀이 맞물려야 할 작업 1~3개, "누가 — 무엇을" 형식)
+          ## 📒 WatchList 갱신 제안
+          (팀원이 그대로 복사해 커밋할 수 있게, 아래 3분류로 나눠 원장 형식
+          `- **WL-NNN** | 상태 | 담당 | 문제 | 해소 조건`을 지켜 쓴다. 없는 분류는 생략하고,
+          제안할 것이 전혀 없으면 이 섹션 자체를 생략한다. 신규 번호는 활성·아카이브 두 파일에서
+          가장 큰 WL 번호 + 1을 쓴다 — 번호를 재사용·재정렬하지 마라.)
+          - **상태 갱신**: 기존 번호의 서술을 무엇으로 **대체**할지 한 줄로 (250~450자).
+            "갱신(PR#N)"처럼 이력을 덧붙이는 문장은 쓰지 마라 — 이력은 git과 아카이브가 갖는다
+          - **해소**: 아카이브로 옮길 번호 + `RESOLVED(근거) | 무엇이 어떻게 해소됐는지 + 재발감지 키워드`
+            (120~250자. 해소 조건이 팀 합의·GDD 사인오프·문서 등재를 요구하면 해소로 올리지 말고
+            PARTIAL 상태 갱신으로 쓴다)
+          - **신규**: 새로 등재할 항목
+          ## ✅ 종합 판정
+          (🔴 N / 🟠 N / 🟡 N 요약 + 머지 권고: "머지 가능" / "🔴 해결 후 머지" / "팀 논의 필요".
+          잘한 점 1~2줄 포함)
+
+          리뷰 기준 커밋: <HEAD SHA를 그대로 적는다>
+
+          델타 리뷰 형식:
+          ## 🔁 재리뷰 (커밋 <short sha>까지)
+          이전 지적 N건 중: 반영 N / 부분 반영 N / 미반영 N (각 항목 한 줄 판정)
+          ## 새 변경 검토
+          (새 지적이 있으면 아래 지적 형식으로, 없으면 "특이사항 없음")
+          ## ✅ 종합 판정
+          리뷰 기준 커밋: <HEAD SHA>
+
+          [지적 항목 형식 — 🔗/🔮/🏛️/🐛 섹션 공통]
+          - **[🔴|🟠|🟡|🔵]** `파일:라인` — 한 줄 요약
+            - 근거: 코드/GDD 조항/상대 시스템 파일:라인/WL-번호
+            - 시나리오: 이대로 가면 언제, 무엇이 깨지는가
+            - 제안: 구체적 대안 한 가지
+
+          [심각도 기준]
+          - 🔴 Blocker: 머지 전 수정 필수 — 확실한 버그, SystemMap 팀 계약 위반, 다른 팀원 코드를
+            즉시 깨뜨리는 변경
+          - 🟠 통합 리스크: 머지는 가능하나 방치하면 통합 시 재작업 확정 — 관련 팀원 이름을 명시하고
+            합의를 요청한다. WatchList 등재 대상
+          - 🟡 방향 제안: 지금 결정하면 싸게 먹히는 아키텍처/설계 방향 (근거 명시, 강제 아님)
+          - 🔵 참고: 알아두면 좋은 정보 (최대 2건)
+
+          [규칙]
+          - 지적은 전 섹션 합쳐 최대 8개. 확신 없는 지적과 사소한 스타일은 버려라. 단, 지금 정하지
+            않으면 재작업이 커지는 결정(공개 API 시그니처, 좌표 계약, 데이터 소유권, 레이어,
+            네임스페이스)은 스타일이 아니라 설계다 — 근거가 있으면 반드시 제기하라.
+          - 모든 지적에 근거(파일:라인, GDD 조항, SystemMap/WatchList 항목, git 커밋)를 명시한다.
+            존재를 확인하지 않은 코드를 인용하지 마라.
+          - 다른 팀원 코드의 문제를 발견하면 이 PR 작성자의 책임이 아님을 명시하고
+            "🧩 다음 통합 지점"에서 다뤄라.
+          - 지적할 것이 없는 섹션은 "위배 없음"이 아니라 무엇을 확인했는지 한 줄로 쓴다.
+          - 칭찬은 짧게 — 그러나 잘 설계된 부분(좋은 계약, 테스트 친화 구조)은 반드시 1회 언급한다.
+            팀이 지킬 기준이 된다.
+          PROMPT_EOF
+
+          echo "code_bytes=$(wc -c < "$CTX/code.diff")" >> "$GITHUB_OUTPUT"
+          echo "docs_bytes=$(wc -c < "$CTX/docs_full.diff")" >> "$GITHUB_OUTPUT"
           echo "settings_bytes=$(wc -c < "$CTX/global_settings_full.diff")" >> "$GITHUB_OUTPUT"
 
       - name: Claude review
         id: review
-        if: steps.ctx.outputs.code_bytes != '0' || steps.ctx.outputs.settings_bytes != '0'
+        if: steps.ctx.outputs.code_bytes != '0' || steps.ctx.outputs.settings_bytes != '0' || steps.ctx.outputs.docs_bytes != '0'
+        continue-on-error: true   # 실패 판정·failover·잡 상태는 Finalize 스텝이 일괄 처리
+        timeout-minutes: 15
         uses: anthropics/claude-code-action@v1
         with:
-          claude_code_oauth_token: ${{ secrets.N0WST4NDUP_ANTHROPIC_OAUTH_TOKEN }}
+          claude_code_oauth_token: ${{ secrets[steps.token.outputs.primary] }}
           github_token: ${{ github.token }}   # Claude GitHub App 대신 워크플로우 토큰 사용
           track_progress: true                # 트래킹 코멘트 1개 생성 + PR 코멘트 전체를 컨텍스트에 포함
+          display_report: true                # Step Summary에 턴별 토큰·비용 리포트 (튜닝 근거)
           claude_args: |
             --allowedTools "Read,Glob,Grep,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh issue view:*),Bash(gh pr comment:*),Bash(git log:*),Bash(git show:*),Bash(git diff:*),mcp__github_comment__update_claude_comment"
-            --max-turns 35
-            ${{ vars.PR_REVIEW_MODEL && format('--model {0}', vars.PR_REVIEW_MODEL) || '' }}
+            --max-turns 50
+            --model ${{ github.event.action == 'synchronize' && (vars.PR_REVIEW_MODEL_DELTA || 'sonnet') || (vars.PR_REVIEW_MODEL || 'opus') }}
             --append-system-prompt "너는 NorthLand 프로젝트(4인 팀 Unity 타워 디펜스+마을 경영)를 기술적으로 리드하는 시니어 게임 개발자다. 리뷰의 존재 이유는 규칙 위반 찾기가 아니라, 4명이 병렬로 만드는 시스템들이 하나의 게임으로 매끄럽게 통합되도록 지금 방향을 잡아주는 것이다. 모든 출력은 한국어. 사실 주장(파일:라인, API 시그니처, GDD 조항)은 반드시 도구로 직접 확인한 것만 쓴다. 세부 결함은 확신 있는 것만 지적하되, 아키텍처·통합 방향 제시는 근거를 명시하면 확신이 100%가 아니어도 낸다 — 단 '제안'임을 명시한다."
           prompt: |
             REPO: ${{ github.repository }}
@@ -102,156 +352,139 @@ jobs:
             HEAD SHA: ${{ github.event.pull_request.head.sha }}
             BEFORE SHA: ${{ github.event.before }}
 
-            이 PR을 시니어 게임 개발자 관점으로 리뷰하라.
-            문서-코드 일치 점검은 하지 마라 — 이 팀은 구현 후 문서를 코드에 맞춰 갱신하므로 둘은
-            항상 일치하며, 작성자 본인이 이 PR에서 갱신한 문서는 검증 근거가 아니다.
-            대신 "이 문서+코드 세트 자체가 팀과 GDD 관점에서 올바른 방향인가"를 본다.
+            /tmp/ctx/prompt.md 에 이 리뷰의 전체 지시서가 준비되어 있다.
+            가장 먼저 그 파일을 Read로 읽고, 지시서의 단계와 출력 형식을 그대로 따르라.
+            위의 EVENT/HEAD SHA/BEFORE SHA 값을 지시서의 리뷰 모드 결정과 "리뷰 기준 커밋" 기록에 사용하라.
 
-            [입력 데이터 — 전부 사전 준비됨. 탐색에 턴을 쓰지 말고 Read로 바로 읽어라]
-            - /tmp/ctx/pr_context.md : PR 제목/본문 + 연결 이슈 본문
-            - /tmp/ctx/review.diff : 코드 diff (Unity 직렬화 파일 제외. 크면 offset/limit으로 분할)
-            - /tmp/ctx/global_settings.diff : ProjectSettings(레이어/태그/물리/렌더)·패키지·URP 설정 diff.
-              비어있지 않으면 반드시 검토 — 레이어는 32개 한정, 전부 팀 전체 공유 전역 자원이다.
-            - /tmp/ctx/delta.diff : (synchronize일 때만) 마지막 push의 델타 diff
-            - /tmp/ctx/changed_files.txt : 전체 변경 파일 목록. 씬/프리팹/에셋 변경은 요약에 한 줄만
-            - /tmp/ctx/pr_commits.txt, file_history.txt, recent_commits.txt : 커밋 이력
-            - /tmp/ctx/cs_inventory.txt : 저장소 C# 파일 전체 목록 (시스템 지도 탐색용)
+      # 실패 원인 분류: 한도/인증 계열 실패에만 failover 재시도 (max-turns 등 프롬프트 실패는 재시도 무의미)
+      - name: Check failover eligibility
+        id: quota
+        if: steps.review.outcome == 'failure'
+        run: |
+          EXEC="${{ steps.review.outputs.execution_file }}"
+          ELIGIBLE=false
+          if [ -z "$EXEC" ] || [ ! -f "$EXEC" ]; then
+            ELIGIBLE=true   # 실행 로그조차 없음 = 시작 단계(인증/한도) 실패 가능성
+          elif grep -qiE "usage limit|session limit|weekly limit|rate.?limit|overloaded|authentication|credit balance" "$EXEC"; then
+            ELIGIBLE=true
+          fi
+          echo "eligible=$ELIGIBLE" >> "$GITHUB_OUTPUT"
 
-            [0단계 — 리뷰 모드 결정]
-            EVENT가 synchronize이면 델타 리뷰 모드, 아니면 전체 리뷰 모드.
-            델타 리뷰 모드:
-            1. 컨텍스트에 포함된 이전 리뷰 코멘트에서 마지막 줄 "리뷰 기준 커밋: <sha>"를 찾는다.
-               (컨텍스트에 없으면 gh pr view --comments로 조회.) 그래도 없으면 전체 리뷰 모드로 전환.
-            2. 그 sha가 BEFORE SHA와 같으면 /tmp/ctx/delta.diff가 검토 대상이다. 다르면(리뷰 없이
-               지나간 push 존재) git diff <sha>..HEAD -- . ':!*.meta' ':!*.unity' ':!*.prefab'
-               ':!*.asset' ':!*.anim' ':!*.controller' ':!*.mat' 로 직접 델타를 얻는다.
-            3. 이전 지적(🔴/🟠)이 *올바르게* 수정됐는지 하나씩 검증한다 — 반영/부분 반영/미반영.
-               지적을 피상적으로 회피한 수정(예: 문제를 다른 잘못된 위치로 옮김)은 다시 지적한다.
-            4. 델타만 4관점(아래)으로 압축 검토하고, 코멘트는 "🔁 재리뷰" 형식으로 짧게 쓴다.
+      - name: Claude review (failover)
+        id: review2
+        if: steps.review.outcome == 'failure' && steps.quota.outputs.eligible == 'true'
+        continue-on-error: true
+        timeout-minutes: 15
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets[steps.token.outputs.failover] }}
+          github_token: ${{ github.token }}
+          track_progress: true
+          display_report: true
+          claude_args: |
+            --allowedTools "Read,Glob,Grep,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh issue view:*),Bash(gh pr comment:*),Bash(git log:*),Bash(git show:*),Bash(git diff:*),mcp__github_comment__update_claude_comment"
+            --max-turns 50
+            --model ${{ github.event.action == 'synchronize' && (vars.PR_REVIEW_MODEL_DELTA || 'sonnet') || (vars.PR_REVIEW_MODEL || 'opus') }}
+            --append-system-prompt "너는 NorthLand 프로젝트(4인 팀 Unity 타워 디펜스+마을 경영)를 기술적으로 리드하는 시니어 게임 개발자다. 리뷰의 존재 이유는 규칙 위반 찾기가 아니라, 4명이 병렬로 만드는 시스템들이 하나의 게임으로 매끄럽게 통합되도록 지금 방향을 잡아주는 것이다. 모든 출력은 한국어. 사실 주장(파일:라인, API 시그니처, GDD 조항)은 반드시 도구로 직접 확인한 것만 쓴다. 세부 결함은 확신 있는 것만 지적하되, 아키텍처·통합 방향 제시는 근거를 명시하면 확신이 100%가 아니어도 낸다 — 단 '제안'임을 명시한다."
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+            EVENT: ${{ github.event.action }}
+            AUTHOR: ${{ github.event.pull_request.user.login }}
+            HEAD SHA: ${{ github.event.pull_request.head.sha }}
+            BEFORE SHA: ${{ github.event.before }}
 
-            [1단계 — 의도 파악]
-            /tmp/ctx/pr_context.md로 PR 의도와 연결 이슈를 파악한다. 이슈의 완료 기준과 실제 구현
-            범위가 어긋나면(미완료 이슈를 Closes로 자동 종료하는 경우 포함) 지적한다.
+            /tmp/ctx/prompt.md 에 이 리뷰의 전체 지시서가 준비되어 있다.
+            가장 먼저 그 파일을 Read로 읽고, 지시서의 단계와 출력 형식을 그대로 따르라.
+            위의 EVENT/HEAD SHA/BEFORE SHA 값을 지시서의 리뷰 모드 결정과 "리뷰 기준 커밋" 기록에 사용하라.
 
-            [2단계 — 변경 읽기]
-            /tmp/ctx/review.diff와 /tmp/ctx/global_settings.diff를 읽는다. diff만으로 파악이 어려운
-            파일은 저장소에서 전체 파일을 Read로 읽는다.
-
-            [3단계 — 컨텍스트 수집 (이 리뷰의 핵심. 생략 금지)]
-            a. Docs/Review/SystemMap.md (필수) — 시스템 지도·공개 API·접점 매트릭스·팀 계약·미합의
-               전역 계약. 이 PR이 어떤 시스템에 속하고 어떤 접점을 건드리는지 특정한다.
-            b. Docs/Review/WatchList.md (필수) — 과거 리뷰에서 누적된 미해결 이슈 원장(WL-번호).
-               이 PR이 항목을 해결/악화/신설하는지 대조한다.
-            c. 다른 팀원 코드 직접 확인 — SystemMap의 접점 매트릭스가 가리키는 상대 시스템 파일을
-               Read/Grep으로 직접 연다. 특히 이 PR이 새 API·데이터 구조·매니저·enum·용어를 도입하면,
-               같은 개념이 다른 팀원 폴더(Assets/Personal/*)에 이미 존재하는지 Grep으로 검색한다.
-               (예: 새 데이터 SO → muchan의 DataTable 파이프라인, 새 배치 로직 → n0wst4ndup의
-               PlacementRequest, 맵/좌표 로직 → SUNJIN의 MapBuilder, 공격/데미지 → SUNGSOO의 Combat)
-            d. GDD 대조 — Docs/GDD.md의 관련 섹션(§4~§7)과 §9 미확정 이슈, Docs/Build0/의 다음 빌드
-               계획을 읽는다. 변경 시스템의 설계 문서(Docs/Core/, Docs/Tools/, Docs/BattleMapBuilder/)와
-               코드 변경에 상응하는 문서 갱신이 PR에 포함됐는지도 확인한다.
-            e. 히스토리 — /tmp/ctx/file_history.txt를 보고, 필요하면 git log/show로 파고든다.
-               과거 커밋(특히 Fix)이 고친 문제를 이 PR이 되돌리지 않는지 본다.
-
-            [4단계 — 4관점 분석 (우선순위 순)]
-            ① 통합(다른 팀원 시스템) — 최우선.
-               - 이 PR의 산출물(API/이벤트/데이터)이 그것을 소비할 팀원 시스템 입장에서 쓸 수 있는
-                 형태인가? (예: 경로를 만들면 순서 있는 공개 API인가, private/HashSet인가)
-               - 같은 문제를 푸는 코드·데이터 경로가 이미 있는데 새로 발명하고 있지 않은가?
-               - 전역 공유 자원(레이어, 네임스페이스, 용어, 좌표계, ProjectSettings)을 합의 없이
-                 점유/변경하는가?
-               - SystemMap §4 팀 계약(입력 단일 창구, 데이터 파이프라인, 자원 흐름, 공간 분리 등)을
-                 위반하는가?
-            ② 미래 설계 충돌(GDD)
-               - GDD가 계획한 미구현 시스템(낮/밤 페이즈, 주민 풀, 영토 확장, 보상 3택1)과 나중에
-                 충돌할 구조인가? (페이즈 개념 없는 로직, 시드 없는 전역 Random, 웨이브 수 하드코딩 등)
-               - GDD §9 미확정 항목(병사/스킬 통합, 몬스터 테마, 스테이지 구성, 밸런싱 수치)에 강하게
-                 결합된 코드는 결합을 느슨하게 하라고 제안한다. 밸런싱 수치의 코드/인스펙터 하드코딩은
-                 CSV 데이터 테이블 대상이다.
-               - GDD에 없는 신규 디자인 결정(새 지형, 새 자원 경로, 새 용어)이 코드로 들어오면
-                 GDD/팀 합의가 필요함을 명시한다.
-            ③ 아키텍처 일관성(과거)
-               - SystemMap §6 컨벤션과 일관적인가? 드리프트 진행 중인 축(매니저 수명주기, 네임스페이스,
-                 에셋 로딩)에서 어느 쪽으로 기우는 변경인지 명시한다.
-               - 기존과 다른 방식 도입이 개선이면 팀 전체 적용을 제안하고, 드리프트면 지적한다.
-               - WatchList의 반복 이슈가 재발하면 "(WL-번호, N번째 재발)"로 표기하고 심각도를 올린다.
-            ④ 정확성·Unity 함정
-               - NRE(SO 미할당, Instance null, Mouse.current null), 수명주기 순서, 매 프레임 할당
-                 (타워 디펜스는 오브젝트가 계속 는다 — OverlapSphere non-alloc 등), 이벤트 구독 해제
-                 누락, 씬 전환/도메인 리로드 시 끊어지는 참조.
-
-            [5단계 — 출력]
-            mcp__github_comment__update_claude_comment 로 트래킹 코멘트를 아래 형식으로 갱신한다.
-            이 도구가 실패하면 gh pr comment로 같은 내용을 게시한다. 인라인 코멘트는 만들지 않는다.
-
-            전체 리뷰 형식:
-            ## 📋 구현 요약
-            (3~6줄. 씬/에셋 변경 1줄, 연결 이슈 충족 여부 포함)
-            ## 🔗 통합 리뷰 — 다른 팀원 시스템과의 접점
-            (접점별로: 무엇과 만나는지 → 현재 상태 → 판정. 실제로 읽은 상대 코드 파일:라인 근거 필수)
-            ## 🔮 미래 설계 충돌 — GDD 대조
-            (GDD 조항 인용. 충돌 없으면 "충돌 없음" 한 줄)
-            ## 🏛️ 아키텍처 일관성 — 히스토리·컨벤션
-            ## 🐛 세부 결함
-            ## 🧩 다음 통합 지점
-            (이 PR 이후 팀이 맞물려야 할 작업 1~3개, "누가 — 무엇을" 형식)
-            ## 📒 WatchList 갱신 제안
-            (해결된 항목/새 항목을 Docs/Review/WatchList.md 형식 그대로 — 팀원이 복사해 커밋할 수 있게.
-            없으면 섹션 생략)
-            ## ✅ 종합 판정
-            (🔴 N / 🟠 N / 🟡 N 요약 + 머지 권고: "머지 가능" / "🔴 해결 후 머지" / "팀 논의 필요".
-            잘한 점 1~2줄 포함)
-
-            리뷰 기준 커밋: <HEAD SHA를 그대로 적는다>
-
-            델타 리뷰 형식:
-            ## 🔁 재리뷰 (커밋 <short sha>까지)
-            이전 지적 N건 중: 반영 N / 부분 반영 N / 미반영 N (각 항목 한 줄 판정)
-            ## 새 변경 검토
-            (새 지적이 있으면 아래 지적 형식으로, 없으면 "특이사항 없음")
-            ## ✅ 종합 판정
-            리뷰 기준 커밋: <HEAD SHA>
-
-            [지적 항목 형식 — 🔗/🔮/🏛️/🐛 섹션 공통]
-            - **[🔴|🟠|🟡|🔵]** `파일:라인` — 한 줄 요약
-              - 근거: 코드/GDD 조항/상대 시스템 파일:라인/WL-번호
-              - 시나리오: 이대로 가면 언제, 무엇이 깨지는가
-              - 제안: 구체적 대안 한 가지
-
-            [심각도 기준]
-            - 🔴 Blocker: 머지 전 수정 필수 — 확실한 버그, SystemMap 팀 계약 위반, 다른 팀원 코드를
-              즉시 깨뜨리는 변경
-            - 🟠 통합 리스크: 머지는 가능하나 방치하면 통합 시 재작업 확정 — 관련 팀원 이름을 명시하고
-              합의를 요청한다. WatchList 등재 대상
-            - 🟡 방향 제안: 지금 결정하면 싸게 먹히는 아키텍처/설계 방향 (근거 명시, 강제 아님)
-            - 🔵 참고: 알아두면 좋은 정보 (최대 2건)
-
-            [규칙]
-            - 지적은 전 섹션 합쳐 최대 8개. 확신 없는 지적과 사소한 스타일은 버려라. 단, 지금 정하지
-              않으면 재작업이 커지는 결정(공개 API 시그니처, 좌표 계약, 데이터 소유권, 레이어,
-              네임스페이스)은 스타일이 아니라 설계다 — 근거가 있으면 반드시 제기하라.
-            - 모든 지적에 근거(파일:라인, GDD 조항, SystemMap/WatchList 항목, git 커밋)를 명시한다.
-              존재를 확인하지 않은 코드를 인용하지 마라.
-            - 다른 팀원 코드의 문제를 발견하면 이 PR 작성자의 책임이 아님을 명시하고
-              "🧩 다음 통합 지점"에서 다뤄라.
-            - 지적할 것이 없는 섹션은 "위배 없음"이 아니라 무엇을 확인했는지 한 줄로 쓴다.
-            - 칭찬은 짧게 — 그러나 잘 설계된 부분(좋은 계약, 테스트 친화 구조)은 반드시 1회 언급한다.
-              팀이 지킬 기준이 된다.
-
-      - name: Review failure note
-        if: failure()
+      # 사용량 원장: 원장 이슈에 PR당 코멘트 1개를 upsert — 재리뷰는 같은 코멘트 안에 행으로 누적
+      - name: Usage ledger
+        if: always() && vars.USAGE_LEDGER_ISSUE != ''
         env:
           GH_TOKEN: ${{ github.token }}
+          LEDGER: ${{ vars.USAGE_LEDGER_ISSUE }}
+          PR: ${{ github.event.pull_request.number }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          EVENT: ${{ github.event.action }}
+          EXEC1: ${{ steps.review.outputs.execution_file }}
+          TOK1: ${{ steps.token.outputs.primary }}
+          EXEC2: ${{ steps.review2.outputs.execution_file }}
+          TOK2: ${{ steps.token.outputs.failover }}
         run: |
-          gh pr comment ${{ github.event.pull_request.number }} \
-            --body "🤖 ⚠️ 자동 리뷰 실행이 실패했습니다. Actions 로그를 확인하고, 필요하면 코멘트로 \`@claude 리뷰해줘\` 를 남겨 재시도하세요."
+          rows=""
+          for pair in "$EXEC1|$TOK1" "$EXEC2|$TOK2"; do
+            f="${pair%%|*}"; tok="${pair##*|}"; tok="${tok%%_ANTHROPIC*}"
+            [ -n "$f" ] && [ -f "$f" ] || continue
+            row=$(jq -c --arg pr "$PR" --arg author "$AUTHOR" --arg event "$EVENT" --arg tok "$tok" '
+              [.[] | select(.type=="result")][0] // empty |
+              {pr: ($pr|tonumber), event: $event, author: $author, token: $tok,
+               in: (.usage.input_tokens // 0), out: (.usage.output_tokens // 0),
+               cache_r: (.usage.cache_read_input_tokens // 0), cache_w: (.usage.cache_creation_input_tokens // 0),
+               turns: .num_turns, cost_usd: .total_cost_usd, err: .is_error,
+               at: (now | todate)}' "$f" 2>/dev/null) || true
+            [ -n "$row" ] && rows="${rows}${row}"$'\n'
+          done
+          [ -n "$rows" ] || { echo "기록할 사용량 없음"; exit 0; }
+
+          MARKER="<!-- usage-pr-$PR -->"
+          CID=$(gh api "repos/${{ github.repository }}/issues/$LEDGER/comments" --paginate \
+                --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -n1)
+          : > rows.jsonl
+          if [ -n "$CID" ]; then
+            gh api "repos/${{ github.repository }}/issues/comments/$CID" --jq .body > old.md
+            sed -n '/^```jsonl$/,/^```$/p' old.md | grep '^{' > rows.jsonl || true
+          fi
+          printf '%s' "$rows" >> rows.jsonl
+          SUMMARY=$(jq -s -r '"runs \(length) · in \(map(.in)|add) · out \(map(.out)|add) · cache_read \(map(.cache_r)|add)"' rows.jsonl)
+          {
+            echo "$MARKER"
+            echo "**PR #$PR** ($AUTHOR) · $SUMMARY"
+            echo '```jsonl'
+            cat rows.jsonl
+            echo '```'
+          } > new.md
+          if [ -n "$CID" ]; then
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$CID" -F body=@new.md >/dev/null
+          else
+            gh api -X POST "repos/${{ github.repository }}/issues/$LEDGER/comments" -F body=@new.md >/dev/null
+          fi
+
+      # 최종 상태 정리: continue-on-error 때문에 잡 상태가 항상 녹색이 되는 것을 여기서 교정
+      - name: Finalize status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          R1: ${{ steps.review.outcome }}
+          R2: ${{ steps.review2.outcome }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          # 취소된 런은 새 런의 Sweep 스텝이 정리한다
+          if [ "$R1" = "cancelled" ] || [ "$R2" = "cancelled" ]; then exit 0; fi
+          # 둘 중 하나라도 성공이면 정상 종료
+          if [ "$R1" = "success" ] || [ "$R2" = "success" ]; then exit 0; fi
+          # 리뷰 자체가 스킵됐고(에셋 전용 PR) 잡도 정상이면 종료
+          if [ "$R1" = "skipped" ] && [ "$JOB_STATUS" != "failure" ]; then exit 0; fi
+
+          # 실패 확정: 잔류 "진행중" 코멘트를 실패 안내로 교체
+          gh api "repos/${{ github.repository }}/issues/$PR/comments" --paginate \
+            --jq '.[] | select(.user.type=="Bot") | select(.body | contains("Claude Code is working")) | .id' |
+          while read -r cid; do
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$cid" \
+              -f body="🤖 ⚠️ 자동 리뷰 실행이 실패했습니다. Actions 로그를 확인하고, 필요하면 코멘트로 \`@claude 리뷰해줘\` 를 남겨 재시도하세요." >/dev/null
+          done
+          gh pr comment "$PR" \
+            --body "🤖 ⚠️ 자동 리뷰 실행이 실패했습니다. [Actions 로그](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})를 확인하고, 필요하면 코멘트로 \`@claude 리뷰해줘\` 를 남겨 재시도하세요."
+          # 리뷰 시도가 실패했으면 잡을 실패로 표시
+          if [ "$R1" = "failure" ] || [ "$R2" = "failure" ]; then exit 1; fi
 
       - name: Asset-only skip note
         if: |
           steps.ctx.outputs.code_bytes == '0' && steps.ctx.outputs.settings_bytes == '0'
-          && github.event.action != 'synchronize'
+          && steps.ctx.outputs.docs_bytes == '0' && github.event.action != 'synchronize'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh pr comment ${{ github.event.pull_request.number }} \
-            --body "🤖 코드/전역 설정 변경이 없는 에셋 전용 PR이라 자동 리뷰를 생략했습니다. 필요하면 코멘트로 \`@claude 리뷰해줘\` 라고 요청하세요."
+            --body "🤖 코드/문서/전역 설정 변경이 없는 에셋 전용 PR이라 자동 리뷰를 생략했습니다. 필요하면 코멘트로 \`@claude 리뷰해줘\` 라고 요청하세요."
