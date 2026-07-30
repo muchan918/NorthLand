@@ -7,6 +7,13 @@ on:
   pull_request_review_comment:
     types: [created]
 
+# 멘션 런을 PR 단위로 직렬화한다. pr-review.yml의 Sweep/Finalize가 "Claude Code is working" 코멘트를
+# 무차별 매칭하므로, 멘션 런끼리 겹치면 트래킹 코멘트를 서로 덮어쓴다.
+# cancel-in-progress는 쓰지 않는다 — 멘션은 하나하나 답변받아야 하므로 취소가 아니라 대기가 맞다.
+concurrency:
+  group: claude-mention-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
 jobs:
   claude:
     if: contains(github.event.comment.body, '@claude')
@@ -39,6 +46,7 @@ jobs:
             **/*.hlsl
             **/*.cginc
             **/*.compute
+            @NorthLand/**/*.prefab
           sparse-checkout-cone-mode: false
 
       - name: Imported inventory
@@ -69,7 +77,7 @@ jobs:
           claude_args: |
             --max-turns 25
             --allowedTools "Read,Glob,Grep,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh issue view:*),Bash(git log:*),Bash(git show:*),Bash(git diff:*)"
-            --append-system-prompt "항상 한국어로 답한다. 너는 NorthLand 프로젝트(4인 팀 Unity 타워 디펜스+마을 경영)의 기술 리드다. PR 리뷰·재리뷰·설계 질문에 답할 때는 먼저 Docs/Review/SystemMap.md 와 Docs/Review/WatchList.md 를 읽고 그 기준(시스템 지도, 접점 매트릭스, 팀 계약, WL-번호 추적 이슈)을 따른다. 재리뷰 요청이면 이전 자동 리뷰의 지적이 실제 코드에 반영됐는지 파일:라인으로 하나씩 확인하고 각 항목을 반영/부분 반영/미반영으로 판정한다. diff를 볼 때 Unity 직렬화 파일(meta, unity, prefab, asset, anim, controller, mat)은 무시하되 ProjectSettings/ 와 Packages/manifest.json 변경은 예외로 검토한다. Assets/Imported/는 별도 repo에서 코드 파일만 sparse checkout되어 있다(직접 Read/Grep 가능). 바이너리 에셋 경로는 /tmp/imported_inventory.txt 에서 확인하고, 코드나 인벤토리에 존재하는 참조를 missing으로 지적하지 않는다. Assets/Imported가 비어 있으면 Imported 참조는 검증 불가로 간주한다."
+            --append-system-prompt "항상 한국어로 답한다. 너는 NorthLand 프로젝트(4인 팀 Unity 타워 디펜스+마을 경영)의 기술 리드다. PR 리뷰·재리뷰·설계 질문에 답할 때는 먼저 Docs/Review/SystemMap.md 와 Docs/Review/WatchList.md 를 읽고 그 기준(시스템 지도, 접점 매트릭스, 팀 계약, WL-번호 추적 이슈)을 따른다. WatchList.md에는 **미해소** 항목만 있다 — 해소·폐기 항목은 Docs/Review/WatchList-Archive.md 에 있다(통독 금지). 과거에 해소된 이슈가 되돌아간 것으로 의심될 때만 그 번호나 키워드를 Grep해서 조회하고, 재발이 확인되면 '(WL-번호, 아카이브에서 재발)'로 표기한다. 아카이브에 있는 번호를 신규 지적으로 재발행하지 마라. 재리뷰 요청이면 이전 자동 리뷰의 지적이 실제 코드에 반영됐는지 파일:라인으로 하나씩 확인하고 각 항목을 반영/부분 반영/미반영으로 판정한다. diff를 볼 때 Unity 직렬화 파일(meta, unity, prefab, asset, anim, controller, mat)은 무시하되 ProjectSettings/ 와 Packages/manifest.json 변경은 예외로 검토한다. Assets/Imported/는 별도 repo에서 코드 파일만 sparse checkout되어 있다(직접 Read/Grep 가능). 바이너리 에셋 경로는 /tmp/imported_inventory.txt 에서 확인하고, 코드나 인벤토리에 존재하는 참조를 missing으로 지적하지 않는다. Assets/Imported가 비어 있으면 Imported 참조는 검증 불가로 간주한다."
 
       # 사용량 원장: pr-review.yml과 같은 원장 이슈, 같은 PR/이슈 코멘트에 행 누적
       - name: Usage ledger
@@ -98,7 +106,8 @@ jobs:
                 --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -n1)
           : > rows.jsonl
           if [ -n "$CID" ]; then
-            gh api "repos/${{ github.repository }}/issues/comments/$CID" --jq .body > old.md
+            # tr -d '\r': API가 CRLF로 돌려주면 아래 sed의 ```jsonl 앵커가 안 걸려 기존 행이 조용히 전소된다
+            gh api "repos/${{ github.repository }}/issues/comments/$CID" --jq .body | tr -d '\r' > old.md
             sed -n '/^```jsonl$/,/^```$/p' old.md | grep '^{' > rows.jsonl || true
           fi
           printf '%s\n' "$row" >> rows.jsonl
