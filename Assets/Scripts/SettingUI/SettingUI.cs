@@ -1,21 +1,22 @@
 using NorthLand.Core;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class SettingUI : MonoBehaviour
 {
+    [Header("Panels")]
     [SerializeField]
     private GameObject settingPanel;
 
     [SerializeField]
     private LocalizationManager localizationManager;
 
-    // 인게임에서만 연결한다. 타이틀에서는 비워 둔다.
+    [Header("Buttons")]
     [SerializeField]
-    private GameSpeedController gameSpeedController;
+    private Button settingbutton;
 
-    public bool IsOpen =>
-        settingPanel != null &&
-        settingPanel.activeSelf;
+
+    public bool IsOpen => settingPanel != null && settingPanel.activeSelf;
 
     private void Awake()
     {
@@ -35,10 +36,44 @@ public class SettingUI : MonoBehaviour
             return;
         }
 
-        // GameSpeedController는 타이틀에 없으므로 필수 검사를 하지 않는다.
+        RegisterButtonEvents();
+
         localizationManager.OnClose();
         settingPanel.SetActive(false);
     }
+
+    private void OnDestroy()
+    {
+        UnregisterButtonEvents();
+
+        // 설정창이 열린 상태에서 오브젝트가 파괴될 경우
+        // Settings 정지 사유가 남지 않도록 해제한다.
+        if (GameSpeedController.Instance != null)
+        {
+            GameSpeedController.Instance.SetPaused(GamePauseReason.Settings,false);
+        }
+    }
+
+
+    private void UnregisterButtonEvents()
+    {
+        if (settingbutton != null)
+        {
+            settingbutton.onClick.RemoveListener(TogglePanel);
+        }
+
+    }
+
+    private void RegisterButtonEvents()
+    {
+        if (settingbutton != null)
+        {
+            settingbutton.onClick.AddListener(TogglePanel);
+        }
+    }
+
+
+
 
     public void TogglePanel()
     {
@@ -52,26 +87,63 @@ public class SettingUI : MonoBehaviour
         }
     }
 
+
+
     public void OpenPanel()
     {
         if (settingPanel == null)
+        {
             return;
+        }
 
-        localizationManager?.OnClose();
+        CancelMouseInteraction();
+
+        if (localizationManager != null)
+        {
+            localizationManager.OnClose();
+        }
+
         settingPanel.SetActive(true);
 
-        gameSpeedController?.SetPaused(GamePauseReason.Settings,true);
+        if (GameSpeedController.Instance != null)
+        {
+            GameSpeedController.Instance.SetPaused(GamePauseReason.Settings,true);
+        }
     }
 
     public void ClosePanel()
     {
         if (settingPanel == null)
+        {
             return;
+        }
 
-        localizationManager?.OnClose();
+        if (localizationManager != null)
+        {
+            localizationManager.OnClose();
+        }
+
         settingPanel.SetActive(false);
 
-        gameSpeedController?.SetPaused(GamePauseReason.Settings,false);
+        if (GameSpeedController.Instance != null)
+        {
+            GameSpeedController.Instance.SetPaused(GamePauseReason.Settings, false);
+        }
+    }
+
+
+
+
+    private void CancelMouseInteraction()
+    {
+        if (MouseManager.Instance == null)
+        {
+            return;
+        }
+
+        MouseManager.Instance.ClearSelection();
+        MouseManager.Instance.CancelPlacement();
+        MouseManager.Instance.CancelSkillTargeting();
     }
 
     public void QuitGame()

@@ -112,6 +112,7 @@ public class ManagementEndDayConfirmPopup : MonoBehaviour
             _messageText.text = warnings;
         }
         RefreshButtonLabels(); // 열릴 때마다 현재 로케일로 pull → 언어 전환 즉시 반영
+
         SetActiveSafe(true);
     }
 
