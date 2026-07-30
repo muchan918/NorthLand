@@ -3697,6 +3697,7 @@ MonoBehaviour:
   mainCamera: {fileID: 1459800175}
   waveRewardSelectionUI: {fileID: 1658482855}
   settingUI: {fileID: 1891864976}
+  gameResult: 0
 --- !u!4 &522335600
 Transform:
   m_ObjectHideFlags: 0
@@ -10818,6 +10819,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1d0359d0bd016ae4daa334568acff939, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NorthLand.Core.GameManager
+  gameSpeedController: {fileID: 2082790719}
 --- !u!4 &1384901248
 Transform:
   m_ObjectHideFlags: 0
@@ -14716,6 +14718,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: CastlePanel
       objectReference: {fileID: 0}
+    - target: {fileID: 5742070419442562084, guid: 64e00ecf2a7cff5439a745f5fe995529, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6171116664067364889, guid: 64e00ecf2a7cff5439a745f5fe995529, type: 3}
       propertyPath: m_AnchorMax.x
       value: 0
@@ -17845,6 +17851,10 @@ PrefabInstance:
     - target: {fileID: 3795256138132068434, guid: 936b3b537217d76418db2a67adfcf1b0, type: 3}
       propertyPath: m_Name
       value: StorePanel
+      objectReference: {fileID: 0}
+    - target: {fileID: 3795256138132068434, guid: 936b3b537217d76418db2a67adfcf1b0, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5063242156558537823, guid: 936b3b537217d76418db2a67adfcf1b0, type: 3}
       propertyPath: m_SizeDelta.y

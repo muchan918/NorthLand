@@ -1,6 +1,7 @@
+using NorthLand.UI;
 using System;
 using UnityEngine;
-using NorthLand.UI;
+using UnityEngine.Localization.Settings;
 
 namespace NorthLand.Core
 {
@@ -63,7 +64,9 @@ namespace NorthLand.Core
                 ResultUIManager.Instance.ShowGameOver();
             }
             else if (result == GameResult.Victory)
+            {
                 ResultUIManager.Instance.ShowVictory();
+            }
 
             OnResultDecided?.Invoke(result);
         }
