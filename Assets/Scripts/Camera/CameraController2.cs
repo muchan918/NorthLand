@@ -1,3 +1,4 @@
+using NorthLand.Core;
 using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -47,6 +48,9 @@ public class CameraController2 : MonoBehaviour
 
     [SerializeField]
     private SettingUI settingUI;
+
+    [SerializeField]
+    private GameResult gameResult;
 
 
 
@@ -112,6 +116,11 @@ public class CameraController2 : MonoBehaviour
         }
 
         if (Mouse.current == null)
+        {
+            return;
+        }
+
+        if (GameManager.Instance.Result != GameResult.Playing)
         {
             return;
         }
