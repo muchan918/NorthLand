@@ -1,6 +1,7 @@
+using NorthLand.UI;
 using System;
 using UnityEngine;
-using NorthLand.UI;
+using UnityEngine.Localization.Settings;
 
 namespace NorthLand.Core
 {
@@ -28,6 +29,9 @@ namespace NorthLand.Core
         // 결과 확정 시 발생. 스폰 정지·시간 정지 등 다른 시스템이 구독해 반응할 수 있다.
         public event Action<GameResult> OnResultDecided;
 
+        [SerializeField]
+        private GameSpeedController gameSpeedController;
+
 
         void Awake()
         {
@@ -37,6 +41,8 @@ namespace NorthLand.Core
                 return;
             }
             Instance = this;
+
+
         }
 
         void OnDestroy()
@@ -61,9 +67,13 @@ namespace NorthLand.Core
             else if (result == GameResult.GameOver)
             {
                 ResultUIManager.Instance.ShowGameOver();
+                gameSpeedController?.SetPaused(GamePauseReason.GameOver, true);
             }
             else if (result == GameResult.Victory)
+            {
                 ResultUIManager.Instance.ShowVictory();
+                gameSpeedController?.SetPaused(GamePauseReason.GameOver, true);
+            }
 
             OnResultDecided?.Invoke(result);
         }

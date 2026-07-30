@@ -90,9 +90,7 @@ public class SettingUI : MonoBehaviour
     {
         if (GameSceneManager.Instance == null)
         {
-            Debug.LogError(
-                $"[{nameof(SettingUI)}] GameSceneManager 인스턴스를 찾을 수 없습니다.",
-                this);
+            Debug.LogError($"[{nameof(SettingUI)}] GameSceneManager 인스턴스를 찾을 수 없습니다.",this);
 
             return;
         }
@@ -104,9 +102,7 @@ public class SettingUI : MonoBehaviour
     {
         if (GameSceneManager.Instance == null)
         {
-            Debug.LogError(
-                $"[{nameof(SettingUI)}] GameSceneManager 인스턴스를 찾을 수 없습니다.",
-                this);
+            Debug.LogError($"[{nameof(SettingUI)}] GameSceneManager 인스턴스를 찾을 수 없습니다.",this);
 
             return;
         }
