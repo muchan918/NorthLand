@@ -8,7 +8,7 @@ public enum GamePauseReason
     Manual,
     Reward,
     Settings,
-    GameOver,
+    ResultDecided,
     Cutscene
 }
 
@@ -235,7 +235,7 @@ public class GameSpeedController : MonoBehaviour
             return;
         }
 
-        SetPaused(GamePauseReason.GameOver, true);
+        SetPaused(GamePauseReason.ResultDecided, true);
     }
 
     private void OnDestroy()
