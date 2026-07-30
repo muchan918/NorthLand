@@ -20,11 +20,98 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: anthropics/claude-code-action@v1
+
+      # Imported 체크아웃: private repo에서 코드 파일만 부분 클론 (pr-review.yml과 동일)
+      - uses: actions/checkout@v4
+        continue-on-error: true
         with:
-          claude_code_oauth_token: ${{ secrets.N0WST4NDUP_ANTHROPIC_OAUTH_TOKEN }}
+          repository: muchan918/NorthLand-Imported
+          ssh-key: ${{ secrets.IMPORTED_DEPLOY_KEY }}
+          token: ${{ secrets.IMPORTED_PAT }}
+          path: Assets/Imported
+          persist-credentials: false
+          sparse-checkout: |
+            **/*.cs
+            **/*.asmdef
+            **/*.asmref
+            **/*.shader
+            **/*.shadergraph
+            **/*.hlsl
+            **/*.cginc
+            **/*.compute
+          sparse-checkout-cone-mode: false
+
+      - name: Imported inventory
+        run: |
+          git -C Assets/Imported ls-tree -r --name-only HEAD 2>/dev/null \
+            | grep -v '\.meta$' > /tmp/imported_inventory.txt || true
+
+      # 멘션한 사람 본인의 구독 토큰 사용 (토큰 없는 팀원은 n0wst4ndup)
+      - name: Pick OAuth token
+        id: token
+        env:
+          AUTHOR: ${{ github.event.comment.user.login }}
+        run: |
+          case "$AUTHOR" in
+            muchan918)  PRIMARY=MUCHAN_ANTHROPIC_OAUTH_TOKEN ;;
+            sunjin1222) PRIMARY=SUNJIN_ANTHROPIC_OAUTH_TOKEN ;;
+            N0WST4NDUP) PRIMARY=N0WST4NDUP_ANTHROPIC_OAUTH_TOKEN ;;
+            *)          PRIMARY=N0WST4NDUP_ANTHROPIC_OAUTH_TOKEN ;;  # KIM-SUNGSOO 등 토큰 미보유
+          esac
+          echo "primary=$PRIMARY" >> "$GITHUB_OUTPUT"
+
+      - uses: anthropics/claude-code-action@v1
+        id: claude
+        with:
+          claude_code_oauth_token: ${{ secrets[steps.token.outputs.primary] }}
           github_token: ${{ github.token }}
+          display_report: true
           claude_args: |
             --max-turns 25
             --allowedTools "Read,Glob,Grep,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh issue view:*),Bash(git log:*),Bash(git show:*),Bash(git diff:*)"
-            --append-system-prompt "항상 한국어로 답한다. 너는 NorthLand 프로젝트(4인 팀 Unity 타워 디펜스+마을 경영)의 기술 리드다. PR 리뷰·재리뷰·설계 질문에 답할 때는 먼저 Docs/Review/SystemMap.md 와 Docs/Review/WatchList.md 를 읽고 그 기준(시스템 지도, 접점 매트릭스, 팀 계약, WL-번호 추적 이슈)을 따른다. 재리뷰 요청이면 이전 자동 리뷰의 지적이 실제 코드에 반영됐는지 파일:라인으로 하나씩 확인하고 각 항목을 반영/부분 반영/미반영으로 판정한다. diff를 볼 때 Unity 직렬화 파일(meta, unity, prefab, asset, anim, controller, mat)은 무시하되 ProjectSettings/ 와 Packages/manifest.json 변경은 예외로 검토한다."
+            --append-system-prompt "항상 한국어로 답한다. 너는 NorthLand 프로젝트(4인 팀 Unity 타워 디펜스+마을 경영)의 기술 리드다. PR 리뷰·재리뷰·설계 질문에 답할 때는 먼저 Docs/Review/SystemMap.md 와 Docs/Review/WatchList.md 를 읽고 그 기준(시스템 지도, 접점 매트릭스, 팀 계약, WL-번호 추적 이슈)을 따른다. 재리뷰 요청이면 이전 자동 리뷰의 지적이 실제 코드에 반영됐는지 파일:라인으로 하나씩 확인하고 각 항목을 반영/부분 반영/미반영으로 판정한다. diff를 볼 때 Unity 직렬화 파일(meta, unity, prefab, asset, anim, controller, mat)은 무시하되 ProjectSettings/ 와 Packages/manifest.json 변경은 예외로 검토한다. Assets/Imported/는 별도 repo에서 코드 파일만 sparse checkout되어 있다(직접 Read/Grep 가능). 바이너리 에셋 경로는 /tmp/imported_inventory.txt 에서 확인하고, 코드나 인벤토리에 존재하는 참조를 missing으로 지적하지 않는다. Assets/Imported가 비어 있으면 Imported 참조는 검증 불가로 간주한다."
+
+      # 사용량 원장: pr-review.yml과 같은 원장 이슈, 같은 PR/이슈 코멘트에 행 누적
+      - name: Usage ledger
+        if: always() && vars.USAGE_LEDGER_ISSUE != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LEDGER: ${{ vars.USAGE_LEDGER_ISSUE }}
+          PR: ${{ github.event.issue.number || github.event.pull_request.number }}
+          AUTHOR: ${{ github.event.comment.user.login }}
+          EXEC1: ${{ steps.claude.outputs.execution_file }}
+          TOK1: ${{ steps.token.outputs.primary }}
+        run: |
+          f="$EXEC1"; tok="${TOK1%%_ANTHROPIC*}"
+          [ -n "$f" ] && [ -f "$f" ] || { echo "기록할 사용량 없음"; exit 0; }
+          row=$(jq -c --arg pr "$PR" --arg author "$AUTHOR" --arg tok "$tok" '
+            [.[] | select(.type=="result")][0] // empty |
+            {pr: ($pr|tonumber), event: "mention", author: $author, token: $tok,
+             in: (.usage.input_tokens // 0), out: (.usage.output_tokens // 0),
+             cache_r: (.usage.cache_read_input_tokens // 0), cache_w: (.usage.cache_creation_input_tokens // 0),
+             turns: .num_turns, cost_usd: .total_cost_usd, err: .is_error,
+             at: (now | todate)}' "$f" 2>/dev/null) || true
+          [ -n "$row" ] || { echo "기록할 사용량 없음"; exit 0; }
+
+          MARKER="<!-- usage-pr-$PR -->"
+          CID=$(gh api "repos/${{ github.repository }}/issues/$LEDGER/comments" --paginate \
+                --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -n1)
+          : > rows.jsonl
+          if [ -n "$CID" ]; then
+            gh api "repos/${{ github.repository }}/issues/comments/$CID" --jq .body > old.md
+            sed -n '/^```jsonl$/,/^```$/p' old.md | grep '^{' > rows.jsonl || true
+          fi
+          printf '%s\n' "$row" >> rows.jsonl
+          SUMMARY=$(jq -s -r '"runs \(length) · in \(map(.in)|add) · out \(map(.out)|add) · cache_read \(map(.cache_r)|add)"' rows.jsonl)
+          {
+            echo "$MARKER"
+            echo "**PR #$PR** · $SUMMARY"
+            echo '```jsonl'
+            cat rows.jsonl
+            echo '```'
+          } > new.md
+          if [ -n "$CID" ]; then
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$CID" -F body=@new.md >/dev/null
+          else
+            gh api -X POST "repos/${{ github.repository }}/issues/$LEDGER/comments" -F body=@new.md >/dev/null
+          fi
