@@ -34,6 +34,7 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 
 | 우선순위 | Canvas/오버레이 | `sortingOrder` | 용도 |
 |---:|---|---:|---|
+| 월드 오버레이 | `SelectionBoxView` | `50` | 드래그 선택 사각형. 입력을 받지 않으며 HUD **아래**에 그린다 |
 | 기본 | `UICanvas` | `100` | 일반 HUD, 미니맵, 관리·타워·스킬·정보 패널 |
 | 상위 모달 | `RewardCanvas` | `500` | 보상 선택 화면 |
 | 설정 모달 | `SettingCanvas` | `700` | 인게임 설정 화면. 일반 HUD와 보상 화면보다 위, 결과 화면보다 아래 |
@@ -47,6 +48,13 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 게임오버 또는 승리 결과 화면과 설정 화면이 동시에 활성화되더라도 `ResultCanvas`가 항상 `SettingCanvas`보다 위에 표시되어야 한다.
 
 `TowerTooltipView`는 런타임에 전용 Canvas를 생성하는 예외적인 읽기 전용 오버레이다. 포인터 입력을 받는 일반 패널이나 모달에 `short.MaxValue`를 사용하지 않는다.
+
+`SelectionBoxView`(#261)도 런타임에 전용 Canvas를 생성하는 읽기 전용 오버레이다. 두 가지 이유로 `UICanvas`에 얹지 않는다.
+
+- **성능**: Canvas는 자식 Graphic이 하나라도 바뀌면 그 Canvas 전체의 메시를 다시 만든다. 사각형은 드래그하는 동안 매 프레임 움직이므로, `UICanvas`에 두면 HUD 전체가 매 프레임 리빌드된다. 전용 Canvas로 분리해 리빌드 범위를 사각형 자신으로 가둔다.
+- **씬 병합**: 씬에 배치하지 않으므로 `GameScene` diff가 생기지 않는다.
+
+사각형은 월드 위에 그리되 HUD보다는 아래여야 하므로 `sortingOrder = 50`을 쓴다. `GraphicRaycaster`를 붙이지 않고 모든 `Graphic`의 `raycastTarget`을 끈다 — 켜져 있으면 커서가 항상 UI 위로 잡혀 게임의 모든 클릭이 죽는다.
 
 ## 4. `UICanvas` 내부 순서
 
