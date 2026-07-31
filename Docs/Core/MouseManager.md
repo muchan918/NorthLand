@@ -1,198 +1,154 @@
-# MouseManager 설계 문서
+# MouseManager — 기능 명세
 
-게임 내 **모든 마우스 클릭/포인터 입력**을 한 곳에서 처리하는 중앙 매니저 문서.
-개발 중 마우스 상호작용(오브젝트 배치, 선택, 패널 열기 등)을 구현·확장할 때 참고한다.
+게임 내 **모든 포인터 입력의 단일 창구**. 커서 위치를 읽고, 월드를 레이캐스트하고, 그 결과를 각 시스템에 통지한다.
 
-- 관련 이슈: **#9**
-- 프로젝트는 신규 Input System(`InputSystem_Actions.inputactions`)을 사용한다.
+- 관련 이슈: #9(원안) · #38 호버 툴팁 · #67 호버 훅 · #103 스킬 조준 · #183 그룹 선택 · **#261 드래그 선택(미구현)**
 - 구현 위치: `Assets/Scripts/GameManager/MouseManager/`
-- 이 문서는 **현재 구현된 구조**를 정리한 것이다. 코드를 바꾼 사람은 이 문서도 함께 갱신해 어긋나지 않게 유지한다. 미구현 항목은 [8. 미확정/TODO](#8-미확정--todo)에 모아둔다.
+- 상세를 위임하는 문서: 그룹 선택의 도메인 규칙은 [TowerMerge.md](TowerMerge.md) §7, 하이라이트 연출은 [InteractionOutline.md](InteractionOutline.md), 타워 배치는 [TowerPlacement.md](TowerPlacement.md).
 
-> ⚠️ 하이라이트 연출, 그리드 스냅, 배치 가능 셀 검사 등 일부 세부는 **아직 미구현(TODO)**이다.
+---
 
-## 1. 목적 · 핵심 원칙
+## 1. 원칙
 
-**단일 책임**: 포인터 입력을 읽고(위치·클릭), 월드 레이캐스트를 수행하고, 클릭 결과를 라우팅하는 것은
-`MouseManager` **하나만** 담당한다.
+1. **입력은 여기서만 읽는다.** 다른 코드는 `Mouse.current`/`Keyboard.current`를 직접 폴링하지 않는다(예외: 카메라 조작).
+2. **매니저는 도메인을 모른다.** "타워인지 주민인지"를 묻지 않고, 인터페이스(`ISelectable`/`IGroupSelectable`/`IHoverable`) 유무만 본다. 해석은 통지를 받는 쪽이 한다.
+3. **상태를 소유하지 않는다.** 단일 선택 1개를 빼면 선택 집합·하이라이트·패널은 전부 구독자 소유다.
 
-- 다른 컴포넌트는 `Mouse`/`Keyboard`를 직접 읽지 않는다.
-- 클릭에 반응할 오브젝트는 **`ISelectable`을 구현**한다.
-- 배치를 시작할 UI/시스템은 **`MouseManager`에 배치 요청(`PlacementRequest`)을 넘긴다.**
+> 이 세 줄이 확장 규칙이다. 새 타입을 마우스 상호작용에 편입시키는 비용은 **인터페이스 구현 하나**여야 하고, MouseManager는 수정되지 않아야 한다.
 
-입력 처리 지점을 한 곳으로 모아 버그 추적과 새 상호작용 모드 추가를 쉽게 한다.
+## 2. 책임 경계
 
-## 2. 책임 범위
-
-| 담당함 (MouseManager) | 담당하지 않음 (다른 시스템) |
+| 담당한다 | 담당하지 않는다 |
 |---|---|
-| 포인터 위치·좌/우클릭·Esc 감지 | 배치 가능 여부 판정 규칙 → **그리드/검증 시스템** (`CanPlaceAt`) |
-| UI 위 클릭인지 월드 클릭인지 구분 | 어떤 정보 패널을 그릴지 → **UI (`TowerInfoUI`)** |
-| 월드 레이캐스트·히트 오브젝트 판별 | 타워/건물/병사의 생성·능력치 → **각 배치물 시스템** |
-| 현재 상호작용 모드(상태) 관리 | 자원 차감·해금 조건 → **경영/자원 시스템** |
-| 선택 결과를 `OnSelectionChanged`로 통지 | 툴팁 내용·연출·색 → **툴팁 UI + 각 `IHoverable` 공급자** |
-| 커서 밑 호버 대상(`IHoverable`)을 `OnHoverChanged`로 통지 | 호버 하이라이트 연출(색 변경 등) → **미구현(TODO)** |
-| 포인터 화면 좌표를 `PointerPosition`으로 노출 | |
+| 포인터 위치·버튼·수식키(Shift)·Esc 감지 | 배치 가능 판정 → 요청자(`PlacementRequest.CanPlaceAt`) |
+| 월드 레이캐스트와 히트 해석 | 선택 집합의 소유·해석 → 각 코디네이터 |
+| 상호작용 모드 관리 | 하이라이트 색·연출 → `OutlineInteractionDriver` 등 |
+| 선택·호버·드래그 **통지** | 패널을 무엇으로 채울지 → UI |
 
-## 3. 상태 구조 (State Machine)
+## 3. 모드
 
-입력은 매 프레임 `Mouse.current`로 직접 읽고, 상태에 따라 분기한다.
+| 모드 | 진입 | 하는 일 | 나가기 |
+|---|---|---|---|
+| **Idle** | 기본 | 선택 · 호버 추적 · 드래그 감지 | — |
+| **BoxSelect** | Idle에서 좌드래그 임계 초과 | 사각형 영역 선택(§5) | 버튼 뗌 · Esc |
+| **Placement** | `BeginPlacement()` | 고스트가 커서를 따라다니고 유효 위치에서 확정 | 확정 · 우클릭 · Esc |
+| **SkillTargeting** | `BeginSkillTargeting()` | 범위 인디케이터 표시, 전투 타일 위에서 시전 확정 | 시전 · 우클릭 · Esc |
 
-```
-        BeginPlacement(request)
-   ┌───────────────────────────────►┐
-   │                                 │
-┌──┴───────────┐               ┌─────▼────────┐
-│     Idle     │               │  Placement   │
-│  (선택 모드) │◄──────────────┤  (배치 모드) │
-└──┬───────────┘               └──────────────┘
-   │  ▲                               │
-   │  └───────────────────────────────┘
-   │    · 유효 셀 좌클릭 → 배치 후 복귀
-   │    · 우클릭 / Esc  → 취소 후 복귀
-   │
-   │         BeginSkillTargeting(request)
-   │  ┌───────────────────────────────►┐
-   │  │                                 │
-   └──┴───────────┐               ┌─────▼──────────┐
-                   │               │ SkillTargeting │
-                   │◄──────────────┤ (스킬 조준 모드)│
-                   └───────────────└────────────────┘
-      · 전투 타일 좌클릭 → OnConfirmed(pos) 후 복귀
-      · 우클릭 / Esc → 취소 후 복귀
-```
+- `BoxSelect`는 **Idle의 하위 상태**다 — 배치·조준 중에는 애초에 진입할 수 없다.
+- 배치·조준을 시작하면 이전 선택을 전부 해제한다(고스트를 든 화면에 잔재가 남지 않도록).
+- 호버 추적은 **Idle에서만** 한다. 나머지 모드에서는 툴팁·호버 하이라이트를 끈다.
 
-- **Idle (기본)**: 좌클릭으로 배치된 오브젝트를 선택/해제. **매 프레임 커서 밑 `IHoverable`을 추적**해 대상이 바뀔 때 `OnHoverChanged`로 통지(툴팁용).
-- **Placement**: 고스트(프리뷰)가 마우스를 따라다니고, 유효 위치에서 좌클릭하면 배치. (배치 중에는 호버 통지를 끈다 — `BeginPlacement`이 호버를 클리어)
-- **SkillTargeting** (#103): 스킬 범위 인디케이터(고스트)가 마우스를 따라다니되 **전투 타일 위에서만 표시**(그 외엔 숨김)하고, **전투 타일 위이면 종류 무관** 좌클릭으로 시전을 확정한다(유효/무효 색 구분 없음). 인디케이터는 히트 표면에 얹혀 낮은 도로 채널 안에도 자연스럽게 앉는다. `Placement`와 구조는 비슷하지만 그리드 스냅·점유 검증이 없다 — §4.5 참고.
+## 4. 선택 모델
 
-## 4. 시나리오별 흐름
+선택에는 **단일 선택**과 **그룹 선택** 두 층이 있고, 서로 다른 통지를 쓴다.
 
-### 4.1 오브젝트 배치 (요구사항 ①)
+| 층 | 자격 | 용도 |
+|---|---|---|
+| 단일 선택 | `ISelectable` | 정보 패널 · 사거리 원 등 "하나를 들여다보기" |
+| 그룹 선택 | `IGroupSelectable` | 여러 개를 재료·부대로 묶기(현재 타워 합성) |
 
-1. UI 버튼(`PlacementButton`)의 OnClick → `MouseManager.BeginPlacement(request)` 호출.
-   `request`(`PlacementRequest`)에는 **고스트 프리팹**, **배치 가능 판정(`CanPlaceAt`)**, **배치 확정 콜백(`OnConfirmed`)**, **연속 배치 여부(`KeepPlacingAfterConfirm`)**가 담긴다.
-2. `Placement` 상태로 전환, 고스트 프리뷰 생성.
-3. 매 프레임: 포인터 → 배치 표면(`_placementMask` = Ground) 레이캐스트 → (`Snap`) → 고스트 이동 → `CanPlaceAt`로 유효 여부 질의.
-4. **좌클릭**: UI 위면 무시 / 유효하면 `OnConfirmed(pos)` 후 (`KeepPlacingAfterConfirm`가 false면) `Idle` 복귀.
-5. **우클릭 / Esc**: 취소, 고스트 제거, `Idle` 복귀.
+- **집합은 MouseManager가 들지 않는다.** 매니저는 "무엇이 눌렸다/사각형에 걸렸다"만 통지하고, 순서 있는 집합은 도메인 코디네이터가 소유한다(타워 = `TowerMergeCoordinator`).
+- 그래서 마커만 붙이면 새 타입이 그룹 선택에 편입된다. **주민 시스템이 들어와도 MouseManager는 수정되지 않는다.**
 
-> 현재 `CanPlaceAt`은 항상 `true`(=Ground면 무조건 배치). 셀 점유·빌드 영역 검사는 TODO.
-> 고스트 프리팹에는 **Collider를 두지 않는다** — 배치 레이캐스트가 커서 밑 고스트 자신을 맞는 것을 막기 위함.
+### 4.1 입력 규칙
 
-### 4.2 배치된 오브젝트 선택 → 패널 표시 (요구사항 ②)
+| 입력 | 동작 |
+|---|---|
+| 대상 클릭 | 집합 해제 후 그 대상 **단일 선택** |
+| 빈 곳 클릭 / Esc | **전체 해제** |
+| **Shift + 마커 대상** 클릭 | 집합에 **토글**(있으면 빼고, 없으면 끝에 추가) |
+| Shift + 마커 없는 대상 | 무시 |
+| **드래그** | 사각형 안의 마커 대상으로 집합 **교체**(§5) |
+| **Shift + 드래그** | 사각형 안의 대상을 기존 집합에 **합집합 추가**(§5) |
+| 우클릭 | 선택 해제가 **아니다** — 카메라 팬·배치/조준 취소 전용 |
 
-1. `Idle`에서 좌클릭. UI 위면 월드 레이캐스트를 건너뜀.
-2. 선택 후보(`_selectableMask` = Selectable) 레이캐스트 → `TryGetComponent<ISelectable>`로 최종 확정.
-   - `ISelectable` 히트 → 이전 선택 해제 후 새 오브젝트 선택(`OnSelected`) + `OnSelectionChanged` 통지.
-   - 빈 곳/바닥 히트 → 선택 해제.
-3. 선택된 오브젝트(`SelectableTest`)가 `OnSelected`에서 **`TowerInfoUI.Instance.ShowInfo(...)`**로 자기 정보를 표시하고, `OnDeselected`에서 `HideInfo()`로 닫는다.
+> Shift가 클릭에서는 **토글**, 드래그에서는 **합집합**인 것은 의도된 비대칭이다(RTS 관례). 드래그로 "빼기"는 지원하지 않는다 — 필요해지면 다른 키에 배정한다.
 
-> `MouseManager`는 패널을 직접 모른다. "선택됨"만 알리고, 실제 표시는 배치물이 `TowerInfoUI`(싱글톤)를 호출한다.
+## 5. 드래그 사각형 선택 *(미구현 — #261)*
 
-### 4.3 단일 책임 · 확장성 (요구사항 ③)
+### 5.1 동작
 
-- 입력 읽기는 `MouseManager`에서만. 클릭 반응은 `ISelectable` 구현, 배치는 `PlacementRequest` 전달로 참여.
-- 새 상호작용 모드(예: 야간 스킬 타겟팅)는 새 상태만 추가하면 되고 기존 코드 영향 최소화.
+1. 빈 곳에서 좌버튼을 누른 채 임계 거리(≈8px)를 넘게 움직이면 사각형이 생긴다. 앵커는 **누른 지점**, 반대편은 현재 커서(스크린 좌표).
+2. 사각형에 들어온 `IGroupSelectable` 대상이 **들어온 순서대로** 집합에 쌓인다. 사각형을 줄여 빠지면 제거되고, 다시 들어오면 맨 뒤로 붙는다.
+3. 드래그하는 동안 **초록 아웃라인이 실시간으로** 붙었다 떨어진다. 우측 패널은 드래그 중에는 갱신하지 않고 **버튼을 뗀 뒤 한 번** 갱신한다(사각형을 넓히다가 합성 패널이 열렸다 닫혔다 하는 것을 막는다).
+4. Shift를 **누른 채 드래그를 시작**하면 기존 집합을 유지한 채 합집합으로 더한다. Shift 판정은 시작 시점에 고정한다 — 드래그 도중 Shift를 눌렀다 떼도 바뀌지 않는다.
+5. Esc는 드래그를 중단하고 **전체 해제**한다. 드래그 이전 상태로 되돌리는 취소는 제공하지 않는다.
 
-### 4.4 호버 툴팁 (#38)
+### 5.2 클릭과 드래그 구분
 
-1. `Idle`에서 매 프레임 커서 밑을 `_selectableMask`로 레이캐스트 → `TryGetComponent<IHoverable>`.
-2. 호버 대상이 **바뀔 때만** `OnHoverChanged(IHoverable)` 통지(같으면 무시, 없으면 `null`). UI 위/배치 모드에서는 대상을 `null`로 본다.
-3. `TooltipUI`(임시 싱글톤, `Assets/Scripts/GameManager/MouseHover`)가 `OnHoverChanged`를 구독 →
-   대상이 있으면 `IHoverable.GetTooltipContent()`로 내용을 **pull**해 표시, 없으면 숨김.
-   `GetTooltipContent()`는 호버 시점마다 호출되므로 동적 값(버프 레벨·현재 생산량 등)도 그 순간 계산해 넘길 수 있다.
-4. 툴팁은 `MouseManager.PointerPosition`(→ `Mouse.current` 직접 폴링 금지, 계약 #1)을 따라 이동하며 화면 밖으로 나가지 않게 clamp한다.
+**단일 선택의 확정 시점이 "누를 때"에서 "뗄 때"로 바뀐다.** 누른 순간에는 클릭인지 드래그인지 알 수 없기 때문이다.
 
-> `MouseManager`는 "무엇이 호버됐다"만 통지한다. 헤더/본문 문자열·색·포맷은 전적으로 각 `IHoverable` 공급자가 정한다
-> (건물=`BuildingTooltipSource`가 `이름 - 역할`+설명+타입별 색, 그래프형 버프 건물 등도 같은 인터페이스로 재사용).
-> 이 계보는 `TowerInfoUI`/`BuildingInfoUI`와 마찬가지로 **UIManager 도입 시 흡수**될 임시 싱글톤이다.
+| 좌버튼 | 판정 |
+|---|---|
+| 눌렀을 때 | 시작점 기록. UI 위에서 눌렀으면 제스처 전체 무효 |
+| 임계 미만으로 이동 후 뗌 | **클릭** — 기존 단일/Shift 토글 경로 그대로 |
+| 임계 초과 이동 | **드래그** — `BoxSelect` 진입, 뗄 때 확정 |
 
-### 4.5 스킬 타겟팅 (#103, GDD §5.5)
+### 5.3 사각형 안 판정
 
-1. 스킬 버튼(`SkillButtonView`)의 OnClick → `SkillManager.CanCast()`(밤 여부+쿨다운) 확인 후
-   `MouseManager.BeginSkillTargeting(request)` 호출. `request`(`SkillTargetRequest`)에는 **범위 인디케이터 프리팹**,
-   **확정 콜백(`OnConfirmed(Vector3)`)**만 담긴다 — `PlacementRequest`와 달리 `Snap`/`CanPlaceAt` 없음(그리드 개념 불필요).
-2. `SkillTargeting` 상태로 전환, 인디케이터(`SkillRangeIndicator`) 생성.
-3. 매 프레임: 포인터 → `_placementMask`(Ground) 레이캐스트 → 히트한 타일의 `CombatMapTileView`를 읽어 판정한다.
-   - **전투 타일이 아니면**(빈 칸·타일 사이 틈·맵 밖) 인디케이터를 **숨긴다**(`SetActive(false)`).
-   - 전투 타일이면 표시하고 **히트 표면(`hit.point`)에 배치** — 도로 메시가 낮게 모델링돼 있어 도로 위에선 낮은 채널 안에 앉는다.
-   - 타일 종류(도로/잔디/물)와 무관하게 시전 가능하므로 유효/무효 색 구분은 없다(단일 색).
-4. **좌클릭**: UI 위면 무시 / **전투 타일 위이면**(종류 무관) `OnConfirmed(hit.point)` 호출(보통 `SkillManager.CastAt(pos)` 연결) 후 `Idle` 복귀. 타일 밖 좌클릭은 위 3단계에서 이미 고스트를 숨긴 상태.
-5. **우클릭 / Esc**: 취소, 인디케이터 제거, `Idle` 복귀.
+레이캐스트는 점 하나만 쏠 수 있어 면적 판정에 쓸 수 없다. 대신 **후보를 순회하며 스크린 좌표로 투영**해 사각형 포함 여부를 본다.
 
-> `Placement`와 상태 흐름은 같지만, 배치 결과가 영구 오브젝트가 아니라 즉발 효과라
-> `KeepPlacingAfterConfirm`(연속 배치) 개념이 없다.
-> 전투 타일 게이팅은 **MouseManager가 소유**한다(`CombatMapTileView` 유무 질의). 도로 전용 제한·유효/무효 색은 제거됨.
-> `SkillTargetRequest`엔 여전히 `CanPlaceAt` 류 훅이 없다 — 스킬 규칙이 단순(전투 타일 위 여부)해 매니저에 인라인.
-> 규칙이 복잡해지면 `PlacementRequest`처럼 요청 측으로 옮긴다.
+- **후보 목록**: `IGroupSelectable` 구현체가 스스로 등록하는 레지스트리에서 얻는다(활성화 시 등록, 비활성화 시 해제). 매 프레임 씬 전체를 탐색하지 않는다.
+- **기준점**: 대상의 중심 한 점. 콜라이더 바운즈 전체가 아니라 중심이 사각형 안이어야 걸린다.
+- **카메라 뒤**(투영 깊이 ≤ 0)의 대상은 제외한다 — 좌표가 뒤집혀 엉뚱하게 걸린다.
+- **가림은 무시한다.** 지형·건물 뒤에 있어도 사각형 안이면 선택된다(RTS 표준, 후보마다 레이캐스트를 쏘지 않아도 된다).
 
-## 5. 레이캐스트 레이어 (선택 / 배치 분리)
+### 5.4 주민 끌어놓기(심즈형)와의 분리 — 예약
 
-레이캐스트 목적이 둘이라 마스크도 둘로 나눈다.
+나중에 들어올 "주민을 꾹 눌러 건물에 끌어넣기"도 **좌버튼을 누른 채 이동**이라 같은 제스처를 쓴다. 구분 기준은 하나로 못박는다:
+
+> **누른 순간 커서 밑에 무엇이 있었는가.** 끌 수 있는 대상(가칭 `IDragHandle`)을 잡았으면 **유닛 끌기**, 아니면 **사각형 선택**.
+
+- 두 모드는 **진입 시점에 배타적으로 갈린다** → 이후 로직이 섞일 여지가 없다. 이미 누를 때 레이캐스트를 하므로 추가 비용도 없다.
+- 대가: **주민 위에서는 사각형 드래그를 시작할 수 없다.** 빈 땅에서 시작하면 되고, 사각형이 지나가며 주민을 담는 것은 정상 동작한다. 다수 RTS가 같은 대가를 치른다.
+- 타워(전투 공간)와 주민(경영 공간)은 **카메라상 공존하지 않으므로**, 사각형에 두 타입이 섞이는 경우를 다루는 우선순위 규칙은 두지 않는다. 공존하게 되면 그때 규칙을 정한다.
+- **지금은 인터페이스를 만들지 않는다.** 분기 지점만 여기 적어 둔다 — 실제로 필요해지면 분기 한 줄이다.
+
+### 5.5 다른 시스템과의 충돌 점검
+
+| 상대 | 판단 |
+|---|---|
+| 카메라 팬(우드래그) | 버튼이 달라 충돌 없음 |
+| 카메라 엣지 스크롤·줌 | 드래그 중 화면이 움직이면 스크린 앵커가 월드 기준으로 밀린다 → **실측 후 판단**(§7) |
+| 배치 · 스킬 조준 | `BoxSelect`가 Idle 하위라 진입 자체가 불가 |
+| Shift+클릭 토글(#183) | 임계 미만이면 기존 경로 그대로 → 규칙이 겹치지 않음 |
+| UI | 누를 때 UI 위였으면 제스처 무효. **사각형 이미지는 레이캐스트 대상에서 반드시 빼야 한다** — 아니면 커서가 항상 UI 위로 잡혀 모든 클릭이 죽는다 |
+| 아웃라인 | 기존 그룹 초록을 재사용하고, 켜고 끄는 주체도 코디네이터 하나로 유지한다(둘이 같은 색을 다루면 잔존 버그가 난다) |
+| 낮/밤 | 코디네이터가 밤에는 통지를 무시한다(기존 게이팅 그대로) |
+
+## 6. 레이캐스트 레이어
 
 | 마스크 | 레이어 | 용도 |
 |---|---|---|
-| `_selectableMask` | `Selectable` | 선택 후보. 최종 선택 여부는 `ISelectable` 유무로 판정하므로 **레이어는 굵은 필터**일 뿐. **호버 감지도 이 마스크를 재사용**(최종 판정은 `IHoverable` 유무) |
-| `_placementMask` | `Ground` | 배치 표면. 고스트가 이 위에 올라간다 |
+| `_selectableMask` | `Selectable` | 선택·호버 후보. 최종 판정은 인터페이스 유무 |
+| `_placementMask` | `Ground` | 배치 표면·스킬 조준 표면 |
 
-- "선택 가능한가"는 레이어가 아니라 **`ISelectable` 컴포넌트가 결정** → 타입(타워/건물/병사)마다 레이어를 팔 필요 없음.
-- `_placementMask`에서 배치물 레이어를 빼두면, 커서가 기존 건물 위에 있어도 그 **뒤 바닥**을 잡는다. (겹침 방지는 레이어가 아니라 `CanPlaceAt`에서 처리)
-- **스킬 타겟팅**은 `_placementMask` 히트에서 `CombatMapTileView`(전투 타일 데이터) 유무로 전투 타일 여부를 판정한다 — 레이어가 아니라 컴포넌트가 최종 판정(선택/호버와 동일 원칙).
+- "선택 가능한가"는 레이어가 아니라 **컴포넌트가 결정**한다 → 타입마다 레이어를 팔 필요가 없다.
+- `_placementMask`에 배치물을 넣지 않아, 커서가 건물 위에 있어도 그 **뒤 바닥**을 잡는다.
+- 스킬 조준의 "전투 타일 위인가"도 레이어가 아니라 타일 컴포넌트 유무로 판정한다.
 
-## 6. 확장 포인트
+## 7. 미확정 / TODO
 
-- **새 상호작용 모드**: 지금은 `enum Mode { Idle, Placement, SkillTargeting }`(#103에서 `SkillTargeting` 추가).
-  모드가 더 늘면 `IMouseState`(Enter/Update/Exit) 기반 State 패턴으로 승격 검토.
-  - 스킬 타겟팅(GDD §5.5): **구현 완료(#103)** — `BeginSkillTargeting(SkillTargetRequest)`, §4.5 참고.
-  - 병사 배치(GDD §5.4): 웨이포인트 위에서만 유효한 `PlacementRequest`로 재사용 예정(미착수).
-- **배치물 종류 확장**: `PlacementRequest`의 `CanPlaceAt`/`OnConfirmed`만 다르게 구성. 매니저 본체는 그대로.
-- **선택 반응 확장**: 새 배치물은 `ISelectable`만 구현하면 선택·패널 흐름에 자동 편입.
+- [ ] **드래그 선택 전체** — 본 문서 §5 (#261)
+- [ ] **드래그 중 카메라 이동** — 엣지 스크롤로 화면이 밀릴 때 사각형을 어떻게 다룰지(스크린 고정 유지 / 월드 앵커로 보정). 실제로 거슬리는지 먼저 확인
+- [ ] **드래그 임계값** — 8px 가정, 실기기 확인 필요
+- [ ] **밤 드래그** — 코디네이터가 무시하므로 사각형만 헛돈다. 거슬리면 매니저에 활성 플래그를 두고 페이즈 전환이 토글
+- [ ] **그리드 스냅 / 배치 가능 셀 검사** — `Snap`이 좌표를 그대로 돌려주고 `CanPlaceAt`이 항상 참
+- [ ] **선택 대상 탐색** — 콜라이더가 자식/부모에 있을 때의 탐색 규칙
+- [ ] **카메라 분리** — 경영/전투가 카메라를 나누면 단일 카메라 참조를 커서 기준으로 재검토
 
-## 7. 구현 현황 (실제 파일)
-
-| 파일 | 역할 |
-|---|---|
-| `MouseManager.cs` | 중앙 매니저(싱글톤 `Instance`). 상태 관리·레이캐스트·라우팅 |
-| `ISelectable.cs` | 선택 인터페이스(`OnSelected`/`OnDeselected`) |
-| `IHoverable.cs` | 호버 인터페이스(`GetTooltipContent()`/`OnHoverEnter()`/`OnHoverExit()`). 호버 시 툴팁 내용을 pull 공급(내용 없으면 `null` 반환 가능) + 호버 진입/이탈 훅(하이라이트 등 연출용, #67) |
-| `PlacementRequest.cs` | 배치 요청 데이터 |
-| `SkillTargetRequest.cs` | 스킬 타겟팅 요청 데이터(#103) — `GhostPrefab`/`OnConfirmed(Vector3)`/`OnEnded`만 있는 `PlacementRequest`의 경량 버전 |
-| `TowerInfoUI.cs` | 정보 패널(싱글톤 `Instance`, `ShowInfo`/`HideInfo`) |
-| `Helper/SelectableTest.cs` | (테스트) 선택 시 색 변경 + 패널 표시 |
-| `Helper/PlacementButton.cs` | (테스트) 버튼 클릭 → 배치 시작 |
-
-호버 툴팁 UI/어댑터는 `Assets/Scripts/GameManager/MouseHover`에 있다:
+## 8. 파일 맵
 
 | 파일 | 역할 |
 |---|---|
-| `TooltipContent.cs` | 툴팁 표시 데이터(헤더/본문/색). 구체 개념에 무지한 순수 struct |
-| `TooltipUI.cs` | 커서 추적 범용 툴팁 뷰(임시 싱글톤 `Instance`, `Show`/`Hide`). `OnHoverChanged` 구독 |
-| `BuildingTooltipSource.cs` | 건물용 `IHoverable` 어댑터. `BuildingAsset`/`BuildingData`를 읽어 `이름 - 역할`+설명 구성(muchan 코드는 읽기만) |
-| `BuildingTooltipPalette.cs` + `BuildingTooltipPalette.asset` | `BuildingType`→(헤더색, 배경색) 팔레트 SO |
-| `Assets/Personal/n0wst4ndup/MouseHover/Scenes/MouseHover.unity` | (테스트) 건물 5종(Production·General·Skill 3타입 모두 커버) + 툴팁 검증 씬 |
+| `MouseManager.cs` | 중앙 매니저(싱글톤). 모드 관리·레이캐스트·통지 |
+| `ISelectable.cs` / `IGroupSelectable.cs` / `IHoverable.cs` | 단일 선택 / 그룹 선택 / 호버 자격 |
+| `PlacementRequest.cs` / `SkillTargetRequest.cs` | 배치 · 스킬 조준 요청 데이터 |
+| `TowerInfoUI.cs` | 타워 정보 패널(임시 싱글톤, UIManager 도입 시 흡수) |
+| `TowerPlacement/` | 타워 배치·합성 — [TowerPlacement.md](TowerPlacement.md), [TowerMerge.md](TowerMerge.md) |
+| `Highlight/` | 아웃라인 구동 — [InteractionOutline.md](InteractionOutline.md) |
+| `../MouseHover/` | 툴팁 뷰와 `IHoverable` 어댑터 |
+| `Helper/` | 검증용 테스트 컴포넌트(실물로 교체 예정) |
 
-- **레이어**: `Ground`(배치 표면), `Selectable`(선택 후보)
-- **프리팹**: `Ghost`(고스트, Collider 없음), `TestTower`(배치물, Collider + `SelectableTest`)
-- **씬**: `Assets/Personal/n0wst4ndup/MouseManager/scenes/MouseEventTest.unity`
-- ※ `Helper/*`, `Ghost`/`TestTower`, 테스트 씬은 **검증용**이다. 실제 게임 배치물·빌드 패널로 교체 예정.
-
-## 8. 미확정 / TODO
-
-- [x] **호버 하이라이트**: **구현됨(#67)** — `IHoverable`에 `OnHoverEnter()`/`OnHoverExit()` 추가,
-      `MouseManager.SetHover`가 대상 전환 시 호출(`_hovered?.OnHoverExit()` → 재할당 →
-      `_hovered?.OnHoverEnter()`). 첫 구현체: `TerritoryNodeView`(영토 확장 가능 노드 호버 시 색
-      변경, 벗어나면 원래 색 복귀 — `Assets/Scripts/ManagementSpace/Territory/View`). 건물
-      쪽(`BuildingTooltipSource`)은 훅만 만족(빈 구현), 실제 하이라이트 연출은 후속.
-- [~] **유효/무효 표시, 선택 표시**: 스킬 인디케이터는 전투 타일 위 어디서나 시전 가능해지며 유효/무효(빨강) 색 구분을
-      제거했다(전투 타일 밖에서는 여전히 숨김, §4.5). 배치(Placement) 고스트의 유효/무효 표시와
-      선택된 오브젝트 표시는 여전히 미구현
-- [ ] **그리드 스냅**: `Snap()`이 현재 좌표를 그대로 반환 → 그리드 좌표계·셀 크기 확정 후 스냅 구현
-- [ ] **배치 가능 셀 검사**: `CanPlaceAt`이 항상 `true` → 점유 여부·빌드 가능 영역 검사 연동
-- [ ] **선택 대상 탐색**: 콜라이더가 자식/부모에 있을 때 `GetComponentInParent` 등 탐색 규칙
-- [ ] **카메라**: 경영/전투가 카메라를 분리하면 `_camera` 단일 참조를 커서 밑 카메라 기준으로 재검토
-- [ ] **데이터 연동**: `TowerInfoUI`가 문자열 대신 실제 타워/건물 데이터 객체를 받아 표시
-
-## 9. 참고
-
-- 신규 Input System 매뉴얼: https://docs.unity3d.com/Packages/com.unity.inputsystem@latest
-- GDD 관련 시스템: `Docs/GDD.md` §5.2(타워 배치) · §5.4(병사 배치) · §5.5(스킬, #103에서 구현 완료)
+- 레이어: `Ground`(배치 표면), `Selectable`(선택 후보)
+- 테스트 씬: `Assets/Personal/n0wst4ndup/MouseManager/scenes/MouseEventTest.unity`
