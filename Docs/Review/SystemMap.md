@@ -189,11 +189,15 @@
   대상 탐색·쿨다운·스탯 골격은 `AttackBehaviour`와 같고 `TryAttack`만 다르다(공통 기반 클래스 없음 —
   Buff/DebuffAura와 같은 관례로 규칙은 static 헬퍼가, 골격은 각자 소유)
 - `ChainResolver.Resolve(firstTarget, damage, source, chainRadius, maxTargets, damageFalloff, enemyMask, outPath = null)`
-  (`static`, `NorthLand.Combat`, #252) — **체인 명중 규칙의 단일 출처(명중 축).** 전달 방식(투사체/히트스캔)을 모른다.
+  (`NorthLand.Combat`, #252) — **체인 명중 규칙의 단일 출처(명중 축).** 전달 방식(투사체/히트스캔)을 모른다.
   최초 대상부터 최대 `maxTargets`명까지 튕기며 홉마다 `damageFalloff`를 누적 곱하고, `outPath`에 **실제 피해를 입은
   대상의 좌표를 타격 순서대로** 채운다. ⚠️ **표시부는 경로를 재계산하지 말고 이 반환값을 쓸 것** — 재계산하면
   "선은 3명을 잇는데 데미지는 4명"이 생긴다(`AuraModifiers`를 뽑은 것과 같은 이유). 좌표는 데미지보다 **먼저** 읽는다
-  (풀링 도입 후 사망 즉시 비활성화되는 대상 대비). `maxTargets`에 `Max(n,1)` 하한 — 미저작 SO(0)에서도 1발은 성립
+  (풀링 도입 후 사망 즉시 비활성화되는 대상 대비). `maxTargets`에 `Max(n,1)` 하한 — 미저작 SO(0)에서도 1발은 성립.
+  ⚠️ **static이 아니라 소유자(타워)마다 하나씩 두는 인스턴스다** — 순회 상태(중복 방지 집합)를 공유하면, 명중 통지
+  구독자가 같은 콜스택에서 다른 타워를 발사시킬 때 진행 중인 순회가 오염돼 같은 적을 두 번 때리거나 두 적 사이를
+  왕복한다(에러 없이 데미지 분포만 틀어져 재현이 어렵다). 같은 이유로 **통지(`RaiseDamageDealt`)는 홉 순회 중이
+  아니라 종료 후 인덱스 순회로 발행한다** — 순회 중 남는 외부 호출은 `TakeDamage`(→`OnHpChanged`/`Die`) 하나뿐이다
 - `ChainBeamVisual.Spawn(prefab, origin, path, lifetime, fallbackColor)`(`static`, `NorthLand.Combat`, #252) —
   체인 홉 경로를 잇는 짧은 수명 `LineRenderer` 빔. **순수 사후 표시**로 데미지·명중과 인과가 없다. 좌표를
   **스냅샷으로 고정**하고 대상을 추적하지 않는다(순간 판정이라 자연스럽고, 홉 대상이 연출 중 죽어도 파괴된
