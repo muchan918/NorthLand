@@ -64,6 +64,7 @@ public class TowerAsset : ScriptableObject
     public class ChainFields
     {
         // 체인은 히트스캔(빔)이라 Attack.ProjectilePrefab/ProjectileSpeed를 사용하지 않는다(#252). AttackFields를 계속 공유하는 이유는 AttackDamage/Range/Interval이 전달 방식과 무관하고, TowerBehaviourFactory.ResolveAttackFields가 그 세 값의 단일 출처이기 때문(WL-079).
+        // Attack.OnHitStunDuration도 사용하지 않는다 — **체인은 스턴·화상을 받지 않는 것으로 확정**(#252). 번개 테마상 발화·기절이 성립하지 않고, 1발에 최대 MaxChainTargets명을 때려 CC/DoT 처리량이 단일 타격 기준 튜닝을 무너뜨린다. 지원하려면 ChainResolver.Resolve에 지속시간 파라미터를 더해 홉마다 부여하는 형태여야 하며 기획 결정이 선행한다. 화상 제외는 BurnBuff가 Has<AttackBehaviour>()로 거른다.
         public AttackFields Attack;
         public GameObject BeamPrefab;   // 빔 연출 프리팹(LineRenderer 저작용). null이면 코드가 런타임에 기본 빔을 생성 — 아트 머티리얼을 기다리지 않고 검증할 수 있게 한 폴백.
         public float ChainRadius;

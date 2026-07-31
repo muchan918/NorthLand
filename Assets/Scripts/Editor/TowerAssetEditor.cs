@@ -1,5 +1,6 @@
 using UnityEditor;
 using UnityEngine;
+using NorthLand.Combat;
 
 [CustomEditor(typeof(TowerAsset))]
 public class TowerAssetEditor : Editor
@@ -22,6 +23,18 @@ public class TowerAssetEditor : Editor
         // TowerType/MagicEffectType이 명시적 값 없이 선언 순서 그대로라 (int)value와 일치하지만,
         // 선언 순서가 바뀌거나 명시적 값이 추가되면 더 이상 일치하지 않으니 주의.
         var type = (TowerType)towerTypeProp.enumValueIndex;
+
+        // OnHitStunDuration은 단일 타격에서만 소비된다(Projectile.OnHit의 default 분기). Area는 스플래시
+        // 경로라 도달하지 않고, Chain은 투사체를 거치지 않는다 — 체인의 CC 미지원은 확정된 결정이다(#252).
+        // 값이 실제로 들어갔을 때만 경고한다: 항상 떠 있는 안내문은 읽히지 않고, 저작 실수만 잡으면 된다.
+        TowerAsset.AttackFields attack = TowerBehaviourFactory.ResolveAttackFields((TowerAsset)target);
+        if (type != TowerType.Single && attack != null && attack.OnHitStunDuration > 0f)
+        {
+            EditorGUILayout.HelpBox(
+                "OnHitStunDuration은 단일 타격 타워에서만 동작합니다 — 이 타입에서는 무시됩니다.",
+                MessageType.Warning);
+        }
+
         switch (type)
         {
             case TowerType.Single:
