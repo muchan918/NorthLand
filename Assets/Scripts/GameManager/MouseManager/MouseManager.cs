@@ -145,6 +145,19 @@ public class MouseManager : MonoBehaviour
         _camera = cam;
     }
 
+    /// **모드 전환의 유일한 창구.** `_mode`에 직접 대입하지 말 것.
+    ///
+    /// BoxSelect를 벗어날 때 종료 통지(`OnBoxSelectEnd`)를 반드시 1회 발행하기 위한 이음매다. 예전에는
+    /// `ResetGesture`가 그 역할을 했는데, `CancelPlacement`/`CancelSkillTargeting`이 `_mode = Idle`을 **먼저**
+    /// 대입해 버려서 뒤따르는 `ResetGesture`의 `_mode == BoxSelect` 검사가 항상 거짓이었다(WL-143).
+    /// 그러면 구독자의 유예 플래그가 켜진 채 남아 우측 패널이 영구 정지한다. 전환 지점을 여기 하나로 모으면
+    /// 호출 순서와 무관하게 통지가 보장된다 — `PhasePanelSwitcher`처럼 Cancel을 직접 부르는 경로도 포함.
+    private void SetMode(Mode next)
+    {
+        if (_mode == Mode.BoxSelect && next != Mode.BoxSelect) ExitBoxSelect();
+        _mode = next;
+    }
+
     // ── 외부 진입점 ────────────────────────────────────────────────
     public void BeginPlacement(PlacementRequest request)
     {
@@ -155,7 +168,7 @@ public class MouseManager : MonoBehaviour
         ClearSelection(); // 고스트를 드는 순간 이전 선택의 잔재(사거리 원·초록 아웃라인·인포/합성 패널)를 전부 내린다(WL-086)
         _request = request;
         _ghost = Instantiate(request.GhostPrefab);
-        _mode = Mode.Placement;
+        SetMode(Mode.Placement);
     }
 
     public void CancelPlacement()
@@ -164,7 +177,7 @@ public class MouseManager : MonoBehaviour
         if (_ghost != null) Destroy(_ghost);
         _ghost = null;
         _request = null;
-        _mode = Mode.Idle;
+        SetMode(Mode.Idle);
     }
 
     // 스킬 타겟팅(#103): 그리드 스냅·점유 검증이 필요 없는 PlacementRequest의 경량 버전.
@@ -177,7 +190,7 @@ public class MouseManager : MonoBehaviour
         ClearHover(); // 타겟팅 중에는 툴팁을 띄우지 않는다
         _skillRequest = request;
         _ghost = Instantiate(request.GhostPrefab);
-        _mode = Mode.SkillTargeting;
+        SetMode(Mode.SkillTargeting);
     }
 
     public void CancelSkillTargeting()
@@ -186,7 +199,7 @@ public class MouseManager : MonoBehaviour
         if (_ghost != null) Destroy(_ghost);
         _ghost = null;
         _skillRequest = null;
-        _mode = Mode.Idle;
+        SetMode(Mode.Idle);
     }
 
     // ── Idle: 선택 (요구사항 ②) ────────────────────────────────────
@@ -198,6 +211,7 @@ public class MouseManager : MonoBehaviour
         // (우클릭은 카메라 드래그·조준 취소와 이미 이중 점유라 해제에 쓰지 않는다 — WL-073)
         if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {
+            ResetGesture(); // Esc = 진행 중 제스처 폐기. 안 버리면 버튼을 뗄 때 클릭이 한 번 더 확정된다(WL-144)
             ClearSelection();
             return;
         }
@@ -210,7 +224,11 @@ public class MouseManager : MonoBehaviour
             _pressActive = !overUI; // UI 위에서 시작한 제스처는 채택하지 않는다
             _pressScreenPos = screenPos;
             _pressAdditive = IsAdditivePressed();
-            return;
+
+            // 같은 프레임에 뗌까지 함께 보고되는 경우(저프레임·히칭)를 여기서 소화한다. 그냥 return하면
+            // 다음 프레임엔 wasReleasedThisFrame이 false·isPressed도 false라 아래 방어가 제스처를 버려
+            // **클릭이 통째로 유실된다**(WL-144). 이동 거리가 0이므로 판정은 자동으로 클릭이다.
+            if (!left.wasReleasedThisFrame) return;
         }
 
         if (!_pressActive) return;
@@ -279,17 +297,14 @@ public class MouseManager : MonoBehaviour
     }
 
     /// 진행 중인 좌클릭 제스처를 버린다. 배치·조준으로 모드가 바뀌거나 씬이 갈릴 때, 누른 상태만 남아
-    /// 돌아온 뒤 엉뚱한 클릭으로 확정되는 것을 막는다. 드래그가 진행 중이었다면 함께 끝낸다.
-    private void ResetGesture()
-    {
-        _pressActive = false;
-        if (_mode == Mode.BoxSelect) EndBoxSelect();
-    }
+    /// 돌아온 뒤 엉뚱한 클릭으로 확정되는 것을 막는다.
+    /// (드래그 중이었다면 모드 이탈은 `SetMode`가 책임진다 — 여기서 중복 처리하지 않는다)
+    private void ResetGesture() => _pressActive = false;
 
     // ── BoxSelect: 드래그 사각형 선택 (#261) ───────────────────────
     private void BeginBoxSelect(Vector2 screenPos)
     {
-        _mode = Mode.BoxSelect;
+        SetMode(Mode.BoxSelect);
         _pressActive = false;
         _boxAnchor = _pressScreenPos;   // 앵커는 커서가 아니라 **누른 지점**이다
         _boxAdditive = _pressAdditive;
@@ -323,12 +338,17 @@ public class MouseManager : MonoBehaviour
 
         if (RefreshBoxHits()) OnBoxSelectUpdate?.Invoke(_boxTargets);
 
-        if (Mouse.current.leftButton.wasReleasedThisFrame) EndBoxSelect();
+        // wasReleasedThisFrame이 아니라 isPressed로 판정한다. 포커스 상실·디바이스 리셋 등으로 뗀 프레임을
+        // 놓치면 이 모드에 **영구 고착**되고, 그러면 UpdateIdle이 아예 돌지 않아 모든 클릭·호버가 죽는다.
+        // 상태를 보고 나가면 뗀 순간을 놓쳐도 다음 프레임에 반드시 빠져나온다(WL-143).
+        if (!Mouse.current.leftButton.isPressed) EndBoxSelect();
     }
 
-    private void EndBoxSelect()
+    private void EndBoxSelect() => SetMode(Mode.Idle); // 정리·통지는 SetMode → ExitBoxSelect가 맡는다
+
+    /// BoxSelect를 벗어날 때의 정리·통지. **`SetMode`만 호출한다**(직접 부르면 모드가 어긋난다).
+    private void ExitBoxSelect()
     {
-        _mode = Mode.Idle;
         BoxSelectScreenRect = default;
         _boxHits.Clear();
         _boxTargets.Clear();

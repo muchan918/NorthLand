@@ -28,6 +28,12 @@ public static class GroupSelectableRegistry
 
     private static readonly List<Entry> _entries = new();
 
+    /// 플레이 세션 시작마다 비운다. 지금은 도메인 리로드가 켜져 있어(`EditorSettings.m_EnterPlayModeOptions: 0`)
+    /// static이 자동 초기화되지만, 팀이 "Enter Play Mode without domain reload"를 켜는 순간 이전 세션의
+    /// 죽은 항목이 그대로 남는다 — 그 설정 변경에 무료로 대비하는 한 줄이다.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics() => _entries.Clear();
+
     /// 등록 순서대로의 후보 목록. **선택 순서와는 무관하다** — 사각형에 들어온 순서는 소비처가 따로 쌓는다.
     /// 순회 중 Anchor가 파괴된 항목(Unity 가짜 null)이 있을 수 있으므로 소비처가 건너뛴다.
     public static IReadOnlyList<Entry> Entries => _entries;

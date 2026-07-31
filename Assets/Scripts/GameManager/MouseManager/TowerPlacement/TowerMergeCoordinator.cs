@@ -248,7 +248,15 @@ public class TowerMergeCoordinator : MonoBehaviour
         if (!IsDay || !_boxDragging) return;
 
         _dragResult.Clear();
-        _dragResult.AddRange(_dragBase);
+
+        // 기준 집합은 드래그 **시작 시점**의 사본이라 그새 사라진 타워(합성 소모·철거·사망)가 섞일 수 있다.
+        // 그대로 되넣으면 (1) Prune이 방금 지운 타워가 되살아나고 (2) TowerMergeGroup.SameAs가 정규화 전
+        // 리스트와 비교하는 탓에 매 갱신마다 OnChanged가 헛발행된다(WL-145). 판정 출처는 HandleActiveChanged와 동일.
+        foreach (var t in _dragBase)
+        {
+            if (t == null || !Tower.Active.Contains(t)) continue;
+            _dragResult.Add(t);
+        }
 
         for (int i = 0; i < hits.Count; i++)
         {
