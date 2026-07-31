@@ -36,6 +36,14 @@ public class TowerMergeCoordinator : MonoBehaviour
     // 나중의 Select(null)도 그 타워의 OnDeselected를 부르지 못하기 때문.
     private Tower _infoShownFor;
 
+    // ── 드래그 사각형 선택(#261) ──────────────────────────────────────
+    // 드래그 중에는 하이라이트만 실시간으로 따라가고 **패널 갱신은 유예**한다. 사각형을 넓히다가 2개를
+    // 넘나들면 합성 패널이 열렸다 닫혔다 하고, 후보 버튼을 매 프레임 재생성해 GC까지 튄다.
+    // 유예분은 드래그 종료 시 한 번에 처리한다.
+    private bool _boxDragging;
+    private readonly List<Tower> _dragBase = new();   // 드래그 시작 시점의 기준 집합(Shift면 유지, 아니면 빈 집합)
+    private readonly List<Tower> _dragResult = new(); // 기준 + 사각형 내용, 매 갱신마다 재구성
+
     // ── 파사드 (패널 뷰가 쓰는 것) ────────────────────────────────────
     public IReadOnlyList<Tower> SelectedTowers => _group.Towers;
     /// 선택 집합이 바뀔 때 발행(패널 뷰가 구독해 리스트·후보 버튼을 갱신).
@@ -149,6 +157,9 @@ public class TowerMergeCoordinator : MonoBehaviour
         {
             mm.OnPrimarySelect += HandlePrimarySelect;
             mm.OnGroupSelectToggled += HandleGroupToggle;
+            mm.OnBoxSelectBegin += HandleBoxSelectBegin;
+            mm.OnBoxSelectUpdate += HandleBoxSelectUpdate;
+            mm.OnBoxSelectEnd += HandleBoxSelectEnd;
         }
         else
         {
@@ -177,6 +188,9 @@ public class TowerMergeCoordinator : MonoBehaviour
         {
             mm.OnPrimarySelect -= HandlePrimarySelect;
             mm.OnGroupSelectToggled -= HandleGroupToggle;
+            mm.OnBoxSelectBegin -= HandleBoxSelectBegin;
+            mm.OnBoxSelectUpdate -= HandleBoxSelectUpdate;
+            mm.OnBoxSelectEnd -= HandleBoxSelectEnd;
         }
 
         if (DayNightManager.Instance != null)
@@ -216,6 +230,58 @@ public class TowerMergeCoordinator : MonoBehaviour
         }
     }
 
+    // ── 드래그 사각형 선택(#261) ──────────────────────────────────────
+    // 시작: 기준 집합을 스냅샷한다. Shift면 기존 집합을 유지한 채 합집합으로 더하고(추가), 아니면 교체다.
+    // Shift 클릭이 **토글**인 것과 달리 Shift 드래그는 **합집합**이다(의도된 비대칭, 명세 §4.1).
+    private void HandleBoxSelectBegin(bool additive)
+    {
+        if (!IsDay) return;
+
+        _boxDragging = true;
+        _dragBase.Clear();
+        if (additive) _dragBase.AddRange(_group.Towers);
+    }
+
+    // 갱신: 기준 + 사각형 내용(들어온 순서)으로 집합을 원자 교체. 안 바뀐 프레임은 SetAll이 no-op으로 흡수한다.
+    private void HandleBoxSelectUpdate(IReadOnlyList<IGroupSelectable> hits)
+    {
+        if (!IsDay || !_boxDragging) return;
+
+        _dragResult.Clear();
+
+        // 기준 집합은 드래그 **시작 시점**의 사본이라 그새 사라진 타워(합성 소모·철거·사망)가 섞일 수 있다.
+        // 그대로 되넣으면 (1) Prune이 방금 지운 타워가 되살아나고 (2) TowerMergeGroup.SameAs가 정규화 전
+        // 리스트와 비교하는 탓에 매 갱신마다 OnChanged가 헛발행된다(WL-145). 판정 출처는 HandleActiveChanged와 동일.
+        foreach (var t in _dragBase)
+        {
+            if (t == null || !Tower.Active.Contains(t)) continue;
+            _dragResult.Add(t);
+        }
+
+        for (int i = 0; i < hits.Count; i++)
+        {
+            // 마커는 도메인 중립이라 타워 해석은 여기서 한다(Shift 토글 경로와 같은 규칙).
+            Tower t = hits[i] is TowerGroupSelectable tgs ? tgs.Tower : null;
+            if (t == null || _dragResult.Contains(t)) continue;
+            _dragResult.Add(t);
+        }
+
+        _group.SetAll(_dragResult);
+    }
+
+    // 종료: 유예했던 패널·후보 버튼 갱신을 여기서 한 번 처리한다.
+    private void HandleBoxSelectEnd()
+    {
+        if (!_boxDragging) return;
+
+        _boxDragging = false;
+        _dragBase.Clear();
+        _dragResult.Clear();
+
+        RefreshPanel();
+        OnGroupChanged?.Invoke();
+    }
+
     // 밤 진입: 선택 집합만 리셋. 진행 중 배치 취소(F5)는 페이즈 취소 책임 일원화로 PhasePanelSwitcher.ShowNight가
     // 담당한다(낮 진입 스킬 조준 취소와 대칭) — 코디네이터는 전역 CancelPlacement를 더 이상 호출하지 않는다.
     private void HandleDayToNight()
@@ -223,6 +289,10 @@ public class TowerMergeCoordinator : MonoBehaviour
         // 밤 진입 시 진행 중 배치는 PhasePanelSwitcher.ShowNight가 취소한다 → 그 경로로도 EndMergeCommit이
         // 오지만, 구독 순서(어느 쪽이 먼저 도는지)에 기대지 않도록 여기서 잠금을 직접 푼다.
         _previewCommitted = false;
+        // 드래그 도중 밤이 되면 이후 통지가 IsDay 게이팅에 막혀 종료 신호를 못 받는다 → 유예 상태를 직접 푼다.
+        _boxDragging = false;
+        _dragBase.Clear();
+        _dragResult.Clear();
         ClearMergePreview(); // 패널이 닫히면 OnPointerExit가 오지 않을 수 있다
         _group.Clear();
     }
@@ -236,7 +306,10 @@ public class TowerMergeCoordinator : MonoBehaviour
     private void HandleGroupChanged()
     {
         ClearMergePreview(); // 집합이 바뀌면 프리뷰의 근거(소모 대상)가 사라진다
-        RefreshHighlight();
+        RefreshHighlight();  // 하이라이트는 드래그 중에도 실시간 — 지금 무엇이 잡히는지가 보여야 한다
+
+        if (_boxDragging) return; // 패널·후보 버튼은 유예, 드래그 종료 시 한 번에(HandleBoxSelectEnd)
+
         RefreshPanel();
         OnGroupChanged?.Invoke();
     }

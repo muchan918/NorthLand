@@ -153,7 +153,7 @@
 이름·설명을 `LocalizationHelper.Get(k_TerritoriesTable, DisplayNameKey/DescriptionKey)`로 동기 pull해
 `TooltipContent`로 반환한다(`BuildingTooltipSource` 계보) — 정의가 없는 노드(본진·미할당)는 `null` 반환으로
 툴팁 없음. 키는 정의의 `_id`에서 `territories.{id}.name/.desc`로 파생(스트링 테이블 `NorthLand_Territories`).
-색 하이라이트는 `OnHoverEnter`/`OnHoverExit`(`MouseManager.md` §8)가 별도로 Selectable 노드만 담당 |
+색 하이라이트는 `IHoverable.OnHoverEnter`/`OnHoverExit` 훅(`MouseManager.md` §4·§8, 연출은 `InteractionOutline.md` §5.4)이 별도로 Selectable 노드만 담당 |
 | **자원 수급** | 확보(Owned) 영지가 **매일 정산마다** 자기 자원(`Definition.Kind`)을 `DailyYield`만큼 `ResourceWallet.Add`로 지급(#166) — 주민 배치 무관한 자동 수급(GDD §3.2·계약 #3). **확보 즉시 지급·주민 획득·생산 배율 효과는 모두 제거됨**(구 효과 SO 계층 폐기, §5). 정산 주체는 `ManagementController.HandleNightToDay`(`OnNightToDay`) |
 | **낮/밤** | 확장은 **낮 행동**(GDD §5.1). `TerritoryController`가 `DayNightManager.OnDayStart`를 구독해 `HasExpandedToday`를 매 낮 시작마다 초기화하고, `TryClaim`에서 하루 1회로 게이팅한다(이슈 #67). 확장을 마쳐야(`HasExpandedToday == true`) `ManagementController`의 주민 배치가 열린다(§6.1 연동, 아래 참고). 밤 잠금·자원 비용 게이팅은 여전히 TBD(§8) |
 | **공간 분리** | 경영 공간 전용. 전투 그리드(BattleMapBuilder)·좌표계와 **무관**(팀 계약 #4 — 한쪽 확장이 다른 쪽 상태에 의존 금지) |

@@ -20,7 +20,7 @@
 > - `Assets/Settings/PC_Renderer.asset` · `Assets/Settings/Mobile_Renderer.asset` — (**적용 완료**) 아웃라인 렌더러 피처 추가 + `OutlineShell`을 **Opaque·Transparent·Prepass 세 마스크 모두에서** 제외, PC/Mobile 동일
 > - `ProjectSettings/TagManager.asset` — (**적용 완료**) `OutlineShell` 레이어(12) 신설
 > **관련**: #148(전역 비주얼 룩 파이프라인 — 툰 셰이더), #138(경영 공간 건물 시인성), #67(호버 훅), #183/#192/#210, WL-076b·WL-085·WL-087
-> **참조**: `Docs/Core/MouseManager.md` §8, `Docs/Core/TowerMerge.md` §8.4, `Docs/Review/SystemMap.md`, `Docs/Tools/unity-cli-guide.md`
+> **참조**: `Docs/Core/MouseManager.md`, `Docs/Core/TowerMerge.md` §8.4, `Docs/Review/SystemMap.md`, `Docs/Tools/unity-cli-guide.md`
 > **문서 계약**: 코드가 이 명세와 어긋나면 문서를 갱신한다(팀 계약 #7). 공개 API·계약이 바뀌는 PR은 SystemMap을 같은 PR에서 갱신한다.
 
 ---
@@ -33,7 +33,7 @@
 
 ## 1. 목적 / 범위
 
-**목적**: "지금 무엇에 커서가 있고, 무엇이 선택돼 있고, 이 버튼을 누르면 무엇이 소모되는가"를 월드에서 즉시 읽히게 한다. `Docs/Core/MouseManager.md` §8의 "호버 하이라이트 연출" 잔여분(#67에서 훅만 만들고 연출을 미룬 부분)과 `Docs/Core/TowerMerge.md` §8.4 "선택 타워 월드 하이라이트(아트 TBD)"를 아웃라인으로 확정한다.
+**목적**: "지금 무엇에 커서가 있고, 무엇이 선택돼 있고, 이 버튼을 누르면 무엇이 소모되는가"를 월드에서 즉시 읽히게 한다. `MouseManager`의 호버 훅(`IHoverable.OnHoverEnter`/`OnHoverExit`)에 남아 있던 "하이라이트 연출" 잔여분(#67에서 훅만 만들고 연출을 미룬 부분)과 `Docs/Core/TowerMerge.md` §8.4 "선택 타워 월드 하이라이트(아트 TBD)"를 아웃라인으로 확정한다.
 
 **In**
 - 호버 노랑: 건물(`BuildingTooltipSource`), 배치된 타워, 영지 노드의 **확보 후 섬/산**
@@ -463,7 +463,8 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 - [x] 임시 색 3종을 한 곳에서 변경 가능 → §3.3
 - [ ] PC/Mobile URP 양쪽에서 보임 → PC(Deferred) 확인, **Mobile 미확인(T9)**
 - [x] 런타임 생성물 누수 없음(이 설계에서는 파괴 대상이 없음을 주석으로 명시) → §8
-- [ ] `Docs/Core/MouseManager.md` §8 · `Docs/Core/TowerMerge.md` §8.4 갱신 + `Docs/Review/SystemMap.md` 반영
+- [x] `Docs/Core/MouseManager.md` 갱신 → #261 문서 개편에서 그룹 선택(#183)·아웃라인 위임 반영 완료
+- [ ] `Docs/Core/TowerMerge.md` §8.4 갱신 + `Docs/Review/SystemMap.md` 반영
 - [ ] #138(건물 시인성) 범위 정리 — 이 이슈의 호버 노랑이 #138 후보 중 하나를 실질적으로 구현한다. #138을 닫거나 "버튼 UI"로 좁힌다
 
 ---
