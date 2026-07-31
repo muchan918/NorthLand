@@ -36,12 +36,21 @@ namespace NorthLand.Combat
             {
                 case TowerType.Single:
                 case TowerType.Area:
-                case TowerType.Chain:
                     // 공격 스탯이 비어 있으면 행동을 붙이지 않는다 — 무동작 컴포넌트를 남기지 않고
-                    // "이 타워는 공격하지 않는다"가 Has<AttackBehaviour>() 한 번으로 드러나게 한다.
+                    // "이 타워는 공격하지 않는다"가 Has<IAttackBehaviour>() 한 번으로 드러나게 한다.
                     if (ResolveAttackFields(asset) != null)
                     {
                         result.Add(GetOrAdd<AttackBehaviour>(host));
+                    }
+                    break;
+
+                case TowerType.Chain:
+                    // 체인만 전달 방식이 다르다(히트스캔). 발사와 명중이 같은 프레임에 끝나 "비행 중 첫 대상
+                    // 사망"으로 홉 전체를 잃는 경로가 사라진다(#252). 명중 규칙은 ChainResolver를 공유하므로
+                    // 투사체 경로와 체인 계산이 갈리지 않는다.
+                    if (ResolveAttackFields(asset) != null)
+                    {
+                        result.Add(GetOrAdd<HitscanAttackBehaviour>(host));
                     }
                     break;
 

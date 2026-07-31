@@ -13,11 +13,15 @@ MonoBehaviour:
   m_Name: lightning_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
   TowerID: lightning_tower
-  TowerPrefab: {fileID: 0}
-  GhostPrefab: {fileID: 0}
+  TowerPrefab: {fileID: 6801833135963741600, guid: a025b9ffbf42aa741a4e0c5700732242, type: 3}
+  GhostPrefab: {fileID: 6801833135963741600, guid: 82f5d9bbc7cb29245b07a1c94a021790, type: 3}
   TowerType: 2
   MagicEffectType: 0
-  Cost: []
+  Cost:
+  - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
+    Amount: 30
+  - Resource: {fileID: 11400000, guid: 89825fd4ccdc8c0479da28304786292e, type: 2}
+    Amount: 10
   Single:
     Attack:
       AttackDamage: 0
@@ -25,6 +29,7 @@ MonoBehaviour:
       AttackInterval: 0
       ProjectilePrefab: {fileID: 0}
       ProjectileSpeed: 0
+      OnHitStunDuration: 0
   Area:
     Attack:
       AttackDamage: 0
@@ -32,17 +37,20 @@ MonoBehaviour:
       AttackInterval: 0
       ProjectilePrefab: {fileID: 0}
       ProjectileSpeed: 0
+      OnHitStunDuration: 0
     SplashRadius: 0
   Chain:
     Attack:
-      AttackDamage: 0
-      AttackRange: 0
-      AttackInterval: 0
+      AttackDamage: 30
+      AttackRange: 40
+      AttackInterval: 2
       ProjectilePrefab: {fileID: 0}
       ProjectileSpeed: 0
-    ChainRadius: 0
-    MaxChainTargets: 0
-    ChainDamageFalloff: 0
+      OnHitStunDuration: 0
+    BeamPrefab: {fileID: 0}
+    ChainRadius: 30
+    MaxChainTargets: 4
+    ChainDamageFalloff: 0.75
   Magic:
     BuffAura:
       Radius: 0

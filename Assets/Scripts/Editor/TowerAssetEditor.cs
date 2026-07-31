@@ -31,6 +31,13 @@ public class TowerAssetEditor : Editor
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("Area"), true);
                 break;
             case TowerType.Chain:
+                // 체인은 히트스캔이라 Attack 하위의 투사체 필드가 무의미하다. 잎 필드를 개별 렌더링해
+                // 감추는 대신 안내로 해결한다 — ChainFields에 필드가 늘 때마다 에디터를 함께 고쳐야 하는
+                // 유지보수 지점을 만들지 않기 위함(#252). MagicEffectType.None의 HelpBox와 같은 패턴.
+                EditorGUILayout.HelpBox(
+                    "체인 타워는 히트스캔(빔)입니다 — ProjectilePrefab / ProjectileSpeed는 비워두세요.\n" +
+                    "빔 연출은 BeamPrefab을 사용하며, 비워두면 코드가 기본 빔을 생성합니다.",
+                    MessageType.Info);
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("Chain"), true);
                 break;
             case TowerType.Magic:

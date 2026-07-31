@@ -68,9 +68,11 @@ public static class EnemyNodeQuery
     //
     // 이 판정이 지키는 설계 의도: **"봉인 중에도 감속은 살아남아 P1 파훼 수단이 유지된다."**
     // 감속 타워가 봉인 대상에 들어가면 그 의도가 깨진다 — `Docs/Monster/Boss/TankGraphSpec.md` 참고.
+    // 판정은 구상 클래스가 아니라 인터페이스로 한다 — 전달 방식이 다른 공격 타워(히트스캔=체인)가
+    // 봉인 대상에서 조용히 빠지면, "공격 타워를 봉인한다"는 의도가 타워 종류에 따라 갈린다(#252).
     public static bool IsAttackTower(Tower tower)
     {
-        return tower != null && tower.Has<AttackBehaviour>();
+        return tower != null && tower.Has<IAttackBehaviour>();
     }
 
     // 진행 방향 기준 앞뒤 판정. y를 버리고 수평면에서만 본다 —

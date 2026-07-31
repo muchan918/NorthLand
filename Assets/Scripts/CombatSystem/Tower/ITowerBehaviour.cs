@@ -64,4 +64,21 @@ namespace NorthLand.Combat
         /// 예전에는 Tower와 AuraTower가 각자 자기 버전의 스탯 텍스트를 조립했다(WL-079).
         string DescribeStats();
     }
+
+    // 공격 능력을 가진 행동의 공통 계약. **전달 방식**(투사체=AttackBehaviour / 히트스캔=HitscanAttackBehaviour)이
+    // 달라도 "이 타워는 공격하는가"를 묻는 소비처는 구현체를 알 필요가 없다(#252).
+    //
+    // 이 인터페이스 없이 구상 클래스로 능력을 판정하면, 전달 방식을 하나 늘릴 때마다 판정하는 모든 곳이
+    // 조용히 그 타워를 제외한다 — 버프 오라 대상 선정, 보스 마력 봉인 대상 선정, Tower의 IAttacker 4개가
+    // 전부 그 대상이었다. 컴파일 에러가 아니라 "버프가 안 걸리는 타워"로 나타나므로 발견이 늦다.
+    public interface IAttackBehaviour : ITowerBehaviour
+    {
+        float Damage { get; }
+
+        float Range { get; }
+
+        float Interval { get; }
+
+        bool TryAttack(IDamageable target);
+    }
 }

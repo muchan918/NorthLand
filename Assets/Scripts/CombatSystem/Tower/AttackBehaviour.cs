@@ -8,7 +8,7 @@ namespace NorthLand.Combat
     // 런타임 AddComponent로 붙으므로 직렬화 필드가 없다. 모든 값은 TowerBuildContext로 주입받는다.
     [AddComponentMenu("")]   // 런타임 조립 전용 — Add Component 메뉴에 노출하지 않는다
     [DisallowMultipleComponent]
-    public sealed class AttackBehaviour : MonoBehaviour, ITowerBehaviour
+    public sealed class AttackBehaviour : MonoBehaviour, IAttackBehaviour
     {
         Tower owner;
         TowerAsset.AttackFields fields;
@@ -101,11 +101,7 @@ namespace NorthLand.Combat
                 case TowerType.Area:
                     result = ProjectileImpact.MakeArea(asset.Area.SplashRadius, enemyLayerMask);
                     break;
-                case TowerType.Chain:
-                    TowerAsset.ChainFields chain = asset.Chain;
-                    result = ProjectileImpact.MakeChain(
-                        chain.ChainRadius, chain.MaxChainTargets, chain.ChainDamageFalloff, enemyLayerMask);
-                    break;
+                // Chain은 여기 없다 — 히트스캔으로 전달되므로 이 행동이 조립되지 않는다(#252).
                 default:
                     result = ProjectileImpact.MakeSingle();
                     break;

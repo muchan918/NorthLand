@@ -33,7 +33,10 @@ namespace NorthLand.Combat
         bool built;
 
         /// 이 타워가 해당 행동을 가지는지. 소비처가 타워의 **구상 타입**이 아니라 **능력**을 묻게 하는 창구다
-        /// (예: 보스 마력 봉인은 `Has&lt;AttackBehaviour&gt;()`인 타워만 대상으로 한다).
+        /// (예: 보스 마력 봉인은 `Has&lt;IAttackBehaviour&gt;()`인 타워만 대상으로 한다).
+        ///
+        /// 능력을 물을 때는 구상 클래스가 아니라 **인터페이스**를 쓸 것 — `AttackBehaviour`로 물으면
+        /// 히트스캔 타워가 조용히 빠진다(#252).
         public bool Has<T>() where T : class, ITowerBehaviour
         {
             for (int i = 0; i < behaviours.Count; i++)
@@ -319,11 +322,11 @@ namespace NorthLand.Combat
         // ── IAttacker 계약 ────────────────────────────────────────────────
         // 값은 공격 행동이 소유한다(기본값=SO, modifier=원장). 이 타워가 공격하지 않으면 전부 0 —
         // "공격 스탯이 없는 타워"라는 상태를 별도 분기 없이 값으로 표현한다.
-        public float AttackDamage => Get<AttackBehaviour>()?.Damage ?? 0f;
+        public float AttackDamage => Get<IAttackBehaviour>()?.Damage ?? 0f;
 
-        public float AttackRange => Get<AttackBehaviour>()?.Range ?? 0f;
+        public float AttackRange => Get<IAttackBehaviour>()?.Range ?? 0f;
 
-        public float AttackInterval => Get<AttackBehaviour>()?.Interval ?? 0f;
+        public float AttackInterval => Get<IAttackBehaviour>()?.Interval ?? 0f;
 
         // 버프 진입점(플레이어 스킬 #103 / 버프 타워 #164 공용). sourceId별로 항목을 add/refresh하며,
         // 서로 다른 소스는 합산 중첩된다(같은 sourceId는 갱신만). 배율(예: 1.2)은 보너스(0.2)로 저장해
@@ -367,6 +370,6 @@ namespace NorthLand.Combat
         }
 
         // IAttacker 계약. 공격 행동이 없으면 false — 오라 전용 타워가 단일 대상 공격 경로에 끌려가지 않는다.
-        public bool TryAttack(IDamageable target) => Get<AttackBehaviour>()?.TryAttack(target) ?? false;
+        public bool TryAttack(IDamageable target) => Get<IAttackBehaviour>()?.TryAttack(target) ?? false;
     }
 }

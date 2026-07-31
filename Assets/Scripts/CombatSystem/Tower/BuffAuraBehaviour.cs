@@ -113,7 +113,8 @@ namespace NorthLand.Combat
                 // 오라 타워를 제외하는 이유가 "효과가 없어서"만은 아니다: 오라 반경이 사거리 축을 공유하므로,
                 // 버프 오라끼리 서로를 버프하면 A가 B의 반경을 넓히고 넓어진 B가 다시 A를 덮는
                 // 순서 의존 피드백이 생긴다. 능력 판정이 그 고리를 구조적으로 끊는다.
-                if (!tower.Has<AttackBehaviour>()) continue;
+                // 인터페이스로 묻는다 — 구상 클래스로 물으면 히트스캔 타워(체인)가 조용히 버프에서 빠진다(#252).
+                if (!tower.Has<IAttackBehaviour>()) continue;
 
                 if ((tower.transform.position - origin).sqrMagnitude > sqrRadius) continue;
 

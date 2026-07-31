@@ -1,11 +1,11 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace NorthLand.Combat
 {
-    // 투사체 명중 시 동작 종류
-    public enum ImpactKind { Single, Area, Chain }
+    // 투사체 명중 시 동작 종류.
+    // 체인은 여기 없다 — 히트스캔으로 전달되므로 투사체가 배달하지 않는다(#252, HitscanAttackBehaviour).
+    public enum ImpactKind { Single, Area }
 
     // 타워가 발사 시 넘기는 "명중하면 어떻게 터질지" 기술자
     public struct ProjectileImpact
@@ -13,9 +13,6 @@ namespace NorthLand.Combat
         public ImpactKind Kind;
         public LayerMask EnemyMask;
         public float SplashRadius;        // Area
-        public float ChainRadius;         // Chain
-        public int MaxChainTargets;     // Chain: 최초 대상 포함 총 타격 수
-        public float ChainDamageFalloff;  // Chain: 홉마다 곱해지는 계수(예 0.8)
         public float StunDuration;        // >0이면 명중 대상에 스턴(초) 부여(#164 소다타워). 타워가 발사 시 세팅
 
         public static ProjectileImpact MakeSingle()
@@ -23,16 +20,6 @@ namespace NorthLand.Combat
 
         public static ProjectileImpact MakeArea(float splashRadius, LayerMask mask)
             => new ProjectileImpact { Kind = ImpactKind.Area, SplashRadius = splashRadius, EnemyMask = mask };
-
-        public static ProjectileImpact MakeChain(float radius, int maxTargets, float falloff, LayerMask mask)
-            => new ProjectileImpact
-            {
-                Kind = ImpactKind.Chain,
-                ChainRadius = radius,
-                MaxChainTargets = maxTargets,
-                ChainDamageFalloff = falloff,
-                EnemyMask = mask
-            };
     }
 
     // 투사체 비행 방식
@@ -43,9 +30,22 @@ namespace NorthLand.Combat
 
     public class Projectile : MonoBehaviour
     {
-        // 투사체 데미지가 실제로 들어간 직후 통지(공격자, 피격자) — #169 버프 특수효과(BurnBuff 등)가
-        // 구독한다. 순수 추가 훅으로 기존 공격 로직은 무수정. static이므로 구독자가 해제를 책임진다.
+        // 타워의 **직접 타격** 데미지가 실제로 들어간 직후 통지(공격자, 피격자) — #169 버프 특수효과
+        // (BurnBuff 등)가 구독한다. 순수 추가 훅으로 기존 공격 로직은 무수정.
+        // static이므로 구독자가 해제를 책임진다.
         public static event Action<IAttacker, IDamageable> DamageDealt;
+
+        // 투사체 밖의 명중 해결기(ChainResolver 등)가 위 이벤트를 발행하는 창구.
+        // C# 이벤트는 선언한 클래스 밖에서 Invoke할 수 없어 이 우회가 필요하다.
+        //
+        // ⚠ 직접 타격만 통지한다 — 지속 효과(오라 DoT)의 틱에서는 부르면 안 된다.
+        //   구독자가 명중마다 화상 지속시간을 갱신하므로(BurnBuff.HandleTowerDamage), 틱마다 통지하면
+        //   갱신이 끊기지 않아 사실상 영구 화상이 된다. 이 경계를 지키는 건 호출부 책임이다.
+        //
+        // TODO(#252): DamageDealt는 "전투 데미지 통지"라 본래 투사체 소유가 아니다 —
+        //             중립 위치로 옮기는 것이 정공법이고, 이 창구는 그때까지의 임시 우회다.
+        internal static void RaiseDamageDealt(IAttacker source, IDamageable target)
+            => DamageDealt?.Invoke(source, target);
 
         [SerializeField] Vector3 rotationOffset;
 
@@ -68,9 +68,6 @@ namespace NorthLand.Combat
 
         // Homing 상태: 아크를 얹기 전의 "평면" 추적 위치. transform.position = homingPos + 아크 높이.
         Vector3 homingPos;
-
-        // 체인 중복 타격 방지용 (한 프레임에 하나의 투사체만 명중 처리되므로 static 재사용 OK)
-        static readonly HashSet<IDamageable> chainHitSet = new HashSet<IDamageable>();
 
         public void Init(IDamageable target, float damage, float speed, IAttacker source, ProjectileImpact impact)
         {
@@ -170,10 +167,6 @@ namespace NorthLand.Combat
                 case ImpactKind.Area:
                     ApplyArea(impactPos);   // 위치 기반: 대상 생사와 무관
                     break;
-                case ImpactKind.Chain:
-                    // 체인은 살아있는 최초 대상이 필요 (Ballistic에서 대상이 죽었으면 명중 없음)
-                    if (target != null && !target.IsDead) ApplyChain();
-                    break;
                 default:
                     if (target != null && !target.IsDead)
                     {
@@ -212,48 +205,6 @@ namespace NorthLand.Combat
                     DamageDealt?.Invoke(source, d);
                 }
             }
-        }
-
-        // 대상 → 인근 적으로 튕기며 홉마다 데미지 *= falloff
-        void ApplyChain()
-        {
-            chainHitSet.Clear();
-
-            float dmg = damage;
-            target.TakeDamage(new DamageInfo(dmg, source));   // 최초 대상: 풀 데미지
-            DamageDealt?.Invoke(source, target);
-            chainHitSet.Add(target);
-
-            Vector3 from = target.HitPosition.transform.position;
-
-            for (int i = 1; i < impact.MaxChainTargets; i++)
-            {
-                var next = FindNearestUnhit(from, impact.ChainRadius);
-                if (next == null) break;
-
-                dmg *= impact.ChainDamageFalloff;             // 튕길 때마다 ×0.8 누적
-                next.TakeDamage(new DamageInfo(dmg, source));
-                DamageDealt?.Invoke(source, next);
-                chainHitSet.Add(next);
-                from = next.HitPosition.transform.position;
-            }
-        }
-
-        // center 반경 내, 아직 안 맞은 가장 가까운 적
-        IDamageable FindNearestUnhit(Vector3 center, float radius)
-        {
-            var hits = Physics.OverlapSphere(center, radius, impact.EnemyMask);
-            IDamageable closest = null;
-            float closestSqr = float.MaxValue;
-            foreach (var h in hits)
-            {
-                var d = h.GetComponentInParent<IDamageable>();
-                if (d == null || d.Faction == source.Faction || d.IsDead) continue;
-                if (chainHitSet.Contains(d)) continue;
-                float sqr = (d.HitPosition.position - center).sqrMagnitude;   
-                if (sqr < closestSqr) { closestSqr = sqr; closest = d; }
-            }
-            return closest;
         }
     }
 }

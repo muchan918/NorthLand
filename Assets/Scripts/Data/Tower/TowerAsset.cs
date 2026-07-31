@@ -63,7 +63,9 @@ public class TowerAsset : ScriptableObject
     [System.Serializable]
     public class ChainFields
     {
+        // 체인은 히트스캔(빔)이라 Attack.ProjectilePrefab/ProjectileSpeed를 사용하지 않는다(#252). AttackFields를 계속 공유하는 이유는 AttackDamage/Range/Interval이 전달 방식과 무관하고, TowerBehaviourFactory.ResolveAttackFields가 그 세 값의 단일 출처이기 때문(WL-079).
         public AttackFields Attack;
+        public GameObject BeamPrefab;   // 빔 연출 프리팹(LineRenderer 저작용). null이면 코드가 런타임에 기본 빔을 생성 — 아트 머티리얼을 기다리지 않고 검증할 수 있게 한 폴백.
         public float ChainRadius;
         public int MaxChainTargets;
         public float ChainDamageFalloff;
