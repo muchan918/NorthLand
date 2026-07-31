@@ -10,7 +10,7 @@ using UnityEngine;
 // 레이어 확인 완료(WL-005 해소, #67): 프리팹은 Layer 6(Selectable)이고 MouseManager._selectableMask도
 // 이 비트를 포함해 클릭/호버 모두 정상 동작함을 실제 씬에서 확인함.
 [RequireComponent(typeof(Collider))]
-public class TerritoryNodeView : MonoBehaviour, ISelectable, IHoverable
+public class TerritoryNodeView : MonoBehaviour, ISelectable, IHoverable, IOutlineTargetProvider
 {
     [Tooltip("상태색을 입힐 자식 Visual의 렌더러")]
     [SerializeField] Renderer _visual;
@@ -40,6 +40,10 @@ public class TerritoryNodeView : MonoBehaviour, ISelectable, IHoverable
     private bool _pendingClaimFx;
 
     public int NodeId => _nodeId;
+
+    // 툴팁 일일 수급 표기용(#166): 포맷 스트링 키 + 자원 표시명 키 규약(ManagementPanelView와 동일 game.resources.{종류}).
+    private const string k_DailySupplyKey = "game.territory.daily_supply";
+    private static string ResourceNameKey(ResourceKind kind) => $"game.resources.{kind.ToString().ToLowerInvariant()}";
 
     private void Awake()
     {
@@ -79,6 +83,12 @@ public class TerritoryNodeView : MonoBehaviour, ISelectable, IHoverable
         }
     }
 
+    // 아웃라인 대상(#213 §5.4). 노드 루트를 그대로 쓰면 상태에 따라 교체되는 시각물(회오리 Quad / 섬·산
+    // 인스턴스)을 구분할 수 없다 — 회오리에는 헐 아웃라인을 씌우면 안 되고(사각형이 된다), 확보 후에는
+    // 새로 스폰된 섬 인스턴스가 대상이어야 한다. 그래서 판단을 상태 비주얼에 위임한다.
+    // 구형 프리팹(상태 비주얼 없음 = 색상 경로)은 노드 루트 자신 → 드라이버 기본 동작과 같다.
+    public GameObject OutlineTarget => _stateVisual != null ? _stateVisual.OutlineTarget : gameObject;
+
     public void OnDeselected() => Refresh();
 
     // TODO: 지금은 클릭 1회 = 즉시 확보(비가역)라 ISelectable의 "가역적 조회" 시맨틱을 오버로드한다.
@@ -114,16 +124,26 @@ public class TerritoryNodeView : MonoBehaviour, ISelectable, IHoverable
             return null;
         }
 
-        var def = _controller.Graph.GetNode(_nodeId)?.Definition;
+        var node = _controller.Graph.GetNode(_nodeId);
+        var def = node?.Definition;
         if (def == null)
         {
             return null;
         }
 
-        // 동기 pull 조회(로케일 변경 자동 갱신 불필요 — 호버 시점 1회). 키는 정의의 _id에서 파생된다.
+        // 동기 pull 조회(로케일 변경 자동 갱신 불필요 — 호버 시점 1회). 헤더 = 영지 이름.
         string name = LocalizationHelper.Get(LocalizationHelper.k_TerritoriesTable, def.DisplayNameKey);
-        string desc = LocalizationHelper.Get(LocalizationHelper.k_TerritoriesTable, def.DescriptionKey);
-        return new(name, desc, _tooltipHeaderColor, _tooltipBackgroundColor);
+
+        // 본문 = 일일 수급 문장(#166): "매일 {0} {1}개를 획득합니다." 스트링 테이블 포맷을 string.Format으로 채운다.
+        // {1}=주입 시 확정된 노드별 DailyYield — Selectable(확보 전) 노드도 값이 있어 "확보하면 매일 몇 개" 미리보기가 된다.
+        string resourceName = LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, ResourceNameKey(def.Kind));
+        string fmt = LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, k_DailySupplyKey);
+        // 포맷 키가 없거나(안내 문자열) 플레이스홀더가 없으면 언어 중립 폴백으로.
+        string body = (!string.IsNullOrEmpty(fmt) && fmt.Contains("{0}"))
+            ? string.Format(fmt, resourceName, node.DailyYield)
+            : $"{resourceName} +{node.DailyYield}";
+
+        return new(name, body, _tooltipHeaderColor, _tooltipBackgroundColor);
     }
 
     public void OnHoverEnter()
@@ -179,7 +199,9 @@ public class TerritoryNodeView : MonoBehaviour, ISelectable, IHoverable
             bool isHome = IsHome;
             bool playClaimFx = _pendingClaimFx;
             _pendingClaimFx = false;
-            _stateVisual.Apply(node.State, isHome, _nodeId, _isHovered, canClaimNow, playClaimFx);
+            // 섬 프리팹은 이 노드 영지 SO가 소유한다(#166). 영지 미할당(본진 등)이면 null → 상태 비주얼이 폴백 처리.
+            GameObject islandPrefab = node.Definition != null ? node.Definition.IslandPrefab : null;
+            _stateVisual.Apply(node.State, isHome, _nodeId, _isHovered, canClaimNow, playClaimFx, islandPrefab);
             return;
         }
 

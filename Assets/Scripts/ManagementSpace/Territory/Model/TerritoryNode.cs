@@ -19,10 +19,17 @@ public class TerritoryNode
     public TerritoryState State { get; internal set; } = TerritoryState.Locked;
 
     /// <summary>
-    /// 이 노드에 주입된 효과 묶음(그래프 조립 단계에서 정의 풀로부터 중복 없이 배정된다).<br/>
-    /// 본진·풀 미할당 시 null일 수 있다. 확보 시 효과 적용의 데이터 출처가 되며, 배정은 <see cref="TerritoryController"/>가 한다.
+    /// 이 노드에 주입된 미개척 영지 정의(그래프 조립 단계에서 정의 풀에서 랜덤 배정된다, #166).<br/>
+    /// 본진·풀 미할당 시 null일 수 있다. 확보(Owned) 후 매일 정산 시 <see cref="Definition"/>.Kind 자원을
+    /// <see cref="DailyYield"/>만큼 지급하는 데이터 출처가 되며, 배정은 <see cref="TerritoryController"/>가 한다.
     /// </summary>
     public TerritoryDefinition Definition { get; internal set; }
+
+    /// <summary>
+    /// 이 영지가 매일 수급하는 자원량 — <b>주입 시점에 <see cref="TerritoryDefinition"/>의 [Min,Max]에서 1회 롤해 확정</b>(#166).<br/>
+    /// 노드별로 다르지만 이후 고정된다. Definition이 null(본진 등)이면 0.
+    /// </summary>
+    public int DailyYield { get; internal set; }
 
     private readonly List<int> _neighborIds = new();
 

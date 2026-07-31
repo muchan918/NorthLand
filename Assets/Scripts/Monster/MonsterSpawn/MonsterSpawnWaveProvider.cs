@@ -13,25 +13,31 @@ public sealed class MonsterSpawnWaveProvider :
 
     private readonly List<MonsterSpawnEntry> cachedEntries = new List<MonsterSpawnEntry>();
 
+    // 등록된 웨이브 중 가장 큰 번호 = 최종 웨이브. 등록된 웨이브가 없으면 0.
+    public int FinalWaveNumber { get; private set; }
+
+    // 이 웨이브를 클리어하면 게임이 끝나는가(승리 판정용). 웨이브 미등록(0)이면 판정하지 않는다.
+    // 최종 번호를 넘어선 라운드도 true로 수렴시켜, 데이터 없는 밤이 무한 반복되지 않게 한다.
+    public bool IsFinalWave(int waveNumber) => FinalWaveNumber > 0 && waveNumber >= FinalWaveNumber;
+
     private void Awake()
     {
         BuildWaveLookup();
     }
 
     // 웨이브 번호에 해당하는 스폰 목록 제공
-    public bool TryGetWave(int waveNumber, out IReadOnlyList<MonsterSpawnEntry> entries)
+    public bool TryGetWave(int waveNumber,out IReadOnlyList<MonsterSpawnEntry> entries)
     {
         cachedEntries.Clear();
 
-        if (!waveByNumber.TryGetValue(waveNumber, out MonsterWaveAsset wave))
+        if (!waveByNumber.TryGetValue(waveNumber,out MonsterWaveAsset wave))
         {
             entries = cachedEntries;
             return false;
         }
 
         float nextGroupStartDelay = 0f;
-        float spawnInterval =
-            Mathf.Max(0f, wave.SpawnInterval);
+        float spawnInterval = Mathf.Max(0f, wave.SpawnInterval);
 
         foreach (MonsterWaveGroup group in wave.Groups)
         {
@@ -42,7 +48,7 @@ public sealed class MonsterSpawnWaveProvider :
 
             if (group.MonsterPrefab == null)
             {
-                Debug.LogWarning($"Wave {waveNumber}에 몬스터 프리팹이 지정되지 않은 항목이 있습니다.", wave);
+                Debug.LogWarning($"Wave {waveNumber}에 몬스터 프리팹이 없는 항목이 있습니다.",wave);
 
                 continue;
             }
@@ -54,10 +60,10 @@ public sealed class MonsterSpawnWaveProvider :
                 continue;
             }
 
-            cachedEntries.Add(new MonsterSpawnEntry(group.MonsterPrefab, spawnCount, nextGroupStartDelay, spawnInterval));
+            cachedEntries.Add(
+                new MonsterSpawnEntry(group.MonsterPrefab,spawnCount,nextGroupStartDelay,spawnInterval)
+            );
 
-            // 이전 그룹이 모두 생성된 다음
-            // 동일한 간격으로 다음 그룹 생성 시작
             nextGroupStartDelay += spawnCount * spawnInterval;
         }
 
@@ -69,6 +75,7 @@ public sealed class MonsterSpawnWaveProvider :
     private void BuildWaveLookup()
     {
         waveByNumber.Clear();
+        FinalWaveNumber = 0;
 
         foreach (MonsterWaveAsset wave in waves)
         {
@@ -94,7 +101,22 @@ public sealed class MonsterSpawnWaveProvider :
             }
 
             waveByNumber.Add(waveNumber, wave);
+
+            FinalWaveNumber = Mathf.Max(FinalWaveNumber, waveNumber);
         }
+
+    }
+    public bool TryGetRewardPool(int waveNumber,out WaveRewardPool rewardPool)
+    {
+        rewardPool = null;
+
+        if (!waveByNumber.TryGetValue(waveNumber,out MonsterWaveAsset wave))
+        {
+            return false;
+        }
+
+        rewardPool = wave.RewardPool;
+        return rewardPool != null;
     }
 
 }

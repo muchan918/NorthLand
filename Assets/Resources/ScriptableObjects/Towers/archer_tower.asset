@@ -13,18 +13,21 @@ MonoBehaviour:
   m_Name: archer_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
   TowerID: archer_tower
-  TowerPrefab: {fileID: 4828097712758218341, guid: 20d807b0a7cea9147bb69ff9c3c95951, type: 3}
-  GhostPrefab: {fileID: 4828097712758218341, guid: 1c4fe65468dd4524a90ebe19c3110df8, type: 3}
+  TowerPrefab: {fileID: 6801833135963741600, guid: af8de5afe47137043ad4ec48d2323017, type: 3}
+  GhostPrefab: {fileID: 6801833135963741600, guid: 5d9bff6eeac419349bde17bbdae0e99c, type: 3}
   TowerType: 0
   MagicEffectType: 0
-  Cost: []
+  Cost:
+  - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
+    Amount: 20
   Single:
     Attack:
-      AttackDamage: 10
-      AttackRange: 40
+      AttackDamage: 12
+      AttackRange: 45
       AttackInterval: 1
-      ProjectilePrefab: {fileID: 1734245126228380, guid: 41c31c5e3f16cfa43ace39def9113a7a, type: 3}
-      ProjectileSpeed: 20
+      ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
+      ProjectileSpeed: 800
+      OnHitStunDuration: 0
   Area:
     Attack:
       AttackDamage: 0
@@ -32,6 +35,7 @@ MonoBehaviour:
       AttackInterval: 0
       ProjectilePrefab: {fileID: 0}
       ProjectileSpeed: 0
+      OnHitStunDuration: 0
     SplashRadius: 0
   Chain:
     Attack:
@@ -40,13 +44,13 @@ MonoBehaviour:
       AttackInterval: 0
       ProjectilePrefab: {fileID: 0}
       ProjectileSpeed: 0
+      OnHitStunDuration: 0
     ChainRadius: 0
     MaxChainTargets: 0
     ChainDamageFalloff: 0
   Magic:
     BuffAura:
       Radius: 0
-      Interval: 0
       Modifiers: []
       Damage:
         HasDamage: 0

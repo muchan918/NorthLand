@@ -1,6 +1,7 @@
+using NorthLand.UI;
 using System;
 using UnityEngine;
-using NorthLand.UI;
+using UnityEngine.Localization.Settings;
 
 namespace NorthLand.Core
 {
@@ -27,6 +28,7 @@ namespace NorthLand.Core
 
         // 결과 확정 시 발생. 스폰 정지·시간 정지 등 다른 시스템이 구독해 반응할 수 있다.
         public event Action<GameResult> OnResultDecided;
+
 
         void Awake()
         {
@@ -58,9 +60,13 @@ namespace NorthLand.Core
             if (ResultUIManager.Instance == null)
                 Debug.LogWarning("[GameManager] ResultUIManager가 없어 결과 화면을 표시하지 못했습니다.");
             else if (result == GameResult.GameOver)
+            {
                 ResultUIManager.Instance.ShowGameOver();
+            }
             else if (result == GameResult.Victory)
+            {
                 ResultUIManager.Instance.ShowVictory();
+            }
 
             OnResultDecided?.Invoke(result);
         }

@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAsset
   EnemyID: ogre_king
   EnemyType: 2
+  MovementMode: 0
   Melee:
     Stat:
       MaxHp: 0
@@ -32,9 +33,9 @@ MonoBehaviour:
     ProjectileSpeed: 0
   Boss:
     Stat:
-      MaxHp: 0
-      MoveSpeed: 0
-      AttackDamage: 0
-      AttackRange: 0
-      AttackInterval: 0
-    BehaviorTree: {fileID: 0}
+      MaxHp: 700
+      MoveSpeed: 20
+      AttackDamage: 40
+      AttackRange: 3
+      AttackInterval: 2.5
+    BehaviorTree: {fileID: 8902802321230540427, guid: 3b5d5eafab930e542b7bb08daa8c9490, type: 2}

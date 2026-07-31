@@ -43,6 +43,8 @@ public class TowerAsset : ScriptableObject
         public float AttackInterval;
         public GameObject ProjectilePrefab;
         public float ProjectileSpeed;
+        // >0이면 투사체 명중 시 대상에 스턴(초) 부여(#164 소다타워). 0=없음. 슬로우 인프라(StatusEffectHandler) 재사용.
+        public float OnHitStunDuration;
     }
 
     [System.Serializable]
@@ -77,10 +79,10 @@ public class TowerAsset : ScriptableObject
     [System.Serializable]
     public class BuffAuraFields
     {
+        // 버프는 이벤트형(배치 즉시 부여 + 타워 추가/제거 시 재적용, 범위 유지형)이라 Interval/Duration이 불필요(#164). Radius+Modifiers만 사용한다.
         public float Radius;
-        public float Interval;
         public List<StatModifier> Modifiers;
-        public OptionalDamage Damage;
+        public OptionalDamage Damage;   // (현재 미사용) 향후 아군 힐 등 확장 여지로 보존
     }
 
     [System.Serializable]

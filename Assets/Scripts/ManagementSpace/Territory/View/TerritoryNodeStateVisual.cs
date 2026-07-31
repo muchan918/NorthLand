@@ -15,7 +15,8 @@ public class TerritoryNodeStateVisual : MonoBehaviour
     private enum Kind { None, Vortex, Mountain }
 
     [Header("보유(Owned) 영토")]
-    [Tooltip("노드가 확보되면 나타날 땅 프리팹 후보 (@NorthLand Mountain_01~06). 노드 Id % 개수로 결정적 선택.")]
+    [Tooltip("폴백 땅 프리팹 후보 (@NorthLand Mountain_01~06). #166 이후 섬 프리팹은 영지 SO(TerritoryDefinition.IslandPrefab)가 소유하며, "
+        + "SO에 프리팹이 없거나 영지 미할당(본진 등)일 때만 노드 Id 기반으로 여기서 선택한다.")]
     [SerializeField] GameObject[] _mountainPrefabs;
 
     [Tooltip("Mountain 프리팹 저작 스케일에 곱할 보정 배율")]
@@ -55,12 +56,28 @@ public class TerritoryNodeStateVisual : MonoBehaviour
     private VortexVisual _vortex;
     private bool _isAnimating;
 
+    // 이 노드에 세울 섬 프리팹 — 영지 SO(TerritoryDefinition.IslandPrefab)에서 뷰가 넘겨준다(#166).
+    // null이면 SpawnIsland가 _mountainPrefabs 폴백을 쓴다(본진·미할당·SO 프리팹 미설정).
+    private GameObject _islandPrefab;
+
+    /// <summary>
+    /// 아웃라인을 걸 시각물(#213 §5.4 — <see cref="IOutlineTargetProvider"/>가 이 값을 그대로 쓴다).<br/>
+    /// 섬/산 인스턴스만 대상이고, <b>회오리와 본진은 null</b>이다:<br/>
+    /// - 회오리는 평면 Quad라 인버티드 헐이 소용돌이가 아니라 사각형이 되고, 헐이 depth/normals 프리패스에
+    ///   찍히면 뒤의 바다가 가려져 흰 사각형으로 보인다 → 기존 <c>_vortexHoverColor</c> 하이라이트만 쓴다.<br/>
+    /// - 본진(Kind.None)은 이 컴포넌트가 스폰하는 시각물이 없다(씬에 별도 구현).
+    /// </summary>
+    public GameObject OutlineTarget => _kind == Kind.Mountain ? _current : null;
+
     /// <summary>
     /// 뷰의 Refresh에서 호출된다. Locked(비활성)는 뷰가 SetActive(false)로 처리하므로 여기 오지 않는다.
     /// playClaimFx는 이번 Refresh가 확보 직후(OnNodeClaimed)임을 뜻하며 1회성 연출을 튼다.
+    /// islandPrefab은 이 노드 영지 SO의 프리팹(#166) — null이면 _mountainPrefabs 폴백.
     /// </summary>
-    public void Apply(TerritoryState state, bool isHome, int nodeId, bool hovered, bool canClaimNow, bool playClaimFx)
+    public void Apply(TerritoryState state, bool isHome, int nodeId, bool hovered, bool canClaimNow, bool playClaimFx, GameObject islandPrefab)
     {
+        _islandPrefab = islandPrefab;
+
         if (_isAnimating)
         {
             return; // 연출 태스크가 끝나면 최종 상태(Mountain)와 일치한다
@@ -117,7 +134,7 @@ public class TerritoryNodeStateVisual : MonoBehaviour
                 _vortex.Init(_vortexMaterial, _vortexDiameter, _vortexColor, _vortexHoverColor, _vortexDimColor, _vortexSpinSpeed);
                 break;
             case Kind.Mountain:
-                _current = SpawnMountain(nodeId);
+                _current = SpawnIsland(nodeId);
                 break;
         }
     }
@@ -135,7 +152,7 @@ public class TerritoryNodeStateVisual : MonoBehaviour
         _vortex = null;
 
         _kind = Kind.Mountain;
-        _current = SpawnMountain(nodeId);
+        _current = SpawnIsland(nodeId);
         if (_current != null)
         {
             var t = _current.transform;
@@ -154,18 +171,18 @@ public class TerritoryNodeStateVisual : MonoBehaviour
         _isAnimating = false;
     }
 
-    private GameObject SpawnMountain(int nodeId)
+    private GameObject SpawnIsland(int nodeId)
     {
-        if (_mountainPrefabs == null || _mountainPrefabs.Length == 0)
+        // 우선순위: 영지 SO가 지정한 섬 프리팹(#166). 없으면 폴백으로 Mountain 배열에서 노드 Id 기반 선택.
+        GameObject prefab = _islandPrefab;
+        if (prefab == null && _mountainPrefabs != null && _mountainPrefabs.Length > 0)
         {
-            Debug.LogError("[영토] Mountain 프리팹이 할당되지 않았습니다.", this);
-            return null;
+            prefab = _mountainPrefabs[Mathf.Abs(nodeId) % _mountainPrefabs.Length];
         }
 
-        var prefab = _mountainPrefabs[Mathf.Abs(nodeId) % _mountainPrefabs.Length];
         if (prefab == null)
         {
-            Debug.LogError($"[영토] Mountain 프리팹 슬롯이 비어 있습니다: {Mathf.Abs(nodeId) % _mountainPrefabs.Length}", this);
+            Debug.LogError("[영토] 섬 프리팹이 없습니다(영지 SO의 IslandPrefab·_mountainPrefabs 폴백 모두 비어 있음).", this);
             return null;
         }
 

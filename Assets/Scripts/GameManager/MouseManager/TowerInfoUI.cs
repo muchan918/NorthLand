@@ -22,10 +22,18 @@ public class TowerInfoUI : MonoBehaviour
         HideInfo(); // Instance 등록 후 숨기므로 안전
     }
 
-    // TODO: 문자열 대신 실제 타워 데이터 객체를 받아서 표시하도록 변경
-    public void ShowInfo(string info)
+    // descriptionKey는 로컬라이즈 키(TowerData.DescriptionKey 등)를 받는다. BuildingInfoUI와 동일 패턴(#153) —
+    // 지속형 패널에 LocalizationHelper.Get을 쓰는 건 로케일 변경 자동 갱신이 안 되는 한계가 있음을 인지하고
+    // 미러링(BuildingInfoUI와 동일한 트레이드오프, 필요 시 후속으로 LocalizeStringEvent로 함께 교체).
+    // statsText는 이미 조합된 평문(공격력/사거리 등 SO 수치) — 숫자값이라 로컬라이즈 대상이 아니므로 그대로 이어붙인다.
+    public void ShowInfo(string descriptionKey, string statsText = null)
     {
-        _towerInfoText.text = info;
+        string text = LocalizationHelper.Get(LocalizationHelper.k_TowersTable, descriptionKey);
+        if (!string.IsNullOrEmpty(statsText))
+        {
+            text += "\n\n" + statsText;
+        }
+        _towerInfoText.text = text;
         gameObject.SetActive(true);
     }
 

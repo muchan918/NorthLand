@@ -8,20 +8,32 @@ using UnityEngine;
 /// 이 컨트롤러만 구독·호출하므로, 실제 UI 아트로 교체해도 이 클래스는 바뀌지 않는다.<br/>
 /// <br/>
 /// - 낮→밤(OnDayToNight): 주민 배치 확정 (자원 정산 없음, 팀 계약 #5)<br/>
-/// - 밤→낮(OnNightToDay): 각 생산처 Produce로 자원 정산(먼저) + 주민 배치 초기화(그 다음) (팀 계약 #5)<br/>
+/// - 밤→낮(OnNightToDay): 각 생산처 Produce로 자원 정산 (주민 배치는 초기화하지 않고 유지 — #219)<br/>
 /// - 주민 수·풀(maxVillagers)은 주민 시스템 부재로 임시 placeholder — 주민 시스템이 생기면 이 부분만 교체.<br/>
 /// (Docs/ManagementArea/Resources.md — 이슈 #43)
 /// </summary>
 public class ManagementController : MonoBehaviour
 {
-    [Tooltip("생산 라인으로 만들 산출 자원들. ResourceID가 ResourceTable CSV(wood/iron/food/mana)와 일치해야 한다.")]
-    [SerializeField] ResourceAsset[] _resourceAssets;
+    [Tooltip("생산 라인이 되는 생산 건물들(나무꾼의 집·광산·농장). 각 건물의 Production에서 산출 자원·주민당량·업그레이드 테이블을 읽는다.")]
+    [SerializeField] BuildingAsset[] _productionBuildings;
 
-    [Tooltip("주민 1명당 생산량 (모든 라인 공통, 임시값)")]
-    [SerializeField] int _baseAmountPerVillager = 5;
+    [Tooltip("업그레이드만 하는 건물들(마법 연구소 등). 생산 라인이 아니라 마나석으로 레벨만 올린다. " +
+             "강화 효과는 소비 시스템(스킬 등)이 GetUpgradeLevel로 레벨을 읽어 적용한다(결합도 최소, 효과는 TODO).")]
+    [SerializeField] BuildingAsset[] _upgradeBuildings;
 
-    [Tooltip("총 보유(최대) 주민 수. 주민 시스템 부재로 임시 placeholder. 전 라인 배치 합계 상한.")]
-    [SerializeField] int _maxVillagers = 5;
+    // ⚠ 필드명을 바꾸지 말 것 — GameScene의 인스턴스 오버라이드(_maxVillagers: 2)가 이름으로 매칭되므로
+    //   이름을 바꾸면 씬에 저장된 시작값이 유실되고 스크립트 기본값으로 되돌아간다.
+    [Tooltip("게임 시작 시 보유한 주민 수(#227). 본진에서 늘린 증가분은 런타임 상태(_bonusVillagers)로 따로 들고 있고, " +
+             "실제 상한은 둘을 합친 MaxVillagers다. 전 라인 배치 합계 상한.")]
+    [SerializeField] int _maxVillagers = 2;
+
+    [Tooltip("웨이브 클리어(밤→낮 정산) 시 지급되는 마나석 고정량 (GDD §4.3)")]
+    [SerializeField] int _manaPerWaveClear = 10;
+
+    [Tooltip("게임 시작(런당 1회) 시 지급되는 초기 나무/철/식량. 마나석은 영토 확장·전투 보상 전용이라 제외(팀 계약 #3, 이슈 #130)")]
+    [SerializeField] int _initialWood = 110;
+    [SerializeField] int _initialIron = 40;
+    [SerializeField] int _initialFood = 0;
 
     /// <summary>상태(자원·주민 배치·페이즈)가 바뀔 때 발생. 뷰는 이걸 구독해 다시 렌더한다.</summary>
     public event Action OnChanged;
@@ -32,11 +44,43 @@ public class ManagementController : MonoBehaviour
     private ResourceAsset[] _lineAssets;
     private int[] _villagerCounts;
 
+    // 건물 업그레이드 상태 — 라인별 런타임 상태로 소유한다(공유 SO에 레벨을 쓰지 않는다, WL-016).
+    // _level[i]=현재 레벨(0=미업그레이드), _amountPerVillager[i]=그 레벨의 주민당 생산량(정산·예상치가 참조),
+    // _lineUpgradeLevels[i]=그 건물의 레벨 테이블(SO에서 추출한 읽기 전용 기준값).
+    private int[] _level;
+    private int[] _amountPerVillager;
+    private List<BuildingAsset.UpgradeLevel>[] _lineUpgradeLevels;
+    private BuildingAsset[] _lineBuildings; // 라인 index → 원본 건물 SO (건물→라인 매핑용, BuildingInfoUI 등)
+
+    // 업그레이드 전용 건물(마법 연구소 등) 상태 — 생산 라인과 완전히 분리한다(주민·산출 자원·주민당량 개념 없음).
+    // 생산 라인과 같은 계보로 레벨만 런타임 상태로 소유하고(공유 SO 오염 금지, WL-016), 비용 차감은 동일한 TrySpend 게이트웨이를 쓴다.
+    // _upgradeLevel[i]=현재 레벨(0=미업그레이드), _upgradeLevelTables[i]=그 건물의 레벨 테이블(비용, SO에서 추출한 읽기 전용),
+    // _upgradeBuildingRefs[i]=index → 원본 건물 SO(건물→인덱스 매핑용).
+    // 레벨 테이블은 타입 중립 소스(BuildingAsset.UpgradeSteps)로 받는다 — 컨트롤러가 여기서 읽는 건
+    // 비용과 본진 요구치뿐이라 구체 타입을 알 필요가 없다(#229 선행 작업, BuildingUpgrade.md §8).
+    private int[] _upgradeLevel;
+    private IReadOnlyList<BuildingAsset.UpgradeStep>[] _upgradeLevelTables;
+    private BuildingAsset[] _upgradeBuildingRefs;
+
+    // 업그레이드 트랙 중 본진의 index(없으면 -1). 하위 건물 해금·교환 배율이 전부 이 레벨 하나를 기준으로 삼는다.
+    // 별도 SerializeField를 두지 않는다 — 씬 배선은 _upgradeBuildings에 본진 SO를 넣는 것 하나로 끝난다.
+    private int _castleIndex = -1;
+
+    // 본진에서 늘린 주민 수(#227). 시작값(_maxVillagers)과 분리해 런타임 상태로만 소유한다 —
+    // 공유 SO(castle.asset)에 쓰면 다른 런/인스턴스까지 오염된다(WL-016, 건물 레벨과 같은 취지).
+    // 이 값 자체가 곧 '소진한 비용 테이블 행 수'다 — 별도 카운터를 두면 둘이 어긋날 수 있어 하나로 겸한다.
+    // 밤→낮 전환은 배치(_villagerCounts)만 초기화하므로 늘어난 주민 수는 자동으로 다음날에도 유지된다.
+    private int _bonusVillagers;
+
     private DayNightManager _dayNight;
     private TerritoryController _territory;
 
+    // ResourceAsset.Data 채움용 지연 캐시(호출부 채움 규약, SystemMap §2).
+    private ResourceTable _resourceTable;
+
     public int LineCount => _sources != null ? _sources.Length : 0;
-    public int MaxVillagers => _maxVillagers;
+    // 총 보유 주민 수 = 시작값 + 본진에서 늘린 증가분(#227). 소비처는 항상 이 프로퍼티를 읽는다.
+    public int MaxVillagers => _maxVillagers + _bonusVillagers;
     public int AssignedTotal
     {
         get
@@ -57,14 +101,21 @@ public class ManagementController : MonoBehaviour
     public bool IsDay => _dayNight == null || _dayNight.CurrentPhase == DayNightManager.Phase.Day;
     public int WaveCount => _dayNight != null ? _dayNight.WaveCount : 0;
 
-    // 영토가 씬에 없으면(null) 게이트 없이 배치 허용(permissive) — IsDay와 동일한 패턴.
-    public bool CanAssignVillagers => _territory == null || _territory.HasExpandedToday;
+    // 지금 준비/진행 중인 웨이브 번호(1부터) — 패널 표시용. DayNightManager가 없으면 1일차로 간주.
+    public int CurrentWave => _dayNight != null ? _dayNight.CurrentWave : 1;
 
-    // 잉여 주민이 없어야(전원 배치) 밤으로 전환 가능.
-    public bool CanEndDay => IsDay && AssignedTotal >= _maxVillagers;
+    // 오늘 영토를 확장했는가 — 낮 종료 확인 팝업의 경고 판정용(#219). 영토가 씬에 없으면(null) permissive(true).
+    public bool HasExpandedTerritory => _territory == null || _territory.HasExpandedToday;
 
-    // 페이즈 전환 버튼 활성 조건: 낮이면 전원 배치돼야, 밤이면 언제든 가능(웨이브 종료 대역).
-    public bool CanAdvancePhase => _dayNight != null && (!IsDay || CanEndDay);
+    // 아직 배치되지 않은(유휴) 주민이 있는가 — 낮 종료 확인 팝업의 경고 판정용(#219).
+    // 기준은 시작값(_maxVillagers)이 아니라 본진 증가분을 더한 MaxVillagers다(#227) —
+    // 팝업이 표시하는 유휴 인원수(MaxVillagers - AssignedTotal)와 판정 기준이 어긋나면
+    // "2/5인데 경고가 안 뜬다" 같은 조용한 누락이 생긴다.
+    public bool HasIdleVillagers => AssignedTotal < MaxVillagers;
+
+    // 페이즈 전환 버튼 활성 조건(#219): DayNight가 있으면 항상 활성. 강제 게이팅을 해제했고,
+    // 낮 종료 조건 미충족(영토 미확장·유휴 주민)은 버튼 비활성이 아니라 확인 팝업으로 안내한다.
+    public bool CanAdvancePhase => _dayNight != null;
 
     public int ResourceCount(ResourceKind kind) => _wallet != null ? _wallet.Get(kind) : 0;
 
@@ -100,34 +151,43 @@ public class ManagementController : MonoBehaviour
     }
 
     // Cost 리스트를 (ResourceKind → 합산 수량)으로 해석한다. Resource 미지정·수량 0 항목은 스킵.
-    // ResourceAsset.Data는 호출부 채움 규약(SystemMap §2) — null이면 ResourceTable에서 채운다.
     private Dictionary<ResourceKind, int> AggregateCost(IReadOnlyList<ResourceCost> costs)
     {
         var totals = new Dictionary<ResourceKind, int>();
         if (costs == null) return totals;
 
-        ResourceTable table = null;
         for (int i = 0; i < costs.Count; i++)
         {
             ResourceCost cost = costs[i];
-            if (cost == null || cost.Resource == null || cost.Amount <= 0) continue;
+            if (cost == null || cost.Amount <= 0) continue;
+            if (!TryResolveKind(cost.Resource, out ResourceKind kind)) continue;
 
-            if (cost.Resource.Data == null)
-            {
-                table ??= DataTableManager.Get<ResourceTable>("ResourceTable");
-                if (table != null) cost.Resource.Data = table.Get(cost.Resource.ResourceID);
-            }
-            if (cost.Resource.Data == null)
-            {
-                Debug.LogError($"[경영] 비용 자원 '{cost.Resource.ResourceID}' Data를 채우지 못했습니다.");
-                continue;
-            }
-
-            ResourceKind kind = cost.Resource.Data.Kind;
             totals.TryGetValue(kind, out int cur);
             totals[kind] = cur + cost.Amount;
         }
         return totals;
+    }
+
+    // ResourceAsset → ResourceKind. ResourceAsset.Data는 호출부 채움 규약(SystemMap §2)이라
+    // null이면 여기서 ResourceTable로 채운다. 해석 실패는 authoring 실수이므로 에러 로그를 남긴다.
+    private bool TryResolveKind(ResourceAsset resource, out ResourceKind kind)
+    {
+        kind = default;
+        if (resource == null) return false;
+
+        if (resource.Data == null)
+        {
+            _resourceTable ??= DataTableManager.Get<ResourceTable>("ResourceTable");
+            if (_resourceTable != null) resource.Data = _resourceTable.Get(resource.ResourceID);
+        }
+        if (resource.Data == null)
+        {
+            Debug.LogError($"[경영] 자원 '{resource.ResourceID}' Data를 채우지 못했습니다.");
+            return false;
+        }
+
+        kind = resource.Data.Kind;
+        return true;
     }
 
     public string LineDisplayName(int index) => IsValidLine(index) ? LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, _lineAssets[index].Data.NameKey) : "-";
@@ -135,7 +195,349 @@ public class ManagementController : MonoBehaviour
     public int LineVillagers(int index) => IsValidLine(index) ? _villagerCounts[index] : 0;
     // 패시브 생산 배율(영토 효과 등)을 반영한 예상 생산량. 정산부(HandleNightToDay)와 같은 식이어야 UI가 실제와 일치한다.
     public int LineExpectedProduction(int index) =>
-        IsValidLine(index) ? Mathf.RoundToInt(_baseAmountPerVillager * LineVillagers(index) * ProductionMultiplier(index)) : 0;
+        IsValidLine(index) ? Mathf.RoundToInt(_amountPerVillager[index] * LineVillagers(index) * ProductionMultiplier(index)) : 0;
+
+    // ── 본진 레벨 · 해금 판정 (#229) ──────────────────────────────────────
+    /// <summary>현재 본진 레벨(0 = 미업그레이드). 하위 건물 Max 해금·연금술사 교환 배율의 단일 기준.</summary>
+    public int CastleLevel => _castleIndex >= 0 ? _upgradeLevel[_castleIndex] : 0;
+
+    // 현재 본진 레벨에서 열려 있는 레벨 수. 앞에서부터 '연속으로' 요구치를 만족하는 데까지만 센다.
+    // 첫 미충족 행에서 멈추는 이유: 잠긴 행을 건너뛰어 뒷행이 되살아나면 레벨 번호와 실제 도달 단계가
+    // 어긋난다(레벨은 순차 증가여야 한다). 비단조 authoring은 BuildingAsset.OnValidate가 경고한다.
+    // ignoreGate=true는 본진 자신 — 자기 요구치로 스스로 잠기는 데드락을 막는다.
+    private int EffectiveMaxLevel(IReadOnlyList<BuildingAsset.UpgradeStep> levels, bool ignoreGate = false)
+    {
+        if (levels == null) return 0;
+        if (ignoreGate) return levels.Count;
+
+        int castle = CastleLevel;
+        for (int i = 0; i < levels.Count; i++)
+        {
+            if (levels[i] == null || levels[i].RequiredCastleLevel > castle) return i;
+        }
+        return levels.Count;
+    }
+
+    // 잠긴 다음 레벨이 요구하는 본진 레벨(잠기지 않았거나 진짜 최대면 0) — 표시부의 "본진 Lv n 필요" 안내용.
+    private int RequiredCastleLevelAt(IReadOnlyList<BuildingAsset.UpgradeStep> levels, int current, int effectiveMax)
+    {
+        if (levels == null || current != effectiveMax || effectiveMax >= levels.Count) return 0;
+        return levels[effectiveMax]?.RequiredCastleLevel ?? 0;
+    }
+
+    // ── 건물 업그레이드 조회 API (다음 이슈의 UI가 바인딩할 계약) ──────────
+    public int LineLevel(int index) => IsValidLine(index) ? _level[index] : 0;
+    // 실질 Max — 행 수가 아니라 '본진 레벨로 열려 있는 만큼'이다(#229).
+    public int LineMaxLevel(int index) => IsValidLine(index) ? EffectiveMaxLevel(_lineUpgradeLevels[index]) : 0;
+    public int LineAmountPerVillager(int index) => IsValidLine(index) ? _amountPerVillager[index] : 0;
+
+    /// <summary>이 라인의 다음 레벨이 본진 레벨 부족으로 잠겨 있으면 필요한 본진 레벨, 아니면 0(#229).<br/>
+    /// ⚠ 반환값은 <see cref="CastleLevel"/>과 같은 <b>내부</b> 도메인(0 = 미업그레이드)이다 — 화면에 쓸 땐 +1.</summary>
+    public int LineRequiredCastleLevel(int index) =>
+        IsValidLine(index) ? RequiredCastleLevelAt(_lineUpgradeLevels[index], _level[index], LineMaxLevel(index)) : 0;
+
+    // 다음 레벨(=현재 레벨 인덱스)의 비용. 최대 레벨이거나 라인 무효면 null(표시부는 "MAX" 처리).
+    public IReadOnlyList<ResourceCost> LineUpgradeCost(int index)
+    {
+        if (!IsValidLine(index)) return null;
+        List<BuildingAsset.UpgradeLevel> levels = _lineUpgradeLevels[index];
+        int next = _level[index];
+        return next < EffectiveMaxLevel(levels) ? levels[next].Cost : null;
+    }
+
+    // 업그레이드 가능 여부: 낮이어야 하고, 다음 레벨이 열려 있어야 하고, 그 비용을 감당할 수 있어야 한다.
+    public bool CanUpgrade(int index)
+    {
+        if (!IsDay || !IsValidLine(index)) return false;
+        List<BuildingAsset.UpgradeLevel> levels = _lineUpgradeLevels[index];
+        int next = _level[index];
+        return next < EffectiveMaxLevel(levels) && CanAfford(levels[next].Cost);
+    }
+
+    // 건물 SO가 몇 번 라인인지. 생산 라인(업그레이드 대상)이 아니면 -1.
+    public int LineIndexOf(BuildingAsset building)
+    {
+        if (building == null || _lineBuildings == null) return -1;
+        for (int i = 0; i < _lineBuildings.Length; i++)
+        {
+            if (_lineBuildings[i] == building) return i;
+        }
+        return -1;
+    }
+
+    // 한 단계 업그레이드 후의 주민당량(표시용 "현재 → 다음"). 최대 레벨이면 현재값 그대로(증가 없음).
+    public int LineNextAmountPerVillager(int index)
+    {
+        if (!IsValidLine(index)) return 0;
+        List<BuildingAsset.UpgradeLevel> levels = _lineUpgradeLevels[index];
+        int next = _level[index];
+        return next < EffectiveMaxLevel(levels) ? levels[next].AmountPerVillager : _amountPerVillager[index];
+    }
+
+    // ── 업그레이드 전용 건물(마법 연구소 등) 조회/실행 API ─────────────────
+    // 생산 라인과 별개 트랙이라 index 도메인도 별개다(UpgradeIndexOf로 얻는다). BuildingInfoUI가 바인딩한다.
+
+    /// <summary>업그레이드 전용 건물 SO가 몇 번 index인지. 업그레이드 건물이 아니면 -1.</summary>
+    public int UpgradeIndexOf(BuildingAsset building)
+    {
+        if (building == null || _upgradeBuildingRefs == null) return -1;
+        for (int i = 0; i < _upgradeBuildingRefs.Length; i++)
+        {
+            if (_upgradeBuildingRefs[i] == building) return i;
+        }
+        return -1;
+    }
+
+    public int UpgradeBuildingLevel(int index) => IsValidUpgrade(index) ? _upgradeLevel[index] : 0;
+    // 실질 Max — 행 수가 아니라 '본진 레벨로 열려 있는 만큼'이다(#229). 본진 자신은 게이팅에서 제외한다.
+    public int UpgradeBuildingMaxLevel(int index) =>
+        IsValidUpgrade(index) ? EffectiveMaxLevel(_upgradeLevelTables[index], index == _castleIndex) : 0;
+
+    /// <summary>이 건물의 다음 레벨이 본진 레벨 부족으로 잠겨 있으면 필요한 본진 레벨, 아니면 0(#229).<br/>
+    /// ⚠ 반환값은 <see cref="CastleLevel"/>과 같은 <b>내부</b> 도메인(0 = 미업그레이드)이다 — 화면에 쓸 땐 +1.</summary>
+    public int UpgradeBuildingRequiredCastleLevel(int index) =>
+        IsValidUpgrade(index)
+            ? RequiredCastleLevelAt(_upgradeLevelTables[index], _upgradeLevel[index], UpgradeBuildingMaxLevel(index))
+            : 0;
+
+    // 다음 레벨(=현재 레벨 인덱스)의 비용. 최대 레벨이거나 index 무효면 null(표시부는 "MAX" 처리).
+    public IReadOnlyList<ResourceCost> UpgradeBuildingCost(int index)
+    {
+        if (!IsValidUpgrade(index)) return null;
+        IReadOnlyList<BuildingAsset.UpgradeStep> levels = _upgradeLevelTables[index];
+        int next = _upgradeLevel[index];
+        return next < UpgradeBuildingMaxLevel(index) ? levels[next].Cost : null;
+    }
+
+    // 업그레이드 가능 여부: 낮이어야 하고, 다음 레벨이 열려 있어야 하고, 그 비용(마나석)을 감당할 수 있어야 한다.
+    public bool CanUpgradeBuilding(int index)
+    {
+        if (!IsDay || !IsValidUpgrade(index)) return false;
+        IReadOnlyList<BuildingAsset.UpgradeStep> levels = _upgradeLevelTables[index];
+        int next = _upgradeLevel[index];
+        return next < UpgradeBuildingMaxLevel(index) && CanAfford(levels[next].Cost);
+    }
+
+    /// <summary>
+    /// 업그레이드 전용 건물(마법 연구소 등)을 한 단계 올린다 — 낮에만, 다음 레벨 비용을 감당 가능할 때만.<br/>
+    /// 비용은 생산 건물과 동일한 <see cref="TrySpend"/> 게이트웨이로 원자적 차감(WL-017/WL-048), 성공 시 레벨↑.
+    /// 강화 효과는 여기서 적용하지 않는다 — 소비 시스템이 <see cref="GetUpgradeLevel"/>로 레벨을 읽어 정한다(결합도 최소, TODO).
+    /// </summary>
+    public bool TryUpgradeBuilding(int index)
+    {
+        if (!IsDay)
+        {
+            Debug.Log("[경영] 밤에는 업그레이드할 수 없습니다.");
+            return false;
+        }
+        if (!IsValidUpgrade(index))
+        {
+            return false;
+        }
+
+        IReadOnlyList<BuildingAsset.UpgradeStep> levels = _upgradeLevelTables[index];
+        int next = _upgradeLevel[index];
+        if (next >= UpgradeBuildingMaxLevel(index))
+        {
+            // 잠금(본진 레벨 부족)과 진짜 최대를 구분해 로그를 남긴다 — 왜 못 올리는지가 로그만으로 드러나야 한다.
+            // 본진 레벨은 표시 규약(+1)에 맞춰 찍는다 — 로그와 화면이 다른 수를 말하면 추적이 어긋난다.
+            int required = UpgradeBuildingRequiredCastleLevel(index);
+            Debug.Log(required > 0
+                ? $"[경영] {_upgradeBuildingRefs[index].BuildingID}: 다음 레벨은 본진 Lv{required + 1}부터 열립니다. (현재 본진 Lv{CastleLevel + 1})"
+                : $"[경영] {_upgradeBuildingRefs[index].BuildingID}: 이미 최대 레벨입니다. (Lv{_upgradeLevel[index]})");
+            return false;
+        }
+
+        if (!TrySpend(levels[next].Cost))
+        {
+            Debug.Log($"[경영] {_upgradeBuildingRefs[index].BuildingID}: 자원이 부족해 업그레이드할 수 없습니다.");
+            return false;
+        }
+
+        _upgradeLevel[index] = next + 1;
+        Debug.Log($"[경영] {_upgradeBuildingRefs[index].BuildingID} 업그레이드 → Lv{_upgradeLevel[index]}");
+        OnChanged?.Invoke();
+        return true;
+    }
+
+    /// <summary>
+    /// 업그레이드 전용 건물의 현재 레벨을 읽는다(미보유·미등록이면 0) — 소비 시스템(스킬 강화 등)이 참조하는 저결합 창구.<br/>
+    /// 소비 측은 이 컨트롤러와 대상 건물 SO만 알면 되고, 레벨→효과 매핑은 소비 측이 소유한다(효과 적용은 TODO).<br/>
+    /// 레벨 변경은 <see cref="OnChanged"/>로 통지되므로 소비 측은 이를 구독해 다시 pull하면 된다.
+    /// </summary>
+    public int GetUpgradeLevel(BuildingAsset building)
+    {
+        int index = UpgradeIndexOf(building);
+        return index >= 0 ? _upgradeLevel[index] : 0;
+    }
+
+    private bool IsValidUpgrade(int index) =>
+        _upgradeBuildingRefs != null && index >= 0 && index < _upgradeBuildingRefs.Length;
+
+    // ── 주민 수 증가 게이트웨이 (본진, #227) ──────────────────────────────
+    // 업그레이드 트랙(_upgradeBuildings)과 같은 계보지만 별도 index 도메인을 만들지 않는다 —
+    // 본진은 씬에 하나뿐이라 배열 등록·와이어링 없이 BuildingAsset을 그대로 받는 편이 결합도가 낮다
+    // (GetUpgradeLevel(BuildingAsset)과 같은 형태). 비용은 동일한 TrySpend 게이트웨이를 쓴다.
+
+    /// <summary>주민을 늘릴 수 있는 총 횟수 = 비용 테이블 행 수. 상한을 별도 필드로 두지 않고
+    /// 행 수로 표현하므로(시작 2명 + 8행 = 최대 10명) 상한과 비용이 어긋날 수 없다.</summary>
+    public int VillagerGrowthSteps(BuildingAsset building) => VillagerLevels(building)?.Count ?? 0;
+
+    /// <summary>지금까지 늘린 횟수(= 소진한 행 수). 표시부가 "n/8" 같은 진행도를 그릴 때 쓴다.</summary>
+    public int VillagerGrowthCount => _bonusVillagers;
+
+    /// <summary>다음 회차 주민 증가 비용. 행을 모두 소진했거나 테이블이 없으면 null(표시부는 "MAX" 처리).</summary>
+    public IReadOnlyList<ResourceCost> NextVillagerCost(BuildingAsset building)
+    {
+        List<BuildingAsset.VillagerGrowthLevel> levels = VillagerLevels(building);
+        if (levels == null || _bonusVillagers >= levels.Count) return null;
+
+        BuildingAsset.VillagerGrowthLevel next = levels[_bonusVillagers];
+        return next?.Cost;
+    }
+
+    /// <summary>주민을 늘릴 수 있는지 — 낮이어야 하고, 남은 회차가 있어야 하고, 그 비용을 감당할 수 있어야 한다.</summary>
+    public bool CanIncreaseVillagers(BuildingAsset building)
+    {
+        if (!IsDay) return false;
+        IReadOnlyList<ResourceCost> cost = NextVillagerCost(building);
+        return cost != null && CanAfford(cost);
+    }
+
+    /// <summary>
+    /// 총 보유 주민 수를 1 늘린다 — 낮에만, 다음 회차 비용을 감당 가능할 때만.<br/>
+    /// 비용은 건물 업그레이드와 동일한 <see cref="TrySpend"/> 게이트웨이로 원자적 차감(WL-017/WL-048),
+    /// 성공 시 <see cref="MaxVillagers"/>가 즉시 올라가고 <see cref="OnChanged"/>로 뷰에 통지된다.<br/>
+    /// 늘어난 주민은 그날 바로 배치할 수 있고(<see cref="AssignVillager"/>의 상한이 <see cref="MaxVillagers"/>다),
+    /// 다음날에도 유지된다. 그날 배치하지 않아도 밤으로 넘어갈 수 있으며(#219로 강제 게이팅 해제),
+    /// 유휴로 남으면 낮 종료 확인 팝업이 <see cref="HasIdleVillagers"/>로 경고만 한다.
+    /// </summary>
+    public bool TryIncreaseVillagers(BuildingAsset building)
+    {
+        if (!IsDay)
+        {
+            Debug.Log("[경영] 밤에는 주민을 늘릴 수 없습니다.");
+            return false;
+        }
+
+        List<BuildingAsset.VillagerGrowthLevel> levels = VillagerLevels(building);
+        if (levels == null)
+        {
+            return false;
+        }
+        if (_bonusVillagers >= levels.Count)
+        {
+            Debug.Log($"[경영] 주민 수가 이미 최대입니다. ({MaxVillagers}명)");
+            return false;
+        }
+
+        BuildingAsset.VillagerGrowthLevel target = levels[_bonusVillagers];
+        if (target == null || !TrySpend(target.Cost))
+        {
+            Debug.Log($"[경영] 자원이 부족해 주민을 늘릴 수 없습니다. ({_bonusVillagers + 1}회차)");
+            return false;
+        }
+
+        _bonusVillagers++;
+        Debug.Log($"[경영] 주민 수 증가 → {MaxVillagers}명 ({_bonusVillagers}/{levels.Count}회차)");
+        OnChanged?.Invoke();
+        return true;
+    }
+
+    // 주민 증가 비용 테이블을 꺼낸다. 건물이 없거나 테이블이 비면 null — 호출부가 전부 null 가드를 탄다.
+    private static List<BuildingAsset.VillagerGrowthLevel> VillagerLevels(BuildingAsset building)
+    {
+        if (building == null || building.Villager == null) return null;
+        List<BuildingAsset.VillagerGrowthLevel> levels = building.Villager.Levels;
+        return levels != null && levels.Count > 0 ? levels : null;
+    }
+
+    // ── 자원 교환 게이트웨이 (연금술사의 집, #211) ────────────────────────
+    // 마나석 → 다른 자원 단방향 교환. 지갑에 '획득' 경로를 여는 유일한 소비자 대면 API이므로
+    // Add를 public으로 열지 않고 '차감+지급이 한 몸인' 진입점만 노출한다(팀 계약 #3·#6, WL-017).
+    // 교환 자체가 제2 자원 획득 경로라 팀 합의가 필요했던 지점 — GDD §3.2·WatchList WL-042 참고.
+
+    /// <summary>교환 가능 여부 — 낮이어야 하고, offer가 유효하고, 지불 자원을 감당할 수 있어야 한다.</summary>
+    public bool CanExchange(BuildingAsset building, BuildingAsset.ExchangeOffer offer)
+    {
+        if (!IsDay || _wallet == null) return false;
+        if (!TryResolveExchange(building, offer, out ResourceKind payKind, out _)) return false;
+
+        return _wallet.CanAfford(payKind, offer.PayAmount);
+    }
+
+    /// <summary>
+    /// 지불 자원을 차감하고 대상 자원을 지급한다 — 낮에만, 지불량을 감당할 수 있을 때만.<br/>
+    /// 차감에 실패하면 아무것도 지급하지 않는다(원자적). 성공 시 <see cref="OnChanged"/>로 통지한다.
+    /// </summary>
+    public bool TryExchange(BuildingAsset building, BuildingAsset.ExchangeOffer offer)
+    {
+        if (!IsDay)
+        {
+            Debug.Log("[경영] 밤에는 교환할 수 없습니다.");
+            return false;
+        }
+        if (_wallet == null || !TryResolveExchange(building, offer, out ResourceKind payKind, out ResourceKind gainKind))
+        {
+            return false;
+        }
+
+        if (!_wallet.CanAfford(payKind, offer.PayAmount))
+        {
+            Debug.Log($"[경영] {payKind}이(가) 부족해 교환할 수 없습니다. (필요 {offer.PayAmount}, 보유 {_wallet.Get(payKind)})");
+            return false;
+        }
+        _wallet.TrySpend(payKind, offer.PayAmount);
+
+        int gained = ExchangeGainAmount(building, offer);
+        _wallet.Add(gainKind, gained);
+        Debug.Log($"[경영] 교환: {payKind} -{offer.PayAmount} → {gainKind} +{gained}");
+        OnChanged?.Invoke();
+        return true;
+    }
+
+    // 교환 행의 지불/획득 자원 종류를 해석한다. authoring이 불완전하면(자원 미지정·수량 0 이하) false.
+    // 수량 검증까지 여기서 하는 이유: 무료 교환·0 지급이 조용히 성공하는 걸 막기 위해서다
+    // (BuildingAsset.ValidateExchangeOffers가 에디터에서 경고하는 것과 같은 조건의 런타임 방어선).
+    private bool TryResolveExchange(BuildingAsset building, BuildingAsset.ExchangeOffer offer,
+        out ResourceKind payKind, out ResourceKind gainKind)
+    {
+        payKind = default;
+        gainKind = default;
+
+        if (building == null || building.Exchange == null || offer == null) return false;
+        if (offer.PayAmount <= 0 || offer.GainAmount <= 0) return false;
+
+        return TryResolveKind(building.Exchange.PayResource, out payKind)
+            && TryResolveKind(offer.GainResource, out gainKind);
+    }
+
+    /// <summary>
+    /// 교환으로 실제 받는 수량 — 본진 레벨에 따른 교환 효율 배율이 반영된 값(#229).<br/>
+    /// 표시부(<see cref="StorePanelUI"/>)가 원본 <c>offer.GainAmount</c> 대신 이걸 보여줘야 표시와 실지급이 일치한다.<br/>
+    /// <br/>
+    /// 이 축만 <c>RequiredCastleLevel</c>의 의미가 다르다 — 다른 트랙에선 '이 레벨이 열린다'지만
+    /// 연금술사에겐 '본진 몇 레벨부터 이 배율'이다(자체 업그레이드 버튼이 없어 레벨 개념 자체가 없다).
+    /// 그래서 index 클램프가 아니라 요구치를 만족하는 마지막 행을 고른다.
+    /// </summary>
+    public int ExchangeGainAmount(BuildingAsset building, BuildingAsset.ExchangeOffer offer)
+    {
+        if (building == null || offer == null) return 0;
+
+        List<BuildingAsset.ExchangeUpgradeLevel> levels = building.Exchange?.UpgradeLevels;
+        if (levels == null || levels.Count == 0) return offer.GainAmount;
+
+        int castle = CastleLevel;
+        float multiplier = 1f;
+        for (int i = 0; i < levels.Count; i++)
+        {
+            if (levels[i] == null || levels[i].RequiredCastleLevel > castle) continue;
+            multiplier = levels[i].GainMultiplier;
+        }
+        if (multiplier <= 0f) return offer.GainAmount; // 배율 미authoring(0) 방어 — SkillManager.PositiveOr1과 같은 취지
+
+        return Mathf.Max(1, Mathf.RoundToInt(offer.GainAmount * multiplier));
+    }
 
     // 라인 산출 자원의 현재 생산 배율(레지스트리 미준비 시 1.0).
     private float ProductionMultiplier(int index) =>
@@ -159,14 +561,11 @@ public class ManagementController : MonoBehaviour
         if (_dayNight != null)
         {
             _dayNight.OnNightToDay -= HandleNightToDay;
+            _dayNight.OnDayToNight -= HandleDayToNight;
         }
         if (_territory != null)
         {
             _territory.OnChanged -= HandleTerritoryChanged;
-            if (_territory.Graph != null)
-            {
-                _territory.Graph.OnNodeClaimed -= HandleNodeClaimed;
-            }
         }
     }
 
@@ -177,6 +576,12 @@ public class ManagementController : MonoBehaviour
         // (지갑 직접 변경엔 원래 OnChanged가 안 돌던 지점을 여기서 메운다)
         _wallet.OnChanged += (_, _) => OnChanged?.Invoke();
 
+        // 게임 시작 초기 자원 지급(런당 1회, 이슈 #130) — 유일 창구인 ResourceWallet.Add로만 지급한다(팀 계약 #3).
+        _wallet.Add(ResourceKind.Wood, _initialWood);
+        _wallet.Add(ResourceKind.Iron, _initialIron);
+        _wallet.Add(ResourceKind.Food, _initialFood);
+        Debug.Log($"[경영] 초기 자원 지급: Wood +{_initialWood}, Iron +{_initialIron}, Food +{_initialFood}");
+
         // 생산 배율 레지스트리는 지갑과 함께 런마다 새로 만든다(영토 패시브 효과가 여기에 누적).
         _productionModifiers = new ProductionModifiers();
 
@@ -184,35 +589,128 @@ public class ManagementController : MonoBehaviour
 
         var assets = new List<ResourceAsset>();
         var sources = new List<ResourceProductionSource>();
+        var baseAmounts = new List<int>();
+        var upgradeLevels = new List<List<BuildingAsset.UpgradeLevel>>();
+        var buildings = new List<BuildingAsset>();
 
-        int count = _resourceAssets != null ? _resourceAssets.Length : 0;
+        int count = _productionBuildings != null ? _productionBuildings.Length : 0;
         for (int i = 0; i < count; i++)
         {
-            ResourceAsset asset = _resourceAssets[i];
-            if (asset == null)
+            BuildingAsset building = _productionBuildings[i];
+            if (building == null)
             {
-                Debug.LogError($"[경영] {i}번 ResourceAsset이 비어 있습니다.");
+                Debug.LogError($"[경영] {i}번 생산 건물이 비어 있습니다.");
+                continue;
+            }
+
+            // 건물의 Production에서 생산처를 만든다(타입·OutputResource 검증은 TryCreate가 담당·로깅).
+            if (!ResourceProductionSource.TryCreate(building, _wallet, out ResourceProductionSource source))
+            {
                 continue;
             }
 
             // ResourceAsset.Data는 호출부가 채우는 규약(SystemMap §2).
-            if (asset.Data == null && table != null)
+            ResourceAsset output = building.Production.OutputResource;
+            if (output.Data == null && table != null)
             {
-                asset.Data = table.Get(asset.ResourceID);
+                output.Data = table.Get(output.ResourceID);
             }
-            if (asset.Data == null)
+            if (output.Data == null)
             {
-                Debug.LogError($"[경영] '{asset.ResourceID}' Data를 채우지 못해 라인 제외.");
+                Debug.LogError($"[경영] '{output.ResourceID}' Data를 채우지 못해 라인 제외.");
                 continue;
             }
 
-            assets.Add(asset);
-            sources.Add(new ResourceProductionSource(asset, _baseAmountPerVillager, _wallet));
+            assets.Add(output);
+            sources.Add(source);
+            baseAmounts.Add(Mathf.Max(0, building.Production.BaseAmountPerVillager)); // 레벨0 주민당량
+            upgradeLevels.Add(building.Production.UpgradeLevels ?? new List<BuildingAsset.UpgradeLevel>());
+            buildings.Add(building);
         }
 
         _lineAssets = assets.ToArray();
         _sources = sources.ToArray();
+        _amountPerVillager = baseAmounts.ToArray();
+        _lineUpgradeLevels = upgradeLevels.ToArray();
+        _lineBuildings = buildings.ToArray();
+        _level = new int[_sources.Length];
         _villagerCounts = new int[_sources.Length];
+
+        BuildUpgradeBuildings();
+    }
+
+    // 업그레이드 전용 건물(마법 연구소 등) 트랙을 구축한다. 생산 라인과 달리 생산처·산출 자원이 없어
+    // 레벨 테이블(비용)만 캡처하면 된다. 스킬 타입이 아니거나 레벨 테이블이 비어도 등록은 하되 최대 레벨 0으로 둔다
+    // (BuildingInfoUI가 "업그레이드 불가"로 표시). 실제 강화 효과는 소비 시스템이 레벨을 참조해 정한다(TODO).
+    private void BuildUpgradeBuildings()
+    {
+        var refs = new List<BuildingAsset>();
+        var tables = new List<IReadOnlyList<BuildingAsset.UpgradeStep>>();
+        _castleIndex = -1;
+
+        int count = _upgradeBuildings != null ? _upgradeBuildings.Length : 0;
+        for (int i = 0; i < count; i++)
+        {
+            BuildingAsset building = _upgradeBuildings[i];
+            if (building == null)
+            {
+                Debug.LogError($"[경영] {i}번 업그레이드 건물이 비어 있습니다.");
+                continue;
+            }
+
+            // 본진은 '데이터 존재'로 식별한다(BuildingType 분기 금지 — BuildingInfo.OnSelected 계보).
+            if (building.Castle != null && building.Castle.UpgradeLevels != null && building.Castle.UpgradeLevels.Count > 0)
+            {
+                if (_castleIndex >= 0)
+                {
+                    Debug.LogError($"[경영] 본진 업그레이드 테이블을 가진 건물이 둘 이상입니다({refs[_castleIndex].BuildingID}, {building.BuildingID}) — 해금 기준이 하나여야 합니다. 먼저 등록된 쪽을 씁니다.");
+                }
+                else
+                {
+                    _castleIndex = refs.Count;
+                }
+            }
+
+            refs.Add(building);
+            tables.Add(building.UpgradeSteps);
+        }
+
+        _upgradeBuildingRefs = refs.ToArray();
+        _upgradeLevelTables = tables.ToArray();
+        _upgradeLevel = new int[_upgradeBuildingRefs.Length];
+
+        WarnUnreachableCastleRequirements();
+    }
+
+    // 본진 테이블로 도달 불가능한 요구치를 Play 시작 시 1회 경고한다(#229).
+    // BuildingAsset.OnValidate는 SO 하나만 보므로 이 교차 검증을 할 수 없다 — 본진 최대 레벨을 알려면
+    // 다른 SO를 참조해야 하고 SO는 서로를 모르기 때문. 등록이 끝난 이 시점에만 판정할 수 있다.
+    private void WarnUnreachableCastleRequirements()
+    {
+        int castleMax = _castleIndex >= 0 ? _upgradeLevelTables[_castleIndex].Count : 0;
+
+        for (int i = 0; i < _upgradeBuildingRefs.Length; i++)
+        {
+            if (i == _castleIndex) continue;
+            WarnIfUnreachable(_upgradeBuildingRefs[i], _upgradeLevelTables[i], castleMax);
+        }
+        for (int i = 0; i < _lineBuildings.Length; i++)
+        {
+            WarnIfUnreachable(_lineBuildings[i], _lineUpgradeLevels[i], castleMax);
+        }
+    }
+
+    private static void WarnIfUnreachable(BuildingAsset building, IReadOnlyList<BuildingAsset.UpgradeStep> levels, int castleMax)
+    {
+        if (building == null || levels == null) return;
+
+        for (int i = 0; i < levels.Count; i++)
+        {
+            if (levels[i] != null && levels[i].RequiredCastleLevel > castleMax)
+            {
+                Debug.LogWarning($"[경영] {building.BuildingID}: Lv{i + 1}의 요구 본진 레벨({levels[i].RequiredCastleLevel})이 본진 최대 레벨({castleMax})을 넘어 영원히 열리지 않습니다.");
+            }
+        }
     }
 
     private void SubscribeDayNight()
@@ -225,6 +723,7 @@ public class ManagementController : MonoBehaviour
         }
 
         _dayNight.OnNightToDay += HandleNightToDay;
+        _dayNight.OnDayToNight += HandleDayToNight;
     }
 
     private void SubscribeTerritory()
@@ -236,30 +735,13 @@ public class ManagementController : MonoBehaviour
             return;
         }
 
+        // 확보/낮 시작 등 영토 상태가 바뀌면 패널을 갱신한다 — 수급 row의 일일량·활성(회색) 상태 반영(#166).
+        // ⚠ 확보 시 즉시 지급은 없다. 자원은 매일 정산(HandleNightToDay → SettleTerritorySupply)에서
+        //   확보(Owned) 노드로부터 자동 수급된다(GDD §3.2 미개척 영지 = 매일 자동 수급).
         _territory.OnChanged += HandleTerritoryChanged;
-
-        // 영토 확보 효과 적용 지점(WL-030): 확보 시 1회 발행되는 OnNodeClaimed를 구독해 그 노드의 효과를
-        // 적용한다. 지갑·생산 배율을 이 컨트롤러가 소유하므로 여기서 컨텍스트를 조립하는 게 자연스럽다.
-        if (_territory.Graph != null)
-        {
-            _territory.Graph.OnNodeClaimed += HandleNodeClaimed;
-        }
     }
 
     private void HandleTerritoryChanged() => OnChanged?.Invoke();
-
-    // 확보된 노드에 주입된 정의의 효과들을 적용한다(즉시 자원 지급·패시브 생산 배율 등). 정의가 없는 노드(본진)는 무시.
-    // 지갑 지급은 wallet.OnChanged → OnChanged로, 배율 변경은 이어지는 Graph.OnChanged 중계로 UI에 반영된다.
-    private void HandleNodeClaimed(TerritoryNode node)
-    {
-        if (node == null || node.Definition == null)
-        {
-            return;
-        }
-
-        var ctx = new TerritoryEffectContext(_wallet, _productionModifiers, node, _territory != null ? _territory.Graph : null);
-        node.Definition.ApplyAll(ctx);
-    }
 
     // ── 뷰(또는 후속 패널 버튼)가 호출하는 진입점 ─────────────────────────
     public void AssignVillager(int index)
@@ -268,9 +750,9 @@ public class ManagementController : MonoBehaviour
         {
             return;
         }
-        if (AssignedTotal >= _maxVillagers)
+        if (AssignedTotal >= MaxVillagers)
         {
-            Debug.Log($"[경영] 가용 주민이 없습니다. (배치 {AssignedTotal}/{_maxVillagers})");
+            Debug.Log($"[경영] 가용 주민이 없습니다. (배치 {AssignedTotal}/{MaxVillagers})");
             return;
         }
 
@@ -293,9 +775,53 @@ public class ManagementController : MonoBehaviour
         OnChanged?.Invoke();
     }
 
-    // 페이즈 전환 버튼: 낮이면 밤으로(잉여 주민 게이트). 밤→낮(EndNight)은 이제 웨이브 성공
-    // 버튼이 전담한다(WL-018) — 이 버튼은 밤에는 아무 동작도 하지 않는다.
-    public void RequestAdvancePhase()
+    /// <summary>
+    /// 생산 건물(라인)을 한 단계 업그레이드한다 — 낮에만, 다음 레벨 비용을 감당 가능할 때만.<br/>
+    /// 비용은 <see cref="TrySpend"/> 게이트웨이로 원자적으로 차감하고(WL-017/WL-048), 성공 시 레벨↑·주민당량 갱신.
+    /// 성공 여부를 반환한다. (UI는 다음 이슈 — 지금은 이 진입점만 제공.)
+    /// </summary>
+    public bool TryUpgrade(int index)
+    {
+        if (!IsDay)
+        {
+            Debug.Log("[경영] 밤에는 업그레이드할 수 없습니다.");
+            return false;
+        }
+        if (!IsValidLine(index))
+        {
+            return false;
+        }
+
+        List<BuildingAsset.UpgradeLevel> levels = _lineUpgradeLevels[index];
+        int next = _level[index];
+        if (next >= EffectiveMaxLevel(levels))
+        {
+            // 잠금(본진 레벨 부족)과 진짜 최대를 구분해 로그를 남긴다. 본진 레벨은 표시 규약(+1)에 맞춘다.
+            int required = LineRequiredCastleLevel(index);
+            Debug.Log(required > 0
+                ? $"[경영] {LineDisplayName(index)}: 다음 레벨은 본진 Lv{required + 1}부터 열립니다. (현재 본진 Lv{CastleLevel + 1})"
+                : $"[경영] {LineDisplayName(index)}: 이미 최대 레벨입니다. (Lv{_level[index]})");
+            return false;
+        }
+
+        BuildingAsset.UpgradeLevel target = levels[next];
+        if (!TrySpend(target.Cost))
+        {
+            Debug.Log($"[경영] {LineDisplayName(index)}: 자원이 부족해 업그레이드할 수 없습니다.");
+            return false;
+        }
+
+        _level[index] = next + 1;
+        _amountPerVillager[index] = target.AmountPerVillager;
+        Debug.Log($"[경영] {LineDisplayName(index)} 업그레이드 → Lv{_level[index]} (주민당량 {_amountPerVillager[index]})");
+        OnChanged?.Invoke();
+        return true;
+    }
+
+    // 낮→밤 전환을 수행한다(#219): 강제 조건 없음 — 영토 미확장·유휴 주민이어도 넘어간다.
+    // 조건 미충족 시의 확인은 UI(ManagementEndDayConfirmPopup)가 담당한다. 밤→낮(EndNight)은
+    // 웨이브 성공 버튼이 전담(WL-018)하므로, 이 메서드는 밤에는 아무 동작도 하지 않는다.
+    public void EndDay()
     {
         if (_dayNight == null)
         {
@@ -308,15 +834,14 @@ public class ManagementController : MonoBehaviour
             return;
         }
 
-        if (!CanEndDay)
-        {
-            Debug.Log($"[경영] 잉여 주민이 있어 밤으로 전환할 수 없습니다. (배치 {AssignedTotal}/{_maxVillagers})");
-            return;
-        }
         _dayNight.EndDay();
     }
 
     // ── DayNightManager 이벤트 훅 (팀 계약 #5) ──────────────────────────
+    // 낮→밤은 배치 확정만 하고 정산은 없다(팀 계약 #5) — IsDay 게이트를 쓰는 버튼(교환/업그레이드)이
+    // 전환 즉시 비활성화되도록 OnChanged만 재발행한다(WL-104).
+    private void HandleDayToNight() => OnChanged?.Invoke();
+
     private void HandleNightToDay()
     {
         for (int i = 0; i < _sources.Length; i++)
@@ -326,18 +851,72 @@ public class ManagementController : MonoBehaviour
                 continue;
             }
 
-            int produced = _sources[i].Produce(_villagerCounts[i], ProductionMultiplier(i));
+            int produced = _sources[i].Produce(_villagerCounts[i], _amountPerVillager[i], ProductionMultiplier(i));
             Debug.Log($"[정산] {LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, _lineAssets[i].Data.NameKey)}: 주민 {_villagerCounts[i]}명 → +{produced}");
         }
 
-        for (int i = 0; i < _villagerCounts.Length; i++)
-        {
-            _villagerCounts[i] = 0;
-        }
+        // 주민 배치는 초기화하지 않고 전날 배치를 그대로 유지한다(#219) — 매일 재배치 강제를 없앤다.
 
-        Debug.Log($"[경영] 밤 → 낮 (Wave {WaveCount}): 자원 정산 + 주민 배치 초기화");
+        // 미개척 영지 일일 자동 수급(#166): 확보(Owned)한 영지가 매일 자기 자원을 DailyYield만큼 지급한다.
+        // 주민 배치와 무관한 패시브 수입 — 확보한 영지 수·종류가 늘수록 총 수급이 늘어난다(GDD §3.2).
+        SettleTerritorySupply();
+
+        _wallet.Add(ResourceKind.Mana, _manaPerWaveClear);
+        Debug.Log($"[정산] 웨이브 클리어 보상: 마나석 +{_manaPerWaveClear}");
+
+        Debug.Log($"[경영] 밤 → 낮 (Wave {WaveCount}): 자원 정산 (주민 배치 유지, #219)");
         OnChanged?.Invoke();
     }
+
+    // 확보(Owned)한 미개척 영지들이 매일 지급하는 자원을 지갑에 정산한다(#166). 주민 배치와 무관.
+    // 본진(Definition == null)·미확보 노드는 건너뛴다.
+    private void SettleTerritorySupply()
+    {
+        if (_territory == null || _territory.Graph == null)
+        {
+            return;
+        }
+
+        IReadOnlyList<TerritoryNode> nodes = _territory.Graph.Nodes;
+        for (int i = 0; i < nodes.Count; i++)
+        {
+            TerritoryNode node = nodes[i];
+            if (node.State != TerritoryState.Owned || node.Definition == null || node.DailyYield <= 0)
+            {
+                continue;
+            }
+
+            _wallet.Add(node.Definition.Kind, node.DailyYield);
+            Debug.Log($"[정산] 영지 수급: {node.Definition.Kind} +{node.DailyYield} (노드 {node.Id})");
+        }
+    }
+
+    /// <summary>
+    /// 지정 자원의 일일 자동 수급량 합 — 확보(Owned)한 그 종류 미개척 영지들의 <c>DailyYield</c> 총합(#166).<br/>
+    /// 그 종류 영지를 아직 확보하지 않았으면 0. 패널의 특수 자원 row가 "+n"·활성(회색) 판정에 쓴다.
+    /// </summary>
+    public int SupplyDaily(ResourceKind kind)
+    {
+        if (_territory == null || _territory.Graph == null)
+        {
+            return 0;
+        }
+
+        int sum = 0;
+        IReadOnlyList<TerritoryNode> nodes = _territory.Graph.Nodes;
+        for (int i = 0; i < nodes.Count; i++)
+        {
+            TerritoryNode node = nodes[i];
+            if (node.State == TerritoryState.Owned && node.Definition != null && node.Definition.Kind == kind)
+            {
+                sum += node.DailyYield;
+            }
+        }
+        return sum;
+    }
+
+    /// <summary>웨이브 클리어(밤→낮) 시 지급되는 마나석 고정량 — 마나 row의 "+n" 미리보기용(#166).</summary>
+    public int ManaPerWaveClear => _manaPerWaveClear;
 
     private bool CanEditLine(int index)
     {
@@ -346,11 +925,7 @@ public class ManagementController : MonoBehaviour
             Debug.Log("[경영] 밤에는 배치를 변경할 수 없습니다.");
             return false;
         }
-        if (!CanAssignVillagers)
-        {
-            Debug.Log("[경영] 오늘 아직 영토를 확장하지 않아 주민을 배치할 수 없습니다.");
-            return false;
-        }
+        // 영토 확장 선행 조건 제거(#219) — 영토를 확장하지 않아도 주민을 배치할 수 있다(밤 게이팅만 유지).
         return IsValidLine(index);
     }
 

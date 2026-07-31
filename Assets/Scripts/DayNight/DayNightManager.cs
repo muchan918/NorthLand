@@ -13,7 +13,13 @@ public class DayNightManager : MonoBehaviour
     public static DayNightManager Instance { get; private set; }
 
     public Phase CurrentPhase { get; private set; }
+
+    // 지금까지 클리어한 웨이브 수. 첫 낮에는 0이다(아직 아무것도 클리어하지 않았으므로).
     public int WaveCount { get; private set; }
+
+    // 지금 준비 중이거나 진행 중인 웨이브 번호(1부터). 첫 낮 = 1.
+    // 표시(UI)와 스폰 라운드 번호는 WaveCount가 아니라 항상 이 값을 쓴다.
+    public int CurrentWave => WaveCount + 1;
 
     // 낮이 시작되는 모든 시점(1일차 부트스트랩 포함)에 발생
     public event Action OnDayStart;
@@ -85,4 +91,18 @@ public class DayNightManager : MonoBehaviour
     //     yield return new WaitForSeconds(3f);
     //     EndNight();
     // }
+
+    // [테스트 훅] 주민 배치·영토 확장·몬스터 스폰 없이 웨이브 수만 올리고 낮 상태를 유지한 채 다음 날로 넘어간다.
+    // 정상 절차(EndDay→몬스터 스폰→WaveCleared→EndNight)를 전부 건너뛰므로 OnDayToNight/OnNightToDay는 발행하지 않는다.
+    public void SkipDay()
+    {
+        if (CurrentPhase != Phase.Day)
+        {
+            Debug.LogWarning("밤에는 SkipDay를 사용할 수 없습니다");
+            return;
+        }
+
+        WaveCount++;
+        OnDayStart?.Invoke();
+    }
 }

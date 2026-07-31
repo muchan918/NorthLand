@@ -1,12 +1,16 @@
+using Cysharp.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Cysharp.Threading.Tasks;
 using UnityEngine;
+using NorthLand.Combat;
+using NorthLand.Core;
 
 public class MonsterSpawn : MonoBehaviour
 {
+    public event Action<int> WaveCleared;
+
     [Header("Common References")]
     [SerializeField] private Transform fallbackSpawnPoint;
     [SerializeField] private Transform monsterParent;
@@ -30,6 +34,8 @@ public class MonsterSpawn : MonoBehaviour
     private readonly List<Vector3> route = new List<Vector3>();
     private readonly List<Vector3> spawnRoute = new List<Vector3>();
     private CancellationTokenSource spawnCancellationTokenSource;
+    private int currentRound;
+
 
     private void Awake()
     {
@@ -79,8 +85,9 @@ public class MonsterSpawn : MonoBehaviour
     }
 
     // 성문(gatePrefab)을 경로 끝점 — 몬스터가 도달해 제거되는 지점 — 에 배치한다.
-    // 몬스터는 GetSpawnRoute()(route를 뒤집은 경로)를 따라가다 마지막 지점에서 MonsterMove에 의해
-    // 제거되며, 그 지점은 route[0]에 해당한다. 경로가 갱신되면(스테이지 재생성 등) 위치를 옮긴다.
+    // 몬스터는 GetSpawnRoute()(route를 뒤집은 경로)를 따라가며,
+    // 경로 완료 시 Enemy가 IRouteMovementAgent.RouteCompleted를 받아 제거한다.
+    // 그 지점은 route[0]에 해당한다. 경로가 갱신되면(스테이지 재생성 등) 위치를 옮긴다.
     // monsterParent에 붙이지 않는다 — 웨이브 클리어는 monsterParent.childCount로 판정하므로(WL-037).
     private void UpdateGate()
     {
@@ -108,6 +115,14 @@ public class MonsterSpawn : MonoBehaviour
             return;
         }
 
+        // 승패가 확정된 뒤(승리/게임오버)에는 어떤 경로로도 새 웨이브를 시작하지 않는다.
+        // 임시 치트 패널로 페이즈를 강제 전환해도 유령 스폰이 생기지 않게 하는 방어선.
+        if (GameManager.Instance != null &&
+            GameManager.Instance.Result != GameResult.Playing)
+        {
+            return;
+        }
+
         if (DayNightManager.Instance != null &&
             DayNightManager.Instance.CurrentPhase == DayNightManager.Phase.Day)
         {
@@ -123,19 +138,58 @@ public class MonsterSpawn : MonoBehaviour
             EndNightIfNight();
             return;
         }
-
-        if (!waveProvider.TryGetWave(round, out IReadOnlyList<MonsterSpawnEntry> entries))
+        if (!waveProvider.TryGetWave(round,out IReadOnlyList<MonsterSpawnEntry> entries))
         {
-            Debug.LogWarning($"[몬스터 스포너] 라운드 {round} 웨이브 데이터 없음 — 스폰 없이 즉시 웨이브 클리어(밤 종료) 처리합니다.");
+            Debug.LogWarning($"Wave {round} 데이터가 없습니다.",this);
+
             EndNightIfNight();
             return;
         }
 
-        CancellationToken cancellationToken = RestartSpawnTasks();
-        SpawnRoundAsync(entries, cancellationToken).Forget();
+        currentRound = round;
+
+        CancellationToken cancellationToken =
+            RestartSpawnTasks();
+
+        SpawnRoundAsync(round,entries,cancellationToken).Forget();
     }
 
-    private async UniTaskVoid SpawnRoundAsync(IReadOnlyList<MonsterSpawnEntry> entries, CancellationToken cancellationToken)
+    // [테스트 훅] 남은 웨이브를 즉시 클리어 처리한다. 대기 중 스폰을 멈추고(진행 중 SpawnRoundAsync는
+    // 취소로 조용히 종료 → WaveCleared 중복 발화 없음), 현재 스폰된 몬스터를 전부 제거한 뒤,
+    // SpawnRoundAsync가 하던 완료 경로(WaveCleared→보상→EndNight)를 직접 구동한다.
+    // childCount==0 자연 충족을 기다리지 않는 이유: 그 WaitUntil이 SpawnRoundAsync 내부에 있어
+    // 스폰 취소 시 도달하지 못하기 때문(스폰 도중엔 아직 시작조차 안 함).
+    public void ForceClearWave()
+    {
+        CancelSpawnTasks();
+        ClearSpawnedMonsters();
+
+        if (WaveCleared != null)
+        {
+            WaveCleared.Invoke(currentRound);
+        }
+        else
+        {
+            EndNightIfNight();
+        }
+    }
+
+    // monsterParent의 자식(=살아있는 몬스터)을 역순으로 제거한다.
+    private void ClearSpawnedMonsters()
+    {
+        if (monsterParent == null)
+        {
+            return;
+        }
+
+        for (int i = monsterParent.childCount - 1; i >= 0; i--)
+        {
+            Destroy(monsterParent.GetChild(i).gameObject);
+        }
+    }
+
+
+    private async UniTaskVoid SpawnRoundAsync(int round,IReadOnlyList<MonsterSpawnEntry> entries,CancellationToken cancellationToken)
     {
         try
         {
@@ -174,8 +228,18 @@ public class MonsterSpawn : MonoBehaviour
                 return;
             }
 
-            await UniTask.WaitUntil(() => monsterParent.childCount == 0, cancellationToken: cancellationToken);
-            EndNightIfNight();
+            await UniTask.WaitUntil(() => monsterParent.childCount == 0,cancellationToken: cancellationToken);
+
+            if (WaveCleared != null)
+            {
+                WaveCleared.Invoke(round);
+            }
+            else
+            {
+                Debug.LogWarning("WaveCleared 구독자가 없어 기존 방식으로 밤을 종료합니다.",this);
+
+                EndNightIfNight();
+            }
         }
         catch (OperationCanceledException)
         {
@@ -246,35 +310,88 @@ public class MonsterSpawn : MonoBehaviour
         return false;
     }
 
-    private void SpawnPrefab(GameObject prefab)
+    // ── 런타임 소환 창구(#233) ─────────────────────────────
+    // 보스 BT의 지속 소환 패턴이 EnemyAgent를 경유해 호출한다. 웨이브 스폰과 같은 경로를 쓰므로
+    // 소환체도 monsterParent 자식으로 들어가고 경로를 받는다 — 웨이브 클리어 판정이
+    // monsterParent.childCount == 0이라(line 230 참조) 소환체를 밖에 두면 보스 사망 즉시
+    // 웨이브가 종료되면서 잡몹이 남는다. 안에 두면 "보스를 죽여야 물결이 멎는다"가 성립한다.
+    //
+    // 스포너를 정적 싱글톤으로 노출하지 않는다 — 스포너가 여러 개인 구성을 막지 않기 위해
+    // 소환체는 자기를 만든 스포너에 스폰 시점 주입으로 묶인다(SpawnPrefab 참조).
+    public GameObject SpawnMonster(GameObject prefab)
+    {
+        return SpawnPrefab(prefab);
+    }
+
+    // 현재 살아있는 몬스터 수(= monsterParent 자식 수). 소환 상한(MaxAlive) 판정용.
+    // 주의 2건: ① 보스 자신도 포함된다 ② 사망 연출 중인 몬스터도 destroyDelay(2초) 동안
+    // 포함된다(MonsterStateMachine.cs:152, WL-038). 상한값을 정할 때 이 오차를 감안해야 한다.
+    public int AliveMonsterCount => monsterParent != null ? monsterParent.childCount : 0;
+
+    private GameObject SpawnPrefab(GameObject prefab)
     {
         if (prefab == null)
         {
-            return;
+            return null;
         }
 
         if (!TryGetSpawnPose(out Vector3 position, out Quaternion rotation))
         {
-            return;
+            return null;
         }
 
-        GameObject monster = Instantiate(prefab, position, rotation, monsterParent);
-        MonsterMove monsterMove = monster.GetComponent<MonsterMove>();
+        GameObject monster = Instantiate(prefab,position,rotation,monsterParent);
 
-        if (monsterMove == null)
+        Enemy enemy = monster.GetComponent<Enemy>();
+        IRouteMovementAgent routeMovement = monster.GetComponentInChildren<IRouteMovementAgent>();
+
+        // 1. 필수 컴포넌트부터 검사
+        if (enemy == null || routeMovement == null)
         {
-            monsterMove = monster.GetComponentInChildren<MonsterMove>();
+            Debug.LogError(
+                $"[{monster.name}] Enemy 또는 IRouteMovementAgent가 연결되지 않았습니다.",
+                monster
+            );
+
+            Destroy(monster);
+            return null;
         }
 
-        if (monsterMove != null)
+        // 2. 데이터와 이동 컴포넌트의 모드가 일치하는지 검사
+        if (enemy.MovementMode != routeMovement.SupportedMode)
         {
-            monsterMove.SetRoute(GetSpawnRoute());
+            Debug.LogError($"[{monster.name}] 이동 모드가 일치하지 않습니다. EnemyAsset: {enemy.MovementMode}, " +
+                $"MovementAgent: {routeMovement.SupportedMode}",monster);
+
+            Destroy(monster);
+            return null;
         }
-        else
+
+        // 3. 공중 이동 컴포넌트는 몬스터 루트에 있어야 함
+        if (routeMovement.SupportedMode == MovementMode.Flying &&routeMovement is MonoBehaviour movementComponent &&movementComponent.transform != monster.transform)
         {
-            // MonsterMove가 없으면 이동·본진 도달 디스폰이 없어 웨이브 클리어(childCount 0)에 닿지 못한다(WL-037).
-            Debug.LogWarning($"[몬스터 스포너] '{monster.name}'에 MonsterMove가 없어 이동/디스폰하지 않습니다 — 웨이브가 끝나지 않을 수 있습니다.", monster);
+            Debug.LogError($"[{monster.name}] 공중 이동 컴포넌트는 몬스터 루트에 연결해야 합니다.",monster);
+
+            Destroy(monster);
+            return null;
         }
+
+
+        // BT 소환 노드가 스포너를 거쳐야 소환체를 monsterParent에 넣을 수 있는데, 프리팹은
+        // 씬 참조를 들 수 없다. 그래서 경로를 주입하는 이 자리에서 스포너 자신도 주입한다.
+        // EnemyAgent가 없는 프리팹(일반 잡몹)은 그냥 건너뛴다 — 선택적 의존이다.
+        EnemyAgent agent = monster.GetComponentInChildren<EnemyAgent>();
+
+        if (agent != null)
+        {
+            agent.BindSpawner(this);
+        }
+
+        // Enemy가 IRouteMovementAgent.RouteCompleted를 구독하여
+        // 경로 끝 도달 시 몬스터 루트 오브젝트를 제거한다.
+        routeMovement.SetRoute(GetSpawnRoute());
+
+        return monster;
     }
 
     private List<Vector3> GetSpawnRoute()

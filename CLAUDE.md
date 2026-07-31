@@ -27,6 +27,6 @@ NorthLand: Last Stand(팀 유유아)는 Unity로 개발 중인 그리드 기반 
 
 - `Assets/Scripts/` — 스크립트 정본 위치. 담당자 이름이 아니라 공간/시스템 폴더(`CombatSystem`, `CombatSpace`, `ManagementSpace`, `GameManager`, `Data`, `DayNight`, `Camera`, `Monster`, `Editor`, `Test` 등, 정확한 목록은 `Docs/Review/SystemMap.md`)로 구성된다. 새 스크립트는 여기서 직접 작업하며, 통합 합의를 기다릴 필요 없이 해당 시스템 폴더에 바로 생성한다. **에이전트도 동일 규칙 적용**: 새 코드는 대상 시스템 폴더에 생성하고, 어느 폴더인지 불명확하면 사용자에게 확인할 것.
 - `Assets/Personal/<이름>/` — 팀원별 개인 작업 폴더(현재 `muchan`, `SUNJIN`, `SUNGSOO`, `n0wst4ndup`). 스크립트가 아닌 **씬(Scene) 등 WIP 에셋** 전용으로 계속 쓰인다. 씬 작업 시 정본 위치·개인 복사·버전 누적 병합·주간 정리 규칙은 `Docs/Core/SceneWorkflow.md`를 따를 것.
-- PR 리뷰(자동/수동): `Docs/Review/SystemMap.md`(시스템 맵, 통합 계약, 담당자 매트릭스)와 `Docs/Review/WatchList.md`(반복 이슈 대장, WL-번호)를 리뷰 기준선으로 따른다. 문서-코드 일치 여부는 리뷰 기준이 **아니다** — 팀은 코드에 맞춰 문서를 갱신하므로, 문서+코드 세트 자체가 올바른 방향인지를 판단할 것.
+- PR 리뷰(자동/수동): `Docs/Review/SystemMap.md`(시스템 맵, 통합 계약, 담당자 매트릭스)와 `Docs/Review/WatchList.md`(**미해소** 반복 이슈 대장, WL-번호)를 리뷰 기준선으로 따른다. 해소·폐기 항목은 `Docs/Review/WatchList-Archive.md`에 있다 — 재발 감지용이므로 통독하지 말고, 과거 해소 이슈가 되돌아간 것으로 의심될 때만 번호·키워드를 Grep할 것. 문서-코드 일치 여부는 리뷰 기준이 **아니다** — 팀은 코드에 맞춰 문서를 갱신하므로, 문서+코드 세트 자체가 올바른 방향인지를 판단할 것.
 - `Assets/Imported/` — 내부에 자체 중첩 git 저장소를 포함한다. 벤더링된 외부 에셋 소스로 취급하고, 일반 기능 작업의 일부로 편집하지 말 것.
 - `Assets/TutorialInfo/`와 `Assets/Readme.asset`은 URP 템플릿 기본 Readme 창의 잔재 — 게임의 일부가 아니다.

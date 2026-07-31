@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: NorthLand_Rewards Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: NorthLand_Rewards
+  m_TableCollectionNameGuidString: d31939c85d7e0a94b8d7bc185b828d83
+  m_Entries:
+  - m_Id: 26849390592
+    m_Key: rewards.burn.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1926189625344
+    m_Key: rewards.bomb.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1979444703232
+    m_Key: rewards.count.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2447998791680
+    m_Key: rewards.buff.burn.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9946877472768
+    m_Key: rewards.burn.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10113743663104
+    m_Key: rewards.bomb.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10160417878016
+    m_Key: rewards.count.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10162397589504
+    m_Key: rewards.buff.burn.desc
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 2077345200535502921
+  references:
+    version: 2
+    RefIds:
+    - rid: 2077345200535502921
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1784683549925

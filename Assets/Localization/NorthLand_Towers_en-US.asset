@@ -66,18 +66,6 @@ MonoBehaviour:
     m_Localized: Increase the attack speed of the surrounding towers
     m_Metadata:
       m_Items: []
-  - m_Id: 3010218569728
-    m_Localized: Frost Tower
-    m_Metadata:
-      m_Items: []
-  - m_Id: 3011833376768
-    m_Localized: Reduce the speed
-    m_Metadata:
-      m_Items: []
-  - m_Id: 3012533825536
-    m_Localized: Reduce the speed of movement of enemies in range
-    m_Metadata:
-      m_Items: []
   - m_Id: 77423716192256
     m_Localized: Poison Tower
     m_Metadata:
@@ -88,6 +76,60 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 77423783301121
     m_Localized: Deal poison damage to enemies in range over time
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1099361558372352
+    m_Localized: GatlingShooter
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1100150569869312
+    m_Localized: Single Target Attack
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1100153673654272
+    m_Localized: Quickly and continuously attack the closest enemy within the intersection
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1158352120487936
+    m_Localized: Sniper Tower
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1158354364440576
+    m_Localized: Single Target Attack
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1158356088299520
+    m_Localized: An attack that deals heavy damage to enemies far away
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1254254390714368
+    m_Localized: Chocolate Falls Tower
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1254257007960064
+    m_Localized: Slows Enemies
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1254258907979776
+    m_Localized: 'Coats the path with chocolate,
+
+      enemies crossing the choco
+      zone are slowed.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1256596360044544
+    m_Localized: Soda Tower
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1256598117457920
+    m_Localized: Stuns Enemies
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1256599816151040
+    m_Localized: 'Fires soda that briefly stuns a hit enemy,
+
+      disrupting its
+      advance.'
     m_Metadata:
       m_Items: []
   references:

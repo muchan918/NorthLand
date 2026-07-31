@@ -51,6 +51,54 @@ MonoBehaviour:
     m_Key: enemies.ogre.king.desc
     m_Metadata:
       m_Items: []
+  - m_Id: 1014745072590848
+    m_Key: enemies.grummy.yellow.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1015580837994496
+    m_Key: enemies.grummy.red.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1015732369809408
+    m_Key: enemies.grummy.blue.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1021480143347712
+    m_Key: enemies.grummy.yellow.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1021582014603264
+    m_Key: enemies.grummy.red.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1021608925257728
+    m_Key: enemies.grummy.blue.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1021640063770624
+    m_Key: enemies.grummy.yellow.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1021661907705856
+    m_Key: enemies.grummy.red.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1021678651367424
+    m_Key: enemies.grummy.blue.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3094128003018752
+    m_Key: enemies.bat.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3094256038342656
+    m_Key: enemies.bat.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3094377413111808
+    m_Key: enemies.bat.desc
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

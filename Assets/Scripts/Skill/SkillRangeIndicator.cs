@@ -5,24 +5,25 @@ using UnityEngine;
 /// 반지름은 SkillManager의 현재 값을 그대로 따라간다(수동 동기화 불필요).
 public class SkillRangeIndicator : MonoBehaviour
 {
-    [SerializeField] Color color = new Color(0.4f, 0.9f, 1f, 0.85f);
+    [SerializeField] Color validColor = new Color(0.3f, 1f, 0.4f, 0.85f);   // 조준 범위 색(단일)
     [SerializeField] int segments = 48;
 
     Material runtimeMaterial;
+    LineRenderer lr;
 
     private void Awake()
     {
         float radius = SkillManager.Instance != null ? SkillManager.Instance.Radius : 3f;
 
-        var lr = gameObject.AddComponent<LineRenderer>();
+        lr = gameObject.AddComponent<LineRenderer>();
         lr.useWorldSpace = false;
         lr.loop = true;
-        lr.widthMultiplier = 0.15f;
+        lr.widthMultiplier = 3f;
         // 타겟팅마다 Instantiate되는 고스트라 매번 새 Material이 생긴다 — GameObject가 Destroy될 때
         // 같이 정리하기 위해 참조를 들고 있는다(OnDestroy 참고, PR#115 리뷰 지적).
         runtimeMaterial = new Material(Shader.Find("Sprites/Default")); // 언릿, 정점색으로 tint
         lr.sharedMaterial = runtimeMaterial;
-        lr.startColor = lr.endColor = color;
+        lr.startColor = lr.endColor = validColor;
 
         lr.positionCount = segments;
         for (int i = 0; i < segments; i++)

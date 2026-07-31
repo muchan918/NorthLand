@@ -79,6 +79,146 @@ MonoBehaviour:
     m_Key: game.btn.title
     m_Metadata:
       m_Items: []
+  - m_Id: 4355764703014912
+    m_Key: game.btn.select
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4357188526616576
+    m_Key: game.btn.open
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4359788156235776
+    m_Key: game.btn.close
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4417295401234432
+    m_Key: game.btn.upgrade
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4417838077063168
+    m_Key: building.upgrade.cost
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4448596606988288
+    m_Key: building.upgrade.per_villager
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4448596669902848
+    m_Key: building.upgrade.max
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4448596669902849
+    m_Key: building.upgrade.level
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4384618839711744
+    m_Key: game.tower.attack_damage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4384618869071872
+    m_Key: game.tower.attack_range
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4384618869071873
+    m_Key: game.tower.attack_speed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4731930922856448
+    m_Key: game.resources.gold
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4731930989965312
+    m_Key: game.resources.ruby
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4731930989965313
+    m_Key: game.resources.sapphire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4731930989965314
+    m_Key: game.resources.diamond
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4747409699778560
+    m_Key: game.territory.daily_supply
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5457805389434880
+    m_Key: building.upgrade.skill_pending
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5953321969750016
+    m_Key: game.merge.selected_towers
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6349875270029312
+    m_Key: store.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6349875303583744
+    m_Key: store.exchange
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6349875303583745
+    m_Key: store.owned
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6627005447090176
+    m_Key: game.setting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6627348180447232
+    m_Key: game.setting.close
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6627824745656320
+    m_Key: game.setting.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6628086369562624
+    m_Key: game.setting.replay
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6628387554144256
+    m_Key: game.setting.quitgame
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6629238200938496
+    m_Key: game.setting.Laguage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6579016888147968
+    m_Key: castle.add_villager
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6589878990462976
+    m_Key: castle.max_villagers
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6528311331823616
+    m_Key: game.btn.proceed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6528712261148672
+    m_Key: game.btn.cancel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6528762240475136
+    m_Key: game.management.confirm_end_day.no_territory
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6529158073720832
+    m_Key: game.management.confirm_end_day.idle_villagers
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6529174079184896
+    m_Key: game.management.confirm_end_day.question
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6894325276794880
+    m_Key: building.upgrade.require_castle
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

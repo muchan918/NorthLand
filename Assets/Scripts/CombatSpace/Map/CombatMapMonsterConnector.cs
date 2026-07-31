@@ -121,7 +121,7 @@ namespace CombatSpace
                 return;
             }
 
-            int waveNumber = dayNightManager.WaveCount + 1;
+            int waveNumber = dayNightManager.CurrentWave;
 
             revealController.RevealForRound(waveNumber);
 

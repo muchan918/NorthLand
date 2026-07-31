@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 755548809797449653}
   - component: {fileID: 2553319138240739059}
   - component: {fileID: 207479313594666272}
-  - component: {fileID: 8865742538938645601}
   m_Layer: 0
   m_Name: AuraTowerTest-Ghost
   m_TagString: Untagged
@@ -91,20 +90,3 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &8865742538938645601
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 527708244005276318}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bd601e26e0a03114eb559f4aedadfa3e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NorthLand.Sungsoo.AuraTower
-  data: {fileID: 11400000, guid: 27dae4893c51d4649968efdd99347686, type: 2}
-  targetLayerMask:
-    serializedVersion: 2
-    m_Bits: 128
-  debugLog: 1

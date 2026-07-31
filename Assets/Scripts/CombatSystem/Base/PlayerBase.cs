@@ -16,6 +16,7 @@ namespace NorthLand.Combat
         public static PlayerBase Instance { get; private set; }
         public static event Action<PlayerBase> OnBaseSpawned;
 
+  
         void Awake()
         {
             currentHp = maxHp;
@@ -36,6 +37,10 @@ namespace NorthLand.Combat
         // HP UI(상단 본진 체력바)가 구독하는 공개 계약. Awake와 TakeDamage에서 통지.
         public float CurrentHp => currentHp;
         public float MaxHp => maxHp;
+
+        // 본진은 별도 피격 지점을 두지 않고 피벗을 그대로 쓴다(기존 동작 유지).
+        public Transform HitPosition => transform;
+
         public event Action<float, float> OnHpChanged;
 
         public void TakeDamage(DamageInfo info)
@@ -61,5 +66,6 @@ namespace NorthLand.Combat
             }
             GameManager.Instance.TriggerGameOver();
         }
+     
     }
 }

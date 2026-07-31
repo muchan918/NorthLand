@@ -13,11 +13,47 @@ MonoBehaviour:
   m_Name: alchemist_house
   m_EditorClassIdentifier: Assembly-CSharp::BuildingAsset
   BuildingID: alchemist_house
-  BuildingType: 2
+  BuildingType: 3
   Cost: []
   Production:
     BaseAmountPerVillager: 0
     OutputResource: {fileID: 0}
-    ProducesSoldier: 0
+    UpgradeLevels: []
   Skill:
     InputResource: {fileID: 0}
+    UpgradeLevels: []
+  Exchange:
+    PayResource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
+    Offers:
+    - GainResource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
+      PayAmount: 10
+      GainAmount: 10
+    - GainResource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+      PayAmount: 10
+      GainAmount: 10
+    - GainResource: {fileID: 11400000, guid: 746ba3ce36acad54fa80a53a079fd605, type: 2}
+      PayAmount: 10
+      GainAmount: 10
+    - GainResource: {fileID: 11400000, guid: 89825fd4ccdc8c0479da28304786292e, type: 2}
+      PayAmount: 30
+      GainAmount: 2
+    - GainResource: {fileID: 11400000, guid: 4a2d92e532482ff4dbafa7b361759b00, type: 2}
+      PayAmount: 30
+      GainAmount: 2
+    - GainResource: {fileID: 11400000, guid: 3929f789f0f53bd4b8ca15ea4342abd0, type: 2}
+      PayAmount: 30
+      GainAmount: 2
+    - GainResource: {fileID: 11400000, guid: 090c2a0d275ad8f4493045612eb0e1da, type: 2}
+      PayAmount: 30
+      GainAmount: 2
+    UpgradeLevels:
+    - Cost: []
+      RequiredCastleLevel: 1
+      GainMultiplier: 1.5
+    - Cost: []
+      RequiredCastleLevel: 2
+      GainMultiplier: 2
+  Villager:
+    Levels: []
+  Castle:
+    UpgradeLevels: []

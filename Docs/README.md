@@ -9,6 +9,13 @@ NorthLand: Last Stand (팀 유유아) 프로젝트 문서 모음.
 | [GDD.md](GDD.md) | 게임 디자인 문서. **설계·게임플레이 결정 전에 먼저 읽기.** |
 | [Core/MouseManager.md](Core/MouseManager.md) | 마우스 입력/선택/배치 중앙 매니저 설계·구현 현황 (#9) |
 | [Core/DayNightManager.md](Core/DayNightManager.md) | 낮/밤 페이즈 전환 매니저·이벤트 훅 설계·구현 현황 (#6) |
+| [Core/TowerMerge.md](Core/TowerMerge.md) | 타워 합성(Merge) — 레시피·매칭·실행(#194/#195) + 멀티 선택·합성 패널(#183) 단일 진실 원천 |
+| [Core/InteractionOutline.md](Core/InteractionOutline.md) | 상호작용 아웃라인(호버/선택/합성 프리뷰) 설계·측정 근거·#148 이행 경로 (#213) — **구현 미착수** |
+| [Core/UIZOrder.md](Core/UIZOrder.md) | HUD·모달 Canvas 표시 우선순위와 상위 패널 입력 차단 규칙 (#188) |
+| [ManagementArea/Resources.md](ManagementArea/Resources.md) | 경영 자원 시스템(지갑·생산처·패널) + 확장 자원 방향(§5.5) |
+| [ManagementArea/TerritoryGraph.md](ManagementArea/TerritoryGraph.md) | 경영 영토 확장(그래프 노드) — **영토=미개척 영지 방향 전환(§0)** |
+| [ManagementArea/BuildingUpgrade.md](ManagementArea/BuildingUpgrade.md) | 생산 건물 업그레이드(주민당 획득량 증가) 설계 (#139) |
+| [Monster/Boss/BossNodeReference.md](Monster/Boss/BossNodeReference.md) | 보스 BT 커스텀 리프 노드 정의 대장 — 보스 간 재사용, 노드가 늘어날 때마다 행 추가. **구현 미착수** |
 | [Rendering/VisualLookPipeline.md](Rendering/VisualLookPipeline.md) | 전역 비주얼 룩(미니어처) 파이프라인 설계 — 틸트-시프트·그레이딩·라이팅·툰 셰이더 (#148) |
 | [Tools/StringTable.md](Tools/StringTable.md) | 로컬라이제이션 String Table 사용법·현재 상태 (`ko-KR`/`en-US`/`ja-JP`) |
 | [Tools/unity-cli-guide.md](Tools/unity-cli-guide.md) | Unity Editor 제어시 명령어·워크플로우 |
@@ -20,6 +27,8 @@ NorthLand: Last Stand (팀 유유아) 프로젝트 문서 모음.
 ## 폴더 규칙
 
 - **`Core/`** — 게임 시스템 설계 및 구현 현황 문서
+- **`ManagementArea/`** — 경영 공간 시스템 설계·현황 문서(자원·영토·건물 업그레이드)
+- **`Monster/`** — 몬스터 시스템 문서. `Monster/Boss/`는 보스 BT — 노드 대장(`BossNodeReference.md`)만 보스 공용이라 위 목록에 등재하고, 보스 설계 문서는 보스마다 1본씩 늘어나므로 등재하지 않는다
 - **`Tools/`** — 패키지·도구 사용 가이드
 - **`Review/`** — PR 리뷰 기준 문서 (시스템 지도·통합 계약 / 추적 이슈 원장). 공개 API·계약이 바뀌면 같은 PR에서 갱신
 - **`Build{N}/`** — 빌드별 기록

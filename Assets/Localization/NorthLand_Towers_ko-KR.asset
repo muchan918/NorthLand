@@ -69,18 +69,6 @@ MonoBehaviour:
       \uC99D\uAC00"
     m_Metadata:
       m_Items: []
-  - m_Id: 3010218569728
-    m_Localized: "\uC11C\uB9AC\uC758 \uD0D1"
-    m_Metadata:
-      m_Items: []
-  - m_Id: 3011833376768
-    m_Localized: "\uC801 \uC774\uB3D9\uC18D\uB3C4 \uAC10\uC18C"
-    m_Metadata:
-      m_Items: []
-  - m_Id: 3012533825536
-    m_Localized: "\uBC94\uC704 \uB0B4 \uC801 \uC774\uB3D9\uC18D\uB3C4 \uAC10\uC18C"
-    m_Metadata:
-      m_Items: []
   - m_Id: 77423716192256
     m_Localized: "\uB3C5\uB9C8\uBC95 \uD0C0\uC6CC"
     m_Metadata:
@@ -92,6 +80,59 @@ MonoBehaviour:
   - m_Id: 77423783301121
     m_Localized: "\uBC94\uC704 \uB0B4 \uC801\uC5D0\uAC8C \uC77C\uC815 \uC2DC\uAC04
       \uB3D9\uC548 \uB3C5 \uB370\uBBF8\uC9C0 \uBD80\uC5EC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1099361558372352
+    m_Localized: "\uAC1C\uD2C0\uB9C1 \uD0C0\uC6CC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1100150569869312
+    m_Localized: "\uB2E8\uC77C \uB300\uC0C1 \uACF5\uACA9"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1100153673654272
+    m_Localized: "\uC0AC\uAC70\uB9AC \uB0B4 \uAC00\uC7A5 \uAC00\uAE4C\uC6B4 \uC801
+      \uD558\uB098\uB97C \uBE60\uB974\uAC8C \uC9C0\uC18D \uACF5\uACA9"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1158352120487936
+    m_Localized: "\uC2A4\uB098\uC774\uD37C \uD0C0\uC6CC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1158356088299520
+    m_Localized: "\uBA40\uB9AC \uC788\uB294 \uC801\uC5D0\uAC8C \uAC15\uB825\uD55C
+      \uB370\uBBF8\uC9C0\uB97C \uC8FC\uB294 \uACF5\uACA9"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1158354364440576
+    m_Localized: "\uB2E8\uC77C \uB300\uC0C1 \uACF5\uACA9"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1254254390714368
+    m_Localized: "\uCD08\uCF54 \uD3ED\uD3EC \uD0C0\uC6CC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1254257007960064
+    m_Localized: "\uC801 \uC774\uB3D9\uC18D\uB3C4 \uAC10\uC18C"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1254258907979776
+    m_Localized: "\uCD08\uCF54 \uD3ED\uD3EC \uC9C0\uB300 \uC0DD\uC131\n\uCD08\uCF54
+      \uD3ED\uD3EC \uC9C0\uB300\uB97C \uC9C0\uB098\uB294 \uC801\uC740 \uAC10\uC18D\uB428"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1256596360044544
+    m_Localized: "\uC18C\uB2E4 \uD0C0\uC6CC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1256598117457920
+    m_Localized: "\uC801 \uC2A4\uD134 \uC0C1\uD0DC\uC774\uC0C1 \uC801\uC6A9"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1256599816151040
+    m_Localized: "\uC801\uC5D0\uAC8C \uC9E7\uC740 \uC2A4\uD134\uC0C1\uD0DC\uC774\uC0C1\uC744
+      \uBD80\uC5EC\uD558\uC5EC \n\uC801\uC758 \uC804\uC9C4\uC744 \uBC29\uD574\uD558\uB294
+      \uD0C0\uC6CC"
     m_Metadata:
       m_Items: []
   references:

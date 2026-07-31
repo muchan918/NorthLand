@@ -16,7 +16,8 @@ MonoBehaviour:
     m_Code: en-US
   m_SharedData: {fileID: 11400000, guid: 1d3165e14f060034fbf1f02d9888408b, type: 2}
   m_Metadata:
-    m_Items: []
+    m_Items:
+    - rid: 5763336045537525835
   m_TableData:
   - m_Id: 742551334912
     m_Localized: Game Start
@@ -82,6 +83,153 @@ MonoBehaviour:
     m_Localized: Title
     m_Metadata:
       m_Items: []
+  - m_Id: 4355764703014912
+    m_Localized: Select
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4357188526616576
+    m_Localized: Open
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4359788156235776
+    m_Localized: Close
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4417295401234432
+    m_Localized: Upgrade
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4417838077063168
+    m_Localized: Cost
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4448596606988288
+    m_Localized: Per villager
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4448596669902848
+    m_Localized: MAX
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4448596669902849
+    m_Localized: Lv
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4384618839711744
+    m_Localized: Attack Damage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4384618869071872
+    m_Localized: Attack Range
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4384618869071873
+    m_Localized: Attack Speed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4731930922856448
+    m_Localized: Gold
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4731930989965312
+    m_Localized: Ruby
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4731930989965313
+    m_Localized: Sapphire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4731930989965314
+    m_Localized: Diamond
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4747409699778560
+    m_Localized: Gain {1} {0} daily.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5457805389434880
+    m_Localized: Skill enhancement
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5953321969750016
+    m_Localized: Selected Towers
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6349875270029312
+    m_Localized: Exchange Shop
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6349875303583744
+    m_Localized: Trade
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6349875303583745
+    m_Localized: Owned
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6627005447090176
+    m_Localized: Settings
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6627348180447232
+    m_Localized: Close
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6627824745656320
+    m_Localized: title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6628086369562624
+    m_Localized: replay
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6628387554144256
+    m_Localized: Quit Game
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6629238200938496
+    m_Localized: Laguage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6579016888147968
+    m_Localized: Add Villager
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6589878990462976
+    m_Localized: 'Max Villagers:'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6528311331823616
+    m_Localized: Proceed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6528712261148672
+    m_Localized: Cancel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6528762240475136
+    m_Localized: "\xB7 You haven't expanded territory today."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6529158073720832
+    m_Localized: "\xB7 {0} villager(s) are not assigned."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6529174079184896
+    m_Localized: Proceed to night anyway?
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6894325276794880
+    m_Localized: Requires Castle Lv {0}
+    m_Metadata:
+      m_Items:
+      - rid: 5763336045537525835
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 5763336045537525835
+      type: {class: SmartFormatTag, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_Entries: 
+        m_SharedEntries:
+        - id: 6894325276794880

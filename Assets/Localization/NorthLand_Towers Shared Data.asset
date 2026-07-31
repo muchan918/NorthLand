@@ -63,18 +63,6 @@ MonoBehaviour:
     m_Key: towers.haste.desc
     m_Metadata:
       m_Items: []
-  - m_Id: 3010218569728
-    m_Key: towers.slow.name
-    m_Metadata:
-      m_Items: []
-  - m_Id: 3011833376768
-    m_Key: towers.slow.role
-    m_Metadata:
-      m_Items: []
-  - m_Id: 3012533825536
-    m_Key: towers.slow.desc
-    m_Metadata:
-      m_Items: []
   - m_Id: 77423716192256
     m_Key: towers.poison.name
     m_Metadata:
@@ -85,6 +73,54 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 77423783301121
     m_Key: towers.poison.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1099361558372352
+    m_Key: towers.gatling.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1100150569869312
+    m_Key: towers.gatling.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1100153673654272
+    m_Key: towers.gatling.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1158352120487936
+    m_Key: towers.Sniper.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1158354364440576
+    m_Key: towers.Sniper.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1158356088299520
+    m_Key: towers.Sniper.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1254254390714368
+    m_Key: towers.choco.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1254257007960064
+    m_Key: towers.choco.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1254258907979776
+    m_Key: towers.choco.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1256596360044544
+    m_Key: towers.soda.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1256598117457920
+    m_Key: towers.soda.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1256599816151040
+    m_Key: towers.soda.desc
     m_Metadata:
       m_Items: []
   m_Metadata:

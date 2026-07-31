@@ -1,6 +1,6 @@
 using UnityEngine;
 
-/// 건물 타입(Production/General/Skill)별 툴팁 색을 담는 팔레트 에셋.
+/// 건물 타입(Production/General/Skill/Store/Castle)별 툴팁 색을 담는 팔레트 에셋.
 /// BuildingTooltipSource가 참조해 BuildingType → (헤더색, 배경색)을 룩업한다.
 /// 색 튜닝을 코드 수정 없이 인스펙터에서 하기 위해 SO로 분리했다.
 [CreateAssetMenu(fileName = "BuildingTooltipPalette", menuName = "Scriptable Objects/BuildingTooltipPalette")]
