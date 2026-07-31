@@ -35,6 +35,10 @@ namespace NorthLand.Combat
         // 표시부가 경로를 다시 계산하지 않으므로 "선이 잇는 대상"과 "피해 대상"이 어긋날 수 없다.
         readonly List<Vector3> beamPath = new List<Vector3>();
 
+        // 체인 해결기는 **타워마다 하나**다. 순회 상태(중복 방지 집합)를 공유하면, 명중 통지 구독자가
+        // 같은 콜스택에서 다른 타워를 발사시킬 때 진행 중인 순회가 오염된다(ChainResolver 주석 참조).
+        readonly ChainResolver resolver = new ChainResolver();
+
         // 빔 연출 기본값. BeamPrefab이 없을 때만 쓰인다(있으면 프리팹 저작이 외형을 결정).
         // 정식 스펙은 아트 협의 대상이라 검증용 임시값이다(#252 열린 결정).
         const float k_BeamLifetime = 0.15f;
@@ -114,7 +118,7 @@ namespace NorthLand.Combat
             beamPath.Clear();
 
             // 데미지 소스는 owner다 — IAttacker 계약을 가진 쪽이 타워이므로 DamageInfo가 타워를 가리킨다.
-            ChainResolver.Resolve(
+            resolver.Resolve(
                 target, Damage, owner,
                 chain.ChainRadius, chain.MaxChainTargets, chain.ChainDamageFalloff, enemyLayerMask,
                 beamPath);
