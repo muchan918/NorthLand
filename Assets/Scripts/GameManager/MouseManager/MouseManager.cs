@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;   // 프로젝트는 신규 Input System 사용
@@ -11,6 +12,7 @@ public class MouseManager : MonoBehaviour
     enum Mode
     {
         Idle,
+        BoxSelect,      // Idle의 하위 상태 — 배치·조준 중에는 진입할 수 없다(#261)
         Placement,
         SkillTargeting
     }
@@ -29,6 +31,20 @@ public class MouseManager : MonoBehaviour
     public event Action<ISelectable> OnPrimarySelect;
     // 커서 밑 호버 대상이 바뀔 때만 통지(없으면 null). 툴팁 UI가 구독해 표시/숨김을 결정한다.
     public event Action<IHoverable> OnHoverChanged;
+
+    // ── 드래그 사각형 선택(#261) 3단계 통지 ──────────────────────────
+    // MouseManager는 사각형에 무엇이 걸렸는지만 알리고 집합은 들지 않는다. 순서 있는 집합의 소유·해석은
+    // 도메인 코디네이터(타워=TowerMergeCoordinator)가 계속 담당한다.
+    /// 드래그 시작. 인자는 추가 선택(Shift) 여부 — 구독자가 기준 집합을 스냅샷할 시점이다.
+    public event Action<bool> OnBoxSelectBegin;
+    /// 사각형 내용이 바뀔 때마다 발행. **사각형에 들어온 순서**가 그대로 보존된 목록이다.
+    public event Action<IReadOnlyList<IGroupSelectable>> OnBoxSelectUpdate;
+    /// 드래그 종료(버튼 뗌 또는 Esc). 구독자가 유예했던 갱신을 여기서 한 번 처리한다.
+    public event Action OnBoxSelectEnd;
+
+    /// 드래그 중인 사각형의 스크린 좌표 영역. 사각형 UI가 매 프레임 읽어 간다(IsBoxSelecting이 true일 때만 유효).
+    public Rect BoxSelectScreenRect { get; private set; }
+    public bool IsBoxSelecting => _mode == Mode.BoxSelect;
     // 현재 포인터 화면 좌표. 다른 시스템(툴팁 등)이 Mouse.current를 직접 읽지 않고 여기서 얻는다(입력 단일 창구 계약).
     public Vector2 PointerPosition { get; private set; }
 
@@ -54,6 +70,19 @@ public class MouseManager : MonoBehaviour
     private bool _pressActive;
     private Vector2 _pressScreenPos;
     private bool _pressAdditive; // 추가 선택 키(Shift)는 **누른 시점** 상태로 고정 — 도중에 눌렀다 떼도 안 바뀐다
+
+    // ── 드래그 사각형 선택 상태(#261) ───────────────────────────────
+    [Header("Box Select")]
+    [Tooltip("이 픽셀 거리를 넘게 움직이면 클릭이 아니라 드래그로 본다")]
+    [SerializeField] float _dragThreshold = 8f;
+
+    private Vector2 _boxAnchor;   // 누른 지점(스크린) — 사각형의 고정 모서리
+    private bool _boxAdditive;
+
+    // 사각형에 걸린 대상을 **들어온 순서대로** 쌓는다. 빠지면 지우고, 다시 들어오면 맨 뒤로 붙는다.
+    // 재판정에 투영 기준점이 필요해 Entry(마커+Transform)째로 들고, 통지용 목록은 변경 시에만 다시 만든다.
+    private readonly List<GroupSelectableRegistry.Entry> _boxHits = new();
+    private readonly List<IGroupSelectable> _boxTargets = new();
 
     private void Awake()
     {
@@ -101,6 +130,7 @@ public class MouseManager : MonoBehaviour
         switch (_mode)
         {
             case Mode.Idle: UpdateIdle(screenPos, overUI); break;
+            case Mode.BoxSelect: UpdateBoxSelect(screenPos); break;
             case Mode.Placement: UpdatePlacement(screenPos, overUI); break;
             case Mode.SkillTargeting: UpdateSkillTargeting(screenPos, overUI); break;
         }
@@ -185,7 +215,7 @@ public class MouseManager : MonoBehaviour
 
         if (!_pressActive) return;
 
-        // 뗄 때 확정 = 클릭. (임계 거리를 넘겨 드래그로 승격되는 경로는 #261 후속 커밋에서 추가)
+        // 뗄 때 확정 = 클릭.
         if (left.wasReleasedThisFrame)
         {
             _pressActive = false;
@@ -194,7 +224,17 @@ public class MouseManager : MonoBehaviour
         }
 
         // 방어: 다른 모드를 거쳐 돌아오는 등으로 뗀 프레임을 놓쳤으면 제스처를 버린다.
-        if (!left.isPressed) _pressActive = false;
+        if (!left.isPressed)
+        {
+            _pressActive = false;
+            return;
+        }
+
+        // 임계 거리를 넘으면 드래그로 승격(#261).
+        if ((screenPos - _pressScreenPos).sqrMagnitude >= _dragThreshold * _dragThreshold)
+        {
+            BeginBoxSelect(screenPos);
+        }
     }
 
     /// 임계 미만으로 움직인 좌클릭의 확정 처리 — 기존 단일 선택 / Shift 토글 규칙 그대로다.
@@ -239,8 +279,124 @@ public class MouseManager : MonoBehaviour
     }
 
     /// 진행 중인 좌클릭 제스처를 버린다. 배치·조준으로 모드가 바뀌거나 씬이 갈릴 때, 누른 상태만 남아
-    /// 돌아온 뒤 엉뚱한 클릭으로 확정되는 것을 막는다.
-    private void ResetGesture() => _pressActive = false;
+    /// 돌아온 뒤 엉뚱한 클릭으로 확정되는 것을 막는다. 드래그가 진행 중이었다면 함께 끝낸다.
+    private void ResetGesture()
+    {
+        _pressActive = false;
+        if (_mode == Mode.BoxSelect) EndBoxSelect();
+    }
+
+    // ── BoxSelect: 드래그 사각형 선택 (#261) ───────────────────────
+    private void BeginBoxSelect(Vector2 screenPos)
+    {
+        _mode = Mode.BoxSelect;
+        _pressActive = false;
+        _boxAnchor = _pressScreenPos;   // 앵커는 커서가 아니라 **누른 지점**이다
+        _boxAdditive = _pressAdditive;
+        _boxHits.Clear();
+        _boxTargets.Clear();
+        BoxSelectScreenRect = MakeRect(_boxAnchor, screenPos);
+
+        ClearHover(); // 드래그 중에는 툴팁·호버 하이라이트를 띄우지 않는다(배치 모드와 같은 규칙)
+
+        // 단일 선택의 부수 표시(사거리 원 + 인포 패널)는 대상의 OnDeselected로만 꺼진다. 그룹 경로로
+        // 넘어가기 전에 비우지 않으면 아무도 그걸 부르지 않아 잔존한다 — Shift 클릭 경로와 같은 이유(WL-087 계열).
+        Select(null);
+
+        OnBoxSelectBegin?.Invoke(_boxAdditive);
+        // 빈 목록으로 1회 발행 — 비추가 드래그면 이 시점에 기존 집합이 즉시 비워진다.
+        OnBoxSelectUpdate?.Invoke(_boxTargets);
+    }
+
+    private void UpdateBoxSelect(Vector2 screenPos)
+    {
+        // Esc → 드래그 중단 + 전체 해제. 드래그 이전 상태로 되돌리는 취소는 제공하지 않는다(명세 §5.1).
+        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
+            EndBoxSelect();
+            ClearSelection();
+            return;
+        }
+
+        // 커서가 UI 위를 지나가도 드래그는 계속된다 — 채택 여부는 누른 시점에 이미 결정됐다.
+        BoxSelectScreenRect = MakeRect(_boxAnchor, screenPos);
+
+        if (RefreshBoxHits()) OnBoxSelectUpdate?.Invoke(_boxTargets);
+
+        if (Mouse.current.leftButton.wasReleasedThisFrame) EndBoxSelect();
+    }
+
+    private void EndBoxSelect()
+    {
+        _mode = Mode.Idle;
+        BoxSelectScreenRect = default;
+        _boxHits.Clear();
+        _boxTargets.Clear();
+        OnBoxSelectEnd?.Invoke();
+    }
+
+    /// 사각형 내용을 갱신한다. 바뀌었으면 true.
+    /// 빠진 것을 먼저 지우고 새로 들어온 것을 **끝에 붙여**, 사각형에 들어온 순서가 그대로 집합 순서가 된다.
+    private bool RefreshBoxHits()
+    {
+        var rect = BoxSelectScreenRect;
+        bool changed = false;
+
+        for (int i = _boxHits.Count - 1; i >= 0; i--)
+        {
+            var e = _boxHits[i];
+            if (e.Anchor != null && IsInsideBox(e.Anchor.position, rect)) continue;
+            _boxHits.RemoveAt(i); // 사각형에서 빠졌거나 그새 파괴됐다
+            changed = true;
+        }
+
+        var entries = GroupSelectableRegistry.Entries;
+        for (int i = 0; i < entries.Count; i++)
+        {
+            var e = entries[i];
+            if (e.Anchor == null) continue;              // 파괴 대기 중인 항목
+            if (!IsInsideBox(e.Anchor.position, rect)) continue;
+            if (ContainsTarget(e.Target)) continue;      // 이미 담겨 있으면 순서를 유지한다
+
+            _boxHits.Add(e);
+            changed = true;
+        }
+
+        if (!changed) return false;
+
+        // 통지용 목록은 내용이 바뀔 때만 다시 만든다(드래그 내내 매 프레임 새로 만들지 않는다).
+        _boxTargets.Clear();
+        for (int i = 0; i < _boxHits.Count; i++) _boxTargets.Add(_boxHits[i].Target);
+        return true;
+    }
+
+    private bool ContainsTarget(IGroupSelectable target)
+    {
+        for (int i = 0; i < _boxHits.Count; i++)
+        {
+            if (ReferenceEquals(_boxHits[i].Target, target)) return true;
+        }
+        return false;
+    }
+
+    /// 월드 좌표를 스크린으로 투영해 사각형 포함 여부를 본다.
+    /// 가림(지형·건물 뒤)은 따지지 않는다 — 후보마다 레이캐스트를 쏘지 않기 위한 의도된 단순화(RTS 표준).
+    private bool IsInsideBox(Vector3 worldPos, Rect rect)
+    {
+        if (_camera == null) return false;
+
+        Vector3 sp = _camera.WorldToScreenPoint(worldPos);
+        if (sp.z <= 0f) return false; // 카메라 뒤 — 좌표가 뒤집혀 엉뚱하게 걸린다
+
+        return rect.Contains(new Vector2(sp.x, sp.y));
+    }
+
+    private static Rect MakeRect(Vector2 a, Vector2 b)
+    {
+        return Rect.MinMaxRect(
+            Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y),
+            Mathf.Max(a.x, b.x), Mathf.Max(a.y, b.y));
+    }
 
     // ── Idle: 호버 (툴팁) ─────────────────────────────────────────
     // 커서 밑 IHoverable을 추적해 바뀔 때만 통지. 표시 여부·연출은 구독자(툴팁 UI) 책임.
