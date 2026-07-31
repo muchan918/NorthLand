@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Localization.Settings;
 using UnityEngine.UI;
 
 // 경영 공간 전용 건물 정보 패널. 선택된 생산 건물의 이름·레벨·업그레이드 정보를 표시하고,
@@ -53,7 +54,7 @@ public class BuildingInfoUI : MonoBehaviour
             return;
         }
         Instance = this;
-
+        LocalizationSettings.SelectedLocaleChanged += HandleLocaleChanged;
         if (_upgradeButton != null)
         {
             _upgradeButton.onClick.AddListener(HandleUpgradeClicked);
@@ -67,6 +68,7 @@ public class BuildingInfoUI : MonoBehaviour
         {
             return;
         }
+        LocalizationSettings.SelectedLocaleChanged -= HandleLocaleChanged;
         Unsubscribe();
         if (_upgradeButton != null)
         {
@@ -327,5 +329,13 @@ public class BuildingInfoUI : MonoBehaviour
         }
         _controller.OnChanged -= Refresh;
         _subscribed = false;
+    }
+
+    private void HandleLocaleChanged(UnityEngine.Localization.Locale locale)
+    {
+        if (_building != null)
+        {
+            Refresh();
+        }
     }
 }
