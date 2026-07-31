@@ -48,6 +48,13 @@ public class MouseManager : MonoBehaviour
     private SkillTargetRequest _skillRequest;
     private GameObject _ghost;
 
+    // ── 좌클릭 제스처 상태 ──────────────────────────────────────────
+    // 누른 순간에는 클릭인지 드래그인지 알 수 없으므로(#261), 선택 확정을 **뗄 때**로 미루고
+    // 누를 때는 시작점만 기록한다. UI 위에서 시작한 제스처는 아예 채택하지 않는다(_pressActive=false).
+    private bool _pressActive;
+    private Vector2 _pressScreenPos;
+    private bool _pressAdditive; // 추가 선택 키(Shift)는 **누른 시점** 상태로 고정 — 도중에 눌렀다 떼도 안 바뀐다
+
     private void Awake()
     {
         if (Instance == null)
@@ -80,6 +87,7 @@ public class MouseManager : MonoBehaviour
         // 필드만 직접 리셋한다(WL-033) — _selected?.OnDeselected()를 거치면 죽은 참조를 그대로 호출해 터진다.
         _selected = null;
         _hovered = null;
+        ResetGesture();
         CancelPlacement();
         CancelSkillTargeting();
     }
@@ -112,6 +120,7 @@ public class MouseManager : MonoBehaviour
     {
         CancelPlacement();
         CancelSkillTargeting();
+        ResetGesture();   // 버튼을 누른 채 배치가 시작됐다면 그 제스처는 버린다
         ClearHover();     // 배치 중에는 툴팁을 띄우지 않는다
         ClearSelection(); // 고스트를 드는 순간 이전 선택의 잔재(사거리 원·초록 아웃라인·인포/합성 패널)를 전부 내린다(WL-086)
         _request = request;
@@ -134,6 +143,7 @@ public class MouseManager : MonoBehaviour
     {
         CancelPlacement();
         CancelSkillTargeting();
+        ResetGesture();
         ClearHover(); // 타겟팅 중에는 툴팁을 띄우지 않는다
         _skillRequest = request;
         _ghost = Instantiate(request.GhostPrefab);
@@ -162,12 +172,35 @@ public class MouseManager : MonoBehaviour
             return;
         }
 
-        if (overUI || !Mouse.current.leftButton.wasPressedThisFrame) return;
+        var left = Mouse.current.leftButton;
 
-        // 추가 선택 키(Shift) 판정은 입력 단일 창구인 MouseManager가 소유한다(계약 #1).
-        bool additive = Keyboard.current != null &&
-                        (Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed);
+        // 누를 때: 시작점만 기록하고 확정은 미룬다. 이 시점엔 클릭인지 드래그인지 알 수 없다(#261).
+        if (left.wasPressedThisFrame)
+        {
+            _pressActive = !overUI; // UI 위에서 시작한 제스처는 채택하지 않는다
+            _pressScreenPos = screenPos;
+            _pressAdditive = IsAdditivePressed();
+            return;
+        }
 
+        if (!_pressActive) return;
+
+        // 뗄 때 확정 = 클릭. (임계 거리를 넘겨 드래그로 승격되는 경로는 #261 후속 커밋에서 추가)
+        if (left.wasReleasedThisFrame)
+        {
+            _pressActive = false;
+            if (!overUI) CommitClick(screenPos, _pressAdditive);
+            return;
+        }
+
+        // 방어: 다른 모드를 거쳐 돌아오는 등으로 뗀 프레임을 놓쳤으면 제스처를 버린다.
+        if (!left.isPressed) _pressActive = false;
+    }
+
+    /// 임계 미만으로 움직인 좌클릭의 확정 처리 — 기존 단일 선택 / Shift 토글 규칙 그대로다.
+    /// 확정 시점만 누를 때 → 뗄 때로 옮겼고, 판정 내용은 바뀌지 않았다.
+    private void CommitClick(Vector2 screenPos, bool additive)
+    {
         bool hitSelectable = RaycastMask(screenPos, _selectableMask, out var hit);
 
         if (additive)
@@ -197,6 +230,17 @@ public class MouseManager : MonoBehaviour
         Select(picked);
         OnPrimarySelect?.Invoke(picked);
     }
+
+    // 추가 선택 키(Shift) 판정은 입력 단일 창구인 MouseManager가 소유한다(계약 #1).
+    private static bool IsAdditivePressed()
+    {
+        return Keyboard.current != null &&
+               (Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed);
+    }
+
+    /// 진행 중인 좌클릭 제스처를 버린다. 배치·조준으로 모드가 바뀌거나 씬이 갈릴 때, 누른 상태만 남아
+    /// 돌아온 뒤 엉뚱한 클릭으로 확정되는 것을 막는다.
+    private void ResetGesture() => _pressActive = false;
 
     // ── Idle: 호버 (툴팁) ─────────────────────────────────────────
     // 커서 밑 IHoverable을 추적해 바뀔 때만 통지. 표시 여부·연출은 구독자(툴팁 UI) 책임.
