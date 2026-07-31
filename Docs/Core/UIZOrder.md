@@ -39,7 +39,7 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 | 상위 모달 | `RewardCanvas` | `500` | 보상 선택 화면 |
 | 설정 모달 | `SettingCanvas` | `700` | 인게임 설정 화면. 일반 HUD와 보상 화면보다 위, 결과 화면보다 아래 |
 | 최상위 모달 | `ResultCanvas` | `900` | 게임오버·승리 결과 화면 |
-| 코드 생성 오버레이 | `TowerTooltipView` | `32767` (`short.MaxValue`) | 입력을 받지 않는 최상단 툴팁 |
+| 코드 생성 오버레이 | `TowerTooltipView` | `100` (`UILayer.Hud`) | 입력을 받지 않는 툴팁. HUD 캔버스를 찾아 자식으로 붙고, 없을 때만 같은 값으로 자체 생성 |
 
 새 루트 Canvas를 추가할 때는 임의의 큰 숫자를 사용하지 않는다. 위 범주 중 하나에 포함시키고, 새 범주가 꼭 필요하면 이 표를 먼저 갱신한다.
 
@@ -47,7 +47,7 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 
 게임오버 또는 승리 결과 화면과 설정 화면이 동시에 활성화되더라도 `ResultCanvas`가 항상 `SettingCanvas`보다 위에 표시되어야 한다.
 
-`TowerTooltipView`는 런타임에 전용 Canvas를 생성하는 예외적인 읽기 전용 오버레이다. 포인터 입력을 받는 일반 패널이나 모달에 `short.MaxValue`를 사용하지 않는다.
+`TowerTooltipView`는 런타임 생성 읽기 전용 오버레이다. **`short.MaxValue`를 쓰지 않는다** — HUD 캔버스(`sortingOrder == UILayer.Hud`)를 찾아 그 자식(마지막 sibling)으로 붙고, 찾지 못한 씬에서만 같은 `UILayer.Hud` 값으로 자체 Canvas를 만든다. 결과·설정 화면 위로 뜨지 않는다(WL-107).
 
 `SelectionBoxView`(#261)도 런타임에 전용 Canvas를 생성하는 읽기 전용 오버레이다. 두 가지 이유로 `UICanvas`에 얹지 않는다.
 
