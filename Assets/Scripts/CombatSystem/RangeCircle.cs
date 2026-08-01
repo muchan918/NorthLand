@@ -34,25 +34,43 @@ namespace NorthLand.Combat
         public static RangeCircle Create(Transform parent, Color fillColor, Color outlineColor, string name = "RangeCircle")
         {
             var go = new GameObject(name);
-            if (parent != null)
-            {
-                go.transform.SetParent(parent, false);
+            if (parent != null) go.transform.SetParent(parent, false);
 
-                // "월드 반경" 계약 유지: 부모(타워) 루트에 스케일/회전이 있어도 원은 월드 기준 크기·바닥 평면(XZ)을 유지한다.
-                // SetRadius가 받는 값(Tower.AttackRange 등)은 OverlapSphere가 쓰는 월드 반경이므로, 로컬 지오메트리(반경=로컬 단위)가
-                // 곧 월드 반경이 되도록 부모 변환을 역보정한다. 미보정 시 스케일 걸린 프리팹에서 표시 반경이 실제와 어긋난다(#192 재발).
-                Vector3 ls = parent.lossyScale;
-                go.transform.localScale = new Vector3(
-                    Mathf.Approximately(ls.x, 0f) ? 1f : 1f / ls.x,
-                    Mathf.Approximately(ls.y, 0f) ? 1f : 1f / ls.y,
-                    Mathf.Approximately(ls.z, 0f) ? 1f : 1f / ls.z);
-                go.transform.rotation = Quaternion.identity; // 부모 회전과 무관하게 바닥 평면 고정
-            }
             // 활성 GO에 AddComponent하면 Awake가 즉시(동기) 실행되어 지오메트리가 준비된다.
             var circle = go.AddComponent<RangeCircle>();
+            circle.SyncParentCompensation();
             circle.SetColors(fillColor, outlineColor);
             return circle;
         }
+
+        /// "월드 반경" 계약 유지: 부모(타워) 루트에 스케일/회전이 있어도 원은 월드 기준 크기·바닥 평면(XZ)을 유지한다.
+        /// SetRadius가 받는 값(Tower.AttackRange 등)은 OverlapSphere가 쓰는 월드 반경이므로, 로컬 지오메트리(반경=로컬 단위)가
+        /// 곧 월드 반경이 되도록 부모 변환을 역보정한다. 미보정 시 스케일 걸린 프리팹에서 표시 반경이 실제와 어긋난다(#192 재발).
+        ///
+        /// **생성 시 1회가 아니라 표시할 때마다 다시 계산한다.** 1회 캡처는 그 순간의 부모 스케일에 영원히
+        /// 고정되는데, 등장 연출(#264)이 타워 루트를 0→원본으로 애니메이션하면서 **과도기에 원이 생성되는
+        /// 경로가 실제로 생겼다** — 배치 직후 팝 구간(약 0.28초)에 그 타워를 드래그 선택하면
+        /// `Tower.ShowRangeCircle`이 거기서 원을 만들고 캐시하므로, 보정이 예컨대 1/0.41≈2.44로 굳어
+        /// **그 타워의 사거리 원이 이후 계속 2.44배로 표시된다**. 드래그 선택은 콜라이더가 아니라 위치 기반
+        /// (`MouseManager.RefreshBoxHits`)이라 스케일 0인 타워에도 도달한다.
+        void SyncParentCompensation()
+        {
+            Transform parent = transform.parent;
+            if (parent == null) return;
+
+            Vector3 ls = parent.lossyScale;
+            var comp = new Vector3(
+                Mathf.Approximately(ls.x, 0f) ? 1f : 1f / ls.x,
+                Mathf.Approximately(ls.y, 0f) ? 1f : 1f / ls.y,
+                Mathf.Approximately(ls.z, 0f) ? 1f : 1f / ls.z);
+
+            if (transform.localScale != comp) transform.localScale = comp;
+            transform.rotation = Quaternion.identity; // 부모 회전과 무관하게 바닥 평면 고정
+        }
+
+        // 부모 스케일이 재생 중 변하는 경우(등장 연출의 팝)를 추종한다. **보이는 동안만** 돈다 —
+        // Hide()가 GameObject를 비활성화하므로 숨겨진 원에는 비용이 없다.
+        void LateUpdate() => SyncParentCompensation();
 
         // 활성 GO면 AddComponent 시 Awake로, 비활성이면 Create/공개 메서드의 명시 호출로 구성된다.
         void Awake() => Build();
@@ -103,7 +121,11 @@ namespace NorthLand.Combat
             Rebuild(radius);
         }
 
-        public void Show() => gameObject.SetActive(true);
+        public void Show()
+        {
+            gameObject.SetActive(true);
+            SyncParentCompensation(); // 숨어 있는 동안 부모 스케일이 바뀌었을 수 있다(LateUpdate가 안 돌았다)
+        }
         public void Hide() => gameObject.SetActive(false);
 
         // 둘레 점 48개를 삼각함수로 뽑아, 외곽선(선)과 채움(삼각형 팬)을 함께 다시 만든다.
