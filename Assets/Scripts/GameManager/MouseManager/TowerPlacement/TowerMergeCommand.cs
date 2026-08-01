@@ -33,6 +33,7 @@ public class TowerMergeCommand : IReversibleCommand
     {
         if (_state != State.Pending || _materials == null || _materials.Count == 0) return false;
 
+        int consumed = 0;
         foreach (Tower tower in _materials)
         {
             if (tower == null) continue;
@@ -43,6 +44,24 @@ public class TowerMergeCommand : IReversibleCommand
             // OnDisable 연쇄: 행동 Dispose(버프 오라가 남의 타워에 건 modifier 회수) → Unregister
             // (Tower.Active에서 빠짐 → 코디네이터의 Prune이 선택 집합에서도 제거) → stats.Clear().
             tower.gameObject.SetActive(false);
+            consumed++;
+        }
+
+        // 하나도 못 소모했으면 바뀐 것이 없다 → 계약대로 Pending을 유지하고 false를 낸다.
+        // 이걸 true로 흘리면 호출부가 배치를 시작해 **재료 없이 결과 타워가 선다**(공짜 합성).
+        if (consumed == 0)
+        {
+            Debug.LogWarning("[TowerMergeCommand] 소모할 수 있는 재료가 하나도 없습니다.");
+            return false;
+        }
+
+        // 일부만 소모된 경우는 되돌리지 않고 진행한다. 사라진 재료는 되돌릴 것이 없고, 여기서 false를
+        // 내면 **이미 소모한 쪽이 복구되지 않은 채 남는다**("실패 시 아무것도 바뀌지 않는다" 계약 위반).
+        if (consumed != _materials.Count)
+        {
+            Debug.LogWarning(
+                $"[TowerMergeCommand] 재료 {_materials.Count}개 중 {consumed}개만 소모했습니다 — " +
+                "나머지는 이미 사라진 상태입니다.");
         }
 
         _state = State.Executed;

@@ -244,15 +244,20 @@
 
 ### 9.1 진행 중 커맨드의 수명 (별도 안전망을 두지 않은 근거)
 
-진행 중인 커맨드는 **항상 최대 1개**다 — 배치 세션이 하나뿐이고(`MouseManager`) 연속 배치가 꺼져 있다(`TowerPlacer.keepPlacing`, 정본 씬 실측 0). 그래서 전역 Undo 스택이 없고, 아래 경로가 전부 **기존 취소 경로 하나로 수렴**하므로 별도 정리 코드도 두지 않았다:
+진행 중인 커맨드는 **항상 최대 1개**다. 그것을 떠받치는 것은 `BeginPlacement`가 **새 세션을 열기 전에 `CancelPlacement`를 먼저 부른다**는 사실이다 — 그 취소가 이전 세션의 종료 콜백(= 이전 커맨드의 `Undo`)을 발화시키므로, 새 커맨드가 자리를 잡는 시점엔 이전 커맨드가 이미 해소돼 있다. (`TowerPlacer.keepPlacing`은 이 보장과 무관하다 — 켜져 있어도 확정된 커맨드는 `Committed`라 pending이 아니다. 그쪽 문제는 WL-105의 별개 축이다.)
+
+그래서 전역 Undo 스택이 없고, 아래 경로가 전부 **기존 취소 경로 하나로 수렴**하므로 별도 정리 코드도 두지 않았다:
 
 | 상황 | 원복 경로 |
 | --- | --- |
 | Esc·우클릭 취소 | `MouseManager.UpdatePlacement` → `CancelPlacement` → `onEnded` → `Undo` |
 | 밤 전환 | `PhasePanelSwitcher.ShowNight` → `CancelPlacement` → 〃 |
 | 새 배치 시작 | `BeginPlacement`가 먼저 `CancelPlacement` → 〃 (이전 커맨드가 원복된 뒤 새 커맨드가 걸린다) |
+| **확정 클릭했지만 배치 실패** | `PlaceTower`가 앵커 없음·건설 불가·`TrySpend` 실패로 조기 반환 → `onConfirmed`(=`Commit`) **미발화** → 그래도 `MouseManager`가 뒤이어 `CancelPlacement` → `Undo`. 재료가 정확히 복구된다 |
 | 씬 전환 | `MouseManager.HandleSceneLoaded` → `CancelPlacement` → 〃. 이 시점엔 재료가 이미 파괴됐지만 `Undo`의 null 가드가 흡수한다 |
 | 게임오버 | 합성은 낮 전용이고 승패는 밤에 갈리므로, 그 시점엔 밤 전환이 이미 배치를 취소한 뒤다 |
+
+> **불변식 하나는 코드로 강제한다**: `Release`된 발자국이 `Reoccupy` 없이 되살아나면 타워는 살아나는데 타일은 빈 칸으로 남아 그 위에 또 배치된다. 정상 경로(`Undo`)는 활성화 전에 `Reoccupy`를 부르지만, 커맨드를 거치지 않는 경로(향후 연출·철거)가 생길 수 있어 `TowerFootprint.OnEnable`에 자기치유 안전망을 뒀다(정상 경로에선 no-op).
 
 > 씬 언로드 시 "비활성 재료가 씬에 남는" 문제는 없다 — 비활성 GameObject도 씬과 함께 파괴되고, 재료는 `DontDestroyOnLoad`가 아니다. 반대로 `TowerFusionController.OnDestroy`에서 `Undo`를 부르는 식의 안전망은 **오히려 해롭다**: 파괴 중인 오브젝트에 `SetActive(true)`를 걸게 된다.
 

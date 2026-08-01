@@ -42,18 +42,37 @@ public class TowerFootprint : MonoBehaviour
         if (!_released) return;
         _released = false;
 
-        foreach (BattleTile tile in _tiles)
+        for (int i = _tiles.Count - 1; i >= 0; i--)
         {
+            BattleTile tile = _tiles[i];
             if (tile == null) continue;
 
-            // 비워둔 사이에 다른 타워가 자리를 차지했다면 여기서 겹쳐 서게 된다. 배치 세션이 한 번에
-            // 하나뿐이고 연속 배치가 꺼져 있어 구조상 도달하지 않지만, 조용히 겹치는 것보다는 남긴다.
+            // 비워둔 사이에 다른 타워가 자리를 차지한 경우. 되찾으면 겹쳐 서는 것으로 끝나지 않는다 —
+            // **소유권까지 가져와, 내가 파괴될 때 아래 OnDestroy가 남의 타일을 풀어버린다.** 빗장이
+            // 막으려던 바로 그 증상이 되살아나는 자리다. 그래서 되찾지 않고 목록에서 뺀다.
             if (tile.Occupied)
             {
-                Debug.LogWarning($"[TowerFootprint] {name}: 되돌리려는 타일이 이미 점유돼 있습니다 — 겹쳐 섭니다.", this);
+                Debug.LogWarning(
+                    $"[TowerFootprint] {name}: 되돌리려는 타일이 이미 점유돼 있습니다 — " +
+                    "타일 소유권은 실제 점유자에게 남기고 목록에서 제외합니다.", this);
+                _tiles.RemoveAt(i);
+                continue;
             }
+
             tile.Occupied = true;
         }
+    }
+
+    private void OnEnable()
+    {
+        // 안전망: Release된 채로 되살아난 경우 점유를 되돌린다.
+        // 정상 경로(`TowerMergeCommand.Undo`)는 활성화 **전에** Reoccupy를 부르므로 여기 도달할 땐
+        // 이미 `_released == false`라 no-op이고, 배치 시 AddComponent되는 순간도 마찬가지다.
+        // 커맨드를 거치지 않고 `SetActive(true)`가 걸리는 경로(향후 연출·철거 등)만 자기치유한다 —
+        // 그 경우 타워는 살아나는데 타일은 빈 칸으로 남아 그 위에 또 배치되고, 증상이 원인에서 멀다.
+        // 컴포넌트 간 OnEnable 순서는 미정의이므로 이건 어디까지나 안전망이고,
+        // "타일을 먼저 되돌린 뒤 살린다"는 Undo의 명시적 순서가 계약이다.
+        if (_released) Reoccupy();
     }
 
     private void OnDestroy()
