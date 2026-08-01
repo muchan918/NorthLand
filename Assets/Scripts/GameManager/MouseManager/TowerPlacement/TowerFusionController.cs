@@ -22,10 +22,13 @@ public class TowerFusionController : MonoBehaviour
     }
 
     /// 후보 버튼 onClick → 코디네이터(RequestMerge)를 거쳐 호출된다. group은 현재 선택 집합.
-    /// onEnded는 배치 세션이 확정/취소 어느 쪽으로든 끝날 때 1회(코디네이터의 핑크 고정 해제용).
-    /// **반환값 = 결과 타워 배치가 실제로 시작됐는가.** false면 onEnded도 오지 않으므로, 호출부가
-    /// "배치 동안 유지"할 상태를 걸어두면 안 된다(재료·코스트 부족으로 조용히 반려되는 경로가 있다).
-    public bool TryFuse(TowerRecipe recipe, TowerMergeGroup group, System.Action onEnded = null)
+    /// **반환값 = 결과 타워 배치가 실제로 시작됐는가.** 재료·코스트 부족으로 조용히 반려되는 경로가 있으니
+    /// 호출부가 "배치 동안 유지"할 상태를 걸어두려면 이 값을 봐야 한다.
+    ///
+    /// 배치 세션 종료 통지(구 onEnded 인자)는 없앴다 — 유일한 용도였던 핑크 고정이 #263으로 사라졌고,
+    /// 그 인자는 애초에 확정과 취소를 구분하지 못했다. 연출(#265)처럼 둘을 갈라 봐야 하는 소비처가
+    /// 생기면 그때 필요한 형태로 다시 낸다.
+    public bool TryFuse(TowerRecipe recipe, TowerMergeGroup group)
     {
         if (recipe == null) { Debug.LogError("[TowerFusion] recipe가 지정되지 않았습니다."); return false; }
         if (recipe.Result == null) { Debug.LogError("[TowerFusion] recipe.Result가 비어 있습니다."); return false; }
@@ -93,7 +96,7 @@ public class TowerFusionController : MonoBehaviour
             recipe.Result,
             recipe.ExtraCost,
             command.Commit,
-            () => { command.Undo(); onEnded?.Invoke(); });
+            command.Undo);
 
         // 배치를 열지 못했으면 방금 소모한 재료를 즉시 되돌린다. 이 경로에서는 종료 통지도 오지 않으므로
         // 여기서 되돌리지 않으면 재료만 사라진 채 아무 일도 일어나지 않는다.
