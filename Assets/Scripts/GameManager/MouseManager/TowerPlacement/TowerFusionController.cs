@@ -3,9 +3,13 @@ using UnityEngine;
 using NorthLand.Combat;
 
 /// 타워 합성(#195) 실행부. 후보 버튼 클릭 → 그룹 재료 매칭 → 코스트 확인 →
-/// TowerPlacer 고스트 배치 시작 → 배치 확정 시 재료 소모.
+/// **재료 즉시 소모(커맨드 Execute)** → TowerPlacer 고스트 배치 시작 →
+/// 확정이면 커맨드 Commit(진짜 파괴), 취소면 Undo(원복).
 /// 선택 집합(TowerMergeGroup)은 TowerMergeCoordinator가 소유하며, 실행 시 인자로 넘겨받는다(#183).
 /// (구 임시 홀더 TowerWallet + 테스트 단일 레시피 경로는 #183 인계로 폐기됨.)
+///
+/// 소모를 **배치보다 앞으로** 옮긴 것이 #263의 전부다. 예전에는 확정 시점에 파괴해서 재료가 점유한
+/// 타일에 결과를 놓을 수 없었다(WL-077a) — 재료가 확정 후에야 사라져 타일이 그때까지 잠겨 있었다.
 public class TowerFusionController : MonoBehaviour
 {
     [Header("연결")]
@@ -71,17 +75,30 @@ public class TowerFusionController : MonoBehaviour
         if (recipe.Result.Data == null)
             recipe.Result.Data = DataTableManager.Get<TowerTable>("TowerTable")?.Get(recipe.Result.TowerID);
 
-        // 5. 배치 시작. 확정(고스트→타일)되면 ExtraCost 차감(TowerPlacer) 후 재료 소모.
-        return _placer.BeginTowerPlacement(recipe.Result, recipe.ExtraCost, () => ConsumeMaterials(group, toConsume), onEnded);
-    }
-
-    private void ConsumeMaterials(TowerMergeGroup group, List<Tower> towers)
-    {
-        foreach (var t in towers)
+        // 5. 재료를 **먼저** 소모한다(#263). 배치가 시작되기 전에 자리를 비워야 재료가 있던 타일에
+        //    결과를 놓을 수 있다 — 이 순서가 커맨드를 도입한 이유 그 자체다.
+        //    선택 집합에서 빼는 일은 하지 않는다: 비활성화 → Tower.Active 이탈 → ActiveChanged →
+        //    코디네이터의 Prune이 이미 담당한다(구 ConsumeMaterials의 group.Remove가 하던 몫).
+        var command = new TowerMergeCommand(toConsume);
+        if (!command.Execute())
         {
-            if (t == null) continue;
-            group.Remove(t);       // OnChanged 발행 → 코디네이터가 패널·하이라이트 갱신
-            Destroy(t.gameObject); // OnDisable에서 Tower.Active 자동 해제
+            Debug.LogError("[TowerFusion] 재료 소모에 실패해 합성을 중단합니다.");
+            return false;
         }
+
+        // 6. 배치 시작. 확정되면 Commit(진짜 파괴), 세션이 취소로 끝나면 Undo(원복).
+        //    종료 통지는 확정/취소를 구분하지 않으므로 판단은 커맨드가 자기 상태로 한다 — 확정 뒤의
+        //    Undo는 무시되므로 두 콜백을 다 걸어도 안전하다.
+        bool started = _placer.BeginTowerPlacement(
+            recipe.Result,
+            recipe.ExtraCost,
+            command.Commit,
+            () => { command.Undo(); onEnded?.Invoke(); });
+
+        // 배치를 열지 못했으면 방금 소모한 재료를 즉시 되돌린다. 이 경로에서는 종료 통지도 오지 않으므로
+        // 여기서 되돌리지 않으면 재료만 사라진 채 아무 일도 일어나지 않는다.
+        if (!started) command.Undo();
+
+        return started;
     }
 }
