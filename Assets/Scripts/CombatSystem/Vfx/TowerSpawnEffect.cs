@@ -85,6 +85,27 @@ namespace NorthLand.Combat
         private static Mesh s_quad;
         private static Texture2D s_grain;
 
+        // 대상별 진행 중 연출. **이 연출은 대상 루트의 localScale을 배타적으로 소유하므로**(§9.3.2)
+        // 같은 Transform에 두 번 겹치면 두 번째가 **이미 0이 된 스케일을 원본으로 캡처**해 타워가 영구히
+        // 보이지 않게 된다 — 이 클래스가 최악으로 지목한 실패 모드가 정확히 이 경로로 열린다.
+        // 배치(`TowerPlacer`)와 합성(#265)이 같은 대상에 각자 재생을 걸 수 있어 진입점에서 막는다.
+        private static readonly Dictionary<Transform, TowerSpawnEffect> s_active = new(ReferenceComparer.Instance);
+
+        /// Transform을 **참조 동일성**으로만 다루는 비교자. Unity의 오버로드를 쓰지 않는 이유는
+        /// `Object.Equals`가 **파괴된 객체를 서로 같다고 판정**하기 때문이다(둘 다 null 취급).
+        /// 연출 도중 타워가 사라지면(합성 소모·철거) 죽은 키가 호스트 정리 전까지 잠시 남는데, 그 키가
+        /// 다른 죽은 키와 해시 버킷을 공유하면 엉뚱한 항목이 매칭될 수 있다.
+        ///
+        /// 관측된 버그를 고친 게 아니라 **의미론을 맞춰 둔 것**이다 — 실측으로 기본 비교자도 파괴 후
+        /// 조회는 정상이었고 `GetHashCode`도 안정적이었다(파괴 전후 동일). 위험은 버킷 충돌 시의
+        /// 오매칭뿐이고 드물다. 아래 `OnDestroy`의 `ReferenceEquals(_target, null)` 쪽이 실제 누수 방지선이다.
+        private sealed class ReferenceComparer : IEqualityComparer<Transform>
+        {
+            public static readonly ReferenceComparer Instance = new();
+            public bool Equals(Transform a, Transform b) => ReferenceEquals(a, b);
+            public int GetHashCode(Transform o) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(o);
+        }
+
         private readonly List<Transform> _particles = new();
         private readonly List<Vector3> _starts = new();
         private readonly List<Vector3> _scales = new();
@@ -94,17 +115,32 @@ namespace NorthLand.Combat
         private Transform _target;
         private Vector3 _originalScale;
         private bool _scaleCaptured;
+        private bool _superseded; // 같은 대상에 새 연출이 들어와 자리를 내줬다
 
         /// 배치 확정 직후 호출(fire-and-forget). 연출은 **시각 전용·논블로킹**이라 호출자는 기다리지 않는다 —
         /// 타워는 이 시점에 이미 논리적으로 완성돼 있고, 연출은 그 위에 얹히기만 한다.
+        ///
+        /// ⚠ 재생 중 **대상 루트의 `localScale`을 배타적으로 소유한다**(0 → 원본). 이 창(약 0.45초) 동안
+        /// 다른 시스템이 그 값을 쓰거나 캡처하면 안 된다 — 자세한 계약은 `TowerPlacement.md` §9.3.2.
         public static void Play(Transform target, float footprintSize)
             => PlayAsync(target, footprintSize).Forget();
 
         /// 연출 종료까지 기다려야 하는 호출자용(#265 합성 시퀀스의 마지막 구간).
         /// ct는 호출자 수명 토큰. 연출 자신의 수명과 합쳐지므로 어느 쪽이 끊겨도 UniTask가 남지 않는다.
+        ///
+        /// ⚠ `Play`와 같은 스케일 배타 소유 계약이 적용된다. 같은 대상에 이미 재생 중이면 **그 연출을 먼저
+        /// 끝내고 인계받는다** — 배치와 합성이 같은 타워에 각자 재생을 걸어도 스케일이 오염되지 않는다.
         public static async UniTask PlayAsync(Transform target, float footprintSize, CancellationToken ct = default)
         {
             if (target == null) return;
+
+            // 같은 대상에 재생 중인 연출이 있으면 원본 스케일을 **지금** 되돌리고 자리를 넘겨받는다.
+            // `Destroy`만으로는 늦다 — 파괴는 프레임 끝이라 그 사이 우리가 0을 원본으로 캡처한다.
+            if (s_active.TryGetValue(target, out TowerSpawnEffect running) && running != null)
+            {
+                running.Supersede();
+                Destroy(running.gameObject);
+            }
 
             // 대상에서 무언가를 읽는 건 이 한 줄이 전부다. 이 뒤로는 순수 좌표 계산이라 에셋을 다시 보지 않는다.
             Bounds bounds = CalculateVisualBounds(target, footprintSize);
@@ -112,6 +148,7 @@ namespace NorthLand.Combat
             var host = new GameObject("TowerSpawnEffect");
             host.transform.position = bounds.center;
             var effect = host.AddComponent<TowerSpawnEffect>();
+            s_active[target] = effect;
 
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(effect.destroyCancellationToken, ct);
             try
@@ -235,7 +272,7 @@ namespace NorthLand.Combat
             float elapsed = 0f;
             while (elapsed < k_ConvergeDuration)
             {
-                elapsed += Time.deltaTime;
+                elapsed += Time.unscaledDeltaTime; // 배속·일시정지 무관 — 아래 RingAsync 주석 참고
                 float t = Mathf.Clamp01(elapsed / k_ConvergeDuration);
 
                 // 스웜 전체 알파를 한 번에 올린다 — 입자별 알파가 필요 없어 머티리얼 하나로 끝난다.
@@ -272,8 +309,10 @@ namespace NorthLand.Combat
             float elapsed = 0f;
             while (elapsed < k_PopDuration)
             {
-                elapsed += Time.deltaTime;
-                if (_target == null) return; // 연출 도중 타워가 사라질 수 있다(합성 소모·철거)
+                elapsed += Time.unscaledDeltaTime;
+                // 연출 도중 타워가 사라지거나(합성 소모·철거) 같은 대상에 새 연출이 들어올 수 있다.
+                // 인계된 뒤에도 계속 쓰면 새 연출이 정한 스케일을 한 프레임 덮는다.
+                if (_superseded || _target == null) return;
 
                 _target.localScale = _originalScale * BackOut(Mathf.Clamp01(elapsed / k_PopDuration));
                 await UniTask.Yield(ct);
@@ -292,10 +331,15 @@ namespace NorthLand.Combat
 
             try
             {
+                // 세 구간 모두 `unscaledDeltaTime`을 쓴다. 배속·일시정지는 전역 `Time.timeScale`이라
+                // (`GameSpeedController.ApplyTimeScale`) 스케일드 시간을 쓰면 **일시정지 중 타워가
+                // 스케일 0인 채로 멈춘다** — 이 클래스가 최악으로 지목한 "안 보이는 타워"가 정지 버튼
+                // 하나로 재현된다. x4 배속에서 수렴이 0.11초로 줄어 연출이 소실되는 것도 같은 원인이다.
+                // 순수 시각·논블로킹 연출이라 게임플레이 타이밍과 무관하다(WL-100/WL-119와 같은 축).
                 float elapsed = 0f;
                 while (elapsed < k_RingDuration)
                 {
-                    elapsed += Time.deltaTime;
+                    elapsed += Time.unscaledDeltaTime;
                     float t = Mathf.Clamp01(elapsed / k_RingDuration);
                     float eased = 1f - (1f - t) * (1f - t); // ease-out: 터지듯 퍼지고 잦아든다
 
@@ -315,7 +359,26 @@ namespace NorthLand.Combat
             // 어떤 경로로 끊겨도(씬 전환·취소·예외) 타워가 스케일 0으로 남지 않게 하는 단일 지점.
             // 연출이 실패해도 게임이 망가지지는 않아야 한다 — 안 보이는 타워가 최악의 실패 모드다.
             RestoreTarget();
+
+            // 내가 등록한 항목만 지운다 — 인계된 경우 레지스트리의 주인은 이미 새 연출이다.
+            // **`_target != null`(Unity 오버로드)을 쓰면 안 된다.** 연출 도중 타워가 파괴되면(합성 소모·철거)
+            // 가짜 null이 되어 이 분기를 건너뛰고 **항목이 영영 남는다** — 파괴된 Transform을 키로 쥔 채
+            // 누적된다. 딕셔너리 조회 자체는 참조 기반이라 가짜 null 키로도 정상 동작하므로,
+            // 순수 참조 검사(`ReferenceEquals`)로 판정해 죽은 대상까지 확실히 걷어낸다.
+            if (!ReferenceEquals(_target, null)
+                && s_active.TryGetValue(_target, out TowerSpawnEffect current) && ReferenceEquals(current, this))
+            {
+                s_active.Remove(_target);
+            }
+
             if (_material != null) Destroy(_material);
+        }
+
+        /// 같은 대상에 새 연출이 들어와 자리를 내준다. 스케일을 즉시 원복하고 남은 구간을 멈춘다.
+        private void Supersede()
+        {
+            RestoreTarget();
+            _superseded = true;
         }
 
         private void RestoreTarget()
