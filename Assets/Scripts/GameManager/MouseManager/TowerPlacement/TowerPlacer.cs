@@ -350,6 +350,13 @@ public class TowerPlacer : MonoBehaviour
         var confirmed = _onConfirmed;
         _onConfirmed = null;
         confirmed?.Invoke();
+
+        // 등장 연출(#264)은 **로직이 전부 끝난 뒤** 마지막에 얹는다. 시각 전용·논블로킹이라 여기서
+        // 기다리지 않고, 연출 도중 밤 전환이나 새 배치가 들어와도 타워는 이미 완성 상태다.
+        // 바닥 링 크기는 bounds가 아니라 풋프린트에서 준다 — 타워 에셋이 교체돼도 "몇 칸을 먹었는지"는
+        // 안 바뀌는 값이라, 홀쭉한 에셋이 와도 링이 칸보다 작아지지 않는다.
+        float footprintSize = Mathf.Max(_activeData.GridWidth, _activeData.GridHeight) * tileSize;
+        NorthLand.Combat.TowerSpawnEffect.Play(placed.transform, footprintSize);
     }
 
     private static bool IsBuildable(BattleTile tile)
