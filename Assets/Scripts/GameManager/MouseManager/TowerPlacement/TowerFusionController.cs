@@ -78,30 +78,70 @@ public class TowerFusionController : MonoBehaviour
         if (recipe.Result.Data == null)
             recipe.Result.Data = DataTableManager.Get<TowerTable>("TowerTable")?.Get(recipe.Result.TowerID);
 
-        // 5. 재료를 **먼저** 소모한다(#263). 배치가 시작되기 전에 자리를 비워야 재료가 있던 타일에
+        // 5. 소모 연출(#265)을 **소모 직전에** 건다. 커맨드가 재료를 즉시 비활성화하므로 그 뒤에는
+        //    복제할 시각물이 남지 않는다 — 이 한 줄의 위치가 연출 전체의 전제다.
+        //    연출은 시각 전용·논블로킹이라 아래 흐름은 연출을 기다리지 않는다.
+        //    넘기는 것은 **타일 한 칸 크기**다(풋프린트 아님). 이 연출의 모든 길이가 "저 칸 것"을 말하는
+        //    단위이고, 알갱이 크기도 등장 연출과 같은 기준이어야 두 연출이 같은 물질로 보인다.
+        //
+        //    아래 Execute가 실패하면 연출이 1프레임 재생된 뒤 Abort된다(흰 사본이 원본과 겹쳐 한 번 그려짐).
+        //    Execute 실패는 "재료가 전부 사라진 뒤 클릭"이라 LogError 경로이고, 연출을 먼저 걸어야 한다는
+        //    순서 계약(위)과 맞바꿀 만한 빈도가 아니라 그대로 둔다.
+        TowerMergeDissolveEffect effect = TowerMergeDissolveEffect.Play(
+            CollectTransforms(toConsume),
+            _placer.TileSize);
+
+        // 6. 재료를 **먼저** 소모한다(#263). 배치가 시작되기 전에 자리를 비워야 재료가 있던 타일에
         //    결과를 놓을 수 있다 — 이 순서가 커맨드를 도입한 이유 그 자체다.
         //    선택 집합에서 빼는 일은 하지 않는다: 비활성화 → Tower.Active 이탈 → ActiveChanged →
         //    코디네이터의 Prune이 이미 담당한다(구 ConsumeMaterials의 group.Remove가 하던 몫).
         var command = new TowerMergeCommand(toConsume);
         if (!command.Execute())
         {
+            effect.Abort();
             Debug.LogError("[TowerFusion] 재료 소모에 실패해 합성을 중단합니다.");
             return false;
         }
 
-        // 6. 배치 시작. 확정되면 Commit(진짜 파괴), 세션이 취소로 끝나면 Undo(원복).
+        // 7. 배치 시작. 확정되면 Commit(진짜 파괴), 세션이 취소로 끝나면 Undo(원복).
         //    종료 통지는 확정/취소를 구분하지 않으므로 판단은 커맨드가 자기 상태로 한다 — 확정 뒤의
         //    Undo는 무시되므로 두 콜백을 다 걸어도 안전하다.
+        //    연출도 같은 판단을 공유한다: 취소로 끝났으면 입자가 제자리로 돌아가 재료를 재조립하고
+        //    (Reassemble), 확정이었으면 이미 수렴에 들어가 있으므로 Abort가 무시된다.
+        //    Reassemble은 반드시 Undo **뒤에** 부른다 — 되살아난 재료를 같은 프레임에 숨겨야
+        //    원본 크기 타워가 한 프레임 번쩍이지 않는다.
         bool started = _placer.BeginTowerPlacement(
             recipe.Result,
             recipe.ExtraCost,
-            command.Commit,
-            command.Undo);
+            placed => { command.Commit(); effect.ConvergeTo(placed); },
+            () =>
+            {
+                bool cancelled = !command.IsCommitted;
+                command.Undo();
+                if (cancelled) effect.Reassemble();
+                else effect.Abort();
+            });
 
         // 배치를 열지 못했으면 방금 소모한 재료를 즉시 되돌린다. 이 경로에서는 종료 통지도 오지 않으므로
         // 여기서 되돌리지 않으면 재료만 사라진 채 아무 일도 일어나지 않는다.
-        if (!started) command.Undo();
+        if (!started)
+        {
+            command.Undo();
+            effect.Abort();
+        }
 
         return started;
+    }
+
+    /// 연출부는 도메인(Tower)을 모르는 것이 계약이라 Transform만 넘긴다 — 덕분에 연출은
+    /// Renderer가 달린 무엇에든 재생되고, 타워 에셋이 교체돼도 영향을 받지 않는다.
+    private static List<Transform> CollectTransforms(List<Tower> towers)
+    {
+        var result = new List<Transform>(towers.Count);
+        foreach (Tower t in towers)
+        {
+            if (t != null) result.Add(t.transform);
+        }
+        return result;
     }
 }
