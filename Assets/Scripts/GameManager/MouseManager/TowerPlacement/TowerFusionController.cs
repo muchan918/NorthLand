@@ -100,13 +100,21 @@ public class TowerFusionController : MonoBehaviour
         // 7. 배치 시작. 확정되면 Commit(진짜 파괴), 세션이 취소로 끝나면 Undo(원복).
         //    종료 통지는 확정/취소를 구분하지 않으므로 판단은 커맨드가 자기 상태로 한다 — 확정 뒤의
         //    Undo는 무시되므로 두 콜백을 다 걸어도 안전하다.
-        //    연출 종료도 같은 통지에 얹는다. Abort는 이미 마무리에 들어간 연출을 자르지 않으므로
-        //    안전망으로만 동작한다(밤 전환처럼 확정/취소 어느 쪽도 아닌 종료 경로가 여기로 온다).
+        //    연출도 같은 판단을 공유한다: 취소로 끝났으면 입자가 제자리로 돌아가 재료를 재조립하고
+        //    (Reassemble), 확정이었으면 이미 수렴에 들어가 있으므로 Abort가 무시된다.
+        //    Reassemble은 반드시 Undo **뒤에** 부른다 — 되살아난 재료를 같은 프레임에 숨겨야
+        //    원본 크기 타워가 한 프레임 번쩍이지 않는다.
         bool started = _placer.BeginTowerPlacement(
             recipe.Result,
             recipe.ExtraCost,
             placed => { command.Commit(); effect.ConvergeTo(placed); },
-            () => { command.Undo(); effect.Abort(); });
+            () =>
+            {
+                bool cancelled = !command.IsCommitted;
+                command.Undo();
+                if (cancelled) effect.Reassemble();
+                else effect.Abort();
+            });
 
         // 배치를 열지 못했으면 방금 소모한 재료를 즉시 되돌린다. 이 경로에서는 종료 통지도 오지 않으므로
         // 여기서 되돌리지 않으면 재료만 사라진 채 아무 일도 일어나지 않는다.

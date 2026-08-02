@@ -42,7 +42,10 @@ namespace NorthLand.Combat
         /// 입자가 **타워가 다 선 뒤에** 도착해 인과가 뒤집힌다.
         public const float ConvergeDuration = 0.45f;
 
-        private const float k_PopDuration = 0.28f;
+        /// 0에서 원본 크기로 튀어나오는 데 걸리는 시간. public인 이유는 `ConvergeDuration`과 같다 —
+        /// #265의 재료 재조립이 같은 back-out 팝을 쓰므로, 두 연출의 "뽕!"이 같은 박자여야 한다.
+        public const float PopDuration = 0.28f;
+
         private const float k_RingDuration = 0.38f;
         private const float k_FadeInPortion = 0.25f; // 수렴 구간 앞부분 중 입자가 떠오르는 비율
         private const float k_MaxArrivalDelay = 0.3f; // 입자별 출발 시차(전부 같이 움직이면 판박이로 보인다)
@@ -160,7 +163,7 @@ namespace NorthLand.Combat
             // 등장과 바닥 링은 동시에 터진다. 링 중심 y는 시각물의 밑면 — 피벗이 어디든 지면에 붙는다.
             var ground = new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
             await UniTask.WhenAll(
-                _hold.PopAsync(k_PopDuration, ct),
+                _hold.PopAsync(PopDuration, ct),
                 RingAsync(ground, footprintSize * k_RingRadiusRatio, ct));
         }
 

@@ -63,15 +63,18 @@ namespace NorthLand.Combat
         private enum Ending
         {
             None,
-            Abort,    // 조용히 걷어낸다(합성이 시작조차 못 했거나, 확정/취소 통지 없이 세션이 끝난 경우)
-            Converge, // 배치 확정 — 결과 타워로 날아가 등장 연출에 합류한다
+            Abort,      // 조용히 걷어낸다(합성이 시작조차 못 했거나, 확정/취소 통지 없이 세션이 끝난 경우)
+            Converge,   // 배치 확정 — 결과 타워로 날아가 등장 연출에 합류한다
+            Reassemble, // 배치 취소 — 제자리로 역수렴해 재료가 다시 조립된다
         }
 
         /// 재료 하나분의 연출 상태.
         private sealed class Source
         {
+            public Transform Target;     // 원본 재료(부유 중엔 비활성). 취소 시 여기로 되돌아온다
             public Bounds Bounds;        // 재료의 월드 AABB(소모 직전에 측정)
             public Transform Pivot;      // 흰 사본의 부모. bounds.center에 두어 **중심 기준**으로 수축시킨다
+            public VfxScaleHold.Handle Hold; // 재조립 동안의 스케일 점유(0 → back-out → 원본)
             public float Delay;          // 재료별 출발 시차
             public int GrainStart;       // 이 재료가 소유한 알갱이 구간 [start, start+count)
             public int GrainCount;
@@ -119,11 +122,33 @@ namespace NorthLand.Combat
             RequestEnd(Ending.Converge);
         }
 
-        private void RequestEnd(Ending ending)
+        /// 배치 취소 → 입자가 제자리로 돌아가 재료가 재조립된다. **커맨드의 `Undo` 직후에** 호출한다.
+        ///
+        /// ⚠ 여기서 재료 스케일을 **같은 프레임에** 0으로 잡는 것이 핵심이다. `Undo`가 방금 재료를
+        /// `SetActive(true)`로 되살렸으므로, 렌더 전에 숨기지 않으면 원본 크기 타워가 한 프레임 번쩍이고
+        /// 그 다음에야 입자가 도착한다. 프레임 끝에 렌더링되는 덕분에 이 순서만 지키면 깜빡임이 없다.
+        public void Reassemble()
         {
-            if (this == null) return;          // 이미 호스트가 파괴됨(정상 종료 후 늦게 온 통지)
-            if (_ending != Ending.None) return; // 선착순 — 먼저 정해진 마무리가 이긴다
+            if (!RequestEnd(Ending.Reassemble)) return; // 이미 다른 마무리가 정해졌다 — 스케일을 건드리면 안 된다
+
+            foreach (Source s in _sources)
+            {
+                if (s.Target == null) continue;
+
+                s.Hold = VfxScaleHold.Acquire(s.Target);
+                s.Hold.SetFactor(0f);
+            }
+        }
+
+        /// 마무리 선착순 등록. **반환값 = 내가 정했는가** — 스케일 점유처럼 되돌려야 하는 부수 효과는
+        /// 이 값이 true일 때만 걸어야 한다(안 그러면 원복할 주인이 없는 점유가 남는다).
+        private bool RequestEnd(Ending ending)
+        {
+            if (this == null) return false;          // 이미 호스트가 파괴됨(정상 종료 후 늦게 온 통지)
+            if (_ending != Ending.None) return false; // 선착순 — 먼저 정해진 마무리가 이긴다
+
             _ending = ending;
+            return true;
         }
 
         private async UniTaskVoid RunAsync(IReadOnlyList<Transform> targets, CancellationToken ct)
@@ -137,7 +162,7 @@ namespace NorthLand.Combat
                 await FloatAsync(ct);
 
                 if (_ending == Ending.Converge) await ConvergeAsync(ct);
-                // 취소 시 역재생(재조립)은 후속 커밋에서 여기에 붙는다.
+                else if (_ending == Ending.Reassemble) await ReassembleAsync(ct);
             }
             catch (System.OperationCanceledException)
             {
@@ -169,6 +194,7 @@ namespace NorthLand.Combat
                 Bounds bounds = TowerSpawnEffect.CalculateVisualBounds(target, _footprintSize);
                 var source = new Source
                 {
+                    Target = target,
                     Bounds = bounds,
                     Delay = s * k_MaterialStagger,
                     GrainStart = _swarm.Count,
@@ -354,13 +380,41 @@ namespace NorthLand.Combat
             }
         }
 
-        // ── 구간 3: 확정 수렴 (등장 연출과 시간 축 공유) ──────────────────────────────
-        private async UniTask ConvergeAsync(CancellationToken ct)
+        // ── 구간 3-A: 확정 수렴 (결과 타워 한 점으로) ────────────────────────────────
+        private UniTask ConvergeAsync(CancellationToken ct)
         {
-            // 소요 시간을 **거리와 무관하게** 등장 연출의 수렴 시간으로 고정한다. 재료가 배치 지점에서
-            // 얼마나 떨어져 있든 도착 시각이 같아지므로, 결과 타워가 튀어나오는 순간에 입자가 정확히
-            // 도달한다. 속도를 고정하면(= 거리에 비례한 시간) 먼 재료의 입자가 **타워가 다 선 뒤에**
-            // 도착해 "재료가 모여서 타워가 됐다"는 인과가 뒤집힌다 — 이 연출이 존재하는 이유가 사라진다.
+            var destinations = new Vector3[_swarm.Count];
+            for (int i = 0; i < destinations.Length; i++) destinations[i] = _destination;
+            return GatherAsync(destinations, ct);
+        }
+
+        // ── 구간 3-B: 취소 역재생 (각자 제 재료 자리로) + 재조립 팝 ──────────────────
+        private async UniTask ReassembleAsync(CancellationToken ct)
+        {
+            // 확정 수렴과 **정확히 반대 방향의 같은 동작**이다. 목적지만 "결과 타워 한 점"에서
+            // "각자 출발한 재료의 중심"으로 바뀐다 — 그래서 취소가 확정의 역재생으로 읽힌다.
+            var destinations = new Vector3[_swarm.Count];
+            foreach (Source s in _sources)
+            {
+                for (int i = s.GrainStart; i < s.GrainStart + s.GrainCount; i++) destinations[i] = s.Bounds.center;
+            }
+
+            await GatherAsync(destinations, ct);
+            _swarm.Clear();
+
+            // 재료가 동시에 튀어나온다. 바닥 링은 붙이지 않는다 — 링은 "이 칸을 새로 먹었다"는 언어라
+            // 원상복구에 쓰면 취소가 새 배치처럼 읽힌다.
+            var pops = new List<UniTask>(_sources.Count);
+            foreach (Source s in _sources) pops.Add(s.Hold.PopAsync(TowerSpawnEffect.PopDuration, ct));
+            await UniTask.WhenAll(pops);
+        }
+
+        /// 알갱이를 각자의 목적지로 모은다. **소요 시간은 거리와 무관하게 등장 연출의 수렴 시간으로
+        /// 고정한다** — 재료가 배치 지점에서 얼마나 떨어져 있든 도착 시각이 같아지므로, 결과 타워가
+        /// 튀어나오는 순간에 입자가 정확히 도달한다. 속도를 고정하면(= 거리에 비례한 시간) 먼 재료의
+        /// 입자가 **타워가 다 선 뒤에** 도착해 "재료가 모여 타워가 됐다"는 인과가 뒤집힌다.
+        private async UniTask GatherAsync(Vector3[] destinations, CancellationToken ct)
+        {
             float duration = TowerSpawnEffect.ConvergeDuration;
 
             // 출발점은 부유 중이던 **지금 그 자리**다. 폭발 때 정한 기준점을 쓰면 흔들림·회전만큼
@@ -379,8 +433,8 @@ namespace NorthLand.Combat
                     float p = Mathf.Clamp01((t - _delays[i]) / (1f - _delays[i]));
                     float eased = p * p * p; // ease-in: 뜸 들이다가 마지막에 빨려든다(등장 연출과 같은 곡선)
 
-                    Vector3 offset = Quaternion.Euler(0f, k_ConvergeSwirl * eased, 0f) * (starts[i] - _destination);
-                    _swarm[i].position = _destination + offset * (1f - eased);
+                    Vector3 offset = Quaternion.Euler(0f, k_ConvergeSwirl * eased, 0f) * (starts[i] - destinations[i]);
+                    _swarm[i].position = destinations[i] + offset * (1f - eased);
                     _swarm[i].localScale = _scales[i] * (1f - eased * eased); // 도착하며 소멸
                 }
 
@@ -390,6 +444,10 @@ namespace NorthLand.Combat
 
         private void OnDestroy()
         {
+            // 어떤 경로로 끊겨도(씬 전환·취소·예외) 재료가 스케일 0으로 남지 않게 하는 단일 지점.
+            // 재조립 도중 씬이 바뀌면 여기가 유일한 원복 기회다 — 안 보이는 타워가 최악의 실패 모드다.
+            foreach (Source s in _sources) s.Hold.Release();
+
             _swarm?.Dispose();
             if (_silhouette != null) Destroy(_silhouette);
         }
