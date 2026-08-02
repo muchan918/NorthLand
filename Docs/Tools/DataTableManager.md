@@ -140,8 +140,9 @@ CSV에는 위 공통 필드(분류 정보 포함)만 있고, 타워별 세부 �
 - `Chain` → `ChainFields { Attack, ChainRadius, MaxChainTargets, ChainDamageFalloff }`
 - `Magic` → `MagicFields { BuffAura, DebuffAura }`, 그중 `MagicEffectType`이 가리키는
   쪽(`BuffAuraFields` 또는 `DebuffAuraFields`)만 실제로 사용
-- `Attack { AttackDamage, AttackRange, AttackInterval, ProjectilePrefab, ProjectileSpeed }`는
-  Single/Area/Chain이 공통으로 내장하는 nested 구조체(중복 필드 선언 방지). 필드 의미는
+- `Attack { AttackDamage, AttackRange, AttackInterval, ProjectilePrefab, Flight }`는
+  공격 스탯 nested 구조체. `Flight`는 `[SerializeReference] ProjectileFlight` 부품이며 속도·궤적을
+  그 안에 갖는다(#274 Phase 4.5 — 구 `ProjectileSpeed`/`ArcHeight`/`FlightMode` 3필드를 대체). 필드 의미는
   Combat의 기존 `TowerData`(`Assets/Scripts/CombatSystem/Tower/TowerData.cs`)와
   대응되도록 맞춰뒀다 — 실제 Combat 마이그레이션은 아직 미착수(WL-001)
 - `BuffAuraFields`/`DebuffAuraFields { Radius, Interval, Modifiers: List<StatModifier>, Damage: OptionalDamage }`

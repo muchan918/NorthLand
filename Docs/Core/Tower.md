@@ -43,7 +43,8 @@
 
 - 껍데기(`Tower`) + 액션(`TowerAction`) 조립 모델(#164 → #274)
 - 액션 3종: `AttackAction`(투사체) · `BuffAuraAction`(아군 강화) · `DebuffAuraAction`(적 약화)
-- 투사체 비행 2종(유도 / 예측 포격)과 명중 3종(단일 / 스플래시 / 체인)
+- 투사체 비행 2종(유도 / 예측 포격) — `ProjectileFlight` 부품. 새 방식 = 파생 1개(§3.7)
+- 투사체 명중 3종(단일 / 스플래시 / 체인)
 - 스탯 원장 `TowerStats` — 4개 소스 수렴, 소스별 합산 중첩
 - 페이즈 게이팅(공격·디버프 = 밤 전용 / 버프 오라 = 상시)
 - 명중 효과 4종(화상·독·감속·스턴) — `HitEffect` 부품. **공격 액션과 디버프 오라가 같은 리스트를 공유**
@@ -208,13 +209,19 @@ SO의 `TowerType`을 보고 `AddComponent`로 조립하고, 새 SO에서 빠진 
 투사체는 **콜라이더 충돌 판정을 쓰지 않는다.** 물리 트리거 없이 거리 계산만으로 명중을 정한다.
 그리고 **서로 독립인 축이 둘** 있으며, **둘 다 타워 SO가 정한다**(#274 Phase 1).
 
-| 축 | 무엇 | 어디서 정하나 |
-|---|---|---|
-| **비행** `ProjectileFlight` | 얼마나 빠르게·어떤 궤적으로 도달하는가 | `TowerAsset.Attack`의 `ProjectileSpeed`·`Flight`·`ArcHeight` |
-| **명중** `ProjectileImpact` | 도달하면 누구를 때리는가 | `TowerAsset`의 `Impact`·`SplashRadius`·`Chain*` |
+| 축 | 무엇 | 어디서 정하나 | 형태 |
+|---|---|---|---|
+| **비행** `ProjectileFlight` | 얼마나 빠르게·어떤 궤적으로 도달하는가 | `TowerAsset.Attack.Flight` **부품 하나** | `[SerializeReference]` 클래스 |
+| **명중** `ProjectileImpact` | 도달하면 누구를 때리는가 | `TowerAsset`의 `Impact`·`SplashRadius`·`Chain*` | struct |
 
-둘 다 `AttackAction`이 조립 시 1회 만들어(`BuildFlight`/`BuildImpact`) 발사할 때
-`Projectile.Init(target, damage, source, flight, impact)`로 넘긴다. struct라 발사마다 복사된다.
+**두 축의 형태가 다르다.** 명중은 `AttackAction`이 조립 시 1회 만드는 struct라 발사마다 복사되지만,
+비행은 **SO에 담긴 부품을 그대로 참조**한다 — 액션은 만들지 않고 `asset.Attack.Flight`를 넘길 뿐이다
+(구 `BuildFlight`는 #274 Phase 4.5에서 사라졌다). 발사 시 `Projectile.Init(target, damage, source, flight, impact, effects)`.
+
+> ⚠ **비행 부품이 공유된다는 것이 설계의 전제다.** 한 타워가 쏜 투사체 10발이 같은 부품 객체를
+> 참조하므로 **부품은 상태를 가지면 안 된다** — 진행값은 전부 `FlightState`에 담아 `Projectile`이
+> 소유하고 `ref`로 넘긴다. 액션(`TowerAction`)과 **정반대**인 지점이다: 액션은 프리팹에 담겨
+> `Instantiate` 시 인스턴스마다 깊은 복사되므로 상태를 가져도 안전했다.
 
 **탄환 프리팹에 남는 설정은 `rotationOffset` 하나뿐이다** — 모델 메시의 기수가 어느 축을 보는지 보정하는
 값이라(화살 −90, 공 0) 타워가 알 이유가 없다. 즉 역할이 이렇게 갈린다:
@@ -227,18 +234,48 @@ SO의 `TowerType`을 보고 `AddComponent`로 조립하고, 새 SO에서 빠진 
 `ProjectilePrefab` 필드는 **"어떤 모양으로 보일지"만 고른다.** 그래서 `Rolly_Bullet` 하나를
 archer/gatling/Sniper/soda 4개 타워가 공유하면서도 각자 다른 속도·궤적을 가질 수 있다.
 
-#### 비행 2종
+#### 수명 계약 — `Impact`와 `Finished`는 독립이다
+
+부품이 매 프레임 돌려주는 `FlightStep`이 **두 플래그를 따로** 갖는다. 이 분리가 이 축의 핵심이다:
+
+```csharp
+void Update() {                                  // 분기가 없다
+    FlightStep step = flight.Step(this, target, ref flightState, Time.deltaTime);
+    // 기수 회전은 호스트가 한 곳에서 — 부품은 위치만 정한다
+    if (step.Impact)   OnHit(step.ImpactPos);
+    if (step.Finished) Destroy(gameObject);
+}
+```
+
+| | 표현 |
+|---|---|
+| 유도탄·포격 | 도달 시 `Impact` + `Finished` |
+| 대상 소실(유도탄) | `Finished`만 — 명중 없이 사라진다 |
+| **관통탄** | 적을 지날 때마다 `Impact`, 사거리 끝에 `Finished` |
+| **부메랑** | 왕복하며 여러 번 `Impact`, 복귀 완료 시 `Finished` |
+
+예전에는 **"도달 = 명중 = 소멸"이 한 덩어리**로 비행 코드 양쪽에 하드코딩돼 있어, 아래 두 줄을
+표현할 방법이 아예 없었다. **새 비행 방식 = `ProjectileFlight` 파생 클래스 1개이고 `Projectile.cs`는
+한 글자도 안 바뀐다**(#274 Phase 4.5).
+
+#### 비행 2종 — [ProjectileFlight.cs](../../Assets/Scripts/CombatSystem/Tower/ProjectileFlight.cs)
 
 | | 판정 | 대상이 도중에 죽으면 |
 |---|---|---|
-| `Homing` ([:109](../../Assets/Scripts/CombatSystem/Tower/Projectile.cs)) | 매 프레임 추적, `remaining < 0.1f` | **투사체 소멸, 명중 없음** |
-| `Ballistic` ([:144](../../Assets/Scripts/CombatSystem/Tower/Projectile.cs)) | 발사 순간 대상 위치를 `landingPos`로 **고정**, 진행도 `t >= 1f` | **고정된 착탄점에 그대로 명중** |
+| `HomingFlight` | 매 프레임 추적, `remaining < 0.1f` | **투사체 소멸, 명중 없음** |
+| `BallisticFlight` | 발사 순간 대상 위치를 `Landing`으로 **고정**, 진행도 `t >= 1f` | **고정된 착탄점에 그대로 명중** |
 
-`ArcHeight`는 **비주얼 전용**이다 — 평면 추적 위에 포물선 높이를 얹기만 하고(`:127`, `:152`) 판정에는
-들어가지 않는다.
+`ArcHeight`는 **비주얼 전용**이다 — 평면 추적 위에 포물선 높이를 얹기만 하고 판정에는 들어가지 않는다.
 
-⚠ **현재 SO 9개 전부 `Homing`이다** — `Ballistic` 경로는 지금 아무도 안 쓴다. 캐논의 곡사도
+> **인스펙터에서 고르는 법**: `TowerAsset > Attack > Flight` 줄 오른쪽의 타입 드롭다운.
+> Unity는 `List`로 감싼 managed reference에만 `+` 피커를 주고 **단일 필드에는 안 주므로**,
+> `Editor/ManagedReferencePickerDrawer.cs`가 그 자리를 메운다(타입을 바꿔도 같은 이름의 수치는 이어받는다).
+
+⚠ **현재 SO 9개 전부 `Homing`이다** — `Ballistic`을 저작한 타워는 아직 없다. 캐논의 곡사도
 `Ballistic`이 아니라 **`Homing` + `ArcHeight` 15**다(겉보기만 포격, 실제로는 반드시 맞는 유도탄).
+다만 **경로 자체는 #274 Phase 4.5에서 실기 검증됐다** — 고정 착탄점 명중과 피해량을 확인했다.
+`Ballistic`이 의미를 갖는 것은 **광역과 짝지을 때**다: 빗나가도 스플래시가 주변을 때리므로
+"적 무리의 길목을 예측해 쏜다"가 성립한다.
 다만 **"한 번도 안 쓰인 것"은 아니다** — #274 Phase 1 이전에 `Personal/SUNGSOO/`의 탄환 프리팹
 `TB_CanonTower_Lvl2_Ball`(Ballistic, arc 10)과 `SweetLand Prefab/CandyBullet`(Ballistic, arc 30)이
 그렇게 저작돼 있었다. 둘 다 **참조 0건 고아**여서 이관 대상에서 빠졌고, 값은 git 히스토리에만 남는다.
@@ -579,6 +616,7 @@ ApplyOrRefresh / ApplySlow → StatusEffectHandler
 | 6차 (#274 **Phase 2 구현**) | **행동 3종을 액션 리스트로 전환.** `Tower`가 `[SerializeReference] List<TowerAction>`을 직접 소유하고, 종류의 정본이 SO의 `TowerType`에서 **프리팹의 `Actions`**로 옮겨갔다(§3.1·§3.4 재작성). `ITowerBehaviour`·`TowerBuildContext`·`TowerBehaviourFactory`·`StripUnusedBehaviourComponents` 삭제. 버프 오라 구독이 `Initialize`↔`Dispose` 대칭 쌍이 되어 §3.3의 예외가 사라지고 더티 플래그로 재진입·중복 재계산이 차단됐다. 프리팹 14개에 `Actions` 채움(Missing Script 0). §4.3 참조 6개 파일 → **4개, switch 0개** |
 | 7차 (#274 **Phase 3 구현**) | **`TowerType`/`MagicEffectType` enum 삭제** — 선언·SO 필드·CSV 컬럼 2개(9행)·`TableImporter` 동기화·로그 참조 전부 제거. 종류의 정본이 프리팹의 `Actions` 하나로 수렴했다. **`TowerAsset.OnValidate` 신설**(§4.3 신규) — 액션↔수치 불일치·중복 액션·null 항목·명중 방식 수치 누락을 저장 시점에 경고(WL-130 해소). 낡은 §4.3(참조 목록)·§4.4(2중 정보 문제) 삭제. `Tower.cs`의 `?.` 누락 NRE 수정(§6 #9 해소) |
 | 8차 (#274 **Phase 4 구현**) | **명중 효과 부품화** — `HitEffect`(Burn/Poison/Slow/Stun) 신설, `TowerAsset.Effects`에 `[SerializeReference]`로 담는다(§3.8 신규). 공격 액션과 디버프 오라가 **같은 리스트를 공유**해 화상 장판 타워가 새 코드 없이 성립한다. `Projectile`의 세 명중 경로를 `Hit()` 한 곳으로 모아 **스턴이 Single에만 걸리던 실버그 해소**(§6 #10 삭제). `OnHitStunDuration`·`ProjectileImpact.StunDuration`·`DebuffAuraFields`의 `Duration`/`Modifiers`/`Damage` 제거 |
+| 12차 (#274 **Phase 4.5 구현**) | **투사체 비행 축 부품화.** §3.7 재작성 — `FlightMode` enum + `Projectile.Update`의 분기가 사라지고 `ProjectileFlight` 부품이 됐다. **수명 계약(`Impact`↔`Finished` 분리)** 절 신설: "도달 = 명중 = 소멸"이 한 덩어리였던 것을 갈라 관통탄·부메랑이 표현 가능해졌다. **부품은 SO 공유라 무상태**여야 하고 진행값은 `FlightState`를 `Projectile`이 소유한다는 것을 명시(액션과 정반대). `Ballistic` 첫 실기 검증. 단일 `[SerializeReference]` 필드에 Unity가 타입 피커를 안 줘서 `ManagedReferencePickerDrawer` 신설 |
 | 11차 (#274 **Phase 5 구현**) | **§3.9 합성 효과 계승 신설** — 종류만 계승하는 이유, 활성 종류를 SO가 아니라 인스턴스가 갖는 이유(SO 오염·다단 합성), 적용이 pull인 이유와 표시부가 같은 술어를 공유해야 하는 이유. §2 In 범위 추가. §3.8에 `BurnEffect` 이름 충돌 주의(`NorthLand.Combat` ↔ 전역 Skill) 추가. ⚠ 배관만 완료이고 `InheritEffects`를 켠 레시피는 0개라 게임 동작은 그대로다 |
 | 10차 (#274 **플레이 모드 검증**) | Phase 1~4를 빈 씬 하네스로 실기 검증 — 발사·명중(Single/Area)·비행 아크·`HitEffect` 3경로·스턴 게이트·오라 2종·`Initialize`↔`Dispose` 대칭·페이즈 게이팅 전부 통과, 에러 0건. 상세 표는 [TowerRedesign.md](TowerRedesign.md) 「검증 상태」. 프리팹 9개를 중첩 저장소에 커밋(`818f1e7`)해 §6 상단 경고를 상시 주의사항으로 재작성. §6 #6-a 신설(경량 더미의 `HitPosition` 미구현이 공격 검증을 막는다, WL-121) |
 | 9차 (#274 인계 정리) | §6에 **`Assets/Imported/` 중첩 저장소 경고** 신설 — 타워 프리팹 9개가 부모 저장소 밖이라 Phase 2의 `Actions` 채움이 커밋에 안 실렸다는 사실이 커밋 메시지에만 있었다. §6 번호 재정렬(…7,8,11 → 1~10) + #3·#4·#6의 낡은 서술 정정 + #10(원거리 적 미동작) 추가 |

@@ -46,7 +46,7 @@ namespace NorthLand.Combat
             fields = asset.Attack;
             effects = asset.Effects;
             enemyLayerMask = Owner.EnemyLayerMask;
-            flight = BuildFlight(fields);
+            flight = fields?.Flight;   // SO의 부품을 그대로 쓴다 — 무상태라 공유해도 안전하다
             impact = BuildImpact(asset, enemyLayerMask);
             cooldownTimer = 0f;
 
@@ -109,6 +109,7 @@ namespace NorthLand.Combat
         {
             if (target == null || target.IsDead) return false;
             if (fields == null || fields.ProjectilePrefab == null) return false;
+            if (flight == null) return false;   // 비행 부품 미저작 — TowerAsset.OnValidate가 저장 시점에 경고한다
 
             // firePoint 미할당이면 타워 루트(바닥)에서 생성 — 하위 호환(ArcherTower.prefab이 그렇다).
             Transform firePoint = Owner.FirePoint;
@@ -131,16 +132,6 @@ namespace NorthLand.Combat
 
         // "어떻게 날아갈지". 전부 SO가 정한다 — 예전에는 Speed만 SO였고 Mode/ArcHeight는 탄환 프리팹에
         // 박혀 있어, 같은 궤적을 만드는 값이 두 파일로 갈려 있었다(#274).
-        static ProjectileFlight BuildFlight(TowerAsset.AttackFields fields)
-            => fields == null
-                ? default
-                : new ProjectileFlight
-                {
-                    Mode = fields.Flight,
-                    Speed = fields.ProjectileSpeed,
-                    ArcHeight = fields.ArcHeight,
-                };
-
         // "터지면 누구를 때릴지". 발사마다 재구성할 이유가 없어 조립 시 1회 만든다
         // (ProjectileImpact는 struct라 발사 시 복사되어 전달된다).
         static ProjectileImpact BuildImpact(TowerAsset asset, LayerMask enemyLayerMask)

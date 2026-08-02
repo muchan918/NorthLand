@@ -34,24 +34,9 @@ namespace NorthLand.Combat
             };
     }
 
-    // 투사체 비행 방식
-    //  Homing   : 매 프레임 살아있는 대상을 추적하는 유도탄 (반드시 명중). ArcHeight>0이면 곡사(포물선) 비주얼도 적용.
-    //  Ballistic: 발사 순간 대상의 월드 위치를 착탄점으로 고정하고 그 지점까지 비행.
-    //             대상이 도중에 죽거나 움직여도 고정된 착탄점에 그대로 명중(박격포 등).
-    public enum FlightMode { Homing, Ballistic }
-
-    // 타워가 발사 시 넘기는 "어떻게 날아갈지" 기술자. ProjectileImpact와 **대칭**이다 —
-    // 하나는 비행, 하나는 명중이고 둘 다 타워 SO가 정한다(#274).
-    //
-    // 예전에는 Speed만 SO에 있고 Mode/ArcHeight는 탄환 프리팹의 [SerializeField]였다. 셋 다 같은 궤적을
-    // 만드는 값이고 착탄 시간 → 실효 DPS를 정하므로 비주얼이 아니라 밸런스다. 게다가 탄환 프리팹이
-    // 여러 타워에 공유돼(Rolly_Bullet ← archer/gatling/sniper/soda) 타워별로 다른 비행을 줄 수 없었다.
-    public struct ProjectileFlight
-    {
-        public FlightMode Mode;
-        public float Speed;
-        public float ArcHeight;   // 포물선 정점 높이. **판정에 영향 없는 겉보기 값**
-    }
+    // 비행 축은 부품으로 분리돼 있다 → ProjectileFlight.cs
+    //  구 `FlightMode` enum + Update의 분기는 #274 Phase 4.5에서 사라졌다. 새 비행 방식은
+    //  `ProjectileFlight` 파생 클래스 1개이며 이 파일은 무수정이다.
 
     public class Projectile : MonoBehaviour
     {
@@ -72,14 +57,9 @@ namespace NorthLand.Combat
         // 명중 시 걸 효과(화상·독·감속·스턴). SO의 TowerAsset.Effects를 발사 시 그대로 넘겨받는다.
         IReadOnlyList<HitEffect> effects;
 
-        // Ballistic 상태: 발사 순간 스냅샷한 착탄점과 시작점, 진행 거리
-        Vector3 startPos;
-        Vector3 landingPos;
-        float totalDistance;   // 발사 시 시작점→대상까지 거리(호밍 아크 진행도 계산에도 재사용)
-        float traveled;
-
-        // Homing 상태: 아크를 얹기 전의 "평면" 추적 위치. transform.position = homingPos + 아크 높이.
-        Vector3 homingPos;
+        // 비행 진행 상태. **부품이 아니라 이쪽이 소유한다** — 부품은 SO에 살아 여러 투사체가
+        // 공유하므로 진행값을 두면 서로 덮어쓴다(FlightState 주석 참조).
+        FlightState flightState;
 
         // 체인 중복 타격 방지용 (한 프레임에 하나의 투사체만 명중 처리되므로 static 재사용 OK)
         static readonly HashSet<IDamageable> chainHitSet = new HashSet<IDamageable>();
@@ -95,87 +75,35 @@ namespace NorthLand.Combat
             this.impact = impact;
             this.effects = effects;
 
-            if (flight.Mode == FlightMode.Ballistic)
+            if (flight == null)
             {
-                // 발사 순간의 대상 위치를 착탄점으로 고정 (이후 대상 이동/사망과 무관)
-                startPos = transform.position;
-                landingPos = target.HitPosition.position;
-                totalDistance = Vector3.Distance(startPos, landingPos);
-            }
-            else // Homing
-            {
-                // 평면 추적 시작점 + 초기 거리(아크 진행도 t 계산 기준) 스냅샷.
-                homingPos = transform.position;
-                var at = target.HitPosition;
-                Vector3 tp = at.transform.position;
-                totalDistance = Vector3.Distance(homingPos, tp);
-            }
-        }
-
-        void Update()
-        {
-            if (flight.Mode == FlightMode.Ballistic)
-                UpdateBallistic();
-            else
-                UpdateHoming();
-        }
-
-        // 살아있는 대상을 매 프레임 추적하는 유도탄. arcHeight>0이면 평면 추적 위에 포물선 높이를 얹어 곡사로 보이게 한다.
-        void UpdateHoming()
-        {
-            var targetTransform = target.HitPosition;
-            if (targetTransform == null || target.IsDead)
-            {
-                Destroy(gameObject);   // 대상이 도중에 사라지면 소멸
+                Debug.LogError("[Projectile] ProjectileFlight 없이 발사됐습니다 — 타워 SO의 Attack.Flight를 확인하세요.", this);
+                Destroy(gameObject);
                 return;
             }
 
-            Vector3 targetPos = targetTransform.position;
+            flight.Begin(this, target, ref flightState);
+        }
+
+        // **분기가 없다.** 어떻게 나는지는 부품이 정하고, 호스트는 그 결과(명중/수명)만 해석한다.
+        // 새 비행 방식이 추가돼도 이 메서드는 안 바뀐다(#274 Phase 4.5).
+        void Update()
+        {
+            if (flight == null) return;
+
             Vector3 prevPos = transform.position;
 
-            // 평면(비아크) 추적 위치를 대상으로 이동. 아크는 이 위에 시각적 높이만 더한다.
-            homingPos = Vector3.MoveTowards(homingPos, targetPos, flight.Speed * Time.deltaTime);
+            FlightStep step = flight.Step(this, target, ref flightState, Time.deltaTime);
 
-            // 진행도 t: 시작 시 0, 대상에 근접할수록 1(초기 거리 기준). 대상이 멀어지면 0으로 clamp.
-            float remaining = Vector3.Distance(homingPos, targetPos);
-            float t = totalDistance > 0.0001f ? Mathf.Clamp01(1f - remaining / totalDistance) : 1f;
-            float arcY = flight.ArcHeight * 4f * t * (1f - t);   // 양 끝 0, t=0.5에서 정점인 포물선
-
-            transform.position = homingPos + Vector3.up * arcY;
-
-            // 실제 이동 방향(아크 포함)을 향하도록 회전 → 곡사 시 상승/하강에 맞춰 기수가 기운다.
+            // 기수 회전은 호스트가 한 곳에서 한다 — 부품은 위치만 정한다.
+            // 실제 이동 방향(아크 포함)을 향하므로 곡사에서 상승/하강에 맞춰 기울어진다.
             Vector3 moveDir = transform.position - prevPos;
             if (moveDir.sqrMagnitude > 0.0001f)
                 transform.rotation = Quaternion.LookRotation(moveDir.normalized) * Quaternion.Euler(rotationOffset);
 
-            if (remaining < 0.1f)
-            {
-                OnHit(targetPos);
-                Destroy(gameObject);
-            }
-        }
-
-        // 고정된 착탄점까지 (선택적 포물선으로) 비행. 대상 생사와 무관.
-        void UpdateBallistic()
-        {
-            Vector3 prevPos = transform.position;
-
-            traveled += flight.Speed * Time.deltaTime;
-            float t = totalDistance > 0.0001f ? Mathf.Clamp01(traveled / totalDistance) : 1f;
-
-            Vector3 pos = Vector3.Lerp(startPos, landingPos, t);
-            pos.y += flight.ArcHeight * 4f * t * (1f - t);   // t=0.5에서 정점, 양 끝 0인 포물선
-            transform.position = pos;
-
-            Vector3 dir = pos - prevPos;
-            if (dir.sqrMagnitude > 0.0001f)
-                transform.rotation = Quaternion.LookRotation(dir.normalized) * Quaternion.Euler(rotationOffset);
-
-            if (t >= 1f)
-            {
-                OnHit(landingPos);
-                Destroy(gameObject);
-            }
+            // ★ Impact와 Finished는 독립이다 — 때리고도 계속 나는 탄(관통·부메랑)이 이 분리로 성립한다.
+            if (step.Impact) OnHit(step.ImpactPos);
+            if (step.Finished) Destroy(gameObject);
         }
 
         void OnHit(Vector3 impactPos)

@@ -22,6 +22,7 @@
 | 2 | 행동 → 액션 리스트(§2~§5), 프리팹 14개 `Actions`(§10.3) | ✅ **완료** — [Tower.md](Tower.md) §3이 현행 |
 | 3 | `TowerType`/`MagicEffectType` enum 제거(§3), `OnValidate`(§3) | ✅ **완료** — [Tower.md](Tower.md) §4.3이 현행 |
 | 4 | 명중 효과 부품화(§8) | ✅ **완료** — [Tower.md](Tower.md) §3.8이 현행 |
+| 4.5 | 투사체 비행 축 부품화(§12-A) | ✅ **완료** — [Tower.md](Tower.md) §3.7이 현행 |
 | 5 | 합성 효과 계승(§9) | ✅ **완료** — [Tower.md](Tower.md) §3.9가 현행. ⚠ **켜진 레시피는 0개**(아래) |
 | 6 | 나머지 문서 갱신(SystemMap §2 · TowerPlacement · TowerMerge · WatchList) | ✅ **완료** |
 
@@ -88,6 +89,24 @@
 | 콘솔 | 에러 0 |
 | **수동 검증**(GameScene, 마우스) | 임시 레시피(soda + choco → 효과 3종 정의된 결과 SO)로 실기 확인 — 후보 버튼 호버 시 툴팁 **`Inherit: Stun + Slow`** · 결과 타워가 몬스터를 **멈추고 느리게** 함 · **독은 안 걸림**(결과 SO에 정의돼 있는데도) · 정보 패널에 `DoT:` 줄 없음. 테스트 에셋은 확인 후 삭제 |
 
+**Phase 4.5(투사체 비행 축 부품화) 실측** — **동작이 바뀌면 안 되는** 작업이라 무회귀가 통과 기준이다:
+
+| 축 | 실측 |
+|---|---|
+| 5종 무회귀 | archer 12×11 · gatling 7×30 · sniper 40×6 · soda 10×4 · cannon 28×6 — **부품화 전과 동일** |
+| **캐논 곡사** | 정점 **y=15.00 @ x=448** (0→900 구간의 정확한 중간) — **Phase 1 실측과 일치** |
+| 대상 소실 | 유도탄이 명중 없이 소멸 |
+| **`Ballistic` 첫 실기** | 고정 착탄점 명중 + 피해량 정확. 사용처가 0이라 **이번에 처음 돌려본 경로**다 |
+| SO 마이그레이션 | 9개 값 대조 통과. 구 값은 **`.asset` YAML에서 회수**했다 — C# 필드가 사라져 API로는 못 읽는다 |
+| 콘솔 | 에러 0 |
+
+> **부품화가 만든 회귀를 하나 잡았다** — Unity는 `List`로 감싼 managed reference에만 `+` 타입 피커를
+> 주고 **단일 필드에는 안 준다.** 그래서 `Attack > Flight`가 값만 보이고 종류를 바꿀 수 없었다
+> (`Actions`·`Effects`가 멀쩡했던 건 List라서다). **저작 UI 없는 부품화는 반쪽**이라
+> `Editor/ManagedReferencePickerDrawer.cs`를 신설했다 — 기반 타입을 런타임에 읽는 **범용** 드로어라
+> 앞으로 생길 다른 단일 부품 필드는 등록 한 줄이면 된다. ⚠ 구 `TowerAssetEditor`의 부활이 아니다
+> (그쪽은 `TowerType`별 필드 그룹을 하드코딩한 것이라 지웠다).
+
 > **검증 중에 표시 버그를 하나 잡았다** — `DescribeEffects`가 SO의 효과를 전부 표기해 **계승으로 꺼진
 > 효과까지 정보 패널에 떴다.** 적용부는 필터를 타는데 표시부는 안 타는, WL-079/WL-130과 같은 축이다.
 > `stats` 대신 `owner`를 받게 바꿔 **원장과 필터가 같은 곳에서 나오도록** 했다 — 호출부가 빠뜨릴 수 없다.
@@ -98,12 +117,14 @@
 
 **아직 안 한 것:**
 
-- **마우스가 필요한 경로** — 배치 UI·합성 UI·낮 정보 패널 표시는 `exec`으로 구동할 수 없어 미검증이다.
-  위 하네스는 `Tower.Build`를 직접 불러 조립하므로 `TowerPlacer`를 거치는 경로(고스트·풋프린트·비용 차감)와
-  `TowerFusionController`는 손으로 한 번 돌려봐야 한다.
+- ~~**마우스가 필요한 경로**~~ — ✅ **Phase 5 수동 검증에서 해소.** 임시 레시피로 소다·초코를 타워 패널에서
+  직접 배치하고(고스트·비용 차감·풋프린트) 드래그 선택 → 후보 버튼 → 합성까지 손으로 돌렸다.
+  즉 `TowerPlacer`와 `TowerFusionController`를 거치는 경로도 실기 확인됐다. 정보 패널 표시도 함께 확인.
 - **EditMode 테스트** — 액션·`HitEffect`·`TowerStats`가 전부 순수 C#이 되어 씬 없이 검증 가능해졌지만,
   프로젝트에 `.asmdef`가 하나도 없어 테스트 어셈블리부터 만들어야 한다([Tower.md](Tower.md) §6 #6).
-- **Phase 4.5(투사체 부품화)** — §12-A대로 보류. 타워를 몇 개 실제로 추가해본 뒤 판단한다.
+- ~~**Phase 4.5(투사체 부품화)**~~ — ✅ **비행 축 완료.** 유예 근거였던 "어떤 비행 방식이 필요한지
+  목록이 없다"가 해제됐다(관통탄·부메랑·레이저·포격 예정). 명중 축(`ImpactKind`)은 **의도적으로
+  남겨뒀다** — 새 요구가 없고 비행 축과 독립이라 같은 패턴으로 나중에 재적용하면 된다. §12-A 참조.
 
 **Phase 6(나머지 문서 갱신)은 완료됐다** — `SystemMap.md` §2(액션 계약·설계 규칙 4가지·`OnValidate`·
 `PreviewRadius`·`HasAction<T>` 신설, 낡은 서술 13곳 정정) · `TowerPlacement.md` 3곳 ·
@@ -315,6 +336,9 @@ protected int SourceId => owner.GetInstanceID() ^ GetType().Name.GetHashCode();
 [SerializeReference] List<HitEffect> Effects        ← §8
 ```
 
+> 위 비행 3필드는 **Phase 1 시점의 모습**이다. Phase 4.5에서 부품 하나
+> (`[SerializeReference] ProjectileFlight Flight`)로 합쳐졌다 — 현행은 [Tower.md](Tower.md) §3.7.
+
 타입별 필드는 7개뿐이라(`SplashRadius` 1 + Chain 3 + Aura 3) 그룹 클래스 없이 평탄해도 읽을 만하다.
 안 쓰는 타워에서 그 값이 0이어도 **아무도 안 읽으므로 무해하다.**
 
@@ -330,8 +354,12 @@ WL-056의 "오라 반경 단일 출처" 성질은 유지하면서 `TowerType` �
 
 ### 6.1 비행 축도 SO로 가져온다
 
-[Tower.md](Tower.md) §3.7이 기록한 소유자 분리를 여기서 없앤다 — 지금은 **명중은 타워 SO가, 비행은 탄환
-프리팹이** 정하고 있다. `ProjectileFlight` struct를 `ProjectileImpact`와 **대칭**으로 신설해 함께 넘긴다:
+> **이 절은 Phase 1 시점의 기록이다.** 여기서 만든 `ProjectileFlight` **struct**는 Phase 4.5에서
+> **부품 클래스**로 승격됐다(§12-A). 아래 근거 4가지는 그 승격의 전제이기도 했으므로 그대로 남긴다 —
+> 비행 설정이 탄환 프리팹에 흩어져 있었다면 부품화 자체가 불가능했다. 현행은 [Tower.md](Tower.md) §3.7.
+
+[Tower.md](Tower.md) §3.7이 기록한 소유자 분리를 여기서 없앤다 — 당시엔 **명중은 타워 SO가, 비행은 탄환
+프리팹이** 정하고 있었다. `ProjectileFlight` struct를 `ProjectileImpact`와 **대칭**으로 신설해 함께 넘긴다:
 
 ```csharp
 public struct ProjectileFlight { public FlightMode Mode; public float Speed; public float ArcHeight; }
@@ -339,8 +367,8 @@ public struct ProjectileFlight { public FlightMode Mode; public float Speed; pub
 projectile.Init(target, damage, flight, impact, source);
 ```
 
-지금은 `Init(target, Damage, fields.ProjectileSpeed, owner, impact)`로 **`speed`만 별도 인자로 떠 있어**
-왜 그것만 특별한지 설명이 안 된다. 비행 기술자로 흡수하면 "대상·데미지·비행·명중·소스"로 읽힌다.
+당시엔 `Init(target, Damage, fields.ProjectileSpeed, owner, impact)`로 **`speed`만 별도 인자로 떠 있어**
+왜 그것만 특별한지 설명이 안 됐다. 비행 기술자로 흡수하면 "대상·데미지·비행·명중·소스"로 읽힌다.
 
 **근거 4가지:**
 
@@ -698,45 +726,67 @@ Unity 프리팹·씬은 컴포넌트를 클래스 이름 + GUID로 물고 있어
 | 4 | GDD §5.8 · [TowerMerge.md](TowerMerge.md) §13의 "재료 승계 TBD" | **배관은 완료됐다**(§9 그대로 구현·검증). 남은 것은 **족보 결정**이다 — 현재 `InheritEffects`를 켠 레시피가 **0개**라 게임에서는 아무 변화가 없다. 기존 레시피 2개는 재료·결과 모두 `Effects`가 비어 있고, ⚠ **기존 타워 SO를 결과로 쓰면 안 된다**(필터가 없는 평범한 배치에서도 그 효과가 켜져 프로덕션 타워가 조용히 강화된다). 기획이 정할 것: ① 어떤 조합이 어떤 결과를 만드는가 ② 그 결과 SO의 효과 수치 |
 | 5 | `CombatSystem/Tower`는 SystemMap상 **KIM-SUNGSOO 영역** | 재설계는 공격 계약(`TowerAsset.Attack`)과 프리팹 구조를 함께 바꾼다 — **착수 전 합의 필수**(WL-001과 같은 축). **이 문서가 그 합의 자료. 사인오프 대기** |
 | 6 | `Personal/SUNGSOO/` 고아 프리팹·구버전 SO | `CannonTowerTest.prefab`·`SweetLand Prefab/CandyCanon.prefab`은 참조 0건. `CombatData/debuff_tower.asset`은 지금은 없는 `BuffAura.Interval` 필드가 남은 구버전 스키마 — **마이그레이션 전 폐기 여부 확인 필요**(§10.3) |
-| 7 | **투사체 부품화** — 비행·명중을 `[SerializeReference]` 부품으로 승격할지 | **판단 유예.** 아래 §12-A |
+| 7 | **투사체 부품화** — 비행·명중을 `[SerializeReference]` 부품으로 승격할지 | ✅ **비행 축 완료**(Phase 4.5) / 명중 축은 **의도적 보류**. 아래 §12-A |
 
-### 12-A. 투사체 부품화 — 왜 지금 정하지 않는가
+### 12-A. 투사체 부품화 — 비행 축 완료 (Phase 4.5)
 
-§2는 타워 축의 enum + switch를 없앴지만, **투사체 축에는 그 패턴이 그대로 남는다** —
+§2는 타워 축의 enum + switch를 없앴지만, **투사체 축에는 그 패턴이 그대로 남아 있었다** —
 `FlightMode` enum + `Projectile.Update()`의 분기, `ImpactKind` enum + `OnHit()`의 switch.
 방식이 3~4종을 넘으면 [부록 A.2](#a2-클래스-하나--내부-switch)에서 기각한 바로 그 구조가 된다.
 
-**그럼에도 이번 범위에 넣지 않는 이유:**
+**유예했던 이유와, 그것이 해제된 경위:**
 
-- `Docs/GDD.md`에 투사체 관련 언급이 **한 줄도 없다.** 어떤 공격·비행 방식이 필요한지 목록이 아직 없다.
-- §4가 확립한 규칙 4가지가 자리잡은 뒤면 투사체 부품화는 **같은 패턴의 재적용**이 되어 훨씬 싸다.
-- 타워 구조 작업과 **의존이 거의 없다** — §2(액션 리스트)는 투사체와 접점이 0이고, §8(효과 부품화)만
-  `Projectile.OnHit`을 건드린다. 순서를 뒤로 미뤄도 손해가 없다.
+| 당시 유예 근거 | 지금 |
+|---|---|
+| `Docs/GDD.md`에 투사체 언급이 한 줄도 없어 **어떤 방식이 필요한지 목록이 없다** | ❌ **해제됨** — 관통탄·부메랑·레이저·진짜 포격이 예정이고 종류는 더 늘어난다 |
+| §4의 규칙 4가지가 자리잡은 뒤면 **같은 패턴의 재적용**이라 싸다 | ✅ 그대로였다. 실제로 쌌다 |
+| 타워 구조 작업과 의존이 거의 없다 | ✅ 그대로 — 그래서 Phase 5 뒤에 독립적으로 붙였다 |
 
-**그때의 설계 방향 (스케치):**
+**셋을 갈라 본 것이 판단의 핵심이었다:**
+
+| | 성격 | 필요했던 것 |
+|---|---|---|
+| **진짜 포격**(`Ballistic`) | 이미 구현돼 있고 쓰는 SO가 0개였을 뿐 | **코드 0줄** — SO 값만 |
+| **레이저·빔** | 투사체를 `Instantiate`하지 않는다 | `TowerAction` 파생(`BeamAction`) — **투사체 축과 무관** |
+| **관통탄·부메랑** | 투사체인데 **구조가 막고 있었다** | ★ Phase 4.5가 연 것 |
+
+막고 있던 것은 하나였다 — **"도달 = 명중 = 소멸"이 한 덩어리로 비행 코드 양쪽에 하드코딩**돼 있었다.
+관통탄은 이걸 세 방향으로 어긴다(가는 길에 여러 번 때리고, 때려도 안 죽고, 대상이 아니라 경로를 따라간다).
+
+**채택한 계약**(스케치와 달라진 부분 포함):
 
 ```csharp
-[Serializable] public abstract class ProjectileFlight {   // 상태 없음 → SO 공유 안전
-    public abstract void Step(ref FlightState s, float dt);
-    public abstract bool ReachedImpact(in FlightState s);
+public struct FlightStep {                 // ★ Impact와 Finished가 독립이다
+    public bool Impact;  public Vector3 ImpactPos;  public bool Finished;
+}
+public abstract class ProjectileFlight {   // 상태 없음 → SO 공유 안전
+    public abstract void      Begin(Projectile self, IDamageable target, ref FlightState s);
+    public abstract FlightStep Step (Projectile self, IDamageable target, ref FlightState s, float dt);
 }
 ```
 
-⚠ **상태는 `Projectile`이 소유해야 한다.** 액션(§2)은 **프리팹**에 담겨 `Instantiate` 시 자동 복제되지만
-(§4 ③), 비행 부품은 **SO**에 담기므로 복제되지 않는다. 투사체 10발이 SO의 부품 하나를 공유하면
-`traveled`·`homingPos` 같은 진행값이 뒤엉킨다. 부품은 규칙만, 상태는 투사체가 — 이 분리가 전제다.
+초판 스케치는 `Step`/`ReachedImpact` 두 메서드였는데, **"명중했지만 안 끝났다"를 표현할 수 없어서**
+반환값 하나(`FlightStep`)로 합쳤다. 그게 관통·부메랑을 여는 유일한 지점이다.
 
-⚠ **함께 걷어내야 하는 전제**: "투사체는 한 번 맞고 `Destroy`"가 `UpdateHoming`(`:136-140`)과
-`UpdateBallistic`(`:159-163`) **양쪽에 하드코딩**돼 있다. 부메랑·관통탄은 이걸 어긴다(가는 길에 여러 번
-때리고, 때려도 안 죽고, 대상이 아니라 경로를 따라간다). "비행 부품이 끝났다고 할 때까지 산다"로 바꿔야
-부품화가 값어치를 한다.
+**명중 축(`ImpactKind`)은 의도적으로 남겨뒀다** — Single/Area/Chain에 새 요구가 없고 비행 축과 독립이라,
+필요해질 때 같은 패턴으로 재적용하면 된다. 한 번에 둘 다 갈아엎으면 무회귀 검증이 어려워진다.
+`Projectile.chainHitSet`이 static인 문제(§6 #7)도 그때 함께 정리한다.
+
+✅ **상태 소유권** — 예상대로였고 그대로 지켰다. 액션(§2)은 **프리팹**에 담겨 `Instantiate` 시 자동
+복제되지만(§4 ③), 비행 부품은 **SO**에 담기므로 복제되지 않는다. 투사체 10발이 부품 하나를 공유하면
+진행값이 뒤엉키므로 **부품은 규칙만, 상태는 `FlightState`에 담아 투사체가** 소유한다.
 
 **레이저/빔은 여기 속하지 않는다.** 투사체를 `Instantiate` 하지 않으므로 `ImpactKind`에 값을 더하는 게
 아니라 `AttackAction`과 나란히 놓이는 **별도 액션**(`BeamAction`)이다 — §11.3의 **Level 3**이고
 `Tower`는 무수정.
 
-**전제 조건**: 부품화하려면 비행 설정이 SO에 있어야 한다. §6.1의 이관이 **그 첫 칸**이고, struct에서
-부품 클래스로 승격하는 비용은 SO 필드 하나 교체다.
+> ⚠ **레이저를 만들 때 결정할 것이 하나 있다.** 능력 질의가 구상 타입(`Has<AttackAction>()`)이라
+> 빔 타워는 **버프 오라 대상·보스 P3 봉인 대상에서 빠지고** 정보 패널 공격 스탯이 0으로 뜬다.
+> "공격하는 액션"이라는 공통 개념으로 넓힐지 그때 정하면 된다 — 지금 구조가 막는 것은 아니다.
+
+**Phase 1이 첫 칸이었다.** §6.1의 SO 이관이 없었다면 비행 설정이 탄환 프리팹에 흩어져 있어 부품화
+자체가 불가능했다. struct에서 부품 클래스로 승격하는 비용은 예상대로 **SO 필드 하나 교체**였다
+(다만 값 마이그레이션과 저작 UI가 딸려왔다 — 「검증 상태」 참조).
 
 ---
 
@@ -812,5 +862,6 @@ WL-050/081(버프 원장 두 벌)이다.
 | 4차 (#274) | **Tower.md에서 이 문서를 분리.** Tower.md가 1031줄까지 불어 Core 문서 중 2위의 2배가 됐고, "현재 명세"와 "제안"이 섞여 읽을 때마다 사실/제안을 판단해야 했다. 폐기안 2개를 부록 A로 내리고 3분 요약을 신설 |
 | 5차 (#274) | 「검증 상태」 절 신설 — Phase 1~4의 에디트 모드 검증 내역과 미검증 항목을 기록. Phase 6 목록을 실측으로 정정 |
 | 6차 (#274 **플레이 모드 검증**) | 「검증 상태」에 플레이 모드 실측 표 추가 — Phase 1(비행 아크 정점 15.00)·Phase 2(`SetActive` 왕복 대칭)·Phase 4(Area 경로 효과 적용) 세 축이 전부 런타임에서 확인됐다. §10.4 #3(타일 버프↔`Build` 순서)은 **순서 무관으로 해소** — 원장이 pull 방식이라 캐시가 없다 |
+| 9차 (#274 **Phase 4.5 구현**) | **투사체 비행 축 부품화 — 유예 판단 해소.** §12-A를 "왜 지금 정하지 않는가"에서 **완료 기록**으로 전면 개정: 유예 근거("어떤 비행 방식이 필요한지 목록이 없다")가 해제된 경위와, 스케치(`Step`+`ReachedImpact`)가 실제 계약(`FlightStep` 하나)으로 바뀐 이유를 남겼다 — **"명중했지만 안 끝났다"를 표현할 수 없어서**다. 진행 표에 Phase 4.5 행 신설. 「검증 상태」에 무회귀 실측 표(캐논 정점 y=15.00 재확인 · `Ballistic` 첫 실기). §6.1은 Phase 1 시점 기록임을 명시하고 현행은 `Tower.md` §3.7로 넘겼다. 명중 축은 **의도적 보류**로 명문화 |
 | 8차 (#274 **Phase 5 구현**) | **합성 효과 계승 구현·검증 완료.** `TowerRecipe.InheritEffects`(레시피별 opt-in) · `Tower.activeKinds`/`IsEffectActive`/`ActiveEffectKinds`/`ActivateEffects`(인스턴스 소유) · 적용 필터를 `Projectile.ApplyEffects`와 `DebuffAuraAction.ApplyDebuff`에 **pull 방식**으로 · `TowerFusionMatcher.ResolveInheritedKinds`(툴팁·실행부 공유) · 후보 버튼 툴팁 · `TowerRecipe.OnValidate`. 검증 중 `DescribeEffects`가 꺼진 효과까지 표기하던 버그를 잡았다. **§12 #4를 "사인오프 대기"에서 "배관 완료, 족보 결정만 남음"으로 정정** — 켜진 레시피가 0개라 게임 동작은 그대로다 |
 | 7차 (#274 **Phase 6 완료**) | `origin/main` 병합(`c024bb6`) 후 문서를 액션 구조에 맞췄다 — `SystemMap.md` §2(낡은 서술 13곳 + `TowerAction` 계약·설계 규칙 4가지·`OnValidate`·`PreviewRadius`·`HasAction<T>` 신설) · `TowerPlacement.md` 3곳 · `TowerMerge.md` 깨진 승계 링크 · WL-130 Archive 이관. **병합이 문서 부채를 함께 들여온다**는 것을 기록(#264·#265가 `TowerPlacement.md`에 삭제된 심볼을 되살렸다). #265가 `TryFuse`를 재작성해 **Phase 5의 전달 배관이 이미 뚫렸다**는 것과, Phase 5의 실제 블로커가 "현재 레시피에 효과가 하나도 없어 관측 불가"라는 것을 명시(§12 #4) |

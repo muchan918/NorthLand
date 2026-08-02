@@ -248,6 +248,17 @@
   ⚠️ **`Actions`가 빈 타워는 예외도 경고도 없이 아무 동작을 안 한다** — 프리팹 9개가 `Assets/Imported/`
   (부모 저장소 밖, 자체 중첩 git)에 살아 **"타워가 안 움직인다"의 1순위 원인이 그 저장소 미동기화**다.
   상세는 **`Docs/Core/Tower.md` §3·§4.3·§6**
+- `ProjectileFlight` 부품(`NorthLand.Combat`, #274 Phase 4.5) — 비행 축이 enum + `Update` 분기에서
+  **`[SerializeReference]` 부품**이 됐다(`TowerAsset.Attack.Flight`). 구현 2종 `HomingFlight`/`BallisticFlight`.
+  **새 비행 방식 = 파생 1개이고 `Projectile.cs`는 무수정.**
+  ⚠️ **부품은 무상태여야 한다** — SO에 살아 그 타워가 쏜 투사체 전부가 같은 객체를 공유하므로,
+  진행값은 `FlightState`에 담아 `Projectile`이 소유하고 `ref`로 넘긴다(액션과 **정반대** — 액션은
+  프리팹에 담겨 인스턴스마다 복제된다).
+  `FlightStep`의 **`Impact`와 `Finished`가 독립**이라 "때리고도 계속 나는 탄"(관통·부메랑)이 표현된다.
+  명중 축(`ImpactKind` switch)은 의도적 보류. 상세: `Docs/Core/Tower.md` §3.7
+- `Editor/ManagedReferencePickerDrawer.cs`(#274 Phase 4.5) — **단일 `[SerializeReference]` 필드의 타입 선택 UI.**
+  Unity는 `List`로 감싼 managed reference에만 `+` 피커를 주고 단일 필드에는 안 준다. 기반 타입을
+  런타임에 읽는 범용 드로어라 **새 부품 축은 빈 파생 클래스 한 줄로 등록**한다(타입 교체 시 같은 이름 수치 승계)
 - `Tower.ActiveEffectKinds` / `ActivateEffects(kinds)` / `IsEffectActive(kind)`(#274 Phase 5) —
   **합성으로 계승된 효과 종류를 SO가 아니라 인스턴스가 소유한다.** SO에 쓰면 다음 합성이 이전 계승분을
   물려받고 `[SerializeReference]`라 `.asset`에 영구히 남으며, 다단 합성에서 꺼진 효과까지 잡힌다.

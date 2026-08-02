@@ -112,6 +112,12 @@ public class TowerAsset : ScriptableObject
             Debug.LogWarning($"[TowerAsset] {name}: 공격 수치를 적었는데 프리팹에 AttackAction이 없습니다 " +
                              "— 이 수치는 아무도 읽지 않습니다.", this);
 
+        // 비행 부품 누락(#274 Phase 4.5). 이것도 **예외 없이 조용히 안 쏘는** 조합이라 여기서 잡는다 —
+        // [SerializeReference]는 클래스 rename·삭제 시 항목을 null로 남기므로 저작 실수만의 문제가 아니다.
+        if (hasAttack && attackAuthored && Attack.Flight == null)
+            Debug.LogWarning($"[TowerAsset] {name}: 공격 수치는 있는데 Attack.Flight(비행 방식)가 비었습니다 " +
+                             "— 투사체가 생성되지 않습니다. Homing 또는 Ballistic을 지정하세요.", this);
+
         if (hasBuff && (BuffAura == null || BuffAura.Radius <= 0f))
             Debug.LogWarning($"[TowerAsset] {name}: BuffAuraAction이 있는데 BuffAura.Radius가 0입니다.", this);
         if (hasDebuff && (DebuffAura == null || DebuffAura.Radius <= 0f))
@@ -135,13 +141,15 @@ public class TowerAsset : ScriptableObject
         public float AttackInterval;
         public GameObject ProjectilePrefab;   // 겉모습만 고른다 — 비행·명중은 아래 값들이 정한다
 
-        // ── 비행 (#274 Phase 1에서 탄환 프리팹 → 여기로 이관) ────────────────────
-        // 속도는 원래 SO에 있었는데 궤적(FlightMode/ArcHeight)만 탄환 프리팹에 있어 비대칭이었다.
-        // 셋 다 같은 궤적을 만드는 값이고 착탄 시간 → 실효 DPS를 정하므로 **비주얼이 아니라 밸런스**다.
+        // ── 비행 (#274 Phase 1에서 탄환 프리팹 → 여기로 이관, Phase 4.5에서 부품화) ──────
+        // 궤적은 착탄 시간 → 움직이는 적에 대한 실효 DPS를 정하므로 **비주얼이 아니라 밸런스**다.
         // 탄환 프리팹에 남는 것은 rotationOffset(모델 축 보정)뿐이다. 근거: TowerRedesign.md §6.1
-        public float ProjectileSpeed;
-        public FlightMode Flight;             // Homing = 반드시 명중 / Ballistic = 착탄점 고정(빗나갈 수 있음)
-        public float ArcHeight;               // 포물선 정점 높이. **판정에 영향 없는 겉보기 값**
+        //
+        // 구 `FlightMode` enum + `ProjectileSpeed`/`ArcHeight` 3필드를 부품 하나로 대체했다 —
+        // 인스펙터에서 `Homing`을 고르면 그 자리에 그 종류의 수치가 함께 뜬다(HitEffect와 같은 패턴).
+        // 부메랑의 왕복 거리처럼 **특정 비행 방식에만 있는 수치**가 자기 부품 안에 들어가므로
+        // 이 클래스가 다시 부풀지 않는다. 새 비행 방식 = ProjectileFlight 파생 1개(Projectile 무수정).
+        [SerializeReference] public NorthLand.Combat.ProjectileFlight Flight;
     }
 
     [System.Serializable]
