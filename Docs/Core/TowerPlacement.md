@@ -245,9 +245,9 @@ bool BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost,
 `TowerSpawnEffect`는 **타워를 모른다.**
 
 ```csharp
-void      Play(Transform target, float footprintSize);                              // fire-and-forget
-UniTask   PlayAsync(Transform target, float footprintSize, CancellationToken ct);   // 종료까지 대기
-Bounds    CalculateVisualBounds(Transform target, float footprintSize);             // 공용
+void      Play(Transform target, float footprintSize, float tileSize);                    // fire-and-forget
+UniTask   PlayAsync(Transform target, float footprintSize, float tileSize, CT ct);        // 종료까지 대기
+Bounds    CalculateVisualBounds(Transform target, float footprintSize);                   // 공용
 const float ConvergeDuration = 0.45f;   // 합성 소모 연출(#265)과 공유하는 시간 축
 const float PopDuration      = 0.28f;   // 〃
 ```
@@ -256,7 +256,7 @@ const float PopDuration      = 0.28f;   // 〃
 
 알갱이 자체(`GrainSwarm`)와 스케일 점유(`VfxScaleHold`)도 두 연출이 공유하는 부품이다. 여기 남은 것은 **이 연출 고유의 움직임**(후광 분포 · 소용돌이 수렴 · 바닥 링)뿐이다.
 
-진입점이 받는 것은 `Transform`과 풋프린트 크기뿐이다. `Tower`도 `TowerAsset`도 메시도 받지 않고, 대상에서 읽는 것은 **`Renderer.bounds`와 `localScale`이 전부**다.
+진입점이 받는 것은 `Transform`과 **그리드가 정하는 길이 둘**(풋프린트·타일)뿐이다. `Tower`도 `TowerAsset`도 메시도 받지 않고, 대상에서 읽는 것은 **`Renderer.bounds`와 `localScale`이 전부**다. 둘이 각각 무엇을 정하는지는 아래 앵커 표를 따른다.
 
 > ### ⚠ 이 연출은 대상 루트의 `localScale`을 **배타적으로 소유**한다
 >
@@ -280,10 +280,13 @@ const float PopDuration      = 0.28f;   // 〃
 
 | 앵커 | 무엇을 정하나 | 왜 |
 | --- | --- | --- |
-| **풋프린트**(논리 크기) | 알갱이 크기 · 바닥 링 반경 | 타일은 항상 15인데 타워 메시는 제각각이다(**현재 프리팹만 봐도 높이 2.0~37.7, 19배**). bounds에 묶으면 스케일이 어긋난 프리팹에서 알갱이까지 어긋난다. 풋프린트는 그리드가 정하는 값이라 **에셋 교체와 무관하게 불변**이고, 덕분에 모든 타워의 알갱이가 같은 크기로 보여 하나의 시각 언어가 된다 |
+| **타일 한 칸**(그리드 최소 단위) | 알갱이 크기(+ 화면 하한·상한) | 타워 메시는 제각각이라(**현재 프리팹만 봐도 높이 2.0~37.7, 19배**) bounds에 묶으면 스케일이 어긋난 프리팹에서 알갱이까지 어긋난다. 타일은 그리드가 정하는 값이라 **에셋 교체와 무관하게 불변**이고, 덕분에 **모든 타워의 알갱이가 같은 크기**로 보여 하나의 시각 언어가 된다 |
+| **풋프린트**(= 칸 수 × 타일, 논리 크기) | 바닥 링 반경 · 후광 두께 | "이 타워가 몇 칸을 먹었다"를 말하는 값이라 칸 수에 비례해야 한다 |
 | **bounds**(시각 크기) | 입자 개수 · 구름 모양 | 큰 타워는 알갱이가 많아야 하고(30~90), 후광은 **그 타워의** 실루엣을 감싸야 한다 |
 
-> **한 문장 규칙**: **크기·바닥은 논리(풋프린트), 분포·개수는 시각(bounds).** 새 요소를 추가하거나 #265가 재료 타워에 같은 규칙을 적용할 때 위 표를 재해석하지 말고 이 문장을 따를 것.
+> **한 문장 규칙**: **알갱이는 칸(타일), 바닥·후광은 자리(풋프린트), 분포·개수는 시각(bounds).** 새 요소를 추가할 때 위 표를 재해석하지 말고 이 문장을 따를 것.
+
+> ⚠ **타일과 풋프린트를 한 인자로 겸하지 말 것**(#265 리뷰에서 정정). 1×1 타워에서는 두 값이 같아 겸용이 오래 들키지 않는데, 다중 셀 타워가 들어오는 순간 **알갱이 크기만 조용히 어긋난다** — 1×1 재료가 2×2 결과로 합쳐지면 유입 입자가 등장 후광의 절반 크기가 되어, 두 연출이 같은 물질로 보여야 한다는 #265의 전제가 깨진다. 그래서 `Play`가 길이 인자를 **둘** 받는다.
 
 지켜야 할 규칙:
 
@@ -301,8 +304,8 @@ const float PopDuration      = 0.28f;   // 〃
 | 항목 | 현재 값 | 근거 |
 | --- | --- | --- |
 | 수렴 / 등장 / 링 지속 | 0.45s / 0.28s / 0.38s | 감으로 정한 값이 플레이에서 그대로 통과 |
-| 알갱이 크기 | 풋프린트 × 0.15 (=2.25) | 게임 줌 70·1080p에서 17.4px |
-| 알갱이 화면 하한 / 상한 | `orthoSize × 0.017` / 풋프린트 × 0.4 | 줌 300에서도 보이게 / 칸을 뒤덮지 않게. 줌 전 구간 확인됨 |
+| 알갱이 크기 | 타일 × 0.15 (=2.25) | 게임 줌 70·1080p에서 17.4px |
+| 알갱이 화면 하한 / 상한 | `orthoSize × 0.017` / 타일 × 0.4 | 줌 300에서도 보이게 / 칸을 뒤덮지 않게. 줌 전 구간 확인됨 |
 | 입자 개수 | `∛(bounds 부피) × 4`, clamp 30~90 | — |
 | 후광 두께 | 풋프린트 × 0.55 | 표면 + 이 두께에 난수(0.6~1.4배) |
 | 바닥 링 반경 | 풋프린트 × 0.62 (=9.3) | — |

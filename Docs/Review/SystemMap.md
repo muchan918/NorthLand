@@ -284,7 +284,9 @@
   `ManagementController.ManaPerWaveClear`(int) — 마나 row "+n" 미리보기용(웨이브 클리어 고정 마나)
 - `StageRoadTracker.RoadWorldPoints` — ⚠️ HashSet(순서 없음). **이동 경로로 사용 불가**
 - MapBuilder의 **순서 있는 경로·스폰 지점·최종 목표 좌표는 아직 공개 API가 없음** (WL-003)
-- `TowerSpawnEffect.Play(Transform target, float footprintSize)`(`NorthLand.Combat`, #264) — 등장 연출 재생(fire-and-forget).
+- `TowerSpawnEffect.Play(Transform target, float footprintSize, float tileSize)`(`NorthLand.Combat`, #264/#265) — 등장 연출 재생(fire-and-forget).
+  길이 인자가 **둘**인 이유: 풋프린트(칸 수 × 타일)는 링 반경·후광 두께를, tileSize(한 칸)는 **알갱이 크기**를 정한다.
+  겸용하면 다중 셀 타워에서만 알갱이가 커져 합성 유입 입자와 크기가 어긋난다(1×1뿐인 현재는 두 값이 같아 무증상).
   **대상을 모른다** — `Tower`/`TowerAsset`/메시를 받지 않고 `Renderer.bounds`와 `localScale`만 읽는다. Renderer가 달린 큐브에도 재생된다.
   ⚠ **재생 중 대상 루트의 `localScale`을 배타적으로 소유한다**(0 → 원본, 안 보이는 창 약 0.45초 + 과도기 약 0.28초).
   이 창 동안 대상의 스케일을 쓰거나 **캡처**하는 다른 시스템이 있으면 깨진다 — 계약 전문은 `Docs/Core/TowerPlacement.md` §9.3.2.
@@ -297,13 +299,16 @@
   거리가 제각각인 재료의 입자가 **결과 타워가 튀어나오는 순간을 넘기지 않는다**. 속도를 고정하면 먼 재료의 입자가
   타워가 다 선 뒤에 도착해 인과가 뒤집힌다. 이 상한 **안에서는** 알갱이 크기가 각자의 도착 시각을 정하고
   (작을수록 빨리 — 크기와 속도를 같은 난수에서 뽑는다), 가장 큰 알갱이만이 이 값을 꽉 채운다
-- `TowerMergeDissolveEffect.Play(IReadOnlyList<Transform> targets, float footprintSize)`(`NorthLand.Combat`, #265) — 합성 재료 소모 연출 시작.
-  **재료를 소모하기 직전에** 불러야 한다 — 커맨드가 `SetActive(false)`를 걸고 나면 복제할 시각물이 남지 않는다. 항상 유효한 인스턴스를 반환
+- `TowerMergeDissolveEffect.Play(IReadOnlyList<Transform> targets, float tileSize)`(`NorthLand.Combat`, #265) — 합성 재료 소모 연출 시작.
+  **재료를 소모하기 직전에** 불러야 한다 — 커맨드가 `SetActive(false)`를 걸고 나면 복제할 시각물이 남지 않는다. 항상 유효한 인스턴스를 반환.
+  길이 인자는 **타일 한 칸**이다(풋프린트 아님) — 이 연출의 모든 길이가 "저 칸 것"을 말하는 단위다
 - `TowerMergeDissolveEffect.ConvergeTo(Transform placed)` / `.Reassemble()` / `.Abort()`(#265) — 부유 루프의 마무리 3종(선착순, 먼저 정해진 쪽이 이긴다).
   ⚠ `ConvergeTo`는 **`TowerPlacer` 확정 콜백에서**(등장 연출이 스케일을 0으로 만들기 전에) 불러야 목적지가 정상값이다.
-  ⚠ `Reassemble`은 **커맨드 `Undo` 직후 같은 프레임에** 불러야 되살아난 재료가 한 프레임 번쩍이지 않는다
+  ⚠ `Reassemble`은 **커맨드 `Undo` 직후 같은 프레임에** 불러야 되살아난 재료가 한 프레임 번쩍이지 않는다.
+  셋 다 **폭발이 끝나기 전에도 도착할 수 있다**(클릭 직후 취소 등) — 그 경로는 소멸 구간을 즉시 완료 상태로 스냅한 뒤 마무리로 넘어간다
 - `GrainSwarm`(`NorthLand.Combat`, #265) — 두 연출이 공유하는 흰 알갱이 렌더링 부품(빌보드 쿼드·절차 텍스처·개수/크기 규칙·전체 알파).
-  **움직임을 모른다** — 좌표는 전부 호출자가 정한다. 알갱이 크기 기준은 bounds가 아니라 **풋프린트**라 에셋이 교체돼도 불변이다
+  **움직임을 모른다** — 좌표는 전부 호출자가 정한다. `ResolveGrainSize`는 bounds도 풋프린트도 아닌 **타일 한 칸**을 받는다 —
+  그리드가 정하는 값이라 에셋 교체와 무관하고, 칸 수에도 흔들리지 않아 **모든 타워의 알갱이가 같은 크기**로 보인다
 - `VfxScaleHold.Acquire(Transform target) : Handle`(`NorthLand.Combat`, #265) — 대상 `localScale`의 배타 점유권 발급(0 → back-out 팝 → 원복).
   대상에 붙는 컴포넌트라 **점유 상태가 대상과 함께 죽는다**(구 static 딕셔너리의 죽은 키 누수 문제가 사라졌다).
   이미 점유 중이면 그 자리에서 원본을 복원하고 인계하며, `Handle.IsSuperseded`로 인계당한 연출이 남은 구간을 스스로 접는다
