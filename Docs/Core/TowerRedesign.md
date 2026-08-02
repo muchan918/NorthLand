@@ -28,7 +28,7 @@
 커밋: `a881bff`(Phase 1) · `ca79dce`(Phase 2) · `3bd5c2e`(Phase 3~4).
 프리팹 9개는 중첩 저장소 `Assets/Imported/`의 `818f1e7` — [Tower.md](Tower.md) §6 상단 참조.
 
-### 검증 상태 — ⚠ 플레이 모드 미검증
+### 검증 상태 — ✅ 에디트 모드 + 플레이 모드 통과
 
 **에디트 모드에서 확인한 것** (전부 통과):
 
@@ -41,13 +41,30 @@
 | `HitEffect` | `StatusEffectHandler`에 도달(감속+스턴 슬롯 2, DoT 슬롯 1) |
 | 기타 | CSV 9행 파싱 · 컴파일 에러 0 |
 
+**플레이 모드에서 확인한 것** (빈 씬 + `unity-cli exec` 하네스, 전부 통과):
+
+| 축 | 실측 |
+|---|---|
+| 발사·명중(Single) | archer·gatling·sniper·soda 전부 실제로 적을 사살. soda 누적 70 = 10 × 7회(`AttackInterval` 3) |
+| 명중(Area) | cannon `SplashRadius` 4 → 반경 안 3기가 **각각 308**(28 × 11회)로 동일 |
+| **비행 축 SO 이관**(Phase 1) | 액션이 SO에서 집어온 기술자 = `Homing`/spd 100/**arc 15**. 실제 궤적을 샘플링하니 정점 **y=15.00이 정확히 중간지점**(300→1200 구간의 x=751)에서 나왔다 |
+| **`HitEffect` 3경로**(Phase 4) | cannon(Area) + `SlowEffect` 합성 SO로 발사 → 스플래시 3기 **전부** ×0.50 적용(속도 20→10). **예전 버그였다면 최초 대상 1기만 걸렸을 자리다** |
+| 스턴 | soda: 0.7s 스턴 → `MonsterMove.IsStunned=true` → 만료 → 면역 창 1.4s → **3.18s 주기 재스턴**. 공유 static ID(`"onhit.stun"`) 현행 그대로 |
+| 디버프 오라 | poison DoT 1s 틱 유지 · choco ×0.80(속도 20→16)이 `Interval` 1s마다 갱신. **반경 밖 대조군은 `StatusEffectHandler`조차 안 붙는다** |
+| 버프 오라 | haste 배치 **같은 프레임**에 archer `AttackInterval` 1.000 → 0.741 |
+| **`Initialize`↔`Dispose` 대칭**(Phase 2) | haste `SetActive(false)` → 버프 즉시 회수(→1.000) → **`ActiveChanged` 재발화에도 유령 버프 없음** → `SetActive(true)` → 0.741 복귀. `Tower.Active` 개수도 왕복 |
+| 페이즈 게이팅 | 낮 15초 동안 공격·디버프 오라 피해 **0**, 버프 오라는 유지. `EndDay()` 직후 양쪽 즉시 재개 |
+| 콘솔 | **에러 0건.** 경고 2건은 둘 다 예상된 것 — 빈 씬의 `MouseManager` 부재, 그리고 합성 SO에서 **WL-129 불일치 경고가 의도대로 발화** |
+
+> **덤으로 하나가 해소됐다** — §10.4 #3의 "타일 버프를 `Build` **앞에** 적용해야 한다"(주석에만 있던 계약)는
+> 이제 **순서 무관**이다. `DebuffAuraAction.Radius`가 접근할 때마다 `Owner.Stats.Evaluate`를 부르고
+> `OnInitialize`에서 캐시하지 않기 때문이다. 양쪽 순서로 조립해 **둘 다 45.0**(기본 30 + 50%)을 실측했다.
+
 **아직 안 한 것:**
 
-- **플레이 모드 실기 검증** — 실제 발사·명중·오라 지속·합성·타일 버프는 돌려보지 않았다.
-  가장 싼 경로는 `Assets/Personal/SUNGSOO/Scripts/AuraTowerTestDriver.cs`(자기완결 스모크 테스트)를
-  빈 GameObject에 붙이고 플레이하는 것. ⚠ **`DayNightManager`가 없는 빈 씬에서 돌릴 것** —
-  `DebuffAuraAction`이 `NightOnly`이고 게이트가 `매니저 없음 == 밤`이라, 매니저가 있는 씬에서 낮이면
-  오라가 아예 틱하지 않아 **정상인데 버그처럼 보인다.**
+- **마우스가 필요한 경로** — 배치 UI·합성 UI·낮 정보 패널 표시는 `exec`으로 구동할 수 없어 미검증이다.
+  위 하네스는 `Tower.Build`를 직접 불러 조립하므로 `TowerPlacer`를 거치는 경로(고스트·풋프린트·비용 차감)와
+  `TowerFusionController`는 손으로 한 번 돌려봐야 한다.
 - **EditMode 테스트** — 액션·`HitEffect`·`TowerStats`가 전부 순수 C#이 되어 씬 없이 검증 가능해졌지만,
   프로젝트에 `.asmdef`가 하나도 없어 테스트 어셈블리부터 만들어야 한다([Tower.md](Tower.md) §6 #6).
 - **Phase 4.5(투사체 부품화)** — §12-A대로 보류. 타워를 몇 개 실제로 추가해본 뒤 판단한다.
@@ -567,7 +584,7 @@ Unity 프리팹·씬은 컴포넌트를 클래스 이름 + GUID로 물고 있어
 |---|---|---|
 | 1 | `AuraTowerTestDriver.cs:32-33, 49-52` — 리플렉션 `"data"`/`"enemyLayerMask"` + `AddComponent<Tower>()` | `Actions`가 빈 채로 생성되어 **아무 동작도 하지 않는 타워**가 된다 |
 | 2 | `EnemyNodeQuery.IsAttackTower` = 보스 P3 마력 봉인 대상 정의 | 판정 의미가 바뀌면 밸런스 의도가 **조용히 뒤집힌다**(§5) |
-| 3 | `TowerPlacer.cs:333` 타일 버프 → `:339` `Build` 순서 | 역전 시 버프 오라 초기 반경 오류. **주석에만 존재** |
+| 3 | ~~`TowerPlacer.cs:333` 타일 버프 → `:339` `Build` 순서~~ | ✅ **해소.** `DebuffAuraAction.Radius`가 접근 시마다 원장을 평가하고 `OnInitialize`에서 캐시하지 않아 **순서가 무관해졌다**(양쪽 순서로 실측 45.0 동일). 주석은 낡았다 |
 | 4 | `TowerMergeCommand`의 `Release()`→`SetActive(false)` / `Reoccupy()`→`SetActive(true)` | `Tower.OnEnable`/`OnDisable` 대칭성에 의존 |
 | 5 | `TowerMergeCoordinator.cs:270-273`의 `Prune` | "`OnDisable` 시점엔 아직 Unity fake-null이 아니다"에 의존 |
 | 6 | `Skill/BurnBuff.cs:80` `source is not Tower` | `Tower`가 구상 클래스로 남으므로 **이 안에서는 안전** |
@@ -752,3 +769,5 @@ WL-050/081(버프 원장 두 벌)이다.
 | 2차 (#274) | **액션 리스트**로 전면 개정 — 하이브리드 타워 보존 + 프리팹 `m_Script` 무변경(부록 A.1). Tower.md §4.2/§4.3 개수를 실측치로 정정. 마이그레이션을 실측 프리팹 14개 기준으로 교체. Tower.md §5.4의 "static이 스턴 상한의 근거"를 코드 재확인 후 정정 |
 | 3차 (#274) | Tower.md에 §3.7 투사체 절 신설(비행 축이 문서 전체에 없었다). **비행 축 SO 이관**(§6.1) 추가. 투사체 부품화 판단 유예(§12-A) 기록 |
 | 4차 (#274) | **Tower.md에서 이 문서를 분리.** Tower.md가 1031줄까지 불어 Core 문서 중 2위의 2배가 됐고, "현재 명세"와 "제안"이 섞여 읽을 때마다 사실/제안을 판단해야 했다. 폐기안 2개를 부록 A로 내리고 3분 요약을 신설 |
+| 5차 (#274) | 「검증 상태」 절 신설 — Phase 1~4의 에디트 모드 검증 내역과 미검증 항목을 기록. Phase 6 목록을 실측으로 정정 |
+| 6차 (#274 **플레이 모드 검증**) | 「검증 상태」에 플레이 모드 실측 표 추가 — Phase 1(비행 아크 정점 15.00)·Phase 2(`SetActive` 왕복 대칭)·Phase 4(Area 경로 효과 적용) 세 축이 전부 런타임에서 확인됐다. §10.4 #3(타일 버프↔`Build` 순서)은 **순서 무관으로 해소** — 원장이 pull 방식이라 캐시가 없다 |
