@@ -16,7 +16,6 @@ namespace NorthLand.Combat
         public float ChainRadius;         // Chain
         public int MaxChainTargets;     // Chain: 최초 대상 포함 총 타격 수
         public float ChainDamageFalloff;  // Chain: 홉마다 곱해지는 계수(예 0.8)
-        public float StunDuration;        // >0이면 명중 대상에 스턴(초) 부여(#164 소다타워). 타워가 발사 시 세팅
 
         public static ProjectileImpact MakeSingle()
             => new ProjectileImpact { Kind = ImpactKind.Single };
@@ -70,6 +69,9 @@ namespace NorthLand.Combat
         ProjectileFlight flight;
         ProjectileImpact impact;
 
+        // 명중 시 걸 효과(화상·독·감속·스턴). SO의 TowerAsset.Effects를 발사 시 그대로 넘겨받는다.
+        IReadOnlyList<HitEffect> effects;
+
         // Ballistic 상태: 발사 순간 스냅샷한 착탄점과 시작점, 진행 거리
         Vector3 startPos;
         Vector3 landingPos;
@@ -83,13 +85,15 @@ namespace NorthLand.Combat
         static readonly HashSet<IDamageable> chainHitSet = new HashSet<IDamageable>();
 
         public void Init(IDamageable target, float damage, IAttacker source,
-                         ProjectileFlight flight, ProjectileImpact impact)
+                         ProjectileFlight flight, ProjectileImpact impact,
+                         IReadOnlyList<HitEffect> effects = null)
         {
             this.target = target;
             this.damage = damage;
             this.source = source;
             this.flight = flight;
             this.impact = impact;
+            this.effects = effects;
 
             if (flight.Mode == FlightMode.Ballistic)
             {
@@ -186,28 +190,40 @@ namespace NorthLand.Combat
                     if (target != null && !target.IsDead) ApplyChain();
                     break;
                 default:
-                    if (target != null && !target.IsDead)
-                    {
-                        target.TakeDamage(new DamageInfo(damage, source));
-                        DamageDealt?.Invoke(source, target);
-                        if (impact.StunDuration > 0f) ApplyStun(target);
-                    }
+                    if (target != null && !target.IsDead) Hit(target, damage);
                     break;
             }
         }
 
-        // 명중 시 스턴 부여(#164). CC 인프라 공유: 배율 0을 넘기면 StatusEffectHandler가 속도 축이 아니라
-        // 스턴 축(IMovementAgent.AddStun)으로 보낸다 — 속도 축은 하한 클램프 때문에 배율 0으로도 멈추지 않는다.
-        // 공유 effectId라 중첩 없이 갱신만 된다.
-        static readonly int StunEffectId = "onhit.stun".GetHashCode();
-        void ApplyStun(IDamageable enemy)
+        /// 한 대상에 대한 명중 처리 전부 — 데미지 + 통지 + 효과.
+        ///
+        /// **세 명중 경로(Single/Area/Chain)가 전부 여기를 지난다.** 예전에는 스턴이 Single 경로에서만
+        /// 적용돼, Area/Chain 타워 SO에 `OnHitStunDuration`을 저작하면 예외 없이 조용히 무시됐다
+        /// (#274 Phase 4에서 구조적으로 해소).
+        void Hit(IDamageable victim, float amount)
         {
-            if (impact.StunDuration <= 0f) return;
-            if (enemy is not Component c) return;
+            victim.TakeDamage(new DamageInfo(amount, source));
+            DamageDealt?.Invoke(source, victim);
+            ApplyEffects(victim);
+        }
 
-            var handler = c.GetComponent<StatusEffectHandler>();
-            if (handler == null) handler = c.gameObject.AddComponent<StatusEffectHandler>();
-            handler.ApplySlow(StunEffectId, 0f, impact.StunDuration);
+        void ApplyEffects(IDamageable victim)
+        {
+            if (effects == null || effects.Count == 0) return;
+
+            // 소스 키 = 쏜 쪽의 인스턴스 ID ^ 효과 종류. 같은 종류 타워 여러 기는 자동 중첩되고,
+            // 한 타워 안에서는 종류당 하나로 수렴한다(EnemyApplyTowerDebuffAction의 관례와 동형).
+            int baseId = source is Component c ? c.GetInstanceID() : 0;
+
+            // DoT 수치가 타일 버프·오라 버프를 타도록 원장을 함께 넘긴다(적이 쏜 경우엔 null).
+            TowerStats stats = source is Tower tower ? tower.Stats : null;
+
+            for (int i = 0; i < effects.Count; i++)
+            {
+                HitEffect effect = effects[i];
+                if (effect == null) continue;   // [SerializeReference] rename 시 null 항목이 생긴다
+                effect.Apply(victim, source, stats, baseId ^ (int)effect.Kind);
+            }
         }
 
         // 명중 지점 반경 내 모든 적에게 동일 데미지
@@ -217,11 +233,7 @@ namespace NorthLand.Combat
             foreach (var h in hits)
             {
                 var d = h.GetComponentInParent<IDamageable>();
-                if (d != null && d.Faction != source.Faction && !d.IsDead)
-                {
-                    d.TakeDamage(new DamageInfo(damage, source));
-                    DamageDealt?.Invoke(source, d);
-                }
+                if (d != null && d.Faction != source.Faction && !d.IsDead) Hit(d, damage);
             }
         }
 
@@ -231,8 +243,7 @@ namespace NorthLand.Combat
             chainHitSet.Clear();
 
             float dmg = damage;
-            target.TakeDamage(new DamageInfo(dmg, source));   // 최초 대상: 풀 데미지
-            DamageDealt?.Invoke(source, target);
+            Hit(target, dmg);                                 // 최초 대상: 풀 데미지
             chainHitSet.Add(target);
 
             Vector3 from = target.HitPosition.transform.position;
@@ -243,8 +254,7 @@ namespace NorthLand.Combat
                 if (next == null) break;
 
                 dmg *= impact.ChainDamageFalloff;             // 튕길 때마다 ×0.8 누적
-                next.TakeDamage(new DamageInfo(dmg, source));
-                DamageDealt?.Invoke(source, next);
+                Hit(next, dmg);
                 chainHitSet.Add(next);
                 from = next.HitPosition.transform.position;
             }

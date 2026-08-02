@@ -30,16 +30,19 @@ namespace NorthLand.Sungsoo
             // 런타임 debuff TowerAsset (파일 없이 in-memory)
             var asset = ScriptableObject.CreateInstance<TowerAsset>();
             asset.TowerID = "test_debuff";
-            asset.TowerType = TowerType.Magic;
-            asset.MagicEffectType = MagicEffectType.Debuff;
             // #274 Phase 1: Magic 래퍼가 풀리면서 오라 필드가 SO 최상위로 올라왔다.
             asset.BuffAura = new TowerAsset.BuffAuraFields();
             asset.DebuffAura = new TowerAsset.DebuffAuraFields
             {
                 Radius = 5f,
-                Interval = 0.3f,
-                Duration = 2f,
-                Damage = new OptionalDamage { HasDamage = true, DamageAmount = 5f, TickInterval = 0.3f },
+                Interval = 0.3f,   // 재스캔 주기
+            };
+
+            // #274 Phase 4: 무엇을 거는지는 Effects가 정한다. 예전에는 DebuffAuraFields에
+            // Duration/Damage가 수기 필드로 박혀 있었다.
+            asset.Effects = new List<HitEffect>
+            {
+                new PoisonEffect { DamagePerTick = 5f, TickInterval = 0.3f, Duration = 2f },
             };
 
             // 타워: 필드 세팅 후 활성화(OnEnable이 직렬화된 data로 액션을 초기화한다)

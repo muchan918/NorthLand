@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace NorthLand.Combat
@@ -13,6 +14,7 @@ namespace NorthLand.Combat
         [NonSerialized] TowerAsset.AttackFields fields;
         [NonSerialized] ProjectileFlight flight;
         [NonSerialized] ProjectileImpact impact;
+        [NonSerialized] List<HitEffect> effects;   // SO의 Effects — 투사체에 실어 보낸다
 
         // 대상 탐색용 마스크를 impact와 별도로 보관한다 — ProjectileImpact.MakeSingle()은 EnemyMask를
         // 채우지 않으므로(스플래시·체인만 마스크가 필요) impact에서 되읽으면 단일 타워가 아무도 못 찾는다.
@@ -42,6 +44,7 @@ namespace NorthLand.Combat
         protected override void OnInitialize(TowerAsset asset)
         {
             fields = asset.Attack;
+            effects = asset.Effects;
             enemyLayerMask = Owner.EnemyLayerMask;
             flight = BuildFlight(fields);
             impact = BuildImpact(asset, enemyLayerMask);
@@ -60,7 +63,27 @@ namespace NorthLand.Combat
         // 정보 패널에 이 액션이 기여할 줄: 공격력 / 사거리 / 공격속도.
         // 배치 전 툴팁(TowerTooltipView)과 같은 포매터를 쓴다 — 값의 출처만 다르다(원장 합성값 vs SO 원본).
         public override string DescribeStats()
-            => fields == null ? null : TowerStatsFormatter.BuildAttackLines(Damage, Range, Interval);
+        {
+            if (fields == null) return null;
+
+            string text = TowerStatsFormatter.BuildAttackLines(Damage, Range, Interval);
+            return TowerStatsFormatter.Join(text, DescribeEffects(effects, Owner.Stats));
+        }
+
+        /// 효과 목록을 설명 줄로 잇는다. 공격 액션과 디버프 오라가 같은 표기를 공유한다.
+        internal static string DescribeEffects(List<HitEffect> effects, TowerStats stats)
+        {
+            if (effects == null || effects.Count == 0) return null;
+
+            string result = null;
+            for (int i = 0; i < effects.Count; i++)
+            {
+                string line = effects[i]?.Describe(stats);
+                if (string.IsNullOrEmpty(line)) continue;
+                result = result == null ? line : $"{result}\n{line}";
+            }
+            return result;
+        }
 
         public override void Tick(float deltaTime)
         {
@@ -92,7 +115,7 @@ namespace NorthLand.Combat
             }
 
             // 데미지 소스는 Owner다 — IAttacker 계약을 가진 쪽이 타워이므로 DamageInfo가 타워를 가리킨다.
-            projectile.Init(target, Damage, Owner, flight, impact);
+            projectile.Init(target, Damage, Owner, flight, impact, effects);
             Owner.RaiseFired();
             return true;
         }
@@ -121,7 +144,7 @@ namespace NorthLand.Combat
                 _ => ProjectileImpact.MakeSingle(),
             };
 
-            result.StunDuration = asset.Attack != null ? asset.Attack.OnHitStunDuration : 0f;
+            // 명중 효과(스턴 등)는 여기 섞지 않는다 — Projectile이 세 경로 공통 지점에서 Effects를 적용한다.
             return result;
         }
 

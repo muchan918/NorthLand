@@ -43,6 +43,10 @@ namespace NorthLand.Combat
         internal Transform FirePoint => firePoint;
         internal LayerMask EnemyLayerMask => enemyLayerMask;
 
+        // 저작 검증(TowerAsset.OnValidate)이 프리팹의 액션 구성을 들여다보는 창구.
+        // 런타임 소비처는 능력 질의(Has/Get)를 쓴다 — 리스트를 통째로 노출하는 것은 검증·툴링용이다.
+        internal IReadOnlyList<TowerAction> Actions => actions;
+
         /// 이 타워가 해당 액션을 가지는지. 소비처가 타워의 **구상 타입**이 아니라 **능력**을 묻게 하는 창구다
         /// (예: 보스 마력 봉인은 `Has&lt;AttackAction&gt;()`인 타워만 대상으로 한다).
         public bool Has<T>() where T : TowerAction
@@ -244,7 +248,10 @@ namespace NorthLand.Combat
                 return;
             }
 
-            data.Data ??= DataTableManager.Get<TowerTable>("TowerTable").Get(data.TowerID);
+            // `?.`가 필수다 — DataTableManager.Get<T>는 테이블 미등록 시 LogError 후 **null을 반환**한다.
+            // 이게 없으면 TowerTable이 등록되지 않은 씬(테스트 씬 등)에서 타워를 클릭할 때 NRE가 나고,
+            // 바로 아래 null 가드는 도달조차 못 한다. 나머지 3개 채움 지점은 전부 `?.Get`을 쓴다.
+            data.Data ??= DataTableManager.Get<TowerTable>("TowerTable")?.Get(data.TowerID);
             if (data.Data == null)
             {
                 Debug.LogError($"[Tower] TowerData 없음 (TowerID={data.TowerID})", this);

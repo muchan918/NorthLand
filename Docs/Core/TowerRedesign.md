@@ -20,8 +20,8 @@
 |---|---|---|
 | 1 | `TowerAsset` 스키마 평탄화 + 비행 축 SO 이관(§6·§6.1) | ✅ **완료** — [Tower.md](Tower.md) §3.7·§4가 현행 |
 | 2 | 행동 → 액션 리스트(§2~§5), 프리팹 14개 `Actions`(§10.3) | ✅ **완료** — [Tower.md](Tower.md) §3이 현행 |
-| 3 | `TowerType`/`MagicEffectType` enum 제거(§3), `OnValidate`(§3) | ⬜ |
-| 4 | 명중 효과 부품화(§8) | ⬜ |
+| 3 | `TowerType`/`MagicEffectType` enum 제거(§3), `OnValidate`(§3) | ✅ **완료** — [Tower.md](Tower.md) §4.3이 현행 |
+| 4 | 명중 효과 부품화(§8) | ✅ **완료** — [Tower.md](Tower.md) §3.8이 현행 |
 | 5 | 합성 효과 계승(§9) | ⬜ 기획 사인오프 대기 |
 
 **완료된 절의 내용은 [Tower.md](Tower.md)가 정본이다.** 전부 끝나면 이 문서는 폐기한다.
