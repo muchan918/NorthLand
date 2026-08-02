@@ -10,7 +10,8 @@ NorthLand: Last Stand (팀 유유아) 프로젝트 문서 모음.
 | [Core/MouseManager.md](Core/MouseManager.md) | 마우스 입력/선택/배치 중앙 매니저 설계·구현 현황 (#9) |
 | [Core/DayNightManager.md](Core/DayNightManager.md) | 낮/밤 페이즈 전환 매니저·이벤트 훅 설계·구현 현황 (#6) |
 | [Core/Tower.md](Core/Tower.md) | 전투 타워 본체 — 조립 모델·투사체·데이터 파이프라인·스탯 원장 **현황**(#164) |
-| [Core/TowerRedesign.md](Core/TowerRedesign.md) | 타워 구조 재설계 **제안**(#274) — 액션 리스트·효과 부품화·합성 계승. **합의 대기 / 구현 후 Tower.md에 흡수하고 폐기하는 임시 문서** |
+| [Core/TowerAddGuide.md](Core/TowerAddGuide.md) | **새 타워 종류 추가 절차** — CSV·SO·프리팹·씬 등록·로컬라이제이션 7단계 + 검증 + 확장점 3개 (#274). Tower.md가 "왜/무엇"이면 이쪽은 "어떻게" |
+| [Core/TowerRedesign.md](Core/TowerRedesign.md) | 타워 구조 재설계 **제안**(#274) — 액션 리스트·효과 부품화·합성 계승. **Phase 1~5 구현·병합 완료 → 폐기 대기. 흡수처는 두 곳(명세=Tower.md / 절차=TowerAddGuide.md)** |
 | [Core/TowerMerge.md](Core/TowerMerge.md) | 타워 합성(Merge) — 레시피·매칭·실행(#194/#195) + 멀티 선택·합성 패널(#183) 단일 진실 원천 |
 | [Core/InteractionOutline.md](Core/InteractionOutline.md) | 상호작용 아웃라인(호버/선택/합성 프리뷰) 설계·측정 근거·#148 이행 경로 (#213) — **구현 미착수** |
 | [Core/UIZOrder.md](Core/UIZOrder.md) | HUD·모달 Canvas 표시 우선순위와 상위 패널 입력 차단 규칙 (#188) |

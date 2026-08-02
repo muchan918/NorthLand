@@ -669,48 +669,9 @@ Unity 프리팹·씬은 컴포넌트를 클래스 이름 + GUID로 물고 있어
 
 ## 11. 새 타워 / 새 효과 추가하는 법
 
-### 11.1 현재 — 5곳
-
-1. `TowerTable.csv`에 행 추가 (ID·이름키·**TowerType**·풋프린트·설명키)
-2. `TableImporter` 실행 또는 `Towers/{ID}.asset` 수동 생성
-3. SO에서 `TowerType` 선택 → 해당 필드 그룹에 수치 입력 + 프리팹/고스트 연결
-4. 새 **종류**라면 `TowerType` enum 추가 + `TowerBehaviourFactory` 분기 + `TowerAssetEditor` 분기
-5. 로컬라이제이션 `NorthLand_Towers`에 이름/역할/설명 키 추가
-6. `TowerSelectPanelView._towers`에 SO 등록
-
-### 11.2 재설계 후 — 코드 0줄
-
-| 하는 일 | 코드? |
-|---|---|
-| 1. 프리팹에 `Tower`를 붙이고 `firePoint`/`enemyLayerMask` 배선 | ✗ |
-| 2. `Actions`에 `+ Attack Action` (하이브리드면 `+ Buff Aura Action`까지) | ✗ |
-| 3. `Towers/{ID}.asset` 생성 → 수치 + `Effects`에 부품 드래그 + 프리팹/고스트 연결 | ✗ |
-| 4. CSV 행(이름키·설명키·풋프린트) + 로컬라이제이션 키 + `TowerSelectPanelView` 등록 | ✗ |
-
-**enum·팩토리·에디터 분기를 건드릴 일이 없어진다.** 기획·아트가 프로그래머 없이 타워를 추가할 수 있고,
-이것이 이 재설계의 가장 큰 실익이다.
-
-이 층에서 만들 수 있는 것이 생각보다 넓다:
-
-| 원하는 타워 | 방법 |
-|---|---|
-| 스플래시 + 화상 | `AttackAction` · `Impact=Area` · `Effects=[Burn]` |
-| 체인 + 감속 | `AttackAction` · `Impact=Chain` · `Effects=[Slow]` |
-| 독 장판 / 화상 장판 | `DebuffAuraAction` · `Effects=[Poison]` / `[Burn]` |
-| **공격하면서 아군을 강화하는 하이브리드** | `AttackAction` **+** `BuffAuraAction` 둘 다 담기 |
-
-### 11.3 세 층으로 정리하면
-
-- **Level 1 — 기존 부품 조합**: 위 표. **코드 0줄**
-- **Level 2 — 새 효과**(빙결·출혈·방어력 감소 등): `HitEffect` 파생 **1개**
-  1. `EffectKind`에 값 추가
-  2. `HitEffect` 파생 클래스 1개 — `Apply()`에서 `StatusEffectHandler`를 호출
-  3. 원하는 타워 SO의 `Effects` 리스트에 인스펙터로 드래그 + 수치 입력
-
-  **끝이다.** 투사체·타워·합성 코드는 무수정이다. 공격 액션과 디버프 오라가 같은 부품을 공유하므로
-  하나 만들면 양쪽에서 쓴다. 합성 조합은 결과 SO에 그 효과를 정의하고 `InheritEffects`를 켜면 자동 성립한다.
-- **Level 3 — 완전히 새로운 동작**(밤 시작 시 1회 폭발, 넉백, 레이저 빔, 자원 생산 등):
-  `TowerAction` 파생 **1개**. 껍데기는 부품이 뭔지 모르고 `Tick`만 부르므로 **`Tower`는 한 글자도 안 바뀐다**
+→ **[TowerAddGuide.md](TowerAddGuide.md)로 이관**(#274 구현 완료 후). 이 절에 있던 「현재 — 5곳」은
+`TowerType`/`TowerBehaviourFactory`/`TowerAssetEditor`가 삭제되기 전 서술이라 더 이상 사실이 아니고,
+「재설계 후」는 제안 시제였다. 실측 절차·함정·검증은 전부 이관본에 있다.
 
 ---
 

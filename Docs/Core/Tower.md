@@ -3,7 +3,9 @@
 > **이 문서는 전부 "현재 코드가 이렇게 동작한다"이다.** `[제안]`은 하나도 없다 —
 > 지금 타워를 건드리는 작업의 기준선이자 리뷰 기준이다.
 >
-> **구조 재설계 제안은 [TowerRedesign.md](TowerRedesign.md)에 있다** (아직 코드에 없음, 합의 대기).
+> **새 타워를 추가하는 절차는 [TowerAddGuide.md](TowerAddGuide.md)에 있다** — 이 문서는 "왜/무엇",
+> 그쪽은 "어떻게"다. 구조 재설계 제안 [TowerRedesign.md](TowerRedesign.md)(#274)는 Phase 1~5가 전부
+> 구현·병합돼 폐기 예정이며, 그 §11(새 타워 추가법)은 `TowerAddGuide.md`로 이관됐다.
 >
 > 관련 문서: [TowerPlacement.md](TowerPlacement.md)(배치) · [TowerMerge.md](TowerMerge.md)(합성) ·
 > [GDD.md](../GDD.md) §5.8 · [SystemMap.md](../Review/SystemMap.md) §2
@@ -18,6 +20,7 @@
 - **타워 종류의 정본은 프리팹의 `Actions` 리스트다.** 공격/버프 오라/디버프 오라의 차이는 상속이 아니라
   인스펙터에서 담는 액션 조합으로 표현한다. 소비처(합성·스킬·보스 BT)는 `Tower` 하나만 알면 된다.
 - **새 타워를 추가할 때 코드를 건드리지 않는다.** 프리팹에 액션을 담고 SO에 수치를 적으면 끝이다.
+  실제 절차(CSV·SO·프리팹·씬 등록·검증)는 [TowerAddGuide.md](TowerAddGuide.md).
 - **스탯 modifier는 단일 원장(`TowerStats`)으로 수렴한다.** 타일 버프·버프 스킬·버프 오라·보스 마력
   봉인이 전부 여기로 들어오고, 합성 규칙은 `Evaluate` 한 곳에만 산다.
 - **상태이상(DoT·슬로우·스턴)의 소유자는 타워가 아니라 대상이다.** 타워는 `StatusEffectHandler`에
