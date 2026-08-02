@@ -67,18 +67,27 @@ namespace NorthLand.Combat
             if (fields == null) return null;
 
             string text = TowerStatsFormatter.BuildAttackLines(Damage, Range, Interval);
-            return TowerStatsFormatter.Join(text, DescribeEffects(effects, Owner.Stats));
+            return TowerStatsFormatter.Join(text, DescribeEffects(effects, Owner));
         }
 
         /// 효과 목록을 설명 줄로 잇는다. 공격 액션과 디버프 오라가 같은 표기를 공유한다.
-        internal static string DescribeEffects(List<HitEffect> effects, TowerStats stats)
+        ///
+        /// ⚠ **적용부와 같은 술어로 걸러야 한다.** 합성 계승(#274 Phase 5)으로 꺼진 효과를 그대로 표기하면
+        /// "정보 패널엔 독이 있다는데 실제로는 안 걸리는" 어긋남이 생긴다 — 표시부와 적용부가 규칙을 각자
+        /// 쓰는 것이 WL-079/WL-130이 지적한 문제였다. 그래서 `stats`가 아니라 **`owner`를 통째로** 받는다:
+        /// 원장과 필터가 같은 곳에서 나오므로 호출부가 필터를 빠뜨릴 수 없다.
+        internal static string DescribeEffects(List<HitEffect> effects, Tower owner)
         {
-            if (effects == null || effects.Count == 0) return null;
+            if (effects == null || effects.Count == 0 || owner == null) return null;
 
             string result = null;
             for (int i = 0; i < effects.Count; i++)
             {
-                string line = effects[i]?.Describe(stats);
+                HitEffect effect = effects[i];
+                if (effect == null) continue;
+                if (!owner.IsEffectActive(effect.Kind)) continue;   // 계승으로 꺼진 효과는 표기하지 않는다
+
+                string line = effect.Describe(owner.Stats);
                 if (string.IsNullOrEmpty(line)) continue;
                 result = result == null ? line : $"{result}\n{line}";
             }

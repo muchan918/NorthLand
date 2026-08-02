@@ -47,6 +47,7 @@
 - 스탯 원장 `TowerStats` — 4개 소스 수렴, 소스별 합산 중첩
 - 페이즈 게이팅(공격·디버프 = 밤 전용 / 버프 오라 = 상시)
 - 명중 효과 4종(화상·독·감속·스턴) — `HitEffect` 부품. **공격 액션과 디버프 오라가 같은 리스트를 공유**
+- 합성 효과 계승 — 재료의 효과 **종류**만 물려받고 수치는 결과 SO가 적는다(§3.9)
 - 데이터 파이프라인: `TowerTable.csv` → `TowerData` → `TowerAsset`(SO) → 프리팹
 - 저작 검증 `TowerAsset.OnValidate` — 프리팹 `Actions`와 SO 수치의 불일치를 저장 시점에 경고(§4.3)
 
@@ -316,6 +317,53 @@ sourceId = 쏜 쪽의 GetInstanceID() ^ (int)EffectKind
 `BurnEffect`/`PoisonEffect`의 피해와 틱 간격은 소스 타워의 `TowerStats`를 거쳐 합성된다 — 타일 버프의
 공격력·공속이 장판 피해에도 반영된다. 감속 강도는 거치지 않는다(`TowerStat`에 CC 축이 없다, WL-127).
 
+> ⚠ `BurnEffect`는 이름이 **두 곳에** 있다 — 여기 `NorthLand.Combat.BurnEffect`(`HitEffect` 파생)와
+> `Skill/BurnEffect.cs`의 전역 `BurnEffect`(`SkillEffect` 파생, #169). `using NorthLand.Combat`을 쓴
+> 파일에서 `BurnEffect`라고 쓰면 **전역(스킬) 쪽이 이긴다.** 컴파일 에러로 드러나지만 헷갈리는 자리라,
+> 이 타입이 필요하면 정식명으로 쓸 것.
+
+### 3.9 합성 효과 계승
+
+**합성하면 재료가 갖고 있던 효과의 "종류"를 결과 타워가 물려받는다**(#274 Phase 5).
+
+```
+소다(스턴) + 초코(감속)  →  결과 타워가 스턴 + 감속을 둘 다 갖는다
+```
+
+**수치는 계승하지 않는다.** 결과 SO의 `Effects`에 미리 적힌 수치 중 **재료가 가져온 종류만 켜진다.**
+수치까지 물려받으면 "같은 효과가 겹칠 때 max냐 합산이냐"를 정해야 하고, 합산은 같은 타워를 계속
+합성할 때 무한 스택이 된다 — **종류만 계승하면 그 질문 자체가 사라지고**, 결과 타워의 밸런싱을
+손저작으로 완전히 제어할 수 있다.
+
+| 조각 | 역할 |
+|---|---|
+| `TowerRecipe.InheritEffects` | 계승 여부는 **레시피가** 정한다(기본 false) |
+| `Tower.ActiveEffectKinds` / `ActivateEffects` | 활성 종류를 **인스턴스가** 소유한다(아래 ★) |
+| `TowerFusionMatcher.ResolveInheritedKinds` | 재료의 활성 종류 합집합 ∩ 결과 SO 정의 종류. **툴팁과 실행부의 단일 출처** |
+| `TowerRecipe.OnValidate` | 재료가 내는 효과가 결과 SO에 없으면 경고(없으면 조용히 사라진다) |
+
+#### ★ 활성 종류를 SO가 아니라 인스턴스가 갖는 이유
+
+**① SO 오염.** `TowerAsset`은 씬의 모든 인스턴스가 공유한다. 런타임에 `Effects`를 건드리면 다음 합성이
+이전 계승분을 물려받고, `[SerializeReference]`라 **진짜로 직렬화되어 `.asset` 파일에 영구히 남는다.**
+
+**② 다단 합성.** 합성 결과도 다시 재료가 된다(`A+B→C`, `C+D→E`). "재료 C가 무엇을 갖는가"를 C의
+**SO**에서 읽으면 꺼져 있는 효과까지 잡힌다 — C 인스턴스의 활성 상태를 읽어야 맞다.
+
+#### 적용은 pull이다
+
+`Tower.Build`가 배치 확정 콜백보다 **먼저** 돌아서, 액션이 초기화되는 시점엔 아직 계승분이 정해지지
+않았다. 그래서 효과 목록을 미리 거르지 않고 **거는 순간** `Owner.IsEffectActive(kind)`로 묻는다
+(오라 `Radius`가 접근할 때마다 원장을 평가하는 것과 같은 패턴 — 초기화 순서 의존이 생기지 않는다).
+
+거는 지점 두 곳(`Projectile.ApplyEffects` · `DebuffAuraAction.ApplyDebuff`)과 **표시**(`DescribeEffects`)가
+**같은 술어를 공유한다.** 표시부가 자기 규칙을 쓰면 "정보 패널엔 독이 있다는데 실제로는 안 걸리는"
+어긋남이 생긴다(WL-079/WL-130과 같은 축).
+
+> ⚠ **현재 `InheritEffects`를 켠 레시피는 0개다** — 배관만 완성돼 있고 게임 동작은 그대로다.
+> 기존 타워 SO를 결과로 쓰면 **필터가 없는 평범한 배치에서도** 그 효과가 켜져 프로덕션 타워가
+> 조용히 강화되므로, 결과 SO는 합성으로만 나오는 것이어야 한다. 족보 확정은 기획 몫이다.
+
 ---
 
 ## 4. 데이터 파이프라인
@@ -531,5 +579,6 @@ ApplyOrRefresh / ApplySlow → StatusEffectHandler
 | 6차 (#274 **Phase 2 구현**) | **행동 3종을 액션 리스트로 전환.** `Tower`가 `[SerializeReference] List<TowerAction>`을 직접 소유하고, 종류의 정본이 SO의 `TowerType`에서 **프리팹의 `Actions`**로 옮겨갔다(§3.1·§3.4 재작성). `ITowerBehaviour`·`TowerBuildContext`·`TowerBehaviourFactory`·`StripUnusedBehaviourComponents` 삭제. 버프 오라 구독이 `Initialize`↔`Dispose` 대칭 쌍이 되어 §3.3의 예외가 사라지고 더티 플래그로 재진입·중복 재계산이 차단됐다. 프리팹 14개에 `Actions` 채움(Missing Script 0). §4.3 참조 6개 파일 → **4개, switch 0개** |
 | 7차 (#274 **Phase 3 구현**) | **`TowerType`/`MagicEffectType` enum 삭제** — 선언·SO 필드·CSV 컬럼 2개(9행)·`TableImporter` 동기화·로그 참조 전부 제거. 종류의 정본이 프리팹의 `Actions` 하나로 수렴했다. **`TowerAsset.OnValidate` 신설**(§4.3 신규) — 액션↔수치 불일치·중복 액션·null 항목·명중 방식 수치 누락을 저장 시점에 경고(WL-130 해소). 낡은 §4.3(참조 목록)·§4.4(2중 정보 문제) 삭제. `Tower.cs`의 `?.` 누락 NRE 수정(§6 #9 해소) |
 | 8차 (#274 **Phase 4 구현**) | **명중 효과 부품화** — `HitEffect`(Burn/Poison/Slow/Stun) 신설, `TowerAsset.Effects`에 `[SerializeReference]`로 담는다(§3.8 신규). 공격 액션과 디버프 오라가 **같은 리스트를 공유**해 화상 장판 타워가 새 코드 없이 성립한다. `Projectile`의 세 명중 경로를 `Hit()` 한 곳으로 모아 **스턴이 Single에만 걸리던 실버그 해소**(§6 #10 삭제). `OnHitStunDuration`·`ProjectileImpact.StunDuration`·`DebuffAuraFields`의 `Duration`/`Modifiers`/`Damage` 제거 |
+| 11차 (#274 **Phase 5 구현**) | **§3.9 합성 효과 계승 신설** — 종류만 계승하는 이유, 활성 종류를 SO가 아니라 인스턴스가 갖는 이유(SO 오염·다단 합성), 적용이 pull인 이유와 표시부가 같은 술어를 공유해야 하는 이유. §2 In 범위 추가. §3.8에 `BurnEffect` 이름 충돌 주의(`NorthLand.Combat` ↔ 전역 Skill) 추가. ⚠ 배관만 완료이고 `InheritEffects`를 켠 레시피는 0개라 게임 동작은 그대로다 |
 | 10차 (#274 **플레이 모드 검증**) | Phase 1~4를 빈 씬 하네스로 실기 검증 — 발사·명중(Single/Area)·비행 아크·`HitEffect` 3경로·스턴 게이트·오라 2종·`Initialize`↔`Dispose` 대칭·페이즈 게이팅 전부 통과, 에러 0건. 상세 표는 [TowerRedesign.md](TowerRedesign.md) 「검증 상태」. 프리팹 9개를 중첩 저장소에 커밋(`818f1e7`)해 §6 상단 경고를 상시 주의사항으로 재작성. §6 #6-a 신설(경량 더미의 `HitPosition` 미구현이 공격 검증을 막는다, WL-121) |
 | 9차 (#274 인계 정리) | §6에 **`Assets/Imported/` 중첩 저장소 경고** 신설 — 타워 프리팹 9개가 부모 저장소 밖이라 Phase 2의 `Actions` 채움이 커밋에 안 실렸다는 사실이 커밋 메시지에만 있었다. §6 번호 재정렬(…7,8,11 → 1~10) + #3·#4·#6의 낡은 서술 정정 + #10(원거리 적 미동작) 추가 |

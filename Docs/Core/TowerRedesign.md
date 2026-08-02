@@ -22,11 +22,30 @@
 | 2 | 행동 → 액션 리스트(§2~§5), 프리팹 14개 `Actions`(§10.3) | ✅ **완료** — [Tower.md](Tower.md) §3이 현행 |
 | 3 | `TowerType`/`MagicEffectType` enum 제거(§3), `OnValidate`(§3) | ✅ **완료** — [Tower.md](Tower.md) §4.3이 현행 |
 | 4 | 명중 효과 부품화(§8) | ✅ **완료** — [Tower.md](Tower.md) §3.8이 현행 |
-| 5 | 합성 효과 계승(§9) | ⬜ 기획 사인오프 대기 |
+| 5 | 합성 효과 계승(§9) | ✅ **완료** — [Tower.md](Tower.md) §3.9가 현행. ⚠ **켜진 레시피는 0개**(아래) |
+| 6 | 나머지 문서 갱신(SystemMap §2 · TowerPlacement · TowerMerge · WatchList) | ✅ **완료** |
 
 **완료된 절의 내용은 [Tower.md](Tower.md)가 정본이다.** 전부 끝나면 이 문서는 폐기한다.
-커밋: `a881bff`(Phase 1) · `ca79dce`(Phase 2) · `3bd5c2e`(Phase 3~4).
+커밋: `a881bff`(Phase 1) · `ca79dce`(Phase 2) · `3bd5c2e`(Phase 3~4) · `c024bb6`(`origin/main` 병합).
 프리팹 9개는 중첩 저장소 `Assets/Imported/`의 `818f1e7` — [Tower.md](Tower.md) §6 상단 참조.
+
+> ### ★ Phase 5의 진입점이 바뀌었다 (`c024bb6` 병합)
+>
+> #265(합성 소모 연출)가 `TowerFusionController.TryFuse`를 재작성하면서 **§9.3이 필요로 하던 전달
+> 경로가 이미 뚫렸다.** 배치 확정 콜백이 `Action` → `Action<Transform>`이 되어 **결과 타워가 콜백
+> 인자로 들어온다**:
+>
+> ```csharp
+> _placer.BeginTowerPlacement(...,
+>     placed => { command.Commit(); effect.ConvergeTo(placed); },  // ← 여기에 계승 적용 한 줄
+>     () => { ... });
+> ```
+>
+> §9.3의 "재료들의 `ActiveEffectKinds`를 모아 `TowerPlacer`를 거쳐 결과 타워에 전달한다"에서
+> **"거쳐 전달"에 해당하는 배관을 새로 만들 필요가 없어졌다.**
+>
+> ⚠ 대신 **Phase 5 착수 전 반드시 병합된 상태여야 한다** — 구버전 `TryFuse` 위에 작성하면
+> 지금 0건인 코드 충돌을 스스로 만든다.
 
 ### 검증 상태 — ✅ 에디트 모드 + 플레이 모드 통과
 
@@ -56,6 +75,23 @@
 | 페이즈 게이팅 | 낮 15초 동안 공격·디버프 오라 피해 **0**, 버프 오라는 유지. `EndDay()` 직후 양쪽 즉시 재개 |
 | 콘솔 | **에러 0건.** 경고 2건은 둘 다 예상된 것 — 빈 씬의 `MouseManager` 부재, 그리고 합성 SO에서 **WL-129 불일치 경고가 의도대로 발화** |
 
+**Phase 5(합성 효과 계승) 실측** — 빈 씬 하네스, 전부 통과:
+
+| 축 | 실측 |
+|---|---|
+| 계승 판정 | 재료 soda`{Stun}` + choco`{Slow}` → `[Slow,Stun]`. 결과 SO에 정의된 `Poison`은 **재료가 안 가져와 제외** |
+| **적용 필터** | 같은 SO를 쓴 두 타워를 나란히 놓고 비교 — **계승 타워는 DoT 슬롯 0, 필터 없는 타워는 1.** 계승 여부만으로 갈린다 |
+| **기존 동작 무회귀** | 평범하게 배치한 soda 타워가 여전히 스턴을 건다(면역 창 갱신 확인) — 필터 도입이 기존 타워를 안 깼다 |
+| 다단 합성 | 1단 결과가 재료로서 `{Slow,Stun}`만 보고(SO엔 `Poison`도 있지만 꺼짐) → 2단에서 `{Poison,Slow,Stun}`, 아무도 안 가져온 `Burn`은 제외 |
+| **SO 무오염** | 합성 후 프로덕션 SO 4종의 `Effects`가 그대로 |
+| `TowerRecipe.OnValidate` | 정상 침묵 / 종류 누락 1건 / 결과 `Effects` 빈 경우 2건 |
+| 콘솔 | 에러 0 |
+| **수동 검증**(GameScene, 마우스) | 임시 레시피(soda + choco → 효과 3종 정의된 결과 SO)로 실기 확인 — 후보 버튼 호버 시 툴팁 **`Inherit: Stun + Slow`** · 결과 타워가 몬스터를 **멈추고 느리게** 함 · **독은 안 걸림**(결과 SO에 정의돼 있는데도) · 정보 패널에 `DoT:` 줄 없음. 테스트 에셋은 확인 후 삭제 |
+
+> **검증 중에 표시 버그를 하나 잡았다** — `DescribeEffects`가 SO의 효과를 전부 표기해 **계승으로 꺼진
+> 효과까지 정보 패널에 떴다.** 적용부는 필터를 타는데 표시부는 안 타는, WL-079/WL-130과 같은 축이다.
+> `stats` 대신 `owner`를 받게 바꿔 **원장과 필터가 같은 곳에서 나오도록** 했다 — 호출부가 빠뜨릴 수 없다.
+
 > **덤으로 하나가 해소됐다** — §10.4 #3의 "타일 버프를 `Build` **앞에** 적용해야 한다"(주석에만 있던 계약)는
 > 이제 **순서 무관**이다. `DebuffAuraAction.Radius`가 접근할 때마다 `Owner.Stats.Evaluate`를 부르고
 > `OnInitialize`에서 캐시하지 않기 때문이다. 양쪽 순서로 조립해 **둘 다 45.0**(기본 30 + 50%)을 실측했다.
@@ -68,12 +104,16 @@
 - **EditMode 테스트** — 액션·`HitEffect`·`TowerStats`가 전부 순수 C#이 되어 씬 없이 검증 가능해졌지만,
   프로젝트에 `.asmdef`가 하나도 없어 테스트 어셈블리부터 만들어야 한다([Tower.md](Tower.md) §6 #6).
 - **Phase 4.5(투사체 부품화)** — §12-A대로 보류. 타워를 몇 개 실제로 추가해본 뒤 판단한다.
-- **Phase 6(나머지 문서 갱신)** — `SystemMap.md` §2 API가 아직 `ITowerBehaviour`/`AttackBehaviour`/
-  `TowerBuildContext`/`TowerBehaviourFactory`를 현행으로 서술한다(`:179`·`:183-184`·`:209-210`·`:223-237`).
-  `WatchList.md` WL-130은 `OnValidate` 신설로 해소됐는데 PARTIAL로 남아 아카이브 대상.
-  [TowerMerge.md](TowerMerge.md)`:330`의 "재료 승계 제안 → `Tower.md` §8" 링크는 4차 개정에서
-  이 문서 §9로 옮겨가 **깨져 있다**. — 단 `TowerPlacement.md`는 **할 일이 없다**: 그 문서엔
-  `MagicRadius`·`TowerType` 언급이 0건이라 이 목록의 이전 판이 틀렸다.
+
+**Phase 6(나머지 문서 갱신)은 완료됐다** — `SystemMap.md` §2(액션 계약·설계 규칙 4가지·`OnValidate`·
+`PreviewRadius`·`HasAction<T>` 신설, 낡은 서술 13곳 정정) · `TowerPlacement.md` 3곳 ·
+`TowerMerge.md`의 깨진 승계 링크 · `WatchList.md` WL-130 → Archive 이관.
+
+> ⚠ **`TowerPlacement.md`에 대한 이전 판의 판단이 뒤집혔다.** "할 일이 없다"고 적었던 것은 당시엔
+> 사실이었지만, `origin/main` 병합(`c024bb6`)으로 들어온 #264·#265가 그 문서를 273줄 개정하면서
+> **삭제된 심볼을 다시 넣었다**(`TowerBehaviourFactory.ResolveAttackFields` · `TowerType == Magic` ·
+> `MagicRadius` · `AttackBehaviour`). main이 그 문서를 쓸 때는 아직 살아 있던 것들이다.
+> **병합은 코드뿐 아니라 문서 부채도 함께 들여온다** — 다음에 장기 브랜치를 병합할 때도 같은 점검이 필요하다.
 
 ---
 
@@ -438,7 +478,8 @@ sourceId = tower.GetInstanceID() ^ (int)EffectKind
 
 ## 9. 합성 효과 계승
 
-> GDD §5.8과 [TowerMerge.md](TowerMerge.md) §13이 **"재료 승계"를 TBD로 열어둔** 자리다. 이 절이 그 안이다.
+> GDD §5.8과 [TowerMerge.md](TowerMerge.md) §13이 **"재료 승계"를 TBD로 열어둔** 자리다. 이 절이 그 안이었고,
+> **구현·검증까지 끝났다** — 현행 명세는 [Tower.md](Tower.md) §3.9다. 남은 것은 코드가 아니라 **족보 결정**이다.
 > **기획 사인오프가 별도로 필요하다**(§12 #4).
 
 ### 9.1 규칙
@@ -654,7 +695,7 @@ Unity 프리팹·씬은 컴포넌트를 클래스 이름 + GUID로 물고 있어
 | 1 | **스턴 `sourceId`를 인스턴스별로 바꿀지** — 현재 `Projectile.StunEffectId`가 static이라 모든 소다 타워가 스턴 슬롯 하나를 공유한다. 코드 재확인 결과 **가동률 상한은 이 static이 아니라 대상 쪽 게이트에서 나온다**([Tower.md](Tower.md) §5.4) — 인스턴스별로 채번해도 `CanStunNow()`가 같은 자리에서 막으므로 **실동작 차이가 거의 없다**. 즉 §8.3 규칙의 예외를 둘 이유도 딱히 없다 | **낮은 우선순위** — 재설계 PR에서는 현행 고정 ID 유지, **별도 이슈로 분리** |
 | 2 | 결과 SO에 재료 효과가 정의되지 않았을 때 | §9.5 `OnValidate` 경고로 잡기로 함(합의 대기) |
 | 3 | 합성으로만 생기는 고유 효과("화상+슬로우 → 폭발") | 현재 안은 미지원. 나중에 `BaseEffects`(항상 켜짐) 리스트를 추가하면 됨 — 지금 구조가 막지 않음 |
-| 4 | GDD §5.8 · [TowerMerge.md](TowerMerge.md) §13의 "재료 승계 TBD" | §9가 그 안. **기획 사인오프 필요** |
+| 4 | GDD §5.8 · [TowerMerge.md](TowerMerge.md) §13의 "재료 승계 TBD" | **배관은 완료됐다**(§9 그대로 구현·검증). 남은 것은 **족보 결정**이다 — 현재 `InheritEffects`를 켠 레시피가 **0개**라 게임에서는 아무 변화가 없다. 기존 레시피 2개는 재료·결과 모두 `Effects`가 비어 있고, ⚠ **기존 타워 SO를 결과로 쓰면 안 된다**(필터가 없는 평범한 배치에서도 그 효과가 켜져 프로덕션 타워가 조용히 강화된다). 기획이 정할 것: ① 어떤 조합이 어떤 결과를 만드는가 ② 그 결과 SO의 효과 수치 |
 | 5 | `CombatSystem/Tower`는 SystemMap상 **KIM-SUNGSOO 영역** | 재설계는 공격 계약(`TowerAsset.Attack`)과 프리팹 구조를 함께 바꾼다 — **착수 전 합의 필수**(WL-001과 같은 축). **이 문서가 그 합의 자료. 사인오프 대기** |
 | 6 | `Personal/SUNGSOO/` 고아 프리팹·구버전 SO | `CannonTowerTest.prefab`·`SweetLand Prefab/CandyCanon.prefab`은 참조 0건. `CombatData/debuff_tower.asset`은 지금은 없는 `BuffAura.Interval` 필드가 남은 구버전 스키마 — **마이그레이션 전 폐기 여부 확인 필요**(§10.3) |
 | 7 | **투사체 부품화** — 비행·명중을 `[SerializeReference]` 부품으로 승격할지 | **판단 유예.** 아래 §12-A |
@@ -771,3 +812,5 @@ WL-050/081(버프 원장 두 벌)이다.
 | 4차 (#274) | **Tower.md에서 이 문서를 분리.** Tower.md가 1031줄까지 불어 Core 문서 중 2위의 2배가 됐고, "현재 명세"와 "제안"이 섞여 읽을 때마다 사실/제안을 판단해야 했다. 폐기안 2개를 부록 A로 내리고 3분 요약을 신설 |
 | 5차 (#274) | 「검증 상태」 절 신설 — Phase 1~4의 에디트 모드 검증 내역과 미검증 항목을 기록. Phase 6 목록을 실측으로 정정 |
 | 6차 (#274 **플레이 모드 검증**) | 「검증 상태」에 플레이 모드 실측 표 추가 — Phase 1(비행 아크 정점 15.00)·Phase 2(`SetActive` 왕복 대칭)·Phase 4(Area 경로 효과 적용) 세 축이 전부 런타임에서 확인됐다. §10.4 #3(타일 버프↔`Build` 순서)은 **순서 무관으로 해소** — 원장이 pull 방식이라 캐시가 없다 |
+| 8차 (#274 **Phase 5 구현**) | **합성 효과 계승 구현·검증 완료.** `TowerRecipe.InheritEffects`(레시피별 opt-in) · `Tower.activeKinds`/`IsEffectActive`/`ActiveEffectKinds`/`ActivateEffects`(인스턴스 소유) · 적용 필터를 `Projectile.ApplyEffects`와 `DebuffAuraAction.ApplyDebuff`에 **pull 방식**으로 · `TowerFusionMatcher.ResolveInheritedKinds`(툴팁·실행부 공유) · 후보 버튼 툴팁 · `TowerRecipe.OnValidate`. 검증 중 `DescribeEffects`가 꺼진 효과까지 표기하던 버그를 잡았다. **§12 #4를 "사인오프 대기"에서 "배관 완료, 족보 결정만 남음"으로 정정** — 켜진 레시피가 0개라 게임 동작은 그대로다 |
+| 7차 (#274 **Phase 6 완료**) | `origin/main` 병합(`c024bb6`) 후 문서를 액션 구조에 맞췄다 — `SystemMap.md` §2(낡은 서술 13곳 + `TowerAction` 계약·설계 규칙 4가지·`OnValidate`·`PreviewRadius`·`HasAction<T>` 신설) · `TowerPlacement.md` 3곳 · `TowerMerge.md` 깨진 승계 링크 · WL-130 Archive 이관. **병합이 문서 부채를 함께 들여온다**는 것을 기록(#264·#265가 `TowerPlacement.md`에 삭제된 심볼을 되살렸다). #265가 `TryFuse`를 재작성해 **Phase 5의 전달 배관이 이미 뚫렸다**는 것과, Phase 5의 실제 블로커가 "현재 레시피에 효과가 하나도 없어 관측 불가"라는 것을 명시(§12 #4) |

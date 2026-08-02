@@ -103,7 +103,7 @@ namespace NorthLand.Combat
                 ? null
                 : TowerStatsFormatter.Join(
                     TowerStatsFormatter.BuildRangeLine(Radius),
-                    AttackAction.DescribeEffects(effects, Owner.Stats));
+                    AttackAction.DescribeEffects(effects, Owner));
 
 #if UNITY_EDITOR
         public override void DrawGizmos()
