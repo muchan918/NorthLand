@@ -27,11 +27,15 @@ namespace NorthLand.Combat
         // 동작하고 신규 셰이더 에셋이 필요 없다.
         private const string k_Shader = "Sprites/Default";
 
-        // 알갱이 크기는 bounds가 아니라 **풋프린트**에서 뽑는다. 타일은 항상 15인데 타워 메시 크기는
-        // 제각각이라(현재 프리팹만 봐도 높이 2.0~37.7, 19배), bounds 기준이면 스케일이 어긋난 프리팹에서
-        // 알갱이까지 같이 어긋난다. 풋프린트는 그리드가 정하는 값이라 **에셋 교체와 무관하게 불변**이고,
-        // 덕분에 모든 타워의 알갱이가 같은 크기로 보여 하나의 시각 언어가 된다.
-        private const float k_GrainSizeRatio = 0.15f;    // 알갱이 한 변 = 풋프린트 × 이것
+        // 알갱이 크기는 bounds가 아니라 **타일 한 칸**에서 뽑는다. 타워 메시 크기는 제각각이라
+        // (현재 프리팹만 봐도 높이 2.0~37.7, 19배) bounds 기준이면 스케일이 어긋난 프리팹에서 알갱이까지
+        // 같이 어긋난다. 타일은 그리드가 정하는 값이라 **에셋 교체와 무관하게 불변**이다.
+        //
+        // ⚠ **풋프린트(= 칸 수 × 타일)가 아니라 타일 한 칸이어야 한다.** 풋프린트를 쓰면 2×2 타워의 알갱이만
+        // 2배가 되어, 1×1 재료가 2×2 결과로 합쳐지는 순간 유입 입자와 등장 후광의 알갱이 크기가 어긋난다 —
+        // 두 연출이 같은 물질로 보여야 "재료가 모여 타워가 됐다"가 성립하는데 거기서 깨진다.
+        // 링 반경·후광 두께처럼 "이 칸을 먹었다"를 말하는 값만 풋프린트를 쓴다(`TowerSpawnEffect` 참고).
+        private const float k_GrainSizeRatio = 0.15f;    // 알갱이 한 변 = 타일 × 이것
         private const float k_MaxGrainSizeRatio = 0.4f;  // 줌 하한이 넘지 못하는 상한(같은 기준)
 
         // 줌 보정. 입자는 월드 공간 쿼드라 타워와 **함께** 작아지므로 비례 보정은 필요 없다 — 필요한 건
@@ -115,17 +119,18 @@ namespace NorthLand.Combat
         public static Quaternion ResolveBillboard(Camera cam)
             => cam != null ? cam.transform.rotation : Quaternion.identity;
 
-        public static float ResolveGrainSize(float footprintSize, Camera cam)
+        /// tileSize는 그리드 셀 **한 칸**의 월드 크기다. 풋프린트를 넘기지 말 것 — 위 상수 주석 참고.
+        public static float ResolveGrainSize(float tileSize, Camera cam)
         {
-            float ideal = footprintSize * k_GrainSizeRatio;
+            float ideal = tileSize * k_GrainSizeRatio;
             if (cam == null || !cam.orthographic) return ideal;
 
-            // 화면 하한과 풋프린트 상한 사이로 죈다. 하한은 "줌아웃(size 300)에서도 보이게", 상한은
+            // 화면 하한과 타일 상한 사이로 죈다. 하한은 "줌아웃(size 300)에서도 보이게", 상한은
             // "알갱이가 칸을 뒤덮지 않게". 상한이 없으면 줌아웃에서 하한이 무조건 이겨 알갱이가 타일만 해진다.
             return Mathf.Clamp(
                 cam.orthographicSize * k_MinSizePerOrthoSize,
                 ideal,
-                footprintSize * k_MaxGrainSizeRatio);
+                tileSize * k_MaxGrainSizeRatio);
         }
 
         public static int ResolveCount(Bounds bounds)

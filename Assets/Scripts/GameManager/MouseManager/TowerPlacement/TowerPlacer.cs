@@ -367,8 +367,10 @@ public class TowerPlacer : MonoBehaviour
         // 기다리지 않고, 연출 도중 밤 전환이나 새 배치가 들어와도 타워는 이미 완성 상태다.
         // 바닥 링 크기는 bounds가 아니라 풋프린트에서 준다 — 타워 에셋이 교체돼도 "몇 칸을 먹었는지"는
         // 안 바뀌는 값이라, 홀쭉한 에셋이 와도 링이 칸보다 작아지지 않는다.
+        // 알갱이 크기만 tileSize(한 칸) 기준으로 따로 넘긴다 — 풋프린트를 쓰면 다중 셀 타워에서만
+        // 알갱이가 커져 합성 유입 입자와 크기가 어긋난다(#265, TowerSpawnEffect.Play 주석).
         float footprintSize = Mathf.Max(_activeData.GridWidth, _activeData.GridHeight) * tileSize;
-        NorthLand.Combat.TowerSpawnEffect.Play(placed.transform, footprintSize);
+        NorthLand.Combat.TowerSpawnEffect.Play(placed.transform, footprintSize, tileSize);
     }
 
     private static bool IsBuildable(BattleTile tile)

@@ -81,6 +81,12 @@ public class TowerFusionController : MonoBehaviour
         // 5. 소모 연출(#265)을 **소모 직전에** 건다. 커맨드가 재료를 즉시 비활성화하므로 그 뒤에는
         //    복제할 시각물이 남지 않는다 — 이 한 줄의 위치가 연출 전체의 전제다.
         //    연출은 시각 전용·논블로킹이라 아래 흐름은 연출을 기다리지 않는다.
+        //    넘기는 것은 **타일 한 칸 크기**다(풋프린트 아님). 이 연출의 모든 길이가 "저 칸 것"을 말하는
+        //    단위이고, 알갱이 크기도 등장 연출과 같은 기준이어야 두 연출이 같은 물질로 보인다.
+        //
+        //    아래 Execute가 실패하면 연출이 1프레임 재생된 뒤 Abort된다(흰 사본이 원본과 겹쳐 한 번 그려짐).
+        //    Execute 실패는 "재료가 전부 사라진 뒤 클릭"이라 LogError 경로이고, 연출을 먼저 걸어야 한다는
+        //    순서 계약(위)과 맞바꿀 만한 빈도가 아니라 그대로 둔다.
         TowerMergeDissolveEffect effect = TowerMergeDissolveEffect.Play(
             CollectTransforms(toConsume),
             _placer.TileSize);

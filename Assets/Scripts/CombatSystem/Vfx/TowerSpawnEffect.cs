@@ -77,8 +77,15 @@ namespace NorthLand.Combat
         ///
         /// ⚠ 재생 중 **대상 루트의 `localScale`을 배타적으로 소유한다**(0 → 원본). 이 창(약 0.45초) 동안
         /// 다른 시스템이 그 값을 쓰거나 캡처하면 안 된다 — 자세한 계약은 `TowerPlacement.md` §9.3.2.
-        public static void Play(Transform target, float footprintSize)
-            => PlayAsync(target, footprintSize).Forget();
+        ///
+        /// 길이 인자가 둘인 이유는 **두 값이 다른 것을 말하기 때문**이다(§9.3.2의 "수치 앵커를 둘로 나눈다"):
+        ///   - footprintSize(= 칸 수 × 타일): "이 타워가 먹은 자리". 링 반경·후광 두께가 여기서 나온다.
+        ///   - tileSize(= 한 칸): 알갱이 크기. **모든 타워의 알갱이가 같은 크기**여야 합성 유입 입자와
+        ///     등장 후광이 같은 물질로 보인다. 여기에 풋프린트를 넣으면 다중 셀 타워에서만 알갱이가 커져
+        ///     1×1 재료가 2×2 결과로 합쳐지는 순간 어긋난다(#265).
+        /// 1×1 타워에서는 두 값이 같으므로 현재 화면상 차이는 없다 — 다중 셀 타워가 들어올 때를 위한 분리다.
+        public static void Play(Transform target, float footprintSize, float tileSize)
+            => PlayAsync(target, footprintSize, tileSize).Forget();
 
         /// 연출 종료까지 기다려야 하는 호출자용.
         /// ct는 호출자 수명 토큰. 연출 자신의 수명과 합쳐지므로 어느 쪽이 끊겨도 UniTask가 남지 않는다.
@@ -86,7 +93,7 @@ namespace NorthLand.Combat
         /// ⚠ `Play`와 같은 스케일 배타 소유 계약이 적용된다. 같은 대상에 이미 재생 중이면 `VfxScaleHold`가
         /// **그 연출의 스케일을 먼저 원복시키고 인계**한다 — 배치와 합성이 같은 타워에 각자 재생을 걸어도
         /// 스케일이 오염되지 않는다.
-        public static async UniTask PlayAsync(Transform target, float footprintSize, CancellationToken ct = default)
+        public static async UniTask PlayAsync(Transform target, float footprintSize, float tileSize, CancellationToken ct = default)
         {
             if (target == null) return;
 
@@ -105,7 +112,7 @@ namespace NorthLand.Combat
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(effect.destroyCancellationToken, ct);
             try
             {
-                await effect.RunAsync(bounds, footprintSize, linked.Token);
+                await effect.RunAsync(bounds, footprintSize, tileSize, linked.Token);
             }
             catch (System.OperationCanceledException)
             {
@@ -151,12 +158,13 @@ namespace NorthLand.Combat
             return new Bounds(target.position + Vector3.up * (side * 0.5f), Vector3.one * side);
         }
 
-        private async UniTask RunAsync(Bounds bounds, float footprintSize, CancellationToken ct)
+        private async UniTask RunAsync(Bounds bounds, float footprintSize, float tileSize, CancellationToken ct)
         {
             _hold.SetFactor(0f); // 수렴이 끝날 때까지 숨긴다(bounds는 위에서 이미 떴다)
 
             Camera cam = Camera.main;
-            SpawnParticles(bounds, footprintSize, GrainSwarm.ResolveGrainSize(footprintSize, cam), GrainSwarm.ResolveBillboard(cam));
+            // 알갱이 크기만 타일 한 칸 기준이다(위 Play 주석) — 나머지는 전부 풋프린트에서 나온다.
+            SpawnParticles(bounds, footprintSize, GrainSwarm.ResolveGrainSize(tileSize, cam), GrainSwarm.ResolveBillboard(cam));
             await ConvergeAsync(bounds.center, ct);
             _swarm.Clear();
 

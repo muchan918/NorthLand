@@ -46,21 +46,25 @@ namespace NorthLand.Combat
         private const float k_MaterialStagger = 0.06f;   // 재료별 출발 시차 — 동시에 터지면 한 덩어리로 보인다
 
         // ── 비율 ─────────────────────────────────────────────────────────────────────
-        // TowerSpawnEffect와 같은 규율: 월드 단위 상수를 쓰지 않고 bounds/풋프린트에서 유도한다.
+        // TowerSpawnEffect와 같은 규율: 월드 단위 상수를 쓰지 않고 bounds/타일 크기에서 유도한다.
+        //
+        // 길이 기준은 전부 **타일 한 칸**이다(풋프린트 전체가 아니라). 이 연출이 말하려는 것은 "이 알갱이는
+        // 저 칸 것"이고, 칸 하나가 그 언어의 단위다. 다중 셀 타워가 재료가 돼도 구름이 커질 이유가 없다 —
+        // 오히려 커지면 옆 칸까지 덮어 어느 칸이 비었는지가 흐려진다.
         private const float k_BreathScale = 1.06f;       // 화이트아웃 동안 부푸는 배율
 
         // 부유 구름의 모양·위치. 세 값이 함께 "이 알갱이들은 **저 타일** 것"을 읽히게 한다.
         //
-        // 기준점은 `bounds.center`가 아니라 **시각물 밑면 + 풋프린트 단위 고정 높이**다. 중심을 쓰면
+        // 기준점은 `bounds.center`가 아니라 **시각물 밑면 + 타일 단위 고정 높이**다. 중심을 쓰면
         // 구름 고도가 타워 키를 따라가는데(현재 프리팹만 봐도 높이 2.0~37.7, 19배) 게임 카메라가 45° 직교라
         // **고도 차이가 그대로 화면상 수평 이동으로 보인다** — 높은 타워일수록 구름이 자기 타일에서 멀어져
         // 어느 칸이 비었는지 알 수 없게 된다. 밑면 기준으로 두면 어떤 타워든 같은 높이에 뜬다.
-        private const float k_HoverRatio = 0.5f;         // 부유 고도 = 시각물 밑면 + 풋프린트 × 이것
-        private const float k_CloudRadiusRatio = 0.68f;  // 구름 반경 = 풋프린트 × 이것(대략 자기 칸 넓이)
+        private const float k_HoverRatio = 0.5f;         // 부유 고도 = 시각물 밑면 + 타일 × 이것
+        private const float k_CloudRadiusRatio = 0.68f;  // 구름 반경 = 타일 × 이것(대략 자기 칸 넓이)
         private const float k_CloudShellInner = 0.65f;   // 속을 비운다 — 안쪽까지 채우면 한 덩어리로 뭉쳐 보인다
         private const float k_CloudFlatten = 0.5f;       // Y를 눌러 납작하게 — 수직으로 퍼지면 타일 식별을 해친다
 
-        private const float k_BobAmplitudeRatio = 0.1f;  // 위아래 흔들림 = 풋프린트 × 이것
+        private const float k_BobAmplitudeRatio = 0.1f;  // 위아래 흔들림 = 타일 × 이것
         private const float k_BobSpeed = 1.6f;           // 흔들림 각속도(rad/s)
         private const float k_OrbitDegPerSec = 22f;      // 구름 전체가 Y축으로 도는 속도 — "둥둥"의 정체
 
@@ -111,17 +115,17 @@ namespace NorthLand.Combat
         private GrainSwarm _swarm;
         private Material _silhouette;
         private Ending _ending = Ending.None;
-        private float _footprintSize;
+        private float _tileSize;
         private Vector3 _destination; // 확정 시 입자가 모일 지점(결과 타워의 시각 중심)
 
         /// 재료 소모 **직전에** 호출한다 — 커맨드가 `SetActive(false)`를 걸고 나면 복제할 것이 남지 않는다.
-        /// targets는 소모될 재료들, footprintSize는 타일 한 칸 크기(알갱이 크기 기준을 등장 연출과 맞추기 위한 값).
+        /// targets는 소모될 재료들, tileSize는 그리드 셀 한 칸의 월드 크기(모든 길이의 기준).
         /// 항상 유효한 인스턴스를 돌려주므로 호출부는 null을 검사하지 않아도 된다.
-        public static TowerMergeDissolveEffect Play(IReadOnlyList<Transform> targets, float footprintSize)
+        public static TowerMergeDissolveEffect Play(IReadOnlyList<Transform> targets, float tileSize)
         {
             var host = new GameObject("TowerMergeDissolveEffect");
             var effect = host.AddComponent<TowerMergeDissolveEffect>();
-            effect._footprintSize = footprintSize;
+            effect._tileSize = tileSize;
             effect.RunAsync(targets, effect.destroyCancellationToken).Forget();
             return effect;
         }
@@ -138,7 +142,7 @@ namespace NorthLand.Combat
         {
             if (this == null || placed == null) return;
 
-            _destination = TowerSpawnEffect.CalculateVisualBounds(placed, _footprintSize).center;
+            _destination = TowerSpawnEffect.CalculateVisualBounds(placed, _tileSize).center;
             RequestEnd(Ending.Converge);
         }
 
@@ -201,17 +205,27 @@ namespace NorthLand.Combat
             _silhouette = new Material(Shader.Find(k_Shader)) { name = "TowerMergeSilhouette" };
             _silhouette.color = Color.white;
 
-            float grainSize = GrainSwarm.ResolveGrainSize(_footprintSize, cam);
+            float grainSize = GrainSwarm.ResolveGrainSize(_tileSize, cam);
             Quaternion billboard = GrainSwarm.ResolveBillboard(cam);
-            float cloudRadius = _footprintSize * k_CloudRadiusRatio;
-            float bobAmplitude = _footprintSize * k_BobAmplitudeRatio;
+            float cloudRadius = _tileSize * k_CloudRadiusRatio;
+            float bobAmplitude = _tileSize * k_BobAmplitudeRatio;
 
             for (int s = 0; s < targets.Count; s++)
             {
                 Transform target = targets[s];
                 if (target == null) continue;
 
-                Bounds bounds = TowerSpawnEffect.CalculateVisualBounds(target, _footprintSize);
+                // 이 재료에 진행 중인 연출이 있으면(방금 배치돼 등장 팝 중이거나, 직전 합성이 취소돼
+                // 재조립 중) 루트 스케일이 0~과도기 값이다. 그대로 재면 bounds가 한 점으로 붕괴해
+                // **화이트아웃·수축이 통째로 안 보이고** 알갱이 개수·부유 고도까지 어긋난다.
+                //
+                // `Acquire` 직후 `Release`라 점유를 넘겨받지 않는다 — 이 연출은 여전히 대상 스케일을
+                // 건드리지 않으면서 원본만 되찾는다. 동시에 점유 세대가 올라가 이전 연출이 남은 입자·링을
+                // 스스로 접는다(단순 원복만 하면 소모되는 타워로 그 입자가 계속 날아온다).
+                // 등장 연출도 같은 이유로 `Acquire`를 bounds 측정보다 먼저 부른다 — 두 연출의 규칙을 맞춘다.
+                VfxScaleHold.Acquire(target).Release();
+
+                Bounds bounds = TowerSpawnEffect.CalculateVisualBounds(target, _tileSize);
                 var source = new Source
                 {
                     Target = target,
@@ -220,7 +234,7 @@ namespace NorthLand.Combat
                     // 45° 직교 카메라에서 자기 타일 밖으로 밀려 보인다.
                     FloatCenter = new Vector3(
                         bounds.center.x,
-                        bounds.min.y + _footprintSize * k_HoverRatio,
+                        bounds.min.y + _tileSize * k_HoverRatio,
                         bounds.center.z),
                     Delay = s * k_MaterialStagger,
                     GrainStart = _swarm.Count,
@@ -327,7 +341,13 @@ namespace NorthLand.Combat
                 // 배속·일시정지 무관(`unscaledDeltaTime`). 전역 timeScale을 타면 일시정지 중 재료가
                 // 사라진 채로 멈추고, x4 배속에서는 연출이 통째로 소실된다 — TowerSpawnEffect와 같은 근거.
                 elapsed += Time.unscaledDeltaTime;
-                if (_ending != Ending.None) return; // 밤 전환 등으로 즉시 걷어내라는 통지
+                if (_ending != Ending.None)
+                {
+                    // 마무리로 이어질 때만 스냅한다. `Abort`는 이 프레임 끝에 호스트째 사라지므로
+                    // 스냅해 봐야 알갱이가 한 프레임 번쩍이고 끝난다.
+                    if (_ending != Ending.Abort) SnapToDissolveEnd();
+                    return;
+                }
 
                 float alpha = 0f;
                 foreach (Source s in _sources)
@@ -376,6 +396,34 @@ namespace NorthLand.Combat
             }
         }
 
+        /// 소멸 구간을 **즉시 완료 상태로** 밀어붙인다. 배치 대기가 짧으면(클릭 직후 취소·확정) 확정/취소
+        /// 통지가 폭발이 끝나기 전에 도착하는데, 그때 그냥 빠져나가면 이어지는 수렴 구간이
+        ///   ① 흰 실루엣이 파괴되지 않아 재료 타일에 얼어붙은 덩어리를 남기고
+        ///   ② 스웜 알파가 0(또는 중간값)에 멈춰 **입자가 아예 보이지 않으며**
+        ///   ③ 알갱이가 아직 중심에 0 크기로 모여 있어 어디서 날아오는지가 사라진다
+        /// 로 시작한다 — 연출이 존재하는 이유가 그 구간에서만 통째로 없어진다.
+        ///
+        /// 폭발을 건너뛰고 부유 완료 지점으로 점프하는 것이므로 "재료 자리에서 출발한다"는 인과는 유지된다.
+        private void SnapToDissolveEnd()
+        {
+            foreach (Source s in _sources)
+            {
+                if (s.Pivot != null)
+                {
+                    Destroy(s.Pivot.gameObject);
+                    s.Pivot = null;
+                }
+
+                for (int i = s.GrainStart; i < s.GrainStart + s.GrainCount; i++)
+                {
+                    _swarm[i].position = s.FloatCenter + _offsets[i];
+                    _swarm[i].localScale = _scales[i];
+                }
+            }
+
+            _swarm.SetAlpha(1f);
+        }
+
         private static void SetPivotScale(Source s, float scale)
         {
             if (s.Pivot != null) s.Pivot.localScale = Vector3.one * scale;
@@ -384,7 +432,7 @@ namespace NorthLand.Combat
         // ── 구간 2: 부유 (배치 대기 동안 무한 루프) ───────────────────────────────────
         private async UniTask FloatAsync(CancellationToken ct)
         {
-            float amplitude = _footprintSize * k_BobAmplitudeRatio;
+            float amplitude = _tileSize * k_BobAmplitudeRatio;
             float t = 0f;
 
             while (_ending == Ending.None)
