@@ -92,7 +92,11 @@ public class TowerTooltipView : MonoBehaviour
     }
 
     /// <summary>타워 정보를 채워 <paramref name="anchor"/>(호버한 버튼) 바로 위에 툴팁을 표시한다. tower가 null이면 숨긴다.</summary>
-    public void Show(TowerAsset tower, RectTransform anchor)
+    /// <param name="extraStatsLine">
+    /// 스탯 아래에 덧붙일 한 줄(없으면 null). 합성 후보 호버가 "물려받는 효과"를 여기로 넘긴다(#274 Phase 5) —
+    /// SO만 봐서는 알 수 없고 **현재 선택 집합에 의존하는** 정보라 툴팁이 스스로 만들 수 없다.
+    /// </param>
+    public void Show(TowerAsset tower, RectTransform anchor, string extraStatsLine = null)
     {
         if (!_ready) return;
         if (tower == null) { Hide(); return; }
@@ -101,7 +105,7 @@ public class TowerTooltipView : MonoBehaviour
         string desc = ResolveDescription(tower);
         _descText.text = desc;
         _descText.gameObject.SetActive(!string.IsNullOrEmpty(desc)); // 설명 없으면 빈 줄 안 남기고 접음
-        _statsText.text = BuildStats(tower);
+        _statsText.text = NorthLand.Combat.TowerStatsFormatter.Join(BuildStats(tower), extraStatsLine);
         _costText.text = BuildCost(tower);
 
         // 아이콘: TowerAsset에 Sprite 필드가 생기면 여기서 `_icon.sprite = tower.Icon;` 로 바인딩한다.

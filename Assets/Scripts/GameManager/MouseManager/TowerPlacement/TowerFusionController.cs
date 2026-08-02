@@ -78,6 +78,10 @@ public class TowerFusionController : MonoBehaviour
         if (recipe.Result.Data == null)
             recipe.Result.Data = DataTableManager.Get<TowerTable>("TowerTable")?.Get(recipe.Result.TowerID);
 
+        // 계승 효과 종류를 **소모 전에** 스냅샷한다(#274 Phase 5). 아래 Execute가 재료를 즉시 비활성화하고
+        // Commit이 파괴하므로, 뒤로 미루면 읽을 대상이 사라진다. 툴팁과 같은 함수를 쓴다(규칙 재구현 금지).
+        HashSet<EffectKind> inherited = TowerFusionMatcher.ResolveInheritedKinds(recipe, toConsume);
+
         // 5. 소모 연출(#265)을 **소모 직전에** 건다. 커맨드가 재료를 즉시 비활성화하므로 그 뒤에는
         //    복제할 시각물이 남지 않는다 — 이 한 줄의 위치가 연출 전체의 전제다.
         //    연출은 시각 전용·논블로킹이라 아래 흐름은 연출을 기다리지 않는다.
@@ -113,7 +117,18 @@ public class TowerFusionController : MonoBehaviour
         bool started = _placer.BeginTowerPlacement(
             recipe.Result,
             recipe.ExtraCost,
-            placed => { command.Commit(); effect.ConvergeTo(placed); },
+            placed =>
+            {
+                command.Commit();
+
+                // 계승 부여는 Build **뒤**여야 한다 — TowerPlacer가 Build를 먼저 부르고 이 콜백을 나중에
+                // 부르므로 순서는 보장돼 있다. Build가 activeKinds를 비우기 때문에 반대 순서면 지워진다.
+                // 효과 적용은 pull 방식(Tower.IsEffectActive)이라 액션 재초기화는 필요 없다.
+                if (inherited != null && placed != null && placed.TryGetComponent(out Tower result))
+                    result.ActivateEffects(inherited);
+
+                effect.ConvergeTo(placed);
+            },
             () =>
             {
                 bool cancelled = !command.IsCommitted;

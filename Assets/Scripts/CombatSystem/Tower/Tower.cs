@@ -37,6 +37,48 @@ namespace NorthLand.Combat
         // 조립 여부. Build를 두 번 타지 않게 하고, OnEnable 폴백 경로의 판단 근거가 된다.
         bool built;
 
+        // ── 합성 효과 계승 (#274 Phase 5) ──────────────────────────────────
+        // 이 인스턴스에서 활성인 효과 종류. **null = 필터 없음**(SO의 Effects가 전부 활성)이고,
+        // 합성으로 만들어진 타워만 ActivateEffects로 이 집합을 갖는다.
+        //
+        // ★ SO가 아니라 인스턴스가 소유해야 하는 이유 두 가지(TowerRedesign.md §9.2):
+        //  ① SO 오염 — TowerAsset은 씬의 모든 인스턴스가 공유한다. 런타임에 data.Effects를 건드리면
+        //     다음 합성이 이전 계승분을 물려받고, [SerializeReference]라 진짜로 직렬화되어
+        //     .asset 파일에 **영구히** 남는다.
+        //  ② 다단 합성 — 합성 결과도 다시 재료가 될 수 있다. "재료 A가 무엇을 갖는가"를 판정하려면
+        //     A의 SO가 아니라 **A 인스턴스의 활성 상태**를 읽어야 한다(SO를 읽으면 꺼진 것까지 잡힌다).
+        //
+        // 런타임 상태이므로 직렬화하지 않는다(액션 규칙 ③과 같은 축).
+        [NonSerialized] HashSet<EffectKind> activeKinds;
+
+        /// 이 효과 종류가 이 타워에서 활성인가. 필터가 없으면(=합성 산물이 아니면) 전부 활성이다.
+        /// 효과를 **거는 순간** 호출된다 — 목록을 미리 걸러두지 않는 이유는 Build가 배치 확정 콜백보다
+        /// 먼저 돌아서, 액션 초기화 시점에는 아직 계승분이 정해지지 않았기 때문이다(pull 방식).
+        public bool IsEffectActive(EffectKind kind) => activeKinds == null || activeKinds.Contains(kind);
+
+        /// 이 타워가 실제로 낼 수 있는 효과 종류. **다단 합성이 재료를 조회하는 창구**다.
+        /// 평범하게 배치된 타워는 자기 SO의 효과 전부를, 합성 산물은 켜진 것만 보고한다.
+        public IEnumerable<EffectKind> ActiveEffectKinds
+        {
+            get
+            {
+                if (data?.Effects == null) yield break;
+
+                for (int i = 0; i < data.Effects.Count; i++)
+                {
+                    HitEffect effect = data.Effects[i];
+                    if (effect == null) continue;          // [SerializeReference] rename 시 null 항목
+                    if (!IsEffectActive(effect.Kind)) continue;
+                    yield return effect.Kind;
+                }
+            }
+        }
+
+        /// 합성 결과 타워에 계승된 효과 종류를 부여한다(TowerFusionController가 배치 확정 시 호출).
+        /// null을 넘기면 필터가 해제되어 SO의 효과가 전부 살아난다.
+        public void ActivateEffects(IEnumerable<EffectKind> kinds)
+            => activeKinds = kinds == null ? null : new HashSet<EffectKind>(kinds);
+
         // 액션에 넘기는 프리팹 배선. 액션은 SO 수치만 읽고 씬 참조는 호스트를 통해 얻는다(규칙 ②) —
         // [SerializeReference] 관리 객체 안에 Transform 참조를 직접 두는 것은 프리팹 오버라이드에서
         // 다루기 까다롭고, 이렇게 두면 프리팹의 기존 배선 값이 제자리에 남는다.
@@ -191,6 +233,11 @@ namespace NorthLand.Combat
 
             data = asset;
             built = true;
+
+            // 다른 SO로 재조립되면 이전 정체성의 계승분은 의미를 잃는다(풀 재사용 대비).
+            // ⚠ OnDisable/OnEnable 왕복에서는 **지우지 않는다** — 합성 커맨드의 Release/Reoccupy가
+            //   그 경로를 쓰므로, 지우면 롤백된 합성 결과가 효과를 잃는다.
+            activeKinds = null;
 
             // 액션을 만들지 않는다 — 프리팹에 이미 담겨 있다. 예전에는 여기서 TowerBehaviourFactory가
             // SO의 TowerType을 보고 AddComponent로 조립하고, 새 SO에서 빠진 컴포넌트를 다시 떼어냈다

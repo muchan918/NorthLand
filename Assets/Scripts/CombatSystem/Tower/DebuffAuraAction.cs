@@ -88,6 +88,10 @@ namespace NorthLand.Combat
                 {
                     HitEffect effect = effects[e];
                     if (effect == null) continue;
+
+                    // 합성 계승(#274 Phase 5) — 투사체 경로(Projectile.ApplyEffects)와 같은 규칙이다.
+                    if (!Owner.IsEffectActive(effect.Kind)) continue;
+
                     effect.Apply(damageable, Owner, stats, baseId ^ (int)effect.Kind);
                 }
             }

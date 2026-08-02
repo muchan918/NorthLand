@@ -215,13 +215,21 @@ namespace NorthLand.Combat
             // 한 타워 안에서는 종류당 하나로 수렴한다(EnemyApplyTowerDebuffAction의 관례와 동형).
             int baseId = source is Component c ? c.GetInstanceID() : 0;
 
-            // DoT 수치가 타일 버프·오라 버프를 타도록 원장을 함께 넘긴다(적이 쏜 경우엔 null).
-            TowerStats stats = source is Tower tower ? tower.Stats : null;
+            // 쏜 쪽이 타워면 원장(DoT 수치가 타일 버프·오라 버프를 타도록)과 계승 필터를 함께 본다.
+            // 적이 쏜 경우엔 둘 다 없다(스코프 밖에서 쓰므로 삼항 패턴 변수가 아니라 지역 변수로 둔다).
+            Tower tower = source as Tower;
+            TowerStats stats = tower != null ? tower.Stats : null;
 
             for (int i = 0; i < effects.Count; i++)
             {
                 HitEffect effect = effects[i];
                 if (effect == null) continue;   // [SerializeReference] rename 시 null 항목이 생긴다
+
+                // 합성 계승(#274 Phase 5): 결과 타워는 SO에 정의된 효과 중 **재료가 물려준 종류만** 낸다.
+                // 평범하게 배치된 타워는 필터가 없어 전부 통과한다. 목록을 미리 거르지 않고 여기서 묻는
+                // 이유는 Build가 계승 부여보다 먼저 돌기 때문이다(Tower.IsEffectActive 주석 참조).
+                if (tower != null && !tower.IsEffectActive(effect.Kind)) continue;
+
                 effect.Apply(victim, source, stats, baseId ^ (int)effect.Kind);
             }
         }
