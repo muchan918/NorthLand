@@ -9,7 +9,7 @@
 > - `Assets/Scripts/GameManager/MouseManager/MouseManager.cs` (Snap 위임·히트 전달·OnEnded 발화)
 > - `Assets/Scripts/GameManager/MouseManager/Helper/PlacementButton.cs` (테스트 헬퍼)
 > **관련**: GDD §5.1·§6.2, MouseManager #9, 통합 #71, WL-001/005/009
-> **참조**: `Docs/Core/MouseManager.md`, `Docs/BattleMapBuilder/BattleMapBuilder.md`, `Docs/Review/SystemMap.md`
+> **참조**: `Docs/Core/Tower.md`(배치되는 타워 본체 — 조립·스탯·데이터), `Docs/Core/MouseManager.md`, `Docs/BattleMapBuilder/BattleMapBuilder.md`, `Docs/Review/SystemMap.md`
 > 코드가 이 명세와 어긋나면 문서를 갱신한다(팀 계약 #7).
 
 ---

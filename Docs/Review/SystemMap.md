@@ -168,6 +168,10 @@
 - `Projectile.DamageDealt`(`static event Action<IAttacker, IDamageable>`, `NorthLand.Combat`, #169 muchan 추가) —
   투사체 데미지가 실제로 들어간 직후 발행(단일/스플래시/체인 전 경로). **static이므로 구독 해제는 구독자 책임**
   (파괴된 MonoBehaviour를 남기면 죽은 구독자 호출 버그). 현재 구독자: `BurnBuff`(버프 창 동안만)
+- **타워 본체 문서 = [`Docs/Core/Tower.md`](../Core/Tower.md)** — 조립 모델·투사체·데이터 파이프라인·스탯 원장·
+  능력 질의의 정본. **전부 현행 코드 기준이므로 그대로 리뷰 기준선으로 쓴다.**
+  구조 재설계 제안은 [`Docs/Core/TowerRedesign.md`](../Core/TowerRedesign.md)로 분리돼 있다(#274) —
+  **아직 코드에 없는 합의 대기 문서이므로 리뷰 기준으로 삼지 말 것**
 - **타워는 단일 구상 타입 `Tower` 하나뿐이다(#164 리팩토링).** 공격/버프 오라/디버프 오라의 차이는 상속이 아니라
   **행동 조립**으로 표현한다 — 구 `AuraTower`(별개 MonoBehaviour)는 폐기됐다. 상호작용·합성·스킬·BT 계층은
   `Tower` 하나만 알면 되고, "이 타워가 무엇을 하는가"는 타입 검사가 아니라 `Has<T>()`로 묻는다
