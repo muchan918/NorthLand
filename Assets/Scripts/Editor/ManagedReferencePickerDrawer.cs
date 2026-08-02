@@ -35,20 +35,22 @@ public abstract class ManagedReferencePickerDrawer : PropertyDrawer
             return;
         }
 
-        // 기본 그리기(폴드아웃 + 자식 필드)를 그대로 쓰고, 첫 줄 오른쪽에 타입 버튼만 얹는다.
-        // 자식 필드를 직접 순회하지 않으므로 부품에 필드가 늘어도 이 드로어는 안 바뀐다.
-        EditorGUI.PropertyField(position, property, label, true);
-
         var buttonRect = new Rect(
             position.x + position.width - PickerWidth,
             position.y,
             PickerWidth,
             EditorGUIUtility.singleLineHeight);
 
-        if (!EditorGUI.DropdownButton(buttonRect, new GUIContent(CurrentTypeName(property)), FocusType.Keyboard))
-            return;
+        // ⚠ 버튼을 PropertyField보다 **먼저** 그린다 — IMGUI는 그린 순서대로 마우스 이벤트를 주므로,
+        // 순서가 곧 이벤트 우선권이다. 뒤에 그리면 겹치는 영역의 클릭을 먼저 그려진 PropertyField
+        // (폴드아웃 행)가 가로채 버튼이 간헐적으로 안 눌린다. ManagedReference 헤더 행은 오른쪽
+        // 값 칸에 아무것도 칠하지 않으므로 나중에 그려지는 PropertyField가 버튼을 덮지도 않는다.
+        if (EditorGUI.DropdownButton(buttonRect, new GUIContent(CurrentTypeName(property)), FocusType.Keyboard))
+            ShowMenu(property, buttonRect);
 
-        ShowMenu(property, buttonRect);
+        // 기본 그리기(폴드아웃 + 자식 필드)는 그대로 쓴다.
+        // 자식 필드를 직접 순회하지 않으므로 부품에 필드가 늘어도 이 드로어는 안 바뀐다.
+        EditorGUI.PropertyField(position, property, label, true);
     }
 
     static string CurrentTypeName(SerializedProperty property)
