@@ -278,12 +278,14 @@ public class TowerTooltipView : MonoBehaviour
     }
 
     // 배치 **전** 툴팁이라 인스턴스가 없다 → SO 원본 값을 쓴다(타일 버프·오라 버프가 반영되기 전 값).
-    // 라벨과 서식은 인스턴스 경로(AttackBehaviour.DescribeStats)와 같은 포매터를 공유한다(WL-079).
+    // 라벨과 서식은 인스턴스 경로(AttackAction.DescribeStats)와 같은 포매터를 공유한다(WL-079).
     private string BuildStats(TowerAsset t)
     {
-        TowerAsset.AttackFields atk = NorthLand.Combat.TowerBehaviourFactory.ResolveAttackFields(t);
+        // "이 타워가 공격하는가"는 프리팹의 Actions가 답한다(#274) — 예전에는 SO의 TowerType을 보고
+        // TowerBehaviourFactory가 해석했지만, 종류의 정본이 프리팹으로 옮겨가면서 그 팩토리가 사라졌다.
+        TowerAsset.AttackFields atk = t.Attack;
 
-        return atk != null
+        return t.HasAction<NorthLand.Combat.AttackAction>() && atk != null
             ? NorthLand.Combat.TowerStatsFormatter.BuildAttackLines(atk.AttackDamage, atk.AttackRange, atk.AttackInterval)
             // 오라 타워는 공통 공격 스탯이 없어 반경으로 대체 표기한다.
             : NorthLand.Combat.TowerStatsFormatter.BuildRangeLine(t.PreviewRadius);

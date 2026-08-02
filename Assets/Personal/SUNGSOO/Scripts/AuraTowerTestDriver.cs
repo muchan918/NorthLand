@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 using NorthLand.Combat;
@@ -10,7 +11,7 @@ namespace NorthLand.Sungsoo
     // 빈 GameObject에 이 컴포넌트만 붙이면 자동 실행. (에셋 파일 없이 자기완결)
     //
     // 검증 근거는 각 phase의 HP 값이다. 예전엔 AuraTower가 StatusEffectHandler.debugLog를 켜서
-    // 틱마다 로그가 찍혔지만, 오라가 런타임 조립되는 행동(DebuffAuraBehaviour)으로 바뀌면서
+    // 틱마다 로그가 찍혔지만, 오라가 액션(DebuffAuraAction)으로 바뀌면서
     // 직렬화 필드로 그 스위치를 물려줄 자리가 없어졌다 — HP 델타로 같은 것을 확인한다.
     public class AuraTowerTestDriver : MonoBehaviour
     {
@@ -41,12 +42,17 @@ namespace NorthLand.Sungsoo
                 Damage = new OptionalDamage { HasDamage = true, DamageAmount = 5f, TickInterval = 0.3f },
             };
 
-            // 타워: 필드 세팅 후 활성화(OnEnable이 직렬화된 data로 오라 행동을 조립한다)
+            // 타워: 필드 세팅 후 활성화(OnEnable이 직렬화된 data로 액션을 초기화한다)
             var towerGo = new GameObject("TestAuraTower");
             towerGo.SetActive(false);
             var tower = towerGo.AddComponent<Tower>();
             SetPriv(tower, "data", asset);
             SetPriv(tower, "enemyLayerMask", (LayerMask)(~0));   // 모든 레이어 감지(테스트)
+
+            // #274 Phase 2: 액션은 프리팹이 정본이라 런타임 생성 타워는 직접 담아줘야 한다.
+            // 예전에는 TowerBehaviourFactory가 SO의 TowerType을 보고 알아서 붙여줬다.
+            SetPriv(tower, "actions", new List<TowerAction> { new DebuffAuraAction() });
+
             towerGo.SetActive(true);
 
             // 더미: 콜라이더 포함, 사거리 안(2,0,0)

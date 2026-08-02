@@ -42,6 +42,15 @@ public class TowerAsset : ScriptableObject
     /// WL-056의 "오라 반경 단일 출처" 성질을 유지하면서 `TowerType` 분기만 걷어낸 것이다.
     /// 구 `MagicRadius`는 `MagicEffectType`으로 Buff/Debuff를 골랐는데, 오라를 둘 다 가진 타워를
     /// 표현할 수 없었다. 최댓값을 쓰면 공격+오라 하이브리드 타워도 자연히 커버된다.
+    /// 이 타워가 해당 액션을 갖는지 — **프리팹의 `Tower.Actions`가 정본이다**(#274).
+    ///
+    /// 배치 **전** 경로(툴팁·저작 검증)는 인스턴스가 없어 `Tower.Has&lt;T&gt;()`를 직접 못 부른다.
+    /// 프리팹의 직렬화된 액션 리스트를 그대로 들여다보므로 초기화 없이도 답할 수 있다.
+    public bool HasAction<T>() where T : NorthLand.Combat.TowerAction
+        => TowerPrefab != null
+           && TowerPrefab.TryGetComponent(out NorthLand.Combat.Tower tower)
+           && tower.Has<T>();
+
     public float PreviewRadius => Mathf.Max(
         Attack != null ? Attack.AttackRange : 0f,
         Mathf.Max(
