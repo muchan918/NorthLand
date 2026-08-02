@@ -155,27 +155,10 @@ public class TowerPlacer : MonoBehaviour
         // CancelPlacement가 이전 배치의 OnEnded=EndPlacement를 발화해 _onConfirmed을 null로 지우므로,
         // 여기서 미리 대입하면 합성 재료 소모 콜백이 유실된다(무료 합성 버그).
 
-        // 프리뷰 반경. `TowerType→AttackFields` 해석은 여기서 다시 분기하지 않고
-        // `TowerBehaviourFactory.ResolveAttackFields` 단일 출처를 쓴다(WL-079) — 예전에는 이 switch가
-        // 같은 해석의 4번째 복제였고, 새 타워 타입을 추가할 때 빠뜨리기 쉬운 자리였다.
-        TowerAsset.AttackFields attack = NorthLand.Combat.TowerBehaviourFactory.ResolveAttackFields(so);
-        float previewRange;
-
-        if (attack != null)
-        {
-            previewRange = attack.AttackRange;
-        }
-        else if (so.TowerType == TowerType.Magic)
-        {
-            // 마법 타워는 오라 반경을 사거리 미리보기로 사용(#111 완료기준 #4).
-            // 반경 규칙은 TowerAsset.MagicRadius 단일 출처(WL-056) — 오라 행동의 실효과와 공유.
-            previewRange = so.MagicRadius;
-        }
-        else
-        {
-            Debug.LogError($"[TowerPlacer] 공격 스탯도 오라 반경도 해석할 수 없는 TowerType={so.TowerType}입니다.");
-            return false;
-        }
+        // 프리뷰 반경 = 공격 사거리와 오라 반경 중 큰 쪽(TowerAsset.PreviewRadius 단일 출처, WL-056).
+        // 예전에는 여기서 `ResolveAttackFields → 없으면 MagicRadius`로 다시 분기했는데, 그 분기가
+        // 곧 `TowerType`을 아는 4번째 지점이었다. SO가 최댓값 하나로 답하면 호출부는 종류를 몰라도 된다(#274).
+        float previewRange = so.PreviewRadius;
 
         return StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, previewRange), onConfirmed, onEnded);
     }

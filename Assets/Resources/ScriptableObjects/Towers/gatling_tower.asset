@@ -22,6 +22,36 @@ MonoBehaviour:
     Amount: 5
   - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
     Amount: 20
+  Attack:
+    AttackDamage: 7
+    AttackRange: 32
+    AttackInterval: 0.35
+    ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
+    ProjectileSpeed: 800
+    Flight: 0
+    ArcHeight: 0
+    OnHitStunDuration: 0
+  Impact: 0
+  SplashRadius: 0
+  ChainRadius: 0
+  MaxChainTargets: 0
+  ChainDamageFalloff: 0
+  BuffAura:
+    Radius: 0
+    Modifiers: []
+    Damage:
+      HasDamage: 0
+      DamageAmount: 0
+      TickInterval: 0
+  DebuffAura:
+    Radius: 0
+    Interval: 0
+    Duration: 0
+    Modifiers: []
+    Damage:
+      HasDamage: 0
+      DamageAmount: 0
+      TickInterval: 0
   Single:
     Attack:
       AttackDamage: 7
@@ -29,6 +59,9 @@ MonoBehaviour:
       AttackInterval: 0.35
       ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
       ProjectileSpeed: 800
+      Flight: 0
+      ArcHeight: 0
+      OnHitStunDuration: 0
   Area:
     Attack:
       AttackDamage: 0
@@ -36,6 +69,9 @@ MonoBehaviour:
       AttackInterval: 0
       ProjectilePrefab: {fileID: 0}
       ProjectileSpeed: 0
+      Flight: 0
+      ArcHeight: 0
+      OnHitStunDuration: 0
     SplashRadius: 0
   Chain:
     Attack:
@@ -44,6 +80,9 @@ MonoBehaviour:
       AttackInterval: 0
       ProjectilePrefab: {fileID: 0}
       ProjectileSpeed: 0
+      Flight: 0
+      ArcHeight: 0
+      OnHitStunDuration: 0
     ChainRadius: 0
     MaxChainTargets: 0
     ChainDamageFalloff: 0

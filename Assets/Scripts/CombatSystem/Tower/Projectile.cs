@@ -36,10 +36,23 @@ namespace NorthLand.Combat
     }
 
     // 투사체 비행 방식
-    //  Homing   : 매 프레임 살아있는 대상을 추적하는 유도탄 (반드시 명중). arcHeight>0이면 곡사(포물선) 비주얼도 적용.
+    //  Homing   : 매 프레임 살아있는 대상을 추적하는 유도탄 (반드시 명중). ArcHeight>0이면 곡사(포물선) 비주얼도 적용.
     //  Ballistic: 발사 순간 대상의 월드 위치를 착탄점으로 고정하고 그 지점까지 비행.
     //             대상이 도중에 죽거나 움직여도 고정된 착탄점에 그대로 명중(박격포 등).
     public enum FlightMode { Homing, Ballistic }
+
+    // 타워가 발사 시 넘기는 "어떻게 날아갈지" 기술자. ProjectileImpact와 **대칭**이다 —
+    // 하나는 비행, 하나는 명중이고 둘 다 타워 SO가 정한다(#274).
+    //
+    // 예전에는 Speed만 SO에 있고 Mode/ArcHeight는 탄환 프리팹의 [SerializeField]였다. 셋 다 같은 궤적을
+    // 만드는 값이고 착탄 시간 → 실효 DPS를 정하므로 비주얼이 아니라 밸런스다. 게다가 탄환 프리팹이
+    // 여러 타워에 공유돼(Rolly_Bullet ← archer/gatling/sniper/soda) 타워별로 다른 비행을 줄 수 없었다.
+    public struct ProjectileFlight
+    {
+        public FlightMode Mode;
+        public float Speed;
+        public float ArcHeight;   // 포물선 정점 높이. **판정에 영향 없는 겉보기 값**
+    }
 
     public class Projectile : MonoBehaviour
     {
@@ -47,17 +60,14 @@ namespace NorthLand.Combat
         // 구독한다. 순수 추가 훅으로 기존 공격 로직은 무수정. static이므로 구독자가 해제를 책임진다.
         public static event Action<IAttacker, IDamageable> DamageDealt;
 
+        // 프리팹에 남는 **유일한** 설정 — 모델 메시의 기수가 어느 축을 보는지 보정한다(화살 −90, 공 0).
+        // 타워가 알 이유가 없는 값이라 여기 남는다. 비행·명중은 전부 타워 SO가 정한다(#274).
         [SerializeField] Vector3 rotationOffset;
-
-        [Header("Flight")]
-        [SerializeField] FlightMode flightMode = FlightMode.Homing;
-        // Ballistic 전용: 착탄점까지의 포물선 정점 높이(월드 단위). 0이면 직선.
-        [SerializeField] float arcHeight = 0f;
 
         IDamageable target;
         float damage;
-        float speed;
         IAttacker source;
+        ProjectileFlight flight;
         ProjectileImpact impact;
 
         // Ballistic 상태: 발사 순간 스냅샷한 착탄점과 시작점, 진행 거리
@@ -72,15 +82,16 @@ namespace NorthLand.Combat
         // 체인 중복 타격 방지용 (한 프레임에 하나의 투사체만 명중 처리되므로 static 재사용 OK)
         static readonly HashSet<IDamageable> chainHitSet = new HashSet<IDamageable>();
 
-        public void Init(IDamageable target, float damage, float speed, IAttacker source, ProjectileImpact impact)
+        public void Init(IDamageable target, float damage, IAttacker source,
+                         ProjectileFlight flight, ProjectileImpact impact)
         {
             this.target = target;
             this.damage = damage;
-            this.speed = speed;
             this.source = source;
+            this.flight = flight;
             this.impact = impact;
 
-            if (flightMode == FlightMode.Ballistic)
+            if (flight.Mode == FlightMode.Ballistic)
             {
                 // 발사 순간의 대상 위치를 착탄점으로 고정 (이후 대상 이동/사망과 무관)
                 startPos = transform.position;
@@ -99,7 +110,7 @@ namespace NorthLand.Combat
 
         void Update()
         {
-            if (flightMode == FlightMode.Ballistic)
+            if (flight.Mode == FlightMode.Ballistic)
                 UpdateBallistic();
             else
                 UpdateHoming();
@@ -119,12 +130,12 @@ namespace NorthLand.Combat
             Vector3 prevPos = transform.position;
 
             // 평면(비아크) 추적 위치를 대상으로 이동. 아크는 이 위에 시각적 높이만 더한다.
-            homingPos = Vector3.MoveTowards(homingPos, targetPos, speed * Time.deltaTime);
+            homingPos = Vector3.MoveTowards(homingPos, targetPos, flight.Speed * Time.deltaTime);
 
             // 진행도 t: 시작 시 0, 대상에 근접할수록 1(초기 거리 기준). 대상이 멀어지면 0으로 clamp.
             float remaining = Vector3.Distance(homingPos, targetPos);
             float t = totalDistance > 0.0001f ? Mathf.Clamp01(1f - remaining / totalDistance) : 1f;
-            float arcY = arcHeight * 4f * t * (1f - t);   // 양 끝 0, t=0.5에서 정점(arcHeight)인 포물선
+            float arcY = flight.ArcHeight * 4f * t * (1f - t);   // 양 끝 0, t=0.5에서 정점인 포물선
 
             transform.position = homingPos + Vector3.up * arcY;
 
@@ -145,11 +156,11 @@ namespace NorthLand.Combat
         {
             Vector3 prevPos = transform.position;
 
-            traveled += speed * Time.deltaTime;
+            traveled += flight.Speed * Time.deltaTime;
             float t = totalDistance > 0.0001f ? Mathf.Clamp01(traveled / totalDistance) : 1f;
 
             Vector3 pos = Vector3.Lerp(startPos, landingPos, t);
-            pos.y += arcHeight * 4f * t * (1f - t);   // t=0.5에서 정점(arcHeight), 양 끝 0인 포물선
+            pos.y += flight.ArcHeight * 4f * t * (1f - t);   // t=0.5에서 정점, 양 끝 0인 포물선
             transform.position = pos;
 
             Vector3 dir = pos - prevPos;

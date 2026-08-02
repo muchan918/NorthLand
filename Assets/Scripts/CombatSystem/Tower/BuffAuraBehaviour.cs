@@ -33,7 +33,7 @@ namespace NorthLand.Combat
         public void Initialize(in TowerBuildContext context)
         {
             owner = context.Owner;
-            aura = context.Asset.Magic?.BuffAura;
+            aura = context.Asset.BuffAura;
 
             // 인스턴스별 소스키 — 같은 종류 버프 타워를 여러 개 지으면 각각 별개 소스로 합산 중첩된다.
             sourceId = GetInstanceID();

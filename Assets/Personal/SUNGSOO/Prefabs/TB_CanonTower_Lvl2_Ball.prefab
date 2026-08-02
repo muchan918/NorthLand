@@ -104,5 +104,3 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NorthLand.Combat.Projectile
   rotationOffset: {x: 0, y: 0, z: 0}
-  flightMode: 1
-  arcHeight: 10

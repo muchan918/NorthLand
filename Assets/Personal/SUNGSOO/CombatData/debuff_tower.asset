@@ -18,6 +18,36 @@ MonoBehaviour:
   TowerType: 3
   MagicEffectType: 2
   Cost: []
+  Attack:
+    AttackDamage: 0
+    AttackRange: 0
+    AttackInterval: 0
+    ProjectilePrefab: {fileID: 0}
+    ProjectileSpeed: 0
+    Flight: 0
+    ArcHeight: 0
+    OnHitStunDuration: 0
+  Impact: 0
+  SplashRadius: 0
+  ChainRadius: 0
+  MaxChainTargets: 0
+  ChainDamageFalloff: 0
+  BuffAura:
+    Radius: 0
+    Modifiers: []
+    Damage:
+      HasDamage: 0
+      DamageAmount: 0
+      TickInterval: 0
+  DebuffAura:
+    Radius: 5
+    Interval: 1
+    Duration: 3
+    Modifiers: []
+    Damage:
+      HasDamage: 1
+      DamageAmount: 3
+      TickInterval: 1
   Single:
     Attack:
       AttackDamage: 0
@@ -25,6 +55,9 @@ MonoBehaviour:
       AttackInterval: 0
       ProjectilePrefab: {fileID: 0}
       ProjectileSpeed: 0
+      Flight: 0
+      ArcHeight: 0
+      OnHitStunDuration: 0
   Area:
     Attack:
       AttackDamage: 0
@@ -32,6 +65,9 @@ MonoBehaviour:
       AttackInterval: 0
       ProjectilePrefab: {fileID: 0}
       ProjectileSpeed: 0
+      Flight: 0
+      ArcHeight: 0
+      OnHitStunDuration: 0
     SplashRadius: 0
   Chain:
     Attack:
@@ -40,13 +76,15 @@ MonoBehaviour:
       AttackInterval: 0
       ProjectilePrefab: {fileID: 0}
       ProjectileSpeed: 0
+      Flight: 0
+      ArcHeight: 0
+      OnHitStunDuration: 0
     ChainRadius: 0
     MaxChainTargets: 0
     ChainDamageFalloff: 0
   Magic:
     BuffAura:
       Radius: 0
-      Interval: 0
       Modifiers: []
       Damage:
         HasDamage: 0

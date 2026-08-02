@@ -12,6 +12,7 @@ namespace NorthLand.Combat
     {
         Tower owner;
         TowerAsset.AttackFields fields;
+        ProjectileFlight flight;
         ProjectileImpact impact;
         Transform firePoint;
 
@@ -46,6 +47,7 @@ namespace NorthLand.Combat
             fields = TowerBehaviourFactory.ResolveAttackFields(context.Asset);
             firePoint = context.FirePoint;
             enemyLayerMask = context.EnemyLayerMask;
+            flight = BuildFlight(fields);
             impact = BuildImpact(context.Asset, context.EnemyLayerMask);
             cooldownTimer = 0f;
         }
@@ -86,30 +88,34 @@ namespace NorthLand.Combat
             }
 
             // 데미지 소스는 owner다 — IAttacker 계약을 가진 쪽이 타워이므로 DamageInfo가 타워를 가리킨다.
-            projectile.Init(target, Damage, fields.ProjectileSpeed, owner, impact);
+            projectile.Init(target, Damage, owner, flight, impact);
             owner.RaiseFired();
             return true;
         }
 
-        // 타입별 명중 동작(단일/스플래시/체인) + 명중 시 스턴. 발사마다 재구성할 이유가 없어 조립 시 1회 만든다
+        // "어떻게 날아갈지". 전부 SO가 정한다 — 예전에는 Speed만 SO였고 Mode/ArcHeight는 탄환 프리팹에
+        // 박혀 있어, 같은 궤적을 만드는 값이 두 파일로 갈려 있었다(#274).
+        static ProjectileFlight BuildFlight(TowerAsset.AttackFields fields)
+            => fields == null
+                ? default
+                : new ProjectileFlight
+                {
+                    Mode = fields.Flight,
+                    Speed = fields.ProjectileSpeed,
+                    ArcHeight = fields.ArcHeight,
+                };
+
+        // "터지면 누구를 때릴지". 발사마다 재구성할 이유가 없어 조립 시 1회 만든다
         // (ProjectileImpact는 struct라 발사 시 복사되어 전달된다).
         static ProjectileImpact BuildImpact(TowerAsset asset, LayerMask enemyLayerMask)
         {
-            ProjectileImpact result;
-            switch (asset.TowerType)
+            ProjectileImpact result = asset.Impact switch
             {
-                case TowerType.Area:
-                    result = ProjectileImpact.MakeArea(asset.Area.SplashRadius, enemyLayerMask);
-                    break;
-                case TowerType.Chain:
-                    TowerAsset.ChainFields chain = asset.Chain;
-                    result = ProjectileImpact.MakeChain(
-                        chain.ChainRadius, chain.MaxChainTargets, chain.ChainDamageFalloff, enemyLayerMask);
-                    break;
-                default:
-                    result = ProjectileImpact.MakeSingle();
-                    break;
-            }
+                ImpactKind.Area => ProjectileImpact.MakeArea(asset.SplashRadius, enemyLayerMask),
+                ImpactKind.Chain => ProjectileImpact.MakeChain(
+                    asset.ChainRadius, asset.MaxChainTargets, asset.ChainDamageFalloff, enemyLayerMask),
+                _ => ProjectileImpact.MakeSingle(),
+            };
 
             TowerAsset.AttackFields attack = TowerBehaviourFactory.ResolveAttackFields(asset);
             result.StunDuration = attack != null ? attack.OnHitStunDuration : 0f;

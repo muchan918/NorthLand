@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using NorthLand.Combat;   // ImpactKind / FlightMode — 투사체가 "어떻게 날아가서 어떻게 터지는가"
 
 [CreateAssetMenu(fileName = "TowerAsset", menuName = "Scriptable Objects/TowerAsset")]
 public class TowerAsset : ScriptableObject
@@ -8,8 +9,8 @@ public class TowerAsset : ScriptableObject
     public GameObject TowerPrefab;
     public GameObject GhostPrefab; // 배치 전 미리보기용 투명 타워 프리팹. TowerPrefab과 동일한 구조를 가져야 한다.
 
-    // BuildingAsset과 동일한 이유로 Data 캐시가 아닌 일반 필드로 노출한다
-    // (TowerAssetEditor가 Play 이전 편집 모드에서 타입별 필드 그룹을 골라 보여줘야 함).
+    // BuildingAsset과 동일한 이유로 Data 캐시가 아닌 일반 필드로 노출한다.
+    // TODO(#274 Phase 3): 액션 리스트 전환이 끝나면 프리팹의 Actions가 종류의 정본이 되어 이 둘은 삭제된다.
     public TowerType TowerType;
     public MagicEffectType MagicEffectType;
 
@@ -18,20 +19,34 @@ public class TowerAsset : ScriptableObject
 
     public List<ResourceCost> Cost;
 
-    public SingleFields Single;
-    public AreaFields Area;
-    public ChainFields Chain;
-    public MagicFields Magic;
+    // ── 평탄 스키마 (#274 Phase 1) ──────────────────────────────────────────────
+    // 타입별 래퍼(Single/Area/Chain/Magic)를 풀어 한 층으로 편다. 타입별 필드가 7개뿐이라
+    // 그룹 클래스 없이도 읽을 만하고, 안 쓰는 타워에서 값이 0이어도 아무도 안 읽으므로 무해하다.
+    // 자세한 근거: Docs/Core/TowerRedesign.md §6
+    [Header("공격")]
+    public AttackFields Attack;
 
-    // 마법 타워의 오라 반경(=사거리) 단일 출처(WL-056). MagicEffectType으로 분기.
-    // 실효과 반경(AuraTower)과 배치 프리뷰 반경(TowerPlacer)이 공통으로 이 값을 읽어
-    // 두 곳에 규칙이 중복돼 조용히 어긋나는 것을 막는다.
-    public float MagicRadius => Magic == null ? 0f : MagicEffectType switch
-    {
-        MagicEffectType.Debuff => Magic.DebuffAura != null ? Magic.DebuffAura.Radius : 0f,
-        MagicEffectType.Buff   => Magic.BuffAura   != null ? Magic.BuffAura.Radius   : 0f,
-        _ => 0f,
-    };
+    [Header("명중")]
+    public ImpactKind Impact;
+    public float SplashRadius;          // Impact = Area
+    public float ChainRadius;           // Impact = Chain
+    public int MaxChainTargets;         // Impact = Chain — 최초 대상 포함 총 타격 수
+    public float ChainDamageFalloff;    // Impact = Chain — 홉마다 곱해지는 계수
+
+    [Header("오라")]
+    public BuffAuraFields BuffAura;
+    public DebuffAuraFields DebuffAura;
+
+    /// 배치 프리뷰에 그릴 반경. 공격 사거리와 오라 반경 중 **큰 쪽** — 플레이어가 알아야 할 영향 범위다.
+    ///
+    /// WL-056의 "오라 반경 단일 출처" 성질을 유지하면서 `TowerType` 분기만 걷어낸 것이다.
+    /// 구 `MagicRadius`는 `MagicEffectType`으로 Buff/Debuff를 골랐는데, 오라를 둘 다 가진 타워를
+    /// 표현할 수 없었다. 최댓값을 쓰면 공격+오라 하이브리드 타워도 자연히 커버된다.
+    public float PreviewRadius => Mathf.Max(
+        Attack != null ? Attack.AttackRange : 0f,
+        Mathf.Max(
+            BuffAura != null ? BuffAura.Radius : 0f,
+            DebuffAura != null ? DebuffAura.Radius : 0f));
 
     // Single/Area/Chain 공통 공격 스탯. Combat/TowerData.cs(SUNGSOO)의 필드와 의미 대응되도록
     // 맞춰서, 추후 Combat이 이 파이프라인으로 옮겨올 때 매핑이 쉽도록 한다.
@@ -41,39 +56,19 @@ public class TowerAsset : ScriptableObject
         public float AttackDamage;
         public float AttackRange;
         public float AttackInterval;
-        public GameObject ProjectilePrefab;
+        public GameObject ProjectilePrefab;   // 겉모습만 고른다 — 비행·명중은 아래 값들이 정한다
+
+        // ── 비행 (#274 Phase 1에서 탄환 프리팹 → 여기로 이관) ────────────────────
+        // 속도는 원래 SO에 있었는데 궤적(FlightMode/ArcHeight)만 탄환 프리팹에 있어 비대칭이었다.
+        // 셋 다 같은 궤적을 만드는 값이고 착탄 시간 → 실효 DPS를 정하므로 **비주얼이 아니라 밸런스**다.
+        // 탄환 프리팹에 남는 것은 rotationOffset(모델 축 보정)뿐이다. 근거: TowerRedesign.md §6.1
         public float ProjectileSpeed;
+        public FlightMode Flight;             // Homing = 반드시 명중 / Ballistic = 착탄점 고정(빗나갈 수 있음)
+        public float ArcHeight;               // 포물선 정점 높이. **판정에 영향 없는 겉보기 값**
+
         // >0이면 투사체 명중 시 대상에 스턴(초) 부여(#164 소다타워). 0=없음. 슬로우 인프라(StatusEffectHandler) 재사용.
+        // TODO(#274 Phase 4): HitEffect 부품으로 대체된다.
         public float OnHitStunDuration;
-    }
-
-    [System.Serializable]
-    public class SingleFields
-    {
-        public AttackFields Attack;
-    }
-
-    [System.Serializable]
-    public class AreaFields
-    {
-        public AttackFields Attack;
-        public float SplashRadius;
-    }
-
-    [System.Serializable]
-    public class ChainFields
-    {
-        public AttackFields Attack;
-        public float ChainRadius;
-        public int MaxChainTargets;
-        public float ChainDamageFalloff;
-    }
-
-    [System.Serializable]
-    public class MagicFields
-    {
-        public BuffAuraFields BuffAura;
-        public DebuffAuraFields DebuffAura;
     }
 
     [System.Serializable]

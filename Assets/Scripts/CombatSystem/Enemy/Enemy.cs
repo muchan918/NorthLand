@@ -323,7 +323,17 @@ namespace NorthLand.Combat
                 return false;
             }
 
-            projectile.Init(target, AttackDamage, ranged.ProjectileSpeed, this, ProjectileImpact.MakeSingle());
+            // 비행은 쏘는 쪽이 정한다(#274). 적은 아직 궤적 저작 필드가 없어 유도탄 직선으로 고정한다 —
+            // 현재 모든 EnemyAsset의 Ranged.ProjectilePrefab이 null이라 이 경로 자체가 미사용이다.
+            // 원거리 적을 실제로 붙일 때 EnemyAsset.RangedFields에 Flight/ArcHeight를 추가하면 된다.
+            var flight = new ProjectileFlight
+            {
+                Mode = FlightMode.Homing,
+                Speed = ranged.ProjectileSpeed,
+                ArcHeight = 0f,
+            };
+
+            projectile.Init(target, AttackDamage, this, flight, ProjectileImpact.MakeSingle());
             return true;
         }
 

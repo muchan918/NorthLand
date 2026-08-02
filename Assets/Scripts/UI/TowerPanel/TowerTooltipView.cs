@@ -286,7 +286,7 @@ public class TowerTooltipView : MonoBehaviour
         return atk != null
             ? NorthLand.Combat.TowerStatsFormatter.BuildAttackLines(atk.AttackDamage, atk.AttackRange, atk.AttackInterval)
             // 오라 타워는 공통 공격 스탯이 없어 반경으로 대체 표기한다.
-            : NorthLand.Combat.TowerStatsFormatter.BuildRangeLine(t.MagicRadius);
+            : NorthLand.Combat.TowerStatsFormatter.BuildRangeLine(t.PreviewRadius);
     }
 
     // 코스트: '자원명 x수량' 줄 나열(자원명은 default 테이블 로컬라이즈, BuildingInfoUI 표기와 동일 계열).

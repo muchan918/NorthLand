@@ -31,16 +31,14 @@ namespace NorthLand.Sungsoo
             asset.TowerID = "test_debuff";
             asset.TowerType = TowerType.Magic;
             asset.MagicEffectType = MagicEffectType.Debuff;
-            asset.Magic = new TowerAsset.MagicFields
+            // #274 Phase 1: Magic 래퍼가 풀리면서 오라 필드가 SO 최상위로 올라왔다.
+            asset.BuffAura = new TowerAsset.BuffAuraFields();
+            asset.DebuffAura = new TowerAsset.DebuffAuraFields
             {
-                BuffAura = new TowerAsset.BuffAuraFields(),
-                DebuffAura = new TowerAsset.DebuffAuraFields
-                {
-                    Radius = 5f,
-                    Interval = 0.3f,
-                    Duration = 2f,
-                    Damage = new OptionalDamage { HasDamage = true, DamageAmount = 5f, TickInterval = 0.3f },
-                },
+                Radius = 5f,
+                Interval = 0.3f,
+                Duration = 2f,
+                Damage = new OptionalDamage { HasDamage = true, DamageAmount = 5f, TickInterval = 0.3f },
             };
 
             // 타워: 필드 세팅 후 활성화(OnEnable이 직렬화된 data로 오라 행동을 조립한다)

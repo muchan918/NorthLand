@@ -55,7 +55,7 @@ namespace NorthLand.Combat
         public void Initialize(in TowerBuildContext context)
         {
             owner = context.Owner;
-            aura = context.Asset.Magic?.DebuffAura;
+            aura = context.Asset.DebuffAura;
             targetLayerMask = context.EnemyLayerMask;
 
             // 소스키는 **인스턴스별**이다. 예전에는 TowerID 해시를 썼는데, 그러면 같은 종류 오라 타워

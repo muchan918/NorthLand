@@ -171,15 +171,29 @@ Build(asset)
 | `EnemyNodeQuery.IsAttackTower` | 보스 P3 마력 봉인 대상 필터 |
 | `Tower.AttackDamage/Range/Interval` | 공격 행동이 없으면 0 — "공격 안 하는 타워"를 값으로 표현 |
 
-### 3.7 투사체 — 축이 둘이고, 지금은 소유자가 갈라져 있다
+### 3.7 투사체 — 비행 축과 명중 축
 
 투사체는 **콜라이더 충돌 판정을 쓰지 않는다.** 물리 트리거 없이 거리 계산만으로 명중을 정한다.
-그리고 **서로 독립인 축이 둘** 있는데, 지금은 소유자가 다르다.
+그리고 **서로 독립인 축이 둘** 있으며, **둘 다 타워 SO가 정한다**(#274 Phase 1).
 
-| 축 | 무엇 | 지금 어디에 적혀 있나 |
+| 축 | 무엇 | 어디서 정하나 |
 |---|---|---|
-| **비행** `FlightMode` | 언제·어떤 궤적으로 도달하는가 | **탄환 프리팹**의 `[SerializeField]` |
-| **명중** `ImpactKind` | 도달하면 누구를 때리는가 | **타워 SO** → `ProjectileImpact`로 전달 |
+| **비행** `ProjectileFlight` | 얼마나 빠르게·어떤 궤적으로 도달하는가 | `TowerAsset.Attack`의 `ProjectileSpeed`·`Flight`·`ArcHeight` |
+| **명중** `ProjectileImpact` | 도달하면 누구를 때리는가 | `TowerAsset`의 `Impact`·`SplashRadius`·`Chain*` |
+
+둘 다 `AttackBehaviour`가 조립 시 1회 만들어(`BuildFlight`/`BuildImpact`) 발사할 때
+`Projectile.Init(target, damage, source, flight, impact)`로 넘긴다. struct라 발사마다 복사된다.
+
+**탄환 프리팹에 남는 설정은 `rotationOffset` 하나뿐이다** — 모델 메시의 기수가 어느 축을 보는지 보정하는
+값이라(화살 −90, 공 0) 타워가 알 이유가 없다. 즉 역할이 이렇게 갈린다:
+
+```
+탄환 프리팹  =  메시 · 트레일 · 파티클 · 모델 축 보정       "어떻게 보이는가"
+타워 SO      =  어떻게 날아가서 어떻게 터지는가 + 모든 수치   "무엇을 하는가"
+```
+
+`ProjectilePrefab` 필드는 **"어떤 모양으로 보일지"만 고른다.** 그래서 `Rolly_Bullet` 하나를
+archer/gatling/Sniper/soda 4개 타워가 공유하면서도 각자 다른 속도·궤적을 가질 수 있다.
 
 #### 비행 2종
 
@@ -188,13 +202,15 @@ Build(asset)
 | `Homing` ([:109](../../Assets/Scripts/CombatSystem/Tower/Projectile.cs)) | 매 프레임 추적, `remaining < 0.1f` | **투사체 소멸, 명중 없음** |
 | `Ballistic` ([:144](../../Assets/Scripts/CombatSystem/Tower/Projectile.cs)) | 발사 순간 대상 위치를 `landingPos`로 **고정**, 진행도 `t >= 1f` | **고정된 착탄점에 그대로 명중** |
 
-`arcHeight`는 **비주얼 전용**이다 — 평면 추적 위에 포물선 높이를 얹기만 하고(`:127`, `:152`) 판정에는
+`ArcHeight`는 **비주얼 전용**이다 — 평면 추적 위에 포물선 높이를 얹기만 하고(`:127`, `:152`) 판정에는
 들어가지 않는다.
 
-⚠ **실측: `Ballistic`은 사용처 0인 데드 코드다.** 투사체를 쓰는 SO는 5개
-(archer·gatling·Sniper·soda → `Rolly_Bullet` / cannon → `CandyBullet`)인데, 이들이 가리키는 탄환 프리팹
-**4종 전부 `flightMode: 0`(Homing)**이다. 캐논의 곡사도 `Ballistic`이 아니라
-**`Homing` + `arcHeight` 15**로 만들어져 있다 — 겉보기만 포격이고 실제로는 반드시 맞는 유도탄이다.
+⚠ **현재 SO 9개 전부 `Homing`이다** — `Ballistic` 경로는 지금 아무도 안 쓴다. 캐논의 곡사도
+`Ballistic`이 아니라 **`Homing` + `ArcHeight` 15**다(겉보기만 포격, 실제로는 반드시 맞는 유도탄).
+다만 **"한 번도 안 쓰인 것"은 아니다** — #274 Phase 1 이전에 `Personal/SUNGSOO/`의 탄환 프리팹
+`TB_CanonTower_Lvl2_Ball`(Ballistic, arc 10)과 `SweetLand Prefab/CandyBullet`(Ballistic, arc 30)이
+그렇게 저작돼 있었다. 둘 다 **참조 0건 고아**여서 이관 대상에서 빠졌고, 값은 git 히스토리에만 남는다.
+`Ballistic`을 지우지 않는 근거가 이것이다.
 
 #### 명중 3종 — `OnHit`([:166](../../Assets/Scripts/CombatSystem/Tower/Projectile.cs))
 
@@ -214,10 +230,9 @@ Build(asset)
 `AttackBehaviour`가 하나뿐인 이유가 이것이다. 타워 클래스로 나눴다면 `FindTarget`·쿨다운·`Instantiate`가
 **3벌 복붙**된다. 그래서 `ProjectileImpact`를 전략 값으로 넘긴다.
 
-⚠ **소유자가 갈라진 것이 실제 문제를 만든다.** `ProjectileSpeed`는 SO에 있는데 `arcHeight`는 프리팹에
-있어, 같은 궤적을 만드는 두 값이 다른 파일에 산다. 게다가 `Rolly_Bullet` 하나를
-archer/gatling/sniper/soda **4개 타워가 공유**해서 타워별로 다른 비행을 줄 수 없다.
-→ [TowerRedesign.md](TowerRedesign.md) §6.1에서 정리한다.
+> **원거리 적도 같은 `Projectile`을 쓴다**(`Enemy.TryRangedAttack`). 다만 `EnemyAsset.RangedFields`엔
+> 궤적 저작 필드가 없어 `Homing` + 직선으로 고정되어 있다. 현재 모든 `EnemyAsset`의
+> `Ranged.ProjectilePrefab`이 null이라 이 경로 자체가 미사용이다.
 
 ---
 
@@ -232,6 +247,7 @@ TowerData (POCO)       런타임 전용. 에셋에 저장 안 됨
       ↓ (호출부가 채움)
 TowerAsset.Data        런타임 캐시 ([HideInInspector])
 TowerAsset             ★ 실제 수치가 사는 곳 — 인스펙터 수기 authoring (WL-015)
+                         공격 · 비행 · 명중 · 오라가 한 층으로 평탄하게 놓인다(#274 Phase 1)
       ↓ TowerPrefab 참조
 프리팹                  Tower 컴포넌트 + firePoint + 콜라이더 + 모델
       ↓ Tower.Build
@@ -240,6 +256,10 @@ TowerAsset             ★ 실제 수치가 사는 곳 — 인스펙터 수기 a
 
 `TableImporter.ImportTower`(에디터 메뉴)가 CSV를 읽어 `Towers/{TowerID}.asset`을 생성/갱신하는데,
 **동기화하는 필드는 `TowerID`/`TowerType`/`MagicEffectType` 3개뿐**이다. 수치는 손으로 채운다.
+
+> `TowerAsset`에는 커스텀 에디터가 없다 — 기본 인스펙터가 `[Header]`로 묶인 평탄 필드를 그대로 그린다.
+> 구 `TowerAssetEditor`는 `TowerType`으로 필드 그룹을 골라 그리는 것이 존재 이유였는데, 평탄화 후에는
+> 오히려 새 필드를 **가려서** #274 Phase 1에서 삭제했다.
 
 ### 4.2 `TowerAsset.Data` 채움 규약 — ⚠ 쓰기 4곳에 흩어져 있음
 
@@ -266,26 +286,28 @@ TowerAsset             ★ 실제 수치가 사는 곳 — 인스펙터 수기 a
 > `LogError` 후 **null을 반환**하므로, `TowerTable`이 등록되지 않은 씬(테스트 씬 등)에서 타워를 클릭하면
 > `NullReferenceException`이 난다 — 바로 다음 줄의 null 가드가 **도달 불가**다. §6 #9.
 
-### 4.3 `TowerType`/`MagicEffectType` 참조가 실제로 있는 곳 — 9개 파일 / 34줄
+### 4.3 `TowerType`/`MagicEffectType` 참조가 실제로 있는 곳 — 6개 파일
 
-`TowerBehaviourFactory`가 스스로를 "switch가 사는 유일한 곳"이라고 선언하지만 사실이 아니다. 그리고
-**switch가 아닌 참조까지 세면 더 넓다** — enum을 지우려면 아래 전부를 손봐야 한다.
+#274 Phase 1의 스키마 평탄화로 **9개 파일 → 6개**로 줄었다. 없어진 3곳은
+`AttackBehaviour.BuildImpact`(→ `ImpactKind` switch로 대체) · `TowerPlacer` 프리뷰 분기(→ `PreviewRadius`) ·
+`TowerAssetEditor.cs`(파일째 삭제)다.
 
 | 위치 | 성격 |
 |---|---|
 | `TowerData.cs:1,9,20,21` | enum 선언 + POCO 프로퍼티 (정본) |
-| `TowerBehaviourFactory.cs` (`:19-25`, `:35-48`, `:51-56`) | **switch 3개** |
-| `AttackBehaviour.cs:99` `BuildImpact` | switch |
-| `TowerAssetEditor.cs` (`:24-58`, `:40-56`) | **switch 2개** + `enumValueIndex` 직접 캐스팅 |
+| `TowerAsset.cs:14,15` | SO 필드 — **런타임이 읽는 유일한 것** |
+| `TowerBehaviourFactory.cs` (`:28`, `:38-51`, `:56-61`) | `ResolveAttackFields` 삼항 + **switch 2개** |
 | `TableImporter.cs:151,152,159,160` | CSV→SO 복사 |
-| `TowerPlacer.cs:168,176` | 프리뷰 반경 `Magic` 분기 |
-| `TowerAsset.cs:13,14` 필드 / `:29-34` `MagicRadius` | 필드 + switch |
 | `TowerTableTest.cs:15` | 로그 |
 | `Personal/SUNGSOO/AuraTowerTestDriver.cs:32,33` | 런타임 SO 조립 |
 
-> ⚠ `TowerAssetEditor.cs:24,40`은 `enumValueIndex`를 `(TowerType)`으로 **직접 캐스팅**한다.
-> enum 선언 **순서**만 바꿔도 조용히 잘못된 필드 그룹을 그린다(주석 `:21-23`이 이미 경고 중).
-> `TableImporter`는 CSV 문자열 → enum 파싱이라 enum 이름을 바꾸면 CSV도 같이 손봐야 한다.
+> ⚠ `TableImporter`는 CSV 문자열 → enum 파싱이라 enum 이름을 바꾸면 CSV도 같이 손봐야 한다.
+>
+> ⚠ **`TowerBehaviourFactory.ResolveAttackFields`(`:28`)의 `TowerType.Magic` 판정은 지우면 안 된다.**
+> Unity는 `[Serializable]` 클래스 필드에 null을 허용하지 않아 `asset.Attack`이 오라 타워에서도 non-null이다.
+> 그냥 `asset.Attack`을 돌려주면 오라 타워에도 `AttackBehaviour`가 붙어 `Has<AttackBehaviour>()`가 true가
+> 되고, ① 보스 P3 마력 봉인이 오라 타워를 노리고 ② 버프 오라끼리 서로를 버프해 §3.5의 피드백 고리가
+> 되살아난다. **예외 없이 밸런스만 조용히 뒤집힌다.**
 
 각 위치를 어떻게 처리할지는 [TowerRedesign.md](TowerRedesign.md) §3·§7 참조.
 
@@ -398,7 +420,7 @@ ApplyOrRefresh / ApplySlow → StatusEffectHandler
 | 데이터 | `Assets/Scripts/Data/Tower/` (TowerAsset · TowerData · TowerTable · TowerRecipe) · `Assets/Resources/DataTables/TowerTable.csv` · `Assets/Resources/ScriptableObjects/Towers/` |
 | 배치·합성 | `Assets/Scripts/GameManager/MouseManager/TowerPlacement/` |
 | UI | `Assets/Scripts/UI/TowerPanel/` · `Assets/Scripts/GameManager/MouseManager/TowerInfoUI.cs` |
-| 에디터 | `Assets/Scripts/Editor/TowerAssetEditor.cs` · `TableImporter.cs` |
+| 에디터 | `Assets/Scripts/Editor/TableImporter.cs` (`TowerAssetEditor.cs`는 #274 Phase 1에서 삭제) |
 | 상태이상 | `Assets/Scripts/CombatSystem/StatusEffect/StatusEffectHandler.cs` · `MoveSpeedComposer.cs` |
 | 프리팹 | `Assets/Imported/@NorthLand/Prefabs/Tower/` (타워 9 + 고스트 + 탄환) · `Assets/Personal/SUNGSOO/Prefabs/` · `SweetLand Prefab/` (5, WL-065) |
 
@@ -411,4 +433,5 @@ ApplyOrRefresh / ApplySlow → StatusEffectHandler
 | 초판 (#274) | §3~§5 현행 기록 + 재설계 제안(상속 트리)을 §6~§11로 동거 |
 | 2차 (#274) | 재설계안을 액션 리스트로 전면 개정. §4.2/§4.3 개수를 실측치로 정정(6곳→쓰기 4곳, 5곳→9개 파일 34줄). §5.4의 "static이 스턴 상한의 근거"를 코드 재확인 후 정정 |
 | 3차 (#274) | **§3.7 투사체 절 신설** — `FlightMode`가 `Docs/` 전체에 한 번도 없었다. 비행/명중 두 축이 독립인데 소유자가 갈라져 있음을 기록 |
+| 5차 (#274 **Phase 1 구현**) | `TowerAsset` 스키마 평탄화 — `Single`/`Area`/`Chain`/`Magic` 래퍼 제거, `Impact`/`SplashRadius`/`Chain*`/`BuffAura`/`DebuffAura`가 최상위로. **비행 축(`Flight`/`ArcHeight`)을 탄환 프리팹 → SO로 이관**하고 `ProjectileFlight` struct 신설(§3.7 재작성). `MagicRadius` → `PreviewRadius`. `TowerAssetEditor.cs` 삭제. §4.3 참조 9개 파일 → 6개 |
 | 4차 (#274) | **재설계 제안을 [TowerRedesign.md](TowerRedesign.md)로 분리.** 이 문서가 1031줄까지 불어 Core 문서 중 2위의 2배가 됐고, "현재 명세"와 "제안"이 섞여 읽을 때마다 사실/제안을 판단해야 했다. 이제 이 문서에 `[제안]`은 없다. 기존 §12를 §6(현재 코드의 열린 문제)으로 재편 |
