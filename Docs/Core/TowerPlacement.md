@@ -137,8 +137,10 @@ bool BeginTowerPlacement(TowerAsset so);
 
 // 합성(#263) — 결과 코스트로 배치하고, 확정 직후 재료 소모를 실행
 bool BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost,
-                         Action onConfirmed, Action onEnded = null);
+                         Action<Transform> onConfirmed, Action onEnded = null);
 ```
+
+- `onConfirmed`의 인자는 **방금 배치된 타워**다(#265). 좌표가 아니라 `Transform`인 이유: 합성 연출이 수렴 목적지로 결과 타워의 시각 중심(`CalculateVisualBounds`)을 재야 하고, 그 측정은 등장 연출이 스케일을 0으로 만들기 **전**이어야 한다.
 
 - **반환값 = 배치 세션이 실제로 시작됐는가.** `false`면 `onEnded`도 **영영 오지 않는다** → 호출부가 배치 동안 유지하려던 상태를 걸어두면 안 된다는 신호다(합성이 이 신호로 커맨드를 즉시 `Undo`한다).
 - `onEnded`는 확정/취소 **무관하게** 세션 종료 시 1회. **어느 쪽으로 끝났는지는 알려주지 않는다** — 구분이 필요한 소비처는 자기 상태로 판단해야 한다(`TowerMergeCommand`가 그렇게 한다).
@@ -173,8 +175,10 @@ bool BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost,
 5. `TowerGroupSelectable` 부착 — 합성 재료 후보로 등록(결과 타워도 이 경로라 다단 합성 가능)
 6. **`TowerTileBuff.Initialize(...)`** ← **반드시 `Tower.Build` 앞**
 7. `Tower.Build(_activeAsset)` — **패널에서 산 SO가 프리팹이 문 SO를 이긴다**(WL-129). 다르면 경고 후 산 쪽으로 재조립. `Tower` 없는 프리팹은 LogError
-8. `onConfirmed` 1회 실행 (먼저 비우고 호출 → `keepPlacing`에서 재실행 방지)
+8. `onConfirmed(placed.transform)` 1회 실행 (먼저 비우고 호출 → `keepPlacing`에서 재실행 방지)
 9. **`TowerSpawnEffect.Play(...)`** — 로직이 전부 끝난 뒤 마지막 (§9.3)
+
+> **8 → 9 순서도 계약이다**(#265): 합성 연출이 8단계에서 결과 타워의 `bounds`를 재 수렴 목적지로 삼는데, 9단계가 시작하는 즉시 그 타워의 스케일이 0이 된다. 뒤집으면 입자가 쪼그라든 상자의 중심으로 모인다.
 
 > **6 → 7 순서를 뒤집으면 안 되는 이유**: 버프 오라는 **조립 시점에 자기 반경으로 대상을 한 번 훑는데**, 그 반경이 타일 버프(사거리)에 의존한다. 순서가 뒤바뀌면 첫 적용이 버프 이전 반경으로 계산된다. 구 `AuraTower`가 `Start`에서 반경을 재계산하던 우회로가 정확히 이 문제였고, 여기서 순서를 정해 그 우회로를 없앴다.
 
@@ -241,12 +245,18 @@ bool BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost,
 `TowerSpawnEffect`는 **타워를 모른다.**
 
 ```csharp
-void      Play(Transform target, float footprintSize);                              // fire-and-forget
-UniTask   PlayAsync(Transform target, float footprintSize, CancellationToken ct);   // #265 합성용
-Bounds    CalculateVisualBounds(Transform target, float footprintSize);             // 공용
+void      Play(Transform target, float footprintSize, float tileSize);                    // fire-and-forget
+UniTask   PlayAsync(Transform target, float footprintSize, float tileSize, CT ct);        // 종료까지 대기
+Bounds    CalculateVisualBounds(Transform target, float footprintSize);                   // 공용
+const float ConvergeDuration = 0.45f;   // 합성 소모 연출(#265)과 공유하는 시간 축
+const float PopDuration      = 0.28f;   // 〃
 ```
 
-진입점이 받는 것은 `Transform`과 풋프린트 크기뿐이다. `Tower`도 `TowerAsset`도 메시도 받지 않고, 대상에서 읽는 것은 **`Renderer.bounds`와 `localScale`이 전부**다.
+두 상수가 public인 이유는 **합성 유입 입자가 등장 팝보다 늦게 도착하면 안 되기 때문**이다. 비행 시간을 거리가 아니라 이 값으로 묶으면 재료가 얼마나 멀든 그 안에 도착한다 — 속도를 고정하면 먼 재료의 입자가 타워가 다 선 뒤에 도착해 인과가 뒤집힌다. (상한 안에서는 알갱이 크기가 각자의 도착 시각을 정하고, 가장 큰 알갱이가 이 값을 꽉 채운다.) 상세는 `TowerMerge.md` §9.2.2.
+
+알갱이 자체(`GrainSwarm`)와 스케일 점유(`VfxScaleHold`)도 두 연출이 공유하는 부품이다. 여기 남은 것은 **이 연출 고유의 움직임**(후광 분포 · 소용돌이 수렴 · 바닥 링)뿐이다.
+
+진입점이 받는 것은 `Transform`과 **그리드가 정하는 길이 둘**(풋프린트·타일)뿐이다. `Tower`도 `TowerAsset`도 메시도 받지 않고, 대상에서 읽는 것은 **`Renderer.bounds`와 `localScale`이 전부**다. 둘이 각각 무엇을 정하는지는 아래 앵커 표를 따른다.
 
 > ### ⚠ 이 연출은 대상 루트의 `localScale`을 **배타적으로 소유**한다
 >
@@ -256,7 +266,7 @@ Bounds    CalculateVisualBounds(Transform target, float footprintSize);         
 >
 > | 파생 문제 | 현재 방어 |
 > | --- | --- |
-> | 같은 대상에 두 번 재생 → 두 번째가 **0을 원본으로 캡처** → 타워 영구 투명 | 진입점의 대상별 in-flight 레지스트리. 재생 중이면 **기존 연출을 먼저 원복시키고 인계**한다 |
+> | 같은 대상에 두 번 재생 → 두 번째가 **0을 원본으로 캡처** → 타워 영구 투명 | `VfxScaleHold`(대상에 붙는 점유 컴포넌트). 이미 점유 중이면 **그 자리에서 원본을 복원하고 인계**하며, 인계당한 연출은 점유 세대(`IsSuperseded`)를 보고 입자·링까지 스스로 접는다. 점유 상태가 대상과 함께 죽으므로 연출 도중 타워가 사라져도 남는 것이 없다(구 static 딕셔너리에서 바뀐 점) |
 > | 과도기 스케일을 다른 시스템이 **캡처해 굳힘** | `RangeCircle`이 부모 스케일 역보정을 생성 1회가 아니라 표시할 때마다 재계산(§9.1) |
 > | 대상 루트 스케일을 쓰는 **`Animator`** 가 새 에셋에 붙으면 서로 덮어씀 | **방어하지 않는다** — 눈에 즉시 보이는 실패라 발생 시 시각 자식만 스케일하는 형태로 바꾼다 |
 >
@@ -270,10 +280,13 @@ Bounds    CalculateVisualBounds(Transform target, float footprintSize);         
 
 | 앵커 | 무엇을 정하나 | 왜 |
 | --- | --- | --- |
-| **풋프린트**(논리 크기) | 알갱이 크기 · 바닥 링 반경 | 타일은 항상 15인데 타워 메시는 제각각이다(**현재 프리팹만 봐도 높이 2.0~37.7, 19배**). bounds에 묶으면 스케일이 어긋난 프리팹에서 알갱이까지 어긋난다. 풋프린트는 그리드가 정하는 값이라 **에셋 교체와 무관하게 불변**이고, 덕분에 모든 타워의 알갱이가 같은 크기로 보여 하나의 시각 언어가 된다 |
+| **타일 한 칸**(그리드 최소 단위) | 알갱이 크기(+ 화면 하한·상한) | 타워 메시는 제각각이라(**현재 프리팹만 봐도 높이 2.0~37.7, 19배**) bounds에 묶으면 스케일이 어긋난 프리팹에서 알갱이까지 어긋난다. 타일은 그리드가 정하는 값이라 **에셋 교체와 무관하게 불변**이고, 덕분에 **모든 타워의 알갱이가 같은 크기**로 보여 하나의 시각 언어가 된다 |
+| **풋프린트**(= 칸 수 × 타일, 논리 크기) | 바닥 링 반경 · 후광 두께 | "이 타워가 몇 칸을 먹었다"를 말하는 값이라 칸 수에 비례해야 한다 |
 | **bounds**(시각 크기) | 입자 개수 · 구름 모양 | 큰 타워는 알갱이가 많아야 하고(30~90), 후광은 **그 타워의** 실루엣을 감싸야 한다 |
 
-> **한 문장 규칙**: **크기·바닥은 논리(풋프린트), 분포·개수는 시각(bounds).** 새 요소를 추가하거나 #265가 재료 타워에 같은 규칙을 적용할 때 위 표를 재해석하지 말고 이 문장을 따를 것.
+> **한 문장 규칙**: **알갱이는 칸(타일), 바닥·후광은 자리(풋프린트), 분포·개수는 시각(bounds).** 새 요소를 추가할 때 위 표를 재해석하지 말고 이 문장을 따를 것.
+
+> ⚠ **타일과 풋프린트를 한 인자로 겸하지 말 것**(#265 리뷰에서 정정). 1×1 타워에서는 두 값이 같아 겸용이 오래 들키지 않는데, 다중 셀 타워가 들어오는 순간 **알갱이 크기만 조용히 어긋난다** — 1×1 재료가 2×2 결과로 합쳐지면 유입 입자가 등장 후광의 절반 크기가 되어, 두 연출이 같은 물질로 보여야 한다는 #265의 전제가 깨진다. 그래서 `Play`가 길이 인자를 **둘** 받는다.
 
 지켜야 할 규칙:
 
@@ -291,8 +304,8 @@ Bounds    CalculateVisualBounds(Transform target, float footprintSize);         
 | 항목 | 현재 값 | 근거 |
 | --- | --- | --- |
 | 수렴 / 등장 / 링 지속 | 0.45s / 0.28s / 0.38s | 감으로 정한 값이 플레이에서 그대로 통과 |
-| 알갱이 크기 | 풋프린트 × 0.15 (=2.25) | 게임 줌 70·1080p에서 17.4px |
-| 알갱이 화면 하한 / 상한 | `orthoSize × 0.017` / 풋프린트 × 0.4 | 줌 300에서도 보이게 / 칸을 뒤덮지 않게. 줌 전 구간 확인됨 |
+| 알갱이 크기 | 타일 × 0.15 (=2.25) | 게임 줌 70·1080p에서 17.4px |
+| 알갱이 화면 하한 / 상한 | `orthoSize × 0.017` / 타일 × 0.4 | 줌 300에서도 보이게 / 칸을 뒤덮지 않게. 줌 전 구간 확인됨 |
 | 입자 개수 | `∛(bounds 부피) × 4`, clamp 30~90 | — |
 | 후광 두께 | 풋프린트 × 0.55 | 표면 + 이 두께에 난수(0.6~1.4배) |
 | 바닥 링 반경 | 풋프린트 × 0.62 (=9.3) | — |
@@ -320,9 +333,18 @@ Bounds    CalculateVisualBounds(Transform target, float footprintSize);         
 
 > 이 표가 채워졌다고 연출이 확정된 것은 아니다(절 상단 경고). 검증된 것은 "지금 값이 동작하고 이상하지 않다"이지 "이 룩으로 간다"가 아니다.
 
-#### 9.3.5 #265(합성 소모 연출)와의 관계
+#### 9.3.5 #265(합성 소모 연출)와의 관계 — 구현됨
 
-`PlayAsync`가 **합성 결과 배치의 마지막 구간**이다. 두 연출이 구분되면 안 되므로 #265는 이 함수를 **그대로** 불러야 하고, 앞 구간(재료 화이트아웃 → 폭발 → 부유 → 수렴)만 따로 만든다. `CalculateVisualBounds`를 public으로 둔 것도 #265가 재료 타워의 크기를 **같은 규칙으로** 재게 하기 위함이다.
+**#265는 이 연출을 호출하지 않는다.** 설계 단계에서는 "합성이 `PlayAsync`를 마지막 구간으로 재사용한다"였지만, 그러면 `TowerPlacer`가 확정 말미에 부르는 `Play`와 겹쳐 **같은 대상에 두 번 재생**된다. 실제 구현은 그 대신 **부품과 시간 축만 공유**한다:
+
+| 공유물 | 내용 |
+| --- | --- |
+| `GrainSwarm` | 알갱이의 시각적 정체성(빌보드 쿼드·절차 텍스처·개수/크기 규칙·전체 알파). 움직임은 각 연출이 정한다 |
+| `VfxScaleHold` | 대상 스케일 배타 점유 + back-out 팝 + 원복. 두 연출의 "뽕!"이 같은 구현이다 |
+| `ConvergeDuration` / `PopDuration` | 시간 축. **합성 입자는 거리와 무관하게 이 시간 안에 도착**하므로 등장 팝보다 늦지 않는다(가장 큰 알갱이가 꽉 채운다) |
+| `CalculateVisualBounds` | 재료의 크기와 결과 타워의 수렴 목적지를 **같은 규칙으로** 잰다 |
+
+그 결과 두 연출은 화면에서 구분되지 않으면서도 서로의 스케일을 건드리지 않는다. 상세는 `TowerMerge.md` §9.2.
 
 ---
 
@@ -359,7 +381,7 @@ Bounds    CalculateVisualBounds(Transform target, float footprintSize);         
 **연출(§9.3) — 검증은 끝났고(§9.3.4), 남은 것은 "할 일"이라기보다 "열려 있는 결정"이다**
 - **아트 방향 확정 시 룩 전면 재검토.** 색·형태·지속 시간 어느 것도 고정이 아니다. 유지해야 하는 것은 §9.3.2 계약뿐이고, 나머지는 갈아엎어도 된다.
 - **타워 에셋이 실제로 교체될 때 재확인** — 크기가 크게 다른 대상으로 한 회귀는 통과했지만(§9.3.4), 실 교체 시점에 한 번 더 재생해 보는 것이 싸다. **코드 수정이 필요해지면 계약이 깨진 것이다.**
-- **#265 합성 소모 연출** — 앞 구간만 추가하고 이 함수를 재사용.
+- ~~**#265 합성 소모 연출**~~ — 구현됨. 이 함수를 재사용하는 대신 부품·시간 축을 공유하는 형태가 됐다(§9.3.5).
 
 **해소됨** (`WatchList-Archive.md`)
 - ~~WL-004 (배치 검증 공백)~~ — `BattleTile` + `TowerPlacer`로 해소.
