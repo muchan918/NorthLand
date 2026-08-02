@@ -78,6 +78,10 @@ public class TowerPlacer : MonoBehaviour
     [SerializeField]
     private TileBuffRuleSettings tileBuffRules;
 
+    /// 셀 간격(월드). Awake에서 신맵 설정을 단일 출처로 해석해 둔 값이라, 합성 연출(#265)처럼
+    /// "타일 한 칸"을 기준 길이로 써야 하는 쪽이 같은 해석을 다시 하지 않도록 노출한다.
+    public float TileSize => tileSize;
+
     private NorthLand.Combat.RangeCircle _rangeCircle;
 
     private BattleTile lastPreviewAnchor;
