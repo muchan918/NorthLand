@@ -124,6 +124,9 @@ public class TowerFusionController : MonoBehaviour
                 // 계승 부여는 Build **뒤**여야 한다 — TowerPlacer가 Build를 먼저 부르고 이 콜백을 나중에
                 // 부르므로 순서는 보장돼 있다. Build가 activeKinds를 비우기 때문에 반대 순서면 지워진다.
                 // 효과 적용은 pull 방식(Tower.IsEffectActive)이라 액션 재초기화는 필요 없다.
+                //
+                // ⚠ null 검사는 "계승을 켜지 않은 레시피"만 걸러낸다. **빈 집합은 반드시 통과시켜야 한다** —
+                // 계승을 켰는데 물려줄 게 없으면 결과는 "전부 off"이지 "필터 없음"이 아니다(PR #278 리뷰).
                 if (inherited != null && placed != null && placed.TryGetComponent(out Tower result))
                     result.ActivateEffects(inherited);
 

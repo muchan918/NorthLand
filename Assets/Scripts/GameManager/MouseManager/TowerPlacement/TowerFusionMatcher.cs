@@ -79,12 +79,22 @@ public static class TowerFusionMatcher
     /// 계승되는 것은 **종류뿐이고 수치는 결과 SO가 적는다.** 수치까지 물려받으면 "같은 효과가 겹칠 때
     /// max냐 합산이냐"를 정해야 하는데, 합산은 같은 타워를 계속 합성하면 무한 스택이 된다.
     ///
-    /// 반환 null = 계승하지 않음(레시피가 InheritEffects를 켜지 않았거나 물려줄 종류가 없음).
-    /// 호출부는 null이면 ActivateEffects를 부르지 않아 결과 타워가 자기 SO 효과를 전부 갖는다.
+    /// ⚠ **반환 null과 빈 집합은 뜻이 다르다** — 이 구분이 fail-open을 막는다.
+    ///
+    ///   null      계승 자체를 안 하는 레시피(`InheritEffects == false`) → 필터 없음 = SO 효과 전부 활성
+    ///   빈 집합    계승은 켰는데 물려줄 종류가 0개 → **전부 비활성**
+    ///
+    /// 예전에는 둘 다 null이라, 계승을 켠 레시피에 효과 없는 재료(archer×3 등)를 넣으면
+    /// `Tower.IsEffectActive`의 "activeKinds == null = 전부 활성" 규약과 겹쳐 결과 타워가 SO의
+    /// `Effects`를 **전부 켠 채** 배치됐다 — 의도의 정반대이고, 툴팁엔 `Inherit:` 줄이 안 떠서
+    /// 표시와 실제가 어긋났다(PR #278 리뷰).
     public static HashSet<EffectKind> ResolveInheritedKinds(TowerRecipe recipe, IReadOnlyList<Tower> materials)
     {
+        // 여기서만 null을 낸다 — "이 레시피는 계승 개념이 없다".
         if (recipe == null || !recipe.InheritEffects) return null;
-        if (recipe.Result == null || materials == null) return null;
+
+        // 아래부터는 계승을 켠 레시피다. 무엇도 못 물려주면 **빈 집합**(= 전부 off)이지 null이 아니다.
+        if (recipe.Result == null || materials == null) return new HashSet<EffectKind>();
 
         // 재료가 **실제로 활성인** 종류만 모은다 — SO가 아니라 인스턴스에게 묻는다.
         // 다단 합성(A+B→C, C+D→E)에서 C의 SO를 읽으면 꺼져 있는 효과까지 잡힌다(§9.2 ②).
@@ -95,7 +105,6 @@ public static class TowerFusionMatcher
             if (material == null) continue;
             foreach (EffectKind kind in material.ActiveEffectKinds) kinds.Add(kind);
         }
-        if (kinds.Count == 0) return null;
 
         // 결과 SO에 **정의된** 종류만 남긴다. 정의되지 않은 종류는 켤 수단(수치)이 없어 무의미하고,
         // 그런 저작 실수는 TowerRecipe.OnValidate가 별도로 경고한다(§9.5).
@@ -109,7 +118,8 @@ public static class TowerFusionMatcher
         }
         kinds.IntersectWith(defined);
 
-        return kinds.Count > 0 ? kinds : null;
+        // 교집합이 비어도 빈 집합을 그대로 낸다 — null로 바꾸면 "전부 활성"으로 뒤집힌다.
+        return kinds;
     }
 
     /// 지갑 타워들로 이 레시피를 합성할 수 있는지 판정한다(포함 매칭). 후보 버튼(#183) 활성 판정용.

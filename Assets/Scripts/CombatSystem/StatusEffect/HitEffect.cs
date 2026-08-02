@@ -31,6 +31,18 @@ namespace NorthLand.Combat
     {
         public abstract EffectKind Kind { get; }
 
+        /// 효과 소스 키 채번 — **명중 경로와 오라 경로가 반드시 이 하나를 공유한다.**
+        ///
+        /// 같은 종류 타워 여러 기는 `baseId`(타워 인스턴스 ID)가 달라 자동 중첩되고,
+        /// 한 타워 안에서는 종류당 하나로 수렴한다.
+        ///
+        /// ⚠ 예전에는 `baseId ^ (int)kind`였는데 `EffectKind`가 0~3이라 **하위 2비트만 흔들었다.**
+        /// 두 타워의 `GetInstanceID()`가 bit0만 달라도 `A^Poison == B^Burn`이 되어,
+        /// `StatusEffectHandler`의 `Dictionary<int, DotEffect>` 슬롯 하나를 두 타워가 공유해
+        /// **중첩 대신 갱신만** 됐다 — 한쪽 DoT가 조용히 사라지는 경로다(PR #278 리뷰).
+        /// 예전 "감속 타워 2기 → 1중첩" 사고와 같은 실패 유형이라 해시 결합으로 바꿨다.
+        public static int SourceKey(int baseId, EffectKind kind) => HashCode.Combine(baseId, (int)kind);
+
         /// 대상에 효과를 건다.
         ///
         /// `stats`: 소스 타워의 스탯 원장(타워가 아니면 null). DoT 수치가 타일 버프·오라 버프를 타도록

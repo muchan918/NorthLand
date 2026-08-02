@@ -47,9 +47,14 @@ namespace NorthLand.Combat
             return $"{modifier.Stat} {sign}{modifier.Amount:0.#}{(modifier.IsPercentage ? "%" : "")}";
         }
 
-        /// 합성으로 물려받는 효과 한 줄(#274 Phase 5). 계승분이 없으면 null.
+        /// 합성으로 물려받는 효과 한 줄(#274 Phase 5).
         /// 효과 이름은 DoT/Slow/Stun 줄과 같은 표기를 쓴다 — 툴팁에서 "물려받는다"고 본 이름과
         /// 배치 후 정보 패널에 뜨는 이름이 다르면 플레이어가 같은 것으로 인식하지 못한다.
+        ///
+        /// ⚠ **null과 빈 집합을 다르게 표시한다**(`ResolveInheritedKinds`와 같은 구분):
+        ///   null    계승 개념이 없는 레시피 → 줄 자체를 안 낸다
+        ///   빈 집합  계승은 켰는데 물려줄 게 없다 → **"Inherit: 없음"**을 낸다
+        /// 빈 집합에 줄을 안 내면 "표시 0인데 실제로는 전부 off"가 되어 또 어긋난다.
         public static string BuildInheritLine(System.Collections.Generic.IEnumerable<EffectKind> kinds)
         {
             if (kinds == null) return null;
@@ -61,7 +66,7 @@ namespace NorthLand.Combat
                 joined = joined == null ? name : $"{joined} + {name}";
             }
 
-            return joined == null ? null : $"Inherit: {joined}";
+            return $"Inherit: {joined ?? "없음"}";
         }
 
         /// 효과 종류의 표시명.

@@ -71,7 +71,24 @@ public class TowerAsset : ScriptableObject
     // (WL-001의 lightning_tower 전 필드 0이 정확히 그 무증상 패턴이다.)
     void OnValidate()
     {
-        if (TowerPrefab == null) return;   // 아직 저작 중 — 프리팹을 붙이기 전엔 판단하지 않는다
+        // 프리팹이 없으면 액션↔수치 짝 검사는 못 한다. 다만 **무조건 조용히 넘어가면 안 된다** —
+        // 그러면 이 훅이 가장 잡아야 할 상황(프리팹 Missing → Actions 빔 → 무증상 무동작)에서만
+        // 침묵한다. 수치를 이미 적어둔 SO는 "붙이는 걸 잊었다"에 훨씬 가깝다(PR #278 리뷰).
+        if (TowerPrefab == null)
+        {
+            bool authored = (Attack != null && (Attack.AttackDamage > 0f || Attack.ProjectilePrefab != null))
+                            || (BuffAura != null && BuffAura.Radius > 0f)
+                            || (DebuffAura != null && DebuffAura.Radius > 0f);
+
+            if (authored)
+            {
+                Debug.LogWarning(
+                    $"[TowerAsset] {name}: 수치는 저작돼 있는데 TowerPrefab이 비었습니다 — 배치가 거부되거나 " +
+                    "(프리팹 참조가 깨진 경우) 아무 동작도 하지 않습니다. `Assets/Imported/` 동기화도 확인하세요.", this);
+            }
+            return;   // 수치도 없으면 아직 저작 중 — 조용히 넘어간다
+        }
+
         if (!TowerPrefab.TryGetComponent(out NorthLand.Combat.Tower tower))
         {
             Debug.LogWarning($"[TowerAsset] {name}: TowerPrefab '{TowerPrefab.name}'에 Tower 컴포넌트가 없습니다.", this);

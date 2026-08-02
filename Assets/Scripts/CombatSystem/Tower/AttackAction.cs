@@ -23,6 +23,10 @@ namespace NorthLand.Combat
         [NonSerialized] float cooldownTimer;
         [NonSerialized] Collider[] hitBuffer;
 
+        // 이 타워가 애초에 쏠 수 있는가(저작이 갖춰졌는가). 조립 시 1회 판정한다 —
+        // 판정 재료(수치·탄환 프리팹·비행 부품)가 전부 SO 값이라 Initialize 사이에 바뀌지 않는다.
+        [NonSerialized] bool canFire;
+
         public override TowerActivePhase ActivePhase => TowerActivePhase.NightOnly;
 
         // 최종 스탯 = SO 기본값 + 원장(Owner.Stats) 합성. 기본값만 여기가 알고, modifier는 원장이 소유한다.
@@ -49,6 +53,9 @@ namespace NorthLand.Combat
             flight = fields?.Flight;   // SO의 부품을 그대로 쓴다 — 무상태라 공유해도 안전하다
             impact = BuildImpact(asset, enemyLayerMask);
             cooldownTimer = 0f;
+
+            // TryAttack이 실패하는 조건과 **같은 것**을 미리 판정해 둔다(아래 Tick 주석 참조).
+            canFire = fields != null && fields.ProjectilePrefab != null && flight != null;
 
             // 매 프레임 경로라 NonAlloc 버퍼를 쓴다. 직렬화되지 않으므로 여기서 만든다.
             hitBuffer ??= new Collider[16];
@@ -96,7 +103,15 @@ namespace NorthLand.Combat
 
         public override void Tick(float deltaTime)
         {
-            if (fields == null) return;
+            // ⚠ **저작이 비어 있으면 Tick 자체에 들어가지 않는다.**
+            //
+            // 쿨다운은 `TryAttack`이 성공했을 때만 리셋된다. 그래서 쏠 수 없는 타워는 매 프레임
+            // `cooldownTimer <= 0`인 채로 FindTarget()을 부르고, 그 안의 OverlapSphereNonAlloc이
+            // 초당 60번 돈다 — 아무것도 못 하면서 물리 예산만 태우는 것이다.
+            // (`lightning_tower`류의 전 필드 0 SO가 배치되면 정확히 이 상태가 된다, WL-001.)
+            //
+            // 타워 수가 계속 늘어나는 장르라 "무동작이면 비용도 0"이어야 한다.
+            if (!canFire) return;
 
             cooldownTimer -= deltaTime;
             if (cooldownTimer > 0f) return;

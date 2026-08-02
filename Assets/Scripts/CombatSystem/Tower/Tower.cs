@@ -244,6 +244,20 @@ namespace NorthLand.Combat
             // (StripUnusedBehaviourComponents). **프리팹이 정본이면 "SO에서 빠진 행동"이라는 개념 자체가 없다.**
             ReinitializeActions();
             Register();
+
+            // ⚠ **무증상 조합의 유일한 런타임 신호다.** 액션이 없으면 Update가 첫 줄에서 return하므로
+            // 이 타워는 예외도 경고도 없이 아무 동작을 하지 않는다 — "배치는 되는데 안 쏜다"의 1순위 원인.
+            //
+            // 가장 흔한 경위: 타워 프리팹이 `Assets/Imported/`(부모 저장소 미추적, 자체 중첩 git)에 살아서
+            // 그 저장소를 동기화하지 않은 환경에서는 프리팹의 Actions가 빈 채로 로드된다.
+            // 저장 시점 검증(TowerAsset.OnValidate)은 TowerPrefab이 아예 null이면 잡지 못하므로
+            // 에디터를 안 켜는 사람에게는 이 로그가 유일한 단서다.
+            if (actions.Count == 0)
+            {
+                Debug.LogWarning(
+                    $"[Tower] {name}({asset.TowerID}): Actions가 비어 있어 아무 동작도 하지 않습니다 — " +
+                    "프리팹에 TowerAction이 담겼는지, `Assets/Imported/`가 최신인지 확인하세요.", this);
+            }
         }
 
         void ReinitializeActions()

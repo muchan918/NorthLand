@@ -73,7 +73,7 @@ namespace NorthLand.Combat
                 Origin.position, Radius, hitBuffer, targetLayerMask);
             if (count == 0) return;
 
-            // 소스 키 = 타워 인스턴스 ID ^ 효과 종류. 투사체 경로(Projectile.ApplyEffects)와 같은 규칙이라,
+            // 소스 키는 HitEffect.SourceKey — 투사체 경로(Projectile.ApplyEffects)와 **같은 함수**라,
             // "맞아서 걸린 화상"과 "장판에서 걸린 화상"이 같은 슬롯을 쓴다.
             int baseId = Owner.GetInstanceID();
             TowerStats stats = Owner.Stats;
@@ -92,7 +92,7 @@ namespace NorthLand.Combat
                     // 합성 계승(#274 Phase 5) — 투사체 경로(Projectile.ApplyEffects)와 같은 규칙이다.
                     if (!Owner.IsEffectActive(effect.Kind)) continue;
 
-                    effect.Apply(damageable, Owner, stats, baseId ^ (int)effect.Kind);
+                    effect.Apply(damageable, Owner, stats, HitEffect.SourceKey(baseId, effect.Kind));
                 }
             }
         }

@@ -44,16 +44,29 @@ public class TowerRecipe : ScriptableObject
 
         // 재료가 낼 수 있는데 결과 SO에 정의되지 않은 종류 → 계승해도 켤 수치가 없어 조용히 사라진다.
         var missing = new List<string>();
+        int materialKinds = 0;
         foreach (var entry in Materials)
         {
             if (entry?.Tower?.Effects == null) continue;
 
             foreach (var effect in entry.Tower.Effects)
             {
-                if (effect == null || defined.Contains(effect.Kind)) continue;
+                if (effect == null) continue;
+                materialKinds++;
+                if (defined.Contains(effect.Kind)) continue;
                 string line = $"{effect.Kind}({entry.Tower.TowerID})";
                 if (!missing.Contains(line)) missing.Add(line);
             }
+        }
+
+        // 계승을 켰는데 재료가 아무 효과도 안 낸다 → 결과 타워는 SO에 적힌 효과가 **전부 꺼진 채** 나온다.
+        // 저작자는 보통 그 반대를 의도하므로(그럴 거면 InheritEffects를 끄면 된다) 여기서 잡는다.
+        if (materialKinds == 0)
+        {
+            Debug.LogWarning(
+                $"[TowerRecipe] '{name}': InheritEffects가 켜져 있는데 재료 타워가 내는 효과가 하나도 " +
+                $"없습니다 — 결과 타워 '{Result.TowerID}'의 Effects가 전부 꺼진 채 배치됩니다. " +
+                "효과를 가진 재료를 넣거나 InheritEffects를 끄세요.", this);
         }
 
         if (missing.Count > 0)

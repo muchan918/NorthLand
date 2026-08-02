@@ -139,8 +139,8 @@ namespace NorthLand.Combat
         {
             if (effects == null || effects.Count == 0) return;
 
-            // 소스 키 = 쏜 쪽의 인스턴스 ID ^ 효과 종류. 같은 종류 타워 여러 기는 자동 중첩되고,
-            // 한 타워 안에서는 종류당 하나로 수렴한다(EnemyApplyTowerDebuffAction의 관례와 동형).
+            // 소스 키 채번은 HitEffect.SourceKey 하나만 쓴다 — 오라 경로와 규칙이 갈라지면
+            // 같은 효과가 두 슬롯을 잡거나 서로 덮어쓴다(그 자리의 실패 이력은 그 함수 주석 참조).
             int baseId = source is Component c ? c.GetInstanceID() : 0;
 
             // 쏜 쪽이 타워면 원장(DoT 수치가 타일 버프·오라 버프를 타도록)과 계승 필터를 함께 본다.
@@ -158,7 +158,7 @@ namespace NorthLand.Combat
                 // 이유는 Build가 계승 부여보다 먼저 돌기 때문이다(Tower.IsEffectActive 주석 참조).
                 if (tower != null && !tower.IsEffectActive(effect.Kind)) continue;
 
-                effect.Apply(victim, source, stats, baseId ^ (int)effect.Kind);
+                effect.Apply(victim, source, stats, HitEffect.SourceKey(baseId, effect.Kind));
             }
         }
 
