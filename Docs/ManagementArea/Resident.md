@@ -161,14 +161,18 @@ Marshie는 임포터가 `Generic`이지만 **골격이 Mixamo 표준 네이밍**
 
 > **오해 방지**: Mixamo를 써도 리타게팅은 똑같이 일어난다(Mixamo 표준 캐릭터 → Marshie 아바타). 문제는 리타게팅이 아니라 **원본 클립이 그 캐릭터의 사정을 담고 있다**는 것이다. Mixamo 클립은 중립 휴머노이드용으로 만들어져 그런 것이 묻어 오지 않는다.
 
-| 구분 | 경로 |
-|---|---|
-| 원본 클립 (벤더, 읽기 전용) | `Assets/Imported/Sweet_Land/Characters/Animations/<종족>/` |
-| Humanoid 사본 FBX | `Assets/Imported/@NorthLand/Meshes/Resident/` |
-| **공용 클립 라이브러리** | `Assets/Imported/@NorthLand/Animations/Resident/` |
-| AnimatorController | `Assets/Imported/@NorthLand/Animations/Resident/Resident.controller` |
-| BT 그래프 에셋 | `Assets/Behavior/ResidentBehavior.asset` |
-| BT 노드 스크립트 | `Assets/Scripts/ManagementSpace/Resident/Nodes/` |
+| 구분 | 경로 | 상태 |
+|---|---|---|
+| 원본 클립 (벤더, 읽기 전용) | `Assets/Imported/Sweet_Land/Characters/Animations/<종족>/` | 손대지 않음 |
+| Humanoid 사본 FBX | `Assets/Imported/@NorthLand/Meshes/Resident/` | **메시 + Avatar 전용. 클립 0본** |
+| **공용 클립 라이브러리** | `Assets/Imported/@NorthLand/Animations/Resident/` | **`.anim` 7본 구성 완료** |
+| AnimatorController | `Assets/Imported/@NorthLand/Animations/Resident/Resident.controller` | 미착수 |
+| BT 그래프 에셋 | `Assets/Behavior/ResidentBehavior.asset` | 미착수 |
+| BT 노드 스크립트 | `Assets/Scripts/ManagementSpace/Resident/Nodes/` | 미착수 |
+
+> **FBX는 클립을 들지 않는다.** 3본 모두 `importAnimation`을 끄고 클립은 라이브러리 한 곳에만 둔다. 셋은 색만 다른 메시 변형이라 같은 클립을 3중으로 들고 있게 되고, 그러면 컨트롤러를 배선할 때 `Marshies_Walk`이 3개 떠서 매번 어느 것을 물릴지 헷갈린다.
+>
+> 클립이 아바타에 종속되지 않는 것은 실측으로 확인했다 — `Marshie_01`에서 추출한 `Marshies_Walk`을 `Marshie_02`/`_03` 아바타에 재생해 발 들림 0.094로 동일하다.
 
 ### 5.2 전환 규칙과 결과 — **완료 (2026-08-02)**
 
@@ -178,10 +182,26 @@ Marshie는 임포터가 `Generic`이지만 **골격이 Mixamo 표준 네이밍**
 |---|---|
 | Avatar | `isValid` · `isHuman` = True (3본 모두) |
 | 휴먼 본 매핑 | **20/21** — Chest 수동 지정 포함, Neck만 미매핑 |
-| 클립 | 10본 전부 `humanMotion` = True |
+| 클립 | **라이브러리에 7본 추출 완료.** FBX 쪽은 0본 (`importAnimation` off) |
 | 머티리얼 | `Color_2` / URP Lit — 사본에서도 정상 해석 |
 | T-Pose | **유효, 보정 불필요** (`AvatarSetupTool.IsPoseValidOnInstance` = True) |
 | 타 리그 클립 수용 | 정상 — Grummy 보행을 얹어 발 들림 0.167 / 손 앞뒤 스윙 0.415 확인 (키 1.63 기준) |
+
+**라이브러리 클립 7본** — 벤더 10본 중 스케일 기반 3본(§5.3)을 임포트에서 제외한 결과다.
+
+| 클립 | 루프 | 길이 |
+|---|---|---|
+| `Marshies_Idle_1` | ✅ | 1.33 |
+| `Marshies_Walk` | ✅ | 1.27 |
+| `Marshies_Run` | ✅ | 0.87 |
+| `Marshies_Ladder` | ✅ | 1.57 |
+| `Marshies_Happy_Dance` | ✅ | 2.30 |
+| `Marshies_Jump` | — | 1.70 |
+| `Marshies_Wave` | — | 2.30 |
+
+> ⚠ **FBX 임포트는 루프 설정을 가져오지 않는다.** 벤더 standalone `.anim`은 Idle/Walk/Run/Ladder/Dance가 전부 루프인데, FBX에서 임포트한 클립은 **10본 모두 `loopTime = false`**로 들어온다. 위 표는 벤더 의도대로 수동 복원한 결과다.
+>
+> 놓치면 R1 유휴와 R2 산책이 한 번 재생되고 멈춘다. **Mixamo 클립을 받을 때도 같은 확인이 필요하다.**
 
 규칙:
 
@@ -212,29 +232,31 @@ Hide/Unhide는 **팔다리를 스케일로 줄여 몸통에 집어넣는** 방�
 
 > **판단**: 이 3본을 되살리려면 Generic 리그를 따로 유지해야 하는데, 그러면 Mixamo 수급 경로 전체를 포기하게 된다. 클립 3본과 라이브러리 전체를 맞바꿀 이유가 없다 — **3본을 버린다.**
 >
+> **처리 완료**: FBX 임포터의 `clipAnimations`에서 3본을 제외한 뒤 라이브러리로 추출했다. 깨진 클립이 프로젝트에 남아 있지 않다.
+>
 > **일반 규칙**: 앞으로 SweetLand 클립을 검토할 때는 스케일 커브 의존 여부를 먼저 본다. 스쿼시·부풀기·숨기기 계열 연출은 대부분 여기 걸린다.
 
 ---
 
 ## 6. 행위 목록
 
-> 「클립」 범례 — ✅ Marshie 보유 · ❌ Mixamo 수급 필요
-> 경로는 `Assets/Imported/Sweet_Land/Characters/Animations/` 기준. 전환 후에는 전부 §5의 공용 라이브러리 1곳으로 모인다.
+> 「클립」 범례 — ✅ 라이브러리 보유 · ❌ Mixamo 수급 필요
+> 클립 출처는 **`Assets/Imported/@NorthLand/Animations/Resident/`** 기준(§5). 받아 온 Mixamo 클립도 전부 이 폴더로 들어간다.
 >
 > **타 SweetLand 캐릭터 클립은 빌려 쓰지 않는다** — §5.1. 없는 클립은 전부 Mixamo에서 받는다.
 
 | # | 행위 | 발동 조건 | 애니메이션 | 클립 출처 | 클립 | 합의 |
 |---|---|---|---|---|---|---|
-| R1 | **유휴** | 목적지 없음 · 낮 | `Idle` | `Marshies/Marshies_Idle_1` | ✅ | 확정 |
-| R2 | **산책** | 유휴 N초 경과 → 길 위 임의 지점 | `Walk` | `Marshies/Marshies_Walk` | ✅ | 확정 |
-| R3 | **인사** | 산책 중 다른 주민과 조우 | `Wave` | `Marshies/Marshies_Wave` | ✅ | 확정 |
+| R1 | **유휴** | 목적지 없음 · 낮 | `Idle` | `Marshies_Idle_1` | ✅ | 확정 |
+| R2 | **산책** | 유휴 N초 경과 → 길 위 임의 지점 | `Walk` | `Marshies_Walk` | ✅ | 확정 |
+| R3 | **인사** | 산책 중 다른 주민과 조우 | `Wave` | `Marshies_Wave` | ✅ | 확정 |
 | R4 | **수다** | 인사 성립 → 서로 마주 봄 (§7.1) | `Talk` | Mixamo `Talking` 계열 | ❌ | 확정 |
-| R5 | **춤** | 유휴 중 낮은 확률 | `Dance` | `Marshies/Marshies_Happy_Dance` | ✅ | 확정 |
+| R5 | **춤** | 유휴 중 낮은 확률 | `Dance` | `Marshies_Happy_Dance` | ✅ | 확정 |
 | R6 | **앉기** | 빈 `ResidentSitPoint`가 근처에 있음 | `Sit_Enter`→`Sit_Idle`→`Sit_Exit` | Mixamo `Sitting Down` / `Sitting Idle` / `Standing Up` | ❌ | 확정 |
 | R7 | **놀람** | **대화 상대가 사라짐** (배치·드래그) | `Surprised` | Mixamo `Surprised` 계열 | ❌ | 확정 |
 | R8 | **귀가** | 밤 전환 → 가장 가까운 출입 포인트 (§3.3) | `Walk` | 〃 R2 | ✅ | 확정 |
 | R9 | **등장** | 아침 · 배치 −1 (§3.2) | `Walk` + 퇴장 유예 | 〃 R2 | ✅ | 확정 |
-| R10 | **들려서 따라오기** | 드래그 중 (§8) | **TBD** — 매달림/웅크림 | `Marshies_Idle_1` (임시) | ❌ | 조건만 확정 |
+| R10 | **들려서 따라오기** | 드래그 중 (§8) | **TBD** — 매달림/웅크림 | `Marshies_Idle_1` (임시 전용) | ❌ | 조건만 확정 |
 | R11 | **어지러움** | 들린 채 커서를 심하게 흔듦 (§8.1) | **TBD** | Mixamo `Dizzy` 계열 후보 | ❌ | 조건만 확정 |
 
 ### Mixamo 수급 목록
@@ -246,11 +268,14 @@ Hide/Unhide는 **팔다리를 스케일로 줄여 몸통에 집어넣는** 방�
 | R7 놀람 | `Surprised` 계열 1본 | |
 | R1 유휴 변주 | `Breathing Idle` · `Looking Around` 등 2~3본 | 아래 참조 |
 
+> **받은 클립은 루프 플래그를 반드시 확인한다.** FBX 임포트는 루프 설정을 가져오지 않는다(§5.2). Idle·Walk 계열은 `loopTime`을 직접 켜야 한다.
+
 - **R1 유휴 변주가 필요하다.** Marshie는 Idle이 1개뿐이라 20~30명이 같은 루프를 돌면 로봇처럼 보인다. Mixamo idle 2~3본을 더 받아 **개체마다 다른 idle을 배정**한다. 군중 밀도를 올리는 가장 싼 수단이다.
 - **R10·R11은 애니메이션이 미정이다.** 조건과 동작 규칙만 확정하고, **드래그 손맛을 직접 만져 본 뒤에** 어떤 모션이 어울리는지 결정한다. 임시로는 `Idle_1`을 그대로 쓴다 — 공중에 떠 있으므로 `Walk`를 틀면 허공에서 걷는 꼴이 된다.
   - 당초 `Hide`/`Hide_Loop`/`Unhide`로 웅크린 채 매달리게 하려 했으나 **Humanoid 전환에서 깨졌다** — 스케일 기반 연출이라 전환 시 소실된다(§5.3). 3본 모두 후보에서 제외한다.
   - 최종 클립은 Mixamo 수급이 유력하다. 다만 **무엇이 필요한지는 손맛을 본 뒤에 정한다** — 매달림·웅크림·버둥거림 중 어느 쪽이 맞는지는 실제 움직임을 봐야 안다.
-- **Marshie 미사용 클립**: `Run` · `Jump` · `Ladder` 3본은 아직 어떤 행위에도 붙지 않았다. 뛰기·계단 같은 행위를 추가할 때 쓸 수 있다.
+- **라이브러리에 있으나 미사용인 클립**: `Marshies_Run` · `Marshies_Jump` · `Marshies_Ladder` 3본은 아직 어떤 행위에도 붙지 않았다. 뛰기·계단 같은 행위를 추가할 때 쓸 수 있다.
+- **클립 이름은 벤더 이름(`Marshies_*`)을 그대로 뒀다.** 원본 추적이 쉬워서인데, Mixamo 클립이 합류하면 이름 규칙이 두 갈래가 된다 — 그때 통일할지 결정한다.
 
 ### 아직 없는 행위 (후보)
 
@@ -380,7 +405,9 @@ Root: Repeat (Forever)
 
 - [ ] **`AssignVillager`의 성공 여부 반환** (§3.2). 드롭 배치의 전제 조건 — 경영 담당자와 계약
 - [x] **Humanoid 전환 실행** (§5.2) — 완료. `@NorthLand/Meshes/Resident/`에 Marshie 3종 사본, 20/21 매핑, T-Pose 유효
-- [ ] **Mixamo 클립 수급 (§6)** — R4 수다 1~2본 / R6 앉기 3본 / R7 놀람 1본 / R1 유휴 변주 2~3본
+- [x] **공용 클립 라이브러리 구성** (§5) — 완료. `@NorthLand/Animations/Resident/`에 `.anim` 7본. FBX 3본은 `importAnimation` off (메시+Avatar 전용), 스케일 기반 3본 제외, 루프 플래그 복원
+- [ ] **Mixamo 클립 수급 (§6)** — R4 수다 1~2본 / R6 앉기 3본 / R7 놀람 1본 / R1 유휴 변주 2~3본. **받으면 루프 플래그 확인 필수**
+- [ ] **클립 이름 규칙** (§6) — 현재 벤더 이름(`Marshies_*`) 유지. Mixamo 클립 합류 후 통일할지 결정
 - [ ] **R10 들려서 따라오기 · R11 어지러움의 애니메이션 (§8.1)** — **드래그 손맛을 먼저 만져 본 뒤 결정한다.** 그때까지 R10은 `Idle_1` 임시, R11은 미구현. 매달림·웅크림·버둥거림 중 무엇이 맞는지는 실제 움직임을 봐야 알 수 있어, 지금 고르면 두 번 고르게 된다
 
 **수치·에셋**
