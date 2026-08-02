@@ -48,16 +48,34 @@ namespace NorthLand.Combat
         // ── 비율 ─────────────────────────────────────────────────────────────────────
         // TowerSpawnEffect와 같은 규율: 월드 단위 상수를 쓰지 않고 bounds/풋프린트에서 유도한다.
         private const float k_BreathScale = 1.06f;       // 화이트아웃 동안 부푸는 배율
-        private const float k_CloudRadiusRatio = 0.5f;   // 부유 구름 반경 = 풋프린트 × 이것(= 대략 자기 칸 안)
-        private const float k_RiseRatio = 0.35f;         // 상승 고도 = 시각물 높이 × 이것
+
+        // 부유 구름의 모양·위치. 세 값이 함께 "이 알갱이들은 **저 타일** 것"을 읽히게 한다.
+        //
+        // 기준점은 `bounds.center`가 아니라 **시각물 밑면 + 풋프린트 단위 고정 높이**다. 중심을 쓰면
+        // 구름 고도가 타워 키를 따라가는데(현재 프리팹만 봐도 높이 2.0~37.7, 19배) 게임 카메라가 45° 직교라
+        // **고도 차이가 그대로 화면상 수평 이동으로 보인다** — 높은 타워일수록 구름이 자기 타일에서 멀어져
+        // 어느 칸이 비었는지 알 수 없게 된다. 밑면 기준으로 두면 어떤 타워든 같은 높이에 뜬다.
+        private const float k_HoverRatio = 0.5f;         // 부유 고도 = 시각물 밑면 + 풋프린트 × 이것
+        private const float k_CloudRadiusRatio = 0.68f;  // 구름 반경 = 풋프린트 × 이것(대략 자기 칸 넓이)
+        private const float k_CloudShellInner = 0.65f;   // 속을 비운다 — 안쪽까지 채우면 한 덩어리로 뭉쳐 보인다
+        private const float k_CloudFlatten = 0.5f;       // Y를 눌러 납작하게 — 수직으로 퍼지면 타일 식별을 해친다
+
         private const float k_BobAmplitudeRatio = 0.1f;  // 위아래 흔들림 = 풋프린트 × 이것
         private const float k_BobSpeed = 1.6f;           // 흔들림 각속도(rad/s)
         private const float k_OrbitDegPerSec = 22f;      // 구름 전체가 Y축으로 도는 속도 — "둥둥"의 정체
 
-        private const float k_ConvergeSwirl = 100f;      // 수렴하며 Y축으로 감기는 각도(직선 수렴은 밋밋하다)
-        // 출발 시차. 전부 동시에 떠나면 한 덩어리가 미끄러지는 것처럼 보인다. **도착 시각은 시차와
-        // 무관하게 동일하다**(진행도를 남은 구간으로 정규화하므로) — 늦게 떠난 알갱이가 더 빨리 날아간다.
-        private const float k_MaxDepartureDelay = 0.25f;
+        // 수렴은 **직선**이다. 궤적을 휘게 하면(소용돌이·포물선) 알갱이가 다 같은 곡선을 그려서
+        // 오히려 한 덩어리로 보인다 — 개별성은 궤적이 아니라 **속도 차이**로 낸다.
+        //
+        // 알갱이 크기가 곧 속도다: 작은 것은 먼저 도착하고, 가장 큰 것이 듀레이션을 꽉 채운다.
+        // 이 방향이어야 "가벼운 게 빠르다"는 직관과 맞고, **무엇보다 어떤 알갱이도 등장 팝보다 늦지
+        // 않는다** — 가장 느린 놈의 도착 시각이 곧 상한이기 때문이다.
+        private const float k_GrainScaleMin = 0.6f;      // 알갱이 크기 배율 범위. 이 값이 도착 시각도 정한다
+        private const float k_GrainScaleMax = 1.35f;
+        private const float k_MinArrivalFraction = 0.5f; // 가장 작은 알갱이의 도착 시각(듀레이션 대비)
+
+        // 출발 시차. 크기에 따른 속도 차이와 별개로 조금씩 어긋나게 떠나 스트림에 결이 생긴다.
+        private const float k_MaxDepartureDelay = 0.12f;
 
         /// 연출을 어떻게 끝낼지. 부유는 배치 대기 동안 무한 루프이므로 **바깥에서** 끝을 통지받는다.
         private enum Ending
@@ -72,7 +90,8 @@ namespace NorthLand.Combat
         private sealed class Source
         {
             public Transform Target;     // 원본 재료(부유 중엔 비활성). 취소 시 여기로 되돌아온다
-            public Bounds Bounds;        // 재료의 월드 AABB(소모 직전에 측정)
+            public Bounds Bounds;        // 재료의 월드 AABB(소모 직전에 측정). 폭발 출발점·재조립 도착점
+            public Vector3 FloatCenter;  // 부유 구름의 중심. **밑면 기준 고정 고도**라 타워 키와 무관하다
             public Transform Pivot;      // 흰 사본의 부모. bounds.center에 두어 **중심 기준**으로 수축시킨다
             public VfxScaleHold.Handle Hold; // 재조립 동안의 스케일 점유(0 → back-out → 원본)
             public float Delay;          // 재료별 출발 시차
@@ -82,11 +101,12 @@ namespace NorthLand.Combat
 
         private readonly List<Source> _sources = new();
 
-        // 알갱이별 데이터(전 재료 통합 인덱스). 부유 좌표는 소속 재료의 중심 + 이 오프셋으로 만든다.
-        private readonly List<Vector3> _offsets = new(); // 부유 기준점 - 재료 중심
+        // 알갱이별 데이터(전 재료 통합 인덱스). 부유 좌표는 소속 재료의 `FloatCenter` + 이 오프셋으로 만든다.
+        private readonly List<Vector3> _offsets = new(); // 부유 위치 - FloatCenter
         private readonly List<Vector3> _scales = new();
         private readonly List<float> _phases = new();    // 위아래 흔들림 위상(전부 같은 박자면 기계처럼 보인다)
         private readonly List<float> _delays = new();    // 수렴 출발 시차
+        private readonly List<float> _arrivals = new();  // 수렴 도착 시각(듀레이션 대비 비율) — 크기가 정한다
 
         private GrainSwarm _swarm;
         private Material _silhouette;
@@ -196,6 +216,12 @@ namespace NorthLand.Combat
                 {
                     Target = target,
                     Bounds = bounds,
+                    // 밑면(= 타일 윗면) 기준 고정 고도. `bounds.center`를 쓰면 구름이 타워 키를 따라 올라가
+                    // 45° 직교 카메라에서 자기 타일 밖으로 밀려 보인다.
+                    FloatCenter = new Vector3(
+                        bounds.center.x,
+                        bounds.min.y + _footprintSize * k_HoverRatio,
+                        bounds.center.z),
                     Delay = s * k_MaterialStagger,
                     GrainStart = _swarm.Count,
                 };
@@ -207,24 +233,25 @@ namespace NorthLand.Combat
                 int count = GrainSwarm.ResolveCount(bounds);
                 for (int i = 0; i < count; i++)
                 {
-                    // 위로 치우친 방향. 아래로도 조금 열어 두되 지면 아래로는 내려가지 않게 한다
-                    // (TowerSpawnEffect의 분포와 같은 규칙 — 두 연출의 구름이 같은 모양으로 읽혀야 한다).
-                    Vector3 dir = Random.onUnitSphere;
-                    dir.y = Mathf.Lerp(-0.2f, 1f, (dir.y + 1f) * 0.5f);
-                    dir.Normalize();
-
-                    Vector3 offset = dir * (cloudRadius * Random.Range(0.35f, 1f))
-                                   + Vector3.up * (bounds.size.y * k_RiseRatio);
+                    // 속을 비운 껍질에서 뽑고 Y를 눌러 **납작하게 퍼진 구름**을 만든다. 속까지 채우면
+                    // 가운데가 뭉쳐 한 덩어리로 보이고, 위로 치우치게 하면 타일 식별이 흐려진다.
+                    Vector3 offset = Random.onUnitSphere * (cloudRadius * Random.Range(k_CloudShellInner, 1f));
+                    offset.y *= k_CloudFlatten;
 
                     // 흔들림까지 감안해 최저점이 지면(시각물 밑면) 아래로 내려가지 않게 띄운다.
-                    float minY = bounds.min.y + grainSize * 0.5f + bobAmplitude - bounds.center.y;
+                    float minY = bounds.min.y + grainSize * 0.5f + bobAmplitude - source.FloatCenter.y;
                     offset.y = Mathf.Max(offset.y, minY);
+
+                    // 크기 뽑기 한 번이 **크기와 속도를 동시에** 정한다. 두 값이 같은 난수에서 나와야
+                    // "작은 놈이 빠르다"가 화면에서 일관되게 읽힌다(따로 뽑으면 큰데 빠른 알갱이가 섞인다).
+                    float sizeRoll = Random.value;
 
                     _swarm.Add(bounds.center, billboard, Vector3.zero);
                     _offsets.Add(offset);
-                    _scales.Add(Vector3.one * (grainSize * Random.Range(0.6f, 1.35f)));
+                    _scales.Add(Vector3.one * (grainSize * Mathf.Lerp(k_GrainScaleMin, k_GrainScaleMax, sizeRoll)));
                     _phases.Add(Random.Range(0f, Mathf.PI * 2f));
                     _delays.Add(Random.Range(0f, k_MaxDepartureDelay));
+                    _arrivals.Add(Mathf.Lerp(k_MinArrivalFraction, 1f, sizeRoll));
                 }
 
                 source.GrainCount = _swarm.Count - source.GrainStart;
@@ -337,7 +364,9 @@ namespace NorthLand.Combat
 
                     for (int i = s.GrainStart; i < s.GrainStart + s.GrainCount; i++)
                     {
-                        _swarm[i].position = s.Bounds.center + _offsets[i] * eased;
+                        // 출발은 수축이 끝난 시각 중심, 도착은 부유 자리다. 높은 타워면 알갱이가 아래로
+                        // 내려앉는데, 그게 곧 "터진 뒤 자기 칸 위에 자리를 잡았다"로 읽힌다.
+                        _swarm[i].position = Vector3.Lerp(s.Bounds.center, s.FloatCenter + _offsets[i], eased);
                         _swarm[i].localScale = _scales[i] * eased;
                     }
                 }
@@ -372,7 +401,7 @@ namespace NorthLand.Combat
                     {
                         Vector3 offset = orbit * _offsets[i];
                         offset.y += Mathf.Sin(t * k_BobSpeed + _phases[i]) * amplitude;
-                        _swarm[i].position = s.Bounds.center + offset;
+                        _swarm[i].position = s.FloatCenter + offset;
                     }
                 }
 
@@ -430,11 +459,16 @@ namespace NorthLand.Combat
 
                 for (int i = 0; i < _swarm.Count; i++)
                 {
-                    float p = Mathf.Clamp01((t - _delays[i]) / (1f - _delays[i]));
-                    float eased = p * p * p; // ease-in: 뜸 들이다가 마지막에 빨려든다(등장 연출과 같은 곡선)
+                    // 알갱이마다 자기 창(출발 시차 ~ 도착 시각)을 쓴다. 창이 짧을수록 빠르다 =
+                    // 작은 알갱이가 앞질러 나간다. 가장 큰 알갱이의 창만이 듀레이션을 꽉 채운다.
+                    float window = Mathf.Max(_arrivals[i] - _delays[i], 0.05f);
+                    float p = Mathf.Clamp01((t - _delays[i]) / window);
 
-                    Vector3 offset = Quaternion.Euler(0f, k_ConvergeSwirl * eased, 0f) * (starts[i] - destinations[i]);
-                    _swarm[i].position = destinations[i] + offset * (1f - eased);
+                    // **거의 등속**이다(살짝만 가속). 강한 ease-in을 쓰면 이동이 전부 끝자락에 몰려
+                    // 속도 차이가 눈에 안 보인다 — 속도로 개별성을 내겠다는 이 구간의 목적이 사라진다.
+                    float eased = p * Mathf.Lerp(0.7f, 1f, p);
+
+                    _swarm[i].position = Vector3.LerpUnclamped(starts[i], destinations[i], eased);
                     _swarm[i].localScale = _scales[i] * (1f - eased * eased); // 도착하며 소멸
                 }
 
