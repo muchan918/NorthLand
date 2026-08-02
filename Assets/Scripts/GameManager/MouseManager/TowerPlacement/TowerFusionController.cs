@@ -105,7 +105,7 @@ public class TowerFusionController : MonoBehaviour
         bool started = _placer.BeginTowerPlacement(
             recipe.Result,
             recipe.ExtraCost,
-            command.Commit,
+            placed => { command.Commit(); effect.ConvergeTo(placed); },
             () => { command.Undo(); effect.Abort(); });
 
         // 배치를 열지 못했으면 방금 소모한 재료를 즉시 되돌린다. 이 경로에서는 종료 통지도 오지 않으므로

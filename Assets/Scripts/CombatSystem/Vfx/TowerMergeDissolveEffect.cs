@@ -54,11 +54,17 @@ namespace NorthLand.Combat
         private const float k_BobSpeed = 1.6f;           // 흔들림 각속도(rad/s)
         private const float k_OrbitDegPerSec = 22f;      // 구름 전체가 Y축으로 도는 속도 — "둥둥"의 정체
 
+        private const float k_ConvergeSwirl = 100f;      // 수렴하며 Y축으로 감기는 각도(직선 수렴은 밋밋하다)
+        // 출발 시차. 전부 동시에 떠나면 한 덩어리가 미끄러지는 것처럼 보인다. **도착 시각은 시차와
+        // 무관하게 동일하다**(진행도를 남은 구간으로 정규화하므로) — 늦게 떠난 알갱이가 더 빨리 날아간다.
+        private const float k_MaxDepartureDelay = 0.25f;
+
         /// 연출을 어떻게 끝낼지. 부유는 배치 대기 동안 무한 루프이므로 **바깥에서** 끝을 통지받는다.
         private enum Ending
         {
             None,
-            Abort, // 조용히 걷어낸다(합성이 시작조차 못 했거나, 확정/취소 통지 없이 세션이 끝난 경우)
+            Abort,    // 조용히 걷어낸다(합성이 시작조차 못 했거나, 확정/취소 통지 없이 세션이 끝난 경우)
+            Converge, // 배치 확정 — 결과 타워로 날아가 등장 연출에 합류한다
         }
 
         /// 재료 하나분의 연출 상태.
@@ -77,11 +83,13 @@ namespace NorthLand.Combat
         private readonly List<Vector3> _offsets = new(); // 부유 기준점 - 재료 중심
         private readonly List<Vector3> _scales = new();
         private readonly List<float> _phases = new();    // 위아래 흔들림 위상(전부 같은 박자면 기계처럼 보인다)
+        private readonly List<float> _delays = new();    // 수렴 출발 시차
 
         private GrainSwarm _swarm;
         private Material _silhouette;
         private Ending _ending = Ending.None;
         private float _footprintSize;
+        private Vector3 _destination; // 확정 시 입자가 모일 지점(결과 타워의 시각 중심)
 
         /// 재료 소모 **직전에** 호출한다 — 커맨드가 `SetActive(false)`를 걸고 나면 복제할 것이 남지 않는다.
         /// targets는 소모될 재료들, footprintSize는 타일 한 칸 크기(알갱이 크기 기준을 등장 연출과 맞추기 위한 값).
@@ -99,6 +107,18 @@ namespace NorthLand.Combat
         /// 걸어 두어도 진행 중인 마무리를 잘라먹지 않는다.
         public void Abort() => RequestEnd(Ending.Abort);
 
+        /// 배치 확정 → 부유하던 입자를 결과 타워로 날려 보낸다. `TowerPlacer`의 확정 콜백에서 호출한다.
+        ///
+        /// ⚠ 목적지를 **이 호출 시점에** 확정한다. 곧이어 시작되는 등장 연출(#264)이 결과 타워의 스케일을
+        /// 0으로 만들기 때문에, 한 프레임만 늦게 재도 쪼그라든 상자의 중심이 나온다.
+        public void ConvergeTo(Transform placed)
+        {
+            if (this == null || placed == null) return;
+
+            _destination = TowerSpawnEffect.CalculateVisualBounds(placed, _footprintSize).center;
+            RequestEnd(Ending.Converge);
+        }
+
         private void RequestEnd(Ending ending)
         {
             if (this == null) return;          // 이미 호스트가 파괴됨(정상 종료 후 늦게 온 통지)
@@ -115,7 +135,9 @@ namespace NorthLand.Combat
 
                 await DissolveAsync(ct);
                 await FloatAsync(ct);
-                // 마무리 구간(확정 수렴 / 취소 재조립)은 후속 커밋에서 여기에 붙는다.
+
+                if (_ending == Ending.Converge) await ConvergeAsync(ct);
+                // 취소 시 역재생(재조립)은 후속 커밋에서 여기에 붙는다.
             }
             catch (System.OperationCanceledException)
             {
@@ -176,6 +198,7 @@ namespace NorthLand.Combat
                     _offsets.Add(offset);
                     _scales.Add(Vector3.one * (grainSize * Random.Range(0.6f, 1.35f)));
                     _phases.Add(Random.Range(0f, Mathf.PI * 2f));
+                    _delays.Add(Random.Range(0f, k_MaxDepartureDelay));
                 }
 
                 source.GrainCount = _swarm.Count - source.GrainStart;
@@ -325,6 +348,40 @@ namespace NorthLand.Combat
                         offset.y += Mathf.Sin(t * k_BobSpeed + _phases[i]) * amplitude;
                         _swarm[i].position = s.Bounds.center + offset;
                     }
+                }
+
+                await UniTask.Yield(ct);
+            }
+        }
+
+        // ── 구간 3: 확정 수렴 (등장 연출과 시간 축 공유) ──────────────────────────────
+        private async UniTask ConvergeAsync(CancellationToken ct)
+        {
+            // 소요 시간을 **거리와 무관하게** 등장 연출의 수렴 시간으로 고정한다. 재료가 배치 지점에서
+            // 얼마나 떨어져 있든 도착 시각이 같아지므로, 결과 타워가 튀어나오는 순간에 입자가 정확히
+            // 도달한다. 속도를 고정하면(= 거리에 비례한 시간) 먼 재료의 입자가 **타워가 다 선 뒤에**
+            // 도착해 "재료가 모여서 타워가 됐다"는 인과가 뒤집힌다 — 이 연출이 존재하는 이유가 사라진다.
+            float duration = TowerSpawnEffect.ConvergeDuration;
+
+            // 출발점은 부유 중이던 **지금 그 자리**다. 폭발 때 정한 기준점을 쓰면 흔들림·회전만큼
+            // 어긋나 첫 프레임에 알갱이가 순간이동한다.
+            var starts = new Vector3[_swarm.Count];
+            for (int i = 0; i < starts.Length; i++) starts[i] = _swarm[i].position;
+
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+
+                for (int i = 0; i < _swarm.Count; i++)
+                {
+                    float p = Mathf.Clamp01((t - _delays[i]) / (1f - _delays[i]));
+                    float eased = p * p * p; // ease-in: 뜸 들이다가 마지막에 빨려든다(등장 연출과 같은 곡선)
+
+                    Vector3 offset = Quaternion.Euler(0f, k_ConvergeSwirl * eased, 0f) * (starts[i] - _destination);
+                    _swarm[i].position = _destination + offset * (1f - eased);
+                    _swarm[i].localScale = _scales[i] * (1f - eased * eased); // 도착하며 소멸
                 }
 
                 await UniTask.Yield(ct);
