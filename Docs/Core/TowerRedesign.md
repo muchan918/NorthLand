@@ -25,6 +25,38 @@
 | 5 | 합성 효과 계승(§9) | ⬜ 기획 사인오프 대기 |
 
 **완료된 절의 내용은 [Tower.md](Tower.md)가 정본이다.** 전부 끝나면 이 문서는 폐기한다.
+커밋: `a881bff`(Phase 1) · `ca79dce`(Phase 2) · `3bd5c2e`(Phase 3~4).
+프리팹 9개는 중첩 저장소 `Assets/Imported/`의 `818f1e7` — [Tower.md](Tower.md) §6 상단 참조.
+
+### 검증 상태 — ⚠ 플레이 모드 미검증
+
+**에디트 모드에서 확인한 것** (전부 통과):
+
+| | 확인 내용 |
+|---|---|
+| 프리팹 14개 | `Actions` 타입 정확 · `enemyLayerMask`(=128)·`firePoint` 값 보존 · **Missing Script 0건** |
+| SO 이관 | 비행 축(캐논 `ArcHeight` 15) · 효과(soda Stun 0.7 / poison DoT 5·1s·4s / choco Slow ×0.8·2s) |
+| 능력 질의 | 프리팹→`Build` 후 `Has<AttackAction>()`·보스 P3 봉인 대상 판정이 이전과 동일(오라 3종 제외) |
+| `OnValidate` | 의도한 저작 실수 3종을 잡고 정상 SO에는 침묵 |
+| `HitEffect` | `StatusEffectHandler`에 도달(감속+스턴 슬롯 2, DoT 슬롯 1) |
+| 기타 | CSV 9행 파싱 · 컴파일 에러 0 |
+
+**아직 안 한 것:**
+
+- **플레이 모드 실기 검증** — 실제 발사·명중·오라 지속·합성·타일 버프는 돌려보지 않았다.
+  가장 싼 경로는 `Assets/Personal/SUNGSOO/Scripts/AuraTowerTestDriver.cs`(자기완결 스모크 테스트)를
+  빈 GameObject에 붙이고 플레이하는 것. ⚠ **`DayNightManager`가 없는 빈 씬에서 돌릴 것** —
+  `DebuffAuraAction`이 `NightOnly`이고 게이트가 `매니저 없음 == 밤`이라, 매니저가 있는 씬에서 낮이면
+  오라가 아예 틱하지 않아 **정상인데 버그처럼 보인다.**
+- **EditMode 테스트** — 액션·`HitEffect`·`TowerStats`가 전부 순수 C#이 되어 씬 없이 검증 가능해졌지만,
+  프로젝트에 `.asmdef`가 하나도 없어 테스트 어셈블리부터 만들어야 한다([Tower.md](Tower.md) §6 #6).
+- **Phase 4.5(투사체 부품화)** — §12-A대로 보류. 타워를 몇 개 실제로 추가해본 뒤 판단한다.
+- **Phase 6(나머지 문서 갱신)** — `SystemMap.md` §2 API가 아직 `ITowerBehaviour`/`AttackBehaviour`/
+  `TowerBuildContext`/`TowerBehaviourFactory`를 현행으로 서술한다(`:179`·`:183-184`·`:209-210`·`:223-237`).
+  `WatchList.md` WL-130은 `OnValidate` 신설로 해소됐는데 PARTIAL로 남아 아카이브 대상.
+  [TowerMerge.md](TowerMerge.md)`:330`의 "재료 승계 제안 → `Tower.md` §8" 링크는 4차 개정에서
+  이 문서 §9로 옮겨가 **깨져 있다**. — 단 `TowerPlacement.md`는 **할 일이 없다**: 그 문서엔
+  `MagicRadius`·`TowerType` 언급이 0건이라 이 목록의 이전 판이 틀렸다.
 
 ---
 

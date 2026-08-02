@@ -471,17 +471,36 @@ ApplyOrRefresh / ApplySlow → StatusEffectHandler
 재설계와 무관하게 남아 있는 항목들이다. 재설계 관련 미결은
 [TowerRedesign.md](TowerRedesign.md) §12에 있다.
 
+### ⚠ 타워 프리팹 9개는 부모 저장소 밖에 산다
+
+**`Assets/Imported/`는 `.gitignore`(`:162`)에 있고 자체 중첩 git 저장소(`muchan918/NorthLand-Imported`)를
+갖는다.** 그런데 주력 타워 프리팹 9개(`ArcherTower`·`CandyCanon`·`SodaTower`·`SniperTower`·
+`GatlingShooter`·`RollyShooter`·`ChocoFallTower`·`HasteTowerTest`·`PoisonTowerTest`)가
+`@NorthLand/Prefabs/Tower/` 아래에 있다.
+
+#274 Phase 2에서 그 9개의 `Tower.Actions`를 채운 것은 부모 저장소 커밋(`ca79dce`)에 실리지 못했고,
+**중첩 저장소에 따로 커밋했다(`818f1e7`).** 부모 저장소의 커밋 하나만 받아서는 전달되지 않는다.
+
+> **`Actions`가 빈 타워는 예외도 경고도 없이 아무 동작을 안 한다** — `Tower.Update`가 빈 리스트를
+> 순회할 뿐이다. **"타워가 안 움직인다"를 만나면 `Assets/Imported/`가 최신인지부터 확인할 것.**
+> 프리팹 구성이 걸린 작업은 앞으로도 **커밋이 두 저장소로 갈라진다.**
+
+`Personal/SUNGSOO/` 아래 나머지 5개는 부모 저장소가 추적하므로 이미 포함돼 있다.
+
+### 그 밖의 열린 항목
+
 | # | 항목 | 상태 |
 |---|---|---|
 | 1 | **타워 철거 경로가 없다** | `TowerFootprint.OnDestroy`가 철거를 전제하는데 실제 UI/코드가 없다. 현재 유일한 파괴 경로는 합성 소모 |
-| 2 | `lightning_tower.asset` 전 필드 0 | `TowerPrefab`/`GhostPrefab`도 둘 다 null이라 배치해도 무동작(WL-001). 수치 기입 필요 |
-| 3 | 밸런싱 수치가 CSV 밖 SO에 authoring | WL-015. `TableImporter`가 동기화하는 건 `TowerID`/`TowerType`/`MagicEffectType` 3개뿐 |
-| 4 | CC 강도 축 부재 | WL-127. `TowerStat`에 축이 없어 순수 감속 타워가 타일 버프에서 사거리만 이득(§5.3 ②) |
+| 2 | `lightning_tower.asset` 전 필드 0 | `TowerPrefab`/`GhostPrefab`도 둘 다 null이라 배치해도 무동작(WL-001). 수치 기입 필요. ⚠ `OnValidate`는 `TowerPrefab`이 null이면 검증을 건너뛰므로 **이 SO는 경고도 안 난다** |
+| 3 | 밸런싱 수치가 CSV 밖 SO에 authoring | WL-015. `TableImporter`가 동기화하는 건 이제 `TowerID` 하나뿐이다(#274 Phase 3) — 수치는 전부 인스펙터 수기 |
+| 4 | CC 강도 축 부재 | WL-127. `TowerStat`에 축이 없어 순수 감속 타워가 타일 버프에서 사거리만 이득(§5.3 ②). `SlowEffect.Multiplier`도 원장을 거치지 않는다 |
 | 5 | `TowerPlacer.keepPlacing` 공유 | WL-105. true면 합성 재료 1회 소모 후 `ExtraCost`만으로 결과 타워 복제 가능 |
-| 6 | EditMode 테스트 0건 | `TowerStats`·`TowerFusionMatcher`·`AuraModifiers`가 순수 C#으로 설계됐는데 테스트가 없다 |
+| 6 | EditMode 테스트 0건 | `TowerStats`·`AuraModifiers`·`HitEffect`·액션 3종이 전부 순수 C#인데 테스트가 없다. **`.asmdef`가 프로젝트에 하나도 없어** 테스트 어셈블리부터 만들어야 한다(`com.unity.test-framework 1.6.0`은 설치됨) |
 | 7 | `Projectile.chainHitSet`이 static | "한 프레임에 하나의 투사체만 명중 처리된다"는 가정 위에 서 있다(`:72-73` 주석). 현재는 `ApplyChain`이 동기적으로 끝나 안전하지만, static 이벤트 `DamageDealt` 구독자(#169 `BurnBuff` 등)가 또 다른 체인 명중을 유발하면 **재진입으로 집합이 덮인다**. 지금은 그런 구독자가 없다 |
-| 8 | 투사체가 풀링 없이 매 발사 `Instantiate`/`Destroy` | `Area`/`Chain`의 `Physics.OverlapSphere`도 할당형이다(`:205`, `:245`) — 대상 탐색 쪽은 `NonAlloc` + 고정 버퍼를 쓰는데 투사체만 다르다. 체인은 홉마다 부른다 |
-| 11 | `Personal/SUNGSOO/` 고아 프리팹·구버전 SO | `CannonTowerTest.prefab`·`SweetLand Prefab/CandyCanon.prefab`은 참조 0건. `CombatData/debuff_tower.asset`은 지금은 없는 `BuffAura.Interval` 필드가 남은 구버전 스키마 |
+| 8 | 투사체가 풀링 없이 매 발사 `Instantiate`/`Destroy` | `Area`/`Chain`의 `Physics.OverlapSphere`도 할당형이다 — 대상 탐색 쪽은 `NonAlloc` + 고정 버퍼를 쓰는데 투사체만 다르다. 체인은 홉마다 부른다 |
+| 9 | `Personal/SUNGSOO/` 고아 프리팹·구버전 SO | `CannonTowerTest.prefab`·`SweetLand Prefab/CandyCanon.prefab`은 참조 0건. `CombatData/debuff_tower.asset`은 정규 폴더 밖 구버전 스키마 |
+| 10 | 원거리 적이 동작하지 않는다 | 모든 `EnemyAsset`의 `Ranged.ProjectilePrefab`이 null이라 `Enemy.TryRangedAttack`이 즉시 false. 궤적 저작 필드도 없어 `Homing` 직선 고정이다(§3.7 각주) |
 
 ---
 
@@ -508,6 +527,7 @@ ApplyOrRefresh / ApplySlow → StatusEffectHandler
 | 3차 (#274) | **§3.7 투사체 절 신설** — `FlightMode`가 `Docs/` 전체에 한 번도 없었다. 비행/명중 두 축이 독립인데 소유자가 갈라져 있음을 기록 |
 | 4차 (#274) | **재설계 제안을 [TowerRedesign.md](TowerRedesign.md)로 분리.** 이 문서가 1031줄까지 불어 Core 문서 중 2위의 2배가 됐고, "현재 명세"와 "제안"이 섞여 읽을 때마다 사실/제안을 판단해야 했다. 이제 이 문서에 `[제안]`은 없다. 기존 §12를 §6(현재 코드의 열린 문제)으로 재편 |
 | 5차 (#274 **Phase 1 구현**) | `TowerAsset` 스키마 평탄화 — `Single`/`Area`/`Chain`/`Magic` 래퍼 제거, `Impact`/`SplashRadius`/`Chain*`/`BuffAura`/`DebuffAura`가 최상위로. **비행 축(`Flight`/`ArcHeight`)을 탄환 프리팹 → SO로 이관**하고 `ProjectileFlight` struct 신설(§3.7 재작성). `MagicRadius` → `PreviewRadius`. `TowerAssetEditor.cs` 삭제. §4.3 참조 9개 파일 → 6개 |
-| 8차 (#274 **Phase 4 구현**) | **명중 효과 부품화** — `HitEffect`(Burn/Poison/Slow/Stun) 신설, `TowerAsset.Effects`에 `[SerializeReference]`로 담는다(§3.8 신규). 공격 액션과 디버프 오라가 **같은 리스트를 공유**해 화상 장판 타워가 새 코드 없이 성립한다. `Projectile`의 세 명중 경로를 `Hit()` 한 곳으로 모아 **스턴이 Single에만 걸리던 실버그 해소**(§6 #10 삭제). `OnHitStunDuration`·`ProjectileImpact.StunDuration`·`DebuffAuraFields`의 `Duration`/`Modifiers`/`Damage` 제거 |
-| 7차 (#274 **Phase 3 구현**) | **`TowerType`/`MagicEffectType` enum 삭제** — 선언·SO 필드·CSV 컬럼 2개(9행)·`TableImporter` 동기화·로그 참조 전부 제거. 종류의 정본이 프리팹의 `Actions` 하나로 수렴했다. **`TowerAsset.OnValidate` 신설**(§4.3 신규) — 액션↔수치 불일치·중복 액션·null 항목·명중 방식 수치 누락을 저장 시점에 경고(WL-130 해소). 낡은 §4.3(참조 목록)·§4.4(2중 정보 문제) 삭제. `Tower.cs`의 `?.` 누락 NRE 수정(§6 #9 해소) |
 | 6차 (#274 **Phase 2 구현**) | **행동 3종을 액션 리스트로 전환.** `Tower`가 `[SerializeReference] List<TowerAction>`을 직접 소유하고, 종류의 정본이 SO의 `TowerType`에서 **프리팹의 `Actions`**로 옮겨갔다(§3.1·§3.4 재작성). `ITowerBehaviour`·`TowerBuildContext`·`TowerBehaviourFactory`·`StripUnusedBehaviourComponents` 삭제. 버프 오라 구독이 `Initialize`↔`Dispose` 대칭 쌍이 되어 §3.3의 예외가 사라지고 더티 플래그로 재진입·중복 재계산이 차단됐다. 프리팹 14개에 `Actions` 채움(Missing Script 0). §4.3 참조 6개 파일 → **4개, switch 0개** |
+| 7차 (#274 **Phase 3 구현**) | **`TowerType`/`MagicEffectType` enum 삭제** — 선언·SO 필드·CSV 컬럼 2개(9행)·`TableImporter` 동기화·로그 참조 전부 제거. 종류의 정본이 프리팹의 `Actions` 하나로 수렴했다. **`TowerAsset.OnValidate` 신설**(§4.3 신규) — 액션↔수치 불일치·중복 액션·null 항목·명중 방식 수치 누락을 저장 시점에 경고(WL-130 해소). 낡은 §4.3(참조 목록)·§4.4(2중 정보 문제) 삭제. `Tower.cs`의 `?.` 누락 NRE 수정(§6 #9 해소) |
+| 8차 (#274 **Phase 4 구현**) | **명중 효과 부품화** — `HitEffect`(Burn/Poison/Slow/Stun) 신설, `TowerAsset.Effects`에 `[SerializeReference]`로 담는다(§3.8 신규). 공격 액션과 디버프 오라가 **같은 리스트를 공유**해 화상 장판 타워가 새 코드 없이 성립한다. `Projectile`의 세 명중 경로를 `Hit()` 한 곳으로 모아 **스턴이 Single에만 걸리던 실버그 해소**(§6 #10 삭제). `OnHitStunDuration`·`ProjectileImpact.StunDuration`·`DebuffAuraFields`의 `Duration`/`Modifiers`/`Damage` 제거 |
+| 9차 (#274 인계 정리) | §6에 **`Assets/Imported/` 중첩 저장소 경고** 신설 — 타워 프리팹 9개가 부모 저장소 밖이라 Phase 2의 `Actions` 채움이 커밋에 안 실렸다는 사실이 커밋 메시지에만 있었다. §6 번호 재정렬(…7,8,11 → 1~10) + #3·#4·#6의 낡은 서술 정정 + #10(원거리 적 미동작) 추가 |
