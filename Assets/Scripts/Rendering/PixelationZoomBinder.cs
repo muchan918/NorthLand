@@ -54,11 +54,24 @@ public class PixelationZoomBinder : MonoBehaviour
     [SerializeField] private Mode mode = Mode.NormalizedZoom;
 
     [Header("Normalized Zoom")]
-    [Tooltip("최대 확대(orthoSize = min)에서의 해상도")]
+    [Tooltip("켜면 해상도가 아니라 '블록이 화면에서 몇 px으로 보일지'로 지정한다.\n" +
+             "resolution은 렌더 타깃 긴 변에 대한 상대값이라 창 크기가 바뀌면 룩이 달라진다 — " +
+             "블록 px으로 지정하면 창 크기와 무관하게 같은 룩이 나온다.")]
+    [SerializeField] private bool specifyByBlockPixels = true;
+
+    [Tooltip("최대 확대에서 블록이 화면에서 차지할 픽셀 수")]
+    [Min(1f)]
+    [SerializeField] private float blockPixelsAtMinZoom = 4f;
+
+    [Tooltip("최대 축소에서 블록이 화면에서 차지할 픽셀 수")]
+    [Min(1f)]
+    [SerializeField] private float blockPixelsAtMaxZoom = 2f;
+
+    [Tooltip("최대 확대(orthoSize = min)에서의 해상도. specifyByBlockPixels가 꺼져 있을 때만 쓴다.")]
     [Min(1)]
     [SerializeField] private int resolutionAtMinZoom = 240;
 
-    [Tooltip("최대 축소(orthoSize = max)에서의 해상도")]
+    [Tooltip("최대 축소(orthoSize = max)에서의 해상도. specifyByBlockPixels가 꺼져 있을 때만 쓴다.")]
     [Min(1)]
     [SerializeField] private int resolutionAtMaxZoom = 480;
 
@@ -96,6 +109,10 @@ public class PixelationZoomBinder : MonoBehaviour
     [SerializeField] private float currentBlockScreenPixels;
 
     [SerializeField] private float currentBlockWorldSize;
+
+    [Tooltip("resolution이 렌더 타깃 긴 변에 걸려 잘렸는지. true면 설정값이 과하다 — " +
+             "긴 변을 넘는 resolution은 블록이 서브픽셀이 되어 픽셀레이션이 사실상 무효가 된다(실측 확인).")]
+    [SerializeField] private bool clampedToScreen;
 
     private static readonly int PixelSizeId = Shader.PropertyToID("_PixelSize");
 
@@ -147,6 +164,17 @@ public class PixelationZoomBinder : MonoBehaviour
             Mathf.Max(1, minResolution),
             Mathf.Max(1, maxResolution));
 
+        // 렌더 타깃 긴 변을 넘는 resolution은 블록이 서브픽셀이 되어 효과가 사라진다.
+        // 실측: 849x478 게임 뷰에서 resolution 2400의 출력은 픽셀레이션 OFF와 고주파 에너지가
+        // 소수점 4자리까지 동일했다(0.1201). 즉 무효값이므로 조용히 통과시키지 않고 잘라낸다.
+        int screenCap = Mathf.Max(1, Mathf.FloorToInt(longSide));
+        clampedToScreen = resolution > screenCap;
+
+        if (clampedToScreen)
+        {
+            resolution = screenCap;
+        }
+
         currentResolution = resolution;
         currentBlockScreenPixels = longSide / resolution;
         currentBlockWorldSize = 2f * currentOrthoSize * longSide / (resolution * height);
@@ -189,7 +217,16 @@ public class PixelationZoomBinder : MonoBehaviour
         currentZoom01 = Mathf.Clamp01((currentOrthoSize - min) / (max - min));
         float t = zoomCurve != null ? zoomCurve.Evaluate(currentZoom01) : currentZoom01;
 
-        return Mathf.RoundToInt(Mathf.LerpUnclamped(resolutionAtMinZoom, resolutionAtMaxZoom, t));
+        if (!specifyByBlockPixels)
+        {
+            return Mathf.RoundToInt(Mathf.LerpUnclamped(resolutionAtMinZoom, resolutionAtMaxZoom, t));
+        }
+
+        // 블록 px으로 지정하는 경로. resolution = 긴 변 / 블록 px 이므로 창 크기가 바뀌어도
+        // 화면에서 보이는 블록 크기가 유지된다.
+        float blockPixels = Mathf.Max(1f, Mathf.LerpUnclamped(blockPixelsAtMinZoom, blockPixelsAtMaxZoom, t));
+
+        return Mathf.RoundToInt(longSide / blockPixels);
     }
 
     /// <summary>
