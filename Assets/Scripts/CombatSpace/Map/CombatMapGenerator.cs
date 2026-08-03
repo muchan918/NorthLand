@@ -23,8 +23,7 @@ namespace CombatSpace
         private int maxGenerationAttempts = 5;
 
         [SerializeField]
-        private List<int> validatedSeeds =
-            new List<int>
+        private List<int> validatedSeeds = new List<int>
             {
                 1,
                 2,
@@ -86,100 +85,79 @@ namespace CombatSpace
             private set;
         }
 
+        public int RequestedSeed
+        {
+            get;
+            private set;
+        }
+
         [ContextMenu("Generate Map")]
         public void Generate()
         {
             TryGenerate();
         }
 
-        // 재시도를 포함한 전체 맵 생성
+        // Inspector seed를 사용하는 기존 개발용 경로.
         public bool TryGenerate()
         {
+            return TryGenerate(seed);
+        }
+
+        // Run 시스템에서 요청 시드를 주입하는 운영 경로.
+        public bool TryGenerate(int requestedSeed)
+        {
+            RequestedSeed = requestedSeed;
+
             CurrentMap = null;
             LastGenerationSucceeded = false;
             LastGenerationError = null;
 
             if (Settings == null)
             {
-                LastGenerationError =
-                    "맵 생성 설정이 지정되지 않았습니다.";
+                LastGenerationError = "맵 생성 설정이 지정되지 않았습니다.";
 
-                Debug.LogError(
-                    LastGenerationError,
-                    this);
+                Debug.LogError(LastGenerationError,this);
 
                 return false;
             }
 
-            if (!Settings.Validate(
-                    out string settingsError))
+            if (!Settings.Validate(out string settingsError))
             {
-                LastGenerationError =
-                    $"맵 생성 설정 오류: {settingsError}";
+                LastGenerationError =$"맵 생성 설정 오류: {settingsError}";
 
-                Debug.LogError(
-                    LastGenerationError,
-                    this);
+                Debug.LogError(LastGenerationError,this);
 
                 return false;
             }
 
-            HashSet<int> attemptedSeeds =
-                new HashSet<int>();
+            HashSet<int> attemptedSeeds = new HashSet<int>();
 
-            // 기본 시드부터 순서대로 재시도
-            for (int attempt = 0;
-                 attempt < maxGenerationAttempts;
-                 attempt++)
+            for (int attempt = 0;attempt < maxGenerationAttempts;attempt++)
             {
-                int generationSeed =
-                    unchecked(seed + attempt);
+                int generationSeed =unchecked(RequestedSeed + attempt);
 
                 attemptedSeeds.Add(generationSeed);
 
-                if (TryGenerateWithSeed(
-                        generationSeed,
-                        out CombatMapData generatedMap,
-                        out string errorMessage))
+                if (TryGenerateWithSeed(generationSeed,out CombatMapData generatedMap,out string errorMessage))
                 {
-                    CompleteGeneration(
-                        generatedMap,
-                        generationSeed,
-                        attempt + 1,
-                        false);
+                    CompleteGeneration(generatedMap,generationSeed,attempt + 1,false);
 
                     return true;
                 }
 
-                LastGenerationError =
-                    errorMessage;
+                LastGenerationError = errorMessage;
             }
 
-            // 일반 재시도가 모두 실패하면
-            // 검증된 예비 시드 사용
-            if (TryGenerateWithValidatedSeeds(
-                    attemptedSeeds,
-                    out CombatMapData fallbackMap,
-                    out int fallbackSeed,
-                    out string fallbackError))
+            if (TryGenerateWithValidatedSeeds(attemptedSeeds,out CombatMapData fallbackMap,out int fallbackSeed,out string fallbackError))
             {
-                CompleteGeneration(
-                    fallbackMap,
-                    fallbackSeed,
-                    maxGenerationAttempts,
-                    true);
+                CompleteGeneration(fallbackMap,fallbackSeed,maxGenerationAttempts,true);
 
                 return true;
             }
 
-            LastGenerationError =
-                "모든 맵 생성 시도가 실패했습니다.\n" +
-                $"마지막 오류: " +
-                $"{fallbackError ?? LastGenerationError}";
+            LastGenerationError =$"모든 맵 생성 시도가 실패했습니다. 마지막 오류: {fallbackError ?? LastGenerationError}";
 
-            Debug.LogError(
-                LastGenerationError,
-                this);
+            Debug.LogError(LastGenerationError,this);
 
             return false;
         }
@@ -361,11 +339,7 @@ namespace CombatSpace
             return false;
         }
 
-        private void CompleteGeneration(
-            CombatMapData generatedMap,
-            int generationSeed,
-            int attemptCount,
-            bool usedFallbackSeed)
+        private void CompleteGeneration(CombatMapData generatedMap,int generationSeed,int attemptCount,bool usedFallbackSeed)
         {
             CurrentMap = generatedMap;
             UsedSeed = generationSeed;
@@ -380,22 +354,15 @@ namespace CombatSpace
                     $"{generationSeed}를 사용했습니다.",
                     this);
             }
-            else if (generationSeed != seed)
+            else if (generationSeed != RequestedSeed)
             {
-                Debug.LogWarning(
-                    $"기본 시드 {seed} 생성에 실패하여 " +
-                    $"시드 {generationSeed}를 사용했습니다.",
-                    this);
+                Debug.LogWarning($"요청 시드 {RequestedSeed} 생성에 실패하여 시드 {generationSeed}를 사용했습니다.",this);
             }
 
-            PrintGenerationResult(
-                attemptCount,
-                usedFallbackSeed);
+            PrintGenerationResult(attemptCount,usedFallbackSeed);
         }
 
-        private void PrintGenerationResult(
-            int attemptCount,
-            bool usedFallbackSeed)
+        private void PrintGenerationResult(int attemptCount,bool usedFallbackSeed)
         {
             int roadCount =
                 CountTiles(
@@ -411,7 +378,7 @@ namespace CombatSpace
 
             Debug.Log(
                 "전투맵 생성 완료\n" +
-                $"요청 Seed: {seed}\n" +
+                $"요청 Seed: {RequestedSeed}\n" +
                 $"사용 Seed: {UsedSeed}\n" +
                 $"생성 시도: {attemptCount}회\n" +
                 $"예비 Seed 사용: " +
@@ -424,8 +391,7 @@ namespace CombatSpace
                 this);
         }
 
-        private int CountTiles(
-            CombatTileType tileType)
+        private int CountTiles(CombatTileType tileType)
         {
             int count = 0;
 

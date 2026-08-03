@@ -15,8 +15,9 @@ public class TerritoryController : MonoBehaviour
     [Tooltip("절차 생성 파라미터 (TerritoryGraph.md §4.1)")]
     [SerializeField] TerritoryGraphGenSettings _settings = new();
 
-    [Tooltip("생성 시드. 0이면 매 플레이 랜덤 — 사용된 시드를 로그로 남겨 재현 가능하게 한다")]
-    [SerializeField] int _seed = 0;
+    [Tooltip("에디터 테스트용 시드 Override.0이면 RunBootstrapper가 전달한 시드를 사용한다.")]
+    [SerializeField]
+    int _seed = 0;
 
     [Tooltip("노드에 랜덤 배정할 미개척 영지 정의 풀(금/루비/사파이어/다이아 등). 비우면 영지 없이 지형만 생성된다(TerritoryGraph.md §5).")]
     [SerializeField] List<TerritoryDefinition> _definitionPool = new();
@@ -26,6 +27,9 @@ public class TerritoryController : MonoBehaviour
 
     /// <summary>읽기 질의용 모델. 상태 변경은 반드시 <see cref="TryClaim"/>으로만.</summary>
     public TerritoryGraph Graph { get; private set; }
+
+
+    public int UsedSeed { get; private set;}
 
     /// <summary>오늘 이미 영토를 확장했는가 — 낮 시작마다 초기화, 하루 1회만 true로 전이(이슈 #67).</summary>
     public bool HasExpandedToday { get; private set; }
@@ -42,15 +46,36 @@ public class TerritoryController : MonoBehaviour
         else
         {
             Destroy(gameObject);
-            return;
+        }
+    }
+
+    public bool Initialize(int requestedSeed)
+    {
+        if (Graph != null)
+        {
+            Debug.LogWarning("[영토] 그래프가 이미 초기화됐습니다.",this);
+
+            return false;
         }
 
-        // 시드 0 = 랜덤 런. 이때도 실제 사용한 시드를 로그로 남긴다 — 버그 재현 시 인스펙터에 넣으면 같은 지형(WL-008).
-        int seed = _seed != 0 ? _seed : new System.Random().Next(1, int.MaxValue);
-        Debug.Log($"[영토] 그래프 생성 seed={seed} (재현: 컨트롤러 _seed에 입력)");
+        int effectiveSeed =_seed != 0? _seed: requestedSeed;
 
-        Graph = BuildGeneratedGraph(_settings, seed, _definitionPool);
+        Graph = BuildGeneratedGraph(_settings,effectiveSeed,_definitionPool);
+
+        if (Graph == null)
+        {
+            Debug.LogError("[영토] 그래프 생성에 실패했습니다.",this);
+
+            return false;
+        }
+
+        UsedSeed = effectiveSeed;
+
         Graph.OnChanged += HandleGraphChanged;
+
+        Debug.Log($"[영토] 그래프 초기화 완료 요청 Seed: {requestedSeed} 사용 Seed: {UsedSeed} 노드: {Graph.Nodes.Count}개",this);
+
+        return true;
     }
 
     private void Start()
@@ -63,6 +88,15 @@ public class TerritoryController : MonoBehaviour
         if (_dayNight != null)
         {
             _dayNight.OnDayStart -= HandleDayStart;
+        }
+        if (Graph != null)
+        {
+            Graph.OnChanged -= HandleGraphChanged;
+        }
+
+        if (Instance == this)
+        {
+            Instance = null;
         }
     }
 
