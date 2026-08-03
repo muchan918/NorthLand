@@ -14,7 +14,7 @@ public enum OutlineKind
 
 /// 대상 오브젝트에 아웃라인을 켜고 끄는 컴포넌트(#213, Docs/Core/InteractionOutline.md).
 ///
-/// 표시 방식은 **스크린 스페이스 실루엣**이다(2026-08-03 이행, Docs/Rendering/WIP-OutlineMigration.md).
+/// 표시 방식은 **스크린 스페이스 실루엣**이다(2026-08-03 이행, Docs/Core/InteractionOutline.md §3·§9).
 /// 이 컴포넌트는 아무것도 생성하지 않는다 — "이 렌더러들을 이 슬롯으로"만 `InteractionOutlineRegistry`에
 /// 등록하고, `InteractionOutlineFeature`가 마스크 RT에 그린 뒤 dilate 해 링을 뽑아 합성한다.
 /// 그래서 **부품 수와 무관하게 오브젝트 전체 실루엣 하나**가 나온다.

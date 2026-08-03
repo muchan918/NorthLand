@@ -568,6 +568,10 @@ public static class SpawnTool
 - 비주얼 저작 방침: **Shuriken 파티클(§4.K) · 코드 포스트프로세싱(§4.F) · HLSL 셰이더(§4.G)** 우선. VFX Graph/Shader Graph는 값 조정만, 신규 저작은 코드 경로로(그래프는 AI 저작 API가 막혀 있음 — N2).
 - 건드리면 안 되는 에셋/폴더:
 - 씬 저장 정책 (자동 저장 허용 여부): No
+- ⚠️ **`AssetDatabase.SaveAssets()`를 쓰지 말 것.** 무관한 더티 에셋까지 디스크에 써서 남의 작업 트리를
+  더럽힌다(실측 사례: 동적 JP 폰트 아틀라스, 미니맵 `RenderTexture`, 플레이 모드가 건드린 머티리얼).
+  대상을 특정해 `AssetDatabase.SaveAssetIfDirty(target)`만 쓴다. (#213 이행 중 확인 — 원 출처는 삭제된
+  `WIP-OutlineMigration.md` 주의사항)
 - 테스트 필수 영역:
 - 렌더 파이프라인: URP
 - Unity 버전: 6000.3.15f1

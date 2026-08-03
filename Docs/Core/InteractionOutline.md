@@ -5,9 +5,10 @@
 > 데이터는 역사 기록으로 §2.1에 남겼다. **공개 API·색 우선순위·대상 지정 훅은 교체 전후 무변경**이다.
 
 > **상태**: **호버 노랑 / 선택·그룹 초록 / 합성 프리뷰 핑크 + 영지 노드 대상(§5.4) 구현 완료**(§11 체크리스트).
-> 남은 것은 **Mobile 렌더러 시각 검증(T9)**, **셸 잔재 정리**(`WIP-OutlineMigration.md` Phase 3 —
-> `OutlineShell` 레이어·FlatKit `ObjectOutline` 피처·스무스 노멀 자산), 그리고 `MouseManager.md`·`TowerMerge.md` 갱신이다.
-> 미니맵 노출(T2)은 피처의 카메라 제외 목록으로 **해소**됐다. 색·선 굵기는 전부 **임시(아트 TBD)**.
+> 셸 잔재 정리 완료(2026-08-03) — `OutlineShell` 레이어(12) 회수, FlatKit `ObjectOutline` 피처 제거,
+> 렌더러 세 마스크 원복, 스무스 노멀 자산 16개 삭제. 미니맵 노출(T2)은 피처의 카메라 제외 목록으로 해소.
+> **남은 것은 Mobile 렌더러 시각 검증(T9)과 `MouseManager.md`·`TowerMerge.md` 갱신이다.**
+> 색·선 굵기는 전부 **임시(아트 TBD)**.
 > **소유**: n0wst4ndup(#213)
 > **이슈**: #213 [Feature] 상호작용 아웃라인 — 호버=노란색 / 선택=초록색(그룹 포함) / 합성 후보 버튼 호버 시 재료 타워만 핑크색
 > **구현 파일**:
@@ -23,10 +24,9 @@
 > - `Assets/Scripts/GameManager/MouseManager/MouseManager.cs` · `Assets/Scripts/CombatSystem/Tower/Tower.cs` — (**수정 완료**) 파괴된 선택/호버 대상 통지 방어(§8, WL-033 계열 버그 수정)
 > - `Assets/Scripts/ManagementSpace/Territory/View/TerritoryNodeView.cs` — (**수정 완료**) `IOutlineTargetProvider` 구현 — 판단은 상태 비주얼에 위임(§5.4)
 > - `Assets/Scripts/ManagementSpace/Territory/View/TerritoryNodeStateVisual.cs` — (**수정 완료**) `OutlineTarget` 공개(회오리·본진=null, 섬/산=인스턴스)
-> - `Assets/Scripts/Editor/OutlineSmoothMeshBaker.cs` · `Highlight/OutlineSmoothMeshRegistry.cs` — (**용도 폐기**) 스무스 노멀은 셸 전용 해법이었다(§6.4). 삭제는 Phase 3
-> - `Assets/Resources/Outline/OutlineSmoothMeshRegistry.asset` + `Assets/Meshes/OutlineSmooth/*.asset`(13개) — (**용도 폐기**) 베이크 산출물, 삭제 대상
-> - `Assets/Settings/PC_Renderer.asset` · `Assets/Settings/Mobile_Renderer.asset` — (**적용 완료**) **Interaction Outline** 피처 등재(PC/Mobile 동일). 색·두께·투시 정책·카메라 제외 목록이 여기 있다. 셸 시절의 FlatKit `ObjectOutline` 피처와 세 마스크의 `OutlineShell` 제외 설정은 **미사용 잔재**(Phase 3)
-> - `ProjectSettings/TagManager.asset` — `OutlineShell` 레이어(12). **이제 쓰지 않는다** — 회수 대상(Phase 3)
+> - ~~`OutlineSmoothMeshBaker.cs` · `OutlineSmoothMeshRegistry.cs` · 레지스트리 `.asset` · `Assets/Meshes/OutlineSmooth/*.asset`(13개)~~ — **2026-08-03 삭제**(총 16개 자산). 스무스 노멀은 셸 전용 해법이었다(§6.4)
+> - `Assets/Settings/PC_Renderer.asset` · `Assets/Settings/Mobile_Renderer.asset` — (**적용 완료**) **Interaction Outline** 피처 등재(PC/Mobile 동일). 색·두께·투시 정책·카메라 제외 목록이 여기 있다. 셸 시절의 FlatKit `ObjectOutline` 피처는 **제거**, 세 마스크(Opaque/Transparent/Prepass)는 전 레이어로 **원복** 완료
+> - `ProjectSettings/TagManager.asset` — `OutlineShell` 레이어(12) **회수 완료**(레이어 이름 비움). 레이어 12를 쓰는 오브젝트가 씬·프리팹에 하나도 없음을 확인한 뒤 진행했다
 > **관련**: #148(전역 비주얼 룩 파이프라인 — 툰 셰이더), #138(경영 공간 건물 시인성), #67(호버 훅), #183/#192/#210, WL-076b·WL-085·WL-087
 > **참조**: `Docs/Core/MouseManager.md`, `Docs/Core/TowerMerge.md` §8.4, `Docs/Review/SystemMap.md`, `Docs/Tools/unity-cli-guide.md`
 > **문서 계약**: 코드가 이 명세와 어긋나면 문서를 갱신한다(팀 계약 #7). 공개 API·계약이 바뀌는 PR은 SystemMap을 같은 PR에서 갱신한다.
@@ -343,7 +343,7 @@ public interface IOutlineTargetProvider { GameObject OutlineTarget { get; } }  /
 
 지오메트리를 법선 방향으로 부풀리지 않으므로 하드 노멀 로우폴리에서도 점선 프린지가 생기지 않는다.
 `OutlineSmoothMeshBaker` · `OutlineSmoothMeshRegistry` · `Assets/Meshes/OutlineSmooth/*.asset`(13개)는
-**용도 폐기 상태**다(삭제는 이행 정리 단계 — `WIP-OutlineMigration.md` Phase 3).
+**2026-08-03 삭제 완료**(베이커·레지스트리 스크립트, 레지스트리 `.asset`, 사본 메시 13개 — 총 16개 자산).
 
 ---
 
@@ -413,7 +413,7 @@ Opaque / Transparent / **Prepass** 레이어 마스크 세 곳을 정확히 맞�
 - **`OnEnable`/`OnDisable`/`OnDestroy`에서 등록 해제가 필요해졌다.** 셸은 대상의 자식이라
   파괴 시 자동 정리됐지만, 레지스트리는 명시적으로 지우지 않으면 마스크에 유령 실루엣이 남는다
 
-남은 정리 항목은 `Docs/Rendering/WIP-OutlineMigration.md`(Phase 3)가 추적한다.
+셸 잔재(레이어 12·FlatKit `ObjectOutline` 피처·렌더러 마스크·스무스 노멀 자산)는 2026-08-03에 전부 제거됐다.
 
 ---
 ## 10. 검증 스파이크 결과 (2026-07-27, GameScene 편집 모드)

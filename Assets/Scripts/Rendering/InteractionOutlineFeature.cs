@@ -6,7 +6,7 @@ using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.Universal;
 
 /// #213 상호작용 아웃라인 — 스크린 스페이스 실루엣 렌더러 피처.
-/// 설계·이행 근거: Docs/Rendering/WIP-OutlineMigration.md
+/// 설계·이행 근거: Docs/Core/InteractionOutline.md §3(렌더링 방식)·§9(이행 기록)
 ///
 ///   [대상 렌더러 → 마스크 RT]  슬롯 값 기록(0.25=Hover / 0.5=Select / 0.75=MergePreview)
 ///           ↓

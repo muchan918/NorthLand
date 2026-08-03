@@ -1,14 +1,14 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// 스크린 스페이스 실루엣 아웃라인의 대상 등록소(#213, Docs/Rendering/WIP-OutlineMigration.md).
+/// 스크린 스페이스 실루엣 아웃라인의 대상 등록소(#213, Docs/Core/InteractionOutline.md §3).
 ///
 /// 셸 방식은 대상 렌더러마다 자식 렌더러를 만들어 부풀렸다. 이 방식은 아무것도 만들지 않는다 —
 /// "이 렌더러들을 이 슬롯으로 마스크에 그려라"만 등록하고, 렌더러 피처가 그걸 소비한다.
 /// 그래서 렌더러가 몇 개든 오브젝트 전체에 실루엣 하나가 나오고, 512개 상한도 사라진다.
 ///
-/// 왜 renderingLayerMask 필터가 아니라 명시적 등록인가: `FilteringSettings.renderingLayerMask`가
-/// URP 17 Render Graph 경로에서 의도대로 도는지 미검증이라(문서 §4), 문서가 폴백으로 지정한
+/// 왜 renderingLayerMask 필터가 아니라 명시적 등록인가(§3.2): `FilteringSettings.renderingLayerMask`가
+/// URP 17 Render Graph 경로에서 의도대로 도는지 미검증이라, 폴백으로 지정된
 /// "수집해둔 렌더러 배열을 직접 그리는" 방식을 택했다. 대상 수가 적어(그룹당 1~5개) 부담이 없고
 /// 필터 거동에 의존하지 않아 완전히 결정적이다.
 public static class InteractionOutlineRegistry
