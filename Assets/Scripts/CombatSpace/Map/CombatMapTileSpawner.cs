@@ -53,6 +53,10 @@ namespace CombatSpace
         [Min(0.01f)]
         private float maxRevealDuration = 0.55f;
 
+        public float MaxRevealTime => maxRevealDelay + maxRevealDuration;
+
+        private readonly System.Random revealRandom = new System.Random();
+
 
         [Tooltip("Road 타일 피벗에서 몬스터 발 위치까지의 월드 Y 오프셋. " +"Road 프리팹의 피벗·높이 변경 시 함께 조정해야 합니다.")]
         [Header("Monster Route")]
@@ -72,6 +76,13 @@ namespace CombatSpace
         public float TileSize =>mapGenerator != null &&mapGenerator.Settings != null? mapGenerator.Settings.TileSize: 1f;
 
         public int SpawnedTileCount =>spawnedTiles.Count;
+
+        private void OnValidate()
+        {
+            maxRevealDelay = Mathf.Max(minRevealDelay, maxRevealDelay);
+
+            maxRevealDuration = Mathf.Max(minRevealDuration, maxRevealDuration);
+        }
 
         private void OnEnable()
         {
@@ -187,19 +198,11 @@ namespace CombatSpace
                 return;
             }
 
-            Transform parent =
-                tileRoot != null
-                    ? tileRoot
-                    : transform;
+            Transform parent =tileRoot != null? tileRoot : transform;
 
-            GameObject instance =
-                Instantiate(
-                    prefab,
-                    parent);
+            GameObject instance =Instantiate(prefab,parent);
 
-            instance.transform.localPosition =
-                GridToLocalPosition(
-                    tileData.Position);
+            instance.transform.localPosition =GridToLocalPosition(tileData.Position);
 
             instance.transform.localRotation =
                 Quaternion.identity;
@@ -408,20 +411,13 @@ namespace CombatSpace
 
                 tileObject.SetActive(isRevealed);
 
-                if (!isRevealed)
+                bool shouldPlayReveal =revealController.CurrentRound > 0 &&!wasVisible;
+
+                if (shouldPlayReveal)
                 {
-                    continue;
-                }
+                    float delay =NextRevealRandom(minRevealDelay,maxRevealDelay);
 
-                visibleTileCount++;
-
-                // 이미 공개되어 있던 타일은 움직이지 않고
-                // 이번에 새로 공개된 타일만 상승시킨다.
-                if (!wasVisible)
-                {
-                    float delay = UnityEngine.Random.Range(minRevealDelay,maxRevealDelay);
-
-                    float duration = UnityEngine.Random.Range(minRevealDuration,maxRevealDuration);
+                    float duration =NextRevealRandom(minRevealDuration,maxRevealDuration);
 
                     PlayTileRevealAsync(tileView.transform,delay,duration,tileView.GetCancellationTokenOnDestroy()).Forget();
                 }
@@ -455,7 +451,7 @@ namespace CombatSpace
 
                 while (delayElapsed < delay)
                 {
-                    delayElapsed += Time.deltaTime;
+                    delayElapsed += Time.unscaledDeltaTime;
 
                     await UniTask.Yield(PlayerLoopTiming.Update,cancellationToken);
                 }
@@ -464,7 +460,7 @@ namespace CombatSpace
 
                 while (elapsed < duration)
                 {
-                    elapsed += Time.deltaTime;
+                    elapsed += Time.unscaledDeltaTime;
 
                     float normalizedTime =Mathf.Clamp01(elapsed / duration);
 
@@ -588,6 +584,11 @@ namespace CombatSpace
 
             Debug.Log(
                 $"타일 시각화 검증 완료\n 맵 데이터 타일:{mapTileCount}개\n생성된 오브젝트:{spawnedTiles.Count}개",this);
+        }
+
+        private float NextRevealRandom(float minimum,float maximum)
+        {
+            return minimum +(float)revealRandom.NextDouble() * (maximum - minimum);
         }
 
         // 현재 공개 범위에 맞춰 몬스터용 월드 경로 갱신

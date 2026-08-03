@@ -127,7 +127,9 @@ namespace CombatSpace
 
             RefreshMonsterMapData();
 
-            await UniTask.Delay(TimeSpan.FromSeconds(spawnDelaySeconds),cancellationToken:this.GetCancellationTokenOnDestroy());
+            float actualSpawnDelay =Mathf.Max(spawnDelaySeconds,tileSpawner.MaxRevealTime);
+
+            await UniTask.Delay(TimeSpan.FromSeconds(actualSpawnDelay),DelayType.UnscaledDeltaTime,PlayerLoopTiming.Update,this.GetCancellationTokenOnDestroy());
 
             monsterSpawn.StartRound(waveNumber);
 
