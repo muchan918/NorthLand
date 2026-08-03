@@ -419,7 +419,9 @@ namespace CombatSpace
 
                     float duration =NextRevealRandom(minRevealDuration,maxRevealDuration);
 
-                    PlayTileRevealAsync(tileView.transform,delay,duration,tileView.GetCancellationTokenOnDestroy()).Forget();
+                    Vector3 targetPosition = GridToLocalPosition(pair.Key);
+
+                    PlayTileRevealAsync(tileView.transform,targetPosition,delay,duration,tileView.GetCancellationTokenOnDestroy()).Forget();
                 }
             }
 
@@ -435,14 +437,10 @@ namespace CombatSpace
             );
         }
 
-        private async UniTask PlayTileRevealAsync(Transform tileTransform,float delay,float duration,CancellationToken cancellationToken)
+        private async UniTask PlayTileRevealAsync(Transform tileTransform,Vector3 targetPosition,float delay,float duration,CancellationToken cancellationToken)
         {
-            Vector3 targetPosition = tileTransform.localPosition;
-
             Vector3 startPosition = targetPosition + Vector3.down * revealYOffset;
 
-            // 기다리는 동안 위에 먼저 보이지 않도록
-            // 바로 아래로 내려놓는다.
             tileTransform.localPosition = startPosition;
 
             try
@@ -468,7 +466,8 @@ namespace CombatSpace
 
                     tileTransform.localPosition =Vector3.LerpUnclamped(startPosition,targetPosition,curvedTime);
 
-                    await UniTask.Yield(PlayerLoopTiming.Update,cancellationToken);
+                    await UniTask.Yield(PlayerLoopTiming.Update,cancellationToken
+                    );
                 }
 
                 tileTransform.localPosition = targetPosition;
