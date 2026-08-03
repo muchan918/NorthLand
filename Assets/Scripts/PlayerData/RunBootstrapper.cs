@@ -25,6 +25,10 @@ namespace NorthLand.Core
 
         public RunSeedData SeedData => seedContext.Data;
 
+        private PlayerData playerData = new PlayerData();
+
+        public PlayerData PlayerData => playerData;
+
         [Header("Systems")]
         [SerializeField]
         private CombatMapInitializer combatMapInitializer;
@@ -53,8 +57,14 @@ namespace NorthLand.Core
 
             RunSeedData seedData =useMasterSeedOverride? seedContext.CreateRun(masterSeedOverride): seedContext.CreateRandomRun();
 
-            Debug.Log($"[RunSeed] Run 시드 초기화 완료 master: {seedData.MasterSeed} CombatMap Requested: {seedData.CombatMapRequestedSeed}\n" +
-                $"Territory Requested:{seedData.TerritoryRequestedSeed} Version: {seedData.SeedVersion}",this);
+            playerData.CurrentRun.HasActiveRun = true;
+
+            playerData.CurrentRun.SeedData = seedData;
+
+            Debug.Log($"[RunSeed] Run 시드 초기화 완료 Master: {seedData.MasterSeed}\n" +
+                $"CombatMap Requested: {seedData.CombatMapRequestedSeed}\n" +
+                $"Territory Requested: {seedData.TerritoryRequestedSeed}\n" +
+                $"Version: {seedData.SeedVersion}",this);
         }
 
         private void InitializeCombatMap()
