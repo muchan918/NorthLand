@@ -20,6 +20,8 @@ public class SettingUI : MonoBehaviour
 
     private void Awake()
     {
+        RegisterButtonEvents();
+
         if (settingPanel == null)
         {
             Debug.LogError($"[{nameof(SettingUI)}] SettingPanel이 연결되지 않았습니다.",this);
@@ -35,8 +37,6 @@ public class SettingUI : MonoBehaviour
             enabled = false;
             return;
         }
-
-        RegisterButtonEvents();
 
         localizationManager.OnClose();
         settingPanel.SetActive(false);
@@ -96,7 +96,7 @@ public class SettingUI : MonoBehaviour
             return;
         }
 
-        CancelMouseInteraction();
+        MouseManager.Instance?.CancelInteractions();
 
         if (localizationManager != null)
         {
@@ -133,18 +133,6 @@ public class SettingUI : MonoBehaviour
 
 
 
-
-    private void CancelMouseInteraction()
-    {
-        if (MouseManager.Instance == null)
-        {
-            return;
-        }
-
-        MouseManager.Instance.ClearSelection();
-        MouseManager.Instance.CancelPlacement();
-        MouseManager.Instance.CancelSkillTargeting();
-    }
 
     public void QuitGame()
     {

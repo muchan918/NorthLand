@@ -95,21 +95,9 @@ public class ManagementPanelView : MonoBehaviour
     // 낮 종료 버튼(#219): 조건 점검·표시·진행 판단은 전부 팝업이 소유한다(이 뷰는 호출만).
     private void HandleEndDayClicked()
     {
-        CancelMouseInteraction();
+        MouseManager.Instance?.CancelInteractions();
 
         _endDayConfirmPopup.Request(_controller);
-    }
-
-    private static void CancelMouseInteraction()
-    {
-        if (MouseManager.Instance == null)
-        {
-            return;
-        }
-
-        MouseManager.Instance.CancelPlacement();
-        MouseManager.Instance.CancelSkillTargeting();
-        MouseManager.Instance.ClearSelection();
     }
 
     // 고정 행을 한 번만 만든다(#166): 기본 자원 라인 → 마나석 → 특수 자원. 확보 시엔 재빌드 없이 Refresh만.

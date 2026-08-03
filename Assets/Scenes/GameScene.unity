@@ -10384,6 +10384,7 @@ MonoBehaviour:
   _placementMask:
     serializedVersion: 2
     m_Bits: 8
+  _dragThreshold: 8
 --- !u!4 &1318080317
 Transform:
   m_ObjectHideFlags: 0
@@ -11099,25 +11100,9 @@ PrefabInstance:
       value: SettingCanvas
       objectReference: {fileID: 0}
     - target: {fileID: 1614170420404791618, guid: 1ca45b441416ca346b2d4f82ea5b0c95, type: 3}
-      propertyPath: nextbutton
-      value: 
-      objectReference: {fileID: 1432297225}
-    - target: {fileID: 1614170420404791618, guid: 1ca45b441416ca346b2d4f82ea5b0c95, type: 3}
       propertyPath: settingbutton
       value: 
       objectReference: {fileID: 367777887}
-    - target: {fileID: 1614170420404791618, guid: 1ca45b441416ca346b2d4f82ea5b0c95, type: 3}
-      propertyPath: gameSpeedController
-      value: 
-      objectReference: {fileID: 2082790719}
-    - target: {fileID: 5710613972390280766, guid: 1ca45b441416ca346b2d4f82ea5b0c95, type: 3}
-      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
-      value: ClosePanel
-      objectReference: {fileID: 0}
-    - target: {fileID: 7224742997902961218, guid: 1ca45b441416ca346b2d4f82ea5b0c95, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
