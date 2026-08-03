@@ -172,13 +172,31 @@ FlatKit 벤더 트리를 직접 확인한 결과다.
 셸 방식은 내부 엣지까지 전부 선이 그려졌으나(`Screenshots/148/29_B_hover_outline.png`),
 새 경로는 **외곽 실루엣 하나**만 나온다(`30_screenspace_hover.png`). 해제 시 잔재 없음.
 
-### Phase 2 — `OutlineHighlight` 내부 교체
+### Phase 2 — `OutlineHighlight` 내부 교체 — **완료 (2026-08-03)**
 
-- [ ] 렌더러 수집 로직 유지 + `RangeCircle` 제외 규칙 이관 (주의사항 8)
-- [ ] shell 생성 대신 `renderingLayerMask` 비트 OR/AND-NOT (§4)
-- [ ] 공개 API·우선순위 로직 **무변경** 확인 (§5 유지 열)
-- [ ] 드라이버·코디네이터·영지 노드 경로 **무변경** 확인
-- [ ] 호버/단일 선택/그룹 선택/합성 프리뷰 4경로 + 밤 전환·배치 시작·합성 소모 시 잔존 없음 확인 (`InteractionOutline.md` §8 표 그대로)
+- [x] 렌더러 수집 로직 유지 + `RangeCircle` 제외 규칙 유지 (주의사항 8) — `IsEligible` 그대로
+- [x] shell 생성 대신 **`InteractionOutlineRegistry.Set/Clear`** (§4의 `DrawRenderer` 폴백 경로)
+- [x] 공개 API·우선순위 로직 **무변경** — `GetOrAdd` / `Set(kind, bool)` / `TryResolveSlot` 그대로.
+      바깥 코드는 한 줄도 바뀌지 않았다
+- [x] `SetWidth(float)`는 **시그니처만 남긴 no-op**으로 전환. 두께가 스크린 픽셀 단위가 되어
+      줌 보정이 불필요해졌다(오브젝트를 삼키던 문제 자체가 사라짐). 드라이버가 계속 호출해도 무해하며,
+      드라이버의 폭 계산 제거는 정리 단계로 미뤘다
+- [x] `OnEnable`/`OnDisable`/`OnDestroy`에서 등록 해제 — 비활성·파괴된 대상이 마스크에 남아
+      유령 실루엣이 되는 것을 막는다. 셸 시절에는 자식 파괴로 자동 정리됐던 부분이라 새로 필요해졌다
+- [x] 검증: 호버 → 선택 우선순위(초록이 노랑을 덮음) 정상, 해제 시 잔재 없음,
+      **셸 오브젝트 0개 생성**. 대상은 `Castle`(렌더러 5개) — 셸이면 그물망이 나왔을 케이스
+- [ ] 그룹 선택·합성 프리뷰 4경로 + 밤 전환·배치 시작·합성 소모 시 잔존 없음 — **플레이 모드 실측 미완**
+      (`InteractionOutline.md` §8 표 그대로 밟아야 한다)
+
+### Phase 2에서 함께 삭제한 셸 코드 (Phase 3의 코드 부분)
+
+`OutlineHighlight`에서 제거: `Shell`/`SkinnedPair` 구조체 · `LateUpdate` 블렌드셰이프 동기화 ·
+`EnsureShells`/`CreateShell`/`DiscardShells`/`HasDeadShell` · `SetVisible` · `k_MaxShellRenderers`(512 상한) ·
+`ShellLayer` 조회 · `GetSharedMaterial`/`SlotColor`/`s_materials`(6변형) · 스무스 노멀 키워드 분기.
+
+**색은 이제 렌더러 피처의 인스펙터에 있다**(`PC_Renderer`/`Mobile_Renderer` → Interaction Outline).
+셸 시절 authored 값(노랑 1/0.92/0.2 · 초록 0.25/1/0.35 · 핑크 1/0.35/0.75)을 그대로 옮겼다 —
+아트가 코드 수정 없이 만질 수 있게 된 것이 부수 이득이다.
 
 ### Phase 3 — shell 잔재 제거
 

@@ -1,5 +1,22 @@
 # 상호작용 아웃라인(Interaction Outline) — 설계 명세
 
+> ## ⚠️ 표시 방식이 교체됐다 (2026-08-03) — 아래 본문의 shell 서술은 낡았다
+>
+> **인버티드 헐(shell) → 스크린 스페이스 실루엣**으로 이행했다. 이 문서 본문(§3~§7)이 설명하는
+> shell 생성·`OutlineShell` 레이어·스무스 노멀 프리베이크·렌더러 512개 상한은 **더 이상 코드에 없다.**
+> 이행 내용과 남은 정리 항목은 **`Docs/Rendering/WIP-OutlineMigration.md`**가 정본이다.
+>
+> 지금 유효한 것: **공개 API·색 우선순위·대상 지정 훅은 무변경**이다
+> (`OutlineHighlight.GetOrAdd(go).Set(kind, bool)` · MergePreview > Select > Hover · `IOutlineTargetProvider`).
+> 즉 §4(상태·우선순위)·§5(대상)·§8(생존 방어)은 그대로 유효하고, **§3·§6·§7·§9가 낡았다.**
+>
+> 새 구현 파일: `Assets/Scripts/Rendering/InteractionOutlineFeature.cs` ·
+> `Assets/Scripts/Rendering/InteractionOutlineRegistry.cs` ·
+> `Assets/Shaders/Outline/InteractionOutline{Mask,Composite}.shader`.
+> 색·두께는 코드가 아니라 **렌더러 피처 인스펙터**(`PC_Renderer`/`Mobile_Renderer`)에 있다.
+>
+> 이 문서 전체 개편은 이행 정리(WIP 문서 Phase 4)에서 한다.
+
 > **상태**: **호버 노랑 / 선택·그룹 초록 / 합성 프리뷰 핑크 + 영지 노드 대상(§5.4) 구현 완료**(§11 체크리스트). 남은 것은 **Mobile 렌더러 시각 검증(T9)**, **미니맵 노출 여부(T2)**, 그리고 `MouseManager.md`·`TowerMerge.md`·SystemMap 갱신이다. 색·선 굵기는 전부 **임시(아트 TBD)**.
 > **소유**: n0wst4ndup(#213)
 > **이슈**: #213 [Feature] 상호작용 아웃라인 — 호버=노란색 / 선택=초록색(그룹 포함) / 합성 후보 버튼 호버 시 재료 타워만 핑크색
