@@ -5,7 +5,7 @@
 > **경로**: Flat Kit 벤더 `Assets/Imported/` · FlatKit 변환 툴 `Assets/Scripts/Editor/FlatKitMaterialConverter.cs` ·
 > 룩 템플릿·변환 기록 `Assets/Settings/FlatKit/` · 자작 틸트-시프트 셰이더 `Assets/Shaders/`(신설 예정) ·
 > 볼륨 프로파일/렌더러 피처 `Assets/Settings/`
-> **상태**: 🚧 **오브젝트 툰 셰이딩(§3.4) 본진·주민 이관 완료 · Tonemapping(§3.1) 선행 적용 — 나머지 레이어 미착수.**
+> **상태**: 🚧 **오브젝트 툰 셰이딩(§3.4) 본진·주민·플랫폼 이관 완료 · Tonemapping(§3.1) 선행 적용 — 나머지 레이어 미착수.**
 > 룩데브 씬은 `Assets/Scenes/Branches/GameScene_600.unity`(카메라 리그만 남긴 정본 사본).
 > 오브젝트 셰이딩 수단은 **Flat Kit 확정**, **오쏘그래픽 카메라 확정**.
 > 그레이딩·비네트(§3.1 잔여)·틸트-시프트(§3.2)·라이팅 전역 반영(§3.3)·픽셀레이션(§3.7)은 아직 미착수다.
@@ -150,11 +150,27 @@ ACES는 S커브로 대비·채도가 올라가 사탕 마을이 더 쨍해지는
 | 변환 툴 | `Assets/Scripts/Editor/FlatKitMaterialConverter.cs` — 메뉴 `NorthLand/FlatKit/` (Convert · ReapplyTemplate · Revert) |
 | **룩 수치 정본** | `Assets/Settings/FlatKit/FlatKitToon_Template.mat` |
 | 원본↔사본 매핑 | `Assets/Settings/FlatKit/FlatKitConversion.json` (원복 근거 · 변환 기록) |
-| 사본 머티리얼 | `Assets/Imported/@NorthLand/Materials/FlatKit/FK_*.mat` (아트 저장소) |
+| 사본 머티리얼 | `Assets/Imported/@NorthLand/Materials/FlatKit/FK_*.mat` (아트 저장소) — 툴 상수 `k_OutputFolder`가 정본 |
 
 사본은 템플릿 파라미터를 물려받고 원본에서 **알베도·표면 상태만** 승계한다. 그래서 룩 튜닝은
 템플릿 1개만 고친 뒤 `ReapplyTemplate`을 돌리면 사본 전체에 퍼진다. 툴은 대상 GameObject를
 받는 범용이라 전투·기타 에셋에도 그대로 쓴다.
+
+⚠️ **사본을 에셋 카테고리별 폴더로 나누지 말 것**(2026-08-04 결정). 사본 폴더는 `Materials/FlatKit`
+**한 곳**이고, 출처 카테고리(본진·주민·플랫폼…)로 쪼개지 않는다. 이유는 두 개다.
+
+1. **툴이 사본을 그 폴더에 만든다.** 옮겨두면 다음 변환 때 사본이 다시 `Materials/FlatKit`에 떨어져
+   같은 룩의 머티리얼이 두 폴더로 갈린다. (사본을 옮겨도 참조는 GUID라 안 깨지므로 **조용히** 갈린다)
+2. **사본은 원본 1개당 1개라 카테고리에 귀속되지 않는다.** 여러 카테고리가 같은 원본 머티리얼을 쓰면
+   사본도 하나다 — 예: `FK_Color.mat`은 플랫폼 33개와 `GameScene_600`의 본진 12슬롯이 공유한다.
+   어느 카테고리 폴더에 넣어도 이름이 거짓이 된다.
+
+카테고리 전용 사본을 따로 뜨는 것도 **의미가 없다**: `ReapplyTemplate`이 사본을 템플릿으로 리셋하므로
+독립 튜닝이 애초에 불가능하고, 같은 룩의 머티리얼만 2개가 되어 SRP 배치만 갈라진다.
+
+> 이력: 2026-08-03에 사본을 `Materials/Management`·`Materials/Tower`로 분류했다가 위 이유로
+> **2026-08-04에 전량 `Materials/FlatKit`으로 되돌렸다**(115개). 변환 산출물이 아닌
+> `Materials/Tower/ArcherTower/GhostMaterial.mat`(URP Lit, 타워 배치 프리뷰)은 이동 대상이 아니다.
 
 ⚠️ **승계를 빠뜨리면 룩이 깨지는 항목** — CandyLand 머티리얼 120개가 **전부 `_Cull: 0`(양면)**이다.
 FlatKit 기본값은 Back culling이라 이걸 안 옮기면 지붕·간판에 구멍이 난다. 알파테스트(15개)·
@@ -221,7 +237,18 @@ shadowAtt = saturate(light.shadowAttenuation * _UnityShadowSharpness)           
 |---|---|
 | 본진(CandyLand) | 완료 — 사본 115개 |
 | 주민(Marshie ×3, `Sweet_Land/Materials/Color_2`) | 완료 — 3개 모두 `SkinnedMeshRenderer`, 사본 1개 공유 |
+| **플랫폼·브릿지 33개**(`@NorthLand/Prefabs/Platforms`) | **완료(2026-08-04) — 새 사본 0개.** 33개가 전부 `Sweet_Land/Materials/Color` 하나만 쓰고, 그 사본 `FK_Color.mat`이 본진 배치 때 이미 만들어져 있었다(매핑 JSON에 기록됨) → 슬롯 교체만 했다 |
 | 전투 공간·타워·몬스터 | 미착수(§8) |
+
+**플랫폼 이관은 씬이 아니라 프리팹 에셋에 적용했다** — 본진·주민과 다른 점이다. 본진은 룩데브 씬
+인스턴스의 슬롯을 바꿔서 결과가 `GameScene_600`에만 남아 있고(그래서 본진 프리팹은 아직 원본
+머티리얼을 참조한다), 플랫폼은 프리팹 에셋 자체를 고쳐서 **어느 씬에 놓아도 툰 룩으로 나온다.**
+
+그 전제로 **Prefab Variant 28개를 Regular로 언팩**했다. 33개 중 28개가 `Sweet_Land` 원본 프리팹의
+Variant였고, Variant 상태로는 머티리얼 변경이 원본 프리팹에 대한 오버라이드로만 남아 원본이 바뀌면
+따라 흔들린다. 언팩 절차는 프리팹 에셋을 프리뷰 씬에 인스턴스화 → `UnpackPrefabInstance(Completely)`
+→ 같은 경로로 `SaveAsPrefabAsset`이다(경로가 같아 **GUID·참조 유지**). 언팩 시점에 이 프리팹들을
+참조하는 씬·프리팹이 하나도 없어서 안전했다 — 나중에 배치된 뒤에 언팩하면 인스턴스 오버라이드가 깨진다.
 
 ⚠️ **밝은 알베도는 노출에 클리핑되어 셀 컷이 사라진다.** 주민(흰 마시멜로)에 적용했더니 몸통
 픽셀의 **90.1%가 완전 포화(≥0.98)**로 측정됐다 — 명부와 음영부가 둘 다 1.0을 넘으면
@@ -452,8 +479,10 @@ FlatKit 변환 툴(`Assets/Scripts/Editor/FlatKitMaterialConverter.cs`)과 룩 �
 ## 5. 에셋 배치·네이밍 (제안 — 구현 PR에서 확정)
 
 - **Flat Kit**: `Assets/Imported/`(벤더 원본, 무수정). 우리가 만드는 Flat Kit 기반 머티리얼 복제본은 벤더 폴더 **밖**(`Assets/Imported/@NorthLand/Materials`).
-  - **실제 배치(2026-08-03)**: 본진 사본 115개가 `Assets/Imported/@NorthLand/Materials/FlatKit/FK_*.mat`에 있다.
-    반면 **룩 수치 정본(템플릿)과 변환 기록은 프로젝트 저장소** `Assets/Settings/FlatKit/`에 둔다 —
+  - **실제 배치(2026-08-04 갱신)**: 사본 **115개 전부** `Assets/Imported/@NorthLand/Materials/FlatKit/FK_*.mat`에 있다
+    (본진 + 주민 + 플랫폼이 공유하는 `FK_Color.mat` 포함). **카테고리별로 쪼개지 않는다 — 근거는 §3.4 경고.**
+    변환 산출물이 아닌 머티리얼은 이 폴더 밖에 둔다(예: `Materials/Tower/ArcherTower/GhostMaterial.mat`).
+  - 반면 **룩 수치 정본(템플릿)과 변환 기록은 프로젝트 저장소** `Assets/Settings/FlatKit/`에 둔다 —
     사본은 아트 저장소(gitignore 대상)로 가므로, 룩 수치가 이 저장소 히스토리에 남으려면 템플릿이 여기 있어야 한다(§3.4).
 - ⚠️ **자작 코드·셰이더를 `Assets/Imported/` 안에 두지 말 것**(2026-07-31 정정 — 이전 판은 `@NorthLand/Shaders/` 신설을 제안했으나 철회).
   그 폴더는 프로젝트 저장소에서 **`.gitignore` 대상**이고 내부에 **중첩 git 저장소**로 따로 관리된다. 안에 두면 팀원이
@@ -499,6 +528,13 @@ FlatKit 변환 툴(`Assets/Scripts/Editor/FlatKitMaterialConverter.cs`)과 룩 �
         씬 로컬로 만들 수 없다** — 전역 에셋이므로 GameScene도 함께 바뀐다.
         현재 GameScene도 같은 이유로 캐스트 그림자가 사실상 0인 상태라 "변경"이 아니라 "미사용 상태 해소"에 가깝다.
 - [ ] **본진 컨펌 후 나머지 에셋 이관**(§3.4): 변환 툴이 범용이므로 대상만 지정하면 된다 — 전투 공간·타워·몬스터.
+      **플랫폼·브릿지 33개는 완료**(2026-08-04, §3.4 이관 현황). 스크린샷 `Screenshots/148/33_platforms_{before_urplit,after_flatkit}.png`.
+- [x] ~~**사본 머티리얼 폴더 규칙**~~ → **종결(2026-08-04): `Materials/FlatKit` 한 곳으로 확정.**
+      2026-08-03에 카테고리별(`Management`/`Tower`)로 분류했던 115개를 전량 되돌렸다. 툴이 사본을
+      그 폴더에 만들고, 사본은 원본 1개당 1개라 카테고리에 귀속되지 않는다 — 근거는 §3.4 경고.
+- [ ] **본진 프리팹 이관 여부**(§3.4): 본진·주민은 **룩데브 씬 인스턴스**만 바뀌어 있어 본진 프리팹은
+      여전히 원본 머티리얼을 참조한다. 플랫폼처럼 프리팹 에셋에 넣어 다른 씬에서도 툰 룩이 나오게 할지,
+      룩 확정까지 씬 로컬로 둘지 결정해야 한다. 프리팹에 넣으면 `Revert`로 되돌릴 범위가 씬 밖으로 넓어진다.
 - [ ] **MSAA 켤지 판단**(§3.7.1): `PC_RPAsset`의 `m_MSAA`가 1(꺼짐)이다. 4x로 올리면 앨리어싱이
       12% 줄지만 **전역 파이프라인 에셋이라 GameScene에도 영향**이 간다. 오쏘 + 하드 컷 셀 셰이딩은
       경계가 칼같아서 AA 이득이 큰 편 — 픽셀 채택 여부와 별개로 검토 대상.
