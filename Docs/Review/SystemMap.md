@@ -288,7 +288,8 @@
   두 뜻을 쪼갠 경위는 `IReversibleCommand.cs` 헤더, **진행 중(`Executed`) 커맨드 ≤ 1** 불변식(#263에서 불변)은 `TowerMerge.md` §9.1.
   구현체가 둘(합성·배치)이 되면서 중립 위치로 이전(구 위치 정책 해소, 전역 네임스페이스 유지)
 - `CommandHistory`(#281, static, `Assets/Scripts/Command/CommandHistory.cs`) — `Push`(`Confirm()`도 여기서 부른다)/`Undo`/`CommitAll` + `OnChanged`/`CanUndo`/`Count`. **LIFO 깊이 20**(초과분은 버리지 않고 `Commit`).
-  `GroupSelectableRegistry` 계보(static + `SubsystemRegistration` 리셋)라 씬 배선이 없고, `DayNightManager.OnDayToNight`에 첫 `Push`에서 지연 자기구독한다.
+  `GroupSelectableRegistry` 계보(static + `SubsystemRegistration` 리셋)라 씬 배선이 없고, `DayNightManager.OnDayToNight`에 지연 자기구독한다.
+  ⚠ 그 자기구독(`EnsureSubscribed`)은 **`Push`와 `CanUndo` 양쪽에서** 돌아야 한다 — 판정 기준이 "누구에게 구독했는가"라서 씬 재로드 시 죽은 스택을 비우는 일도 여기서 일어나는데, 등록 경로에만 걸면 정리가 "다음 조작"으로 밀려 그 사이 버튼이 거짓 활성으로 보인다. 그래서 `CanUndo`는 **조회에 부작용이 있는 프로퍼티**다(멱등·비용 무시 가능).
   ⚠ **LIFO는 편의가 아니라 정확성 요건** — 근거는 `TowerMerge.md` §9.3
 - `TowerMergeCommand`(#263, 순수 C#, #281 확장) — 합성 재료의 소프트 소모. `Execute`=`TowerFootprint.Release()`+`SetActive(false)` / `Confirm`=상태 전이(재료는 살아 있다) / `Commit`=`Destroy`(밤) / `Undo`=결과 회수 + `Reoccupy()`+`SetActive(true)`.
   **확정/취소 판단을 자기 상태로 한다** — 배치 종료 통지가 어느 쪽인지 알려주지 않으므로, 이 방식이라야 `TowerPlacer`/`MouseManager` 무수정으로 "취소일 때만 원복"이 성립한다. `TowerMergeGroup`을 모른다(집합 정리는 비활성화→`ActiveChanged`→`Prune`이 담당).

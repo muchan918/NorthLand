@@ -4,7 +4,7 @@ using UnityEngine.Localization.Settings;
 using UnityEngine.UI;
 
 /// <summary>
-/// 낮 패널의 되돌리기 버튼(#281). 방금 한 타워 배치·합성을 하나씩 되돌린다.
+/// 되돌리기 버튼(#281). 방금 한 타워 배치·합성을 하나씩 되돌린다. 밤에는 비활성으로 남는다.
 /// </summary>
 ///
 /// **선택 상태와 무관하게 상시 배치한다.** 되돌릴 대상은 "선택한 타워"가 아니라 "가장 최근 조작"이라
@@ -78,8 +78,10 @@ public class TowerUndoButtonView : MonoBehaviour
         CommandHistory.Undo();
     }
 
-    // CommandHistory.CanUndo가 페이즈까지 함께 본다 — 밤엔 낮 패널 자체가 꺼지므로 이중 안전망이지만,
-    // 패널 구조가 바뀌어도 "밤엔 되돌리기 불가"가 유지되도록 남긴다.
+    // ⚠ 이 버튼은 정본 씬에서 **페이즈 패널 밖(UICanvas 직속)**에 있어 밤에도 꺼지지 않는다.
+    // 따라서 "밤엔 되돌리기 불가"의 **유일한** 방어선은 CommandHistory.CanUndo의 페이즈 검사다 —
+    // 그것을 중복으로 오해해 빼면 밤에 되돌리기가 열린다(밤엔 CommitAll로 스택이 비지만, 그건
+    // 확정 타이밍에 기댄 우연이고 계약이 아니다). 버튼을 낮 패널 하위로 옮기면 그때 이중이 된다.
     private void Refresh()
     {
         if (_button != null) _button.interactable = CommandHistory.CanUndo;

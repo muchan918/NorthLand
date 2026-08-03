@@ -385,6 +385,13 @@ public class TowerPlacer : MonoBehaviour
         // 슬롯 하나가 스택을 차지하고, 그 위의 진짜 조작이 한 칸 밀려 되돌려진다.
         if (reversible && _historyOwner == PlacementOwner.Placer) CommandHistory.Push(command);
 
+        // 소유권은 확정 콜백과 마찬가지로 **1회성**이다 — 여기서 Placer로 내린다.
+        // 연속 배치(keepPlacing, WL-105)에서 Caller가 남으면 2번째 이후 클릭이 만드는 결과 타워
+        // 복제분이 AdoptResult도 Push도 받지 못해 **영구히 되돌릴 수 없다.** 복제분은 재료를 쓰지 않고
+        // ExtraCost만 지불한 별개 배치이므로, 각자 독립 커맨드로 히스토리에 오르는 것이 옳다.
+        // (EndPlacement의 리셋만으로는 못 막는다 — 그건 세션이 끝날 때만 돌고, 여기는 세션 안이다.)
+        _historyOwner = PlacementOwner.Placer;
+
         // 등장 연출(#264)은 **로직이 전부 끝난 뒤** 마지막에 얹는다. 시각 전용·논블로킹이라 여기서
         // 기다리지 않고, 연출 도중 밤 전환이나 새 배치가 들어와도 타워는 이미 완성 상태다.
         // 바닥 링 크기는 bounds가 아니라 풋프린트에서 준다 — 타워 에셋이 교체돼도 "몇 칸을 먹었는지"는
@@ -495,6 +502,7 @@ public class TowerPlacer : MonoBehaviour
         ClearCellHighlights();
         _footprint.Clear();
         _onConfirmed = null; // 취소로 끝났으면 확정 콜백은 실행하지 않는다(재료 보존).
+        _historyOwner = PlacementOwner.Placer; // 콜백과 대칭으로 비운다(#281) — 세션 밖으로 새지 않게.
         lastPreviewAnchor = null;
         previewFootprintInitialized = false;
 

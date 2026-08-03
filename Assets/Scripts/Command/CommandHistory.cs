@@ -28,7 +28,20 @@ public static class CommandHistory
 
     /// 지금 되돌릴 수 있는가. 밤이면 스택이 비어 있는 것이 정상이지만, 페이즈를 함께 보는 것이
     /// "밤엔 되돌리기 불가"를 이 클래스의 계약으로 만든다(UI가 잊어도 지켜진다).
-    public static bool CanUndo => _stack.Count > 0 && IsDay;
+    ///
+    /// ⚠ **조회에 부작용이 있다**(`EnsureSubscribed`). 그 판정 — "지금 씬의 DayNightManager가
+    /// 내가 구독한 그것인가" — 이 여기서도 돌아야 **상태와 표시가 어긋나지 않는다.** 정리 트리거가
+    /// `Push`에만 있으면 씬을 다시 로드한 뒤 죽은 커맨드가 스택에 남아 버튼이 활성으로 보이고,
+    /// 눌러도 대상이 전부 파괴돼 있어 아무 일도 일어나지 않는다(최대 k_MaxDepth번).
+    /// 호출은 멱등하고 비용은 인스턴스 조회 1회 + 참조 비교 1회라, 버튼이 매 갱신에 불러도 무해하다.
+    public static bool CanUndo
+    {
+        get
+        {
+            EnsureSubscribed();
+            return _stack.Count > 0 && IsDay;
+        }
+    }
 
     public static int Count => _stack.Count;
 
@@ -101,7 +114,10 @@ public static class CommandHistory
         OnChanged?.Invoke();
     }
 
-    /// 밤 진입 확정을 자기 자신에게 건다. **"구독했는가"가 아니라 "누구에게 구독했는가"로 판정한다** —
+    /// 밤 진입 확정을 자기 자신에게 건다. **등록(`Push`)과 조회(`CanUndo`) 양쪽에서 부른다** — 등록만
+    /// 걸면 정리 시점이 "다음 조작"으로 밀려 그 사이 버튼이 거짓 활성으로 보인다(CanUndo 주석 참고).
+    ///
+    /// **"구독했는가"가 아니라 "누구에게 구독했는가"로 판정한다** —
     /// `DayNightManager`는 씬마다 새 인스턴스라, bool 빗장이면 씬을 다시 로드했을 때 죽은 인스턴스의
     /// 이벤트를 붙들고 있게 되고 밤이 와도 확정이 안 걸린다. 인스턴스가 바뀌었으면 스택도 비운다 —
     /// 이전 씬의 커맨드는 대상 GameObject가 이미 없다.

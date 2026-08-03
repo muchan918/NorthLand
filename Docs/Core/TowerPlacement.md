@@ -184,12 +184,14 @@ bool BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost,
 
 > **10단계의 소유권 신호가 필요한 이유**(#281): 일반 배치와 합성 결과 배치가 **같은 `PlaceTower`를 공유**한다. 무조건 등록하면 합성 결과에 `TowerPlaceCommand`와 `TowerMergeCommand`가 둘 다 올라가 한 번의 합성이 두 번에 나눠 되감긴다(중간에 결과도 재료도 없는 빈 타일이 한 번 보인다). 그래서 합성은 `PlacementOwner.Caller`로 열고 결과 커맨드를 `TowerMergeCommand.AdoptResult`로 편입한다. **`onConfirmed != null` 같은 암묵 판정을 쓰지 않는다** — 확정 콜백을 쓰는 세 번째 소비처가 생기는 순간 이중 등록/미등록으로 조용히 갈린다. `historyOwner`에 기본값이 없는 것도 같은 이유다.
 
+> **소유권은 확정 콜백과 같은 1회성 값이다**(#281): 10단계 직후 `_historyOwner`를 `PlacementOwner.Placer`로 되돌린다. `keepPlacing`(WL-105)이 켜지면 한 세션에서 `PlaceTower`가 여러 번 도는데, 그때 `Caller`가 남아 있으면 2번째 이후 클릭이 만드는 결과 타워 복제분이 `AdoptResult`도 `Push`도 받지 못해 **영구히 되돌릴 수 없다.** 복제분은 재료를 쓰지 않고 `ExtraCost`만 지불한 별개 배치이므로 각자 독립 커맨드로 히스토리에 오르는 것이 옳다. `OnEnded`의 리셋만으로는 못 막는다 — 그건 세션이 끝날 때만 돌고, 이 문제는 세션 안에서 벌어진다.
+
 > **6 → 7 순서를 뒤집으면 안 되는 이유**: 버프 오라는 **조립 시점에 자기 반경으로 대상을 한 번 훑는데**, 그 반경이 타일 버프(사거리)에 의존한다. 순서가 뒤바뀌면 첫 적용이 버프 이전 반경으로 계산된다. 구 `AuraTower`가 `Start`에서 반경을 재계산하던 우회로가 정확히 이 문제였고, 여기서 순서를 정해 그 우회로를 없앴다.
 
 **TowerPlacer 판정**:
 - `Snap`: 앵커 기준 풋프린트 **중심**으로 스냅(y = 타일 앵커). 앵커가 바뀐 프레임에만 풋프린트를 재구성하고 사거리 원을 갱신한다.
 - `CanPlaceAt`: 풋프린트 전 셀이 `Grass && !Occupied` + `CanAfford`. **`Snap`이 채운 캐시를 신뢰한다**(MouseManager가 매 프레임 Snap → CanPlaceAt 순으로 호출).
-- `OnEnded`: 프리뷰 정리 → `_onConfirmed` 폐기(취소로 끝났으면 재료 보존) → 종료 통지를 **먼저 비우고** 호출(구독자가 그 안에서 새 배치를 시작해도 중복 발화 없음).
+- `OnEnded`: 프리뷰 정리 → `_onConfirmed`·`_historyOwner` 폐기(취소로 끝났으면 재료 보존) → 종료 통지를 **먼저 비우고** 호출(구독자가 그 안에서 새 배치를 시작해도 중복 발화 없음).
 
 **전제(와이어링)**: 타일이 `_placementMask`(Ground) 레이어 + Collider 보유, 씬에 `MouseManager` 존재, `TowerAsset`에 tower/ghost 프리팹 지정(고스트는 Collider 없음), `TowerPlacer.tileBuffRules`에 `TileBuffRuleSettings` 지정.
 
