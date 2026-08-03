@@ -23,11 +23,9 @@ namespace NorthLand.Core
 
         public RunSeedContext SeedContext => seedContext;
 
+        public RunData RunData => seedContext.RunData;
+
         public RunSeedData SeedData => seedContext.Data;
-
-        private PlayerData playerData = new PlayerData();
-
-        public PlayerData PlayerData => playerData;
 
         [Header("Systems")]
         [SerializeField]
@@ -72,10 +70,6 @@ namespace NorthLand.Core
                 // 일반 새 게임
                 seedData = seedContext.CreateRandomRun();
             }
-
-            playerData.CurrentRun.HasActiveRun = true;
-
-            playerData.CurrentRun.SeedData = seedData;
 
             Debug.Log($"[RunSeed] Run 시드 초기화 완료 Master: {seedData.MasterSeed}\n" +
                 $"CombatMap Requested: {seedData.CombatMapRequestedSeed}\n" +

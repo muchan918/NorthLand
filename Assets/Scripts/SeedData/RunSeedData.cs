@@ -4,7 +4,7 @@ namespace NorthLand.Core
 {
     /// <summary>
     /// 한 판에서 사용하는 시드 저장 데이터.
-    /// PlayerData에 포함되어 세이브/로드된다.
+    /// RunData에 포함되어 세이브/로드된다.
     /// </summary>
     [Serializable]
     public sealed class RunSeedData
