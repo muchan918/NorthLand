@@ -1,6 +1,8 @@
 using Cysharp.Threading.Tasks;
 using System;
+using System.Threading;
 using UnityEngine;
+
 
 namespace CombatSpace
 {
@@ -129,7 +131,7 @@ namespace CombatSpace
 
             float actualSpawnDelay =Mathf.Max(spawnDelaySeconds,tileSpawner.MaxRevealTime);
 
-            await UniTask.Delay(TimeSpan.FromSeconds(actualSpawnDelay),DelayType.UnscaledDeltaTime,PlayerLoopTiming.Update,this.GetCancellationTokenOnDestroy());
+            await WaitForSpawnDelayAsync(actualSpawnDelay,this.GetCancellationTokenOnDestroy());
 
             monsterSpawn.StartRound(waveNumber);
 
@@ -195,6 +197,25 @@ namespace CombatSpace
             }
 
             return true;
+        }
+
+        private async UniTask WaitForSpawnDelayAsync(float duration,CancellationToken cancellationToken)
+        {
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                GameSpeedController speedController = GameSpeedController.Instance;
+
+                bool isPaused = speedController != null &&speedController.IsPaused;
+
+                if (!isPaused)
+                {
+                    elapsed += Time.unscaledDeltaTime;
+                }
+
+                await UniTask.Yield(PlayerLoopTiming.Update,cancellationToken);
+            }
         }
     }
 }
