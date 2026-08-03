@@ -45,6 +45,8 @@ public class MouseManager : MonoBehaviour
     /// 드래그 중인 사각형의 스크린 좌표 영역. 사각형 UI가 매 프레임 읽어 간다(IsBoxSelecting이 true일 때만 유효).
     public Rect BoxSelectScreenRect { get; private set; }
     public bool IsBoxSelecting => _mode == Mode.BoxSelect;
+    /// 배치 고스트를 들고 있는가. 되돌리기 버튼(#281)이 "먼저 이 고스트부터 치운다"를 판정하는 데 쓴다.
+    public bool IsPlacing => _mode == Mode.Placement;
     // 현재 포인터 화면 좌표. 다른 시스템(툴팁 등)이 Mouse.current를 직접 읽지 않고 여기서 얻는다(입력 단일 창구 계약).
     public Vector2 PointerPosition { get; private set; }
 

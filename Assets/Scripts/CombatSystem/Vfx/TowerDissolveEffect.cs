@@ -6,9 +6,12 @@ using UnityEngine.Rendering;
 
 namespace NorthLand.Combat
 {
-    /// 합성 재료 소모 연출(#265): 후보 버튼을 누르면 재료 타워가 **하얘지며 가운데로 수축 → 입자로 폭발 →
-    /// 재료 자리 상공에서 부유**한다. 배치가 끝나면 그 입자가 배치 지점으로 날아가거나(확정), 제자리로
-    /// 돌아와 재료가 재조립된다(취소). 이 커밋은 앞쪽 절반(폭발 → 부유)까지다.
+    /// 타워가 사라질 때의 연출: **하얘지며 가운데로 수축 → 입자로 폭발**한 뒤 모드에 따라 갈린다
+    /// (<see cref="DissolveMode"/>).
+    ///
+    /// 합성 재료 소모(#265)로 태어나 되돌리기(#281)에서 배치 회수·합성 역행까지 떠맡으면서 이름에서
+    /// Merge가 빠졌다 — 앞쪽 절반은 "타워가 가루가 된다"는 한 가지 언어이고, 그것이 세 모드가
+    /// 공유하는 전부다. 뒤쪽 절반만 "그래서 그 가루가 어디로 가는가"로 갈린다.
     ///
     /// ## 왜 시각 사본을 뜨는가
     /// 커맨드(#263)는 **버튼 클릭 즉시** 재료를 `SetActive(false)` + 타일 해제한다 — 자리를 비우는 것이
@@ -30,8 +33,31 @@ namespace NorthLand.Combat
     /// 흰 실루엣은 `Sprites/Default`(프로젝트 표준 반투명 언릿)로 그린다. 반투명이라 깊이를 쓰지 않지만
     /// **모든 프래그먼트가 같은 흰색이라 그리는 순서가 결과를 바꾸지 않는다** — 불투명 셰이더 에셋을 새로
     /// 들이지 않고도 단단한 실루엣이 나온다.
+    /// 가루가 된 뒤에 무엇을 하는가. **`Play` 호출 시점에 정해진다.**
+    ///
+    /// ⚠ 이것을 마무리 통지(`Ending`) 값으로 만들면 안 된다. 소멸 구간 루프는 마무리가 정해지는 즉시
+    /// `SnapToDissolveEnd()`로 **가루 폭발 구간을 통째로 건너뛴다** — 그 구간이 이 연출의 본체다.
+    /// 마무리 통지는 "부유 중에 바깥에서 도착하는 결말"이고, 모드는 "무엇을 재생할지"라 시작 시점에
+    /// 이미 정해져 있어야 한다. 둘은 축이 다르다.
+    public enum DissolveMode
+    {
+        /// 합성 소모(#265). 폭발 후 재료 자리 상공에서 **부유하며 바깥의 마무리 통지를 기다린다** —
+        /// 확정이면 결과 타워로 수렴(<see cref="TowerDissolveEffect.ConvergeTo"/>), 취소면 제자리로
+        /// 역수렴 + 재조립 팝(<see cref="TowerDissolveEffect.Reassemble"/>).
+        Merge,
+
+        /// 배치 되돌리기(#281). 폭발한 가루가 **사방으로 발산하며 소멸한다.** 기다림이 없다 —
+        /// 되돌리기는 그 자리에서 끝나는 조작이라 결말을 통지해 줄 세션이 없다.
+        Disperse,
+
+        /// 합성 되돌리기(#281). 결과 타워의 가루가 **재료 자리로 갈라져 이동한 뒤 재료가 팝으로 복원된다.**
+        /// 합성 확정(수렴)의 역방향이라, 되돌린 것이 합성이었음이 그대로 읽힌다.
+        /// 목적지는 <see cref="TowerDissolveEffect.RestoreTo"/>로 받는다.
+        Rewind,
+    }
+
     [DisallowMultipleComponent]
-    public class TowerMergeDissolveEffect : MonoBehaviour
+    public class TowerDissolveEffect : MonoBehaviour
     {
         private const string k_Shader = "Sprites/Default";
 
@@ -81,6 +107,10 @@ namespace NorthLand.Combat
         // 출발 시차. 크기에 따른 속도 차이와 별개로 조금씩 어긋나게 떠나 스트림에 결이 생긴다.
         private const float k_MaxDepartureDelay = 0.12f;
 
+        // 발산(Disperse) 사거리 = 타일 × 이것. 구름 반경(0.68칸)보다 넉넉히 커야 "모였다"가 아니라
+        // "흩어졌다"로 읽힌다 — 목적지가 구름 안쪽이면 오히려 수렴처럼 보인다.
+        private const float k_DisperseRatio = 0.9f;
+
         /// 연출을 어떻게 끝낼지. 부유는 배치 대기 동안 무한 루프이므로 **바깥에서** 끝을 통지받는다.
         private enum Ending
         {
@@ -115,17 +145,32 @@ namespace NorthLand.Combat
         private GrainSwarm _swarm;
         private Material _silhouette;
         private Ending _ending = Ending.None;
+        private DissolveMode _mode = DissolveMode.Merge;
         private float _tileSize;
         private Vector3 _destination; // 확정 시 입자가 모일 지점(결과 타워의 시각 중심)
 
-        /// 재료 소모 **직전에** 호출한다 — 커맨드가 `SetActive(false)`를 걸고 나면 복제할 것이 남지 않는다.
-        /// targets는 소모될 재료들, tileSize는 그리드 셀 한 칸의 월드 크기(모든 길이의 기준).
+        // Rewind 전용: 가루가 돌아갈 자리와, 그동안 숨겨 둔 복원 대상의 스케일 점유.
+        // Source 안이 아니라 따로 두는 이유 — Rewind는 **소스(결과 타워 1개)와 목적지(재료 N개)가 다르다.**
+        // Merge의 Reassemble은 둘이 같아서(재료가 제자리로) Source 하나로 겸할 수 있었다.
+        private readonly List<Vector3> _restoreCenters = new();
+        private readonly List<VfxScaleHold.Handle> _restoreHolds = new();
+
+        /// 대상이 사라지기 **직전에** 호출한다 — `SetActive(false)`나 `Destroy`가 걸리고 나면 복제할 것이
+        /// 남지 않는다. targets는 가루가 될 타워들, tileSize는 그리드 셀 한 칸의 월드 크기(모든 길이의 기준).
         /// 항상 유효한 인스턴스를 돌려주므로 호출부는 null을 검사하지 않아도 된다.
-        public static TowerMergeDissolveEffect Play(IReadOnlyList<Transform> targets, float tileSize)
+        ///
+        /// 시각 사본을 뜨는 `Build`가 이 호출 안에서 **동기로** 끝나므로(첫 await 전까지), 호출부는
+        /// 같은 프레임에 대상을 파괴해도 안전하다 — 되돌리기 커맨드가 그 사실에 기대고 있다.
+        public static TowerDissolveEffect Play(IReadOnlyList<Transform> targets, float tileSize)
+            => Play(targets, tileSize, DissolveMode.Merge);
+
+        /// <inheritdoc cref="Play(IReadOnlyList{Transform}, float)"/>
+        public static TowerDissolveEffect Play(IReadOnlyList<Transform> targets, float tileSize, DissolveMode mode)
         {
-            var host = new GameObject("TowerMergeDissolveEffect");
-            var effect = host.AddComponent<TowerMergeDissolveEffect>();
+            var host = new GameObject(nameof(TowerDissolveEffect));
+            var effect = host.AddComponent<TowerDissolveEffect>();
             effect._tileSize = tileSize;
+            effect._mode = mode;
             effect.RunAsync(targets, effect.destroyCancellationToken).Forget();
             return effect;
         }
@@ -164,11 +209,42 @@ namespace NorthLand.Combat
             }
         }
 
+        /// 합성 되돌리기(Rewind) → 가루가 돌아갈 자리를 등록한다. **커맨드가 재료를 되살린 직후에**
+        /// 호출한다(`Reassemble`과 같은 자리, 같은 이유).
+        ///
+        /// ⚠ 여기서 복원 대상 스케일을 **같은 프레임에** 0으로 잡는 것이 핵심이다. 커맨드가 방금
+        /// `SetActive(true)`로 재료를 되살렸으므로, 렌더 전에 숨기지 않으면 원본 크기 타워가 한 프레임
+        /// 번쩍이고 그 다음에야 가루가 도착한다.
+        ///
+        /// ⚠ bounds는 **스케일을 0으로 잡기 전에** 잰다 — 잡은 뒤에 재면 한 점으로 붕괴해 목적지가
+        /// 전부 같은 좌표가 된다(`Build`가 `Acquire().Release()`를 bounds 측정보다 앞에 두는 것과 같은 규율).
+        public void RestoreTo(IReadOnlyList<Transform> materials)
+        {
+            if (this == null || materials == null) return;
+
+            foreach (Transform t in materials)
+            {
+                if (t == null) continue;
+
+                _restoreCenters.Add(TowerSpawnEffect.CalculateVisualBounds(t, _tileSize).center);
+
+                VfxScaleHold.Handle hold = VfxScaleHold.Acquire(t);
+                hold.SetFactor(0f);
+                _restoreHolds.Add(hold);
+            }
+        }
+
         /// 마무리 선착순 등록. **반환값 = 내가 정했는가** — 스케일 점유처럼 되돌려야 하는 부수 효과는
         /// 이 값이 true일 때만 걸어야 한다(안 그러면 원복할 주인이 없는 점유가 남는다).
         private bool RequestEnd(Ending ending)
         {
             if (this == null) return false;          // 이미 호스트가 파괴됨(정상 종료 후 늦게 온 통지)
+
+            // Merge 외의 모드는 마무리를 통지받지 않는다 — 결말이 시작부터 정해져 있다. 통지를 받아 주면
+            // 소멸 구간이 `SnapToDissolveEnd`로 폭발을 건너뛰어, 되돌리기 연출이 가루가 이미 다 퍼진
+            // 상태에서 시작한다(무엇이 부서졌는지가 사라진다).
+            if (_mode != DissolveMode.Merge) return false;
+
             if (_ending != Ending.None) return false; // 선착순 — 먼저 정해진 마무리가 이긴다
 
             _ending = ending;
@@ -182,11 +258,26 @@ namespace NorthLand.Combat
                 Camera cam = Camera.main;
                 Build(targets, cam);
 
+                // 화이트아웃 → 수축 → 가루 폭발은 **전 모드 공유**다. 세 모드가 갈리는 것은 그 뒤뿐이다.
                 await DissolveAsync(ct);
-                await FloatAsync(ct);
 
-                if (_ending == Ending.Converge) await ConvergeAsync(ct);
-                else if (_ending == Ending.Reassemble) await ReassembleAsync(ct);
+                switch (_mode)
+                {
+                    case DissolveMode.Merge:
+                        // 배치가 끝날 때까지 부유하며 기다린다. 마무리는 바깥이 정한다.
+                        await FloatAsync(ct);
+                        if (_ending == Ending.Converge) await ConvergeAsync(ct);
+                        else if (_ending == Ending.Reassemble) await ReassembleAsync(ct);
+                        break;
+
+                    case DissolveMode.Disperse:
+                        await DisperseAsync(ct);
+                        break;
+
+                    case DissolveMode.Rewind:
+                        await RewindAsync(ct);
+                        break;
+                }
             }
             catch (System.OperationCanceledException)
             {
@@ -486,6 +577,64 @@ namespace NorthLand.Combat
             await UniTask.WhenAll(pops);
         }
 
+        // ── 구간 3-C: 배치 되돌리기 발산 (사방으로 흩어져 소멸) ──────────────────────
+        /// 발산도 결국 "모으기"다 — 목적지를 바깥으로 돌린 것뿐이다. `GatherAsync`가 도착하면서
+        /// 스케일을 0으로 줄이므로, 바깥 한 점을 목적지로 주면 그대로 사방 소멸이 된다.
+        /// 전용 루프를 새로 쓰면 속도 분포·시차 규칙을 한 벌 더 유지해야 하고, 그게 어긋나는 순간
+        /// 두 연출이 다른 물질처럼 보인다.
+        private UniTask DisperseAsync(CancellationToken ct)
+        {
+            float reach = _tileSize * k_DisperseRatio;
+            var destinations = new Vector3[_swarm.Count];
+
+            foreach (Source s in _sources)
+            {
+                for (int i = s.GrainStart; i < s.GrainStart + s.GrainCount; i++)
+                {
+                    // 방향은 구름 중심에서 이 알갱이로 향하는 쪽 — 폭발이 밀어낸 방향을 그대로 잇는다.
+                    // 오프셋이 0에 가까운 알갱이(중심에 걸린 것)는 방향이 불안정하므로 위로 보낸다.
+                    Vector3 dir = _offsets[i].sqrMagnitude > 1e-6f ? _offsets[i].normalized : Vector3.up;
+                    destinations[i] = _swarm[i].position + dir * reach;
+                }
+            }
+
+            return GatherAsync(destinations, ct);
+        }
+
+        // ── 구간 3-D: 합성 되돌리기 역행 (재료 자리로 갈라져 이동 + 복원 팝) ──────────
+        /// 확정 수렴(`ConvergeAsync`)의 **정확한 역방향**이다. 거기서는 재료 N개의 가루가 결과 한 점으로
+        /// 모였고, 여기서는 결과 하나의 가루가 재료 N자리로 갈라진다.
+        private async UniTask RewindAsync(CancellationToken ct)
+        {
+            // 목적지가 정해지기 전에 여기 도달하는 일은 없다 — `RestoreTo`는 `Play`와 같은 프레임에 오고
+            // 이 구간은 소멸(0.5초)이 끝난 뒤다. 그래도 비면 발산으로 폴백한다: 목적지 없는 수렴은
+            // 가루를 원점에 처박으므로, 흩어져 사라지는 쪽이 덜 틀린 그림이다.
+            if (_restoreCenters.Count == 0)
+            {
+                await DisperseAsync(ct);
+                return;
+            }
+
+            // 알갱이를 **연속 구간으로 갈라** 각 재료 자리에 배정한다. 인덱스 라운드로빈(i % N)으로
+            // 섞으면 이웃한 알갱이가 서로 반대편으로 흩어져 "한 덩어리가 무너지는" 그림이 된다 —
+            // 연속 구간이어야 N갈래 스트림으로 갈라져 나가는 것으로 읽힌다.
+            var destinations = new Vector3[_swarm.Count];
+            for (int i = 0; i < destinations.Length; i++)
+            {
+                int slot = Mathf.Min(i * _restoreCenters.Count / destinations.Length, _restoreCenters.Count - 1);
+                destinations[i] = _restoreCenters[slot];
+            }
+
+            await GatherAsync(destinations, ct);
+            _swarm.Clear();
+
+            // 재료가 동시에 튀어나온다. 바닥 링은 붙이지 않는다 — `ReassembleAsync`와 같은 이유로,
+            // 링은 "이 칸을 새로 먹었다"는 언어라 원상복구에 쓰면 되돌리기가 새 배치처럼 읽힌다.
+            var pops = new List<UniTask>(_restoreHolds.Count);
+            foreach (VfxScaleHold.Handle hold in _restoreHolds) pops.Add(hold.PopAsync(TowerSpawnEffect.PopDuration, ct));
+            await UniTask.WhenAll(pops);
+        }
+
         /// 알갱이를 각자의 목적지로 모은다. **소요 시간은 거리와 무관하게 등장 연출의 수렴 시간으로
         /// 고정한다** — 재료가 배치 지점에서 얼마나 떨어져 있든 도착 시각이 같아지므로, 결과 타워가
         /// 튀어나오는 순간에 입자가 정확히 도달한다. 속도를 고정하면(= 거리에 비례한 시간) 먼 재료의
@@ -528,7 +677,9 @@ namespace NorthLand.Combat
         {
             // 어떤 경로로 끊겨도(씬 전환·취소·예외) 재료가 스케일 0으로 남지 않게 하는 단일 지점.
             // 재조립 도중 씬이 바뀌면 여기가 유일한 원복 기회다 — 안 보이는 타워가 최악의 실패 모드다.
+            // Rewind가 잡아 둔 복원 대상도 같은 계약을 탄다(소스와 목적지가 달라 목록이 둘일 뿐이다).
             foreach (Source s in _sources) s.Hold.Release();
+            foreach (VfxScaleHold.Handle hold in _restoreHolds) hold.Release();
 
             _swarm?.Dispose();
             if (_silhouette != null) Destroy(_silhouette);
