@@ -683,7 +683,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterSpawnWaveProvider
   waves:
-  - {fileID: 11400000, guid: a5fbdb74804bc794d8a9fb61b84a55f8, type: 2}
+  - {fileID: 11400000, guid: 4e1fbc9cfc227404288c9dfb8cf8192a, type: 2}
   - {fileID: 11400000, guid: 40a711574a6a3a7498811530abcde0b4, type: 2}
   - {fileID: 11400000, guid: 72b61fd7206a3a34daa374550ec32b5f, type: 2}
   - {fileID: 11400000, guid: 4f677ed7963a95041b0dc37a1a0712c9, type: 2}
@@ -2727,7 +2727,43 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 367777888}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1318080316}
+        m_TargetAssemblyTypeName: MouseManager, Assembly-CSharp
+        m_MethodName: CancelPlacement
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 1318080316}
+        m_TargetAssemblyTypeName: MouseManager, Assembly-CSharp
+        m_MethodName: CancelSkillTargeting
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 1891864976}
+        m_TargetAssemblyTypeName: SettingUI, Assembly-CSharp
+        m_MethodName: OpenPanel
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &367777888
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10384,7 +10420,6 @@ MonoBehaviour:
   _placementMask:
     serializedVersion: 2
     m_Bits: 8
-  _dragThreshold: 8
 --- !u!4 &1318080317
 Transform:
   m_ObjectHideFlags: 0
@@ -10892,7 +10927,31 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1432297226}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1318080316}
+        m_TargetAssemblyTypeName: MouseManager, Assembly-CSharp
+        m_MethodName: CancelPlacement
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 1318080316}
+        m_TargetAssemblyTypeName: MouseManager, Assembly-CSharp
+        m_MethodName: CancelSkillTargeting
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1432297226
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11100,9 +11159,17 @@ PrefabInstance:
       value: SettingCanvas
       objectReference: {fileID: 0}
     - target: {fileID: 1614170420404791618, guid: 1ca45b441416ca346b2d4f82ea5b0c95, type: 3}
-      propertyPath: settingbutton
+      propertyPath: gameSpeedController
       value: 
-      objectReference: {fileID: 367777887}
+      objectReference: {fileID: 2082790719}
+    - target: {fileID: 5710613972390280766, guid: 1ca45b441416ca346b2d4f82ea5b0c95, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: ClosePanel
+      objectReference: {fileID: 0}
+    - target: {fileID: 7224742997902961218, guid: 1ca45b441416ca346b2d4f82ea5b0c95, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
