@@ -158,14 +158,22 @@ public class MouseManager : MonoBehaviour
         _mode = next;
     }
 
-    // ── 외부 진입점 ────────────────────────────────────────────────
-    public void BeginPlacement(PlacementRequest request)
+    /// <summary>
+    /// 진행 중인 포인터 상호작용과 선택 상태를 정본 순서로 모두 취소한다.
+    /// </summary>
+    public void CancelInteractions()
     {
         CancelPlacement();
         CancelSkillTargeting();
+        ClearHover();
+        ClearSelection();
+    }
+
+    // ── 외부 진입점 ────────────────────────────────────────────────
+    public void BeginPlacement(PlacementRequest request)
+    {
+        CancelInteractions();
         ResetGesture();   // 버튼을 누른 채 배치가 시작됐다면 그 제스처는 버린다
-        ClearHover();     // 배치 중에는 툴팁을 띄우지 않는다
-        ClearSelection(); // 고스트를 드는 순간 이전 선택의 잔재(사거리 원·초록 아웃라인·인포/합성 패널)를 전부 내린다(WL-086)
         _request = request;
         _ghost = Instantiate(request.GhostPrefab);
         SetMode(Mode.Placement);
