@@ -3,9 +3,13 @@ using UnityEngine;
 using NorthLand.Combat;
 
 /// 타워 합성(#195) 실행부. 후보 버튼 클릭 → 그룹 재료 매칭 → 코스트 확인 →
-/// TowerPlacer 고스트 배치 시작 → 배치 확정 시 재료 소모.
+/// **재료 즉시 소모(커맨드 Execute)** → TowerPlacer 고스트 배치 시작 →
+/// 확정이면 커맨드 Commit(진짜 파괴), 취소면 Undo(원복).
 /// 선택 집합(TowerMergeGroup)은 TowerMergeCoordinator가 소유하며, 실행 시 인자로 넘겨받는다(#183).
 /// (구 임시 홀더 TowerWallet + 테스트 단일 레시피 경로는 #183 인계로 폐기됨.)
+///
+/// 소모를 **배치보다 앞으로** 옮긴 것이 #263의 전부다. 예전에는 확정 시점에 파괴해서 재료가 점유한
+/// 타일에 결과를 놓을 수 없었다(WL-077a) — 재료가 확정 후에야 사라져 타일이 그때까지 잠겨 있었다.
 public class TowerFusionController : MonoBehaviour
 {
     [Header("연결")]
@@ -18,10 +22,13 @@ public class TowerFusionController : MonoBehaviour
     }
 
     /// 후보 버튼 onClick → 코디네이터(RequestMerge)를 거쳐 호출된다. group은 현재 선택 집합.
-    /// onEnded는 배치 세션이 확정/취소 어느 쪽으로든 끝날 때 1회(코디네이터의 핑크 고정 해제용).
-    /// **반환값 = 결과 타워 배치가 실제로 시작됐는가.** false면 onEnded도 오지 않으므로, 호출부가
-    /// "배치 동안 유지"할 상태를 걸어두면 안 된다(재료·코스트 부족으로 조용히 반려되는 경로가 있다).
-    public bool TryFuse(TowerRecipe recipe, TowerMergeGroup group, System.Action onEnded = null)
+    /// **반환값 = 결과 타워 배치가 실제로 시작됐는가.** 재료·코스트 부족으로 조용히 반려되는 경로가 있으니
+    /// 호출부가 "배치 동안 유지"할 상태를 걸어두려면 이 값을 봐야 한다.
+    ///
+    /// 배치 세션 종료 통지(구 onEnded 인자)는 없앴다 — 유일한 용도였던 핑크 고정이 #263으로 사라졌고,
+    /// 그 인자는 애초에 확정과 취소를 구분하지 못했다. 연출(#265)처럼 둘을 갈라 봐야 하는 소비처가
+    /// 생기면 그때 필요한 형태로 다시 낸다.
+    public bool TryFuse(TowerRecipe recipe, TowerMergeGroup group)
     {
         if (recipe == null) { Debug.LogError("[TowerFusion] recipe가 지정되지 않았습니다."); return false; }
         if (recipe.Result == null) { Debug.LogError("[TowerFusion] recipe.Result가 비어 있습니다."); return false; }
@@ -71,17 +78,70 @@ public class TowerFusionController : MonoBehaviour
         if (recipe.Result.Data == null)
             recipe.Result.Data = DataTableManager.Get<TowerTable>("TowerTable")?.Get(recipe.Result.TowerID);
 
-        // 5. 배치 시작. 확정(고스트→타일)되면 ExtraCost 차감(TowerPlacer) 후 재료 소모.
-        return _placer.BeginTowerPlacement(recipe.Result, recipe.ExtraCost, () => ConsumeMaterials(group, toConsume), onEnded);
+        // 5. 소모 연출(#265)을 **소모 직전에** 건다. 커맨드가 재료를 즉시 비활성화하므로 그 뒤에는
+        //    복제할 시각물이 남지 않는다 — 이 한 줄의 위치가 연출 전체의 전제다.
+        //    연출은 시각 전용·논블로킹이라 아래 흐름은 연출을 기다리지 않는다.
+        //    넘기는 것은 **타일 한 칸 크기**다(풋프린트 아님). 이 연출의 모든 길이가 "저 칸 것"을 말하는
+        //    단위이고, 알갱이 크기도 등장 연출과 같은 기준이어야 두 연출이 같은 물질로 보인다.
+        //
+        //    아래 Execute가 실패하면 연출이 1프레임 재생된 뒤 Abort된다(흰 사본이 원본과 겹쳐 한 번 그려짐).
+        //    Execute 실패는 "재료가 전부 사라진 뒤 클릭"이라 LogError 경로이고, 연출을 먼저 걸어야 한다는
+        //    순서 계약(위)과 맞바꿀 만한 빈도가 아니라 그대로 둔다.
+        TowerMergeDissolveEffect effect = TowerMergeDissolveEffect.Play(
+            CollectTransforms(toConsume),
+            _placer.TileSize);
+
+        // 6. 재료를 **먼저** 소모한다(#263). 배치가 시작되기 전에 자리를 비워야 재료가 있던 타일에
+        //    결과를 놓을 수 있다 — 이 순서가 커맨드를 도입한 이유 그 자체다.
+        //    선택 집합에서 빼는 일은 하지 않는다: 비활성화 → Tower.Active 이탈 → ActiveChanged →
+        //    코디네이터의 Prune이 이미 담당한다(구 ConsumeMaterials의 group.Remove가 하던 몫).
+        var command = new TowerMergeCommand(toConsume);
+        if (!command.Execute())
+        {
+            effect.Abort();
+            Debug.LogError("[TowerFusion] 재료 소모에 실패해 합성을 중단합니다.");
+            return false;
+        }
+
+        // 7. 배치 시작. 확정되면 Commit(진짜 파괴), 세션이 취소로 끝나면 Undo(원복).
+        //    종료 통지는 확정/취소를 구분하지 않으므로 판단은 커맨드가 자기 상태로 한다 — 확정 뒤의
+        //    Undo는 무시되므로 두 콜백을 다 걸어도 안전하다.
+        //    연출도 같은 판단을 공유한다: 취소로 끝났으면 입자가 제자리로 돌아가 재료를 재조립하고
+        //    (Reassemble), 확정이었으면 이미 수렴에 들어가 있으므로 Abort가 무시된다.
+        //    Reassemble은 반드시 Undo **뒤에** 부른다 — 되살아난 재료를 같은 프레임에 숨겨야
+        //    원본 크기 타워가 한 프레임 번쩍이지 않는다.
+        bool started = _placer.BeginTowerPlacement(
+            recipe.Result,
+            recipe.ExtraCost,
+            placed => { command.Commit(); effect.ConvergeTo(placed); },
+            () =>
+            {
+                bool cancelled = !command.IsCommitted;
+                command.Undo();
+                if (cancelled) effect.Reassemble();
+                else effect.Abort();
+            });
+
+        // 배치를 열지 못했으면 방금 소모한 재료를 즉시 되돌린다. 이 경로에서는 종료 통지도 오지 않으므로
+        // 여기서 되돌리지 않으면 재료만 사라진 채 아무 일도 일어나지 않는다.
+        if (!started)
+        {
+            command.Undo();
+            effect.Abort();
+        }
+
+        return started;
     }
 
-    private void ConsumeMaterials(TowerMergeGroup group, List<Tower> towers)
+    /// 연출부는 도메인(Tower)을 모르는 것이 계약이라 Transform만 넘긴다 — 덕분에 연출은
+    /// Renderer가 달린 무엇에든 재생되고, 타워 에셋이 교체돼도 영향을 받지 않는다.
+    private static List<Transform> CollectTransforms(List<Tower> towers)
     {
-        foreach (var t in towers)
+        var result = new List<Transform>(towers.Count);
+        foreach (Tower t in towers)
         {
-            if (t == null) continue;
-            group.Remove(t);       // OnChanged 발행 → 코디네이터가 패널·하이라이트 갱신
-            Destroy(t.gameObject); // OnDisable에서 Tower.Active 자동 해제
+            if (t != null) result.Add(t.transform);
         }
+        return result;
     }
 }
