@@ -139,22 +139,38 @@ FlatKit 벤더 트리를 직접 확인한 결과다.
 
 ### Phase 0 — 측정·스파이크 (착수 판단)
 
-- [ ] ~~Candy Land 렌더러 수 측정~~ — **구매 확정 후로 보류**(§2.2). `Castle.prefab` 462개만으로 착수 근거는 이미 충분하다. 구매하면 `prefab.GetComponentsInChildren<MeshRenderer>(true).Length`로 재고, 500 초과면 본진 교체의 **선행 작업**으로 승격
-- [ ] `FilteringSettings.renderingLayerMask` 필터가 URP 17 Render Graph에서 도는지 확인 → 실패 시 `DrawRenderer` 폴백 확정(§4)
-- [ ] PC **Deferred** 경로에서 마스크 RT가 정상인지 확인
-- [ ] Mobile **Forward** 경로 동일 확인 (#213 T9가 미확인으로 남아 있던 항목 — 여기서 같이 닫는다)
-- [ ] 스파이크 잔재 0 / 콘솔 에러 0 / 씬 미저장 확인
+- [x] ~~Candy Land 렌더러 수 측정~~ → **구매 완료, 실측 213개**(2026-08-03). 512 상한에 안 걸린다.
+      즉 "상한 초과로 아웃라인이 아예 안 나온다"는 착수 근거는 **성립하지 않았다** — 다만 §1의
+      나머지 세 한계(부품별 테두리·스무스 노멀 의존·픽셀 룩 비양립)는 그대로라 이행 근거는 유효하다
+- [x] ~~`FilteringSettings.renderingLayerMask` 필터 확인~~ → **검증하지 않고 폴백을 택했다.**
+      문서가 폴백으로 지정한 "수집해둔 렌더러 배열을 직접 그리는" 방식(`RasterCommandBuffer.DrawRenderer`)이
+      필터 거동에 의존하지 않아 완전히 결정적이고, 대상 수가 그룹당 1~5개로 작아 부담이 없다.
+      필터 경로가 필요해지면(대상이 수백 개로 커지면) 그때 스파이크한다
+- [x] PC **Deferred** 경로에서 마스크 RT 정상 확인 (2026-08-03, 실루엣 정상 출력)
+- [ ] Mobile **Forward** 경로 동일 확인 — 피처는 등재했으나 **미검증**(퀄리티 레벨 전환 필요)
+- [x] 스파이크 잔재 0 / 콘솔 에러 0 확인 — 해제 시 잔재 없음(해제 vs 호버 차이 0.57% = 링 픽셀만)
 
-### Phase 1 — 신규 경로 구축 (shell 유지, 병행)
+### Phase 1 — 신규 경로 구축 (shell 유지, 병행) — **완료 (2026-08-03)**
 
-- [ ] 마스크 셰이더 + dilate/합성 셰이더 작성 (`Assets/Shaders/` 제안)
-- [ ] `ScriptableRendererFeature` 작성 (`Assets/Scripts/Rendering/` 제안) — 대상 0개면 패스 전체 스킵(평시 비용 0)
-- [ ] 슬롯 값 인코딩(1=Hover / 2=Select / 3=MergePreview)과 색 매핑을 셰이더 상수로
-- [ ] **두께 = 스크린 픽셀 단위 기본** + 픽셀 그리드 스냅은 **옵션 모드**(§2.2 — 픽셀레이션 결정을 기다리지 않는다)
-- [ ] 슬롯별 `ZTest` 분기 배선(가려짐 정책) — 값은 나중에 켜보며 정하되 **구조는 지금 넣어둔다**
-- [ ] `MinMapCamera` 게이팅 (주의사항 7)
-- [ ] PC / Mobile 렌더러 양쪽 등재 (주의사항 6)
-- [ ] 렌더 이벤트 값 명시 배정 (주의사항 4·5)
+- [x] 마스크 셰이더 + dilate/합성 셰이더 — `Assets/Shaders/Outline/InteractionOutlineMask.shader` ·
+      `InteractionOutlineComposite.shader`
+- [x] `ScriptableRendererFeature` — `Assets/Scripts/Rendering/InteractionOutlineFeature.cs`.
+      `InteractionOutlineRegistry.HasTargets`가 false면 패스를 등록조차 하지 않는다(평시 비용 0)
+- [x] 슬롯 값 인코딩 — 마스크 R 채널에 **0.25/0.5/0.75**(1/2/3을 R8 양자화 여유를 두고 매핑).
+      색 매핑은 합성 셰이더의 `SlotToColor`, 값이 큰 쪽이 겹칠 때 우선(MergePreview > Select > Hover)
+- [x] **두께 = 스크린 픽셀 단위**(`_Thickness`, 기본 3px). 픽셀 그리드 스냅이 필요해지면
+      이 값을 블록 정수배로 넘기면 되고 셰이더는 그대로다 — 픽셀 채택 결정을 기다리지 않는다
+- [x] 슬롯별 `ZTest` 분기 — 마스크 머티리얼 3개의 `_ZTestMode`로 갈린다(`Always`=8 투시 / `LEqual`=4 가려짐).
+      기본값은 문서 제안대로 **호버=가려짐 / 선택·프리뷰=투시**. 피처 인스펙터에서 토글 가능
+- [x] `MinMapCamera` 게이팅 — 피처의 `excludedCameraNames`(기본 `{"MinMapCamera"}`) + Reflection/Preview 카메라 제외
+- [x] PC / Mobile 렌더러 양쪽 등재 — 아웃라인은 룩이 아니라 **기능**이므로 `VisualLookPipeline.md` §2 결정 5의 예외
+- [x] 렌더 이벤트 값 명시 배정 — **`AfterRenderingTransparents`(500)**.
+      ⚠️ 이 문서 §3이 FlatKit Pixelation 기본 이벤트를 `BeforeRenderingPostProcessing`(500)이라 적었는데
+      **실제 값은 550**이다(실측). 즉 실루엣(500) → 픽셀레이션(550) 순서가 성립한다
+
+**검증**(룩데브 씬 `GameScene_600`, `Building_1` 렌더러 2개):
+셸 방식은 내부 엣지까지 전부 선이 그려졌으나(`Screenshots/148/29_B_hover_outline.png`),
+새 경로는 **외곽 실루엣 하나**만 나온다(`30_screenspace_hover.png`). 해제 시 잔재 없음.
 
 ### Phase 2 — `OutlineHighlight` 내부 교체
 
