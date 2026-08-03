@@ -60,7 +60,11 @@ public class TowerPlacer : MonoBehaviour
     // "패널에서 산 것"과 "실제로 배치된 것"을 같게 만드는 유일한 연결선이다(WL-129).
     private TowerAsset _activeAsset;
     private IReadOnlyList<ResourceCost> _activeCost; // 현재 배치 중인 타워의 비용(확정 시 차감)
-    private System.Action _onConfirmed; // 배치 확정 후 1회 콜백(합성 재료 소모 등). 확정 직후 소비하고 비운다.
+    // 배치 확정 후 1회 콜백(합성 재료 소모 등). 확정 직후 소비하고 비운다.
+    // 인자는 **방금 배치된 타워**다. 합성 연출(#265)이 부유 중인 입자를 결과 타워로 날려 보내려면
+    // 목적지를 알아야 하고, 그 목적지는 등장 연출이 스케일을 0으로 만들기 **전에** 재야 한다 —
+    // 그래서 좌표가 아니라 Transform을 넘기고, 호출 순서도 등장 연출보다 앞이다(PlaceTower 참고).
+    private System.Action<Transform> _onConfirmed;
     // 배치 세션 종료(확정 복귀·취소·다른 배치로 교체) 1회 콜백. 확정 여부와 무관하게 "이 배치는 끝났다"만 알린다.
     // 합성이 클릭 시점에 고정한 핑크 프리뷰(#213 §5.3)를 되돌리는 신호로 쓴다 — 확정/취소 어느 쪽으로 끝나든 필요.
     private System.Action _onEnded;
@@ -77,6 +81,10 @@ public class TowerPlacer : MonoBehaviour
     [Header("Tile Buff")]
     [SerializeField]
     private TileBuffRuleSettings tileBuffRules;
+
+    /// 셀 간격(월드). Awake에서 신맵 설정을 단일 출처로 해석해 둔 값이라, 합성 연출(#265)처럼
+    /// "타일 한 칸"을 기준 길이로 써야 하는 쪽이 같은 해석을 다시 하지 않도록 노출한다.
+    public float TileSize => tileSize;
 
     private NorthLand.Combat.RangeCircle _rangeCircle;
 
@@ -132,7 +140,7 @@ public class TowerPlacer : MonoBehaviour
     /// onEnded는 확정/취소 무관하게 배치 세션이 끝날 때 1회. **반환값 = 배치 세션이 실제로 시작됐는가** —
     /// false면 onEnded도 영영 오지 않으므로, 호출부가 배치 동안 유지하려던 상태(합성 핑크 고정 등)를
     /// 걸어두면 안 된다는 신호다.
-    public bool BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost, System.Action onConfirmed, System.Action onEnded = null)
+    public bool BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost, System.Action<Transform> onConfirmed, System.Action onEnded = null)
     {
         if (so == null)
         {
@@ -189,7 +197,7 @@ public class TowerPlacer : MonoBehaviour
 
     // 실제 배치 시작 코어(진입 방식과 무관). 게이트웨이/더미 어느 경로든 이 메서드를 호출한다.
     // onConfirmed(합성 재료 소모 등)는 BeginPlacement 이후에 설정한다(순서 주의 — 아래 참고).
-    private bool StartPlacement(TowerPlacementData data, System.Action onConfirmed = null, System.Action onEnded = null)
+    private bool StartPlacement(TowerPlacementData data, System.Action<Transform> onConfirmed = null, System.Action onEnded = null)
     {
         if (MouseManager.Instance == null)
         {
@@ -347,9 +355,22 @@ public class TowerPlacer : MonoBehaviour
 
         // 확정 콜백(합성 재료 소모 등)은 배치 성공 후 1회만 실행한다.
         // 먼저 비우고 호출해 연속 배치(keepPlacing)에서도 재실행되지 않게 한다.
+        //
+        // ⚠ 이 호출은 반드시 아래 등장 연출보다 **앞**이어야 한다. 합성 연출이 여기서 결과 타워의
+        //   bounds를 재 수렴 목적지로 삼는데, 등장 연출은 시작하자마자 그 타워의 스케일을 0으로
+        //   만들기 때문이다 — 순서가 뒤바뀌면 입자가 쪼그라든 상자의 중심으로 모인다.
         var confirmed = _onConfirmed;
         _onConfirmed = null;
-        confirmed?.Invoke();
+        confirmed?.Invoke(placed.transform);
+
+        // 등장 연출(#264)은 **로직이 전부 끝난 뒤** 마지막에 얹는다. 시각 전용·논블로킹이라 여기서
+        // 기다리지 않고, 연출 도중 밤 전환이나 새 배치가 들어와도 타워는 이미 완성 상태다.
+        // 바닥 링 크기는 bounds가 아니라 풋프린트에서 준다 — 타워 에셋이 교체돼도 "몇 칸을 먹었는지"는
+        // 안 바뀌는 값이라, 홀쭉한 에셋이 와도 링이 칸보다 작아지지 않는다.
+        // 알갱이 크기만 tileSize(한 칸) 기준으로 따로 넘긴다 — 풋프린트를 쓰면 다중 셀 타워에서만
+        // 알갱이가 커져 합성 유입 입자와 크기가 어긋난다(#265, TowerSpawnEffect.Play 주석).
+        float footprintSize = Mathf.Max(_activeData.GridWidth, _activeData.GridHeight) * tileSize;
+        NorthLand.Combat.TowerSpawnEffect.Play(placed.transform, footprintSize, tileSize);
     }
 
     private static bool IsBuildable(BattleTile tile)

@@ -60,6 +60,38 @@ public class TowerMergeGroup
         return true;
     }
 
+    /// 집합을 주어진 순서 그대로 원자 교체한다(OnChanged 1회). 내용·순서가 같으면 no-op(false) —
+    /// 드래그 선택(#261)이 매 프레임 호출하므로, 안 바뀐 프레임에 패널·하이라이트를 재빌드하지 않기 위함이다.
+    /// null·중복은 Add와 같은 규칙으로 걸러낸다.
+    public bool SetAll(IReadOnlyList<Tower> towers)
+    {
+        if (towers == null || towers.Count == 0) return Clear();
+
+        if (SameAs(towers)) return false;
+
+        _towers.Clear();
+        for (int i = 0; i < towers.Count; i++)
+        {
+            var t = towers[i];
+            if (t == null || _towers.Contains(t)) continue;
+            _towers.Add(t);
+        }
+        OnChanged?.Invoke();
+        return true;
+    }
+
+    /// 현재 집합이 next와 내용·순서까지 같은가. (null·중복이 섞인 next는 다르다고 보고 SetAll이 정규화한다)
+    private bool SameAs(IReadOnlyList<Tower> next)
+    {
+        if (_towers.Count != next.Count) return false;
+
+        for (int i = 0; i < _towers.Count; i++)
+        {
+            if (_towers[i] != next[i]) return false;
+        }
+        return true;
+    }
+
     /// 죽은 항목을 주입된 판정(isDead)으로 제거한다. 하나라도 지우면 OnChanged. (WL-076b)
     /// 판정을 인자로 받는 이유: 파괴 완료 후에야 Unity 가짜 null(t==null)이 되지만, Tower.OnDisable→
     /// ActiveChanged 시점엔 아직 null이 아니다. 그 시점을 잡으려면 Tower.Active 멤버십 등 도메인 판정이

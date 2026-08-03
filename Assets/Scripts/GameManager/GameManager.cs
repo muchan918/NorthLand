@@ -1,74 +1,114 @@
-using NorthLand.UI;
 using System;
+using NorthLand.UI;
 using UnityEngine;
-using UnityEngine.Localization.Settings;
 
 namespace NorthLand.Core
 {
-    public enum GameResult 
-    { 
-        Playing, 
-        GameOver, 
-        Victory 
+    public enum GameResult
+    {
+        Playing,
+        GameOver,
+        Victory
     }
 
-    // 전투(게임) 씬의 승패 흐름을 판정·중계하는 매니저.
-    // 본진 HP 0 → 게임오버 / 보스 처치 → 승리(GDD §4.4). 실제 트리거원(본진/보스)은
-    // 아직 없어 지금은 외부에서 TriggerGameOver/TriggerVictory를 호출(임시). 판정 로직만
-    // 담당하고, 결과 화면 조립·표시는 ResultUIManager에 위임한다(역할 분리).
-    //
-    // 수명주기: 결과는 Run(전투) 단위이므로 씬 스코프 싱글톤(DontDestroyOnLoad 없음) —
-    // 씬을 벗어나면(메인/재시작) 새 씬에서 상태가 초기화된다. 씬 전환은 GameSceneManager 담당.
-    // (DayNightManager/ResultUIManager와 동일한 씬 싱글톤 패턴 — WL-002 부채를 늘리지 않음)
+    /// <summary>
+    /// 전투 씬의 승패 상태를 판정하고 결과를 전달하는 매니저.
+    /// 본진 HP가 0이 되면 게임오버, 보스를 처치하면 승리로 확정한다.
+    /// 결과 화면 표시는 ResultUIManager에 맡기고,
+    /// 시간 정지 등의 후속 처리는 OnResultDecided 이벤트로 전달한다.
+    /// </summary>
     public class GameManager : MonoBehaviour
     {
         public static GameManager Instance { get; private set; }
 
-        public GameResult Result { get; private set; } = GameResult.Playing;
+        public GameResult Result { get; private set; }
+            = GameResult.Playing;
 
-        // 결과 확정 시 발생. 스폰 정지·시간 정지 등 다른 시스템이 구독해 반응할 수 있다.
+        /// <summary>
+        /// 게임 결과가 최초로 확정됐을 때 발생한다.
+        /// GameSpeedController, SkillManager 등의 시스템이 구독한다.
+        /// </summary>
         public event Action<GameResult> OnResultDecided;
 
-
-        void Awake()
+        private void Awake()
         {
             if (Instance != null && Instance != this)
             {
                 Destroy(gameObject);
                 return;
             }
+
             Instance = this;
         }
 
-        void OnDestroy()
+        private void OnDestroy()
         {
-            if (Instance == this) Instance = null;
+            if (Instance == this)
+            {
+                Instance = null;
+            }
         }
 
-        // 패배 확정(본진 HP 0 등) 시 호출.
-        public void TriggerGameOver() => Decide(GameResult.GameOver);
-
-        // 승리 확정(보스 처치 등) 시 호출.
-        public void TriggerVictory() => Decide(GameResult.Victory);
-
-        void Decide(GameResult result)
+        /// <summary>
+        /// 본진 HP가 0이 되는 등 패배 조건이 발생했을 때 호출한다.
+        /// </summary>
+        public void TriggerGameOver()
         {
-            // 이미 승패가 확정됐으면 이후 트리거는 무시(첫 판정만 유효).
-            if (Result != GameResult.Playing) return;
+            Decide(GameResult.GameOver);
+        }
+
+        /// <summary>
+        /// 최종 보스를 처치하는 등 승리 조건이 발생했을 때 호출한다.
+        /// </summary>
+        public void TriggerVictory()
+        {
+            Decide(GameResult.Victory);
+        }
+
+        private void Decide(GameResult result)
+        {
+            // 최초 결과만 인정한다.
+            if (Result != GameResult.Playing)
+            {
+                return;
+            }
+
+            // Playing은 종료 결과로 사용할 수 없다.
+            if (result == GameResult.Playing)
+            {
+                Debug.LogWarning("[GameManager] Playing 상태로 결과를 확정할 수 없습니다.",this);
+
+                return;
+            }
+
             Result = result;
 
+            ShowResultUI(result);
+
+            // UI 존재 여부와 무관하게 결과 이벤트를 발생시킨다.
+            // GameSpeedController가 이 이벤트를 받아 시간을 정지한다.
+            OnResultDecided?.Invoke(result);
+        }
+
+        private void ShowResultUI(GameResult result)
+        {
             if (ResultUIManager.Instance == null)
-                Debug.LogWarning("[GameManager] ResultUIManager가 없어 결과 화면을 표시하지 못했습니다.");
-            else if (result == GameResult.GameOver)
             {
-                ResultUIManager.Instance.ShowGameOver();
-            }
-            else if (result == GameResult.Victory)
-            {
-                ResultUIManager.Instance.ShowVictory();
+                Debug.LogWarning("[GameManager] ResultUIManager가 없어 " +"결과 화면을 표시하지 못했습니다.",this);
+
+                return;
             }
 
-            OnResultDecided?.Invoke(result);
+            switch (result)
+            {
+                case GameResult.GameOver:
+                    ResultUIManager.Instance.ShowGameOver();
+                    break;
+
+                case GameResult.Victory:
+                    ResultUIManager.Instance.ShowVictory();
+                    break;
+            }
         }
     }
 }
