@@ -55,7 +55,23 @@ namespace NorthLand.Core
                 return;
             }
 
-            RunSeedData seedData =useMasterSeedOverride? seedContext.CreateRun(masterSeedOverride): seedContext.CreateRandomRun();
+            RunSeedData seedData;
+
+            if (useMasterSeedOverride)
+            {
+                // 에디터 테스트값이 최우선
+                seedData = seedContext.CreateRun(masterSeedOverride);
+            }
+            else if (GameSceneManager.Instance != null &&GameSceneManager.Instance.TryConsumePendingMasterSeed(out int pendingSeed))
+            {
+                // 플레이어가 타이틀에서 입력한 시드
+                seedData = seedContext.CreateRun(pendingSeed);
+            }
+            else
+            {
+                // 일반 새 게임
+                seedData = seedContext.CreateRandomRun();
+            }
 
             playerData.CurrentRun.HasActiveRun = true;
 

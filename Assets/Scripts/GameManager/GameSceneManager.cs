@@ -13,6 +13,8 @@ namespace NorthLand.Core
         const string TitleScene = "TitleScene";
         const string GameScene = "GameScene";
 
+        private int? pendingMasterSeed;
+
         // 첫 씬이 로드되기 전에 Unity가 자동 호출한다. 매니저를 여기서 부팅한다.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Bootstrap()
@@ -42,7 +44,34 @@ namespace NorthLand.Core
         public void LoadMainMenu() => SceneManager.LoadScene(TitleScene);
 
         // 경영 공간(게임 본편)으로 전환한다. (메인 메뉴의 "게임 시작" 버튼에서 호출)
-        public void LoadManageSpace() => SceneManager.LoadScene(GameScene);
+        // 랜덤 시드로 새 게임 시작
+        public void LoadManageSpace()
+        {
+            pendingMasterSeed = null;
+
+            SceneManager.LoadScene(GameScene);
+        }
+
+        public void LoadManageSpaceWithSeed(int masterSeed)
+        {
+            pendingMasterSeed = masterSeed;
+
+            SceneManager.LoadScene(GameScene);
+        }
+        public bool TryConsumePendingMasterSeed(out int masterSeed)
+        {
+            if (!pendingMasterSeed.HasValue)
+            {
+                masterSeed = 0;
+                return false;
+            }
+
+            masterSeed = pendingMasterSeed.Value;
+
+            pendingMasterSeed = null;
+
+            return true;
+        }
 
         public void QuitGame()
         {

@@ -2644,7 +2644,7 @@ MonoBehaviour:
     TreeShortEdgeBias: 3
     ExtraEdgeKeepRatio: 0.3
     ExtraEdgeMaxLengthRatio: 1.6
-  _seed: 12345
+  _seed: 0
   _definitionPool:
   - {fileID: 11400000, guid: b50cb37f94e67214ab3bafb86d861be9, type: 2}
   - {fileID: 11400000, guid: acff6c4b5ce3864409731251b374b3e7, type: 2}
@@ -4804,7 +4804,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 60.35
+  m_fontSize: 54.75
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -9153,7 +9153,7 @@ MonoBehaviour:
   mapGenerator: {fileID: 1175259922}
   tileSpawner: {fileID: 1175259920}
   revealController: {fileID: 1175259919}
-  initializeOnStart: 1
+  initializeOnStart: 0
 --- !u!114 &1175259919
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10777,6 +10777,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1384901248}
   - component: {fileID: 1384901247}
+  - component: {fileID: 1384901249}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -10811,6 +10812,22 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1384901249
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1384901246}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bebde2c71f7df1f4885737c408114013, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NorthLand.Core.RunBootstrapper
+  useMasterSeedOverride: 0
+  masterSeedOverride: 12345
+  combatMapInitializer: {fileID: 1175259918}
+  territoryController: {fileID: 340814262}
 --- !u!1 &1387240831
 GameObject:
   m_ObjectHideFlags: 0
