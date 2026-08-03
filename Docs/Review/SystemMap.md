@@ -34,7 +34,7 @@
   (PR#80으로 이관 완료) — 잔여 타워 종류의 값 채움은 WL-001 참고
 - `EnemyTable.Get(string id)` — null 반환 가능. **스탯(체력/이동속도/공격력/사거리/공격주기)은
   CSV/`EnemyData`에 없음** — `EnemyAsset`(SO)의 `EnemyType`별 필드 그룹(`MeleeFields`/`RangedFields`/
-  `BossFields`, `TowerAsset`의 `TowerType`별 필드 그룹과 동일 패턴)에만 존재. 이슈#26 원 스펙(스탯
+  `BossFields`)에만 존재. `TowerAsset`도 같은 패턴이었으나 #274에서 평탄화되며 사라졌다. 이슈#26 원 스펙(스탯
   CSV 컬럼 요구)과 다른 선택이며 WL-027로 추적 중 — 스탯이 필요한 소비처(#14/#15/#16)는
   `EnemyTable.Get(id)`가 아니라 `EnemyAsset` 조회 경로를 써야 함. `EnemyAsset`도 `TowerAsset`과
   동일하게 Combat의 `Enemy.cs`가 직접 소비함(PR#80으로 이관 완료, 옛 Combat 자체 `EnemyData`는
@@ -170,16 +170,27 @@
 - `Projectile.DamageDealt`(`static event Action<IAttacker, IDamageable>`, `NorthLand.Combat`, #169 muchan 추가) —
   투사체 데미지가 실제로 들어간 직후 발행(단일/스플래시/체인 전 경로). **static이므로 구독 해제는 구독자 책임**
   (파괴된 MonoBehaviour를 남기면 죽은 구독자 호출 버그). 현재 구독자: `BurnBuff`(버프 창 동안만)
+- **타워 본체 문서 = [`Docs/Core/Tower.md`](../Core/Tower.md)** — 조립 모델·투사체·데이터 파이프라인·스탯 원장·
+  능력 질의의 정본. **전부 현행 코드 기준이므로 그대로 리뷰 기준선으로 쓴다.**
+  구조 재설계 문서는 [`Docs/Core/TowerRedesign.md`](../Core/TowerRedesign.md)(#274) — **Phase 1~4는 구현·병합
+  완료라 그 부분은 `Tower.md`가 정본이고, 남은 Phase 5(합성 효과 계승)만 합의 대기다.** 리뷰 기준은 `Tower.md`
+- ⚠️ **#274 이름 변경 — 위 표(§1)와 아래 일부 서술에 남은 구 이름은 전부 삭제된 것들이다.**
+  `ITowerBehaviour`→`TowerAction` · `AttackBehaviour`→`AttackAction` ·
+  `BuffAuraBehaviour`→`BuffAuraAction` · `DebuffAuraBehaviour`→`DebuffAuraAction`.
+  `TowerBehaviourFactory` · `TowerBuildContext` · `TowerAssetEditor` · `TowerType`/`MagicEffectType` enum은 **삭제**.
+  능력 질의는 `Has<AttackAction>()`, 프리뷰 반경은 `TowerAsset.PreviewRadius`(구 `MagicRadius`).
+  (§1 표 행은 4천 자짜리 단일 줄이라 고치면 diff를 읽을 수 없어 그대로 뒀다 — 상세는 `Tower.md` §3)
 - **타워는 단일 구상 타입 `Tower` 하나뿐이다(#164 리팩토링).** 공격/버프 오라/디버프 오라의 차이는 상속이 아니라
   **행동 조립**으로 표현한다 — 구 `AuraTower`(별개 MonoBehaviour)는 폐기됐다. 상호작용·합성·스킬·BT 계층은
   `Tower` 하나만 알면 되고, "이 타워가 무엇을 하는가"는 타입 검사가 아니라 `Has<T>()`로 묻는다
 - `Tower.Build(TowerAsset asset)`(`NorthLand.Combat`) — **타워가 무엇을 하는 물건이 되는지 결정하는 유일한 지점.**
-  SO를 보고 행동(`ITowerBehaviour`)을 조립·초기화하고 `Active`에 등록한다. `TowerPlacer.PlaceTower`가 배치 확정 시
+  **액션을 만들지 않고 프리팹에 이미 담긴 것을 초기화만 한다**(#274, 구 `TowerBehaviourFactory` 경로 폐기) 후
+  `Active`에 등록한다. `TowerPlacer.PlaceTower`가 배치 확정 시
   호출하며, 씬 배치·테스트 씬은 `OnEnable`이 직렬화된 `data`로 자가 조립(폴백)한다. 같은 SO로 재호출하면 재무장만,
   다른 SO면 경고 후 재조립(**패널에서 산 SO가 프리팹이 문 SO를 이긴다** — 구 WL-129의 무증상 불일치 해소).
   ⚠️ **`data`가 없으면 아무것도 하지 않고 `Active`에도 들어가지 않는다** — "조립되지 않은 타워는 존재하지 않는 타워"
-- `Tower.Has<T>()` / `Tower.Get<T>()`(`where T : ITowerBehaviour`) — **능력 질의 창구.** 소비처가 타워의 구상 타입이
-  아니라 능력을 묻게 한다. 예: 보스 P3 마력 봉인 대상 = `Has<AttackBehaviour>()`(`EnemyNodeQuery.IsAttackTower`)
+- `Tower.Has<T>()` / `Tower.Get<T>()`(`where T : TowerAction`) — **능력 질의 창구.** 소비처가 타워의 구상 타입이
+  아니라 능력을 묻게 한다. 예: 보스 P3 마력 봉인 대상 = `Has<AttackAction>()`(`EnemyNodeQuery.IsAttackTower`)
 - `Tower.Stats`(`TowerStats`, `NorthLand.Combat`) — **이 타워의 스탯 modifier 단일 원장.** 타일 버프·버프 스킬·
   버프 오라·보스 봉인이 전부 여기로 수렴하며 합성 규칙은 `TowerStats.Evaluate` 한 곳에만 산다:
   `(기본값 + Σflat) × (1 + Σpercent/100) × (1 + Σ배율보너스)`. 축은 `TowerStat`(AttackDamage/AttackRange/AttackSpeed)
@@ -204,8 +215,9 @@
   등록은 `Build`(=조립 완료), 해제는 `OnDisable`. `FindObjectsByType<Tower>()` 대체용.
   ⚠️ 등록 시점이 `OnEnable`이 아니라 `Build`인 것이 **고스트(배치 프리뷰)가 타워로 집계되지 않는 근거**다
 - `Tower.ActiveChanged`(`static event Action`, `NorthLand.Combat`) — Tower가 `Active`에 추가/제거될 때 발생(#164).
-  `BuffAuraBehaviour`가 폴링 없이 사거리 내 대상을 재계산하는 트리거(타워는 스스로 움직이지 않으므로 대상 집합이
-  바뀌는 순간은 이때뿐). **static이므로 구독 해제는 구독자 책임**(F7) — `BuffAuraBehaviour`는 `Dispose`+`OnDestroy` 양쪽에서 해제
+  `BuffAuraAction`이 폴링 없이 사거리 내 대상을 재계산하는 트리거(타워는 스스로 움직이지 않으므로 대상 집합이
+  바뀌는 순간은 이때뿐). **static이므로 구독 해제는 구독자 책임**(F7) — 액션엔 `OnDestroy`가 없으므로 구독이
+  `Initialize`↔`Dispose` **대칭 쌍**이고(#274, 구 F7 예외 해소), 이벤트는 더티 플래그만 세워 실행은 `Tick`에서 한다
 - `Tower.ApplyBuff(int sourceId, float damageMul, float attackSpeedMul, float duration)` — **원장 위의 얇은 어댑터.**
   기존 소비처(`BuffSkillManager`, `EnemyApplyTowerDebuffAction`)가 무수정으로 남도록 시그니처를 유지한다 —
   내부에서 `Stats.Apply`로 AttackDamage/AttackSpeed 배율 modifier 2개를 등록한다. duration>0=시간제, ≤0=지속형.
@@ -215,26 +227,48 @@
 - `Tower.RemoveBuff(int sourceId)`(`NorthLand.Combat`) — 해당 소스의 modifier를 즉시 제거
 - `Tower.ApplyTileBuff(TileBuffCalculationResult)`(`NorthLand.Combat`) — 타일 버프를 원장에 지속형 소스로 넣는다.
   `TowerTileBuff.Initialize`가 **푸시**한다(스탯 게터가 되읽지 않음) → 초기화 순서 의존이 없다.
-  ⚠️ `TowerPlacer`는 이것을 `Tower.Build` **앞에** 호출해야 한다 — 버프 오라가 조립 시점에 자기 반경으로 대상을
-  훑고, 그 반경이 타일 버프(사거리)에 의존하기 때문(구 `AuraTower`가 `Start`에서 반경을 재계산하던 우회로의 원인)
+  ✅ **`Tower.Build`와의 호출 순서 의존은 #274에서 해소됐다** — 오라의 `Radius`가 접근할 때마다 원장을 평가하고
+  `OnInitialize`에서 캐시하지 않는다(양쪽 순서 실측 동일). `TowerPlacer`의 현재 순서는 유지하되 어겨도 증상이 없다
 - `Tower.Asset`(`TowerAsset`, 읽기 전용, `NorthLand.Combat`, #195 muchan) — 배치된 타워의 원본 SO 조회(합성 재료 TowerID 매칭용). 순수 읽기
-- `ITowerBehaviour`(`NorthLand.Combat`) — 타워 행동 한 조각. `ActivePhase`(NightOnly/Always) / `Initialize(in TowerBuildContext)` /
-  `Tick(dt)` / `Dispose()` / `DisplayRange` / `DescribeStats()`. 구현 3종: `AttackBehaviour`(Single/Area/Chain — 차이는 `ProjectileImpact`
-  전략뿐) · `BuffAuraBehaviour`(이벤트 구동, Always) · `DebuffAuraBehaviour`(Tick 폴링, NightOnly).
-  **규약**: ⓐ Awake/OnEnable/Start에서 아무것도 하지 않는다(초기화는 `Initialize`만) ⓑ 스스로 `Update`를 돌지 않는다
-  (호스트가 게이팅 후 `Tick`) ⓒ 외부에 남긴 상태는 `Dispose`에서 걷어낸다. **페이즈 게이팅을 호스트가 한 곳에서
-  처리**하는 것이 구 WL-044(Tower엔 밤 게이팅, AuraTower 버프 경로엔 없음)의 재발 방지책이다.
-  런타임 `AddComponent`로 붙으므로 직렬화 필드가 없다 → 프리팹 계층 참조(`firePoint`)와 `enemyLayerMask`는
-  `Tower`에 남기고 `TowerBuildContext`로 주입한다.
+- `TowerAction`(`NorthLand.Combat`, #274) — 타워가 하는 일 한 조각. **MonoBehaviour가 아니라 프리팹에
+  `[SerializeReference]`로 직렬화되는 순수 C# 클래스**다. `ActivePhase`(NightOnly/Always) /
+  `Initialize(Tower owner, TowerAsset asset)` / `Tick(dt)` / `Dispose()` / `DisplayRange` / `DescribeStats()`.
+  구현 3종: `AttackAction`(Single/Area/Chain — 차이는 `ProjectileImpact` 전략뿐) ·
+  `BuffAuraAction`(이벤트 구동, Always) · `DebuffAuraAction`(Tick 폴링, NightOnly).
+  **규약**: ⓐ 초기화는 `OnInitialize`만 ⓑ 스스로 `Update`를 돌지 않는다(호스트가 게이팅 후 `Tick`)
+  ⓒ 외부에 남긴 상태는 `Dispose`에서 걷어낸다. **페이즈 게이팅을 호스트가 한 곳에서 처리**하는 것이
+  구 WL-044의 재발 방지책이다. 액션이 지켜야 할 **설계 규칙 4가지**(수치는 SO / 배선은 `Owner` /
+  런타임 상태 비직렬화 / `SourceId` 채번)는 `TowerAction.cs` 상단과 **`Docs/Core/Tower.md` §3.1**에 있다.
   **`DisplayRange`**: 선택 시 그릴 사거리 원의 반경(공격=교전 사거리 / 오라=오라 반경 / 없으면 0).
-  호스트는 행동들이 보고한 값의 **최대치**로 원을 그린다. `AttackRange`로 대신 그리면 공격 행동이 없는
+  호스트는 액션들이 보고한 값의 **최대치**로 원을 그린다. `AttackRange`로 대신 그리면 공격 액션이 없는
   오라 타워에서 0이 되어 원이 사라진다(#192 회귀 — 정보 패널엔 반경이 뜨는데 바닥 원만 없어 더 눈에 띈다).
-  `DescribeStats`와 같은 "행동이 자기 표시를 안다" 규약
-- `TowerBehaviourFactory`(`NorthLand.Combat`) — **`TowerType`/`MagicEffectType` switch가 사는 유일한 곳.**
-  `Create(host, asset, result)`(행동 조립) + `ResolveAttackFields(asset)`(TowerType→AttackFields 단일 출처).
-  신규 타워 종류 = `ITowerBehaviour` 구현 1개 + 여기 분기 1줄.
-  `ResolveAttackFields` 소비처 3곳: 행동 조립 / `TowerTooltipView`(배치 전 툴팁) / `TowerPlacer`(프리뷰 반경).
-  세 곳 다 자체 switch를 갖고 있었고 전부 흡수했다 — 다음 타워 타입 추가 시 빠뜨릴 자리가 없다
+  `DescribeStats`와 같은 "액션이 자기 표시를 안다" 규약
+- **타워 종류의 정본 = 프리팹의 `Actions` 리스트**(#274). 구 `TowerBehaviourFactory`(`TowerType`/`MagicEffectType`
+  switch가 살던 유일한 곳)와 `TowerAssetEditor`는 **삭제됐다.** 배치 **전** 능력 질의는 `TowerAsset.HasAction<T>()`,
+  프리뷰 반경은 `TowerAsset.PreviewRadius`(구 `MagicRadius`), 저작 검증은 `TowerAsset.OnValidate`(WL-130 해소).
+  ⚠️ **`Actions`가 빈 타워는 예외도 경고도 없이 아무 동작을 안 한다** — 프리팹 9개가 `Assets/Imported/`
+  (부모 저장소 밖, 자체 중첩 git)에 살아 **"타워가 안 움직인다"의 1순위 원인이 그 저장소 미동기화**다.
+  상세는 **`Docs/Core/Tower.md` §3·§4.3·§6**
+- `ProjectileFlight` 부품(`NorthLand.Combat`, #274 Phase 4.5) — 비행 축이 enum + `Update` 분기에서
+  **`[SerializeReference]` 부품**이 됐다(`TowerAsset.Attack.Flight`). 구현 2종 `HomingFlight`/`BallisticFlight`.
+  **새 비행 방식 = 파생 1개이고 `Projectile.cs`는 무수정.**
+  ⚠️ **부품은 무상태여야 한다** — SO에 살아 그 타워가 쏜 투사체 전부가 같은 객체를 공유하므로,
+  진행값은 `FlightState`에 담아 `Projectile`이 소유하고 `ref`로 넘긴다(액션과 **정반대** — 액션은
+  프리팹에 담겨 인스턴스마다 복제된다).
+  `FlightStep`의 **`Impact`와 `Finished`가 독립**이라 "때리고도 계속 나는 탄"(관통·부메랑)이 표현된다.
+  명중 축(`ImpactKind` switch)은 의도적 보류. 상세: `Docs/Core/Tower.md` §3.7
+- `Editor/ManagedReferencePickerDrawer.cs`(#274 Phase 4.5) — **단일 `[SerializeReference]` 필드의 타입 선택 UI.**
+  Unity는 `List`로 감싼 managed reference에만 `+` 피커를 주고 단일 필드에는 안 준다. 기반 타입을
+  런타임에 읽는 범용 드로어라 **새 부품 축은 빈 파생 클래스 한 줄로 등록**한다(타입 교체 시 같은 이름 수치 승계)
+- `Tower.ActiveEffectKinds` / `ActivateEffects(kinds)` / `IsEffectActive(kind)`(#274 Phase 5) —
+  **합성으로 계승된 효과 종류를 SO가 아니라 인스턴스가 소유한다.** SO에 쓰면 다음 합성이 이전 계승분을
+  물려받고 `[SerializeReference]`라 `.asset`에 영구히 남으며, 다단 합성에서 꺼진 효과까지 잡힌다.
+  적용(`Projectile.ApplyEffects`·`DebuffAuraAction.ApplyDebuff`)과 표시(`DescribeEffects`)가
+  **`IsEffectActive` 한 술어를 공유**한다 — 갈라지면 "패널엔 뜨는데 안 걸리는" 어긋남이 된다
+- `TowerFusionMatcher.ResolveInheritedKinds(recipe, materials)` — 계승 규칙 단일 출처. 툴팁
+  (`TowerMergeCoordinator.PreviewInheritedKinds` → 핑크 프리뷰와 **같은 소모 대상** 판정)과 실행부
+  (`TowerFusionController.TryFuse`)가 공유한다. opt-in은 `TowerRecipe.InheritEffects`(레시피별).
+  ⚠️ **현재 켠 레시피는 0개** — 배관만 있고 게임 동작은 그대로다(족보는 기획 미정). 상세: `Tower.md` §3.9
 - `TowerStatsFormatter`(`NorthLand.Combat`) — 스탯 표시 문자열 단일 출처(구 WL-079: `Tower`/`AuraTower`/`TowerTooltipView`
   3벌 복제 해소). 표시 경로는 둘로 갈리지만(배치 **전** 툴팁은 인스턴스가 없어 SO 원본을 본다) **라벨과 서식은 여기 한 곳**
 - `AuraModifiers`(`NorthLand.Combat`, 순수 static) — SO의 `StatModifier` → 적용 값 환산.

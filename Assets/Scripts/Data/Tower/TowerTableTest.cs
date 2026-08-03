@@ -12,7 +12,7 @@ public class TowerTableTest : MonoBehaviour
             var data = DataTableManager.Get<TowerTable>("TowerTable").Get(id);
             if (data == null) continue;
 
-            Debug.Log($"{data.TowerID} -> {LocalizationHelper.Get(LocalizationHelper.k_TowersTable, data.NameKey)} ({data.TowerType}/{data.MagicEffectType}, {data.GridWidth}x{data.GridHeight}) : {LocalizationHelper.Get(LocalizationHelper.k_TowersTable, data.RoleKey)}");
+            Debug.Log($"{data.TowerID} -> {LocalizationHelper.Get(LocalizationHelper.k_TowersTable, data.NameKey)} ({data.GridWidth}x{data.GridHeight}) : {LocalizationHelper.Get(LocalizationHelper.k_TowersTable, data.RoleKey)}");
         }
     }
 }

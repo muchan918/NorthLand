@@ -11,9 +11,9 @@
 > - `Assets/Scripts/GameManager/MouseManager/MouseManager.cs` (Snap 위임·히트 전달·OnEnded 발화)
 > - `Assets/Scripts/CombatSystem/RangeCircle.cs` (사거리 프리뷰 원 — 공용)
 > - `Assets/Scripts/CombatSystem/Vfx/TowerSpawnEffect.cs` (등장 연출 — **임시**, §9.3)
-> **관련**: GDD §5.1·§5.8·§6.2, MouseManager #9, 통합 #71, 합성 #263, 연출 #264·#265
+> **관련**: GDD §5.1·§5.8·§6.2, MouseManager #9, 통합 #71, 합성 #263, 연출 #264·#265, 타워 구조 #274
 > **WatchList**: WL-001 / WL-005 / WL-011 / WL-034 / WL-067 / WL-077 (해소분은 `WatchList-Archive.md`: WL-004 · WL-007 · WL-129)
-> **참조**: `Docs/Core/MouseManager.md`, `Docs/Core/TowerMerge.md`, `Docs/Core/InteractionOutline.md`, `Docs/BattleMapBuilder/BattleMapBuilder.md`, `Docs/Review/SystemMap.md`
+> **참조**: `Docs/Core/Tower.md`(배치되는 타워 본체 — 조립·스탯·데이터), `Docs/Core/MouseManager.md`, `Docs/Core/TowerMerge.md`, `Docs/Core/InteractionOutline.md`, `Docs/BattleMapBuilder/BattleMapBuilder.md`, `Docs/Review/SystemMap.md`
 > 코드가 이 명세와 어긋나면 문서를 갱신한다(팀 계약 #7).
 
 ---
@@ -144,7 +144,7 @@ bool BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost,
 
 - **반환값 = 배치 세션이 실제로 시작됐는가.** `false`면 `onEnded`도 **영영 오지 않는다** → 호출부가 배치 동안 유지하려던 상태를 걸어두면 안 된다는 신호다(합성이 이 신호로 커맨드를 즉시 `Undo`한다).
 - `onEnded`는 확정/취소 **무관하게** 세션 종료 시 1회. **어느 쪽으로 끝났는지는 알려주지 않는다** — 구분이 필요한 소비처는 자기 상태로 판단해야 한다(`TowerMergeCommand`가 그렇게 한다).
-- **프리뷰 사거리 해석**은 `TowerBehaviourFactory.ResolveAttackFields(so)` 단일 출처를 쓴다(WL-079). 공격 스탯이 없고 `TowerType == Magic`이면 `TowerAsset.MagicRadius`(오라 반경), 둘 다 없으면 LogError + `false`.
+- **프리뷰 사거리 해석**은 `TowerAsset.PreviewRadius` 단일 출처를 쓴다(WL-056/WL-079, #274). 공격 사거리와 두 오라 반경 중 **최댓값**이라 호출부가 타워 종류를 알 필요가 없다 — 예전에는 여기서 `TowerType`을 보고 분기했고 그것이 종류를 아는 4번째 지점이었다. 종류를 해석하지 않으므로 **"둘 다 없음" LogError 분기 자체가 사라졌다**(값이 0이면 원이 안 그려질 뿐이다).
 
 > ⚠ **콜백 등록 순서**: `_onConfirmed`/`_onEnded`는 반드시 `MouseManager.BeginPlacement` **이후**에 대입한다. `BeginPlacement` 내부의 `CancelPlacement`가 **이전** 배치의 `OnEnded`를 발화해 두 필드를 소비·null 처리하기 때문이다. 먼저 대입하면 합성 재료 소모 콜백이 유실돼 **무료 합성**이 된다. 프리뷰 생성도 같은 이유로 `BeginPlacement` 이후다.
 
@@ -272,7 +272,7 @@ const float PopDuration      = 0.28f;   // 〃
 >
 > 콜라이더도 이 창 동안 함께 죽는다. 단 **드래그 선택은 콜라이더가 아니라 위치 기반**(`MouseManager.RefreshBoxHits`)이라 스케일 0인 타워에도 도달한다 — "연출 중엔 선택이 안 된다"고 가정하면 안 된다.
 >
-> 공격은 문제가 되지 않는다. `AttackBehaviour.ActivePhase == NightOnly`이고 `Tower.Update`가 낮이면 Tick을 건너뛴다.
+> 공격은 문제가 되지 않는다. `AttackAction.ActivePhase == NightOnly`이고 `Tower.Update`가 낮이면 Tick을 건너뛴다.
 
 **왜 이렇게까지 하는가**: 타워 에셋이 임시라 통째로 교체될 예정이기 때문이다. 연출이 특정 메시·머티리얼·계층 구성을 조금이라도 참조하면 교체와 함께 깨진다. 그 결과 **대상이 타워일 필요조차 없어서** Renderer가 달린 큐브에 그대로 재생되고, 에셋 없이 연출을 튜닝·검증할 수 있다.
 
@@ -375,7 +375,7 @@ const float PopDuration      = 0.28f;   // 〃
 - **WL-034 (`tileSize` 이중화, PARTIAL)** — 신맵은 단일 출처화됐으나 `TowerPlacer.tileSize`와 `StageBuilder.TileSize`가 여전히 독립이고, 좌표 변환식 사본이 여러 곳에 있다. 공용 셀↔월드 변환 유틸로 흡수 예정. (코드 주석의 `WL-032` 표기는 오기 — §3)
 - **WL-067 (타일 계약 이원화)** — 배치는 `BattleTile.Kind`, 스킬 조준은 `CombatMapTileView.TileType`. `TowerPlacer`를 후자로 이관.
 - **WL-011 (선택 통지 이중 경로)** — 타워 정보 패널 연동에 영향.
-- **WL-001 (PARTIAL)** — `lightning_tower`(TowerType=Chain)만 Attack/ChainRadius/MaxChainTargets가 전부 0이라 **배치해도 무동작**이다.
+- **WL-001 (PARTIAL)** — `lightning_tower`(`Impact=Chain`)만 Attack/ChainRadius/MaxChainTargets가 전부 0이라 **배치해도 무동작**이다. ⚠ `TowerPrefab`/`GhostPrefab`이 둘 다 null이라 저작 검증(`TowerAsset.OnValidate`)도 이 SO에는 **침묵한다** — 프리팹이 없으면 검증을 건너뛰기 때문이다.
 - **WL-005 (PARTIAL)** — 대상 탐지를 LayerMask로 할지 Tag로 할지 미확정.
 
 **연출(§9.3) — 검증은 끝났고(§9.3.4), 남은 것은 "할 일"이라기보다 "열려 있는 결정"이다**
