@@ -2644,7 +2644,7 @@ MonoBehaviour:
     TreeShortEdgeBias: 3
     ExtraEdgeKeepRatio: 0.3
     ExtraEdgeMaxLengthRatio: 1.6
-  _seed: 12345
+  _seed: 0
   _definitionPool:
   - {fileID: 11400000, guid: b50cb37f94e67214ab3bafb86d861be9, type: 2}
   - {fileID: 11400000, guid: acff6c4b5ce3864409731251b374b3e7, type: 2}
@@ -4804,7 +4804,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 54.75
+  m_fontSize: 60.35
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -10824,7 +10824,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bebde2c71f7df1f4885737c408114013, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NorthLand.Core.RunBootstrapper
-  useMasterSeedOverride: 1
+  useMasterSeedOverride: 0
   masterSeedOverride: 12345
   combatMapInitializer: {fileID: 1175259918}
   territoryController: {fileID: 340814262}
