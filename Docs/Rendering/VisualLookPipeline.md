@@ -113,9 +113,9 @@
 | 구성 | 경로 |
 |---|---|
 | 변환 툴 | `Assets/Scripts/Editor/FlatKitMaterialConverter.cs` — 메뉴 `NorthLand/FlatKit/` (Convert · ReapplyTemplate · Revert) |
-| **룩 수치 정본** | `Assets/Settings/FlatKit/CandyLandToon_Template.mat` |
-| 원본↔사본 매핑 | `Assets/Settings/FlatKit/CandyLandConversion.json` (원복 근거 · 변환 기록) |
-| 사본 머티리얼 | `Assets/Imported/@NorthLand/Materials/CandyLand/FK_*.mat` (아트 저장소) |
+| **룩 수치 정본** | `Assets/Settings/FlatKit/FlatKitToon_Template.mat` |
+| 원본↔사본 매핑 | `Assets/Settings/FlatKit/FlatKitConversion.json` (원복 근거 · 변환 기록) |
+| 사본 머티리얼 | `Assets/Imported/@NorthLand/Materials/FlatKit/FK_*.mat` (아트 저장소) |
 
 사본은 템플릿 파라미터를 물려받고 원본에서 **알베도·표면 상태만** 승계한다. 그래서 룩 튜닝은
 템플릿 1개만 고친 뒤 `ReapplyTemplate`을 돌리면 사본 전체에 퍼진다. 툴은 대상 GameObject를
@@ -179,6 +179,23 @@ shadowAtt = saturate(light.shadowAttenuation * _UnityShadowSharpness)           
 **픽셀레이션과 상성이 좋다(실측).** 하드 컷은 그라데이션이 없어 블록 양자화에서 디더/밴딩이 생기지 않는다 —
 소프트 램프를 픽셀화했을 때 나오는 계단 노이즈가 사라진다(`Screenshots/148/15_H1_hardcut_pixel480_near.png`).
 §3.7 채택 여부와 무관하게 하드 컷이 유리하다.
+
+**이관 현황** — 툴이 범용이라 대상 GameObject만 지정하면 된다. 템플릿·매핑은 전 에셋 공용이다.
+
+| 대상 | 상태 |
+|---|---|
+| 본진(CandyLand) | 완료 — 사본 115개 |
+| 주민(Marshie ×3, `Sweet_Land/Materials/Color_2`) | 완료 — 3개 모두 `SkinnedMeshRenderer`, 사본 1개 공유 |
+| 전투 공간·타워·몬스터 | 미착수(§8) |
+
+⚠️ **밝은 알베도는 노출에 클리핑되어 셀 컷이 사라진다.** 주민(흰 마시멜로)에 적용했더니 몸통
+픽셀의 **90.1%가 완전 포화(≥0.98)**로 측정됐다 — 명부와 음영부가 둘 다 1.0을 넘으면
+`_ColorDim`을 아무리 조절해도 경계가 나타나지 않는다. 머티리얼 문제가 아니라 **노출 문제**다.
+
+- 근본 해법은 **§3.1 룩 볼륨의 Tonemapping** — 하이라이트를 롤오프해 흰 알베도가 1.0 아래로 들어온다.
+  "후가공은 나중에"였지만, 밝은 캐릭터가 들어오는 순간 §3.1이 재질 판단의 선행 조건이 된다
+- 임시로는 키 라이트 강도를 내리면 되지만(씬 로컬), 그 값으로 마을 룩을 맞춰둔 상태라 전체가 함께 어두워진다
+- 중간 톤 에셋(마을 건물)에서는 이 문제가 드러나지 않는다 — **흰색·형광색 에셋을 이관할 때마다 확인할 것**
 
 ⚠️ **이 룩은 라이팅 전제 두 개에 의존한다** — 둘 중 하나라도 어긋나면 약/중/강 차이가 사라진다.
 셰이딩 파라미터를 다시 만지기 전에 이걸 먼저 확인할 것(§3.3 · §8).
@@ -393,7 +410,7 @@ FlatKit 변환 툴(`Assets/Scripts/Editor/FlatKitMaterialConverter.cs`)과 룩 �
 ## 5. 에셋 배치·네이밍 (제안 — 구현 PR에서 확정)
 
 - **Flat Kit**: `Assets/Imported/`(벤더 원본, 무수정). 우리가 만드는 Flat Kit 기반 머티리얼 복제본은 벤더 폴더 **밖**(`Assets/Imported/@NorthLand/Materials`).
-  - **실제 배치(2026-08-03)**: 본진 사본 115개가 `Assets/Imported/@NorthLand/Materials/CandyLand/FK_*.mat`에 있다.
+  - **실제 배치(2026-08-03)**: 본진 사본 115개가 `Assets/Imported/@NorthLand/Materials/FlatKit/FK_*.mat`에 있다.
     반면 **룩 수치 정본(템플릿)과 변환 기록은 프로젝트 저장소** `Assets/Settings/FlatKit/`에 둔다 —
     사본은 아트 저장소(gitignore 대상)로 가므로, 룩 수치가 이 저장소 히스토리에 남으려면 템플릿이 여기 있어야 한다(§3.4).
 - ⚠️ **자작 코드·셰이더를 `Assets/Imported/` 안에 두지 말 것**(2026-07-31 정정 — 이전 판은 `@NorthLand/Shaders/` 신설을 제안했으나 철회).

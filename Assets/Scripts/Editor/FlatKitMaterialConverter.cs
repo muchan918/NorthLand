@@ -23,11 +23,13 @@ using UnityEngine;
 public static class FlatKitMaterialConverter
 {
     private const string k_ShaderName = "FlatKit/Stylized Surface";
-    private const string k_TemplatePath = "Assets/Settings/FlatKit/CandyLandToon_Template.mat";
-    private const string k_MapPath = "Assets/Settings/FlatKit/CandyLandConversion.json";
+
+    // 본진 전용이 아니라 프로젝트 전체의 툰 룩 정본이다 — 주민·전투 에셋도 같은 템플릿을 쓴다.
+    private const string k_TemplatePath = "Assets/Settings/FlatKit/FlatKitToon_Template.mat";
+    private const string k_MapPath = "Assets/Settings/FlatKit/FlatKitConversion.json";
 
     // 사본은 벤더 폴더 밖(@NorthLand)에 만든다 — 벤더 트리는 무수정.
-    private const string k_OutputFolder = "Assets/Imported/@NorthLand/Materials/CandyLand";
+    private const string k_OutputFolder = "Assets/Imported/@NorthLand/Materials/FlatKit";
 
     private const string k_Tag = "[FlatKit]";
 
@@ -87,6 +89,10 @@ public static class FlatKitMaterialConverter
             .GroupBy(e => e.source)
             .ToDictionary(g => g.Key, g => g.First());
 
+        // "이미 우리 사본"인지는 폴더 경로가 아니라 매핑 기록으로 판단한다.
+        // 경로로 판단하면 출력 폴더를 옮기는 순간 과거 사본을 못 알아본다.
+        var ownedGuids = new HashSet<string>(map.entries.Select(e => e.converted));
+
         int created = 0;
         int reused = 0;
         int slots = 0;
@@ -118,13 +124,13 @@ public static class FlatKitMaterialConverter
                 }
 
                 // 이미 우리 사본이 물려 있으면 건너뛴다(멱등).
-                if (srcPath.StartsWith(k_OutputFolder, StringComparison.Ordinal))
+                if (ownedGuids.Contains(AssetDatabase.AssetPathToGUID(srcPath)))
                 {
                     skippedAlready++;
                     continue;
                 }
 
-                Material converted = GetOrCreateConverted(src, srcPath, template, map, bySource, ref created, ref reused);
+                Material converted = GetOrCreateConverted(src, srcPath, template, map, bySource, ownedGuids, ref created, ref reused);
 
                 if (converted == null)
                 {
@@ -293,6 +299,7 @@ public static class FlatKitMaterialConverter
         Material template,
         ConversionMap map,
         Dictionary<string, ConversionEntry> bySource,
+        HashSet<string> ownedGuids,
         ref int created,
         ref int reused)
     {
@@ -329,6 +336,7 @@ public static class FlatKitMaterialConverter
 
         map.entries.Add(entry);
         bySource[srcGuid] = entry;
+        ownedGuids.Add(entry.converted);
         created++;
 
         return dst;
