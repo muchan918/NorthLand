@@ -1,30 +1,38 @@
 using FlatKit;
+using Unity.Cinemachine;
 using UnityEngine;
 
 // #148 픽셀레이션 해상도를 오쏘 줌에 연동한다(Docs/Rendering/VisualLookPipeline.md §3.7).
 //
 // 왜 필요한가: FlatKit Pixelation의 resolution은 "화면 긴 변의 픽셀 수"라 블록 크기가 화면 기준으로
 // 고정된다. 오쏘 카메라를 줌 아웃하면 같은 블록이 더 넓은 월드를 담아 형태가 뭉개진다.
-// 본진 실측(1920 기준): ortho 135 + resolution 320이면 블록이 월드 1.5유닛을 담아 건물이 식별되지 않고,
-// resolution 480(= 1.0유닛)이면 형태가 유지된다. 즉 판단 기준은 화면 픽셀이 아니라 블록의 월드 크기다.
+// 고정값으로는 게임 줌 범위에서 룩을 평가할 수 없으므로, 픽셀 채택 판단의 선행 조건이다.
+//
+// 기본 모드가 NormalizedZoom인 이유: 줌 범위(CameraController2의 min/max)는 카메라 튜닝 중에
+// 계속 바뀐다. 절대 기준(WorldLocked의 blockWorldSize)으로 잡아두면 범위를 건드릴 때마다
+// 값을 다시 유도해야 한다. "최대 확대에서 이 해상도 / 최대 축소에서 이 해상도"로 잡아두면
+// 범위가 바뀌어도 양 끝의 의미가 유지된다.
 //
 // 왜 settings.resolution을 쓰지 않고 머티리얼에 직접 쓰는가: FlatKit의 SetMaterialProperties()가
 // private이고 Create()/에디터 OnValidate에서만 호출된다. 런타임에 settings.resolution만 바꿔도
 // 반영되지 않는다. 그래서 노출된 settings.effectMaterial에 _PixelSize를 직접 쓴다(벤더 무수정).
 //
 // ⚠️ effectMaterial은 PixelationSettings 에셋의 서브에셋이다. 이 컴포넌트가 값을 몰면
-// 그 에셋의 _PixelSize가 git diff에 뜬다 — 런타임에 매번 덮어쓰는 값이라 무해하다.
+// 그 에셋의 _PixelSize가 git diff에 뜬다 — 매 프레임 덮어쓰는 값이라 무해하다.
 [ExecuteAlways]
 [AddComponentMenu("NorthLand/Rendering/Pixelation Zoom Binder")]
 public class PixelationZoomBinder : MonoBehaviour
 {
     public enum Mode
     {
+        // 줌 범위를 0~1로 정규화해 양 끝 해상도 사이를 보간한다. 줌 범위가 바뀌어도 설정이 유효하다.
+        NormalizedZoom,
+
         // 블록이 담는 월드 크기를 일정하게 유지한다(resolution ∝ orthoSize).
-        // 줌 아웃할수록 화면 블록이 작아져 픽셀감이 옅어진다.
+        // 절대 기준이라 줌 범위를 바꾸면 blockWorldSize를 다시 잡아야 한다.
         WorldLocked,
 
-        // resolution을 고정한다(FlatKit 기본 동작). 줌 아웃하면 뭉개진다 — A/B 비교용.
+        // resolution 고정(FlatKit 기본 동작). 줌 아웃하면 뭉개진다 — A/B 비교용.
         FixedResolution,
     }
 
@@ -35,16 +43,42 @@ public class PixelationZoomBinder : MonoBehaviour
     [Tooltip("비우면 Camera.main을 쓴다")]
     [SerializeField] private Camera targetCamera;
 
+    [Tooltip("지정하면 현재 오쏘 사이즈를 이쪽 Lens에서 읽는다. 편집 모드에서는 Brain이 " +
+             "Main Camera를 갱신하지 않으므로, 씬 뷰로 테스트할 때 이걸 지정하면 즉시 반영된다.")]
+    [SerializeField] private CinemachineCamera zoomSourceCamera;
+
+    [Tooltip("줌 범위(min/max)를 읽어올 컨트롤러. 비우면 씬에서 찾는다.")]
+    [SerializeField] private CameraController2 zoomRangeSource;
+
     [Header("Mode")]
-    [SerializeField] private Mode mode = Mode.WorldLocked;
+    [SerializeField] private Mode mode = Mode.NormalizedZoom;
+
+    [Header("Normalized Zoom")]
+    [Tooltip("최대 확대(orthoSize = min)에서의 해상도")]
+    [Min(1)]
+    [SerializeField] private int resolutionAtMinZoom = 240;
+
+    [Tooltip("최대 축소(orthoSize = max)에서의 해상도")]
+    [Min(1)]
+    [SerializeField] private int resolutionAtMaxZoom = 480;
+
+    [Tooltip("정규화된 줌(0=최대 확대, 1=최대 축소)을 보간 계수로 바꾸는 커브. 기본은 선형.")]
+    [SerializeField] private AnimationCurve zoomCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
+
+    [Tooltip("컨트롤러에서 못 읽거나 다른 범위로 시험할 때 켠다")]
+    [SerializeField] private bool overrideZoomRange;
+
+    [SerializeField] private float minOrthoSizeOverride = 20f;
+
+    [SerializeField] private float maxOrthoSizeOverride = 100f;
 
     [Header("World Locked")]
     [Tooltip("블록 하나가 담는 월드 크기. 본진 기준 1.0이 형태 가독성의 하한이다(1.5면 뭉개진다).")]
     [Min(0.01f)]
     [SerializeField] private float blockWorldSize = 1.0f;
 
-    [Tooltip("연동 결과를 이 범위로 제한한다. 상한을 낮추면 최대 축소에서도 픽셀감이 남지만 뭉개짐이 돌아온다.")]
-    [SerializeField] private int minResolution = 160;
+    [Header("Clamp")]
+    [SerializeField] private int minResolution = 80;
 
     [SerializeField] private int maxResolution = 2000;
 
@@ -53,16 +87,31 @@ public class PixelationZoomBinder : MonoBehaviour
     [SerializeField] private int fixedResolution = 480;
 
     [Header("Debug (읽기 전용)")]
+    [SerializeField] private float currentOrthoSize;
+
+    [SerializeField] private float currentZoom01;
+
     [SerializeField] private int currentResolution;
 
     [SerializeField] private float currentBlockScreenPixels;
+
+    [SerializeField] private float currentBlockWorldSize;
 
     private static readonly int PixelSizeId = Shader.PropertyToID("_PixelSize");
 
     private float _lastApplied = -1f;
 
-    /// <summary>지금 프레임에 적용된 resolution. 캡처 스크립트가 값을 확인할 때 쓴다.</summary>
+    /// <summary>지금 적용된 resolution. 캡처 스크립트가 값을 확인할 때 쓴다.</summary>
     public int CurrentResolution => currentResolution;
+
+    /// <summary>
+    /// 즉시 재계산·적용한다. 편집 모드에서 스크린샷을 찍기 전에 호출한다 —
+    /// LateUpdate가 언제 도는지에 기대지 않고 결정론적으로 값을 맞추기 위한 훅이다.
+    /// </summary>
+    public void Refresh()
+    {
+        Apply();
+    }
 
     private void LateUpdate()
     {
@@ -88,14 +137,19 @@ public class PixelationZoomBinder : MonoBehaviour
             return;
         }
 
-        int resolution = mode == Mode.FixedResolution
-            ? Mathf.Max(1, fixedResolution)
-            : ResolutionForOrthoSize(cam);
+        currentOrthoSize = ReadOrthoSize(cam);
+
+        float height = Mathf.Max(1f, cam.pixelHeight);
+        float longSide = Mathf.Max(cam.pixelWidth, cam.pixelHeight);
+
+        int resolution = Mathf.Clamp(
+            ResolveResolution(cam, longSide, height),
+            Mathf.Max(1, minResolution),
+            Mathf.Max(1, maxResolution));
 
         currentResolution = resolution;
-
-        float longSide = Mathf.Max(cam.pixelWidth, cam.pixelHeight);
         currentBlockScreenPixels = longSide / resolution;
+        currentBlockWorldSize = 2f * currentOrthoSize * longSide / (resolution * height);
 
         float pixelSize = Mathf.Max(1f / resolution, 0.0001f);
 
@@ -109,28 +163,71 @@ public class PixelationZoomBinder : MonoBehaviour
         _lastApplied = pixelSize;
     }
 
-    /// <summary>
-    /// 블록의 월드 크기를 blockWorldSize로 유지하는 resolution.
-    ///
-    /// resolution은 '긴 변'의 픽셀 수이므로 세로 방향 블록 수는 resolution * (h / longSide)다.
-    /// 오쏘 카메라가 보는 월드 높이는 2 * orthographicSize이므로
-    ///   blockWorldSize = 2 * orthoSize * longSide / (resolution * h)
-    /// 이를 resolution에 대해 풀면 아래 식이 된다.
-    /// (검산: 1920x1080 · orthoSize 135 · blockWorldSize 1.0 → 480)
-    /// </summary>
-    private int ResolutionForOrthoSize(Camera cam)
+    private int ResolveResolution(Camera cam, float longSide, float height)
     {
-        float h = Mathf.Max(1f, cam.pixelHeight);
-        float longSide = Mathf.Max(cam.pixelWidth, cam.pixelHeight);
-
-        // 퍼스펙티브 카메라는 orthographicSize가 의미 없다 — 고정값으로 폴백한다.
-        if (!cam.orthographic)
+        if (mode == Mode.FixedResolution || !cam.orthographic)
         {
+            // 퍼스펙티브 카메라는 orthographicSize가 의미 없으므로 고정값으로 폴백한다.
             return Mathf.Max(1, fixedResolution);
         }
 
-        float raw = 2f * cam.orthographicSize * longSide / (h * blockWorldSize);
+        if (mode == Mode.WorldLocked)
+        {
+            // blockWorldSize = 2 · orthoSize · longSide / (resolution · height) 를 resolution에 대해 푼 것.
+            // (검산: 1920x1080 · orthoSize 135 · blockWorldSize 1.0 → 480)
+            return Mathf.RoundToInt(2f * currentOrthoSize * longSide / (height * blockWorldSize));
+        }
 
-        return Mathf.Clamp(Mathf.RoundToInt(raw), Mathf.Max(1, minResolution), Mathf.Max(1, maxResolution));
+        GetZoomRange(out float min, out float max);
+
+        // 범위가 뒤집혔거나 0폭이면 보간이 무의미하다 — 최대 확대 쪽 값을 쓴다.
+        if (max - min < 0.0001f)
+        {
+            return resolutionAtMinZoom;
+        }
+
+        currentZoom01 = Mathf.Clamp01((currentOrthoSize - min) / (max - min));
+        float t = zoomCurve != null ? zoomCurve.Evaluate(currentZoom01) : currentZoom01;
+
+        return Mathf.RoundToInt(Mathf.LerpUnclamped(resolutionAtMinZoom, resolutionAtMaxZoom, t));
+    }
+
+    /// <summary>
+    /// 현재 오쏘 사이즈. 편집 모드에서는 CinemachineBrain이 Main Camera를 갱신하지 않으므로,
+    /// zoomSourceCamera가 지정돼 있으면 그쪽 Lens를 우선한다.
+    /// </summary>
+    private float ReadOrthoSize(Camera cam)
+    {
+        if (zoomSourceCamera != null && !Application.isPlaying)
+        {
+            return zoomSourceCamera.Lens.OrthographicSize;
+        }
+
+        return cam.orthographicSize;
+    }
+
+    private void GetZoomRange(out float min, out float max)
+    {
+        if (overrideZoomRange)
+        {
+            min = minOrthoSizeOverride;
+            max = maxOrthoSizeOverride;
+            return;
+        }
+
+        if (zoomRangeSource == null)
+        {
+            zoomRangeSource = FindAnyObjectByType<CameraController2>();
+        }
+
+        if (zoomRangeSource != null)
+        {
+            min = zoomRangeSource.MinZoomSize;
+            max = zoomRangeSource.MaxZoomSize;
+            return;
+        }
+
+        min = minOrthoSizeOverride;
+        max = maxOrthoSizeOverride;
     }
 }
