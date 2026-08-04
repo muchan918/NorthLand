@@ -150,6 +150,27 @@ public class ManagementController : MonoBehaviour
         return true;
     }
 
+    /// <summary><see cref="TrySpend"/>의 대칭짝. 이미 지불된 비용을 100% 되돌린다(되돌리기 #281).
+    /// null/빈 리스트는 no-op.</summary>
+    ///
+    /// ⚠ **이 메서드는 팀 계약 #3·#6(WL-017)을 명시적으로 갱신하는 지점이다.** 여태 `_wallet.Add`를
+    /// public으로 열지 않은 근거는 "차감+지급이 한 몸인 진입점만 노출한다"(<see cref="TryExchange"/> 주석)였는데,
+    /// 되돌리기는 **차감이 이미 일어난 뒤의 역연산**이라 그 형태에 담기지 않는다 — 지불과 환원이
+    /// 다른 시점, 다른 사용자 조작에서 일어나기 때문이다.
+    /// 대신 **호출 조건**으로 계약을 지킨다: 인자는 반드시 커맨드가 들고 있는 **실지불 비용**이어야 하고,
+    /// 임의 수량 지급에 써서는 안 된다. 그 용도는 여전히 `TryExchange` 같은 '한 몸' API로만 연다.
+    public void Grant(IReadOnlyList<ResourceCost> costs)
+    {
+        if (costs == null || costs.Count == 0 || _wallet == null) return;
+
+        foreach (KeyValuePair<ResourceKind, int> gain in AggregateCost(costs))
+        {
+            _wallet.Add(gain.Key, gain.Value);
+        }
+        // OnChanged는 부르지 않는다 — _wallet.OnChanged가 컨트롤러 OnChanged로 재발화된다(BuildModel).
+        // TrySpend가 직접 부르지 않는 것과 같은 이유.
+    }
+
     // Cost 리스트를 (ResourceKind → 합산 수량)으로 해석한다. Resource 미지정·수량 0 항목은 스킵.
     private Dictionary<ResourceKind, int> AggregateCost(IReadOnlyList<ResourceCost> costs)
     {

@@ -21,6 +21,22 @@ public readonly struct TowerPlacementData
     }
 }
 
+/// 이 배치의 되돌리기 커맨드를 누가 소유하는가(#281).
+///
+/// **암묵적 판정(`onConfirmed != null`)을 쓰지 않는 이유**: 확정 콜백을 쓰는 세 번째 소비처가 생기는
+/// 순간 그 배치가 히스토리에 오를지 말지가 **조용히** 갈린다. 이중 등록이면 한 조작이 두 번 되감기고,
+/// 미등록이면 영영 되돌릴 수 없다 — 둘 다 증상이 원인에서 멀다. 그래서 명시적 신호로 받고,
+/// `BeginTowerPlacement`에 **기본값을 주지 않는다**.
+public enum PlacementOwner
+{
+    /// 배치 자신. 확정 즉시 커맨드를 히스토리에 올린다(패널에서 고른 일반 타워 배치).
+    Placer,
+
+    /// 호출부. 커맨드를 만들어 확정 콜백으로 넘기기만 하고 히스토리엔 올리지 않는다.
+    /// 합성이 이것을 쓴다 — 결과 배치가 따로 올라가면 한 번의 합성이 두 번에 나눠 되감긴다.
+    Caller,
+}
+
 /// 타워 배치 어댑터: 전투 공간 그리드의 허용 셀(건설 가능 타일)에 W×H 풋프린트로 타워를 배치한다.
 /// MouseManager의 배치 흐름(PlacementRequest)을 재사용하며, 타일 종류·점유는 BattleTile로 판정한다.
 /// 자원 차감·낮 전용 게이팅은 훅 지점만 표시(TODO) — Docs/Core/TowerPlacement.md §8.
@@ -60,14 +76,17 @@ public class TowerPlacer : MonoBehaviour
     // "패널에서 산 것"과 "실제로 배치된 것"을 같게 만드는 유일한 연결선이다(WL-129).
     private TowerAsset _activeAsset;
     private IReadOnlyList<ResourceCost> _activeCost; // 현재 배치 중인 타워의 비용(확정 시 차감)
-    // 배치 확정 후 1회 콜백(합성 재료 소모 등). 확정 직후 소비하고 비운다.
-    // 인자는 **방금 배치된 타워**다. 합성 연출(#265)이 부유 중인 입자를 결과 타워로 날려 보내려면
-    // 목적지를 알아야 하고, 그 목적지는 등장 연출이 스케일을 0으로 만들기 **전에** 재야 한다 —
-    // 그래서 좌표가 아니라 Transform을 넘기고, 호출 순서도 등장 연출보다 앞이다(PlaceTower 참고).
-    private System.Action<Transform> _onConfirmed;
+    // 배치 확정 후 1회 콜백(합성 결과 편입 등). 확정 직후 소비하고 비운다.
+    // 인자는 **방금 배치된 타워의 되돌리기 커맨드**다(#281). 합성이 그것을 자기 커맨드에 편입해
+    // 결과 타워까지 한 번에 되돌리는 데 쓴다. 합성 연출(#265)이 필요로 하는 배치된 Transform은
+    // `TowerPlaceCommand.Placed`로 그대로 얻는다 — 등장 연출이 스케일을 0으로 만들기 **전에** 재야
+    // 하므로 호출 순서가 등장 연출보다 앞이라는 계약도 그대로다(PlaceTower 참고).
+    private System.Action<TowerPlaceCommand> _onConfirmed;
     // 배치 세션 종료(확정 복귀·취소·다른 배치로 교체) 1회 콜백. 확정 여부와 무관하게 "이 배치는 끝났다"만 알린다.
     // 합성이 클릭 시점에 고정한 핑크 프리뷰(#213 §5.3)를 되돌리는 신호로 쓴다 — 확정/취소 어느 쪽으로 끝나든 필요.
     private System.Action _onEnded;
+    // 이번 배치의 되돌리기 커맨드를 누가 소유하는가(#281). _onConfirmed/_onEnded와 같은 순서 계약을 탄다.
+    private PlacementOwner _historyOwner = PlacementOwner.Placer;
     private ManagementController _management; // 자원 차감 게이트웨이(WL-017). null이면 무료 배치(테스트 씬).
 
     // 프레임당 풋프린트를 1회만 계산해 캐시(스냅에서 채우고, 검증·하이라이트가 공유).
@@ -133,14 +152,16 @@ public class TowerPlacer : MonoBehaviour
     /// 더미 데이터 + 인스펙터 프리팹으로 배치 시작. UI 버튼 OnClick에 연결(현재 테스트 경로).
     /// 비용은 so.Cost, 확정 콜백 없음(일반 타워 배치).
     public bool BeginTowerPlacement(TowerAsset so)
-        => BeginTowerPlacement(so, so != null ? so.Cost : null, null);
+        => BeginTowerPlacement(so, so != null ? so.Cost : null, null, null, PlacementOwner.Placer);
 
     /// 비용·확정 콜백을 주입하는 오버로드. 합성(#195)이 결과 타워를 결과 코스트(ExtraCost)로 배치하고,
-    /// 배치 확정 직후 onConfirmed(재료 소모)를 실행하는 데 쓴다. 배치 코어는 단일인자 경로와 동일.
+    /// 배치 확정 직후 onConfirmed(결과 커맨드 편입)를 실행하는 데 쓴다. 배치 코어는 단일인자 경로와 동일.
     /// onEnded는 확정/취소 무관하게 배치 세션이 끝날 때 1회. **반환값 = 배치 세션이 실제로 시작됐는가** —
     /// false면 onEnded도 영영 오지 않으므로, 호출부가 배치 동안 유지하려던 상태(합성 핑크 고정 등)를
     /// 걸어두면 안 된다는 신호다.
-    public bool BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost, System.Action<Transform> onConfirmed, System.Action onEnded = null)
+    /// historyOwner에 **기본값이 없는 것은 의도적이다** — PlacementOwner 주석 참고.
+    public bool BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost,
+        System.Action<TowerPlaceCommand> onConfirmed, System.Action onEnded, PlacementOwner historyOwner)
     {
         if (so == null)
         {
@@ -163,29 +184,12 @@ public class TowerPlacer : MonoBehaviour
         // CancelPlacement가 이전 배치의 OnEnded=EndPlacement를 발화해 _onConfirmed을 null로 지우므로,
         // 여기서 미리 대입하면 합성 재료 소모 콜백이 유실된다(무료 합성 버그).
 
-        // 프리뷰 반경. `TowerType→AttackFields` 해석은 여기서 다시 분기하지 않고
-        // `TowerBehaviourFactory.ResolveAttackFields` 단일 출처를 쓴다(WL-079) — 예전에는 이 switch가
-        // 같은 해석의 4번째 복제였고, 새 타워 타입을 추가할 때 빠뜨리기 쉬운 자리였다.
-        TowerAsset.AttackFields attack = NorthLand.Combat.TowerBehaviourFactory.ResolveAttackFields(so);
-        float previewRange;
+        // 프리뷰 반경 = 공격 사거리와 오라 반경 중 큰 쪽(TowerAsset.PreviewRadius 단일 출처, WL-056).
+        // 예전에는 여기서 `ResolveAttackFields → 없으면 MagicRadius`로 다시 분기했는데, 그 분기가
+        // 곧 `TowerType`을 아는 4번째 지점이었다. SO가 최댓값 하나로 답하면 호출부는 종류를 몰라도 된다(#274).
+        float previewRange = so.PreviewRadius;
 
-        if (attack != null)
-        {
-            previewRange = attack.AttackRange;
-        }
-        else if (so.TowerType == TowerType.Magic)
-        {
-            // 마법 타워는 오라 반경을 사거리 미리보기로 사용(#111 완료기준 #4).
-            // 반경 규칙은 TowerAsset.MagicRadius 단일 출처(WL-056) — 오라 행동의 실효과와 공유.
-            previewRange = so.MagicRadius;
-        }
-        else
-        {
-            Debug.LogError($"[TowerPlacer] 공격 스탯도 오라 반경도 해석할 수 없는 TowerType={so.TowerType}입니다.");
-            return false;
-        }
-
-        return StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, previewRange), onConfirmed, onEnded);
+        return StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, previewRange), onConfirmed, onEnded, historyOwner);
     }
 
     // 게이트웨이(예정): tower/ghost 프리팹 + footprint/range를 담은 SO가 생기면 아래 오버로드를 추가한다.
@@ -197,7 +201,8 @@ public class TowerPlacer : MonoBehaviour
 
     // 실제 배치 시작 코어(진입 방식과 무관). 게이트웨이/더미 어느 경로든 이 메서드를 호출한다.
     // onConfirmed(합성 재료 소모 등)는 BeginPlacement 이후에 설정한다(순서 주의 — 아래 참고).
-    private bool StartPlacement(TowerPlacementData data, System.Action<Transform> onConfirmed = null, System.Action onEnded = null)
+    private bool StartPlacement(TowerPlacementData data, System.Action<TowerPlaceCommand> onConfirmed,
+        System.Action onEnded, PlacementOwner historyOwner)
     {
         if (MouseManager.Instance == null)
         {
@@ -226,8 +231,10 @@ public class TowerPlacer : MonoBehaviour
         // 확정/종료 콜백은 반드시 BeginPlacement '이후'에 설정한다 — 위 BeginPlacement 내부의
         // CancelPlacement→이전 배치 EndPlacement가 _onConfirmed/_onEnded를 소비·null 처리하기 때문
         // (프리뷰와 동일한 순서 이슈). 이 순서 덕분에 "이전 배치 종료 통지 → 새 배치 콜백 등록"이 보장된다.
+        // 소유권도 같은 자리에서 세운다 — 콜백과 한 세트로 이번 세션을 규정하는 값이다(#281).
         _onConfirmed = onConfirmed;
         _onEnded = onEnded;
+        _historyOwner = historyOwner;
 
         // 프리뷰는 BeginPlacement 이후에 만든다.
         // (BeginPlacement 내부의 CancelPlacement가 이전 배치의 OnEnded=EndPlacement를 먼저 발화해
@@ -353,7 +360,16 @@ public class TowerPlacer : MonoBehaviour
                 "게임플레이가 동작하지 않습니다. 타워 프리팹 구성을 확인하세요.", placed);
         }
 
-        // 확정 콜백(합성 재료 소모 등)은 배치 성공 후 1회만 실행한다.
+        // 되돌리기 커맨드(#281). 배치는 이미 끝났고 이 커맨드는 그 결과를 **인수**한다 —
+        // 실패해도 배치 자체는 정상이고 "되돌릴 수 없다"만 잃으므로 경고로 드러내고 진행한다.
+        var command = new TowerPlaceCommand(placed, _activeCost, _management, tileSize);
+        bool reversible = command.Execute();
+        if (!reversible)
+        {
+            Debug.LogWarning("[TowerPlacer] 배치 커맨드 인수에 실패했습니다 — 이 배치는 되돌릴 수 없습니다(배치 자체는 정상).", placed);
+        }
+
+        // 확정 콜백(합성의 결과 편입 등)은 배치 성공 후 1회만 실행한다.
         // 먼저 비우고 호출해 연속 배치(keepPlacing)에서도 재실행되지 않게 한다.
         //
         // ⚠ 이 호출은 반드시 아래 등장 연출보다 **앞**이어야 한다. 합성 연출이 여기서 결과 타워의
@@ -361,7 +377,20 @@ public class TowerPlacer : MonoBehaviour
         //   만들기 때문이다 — 순서가 뒤바뀌면 입자가 쪼그라든 상자의 중심으로 모인다.
         var confirmed = _onConfirmed;
         _onConfirmed = null;
-        confirmed?.Invoke(placed.transform);
+        confirmed?.Invoke(command);
+
+        // 히스토리 등록은 **명시적 소유권 신호**로 정한다(PlacementOwner 주석 참고).
+        // 일반 배치에는 "확정을 기다리는 창"이 없다 — 배치가 선 그 순간이 곧 성공 종료다.
+        // 인수에 실패한 커맨드는 올리지 않는다 — Undo가 아무 일도 안 하므로 눌러도 반응 없는
+        // 슬롯 하나가 스택을 차지하고, 그 위의 진짜 조작이 한 칸 밀려 되돌려진다.
+        if (reversible && _historyOwner == PlacementOwner.Placer) CommandHistory.Push(command);
+
+        // 소유권은 확정 콜백과 마찬가지로 **1회성**이다 — 여기서 Placer로 내린다.
+        // 연속 배치(keepPlacing, WL-105)에서 Caller가 남으면 2번째 이후 클릭이 만드는 결과 타워
+        // 복제분이 AdoptResult도 Push도 받지 못해 **영구히 되돌릴 수 없다.** 복제분은 재료를 쓰지 않고
+        // ExtraCost만 지불한 별개 배치이므로, 각자 독립 커맨드로 히스토리에 오르는 것이 옳다.
+        // (EndPlacement의 리셋만으로는 못 막는다 — 그건 세션이 끝날 때만 돌고, 여기는 세션 안이다.)
+        _historyOwner = PlacementOwner.Placer;
 
         // 등장 연출(#264)은 **로직이 전부 끝난 뒤** 마지막에 얹는다. 시각 전용·논블로킹이라 여기서
         // 기다리지 않고, 연출 도중 밤 전환이나 새 배치가 들어와도 타워는 이미 완성 상태다.
@@ -473,6 +502,7 @@ public class TowerPlacer : MonoBehaviour
         ClearCellHighlights();
         _footprint.Clear();
         _onConfirmed = null; // 취소로 끝났으면 확정 콜백은 실행하지 않는다(재료 보존).
+        _historyOwner = PlacementOwner.Placer; // 콜백과 대칭으로 비운다(#281) — 세션 밖으로 새지 않게.
         lastPreviewAnchor = null;
         previewFootprintInitialized = false;
 

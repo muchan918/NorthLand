@@ -24,31 +24,88 @@ namespace NorthLand.Combat
         // 투사체 생성 위치(포신/머즐). 미할당 시 기존처럼 타워 루트(바닥)에서 생성(하위 호환).
         [SerializeField] Transform firePoint;
 
-        // 이 타워가 "무엇을 하는 물건인지"를 담는 행동들. SO를 보고 Build에서 조립된다.
+        // ★ 이 타워가 "무엇을 하는 물건인지"를 담는 액션들 — **프리팹이 정본이다**(#274).
+        //
+        // 인스펙터에서 `+ Attack Action` / `+ Buff Aura Action`을 골라 담는다. 예전에는 SO의 TowerType을
+        // 보고 TowerBehaviourFactory가 런타임에 AddComponent로 만들었는데, 그래서 ① 프리팹만 봐선 무슨
+        // 타워인지 알 수 없고 ② 새 종류를 만들 때 enum·팩토리·에디터 3곳을 고쳐야 했다.
+        //
         // 단일 참조가 아니라 리스트인 이유: `if (attack != null)` 분기가 누적돼 이 클래스가 다시
-        // 만능 클래스로 돌아가는 것을 구조적으로 막고, 공격+오라 하이브리드 타워를 공짜로 허용한다.
-        readonly List<ITowerBehaviour> behaviours = new List<ITowerBehaviour>();
+        // 만능 클래스로 돌아가는 것을 구조적으로 막고, **공격+오라 하이브리드 타워를 공짜로 허용**한다.
+        [SerializeReference] List<TowerAction> actions = new List<TowerAction>();
 
         // 조립 여부. Build를 두 번 타지 않게 하고, OnEnable 폴백 경로의 판단 근거가 된다.
         bool built;
 
-        /// 이 타워가 해당 행동을 가지는지. 소비처가 타워의 **구상 타입**이 아니라 **능력**을 묻게 하는 창구다
-        /// (예: 보스 마력 봉인은 `Has&lt;AttackBehaviour&gt;()`인 타워만 대상으로 한다).
-        public bool Has<T>() where T : class, ITowerBehaviour
+        // ── 합성 효과 계승 (#274 Phase 5) ──────────────────────────────────
+        // 이 인스턴스에서 활성인 효과 종류. **null = 필터 없음**(SO의 Effects가 전부 활성)이고,
+        // 합성으로 만들어진 타워만 ActivateEffects로 이 집합을 갖는다.
+        //
+        // ★ SO가 아니라 인스턴스가 소유해야 하는 이유 두 가지(TowerRedesign.md §9.2):
+        //  ① SO 오염 — TowerAsset은 씬의 모든 인스턴스가 공유한다. 런타임에 data.Effects를 건드리면
+        //     다음 합성이 이전 계승분을 물려받고, [SerializeReference]라 진짜로 직렬화되어
+        //     .asset 파일에 **영구히** 남는다.
+        //  ② 다단 합성 — 합성 결과도 다시 재료가 될 수 있다. "재료 A가 무엇을 갖는가"를 판정하려면
+        //     A의 SO가 아니라 **A 인스턴스의 활성 상태**를 읽어야 한다(SO를 읽으면 꺼진 것까지 잡힌다).
+        //
+        // 런타임 상태이므로 직렬화하지 않는다(액션 규칙 ③과 같은 축).
+        [NonSerialized] HashSet<EffectKind> activeKinds;
+
+        /// 이 효과 종류가 이 타워에서 활성인가. 필터가 없으면(=합성 산물이 아니면) 전부 활성이다.
+        /// 효과를 **거는 순간** 호출된다 — 목록을 미리 걸러두지 않는 이유는 Build가 배치 확정 콜백보다
+        /// 먼저 돌아서, 액션 초기화 시점에는 아직 계승분이 정해지지 않았기 때문이다(pull 방식).
+        public bool IsEffectActive(EffectKind kind) => activeKinds == null || activeKinds.Contains(kind);
+
+        /// 이 타워가 실제로 낼 수 있는 효과 종류. **다단 합성이 재료를 조회하는 창구**다.
+        /// 평범하게 배치된 타워는 자기 SO의 효과 전부를, 합성 산물은 켜진 것만 보고한다.
+        public IEnumerable<EffectKind> ActiveEffectKinds
         {
-            for (int i = 0; i < behaviours.Count; i++)
+            get
             {
-                if (behaviours[i] is T) return true;
+                if (data?.Effects == null) yield break;
+
+                for (int i = 0; i < data.Effects.Count; i++)
+                {
+                    HitEffect effect = data.Effects[i];
+                    if (effect == null) continue;          // [SerializeReference] rename 시 null 항목
+                    if (!IsEffectActive(effect.Kind)) continue;
+                    yield return effect.Kind;
+                }
+            }
+        }
+
+        /// 합성 결과 타워에 계승된 효과 종류를 부여한다(TowerFusionController가 배치 확정 시 호출).
+        /// null을 넘기면 필터가 해제되어 SO의 효과가 전부 살아난다.
+        public void ActivateEffects(IEnumerable<EffectKind> kinds)
+            => activeKinds = kinds == null ? null : new HashSet<EffectKind>(kinds);
+
+        // 액션에 넘기는 프리팹 배선. 액션은 SO 수치만 읽고 씬 참조는 호스트를 통해 얻는다(규칙 ②) —
+        // [SerializeReference] 관리 객체 안에 Transform 참조를 직접 두는 것은 프리팹 오버라이드에서
+        // 다루기 까다롭고, 이렇게 두면 프리팹의 기존 배선 값이 제자리에 남는다.
+        internal Transform FirePoint => firePoint;
+        internal LayerMask EnemyLayerMask => enemyLayerMask;
+
+        // 저작 검증(TowerAsset.OnValidate)이 프리팹의 액션 구성을 들여다보는 창구.
+        // 런타임 소비처는 능력 질의(Has/Get)를 쓴다 — 리스트를 통째로 노출하는 것은 검증·툴링용이다.
+        internal IReadOnlyList<TowerAction> Actions => actions;
+
+        /// 이 타워가 해당 액션을 가지는지. 소비처가 타워의 **구상 타입**이 아니라 **능력**을 묻게 하는 창구다
+        /// (예: 보스 마력 봉인은 `Has&lt;AttackAction&gt;()`인 타워만 대상으로 한다).
+        public bool Has<T>() where T : TowerAction
+        {
+            for (int i = 0; i < actions.Count; i++)
+            {
+                if (actions[i] is T) return true;
             }
             return false;
         }
 
-        /// 해당 행동을 반환한다. 없으면 null.
-        public T Get<T>() where T : class, ITowerBehaviour
+        /// 해당 액션을 반환한다. 없으면 null.
+        public T Get<T>() where T : TowerAction
         {
-            for (int i = 0; i < behaviours.Count; i++)
+            for (int i = 0; i < actions.Count; i++)
             {
-                if (behaviours[i] is T match) return match;
+                if (actions[i] is T match) return match;
             }
             return null;
         }
@@ -97,23 +154,23 @@ namespace NorthLand.Combat
             // 타일 버프는 배치 시 1회 푸시라 스스로 돌아올 경로가 없다 → 여기서 다시 밀어준다.
             if (TryGetComponent(out TowerTileBuff tileBuff)) ApplyTileBuff(tileBuff.Result);
 
-            ReinitializeBehaviours();   // 행동을 재무장
+            ReinitializeActions();   // 액션을 재무장
             Register();
         }
 
         // 발사 시점 통지(탄약 시각 연출 등 구독용 — 예: 캐논 포탄이 발사 순간 사라짐).
         public event Action OnFired;
 
-        // 발사 통지 발행 창구. 행동(AttackBehaviour)이 실제 발사 주체지만, 구독자(TowerReloadVisual)는
+        // 발사 통지 발행 창구. 액션(AttackAction)이 실제 발사 주체지만, 구독자(TowerReloadVisual)는
         // 타워를 보고 붙으므로 이벤트 소유는 호스트에 남긴다.
         internal void RaiseFired() => OnFired?.Invoke();
 
         void OnDisable()
         {
-            // 행동이 외부에 남긴 상태(버프 오라가 다른 타워에 부여한 modifier 등)를 먼저 걷어낸다.
-            // Unregister보다 앞이어야 한다 — 오라가 대상 목록을 다시 계산할 때 자기 자신이 아직
-            // 목록에 있어도 무해하지만, 반대 순서면 통지를 받은 오라가 이미 사라진 상태를 볼 수 있다.
-            for (int i = 0; i < behaviours.Count; i++) behaviours[i].Dispose();
+            // 액션이 외부에 남긴 상태(버프 오라가 다른 타워에 부여한 modifier, static 이벤트 구독 등)를
+            // 먼저 걷어낸다. Unregister보다 앞이어야 한다 — 오라가 대상 목록을 다시 계산할 때 자기 자신이
+            // 아직 목록에 있어도 무해하지만, 반대 순서면 통지를 받은 오라가 이미 사라진 상태를 볼 수 있다.
+            for (int i = 0; i < actions.Count; i++) actions[i]?.Dispose();
 
             Unregister();
 
@@ -156,7 +213,7 @@ namespace NorthLand.Combat
             // 들어왔을 때 조용히 죽은 채로 남으면 호출부가 그것을 알 방법이 없다.
             if (built && data == asset)
             {
-                ReinitializeBehaviours();
+                ReinitializeActions();
                 Register();
                 return;
             }
@@ -171,41 +228,41 @@ namespace NorthLand.Combat
                     "배치된 쪽으로 재조립합니다 — 프리팹의 data 참조를 확인하세요.", this);
             }
 
-            // 재조립이면 이전 행동이 외부에 남긴 상태를 먼저 걷어낸다.
-            for (int i = 0; i < behaviours.Count; i++) behaviours[i].Dispose();
+            // 재조립이면 이전 액션이 외부에 남긴 상태를 먼저 걷어낸다.
+            for (int i = 0; i < actions.Count; i++) actions[i]?.Dispose();
 
             data = asset;
-            TowerBehaviourFactory.Create(gameObject, asset, behaviours);
             built = true;
 
-            // 새 SO에서 빠진 행동 컴포넌트를 제거한다. 남겨도 호스트가 Tick하지 않아 무동작이지만,
-            // Inspector에 "동작하지 않는 행동"이 붙어 있으면 디버깅할 때 사실과 다르게 읽힌다.
-            StripUnusedBehaviourComponents();
+            // 다른 SO로 재조립되면 이전 정체성의 계승분은 의미를 잃는다(풀 재사용 대비).
+            // ⚠ OnDisable/OnEnable 왕복에서는 **지우지 않는다** — 합성 커맨드의 Release/Reoccupy가
+            //   그 경로를 쓰므로, 지우면 롤백된 합성 결과가 효과를 잃는다.
+            activeKinds = null;
 
-            ReinitializeBehaviours();
+            // 액션을 만들지 않는다 — 프리팹에 이미 담겨 있다. 예전에는 여기서 TowerBehaviourFactory가
+            // SO의 TowerType을 보고 AddComponent로 조립하고, 새 SO에서 빠진 컴포넌트를 다시 떼어냈다
+            // (StripUnusedBehaviourComponents). **프리팹이 정본이면 "SO에서 빠진 행동"이라는 개념 자체가 없다.**
+            ReinitializeActions();
             Register();
-        }
 
-        // 조립 결과에 포함되지 않은 ITowerBehaviour 컴포넌트를 제거한다(SO가 바뀐 재조립에서만 발생).
-        void StripUnusedBehaviourComponents()
-        {
-            var attached = GetComponents<MonoBehaviour>();
-            for (int i = 0; i < attached.Length; i++)
+            // ⚠ **무증상 조합의 유일한 런타임 신호다.** 액션이 없으면 Update가 첫 줄에서 return하므로
+            // 이 타워는 예외도 경고도 없이 아무 동작을 하지 않는다 — "배치는 되는데 안 쏜다"의 1순위 원인.
+            //
+            // 가장 흔한 경위: 타워 프리팹이 `Assets/Imported/`(부모 저장소 미추적, 자체 중첩 git)에 살아서
+            // 그 저장소를 동기화하지 않은 환경에서는 프리팹의 Actions가 빈 채로 로드된다.
+            // 저장 시점 검증(TowerAsset.OnValidate)은 TowerPrefab이 아예 null이면 잡지 못하므로
+            // 에디터를 안 켜는 사람에게는 이 로그가 유일한 단서다.
+            if (actions.Count == 0)
             {
-                if (attached[i] is not ITowerBehaviour behaviour) continue;
-                if (behaviours.Contains(behaviour)) continue;
-
-                behaviour.Dispose();
-                Destroy(attached[i]);
+                Debug.LogWarning(
+                    $"[Tower] {name}({asset.TowerID}): Actions가 비어 있어 아무 동작도 하지 않습니다 — " +
+                    "프리팹에 TowerAction이 담겼는지, `Assets/Imported/`가 최신인지 확인하세요.", this);
             }
         }
 
-        void ReinitializeBehaviours()
+        void ReinitializeActions()
         {
-            if (behaviours.Count == 0) return;
-
-            var context = new TowerBuildContext(this, data, enemyLayerMask, firePoint);
-            for (int i = 0; i < behaviours.Count; i++) behaviours[i].Initialize(in context);
+            for (int i = 0; i < actions.Count; i++) actions[i]?.Initialize(this, data);
         }
 
         // 배치 시 확정된 타일 버프를 원장에 지속형 소스로 밀어 넣는다(TowerTileBuff.Initialize가 호출).
@@ -252,7 +309,10 @@ namespace NorthLand.Combat
                 return;
             }
 
-            data.Data ??= DataTableManager.Get<TowerTable>("TowerTable").Get(data.TowerID);
+            // `?.`가 필수다 — DataTableManager.Get<T>는 테이블 미등록 시 LogError 후 **null을 반환**한다.
+            // 이게 없으면 TowerTable이 등록되지 않은 씬(테스트 씬 등)에서 타워를 클릭할 때 NRE가 나고,
+            // 바로 아래 null 가드는 도달조차 못 한다. 나머지 3개 채움 지점은 전부 `?.Get`을 쓴다.
+            data.Data ??= DataTableManager.Get<TowerTable>("TowerTable")?.Get(data.TowerID);
             if (data.Data == null)
             {
                 Debug.LogError($"[Tower] TowerData 없음 (TowerID={data.TowerID})", this);
@@ -281,7 +341,7 @@ namespace NorthLand.Combat
             _rangeCircle.Show();
         }
 
-        // 표시용 반경 = 행동들이 보고한 값 중 최대. `AttackRange`를 쓰면 공격 행동이 없는 오라 타워에서
+        // 표시용 반경 = 액션들이 보고한 값 중 최대. `AttackRange`를 쓰면 공격 액션이 없는 오라 타워에서
         // 0이 되어 원이 아예 그려지지 않는다(#192 회귀). 최대값을 쓰는 이유는 공격+오라 하이브리드 타워에서
         // 더 넓은 쪽이 플레이어가 알아야 할 영향 범위이기 때문.
         float DisplayRange
@@ -289,25 +349,26 @@ namespace NorthLand.Combat
             get
             {
                 float result = 0f;
-                for (int i = 0; i < behaviours.Count; i++)
+                for (int i = 0; i < actions.Count; i++)
                 {
-                    float range = behaviours[i].DisplayRange;
+                    if (actions[i] == null) continue;
+                    float range = actions[i].DisplayRange;
                     if (range > result) result = range;
                 }
                 return result;
             }
         }
 
-        // 정보 패널용 스탯 텍스트. 각 행동이 자기 설명을 만들고 호스트는 붙이기만 한다 —
+        // 정보 패널용 스탯 텍스트. 각 액션이 자기 설명을 만들고 호스트는 붙이기만 한다 —
         // 타워가 "무엇을 하는 물건인지" 알아야 할 이유가 표시 경로에도 없다.
-        // 기여할 행동이 하나도 없으면 null(패널은 통계 구간 없이 설명만 표시).
+        // 기여할 액션이 하나도 없으면 null(패널은 통계 구간 없이 설명만 표시).
         string BuildStatsText()
         {
             string result = null;
 
-            for (int i = 0; i < behaviours.Count; i++)
+            for (int i = 0; i < actions.Count; i++)
             {
-                string piece = behaviours[i].DescribeStats();
+                string piece = actions[i]?.DescribeStats();
                 if (string.IsNullOrEmpty(piece)) continue;
 
                 result = result == null ? piece : $"{result}\n{piece}";
@@ -319,11 +380,11 @@ namespace NorthLand.Combat
         // ── IAttacker 계약 ────────────────────────────────────────────────
         // 값은 공격 행동이 소유한다(기본값=SO, modifier=원장). 이 타워가 공격하지 않으면 전부 0 —
         // "공격 스탯이 없는 타워"라는 상태를 별도 분기 없이 값으로 표현한다.
-        public float AttackDamage => Get<AttackBehaviour>()?.Damage ?? 0f;
+        public float AttackDamage => Get<AttackAction>()?.Damage ?? 0f;
 
-        public float AttackRange => Get<AttackBehaviour>()?.Range ?? 0f;
+        public float AttackRange => Get<AttackAction>()?.Range ?? 0f;
 
-        public float AttackInterval => Get<AttackBehaviour>()?.Interval ?? 0f;
+        public float AttackInterval => Get<AttackAction>()?.Interval ?? 0f;
 
         // 버프 진입점(플레이어 스킬 #103 / 버프 타워 #164 공용). sourceId별로 항목을 add/refresh하며,
         // 서로 다른 소스는 합산 중첩된다(같은 sourceId는 갱신만). 배율(예: 1.2)은 보너스(0.2)로 저장해
@@ -349,24 +410,34 @@ namespace NorthLand.Combat
             // 만료된 소스를 정리한다(매 프레임, 페이즈 무관). 활성 항목 수가 적어 비용은 무시할 수준.
             stats.Prune(Time.time);
 
-            if (behaviours.Count == 0) return;
+            if (actions.Count == 0) return;
 
-            // 페이즈 게이팅을 호스트가 한 곳에서 처리한다 — 행동이 각자 DayNightManager를 폴링하면
-            // 규칙이 갈라진다(WL-044). 행동은 ActivePhase로 자기 요구만 선언한다.
+            // 페이즈 게이팅을 호스트가 한 곳에서 처리한다 — 액션이 각자 DayNightManager를 폴링하면
+            // 규칙이 갈라진다(WL-044). 액션은 ActivePhase로 자기 요구만 선언한다.
             bool isNight = DayNightManager.Instance == null ||
                 DayNightManager.Instance.CurrentPhase == DayNightManager.Phase.Night;
 
             float deltaTime = Time.deltaTime;
-            for (int i = 0; i < behaviours.Count; i++)
+            for (int i = 0; i < actions.Count; i++)
             {
-                ITowerBehaviour behaviour = behaviours[i];
-                if (behaviour.ActivePhase == TowerActivePhase.NightOnly && !isNight) continue;
+                TowerAction action = actions[i];
+                if (action == null) continue;   // [SerializeReference] 클래스 rename 시 null 항목이 생긴다
+                if (action.ActivePhase == TowerActivePhase.NightOnly && !isNight) continue;
 
-                behaviour.Tick(deltaTime);
+                action.Tick(deltaTime);
             }
         }
 
-        // IAttacker 계약. 공격 행동이 없으면 false — 오라 전용 타워가 단일 대상 공격 경로에 끌려가지 않는다.
-        public bool TryAttack(IDamageable target) => Get<AttackBehaviour>()?.TryAttack(target) ?? false;
+        // IAttacker 계약. 공격 액션이 없으면 false — 오라 전용 타워가 단일 대상 공격 경로에 끌려가지 않는다.
+        public bool TryAttack(IDamageable target) => Get<AttackAction>()?.TryAttack(target) ?? false;
+
+#if UNITY_EDITOR
+        // 액션이 MonoBehaviour가 아니게 되면서 각자의 OnDrawGizmosSelected를 잃었다 — 호스트가 대신 부른다.
+        void OnDrawGizmosSelected()
+        {
+            if (actions == null) return;
+            for (int i = 0; i < actions.Count; i++) actions[i]?.DrawGizmos();
+        }
+#endif
     }
 }

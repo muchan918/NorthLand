@@ -78,6 +78,10 @@ public class TowerFusionController : MonoBehaviour
         if (recipe.Result.Data == null)
             recipe.Result.Data = DataTableManager.Get<TowerTable>("TowerTable")?.Get(recipe.Result.TowerID);
 
+        // 계승 효과 종류를 **소모 전에** 스냅샷한다(#274 Phase 5). 아래 Execute가 재료를 즉시 비활성화하고
+        // Commit이 파괴하므로, 뒤로 미루면 읽을 대상이 사라진다. 툴팁과 같은 함수를 쓴다(규칙 재구현 금지).
+        HashSet<EffectKind> inherited = TowerFusionMatcher.ResolveInheritedKinds(recipe, toConsume);
+
         // 5. 소모 연출(#265)을 **소모 직전에** 건다. 커맨드가 재료를 즉시 비활성화하므로 그 뒤에는
         //    복제할 시각물이 남지 않는다 — 이 한 줄의 위치가 연출 전체의 전제다.
         //    연출은 시각 전용·논블로킹이라 아래 흐름은 연출을 기다리지 않는다.
@@ -87,7 +91,7 @@ public class TowerFusionController : MonoBehaviour
         //    아래 Execute가 실패하면 연출이 1프레임 재생된 뒤 Abort된다(흰 사본이 원본과 겹쳐 한 번 그려짐).
         //    Execute 실패는 "재료가 전부 사라진 뒤 클릭"이라 LogError 경로이고, 연출을 먼저 걸어야 한다는
         //    순서 계약(위)과 맞바꿀 만한 빈도가 아니라 그대로 둔다.
-        TowerMergeDissolveEffect effect = TowerMergeDissolveEffect.Play(
+        TowerDissolveEffect effect = TowerDissolveEffect.Play(
             CollectTransforms(toConsume),
             _placer.TileSize);
 
@@ -95,7 +99,7 @@ public class TowerFusionController : MonoBehaviour
         //    결과를 놓을 수 있다 — 이 순서가 커맨드를 도입한 이유 그 자체다.
         //    선택 집합에서 빼는 일은 하지 않는다: 비활성화 → Tower.Active 이탈 → ActiveChanged →
         //    코디네이터의 Prune이 이미 담당한다(구 ConsumeMaterials의 group.Remove가 하던 몫).
-        var command = new TowerMergeCommand(toConsume);
+        var command = new TowerMergeCommand(toConsume, _placer.TileSize);
         if (!command.Execute())
         {
             effect.Abort();
@@ -103,9 +107,9 @@ public class TowerFusionController : MonoBehaviour
             return false;
         }
 
-        // 7. 배치 시작. 확정되면 Commit(진짜 파괴), 세션이 취소로 끝나면 Undo(원복).
-        //    종료 통지는 확정/취소를 구분하지 않으므로 판단은 커맨드가 자기 상태로 한다 — 확정 뒤의
-        //    Undo는 무시되므로 두 콜백을 다 걸어도 안전하다.
+        // 7. 배치 시작. 확정되면 Confirm + 히스토리 등록(재료는 아직 살아 있다 — 밤에 파괴된다),
+        //    세션이 취소로 끝나면 Undo(원복).
+        //    종료 통지는 확정/취소를 구분하지 않으므로 판단은 커맨드가 자기 상태로 한다.
         //    연출도 같은 판단을 공유한다: 취소로 끝났으면 입자가 제자리로 돌아가 재료를 재조립하고
         //    (Reassemble), 확정이었으면 이미 수렴에 들어가 있으므로 Abort가 무시된다.
         //    Reassemble은 반드시 Undo **뒤에** 부른다 — 되살아난 재료를 같은 프레임에 숨겨야
@@ -113,14 +117,42 @@ public class TowerFusionController : MonoBehaviour
         bool started = _placer.BeginTowerPlacement(
             recipe.Result,
             recipe.ExtraCost,
-            placed => { command.Commit(); effect.ConvergeTo(placed); },
+            place =>
+            {
+                // 결과 배치를 이 합성에 편입한 **뒤에** 등록한다 — Push가 Confirm을 부르고, 그 Confirm이
+                // 편입된 결과까지 함께 확정하기 때문이다. 순서가 뒤바뀌면 결과가 Executed에 남는다.
+                command.AdoptResult(place);
+                CommandHistory.Push(command); // Confirm()도 여기서 걸린다(등록과 확정은 한 몸)
+
+                Transform placed = place.Placed;
+
+                // 계승 부여는 Build **뒤**여야 한다 — TowerPlacer가 Build를 먼저 부르고 이 콜백을 나중에
+                // 부르므로 순서는 보장돼 있다. Build가 activeKinds를 비우기 때문에 반대 순서면 지워진다.
+                // 효과 적용은 pull 방식(Tower.IsEffectActive)이라 액션 재초기화는 필요 없다.
+                //
+                // ⚠ null 검사는 "계승을 켜지 않은 레시피"만 걸러낸다. **빈 집합은 반드시 통과시켜야 한다** —
+                // 계승을 켰는데 물려줄 게 없으면 결과는 "전부 off"이지 "필터 없음"이 아니다(PR #278 리뷰).
+                if (inherited != null && placed != null && placed.TryGetComponent(out Tower result))
+                    result.ActivateEffects(inherited);
+
+                effect.ConvergeTo(placed);
+            },
             () =>
             {
-                bool cancelled = !command.IsCommitted;
+                // ⚠ 무조건 Undo하면 안 된다(#281). 예전에는 확정 뒤의 Undo가 `_state != Executed`에
+                //    막혀 조용히 무시됐지만, 이제 `Confirmed`에서 Undo는 **동작한다** — 그대로 두면
+                //    확정한 합성이 세션 종료만으로 되감겨 재료가 살아 돌아오고 결과 타워도 남는다.
+                if (command.IsConfirmed)
+                {
+                    effect.Abort();
+                    return;
+                }
+
                 command.Undo();
-                if (cancelled) effect.Reassemble();
-                else effect.Abort();
-            });
+                effect.Reassemble();
+            },
+            // 결과 배치는 히스토리에 따로 오르지 않는다 — 합성 전체가 커맨드 하나로 되돌아간다.
+            PlacementOwner.Caller);
 
         // 배치를 열지 못했으면 방금 소모한 재료를 즉시 되돌린다. 이 경로에서는 종료 통지도 오지 않으므로
         // 여기서 되돌리지 않으면 재료만 사라진 채 아무 일도 일어나지 않는다.

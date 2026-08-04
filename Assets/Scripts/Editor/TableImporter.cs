@@ -145,19 +145,18 @@ public class TableImporter : EditorWindow
             string assetPath = $"{soFolder}/{data.TowerID}.asset";
             var existing = AssetDatabase.LoadAssetAtPath<TowerAsset>(assetPath);
 
+            // 동기화하는 것은 TowerID뿐이다. 수치는 SO 인스펙터 수기 authoring이고(WL-015),
+            // "이 타워가 무엇을 하는가"는 프리팹의 Tower.Actions가 정한다(#274) — CSV가 관여하지 않는다.
+            // 그래서 이 임포터의 실질적 역할은 **없는 SO를 만들어주는 것**이다.
             if (existing != null)
             {
                 existing.TowerID = data.TowerID;
-                existing.TowerType = data.TowerType;
-                existing.MagicEffectType = data.MagicEffectType;
                 EditorUtility.SetDirty(existing);
             }
             else
             {
                 var so = CreateInstance<TowerAsset>();
                 so.TowerID = data.TowerID;
-                so.TowerType = data.TowerType;
-                so.MagicEffectType = data.MagicEffectType;
                 AssetDatabase.CreateAsset(so, assetPath);
             }
         }
