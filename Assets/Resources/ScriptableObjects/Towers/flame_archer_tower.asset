@@ -10,21 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
-  m_Name: choco_tower
+  m_Name: flame_archer_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
-  TowerID: choco_tower
-  TowerPrefab: {fileID: 6801833135963741600, guid: a660ddd374f31434ea5166bfff8b4850, type: 3}
-  GhostPrefab: {fileID: 6801833135963741600, guid: 4605832d26ef29a49969945c4b0556cd, type: 3}
+  TowerID: flame_archer_tower
+  TowerPrefab: {fileID: 6801833135963741600, guid: ad18bc0797391de4db72c77838c11c00, type: 3}
+  GhostPrefab: {fileID: 6801833135963741600, guid: 5f7b3ba163abd21499207565fa06a6a3, type: 3}
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
     Amount: 30
   Attack:
-    AttackDamage: 0
-    AttackRange: 0
-    AttackInterval: 0
-    ProjectilePrefab: {fileID: 0}
+    AttackDamage: 10
+    AttackRange: 45
+    AttackInterval: 1.2
+    ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
     Flight:
-      rid: -2
+      rid: 1498367259597078617
   Impact: 0
   SplashRadius: 0
   ChainRadius: 0
@@ -38,17 +38,21 @@ MonoBehaviour:
       DamageAmount: 0
       TickInterval: 0
   DebuffAura:
-    Radius: 40
-    Interval: 1
+    Radius: 0
+    Interval: 0
   Effects:
-  - rid: 3470829504553025631
+  - rid: 1498367259597078616
   references:
     version: 2
     RefIds:
-    - rid: -2
-      type: {class: , ns: , asm: }
-    - rid: 3470829504553025631
-      type: {class: SlowEffect, ns: NorthLand.Combat, asm: Assembly-CSharp}
+    - rid: 1498367259597078616
+      type: {class: BurnEffect, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
-        Multiplier: 0.8
+        DamagePerTick: 3
+        TickInterval: 0.5
         Duration: 2
+    - rid: 1498367259597078617
+      type: {class: HomingFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
+      data:
+        Speed: 800
+        ArcHeight: 0

@@ -140,3 +140,13 @@ public abstract class ManagedReferencePickerDrawer : PropertyDrawer
 /// `useForChildren: true`라 `HomingFlight`/`BallisticFlight`가 담겨 있어도 이 드로어가 그린다.
 [CustomPropertyDrawer(typeof(ProjectileFlight), useForChildren: true)]
 public sealed class ProjectileFlightDrawer : ManagedReferencePickerDrawer { }
+
+/// 명중 효과 축(`TowerAsset.Effects`)에 타입 피커를 붙인다.
+///
+/// ⚠ **이 클래스 상단 주석의 "List는 Unity가 알아서 해준다"는 전제가 실제로는 성립하지 않았다.**
+/// `Effects` 리스트에서 `+`를 누르면 항목만 늘고 종류를 고를 드롭다운이 뜨지 않아, 저작 경로가
+/// 사실상 막혀 있었다(기존 poison/choco/soda의 효과는 그 전에 저작된 것이다).
+/// 단일 필드든 리스트 요소든 `SerializedPropertyType.ManagedReference`인 것은 같으므로
+/// 기반 드로어가 그대로 동작한다 — `ResolveBaseType`이 리스트 요소에서는 요소 타입을 돌려준다.
+[CustomPropertyDrawer(typeof(HitEffect), useForChildren: true)]
+public sealed class HitEffectDrawer : ManagedReferencePickerDrawer { }

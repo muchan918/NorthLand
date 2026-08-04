@@ -10,16 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
-  m_Name: haste_tower
+  m_Name: flame_field_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
-  TowerID: haste_tower
-  TowerPrefab: {fileID: 527708244005276318, guid: b8dd447b76ed929439c677e7e946362a, type: 3}
-  GhostPrefab: {fileID: 527708244005276318, guid: 176674a10a91cf948b2304f59bba8820, type: 3}
+  TowerID: flame_field_tower
+  TowerPrefab: {fileID: 527708244005276318, guid: 3046675b0c7627047a8e5d9571fa45f0, type: 3}
+  GhostPrefab: {fileID: 527708244005276318, guid: 3f7d03ebd2feee2468a836693208b76a, type: 3}
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-    Amount: 30
+    Amount: 35
   - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
-    Amount: 20
+    Amount: 15
   Attack:
     AttackDamage: 0
     AttackRange: 0
@@ -33,21 +33,25 @@ MonoBehaviour:
   MaxChainTargets: 0
   ChainDamageFalloff: 0
   BuffAura:
-    Radius: 34
-    Modifiers:
-    - Stat: 1
-      Amount: 35
-      IsPercentage: 1
+    Radius: 0
+    Modifiers: []
     Damage:
       HasDamage: 0
       DamageAmount: 0
       TickInterval: 0
   DebuffAura:
-    Radius: 0
-    Interval: 0
-  Effects: []
+    Radius: 24
+    Interval: 1
+  Effects:
+  - rid: 1498367259597078620
   references:
     version: 2
     RefIds:
     - rid: -2
       type: {class: , ns: , asm: }
+    - rid: 1498367259597078620
+      type: {class: BurnEffect, ns: NorthLand.Combat, asm: Assembly-CSharp}
+      data:
+        DamagePerTick: 4
+        TickInterval: 0.5
+        Duration: 2

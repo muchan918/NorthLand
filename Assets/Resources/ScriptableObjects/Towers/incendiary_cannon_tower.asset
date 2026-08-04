@@ -10,25 +10,25 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
-  m_Name: cannon_tower
+  m_Name: incendiary_cannon_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
-  TowerID: cannon_tower
-  TowerPrefab: {fileID: 3104185744962560807, guid: 3aa39c2dca7c6674484d79f6043acd6e, type: 3}
-  GhostPrefab: {fileID: 3104185744962560807, guid: 017965e4e87759048b99f86070e0dee8, type: 3}
+  TowerID: incendiary_cannon_tower
+  TowerPrefab: {fileID: 3104185744962560807, guid: 34cedffb59030164ca577c754e27aec0, type: 3}
+  GhostPrefab: {fileID: 3104185744962560807, guid: 7d78ffcc46993dd46a03b462daf40438, type: 3}
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-    Amount: 20
+    Amount: 25
   - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
-    Amount: 10
+    Amount: 15
   Attack:
-    AttackDamage: 28
+    AttackDamage: 16
     AttackRange: 35
-    AttackInterval: 2
+    AttackInterval: 2.2
     ProjectilePrefab: {fileID: 4221183324172678294, guid: 58184368b64351d4094976b3524ed9a1, type: 3}
     Flight:
-      rid: 1498367259597078607
+      rid: 1498367259597078618
   Impact: 1
-  SplashRadius: 4
+  SplashRadius: 5
   ChainRadius: 0
   MaxChainTargets: 0
   ChainDamageFalloff: 0
@@ -42,12 +42,19 @@ MonoBehaviour:
   DebuffAura:
     Radius: 0
     Interval: 0
-  Effects: []
+  Effects:
+  - rid: 1498367259597078619
   references:
     version: 2
     RefIds:
-    - rid: 1498367259597078607
+    - rid: 1498367259597078618
       type: {class: BallisticFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
         Speed: 100
-        ArcHeight: 15
+        ArcHeight: 20
+    - rid: 1498367259597078619
+      type: {class: BurnEffect, ns: NorthLand.Combat, asm: Assembly-CSharp}
+      data:
+        DamagePerTick: 3
+        TickInterval: 0.5
+        Duration: 3
