@@ -13,6 +13,10 @@ public abstract class SkillEffect : MonoBehaviour
 
     public int Level { get; private set; }
 
+    // 보상 카드(#287)는 "이걸 고르면 어떻게 바뀌는지"를 현재값 → 획득 후 값으로 보여준다.
+    // 파생이 자기 수치를 이 레벨로 한 번 더 계산하기 위한 것.
+    protected int NextLevel => Level + 1;
+
     bool subscribed;
 
     // 보상 선택 시 SkillEffectManager가 호출한다.
@@ -28,6 +32,9 @@ public abstract class SkillEffect : MonoBehaviour
 
         Debug.Log($"[SkillEffect] {Type} Lv{previousLevel} → Lv{Level}", this);
     }
+
+    // 보상 패널(#287)에 표시할 현재 레벨 기준 수치 줄. 서식·라벨은 SkillStatsFormatter가 소유한다.
+    public abstract string GetStatSummary();
 
     // 어느 스킬의 이벤트에 붙을지는 파생이 정한다. 기본: 감전(SkillManager.ImpactResolved).
     protected virtual bool TrySubscribe()

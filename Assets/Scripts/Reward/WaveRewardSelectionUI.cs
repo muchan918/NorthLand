@@ -26,6 +26,11 @@ public class WaveRewardSelectionUI : MonoBehaviour
     [SerializeField]
     private Image[] iconImages;
 
+    // #287: 카드별 "Lv N / 수치" 줄. 라벨은 로컬라이즈되지만 조합 결과는 평문이라
+    // LocalizeStringEvent가 아니라 TextMeshProUGUI에 직접 넣는다(TowerInfoUI의 statsText와 같은 형태).
+    [SerializeField]
+    private TextMeshProUGUI[] levelStatTexts;
+
     [SerializeField]
     [FormerlySerializedAs("Openpanel")]
     private GameObject openPanel;
@@ -175,6 +180,23 @@ public class WaveRewardSelectionUI : MonoBehaviour
             {
                 iconImages[i].sprite = reward.Icon;
                 iconImages[i].enabled = reward.Icon != null;
+            }
+
+            if (i < levelStatTexts.Length && levelStatTexts[i] != null)
+            {
+                // 실제 보유 레벨을 그대로 보여준다 — 미보유는 Lv 0, 한 번 고르면 Lv 1.
+                // 클램프를 걸면 Lv0과 Lv1의 표시가 겹쳐서 첫 획득이 화면상 아무 변화가 없어 보인다.
+                int level = 0;
+                string stats = null;
+
+                if (SkillEffectManager.Instance != null)
+                {
+                    level = SkillEffectManager.Instance.GetLevel(reward.RewardType);
+                    stats = SkillEffectManager.Instance.GetStatSummary(reward.RewardType);
+                }
+
+                string levelLine = SkillStatsFormatter.BuildLevelLine(level, level + 1);
+                levelStatTexts[i].text = string.IsNullOrEmpty(stats) ? levelLine : $"{levelLine}\n{stats}";
             }
 
             rewardButtons[i].onClick.AddListener(() => SelectReward(reward)
