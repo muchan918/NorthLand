@@ -10664,7 +10664,7 @@ MonoBehaviour:
   roadTilePrefab: {fileID: 376632769588615151, guid: bcc97aac1203837468bb300b99cb732e, type: 3}
   grassTilePrefab: {fileID: 4056655319366159548, guid: 01a0e59758422c6469a1f537bb0d4bcd, type: 3}
   waterTilePrefab: {fileID: 7429171252680331435, guid: a16cd64f59ec9054ea4a8aa9652cdd76, type: 3}
-  revealYOffset: 18
+  revealYOffset: 7.2000003
   revealCurve:
     serializedVersion: 2
     m_Curve:
@@ -10702,7 +10702,7 @@ MonoBehaviour:
   maxRevealDelay: 0.35
   minRevealDuration: 0.25
   maxRevealDuration: 0.55
-  monsterWaypointYOffset: 8
+  monsterWaypointYOffset: 3.2
 --- !u!114 &1175259921
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13989,6 +13989,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DayNightLightingController
   directionalLight: {fileID: 1758689880}
+  captureDayPresetFromScene: 1
   dayPreset:
     lightIntensity: 1.5
     lightColor: {r: 1, g: 0.957, b: 0.839, a: 1}
@@ -14480,10 +14481,10 @@ MonoBehaviour:
   towerPrefab: {fileID: 4828097712758218341, guid: 20d807b0a7cea9147bb69ff9c3c95951, type: 3}
   ghostPrefab: {fileID: 4828097712758218341, guid: 1c4fe65468dd4524a90ebe19c3110df8, type: 3}
   keepPlacing: 0
-  tileSize: 15
+  tileSize: 6
   dummyGridWidth: 50
   dummyGridHeight: 50
-  dummyAttackRange: 48
+  dummyAttackRange: 19.2
   rangeColor: {r: 0.2, g: 0.8, b: 1, a: 0.9}
   rangeFillColor: {r: 0.2, g: 0.8, b: 1, a: 0.15}
   validCellColor: {r: 0.2, g: 1, b: 0.3, a: 0.78431374}
@@ -14797,7 +14798,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkillManager
   damage: 30
-  radius: 15
+  radius: 6
   cooldown: 5
   enemyLayerMask:
     serializedVersion: 2
