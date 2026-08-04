@@ -89,6 +89,14 @@ public class TowerPlacer : MonoBehaviour
     private PlacementOwner _historyOwner = PlacementOwner.Placer;
     private ManagementController _management; // 자원 차감 게이트웨이(WL-017). null이면 무료 배치(테스트 씬).
 
+    // 그리드 기준축. 맵 루트(`CombatMapTileSpawner.tileRoot`)가 회전돼 있으면 타일도 그 회전을
+    // 물려받는다 — 타일은 루트의 자식으로 `localRotation = identity`로 생성되기 때문이다.
+    // 따라서 **앵커 타일의 월드 회전이 곧 그리드 기준축**이고, 이웃 셀 오프셋과 하이라이트 쿼드가
+    // 이 축을 따라야 한다. 월드 X/Z를 그대로 쓰면 맵을 조금만 돌려도 셀 뷰가 타일과 어긋난다
+    // (실제 발생: 맵 Y 59.45° — 쿼드가 그만큼 돌아가 타일 경계와 안 맞았다).
+    // 앵커가 없는 프레임(맵 밖)에는 직전 값을 유지한다 — 어차피 그 프레임엔 표시할 셀이 없다.
+    private Quaternion _gridBasis = Quaternion.identity;
+
     // 프레임당 풋프린트를 1회만 계산해 캐시(스냅에서 채우고, 검증·하이라이트가 공유).
     // MouseManager는 매 프레임 Snap → CanPlaceAt 순으로 호출하므로 CanPlaceAt은 이 캐시를 신뢰한다.
     private readonly List<(Vector3 pos, BattleTile tile)> _footprint = new List<(Vector3, BattleTile)>();
@@ -247,11 +255,17 @@ public class TowerPlacer : MonoBehaviour
     }
 
     // ── 스냅: 앵커(히트 타일) 기준 W×H 풋프린트의 중심 월드 좌표 ─────────────────────
-    // 그리드가 월드 X/Z축에 정렬돼 있다고 가정한다(battlespace 회전 없음). 프리뷰도 여기서 갱신.
+    // 그리드 축은 앵커 타일의 회전에서 가져온다(`_gridBasis`) — 맵 루트가 회전돼 있어도 맞는다. 프리뷰도 여기서 갱신.
     // y는 hit.point.y(레이가 타일 옆면에 맞으면 벽면 높이) 대신 타일 앵커 y를 써서 타워가 항상 윗면에 앉는다.
     private Vector3 SnapToFootprintCenter(RaycastHit hit)
     {
         BattleTile anchor = hit.collider.GetComponentInParent<BattleTile>();
+
+        // RebuildFootprint가 이 값을 쓰므로 그보다 먼저 갱신한다.
+        if (anchor != null)
+        {
+            _gridBasis = anchor.transform.rotation;
+        }
 
         bool footprintChanged = !previewFootprintInitialized || anchor != lastPreviewAnchor;
 
@@ -265,12 +279,20 @@ public class TowerPlacer : MonoBehaviour
             UpdateRangeIndicator(CalculatePreviewRange());
         }
 
-        Vector3 result = anchor != null
-            ? new Vector3(
-                anchor.transform.position.x + (_activeData.GridWidth - 1) * 0.5f * tileSize,
-                anchor.AnchorPosition.y,
-                anchor.transform.position.z + (_activeData.GridHeight - 1) * 0.5f * tileSize)
-            : hit.point;
+        Vector3 result;
+        if (anchor != null)
+        {
+            // 중심은 그리드 축을 따라 (W-1)/2, (H-1)/2 칸만큼 이동한 지점이다(1×1이면 오프셋 0).
+            Vector3 center = GridStep(
+                anchor.transform.position,
+                (_activeData.GridWidth - 1) * 0.5f,
+                (_activeData.GridHeight - 1) * 0.5f);
+            result = new Vector3(center.x, anchor.AnchorPosition.y, center.z);
+        }
+        else
+        {
+            result = hit.point;
+        }
 
         if (_rangeCircle != null)
         {
@@ -405,6 +427,14 @@ public class TowerPlacer : MonoBehaviour
     private static bool IsBuildable(BattleTile tile)
         => tile != null && tile.Kind == TileKind.Grass && !tile.Occupied;
 
+    // 앵커 기준 (i, j)칸만큼 **그리드 축을 따라** 이동한 지점. y는 원점 값을 그대로 유지한다
+    // (순수 yaw면 오프셋이 수평이라 어차피 유지되지만, 축이 기울어도 호출부의 y 규약을 깨지 않게 못박는다).
+    private Vector3 GridStep(Vector3 origin, float i, float j)
+    {
+        Vector3 offset = _gridBasis * new Vector3(i * tileSize, 0f, j * tileSize);
+        return new Vector3(origin.x + offset.x, origin.y, origin.z + offset.z);
+    }
+
     // 앵커 기준 W×H 각 셀의 (중심 위치, BattleTile)을 _footprint에 채운다(재사용 버퍼로 할당 없이 질의).
     // 셀→타일 레지스트리가 없으므로 좌표(tileSize 간격)로 그 지점을 OverlapSphere해서 찾는다.
     private void RebuildFootprint(BattleTile anchor)
@@ -417,7 +447,7 @@ public class TowerPlacer : MonoBehaviour
         {
             for (int j = 0; j < _activeData.GridHeight; j++)
             {
-                Vector3 cell = new Vector3(a.x + i * tileSize, a.y, a.z + j * tileSize);
+                Vector3 cell = GridStep(a, i, j);
                 _footprint.Add((cell, TileAt(cell)));
             }
         }
@@ -457,7 +487,7 @@ public class TowerPlacer : MonoBehaviour
             GameObject q = GameObject.CreatePrimitive(PrimitiveType.Quad);
             q.name = "TowerCellHighlight";
             Destroy(q.GetComponent<Collider>()); // 배치 레이캐스트를 방해하지 않도록 콜라이더 제거
-            q.transform.rotation = Quaternion.Euler(90f, 0f, 0f); // XZ 바닥에 눕힘
+            // 회전은 UpdateCellHighlights가 매 프레임 그리드 축에 맞춘다(여기선 앵커를 아직 모른다).
             q.transform.localScale = Vector3.one * (tileSize * 0.9f);
             _cellHighlights.Add(q);
         }
@@ -473,7 +503,10 @@ public class TowerPlacer : MonoBehaviour
             // 하이라이트 표시 y를 타일 윗면(앵커)에 맞춘다 — 타워 배치 y와 일치. 타일 없으면 풋프린트 y 폴백.
             // (탐지용 RebuildFootprint/TileAt은 루트 y 유지 — 앵커가 콜라이더 위쪽일 때 OverlapSphere 놓침 방지)
             float topY = tile != null ? tile.AnchorPosition.y : pos.y;
-            q.transform.position = new Vector3(pos.x, topY + 0.03f, pos.z); // z-파이팅 방지 살짝 위로
+            // 쿼드를 XZ 바닥에 눕히고(Euler 90) 그 위에 그리드 yaw를 얹는다 — 순서가 뒤바뀌면 축이 틀어진다.
+            q.transform.SetPositionAndRotation(
+                new Vector3(pos.x, topY + 0.03f, pos.z), // z-파이팅 방지 살짝 위로
+                _gridBasis * Quaternion.Euler(90f, 0f, 0f));
             q.GetComponent<Renderer>().sharedMaterial = IsBuildable(tile) ? _cellMatValid : _cellMatInvalid;
         }
     }
