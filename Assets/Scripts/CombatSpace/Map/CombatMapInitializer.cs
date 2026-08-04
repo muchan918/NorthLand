@@ -22,7 +22,9 @@ namespace CombatSpace
         [SerializeField]
         private bool initializeWithDebugSeedOnStart;
 
+        private bool isInitialized;
 
+        public bool IsInitialized => isInitialized;
 
         [ContextMenu("Initialize Combat Map")]
         public void InitializeCombatMap()
@@ -35,7 +37,7 @@ namespace CombatSpace
 
         private void Start()
         {
-            if (initializeWithDebugSeedOnStart)
+            if (initializeWithDebugSeedOnStart && !isInitialized)
             {
                 InitializeCombatMap();
             }
@@ -46,13 +48,23 @@ namespace CombatSpace
             return InitializeCombatMapInternal(requestedSeed);
         }
 
-        private bool InitializeCombatMapInternal(
-    int? requestedSeed)
+        private bool InitializeCombatMapInternal(int? requestedSeed)
         {
+            if (isInitialized)
+            {
+                Debug.LogWarning(
+                    "전투맵은 이미 초기화되었습니다. 중복 초기화를 건너뜁니다.",
+                    this
+                );
+
+                return true;
+            }
+
             if (!ValidateReferences())
             {
                 return false;
             }
+         
 
             bool generated =requestedSeed.HasValue? mapGenerator.TryGenerate(requestedSeed.Value): mapGenerator.TryGenerate();
 
@@ -93,6 +105,9 @@ namespace CombatSpace
                 $"{revealController.RevealData.RevealedTileCount}개",
                 this
             );
+
+
+            isInitialized = true;
 
             return true;
         }
