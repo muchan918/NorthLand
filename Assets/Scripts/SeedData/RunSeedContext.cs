@@ -14,17 +14,11 @@ namespace NorthLand.Core
 
         public RunData RunData => runData;
 
-        public RunSeedData Data =>
-            runData != null ? runData.SeedData : null;
+        public RunSeedData Data => runData != null ? runData.SeedData : null;
 
-        public bool IsInitialized =>
-            runData != null &&
-            runData.SeedData != null;
+        public bool IsInitialized => runData != null && runData.SeedData != null;
 
-        public int MasterSeed =>
-            IsInitialized
-                ? runData.SeedData.MasterSeed
-                : 0;
+        public int MasterSeed => IsInitialized? runData.SeedData.MasterSeed : 0;
 
         /// <summary>
         /// 무작위 마스터 시드로 새로운 Run을 시작한다.
@@ -43,22 +37,13 @@ namespace NorthLand.Core
         {
             RunSeedData seedData = new RunSeedData
             {
-                SeedVersion =
-                    RunSeedDeriver.CurrentVersion,
+                SeedVersion = RunSeedDeriver.CurrentVersion,
 
                 MasterSeed = masterSeed,
 
-                CombatMapRequestedSeed =
-                    RunSeedDeriver.Derive(
-                        masterSeed,
-                        RunSeedDeriver.CombatMapTag
-                    ),
+                CombatMapRequestedSeed =RunSeedDeriver.Derive(masterSeed,RunSeedDeriver.CombatMapTag),
 
-                TerritoryRequestedSeed =
-                    RunSeedDeriver.Derive(
-                        masterSeed,
-                        RunSeedDeriver.TerritoryTag
-                    )
+                TerritoryRequestedSeed =RunSeedDeriver.Derive(masterSeed,RunSeedDeriver.TerritoryTag)
             };
 
             runData = new RunData

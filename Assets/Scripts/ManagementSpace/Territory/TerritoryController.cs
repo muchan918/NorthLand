@@ -15,10 +15,6 @@ public class TerritoryController : MonoBehaviour
     [Tooltip("절차 생성 파라미터 (TerritoryGraph.md §4.1)")]
     [SerializeField] TerritoryGraphGenSettings _settings = new();
 
-    [Tooltip("에디터 테스트용 시드 Override.0이면 RunBootstrapper가 전달한 시드를 사용한다.")]
-    [SerializeField]
-    int _seed = 0;
-
     [Tooltip("노드에 랜덤 배정할 미개척 영지 정의 풀(금/루비/사파이어/다이아 등). 비우면 영지 없이 지형만 생성된다(TerritoryGraph.md §5).")]
     [SerializeField] List<TerritoryDefinition> _definitionPool = new();
 
@@ -36,7 +32,12 @@ public class TerritoryController : MonoBehaviour
 
     private DayNightManager _dayNight;
 
-    // 모델은 Awake에서 구축한다 — 뷰의 Start()가 어떤 순서로 돌든 그래프가 준비돼 있도록(ManagementController와 동일 이유).
+    [Tooltip("RunBootstrapper가 없는 테스트 씬에서 고정 시드로 영토를 초기화합니다.")]
+    [SerializeField]
+    private bool initializeWithoutRunBootstrapper = true;
+
+    // 정본 게임에서는 RunBootstrapper가 먼저 초기화한다.
+    // 테스트 씬에서는 Start의 명시적 fallback을 사용한다.
     private void Awake()
     {
         if (Instance == null)
@@ -58,9 +59,7 @@ public class TerritoryController : MonoBehaviour
             return false;
         }
 
-        int effectiveSeed =_seed != 0? _seed: requestedSeed;
-
-        Graph = BuildGeneratedGraph(_settings,effectiveSeed,_definitionPool);
+        Graph = BuildGeneratedGraph(_settings,requestedSeed,_definitionPool);
 
         if (Graph == null)
         {
@@ -69,20 +68,23 @@ public class TerritoryController : MonoBehaviour
             return false;
         }
 
-        UsedSeed = effectiveSeed;
-
+        UsedSeed = requestedSeed;
         Graph.OnChanged += HandleGraphChanged;
-
-        Debug.Log($"[영토] 그래프 초기화 완료 요청 Seed: {requestedSeed} 사용 Seed: {UsedSeed} 노드: {Graph.Nodes.Count}개",this);
 
         return true;
     }
 
     private void Start()
     {
+        if (Graph == null && initializeWithoutRunBootstrapper)
+        {
+            Debug.LogWarning("[영토] RunBootstrapper 없이 테스트 시드로 초기화합니다.",this);
+
+            Initialize(12345);
+        }
+
         SubscribeDayNight();
     }
-
     private void OnDestroy()
     {
         if (_dayNight != null)

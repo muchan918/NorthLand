@@ -88,7 +88,11 @@ namespace NorthLand.Core
 
             RunSeedData seedData = seedContext.Data;
 
-            bool initialized =combatMapInitializer.InitializeCombatMap(seedData.CombatMapRequestedSeed);
+            // 신규 게임은 UsedSeed가 아직 0이므로 RequestedSeed 사용.
+            // 이어하기는 저장된 최종 UsedSeed 사용.
+            int generationSeed =seedData.CombatMapUsedSeed != 0? seedData.CombatMapUsedSeed: seedData.CombatMapRequestedSeed;
+
+            bool initialized =combatMapInitializer.InitializeCombatMap(generationSeed);
 
             if (!initialized)
             {
@@ -99,7 +103,8 @@ namespace NorthLand.Core
 
             seedContext.RecordCombatMapUsedSeed(combatMapInitializer.UsedSeed);
 
-            Debug.Log($"[RunSeed] 전투맵 시드 기록 완료 요청: {seedData.CombatMapRequestedSeed}사용: {seedData.CombatMapUsedSeed}",this);
+            Debug.Log($"[RunSeed] 전투맵 시드 기록 완료 요청: {seedData.CombatMapRequestedSeed} " +
+                $"생성 입력: {generationSeed} 최종 사용: {seedData.CombatMapUsedSeed}",this);
         }
         private void InitializeTerritory()
         {
@@ -112,7 +117,11 @@ namespace NorthLand.Core
 
             RunSeedData seedData = seedContext.Data;
 
-            bool initialized =territoryController.Initialize(seedData.TerritoryRequestedSeed);
+            // 신규 게임은 UsedSeed가 0이므로 RequestedSeed를 사용하고,
+            // 이어하기는 저장된 최종 UsedSeed를 사용한다.
+            int territorySeed = seedData.TerritoryUsedSeed != 0? seedData.TerritoryUsedSeed: seedData.TerritoryRequestedSeed;
+
+            bool initialized =territoryController.Initialize(territorySeed);
 
             if (!initialized)
             {
@@ -123,8 +132,7 @@ namespace NorthLand.Core
 
             seedContext.RecordTerritoryUsedSeed(territoryController.UsedSeed);
 
-            Debug.Log($"[RunSeed] 영토 시드 기록 완료 요청:{seedData.TerritoryRequestedSeed}\n" +
-                $"사용: {seedData.TerritoryUsedSeed}",this);
+            Debug.Log($"[RunSeed] 영토 시드 기록 완료 요청:{seedData.TerritoryRequestedSeed} 사용: {seedData.TerritoryUsedSeed}",this);
         }
-    }
+    } 
 }

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace CombatSpace
 {
@@ -15,9 +16,12 @@ namespace CombatSpace
         [SerializeField]
         private CombatMapRevealController revealController;
 
-        [Header("Runtime")]
+
+        [Header("Editor Test")]
+        [FormerlySerializedAs("initializeOnStart")]
         [SerializeField]
-        private bool initializeOnStart;
+        private bool initializeWithDebugSeedOnStart;
+
 
 
         [ContextMenu("Initialize Combat Map")]
@@ -31,7 +35,7 @@ namespace CombatSpace
 
         private void Start()
         {
-            if (initializeOnStart)
+            if (initializeWithDebugSeedOnStart)
             {
                 InitializeCombatMap();
             }

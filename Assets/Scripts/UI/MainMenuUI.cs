@@ -94,15 +94,25 @@ namespace NorthLand.UI
 
         public void OnClickOpenseedGamePanle()
         {
-            seedGamePanle.SetActive(true);
+            SetSeedGamePanelActive(true);
         }
 
         public void OnClickCloseseedGamePanle()
         {
-            seedGamePanle.SetActive(false);
+            SetSeedGamePanelActive(false);
         }
 
+        private void SetSeedGamePanelActive(bool isActive)
+        {
+            if (seedGamePanle == null)
+            {
+                Debug.LogError("[MainMenuUI] 시드 게임 패널이 연결되지 않았습니다.",this);
 
+                return;
+            }
+
+            seedGamePanle.SetActive(isActive);
+        }
 
     }
 }

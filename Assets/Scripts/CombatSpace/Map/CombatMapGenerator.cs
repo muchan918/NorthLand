@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace CombatSpace
 {
@@ -13,9 +14,9 @@ namespace CombatSpace
         public CombatMapGenerationSettings Settings =>
             settings;
 
-        [Header("Seed")]
+        [FormerlySerializedAs("seed")]
         [SerializeField]
-        private int seed = 12345;
+        private int debugSeed = 12345;
 
         [Header("Generation Retry")]
         [SerializeField]
@@ -97,15 +98,16 @@ namespace CombatSpace
             TryGenerate();
         }
 
-        // Inspector seed를 사용하는 기존 개발용 경로.
+        // Inspector ContextMenu 단독 테스트용
         public bool TryGenerate()
         {
-            return TryGenerate(seed);
+            return TryGenerate(debugSeed);
         }
 
         // Run 시스템에서 요청 시드를 주입하는 운영 경로.
         public bool TryGenerate(int requestedSeed)
         {
+    
             RequestedSeed = requestedSeed;
 
             CurrentMap = null;
@@ -163,10 +165,7 @@ namespace CombatSpace
         }
 
         // 하나의 시드로 맵 생성 시도
-        private bool TryGenerateWithSeed(
-            int generationSeed,
-            out CombatMapData generatedMap,
-            out string errorMessage)
+        private bool TryGenerateWithSeed(int generationSeed,out CombatMapData generatedMap,out string errorMessage)
         {
             generatedMap = null;
             errorMessage = null;
@@ -278,11 +277,7 @@ namespace CombatSpace
         }
 
         // 검증된 예비 시드를 결정적인 순서로 시도
-        private bool TryGenerateWithValidatedSeeds(
-            HashSet<int> attemptedSeeds,
-            out CombatMapData generatedMap,
-            out int successfulSeed,
-            out string errorMessage)
+        private bool TryGenerateWithValidatedSeeds(HashSet<int> attemptedSeeds,out CombatMapData generatedMap,out int successfulSeed,out string errorMessage)
         {
             generatedMap = null;
             successfulSeed = 0;
@@ -299,10 +294,7 @@ namespace CombatSpace
 
             // 같은 기본 시드에서는
             // 같은 예비 시드부터 검사
-            System.Random fallbackRandom =
-                new System.Random(
-                    unchecked(seed ^ 1597463007));
-
+            System.Random fallbackRandom =new System.Random(unchecked(RequestedSeed ^ 1597463007));
             int startIndex =
                 fallbackRandom.Next(
                     validatedSeeds.Count);
