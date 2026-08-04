@@ -70,7 +70,7 @@ public static class EnemyNodeQuery
     // 감속 타워가 봉인 대상에 들어가면 그 의도가 깨진다 — `Docs/Monster/Boss/TankGraphSpec.md` 참고.
     public static bool IsAttackTower(Tower tower)
     {
-        return tower != null && tower.Has<AttackBehaviour>();
+        return tower != null && tower.Has<AttackAction>();
     }
 
     // 진행 방향 기준 앞뒤 판정. y를 버리고 수평면에서만 본다 —

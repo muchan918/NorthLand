@@ -138,7 +138,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SettingUI
   settingPanel: {fileID: 7224742997902961218}
   localizationManager: {fileID: 184594759709608589}
-  gameSpeedController: {fileID: 0}
+  settingbutton: {fileID: 0}
 --- !u!1 &965359227411926931
 GameObject:
   m_ObjectHideFlags: 0
@@ -1813,7 +1813,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1614170420404791618}
         m_TargetAssemblyTypeName: SettingUI, Assembly-CSharp
-        m_MethodName: TogglePanel
+        m_MethodName: ClosePanel
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

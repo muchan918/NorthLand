@@ -1,6 +1,6 @@
 # 전투 공간 타워 배치 — 기능 명세
 
-> **상태**: 배치 코어 · **SO 게이트웨이 · 자원 차감 · 타일 버프 · 등장 연출 구현 + 플레이 검증 완료**(2026-08-01) · 낮 전용 게이팅만 미구현(§8)
+> **상태**: 배치 코어 · **SO 게이트웨이 · 자원 차감 · 타일 버프 · 등장 연출 구현 + 플레이 검증 완료**(2026-08-01) · **되돌리기 구현**(#281, 2026-08-03) · 낮 전용 게이팅만 미구현(§8)
 > **소유**: n0wst4ndup(배치 흐름·게이트웨이·프리뷰·연출) · SUNGSOO(타워 프리팹) · muchan(타워 데이터·자원·페이즈 게이팅) · KSJ(타일 버프)
 > **구현 파일**:
 > - `Assets/Scripts/GameManager/MouseManager/TowerPlacement/BattleTile.cs` (타일 마커)
@@ -11,9 +11,9 @@
 > - `Assets/Scripts/GameManager/MouseManager/MouseManager.cs` (Snap 위임·히트 전달·OnEnded 발화)
 > - `Assets/Scripts/CombatSystem/RangeCircle.cs` (사거리 프리뷰 원 — 공용)
 > - `Assets/Scripts/CombatSystem/Vfx/TowerSpawnEffect.cs` (등장 연출 — **임시**, §9.3)
-> **관련**: GDD §5.1·§5.8·§6.2, MouseManager #9, 통합 #71, 합성 #263, 연출 #264·#265
+> **관련**: GDD §5.1·§5.8·§6.2, MouseManager #9, 통합 #71, 합성 #263, 연출 #264·#265, 타워 구조 #274
 > **WatchList**: WL-001 / WL-005 / WL-011 / WL-034 / WL-067 / WL-077 (해소분은 `WatchList-Archive.md`: WL-004 · WL-007 · WL-129)
-> **참조**: `Docs/Core/MouseManager.md`, `Docs/Core/TowerMerge.md`, `Docs/Core/InteractionOutline.md`, `Docs/BattleMapBuilder/BattleMapBuilder.md`, `Docs/Review/SystemMap.md`
+> **참조**: `Docs/Core/Tower.md`(배치되는 타워 본체 — 조립·스탯·데이터), `Docs/Core/MouseManager.md`, `Docs/Core/TowerMerge.md`, `Docs/Core/InteractionOutline.md`, `Docs/BattleMapBuilder/BattleMapBuilder.md`, `Docs/Review/SystemMap.md`
 > 코드가 이 명세와 어긋나면 문서를 갱신한다(팀 계약 #7).
 
 ---
@@ -66,9 +66,66 @@
 | TileKind | Grass(건설가능) / Road(경로) / Lava(위험) |
 | 점유 | `BattleTile.Occupied` (타일별 런타임 bool) |
 
-**좌표**: 배치 측은 월드↔셀 변환을 하지 않는다. 히트한 **타일 GameObject를 직접** 다루고, 풋프린트의 이웃 셀은 `tileSize` 간격으로 앵커 주변 지점을 공간 질의(`OverlapSphere(cell, tileSize*0.4f)`)해 찾는다. **그리드가 월드 X/Z축에 정렬돼 있다고 가정**한다(battlespace 회전 없음).
+**좌표**: 배치 측은 월드↔셀 변환을 하지 않는다. 히트한 **타일 GameObject를 직접** 다루고, 풋프린트의 이웃 셀은 `tileSize` 간격으로 앵커 주변 지점을 공간 질의(`OverlapSphere(cell, tileSize*0.4f)`)해 찾는다.
+
+**그리드 축 = 타일 루트(`CombatMapTileSpawner.CoordinateRoot`)의 회전**(2026-08-04 확정).
+이전 판은 **월드 X/Z축 정렬을 가정**했는데, 맵 루트를 회전시키자 깨졌다(실제 발생: `MapBuilder` Y **59.45°**).
+
+- `TowerPlacer`가 `Awake`에서 `CombatMapTileSpawner.CoordinateRoot`(공개 프로퍼티)를 `_gridRoot`로 잡고,
+  `GridBasis`(= `_gridRoot.rotation`)를 이웃 셀 오프셋(`GridStep`)·셀 하이라이트 회전·배치물/고스트 회전에 쓴다.
+- `tileSize`와 **같은 출처**(스포너)에서 축을 받으므로 앵커 유무와 무관하다.
+- 스포너가 없는 씬(구맵·테스트)에서는 identity로 떨어져 기존 월드 축 동작이 유지된다.
+
+> **이력 주의** — 이 절은 하루 안에 두 번 바뀌었다. 1차 수정은 **앵커 타일의 회전**을 기준축으로 썼고
+> "`tileRoot`를 노출할 필요가 없다"고 적었다. 그것이 성립한 이유는 타일이 `localRotation = identity`로
+> 생성된다는 전제뿐이어서, **타일 프리팹에 랜덤 yaw(반복감 제거)가 들어오면 셀마다 축이 튄다.**
+> 그래서 2차로 타일 루트를 공개해 출처를 통일했다(현행). 옛 서술(`_gridBasis`를 앵커에서 읽는다)은 폐기다.
+
+| 증상 | 수정 전 | 수정 후 |
+|---|---|---|
+| 셀 하이라이트 쿼드 방향 | 월드 고정 `Euler(90,0,0)` → 타일 경계와 **59.45° 어긋남** | `GridBasis * Euler(90,0,0)` → 각도차 **0.0000°** |
+| 이웃 셀 (1,0) 위치 | 월드 X로 이동 → 정답에서 **5.95유닛** 벗어남(`OverlapSphere` 반경 2.4 초과 → 타일 못 찾음) | 맵 로컬 X로 정확히 `tileSize` 이동 |
+
+⚠️ 쿼드 회전은 `basis * Euler(90,0,0)` **순서**여야 한다 — 뒤바꾸면 축이 틀어진다. 그리고 쿼드 회전을 `CreateCellHighlights`(배치 시작 1회)에서 `UpdateCellHighlights`(매 프레임)로 옮겼다.
+
+> 셀 하이라이트 어긋남만 눈에 보였던 이유는 **현재 타워 9종이 전부 1×1**이라서다(`TowerTable.csv`). W=H=1이면 이웃 셀 오프셋과 중심 오프셋이 모두 0이 되어 위치 버그가 드러나지 않는다. 다중 셀 타워가 추가되는 순간 배치 자체가 불가능해질 잠재 버그였다.
+
+**타워 본체와 고스트도 그리드 축에 맞춘다** (2026-08-04). 이전에는 `Instantiate`에 회전 인자가 없어 identity로 놓여, 회전된 그리드 위에 월드 정렬된 타워가 앉았다.
+
+- 배치물: `Instantiate(towerPrefab, snappedPos, GridBasis)`
+- 고스트: `PlacementRequest.GhostRotation`(신설, 기본 identity)에 요청 측이 그리드 기준축을 넣는다.
+  배치 세션 동안 상수라 매 프레임 갱신하지 않는다 — 맵 루트는 런타임에 돌지 않는다.
+- `PlacementButton`(테스트 헬퍼)은 `Snap`이 없어 그리드에 붙지 않으므로 identity 기본값이 맞다 — 손대지 않았다.
 
 **`tileSize` 출처 (WL-034)**: `TowerPlacer.Awake`가 씬의 `CombatMapGenerator.Settings.TileSize`를 찾아 인스펙터 값을 **덮어쓴다**. 인스펙터 `tileSize`(기본 5)는 구맵·테스트 씬 폴백이다.
+
+**확정 값: 타일 스케일 1 + `TileSize` 6** (2026-08-04, sunjin1222·n0wst4ndup 합의). 이전은 같은 타일 아트를 2.5배 키워 `TileSize` 15였다.
+
+**타일 아트가 스케일 1에서 정확히 6.00 × 6.00 유닛이다**(`RoadTile`·`GrassTile`·`LavaTile` 실측). 그래서 `TileSize 6`이 아트와 일치하는 값이고, **월드 단위로 authoring된 모든 값은 `6/15 = 0.4`를 곱해야** 타일 대비 비율이 유지된다. 배치 측 `tileSize`는 위 단일 출처로 자동 추종하지만 월드 단위 authoring 값은 추종하지 않으므로, 2026-08-04에 일괄 조정했다(아래).
+
+**`TileSize` 15 → 6 일괄 조정 기록**
+
+| 대상 | 처리 |
+|---|---|
+| 타워 프리팹 16개(본체·고스트·투사체) | 루트 스케일 **×0.4** — `CandyCanon`·`CandyCanon-Ghost`는 선행 조정돼 있어 건너뜀 |
+| `TowerAsset` 9개 | `AttackRange`·`Radius`·`SplashRadius`·투사체 `Speed` **×0.4** |
+| `EnemyAsset` 8개 | `MoveSpeed`·`AttackRange`·`ProjectileSpeed` **×0.4** |
+| 씬 값 | `revealYOffset` 18→7.2 · `monsterWaypointYOffset` 8→3.2(WL-063) · `SkillManager.radius` 15→6 · `TowerPlacer.dummyAttackRange` 48→19.2 |
+
+조정 후 실측 — **타일 15 시절 의도값으로 복귀했다.**
+
+| | 조정 전 | **조정 후** | 타일 15 시절 의도 |
+|---|---|---|---|
+| 타워 크기 | 1.65 ~ 1.94칸 | **0.60 ~ 0.78칸** | 0.66칸 |
+| 타워 사거리 | 5.0 ~ 15.0칸 | **2.00 ~ 6.00칸** | 2.0 ~ 6.0칸 |
+
+⚠️ **스케일 대상이 아닌 것** — 헷갈리기 쉬운 항목이다.
+- **`BaseProtectionRange`(5)**: `int`이고 `GrassEroder`가 **타일 거리**로 비교한다(`distance <= BaseProtectionRange`) → 월드 단위가 아니라 이미 타일 단위다.
+- **배율·시간류**: `DamagePerSpeedUnit`·`SpeedFactor`·`AttackSpeedMul`·`HoldDuration`·쿨다운·간격.
+- **`RangeCircle`·`TowerSpawnEffect`·`GrainSwarm`**: 사거리/`tileSize`를 인자로 받으므로 위 값이 바뀌면 자동 추종한다.
+- **카메라 줌 범위(30~150)**: 룩 기준으로 별도 튜닝됨(`VisualLookPipeline.md` §3.7).
+
+⚠️ **미처리 — 보스 패턴 임계값**(`Assets/Behavior/TankBossBehavior.asset`, #235 진행 중). 블랙보드 변수라 C# grep에 걸리지 않고 그래프 에셋에 **같은 변수가 여러 벌 직렬화**돼 있어 일괄 곱하면 조용히 어긋난다. `BossDesign.md`가 이미 "시드 3개에서 눈으로 확인 후 확정"을 요구하는 항목이므로 **소유자가 Behavior Graph 에디터에서 적용할 것** — 목표값은 `BossDesign.md`에 적었다.
 
 | 출처 | 값 | 비고 |
 | --- | --- | --- |
@@ -144,7 +201,7 @@ bool BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost,
 
 - **반환값 = 배치 세션이 실제로 시작됐는가.** `false`면 `onEnded`도 **영영 오지 않는다** → 호출부가 배치 동안 유지하려던 상태를 걸어두면 안 된다는 신호다(합성이 이 신호로 커맨드를 즉시 `Undo`한다).
 - `onEnded`는 확정/취소 **무관하게** 세션 종료 시 1회. **어느 쪽으로 끝났는지는 알려주지 않는다** — 구분이 필요한 소비처는 자기 상태로 판단해야 한다(`TowerMergeCommand`가 그렇게 한다).
-- **프리뷰 사거리 해석**은 `TowerBehaviourFactory.ResolveAttackFields(so)` 단일 출처를 쓴다(WL-079). 공격 스탯이 없고 `TowerType == Magic`이면 `TowerAsset.MagicRadius`(오라 반경), 둘 다 없으면 LogError + `false`.
+- **프리뷰 사거리 해석**은 `TowerAsset.PreviewRadius` 단일 출처를 쓴다(WL-056/WL-079, #274). 공격 사거리와 두 오라 반경 중 **최댓값**이라 호출부가 타워 종류를 알 필요가 없다 — 예전에는 여기서 `TowerType`을 보고 분기했고 그것이 종류를 아는 4번째 지점이었다. 종류를 해석하지 않으므로 **"둘 다 없음" LogError 분기 자체가 사라졌다**(값이 0이면 원이 안 그려질 뿐이다).
 
 > ⚠ **콜백 등록 순서**: `_onConfirmed`/`_onEnded`는 반드시 `MouseManager.BeginPlacement` **이후**에 대입한다. `BeginPlacement` 내부의 `CancelPlacement`가 **이전** 배치의 `OnEnded`를 발화해 두 필드를 소비·null 처리하기 때문이다. 먼저 대입하면 합성 재료 소모 콜백이 유실돼 **무료 합성**이 된다. 프리뷰 생성도 같은 이유로 `BeginPlacement` 이후다.
 
@@ -175,17 +232,23 @@ bool BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost,
 5. `TowerGroupSelectable` 부착 — 합성 재료 후보로 등록(결과 타워도 이 경로라 다단 합성 가능)
 6. **`TowerTileBuff.Initialize(...)`** ← **반드시 `Tower.Build` 앞**
 7. `Tower.Build(_activeAsset)` — **패널에서 산 SO가 프리팹이 문 SO를 이긴다**(WL-129). 다르면 경고 후 산 쪽으로 재조립. `Tower` 없는 프리팹은 LogError
-8. `onConfirmed(placed.transform)` 1회 실행 (먼저 비우고 호출 → `keepPlacing`에서 재실행 방지)
-9. **`TowerSpawnEffect.Play(...)`** — 로직이 전부 끝난 뒤 마지막 (§9.3)
+8. **`TowerPlaceCommand` 인수 + `Execute()`** — 되돌리기 커맨드가 방금 선 타워와 실지불 비용을 넘겨받는다(#281). 배치를 **수행하지 않고 인수만 한다** — 실패해도 배치는 정상이고 "되돌릴 수 없다"만 잃으므로 경고로 드러내고 진행
+9. `onConfirmed(command)` 1회 실행 (먼저 비우고 호출 → `keepPlacing`에서 재실행 방지)
+10. **히스토리 등록** — `_historyOwner == PlacementOwner.Placer`일 때만 `CommandHistory.Push(command)`
+11. **`TowerSpawnEffect.Play(...)`** — 로직이 전부 끝난 뒤 마지막 (§9.3)
 
-> **8 → 9 순서도 계약이다**(#265): 합성 연출이 8단계에서 결과 타워의 `bounds`를 재 수렴 목적지로 삼는데, 9단계가 시작하는 즉시 그 타워의 스케일이 0이 된다. 뒤집으면 입자가 쪼그라든 상자의 중심으로 모인다.
+> **9 → 11 순서도 계약이다**(#265): 합성 연출이 9단계에서 결과 타워의 `bounds`를 재 수렴 목적지로 삼는데, 11단계가 시작하는 즉시 그 타워의 스케일이 0이 된다. 뒤집으면 입자가 쪼그라든 상자의 중심으로 모인다. 콜백 인자가 `Transform`에서 `TowerPlaceCommand`로 바뀌었지만(#281) 연출이 쓰는 값은 `command.Placed`로 같으므로 이 계약은 그대로다.
+
+> **10단계의 소유권 신호가 필요한 이유**(#281): 일반 배치와 합성 결과 배치가 **같은 `PlaceTower`를 공유**한다. 무조건 등록하면 합성 결과에 `TowerPlaceCommand`와 `TowerMergeCommand`가 둘 다 올라가 한 번의 합성이 두 번에 나눠 되감긴다(중간에 결과도 재료도 없는 빈 타일이 한 번 보인다). 그래서 합성은 `PlacementOwner.Caller`로 열고 결과 커맨드를 `TowerMergeCommand.AdoptResult`로 편입한다. **`onConfirmed != null` 같은 암묵 판정을 쓰지 않는다** — 확정 콜백을 쓰는 세 번째 소비처가 생기는 순간 이중 등록/미등록으로 조용히 갈린다. `historyOwner`에 기본값이 없는 것도 같은 이유다.
+
+> **소유권은 확정 콜백과 같은 1회성 값이다**(#281): 10단계 직후 `_historyOwner`를 `PlacementOwner.Placer`로 되돌린다. `keepPlacing`(WL-105)이 켜지면 한 세션에서 `PlaceTower`가 여러 번 도는데, 그때 `Caller`가 남아 있으면 2번째 이후 클릭이 만드는 결과 타워 복제분이 `AdoptResult`도 `Push`도 받지 못해 **영구히 되돌릴 수 없다.** 복제분은 재료를 쓰지 않고 `ExtraCost`만 지불한 별개 배치이므로 각자 독립 커맨드로 히스토리에 오르는 것이 옳다. `OnEnded`의 리셋만으로는 못 막는다 — 그건 세션이 끝날 때만 돌고, 이 문제는 세션 안에서 벌어진다.
 
 > **6 → 7 순서를 뒤집으면 안 되는 이유**: 버프 오라는 **조립 시점에 자기 반경으로 대상을 한 번 훑는데**, 그 반경이 타일 버프(사거리)에 의존한다. 순서가 뒤바뀌면 첫 적용이 버프 이전 반경으로 계산된다. 구 `AuraTower`가 `Start`에서 반경을 재계산하던 우회로가 정확히 이 문제였고, 여기서 순서를 정해 그 우회로를 없앴다.
 
 **TowerPlacer 판정**:
 - `Snap`: 앵커 기준 풋프린트 **중심**으로 스냅(y = 타일 앵커). 앵커가 바뀐 프레임에만 풋프린트를 재구성하고 사거리 원을 갱신한다.
 - `CanPlaceAt`: 풋프린트 전 셀이 `Grass && !Occupied` + `CanAfford`. **`Snap`이 채운 캐시를 신뢰한다**(MouseManager가 매 프레임 Snap → CanPlaceAt 순으로 호출).
-- `OnEnded`: 프리뷰 정리 → `_onConfirmed` 폐기(취소로 끝났으면 재료 보존) → 종료 통지를 **먼저 비우고** 호출(구독자가 그 안에서 새 배치를 시작해도 중복 발화 없음).
+- `OnEnded`: 프리뷰 정리 → `_onConfirmed`·`_historyOwner` 폐기(취소로 끝났으면 재료 보존) → 종료 통지를 **먼저 비우고** 호출(구독자가 그 안에서 새 배치를 시작해도 중복 발화 없음).
 
 **전제(와이어링)**: 타일이 `_placementMask`(Ground) 레이어 + Collider 보유, 씬에 `MouseManager` 존재, `TowerAsset`에 tower/ghost 프리팹 지정(고스트는 Collider 없음), `TowerPlacer.tileBuffRules`에 `TileBuffRuleSettings` 지정.
 
@@ -197,8 +260,11 @@ bool BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost,
 | --- | --- | --- |
 | **자원 차감** | ✅ 구현 | `ManagementController.CanAfford`(검증) / `TrySpend`(확정). 비용 출처 = `TowerAsset.Cost`. 컨트롤러가 씬에 없으면 **무료 배치**(경영 없는 테스트 씬 지원) |
 | **낮 전용 게이팅** | ❌ 미구현 | `TowerPlacer` 진입에 `DayNightManager.CurrentPhase` 확인이 없다. 완화만 존재 — `PhasePanelSwitcher.ShowNight`가 밤 진입 시 진행 중 배치를 취소한다. 합성 실행부 축은 **WL-077**(muchan) |
+| **되돌리기**(#281) | ✅ 구현 | 확정 시 `TowerPlaceCommand`를 `CommandHistory`에 올린다(LIFO 20). 되돌리면 타워를 파괴하고 `ManagementController.Grant`로 **실지불 비용을 100% 환원**한다. `OnDayToNight`에 히스토리 전체가 `Commit`돼 되돌리기 불가로 확정된다 |
 
-> 자원은 `ResourceWallet`에 직접 접근하지 않고 **반드시 `ManagementController` 경유**다(WL-017). `TrySpend`는 원자적 — 전부 감당 가능할 때만 전부 차감한다.
+> 자원은 `ResourceWallet`에 직접 접근하지 않고 **반드시 `ManagementController` 경유**다(WL-017). `TrySpend`는 원자적 — 전부 감당 가능할 때만 전부 차감한다. 환원(`Grant`)은 그 대칭짝이며, 인자는 반드시 **커맨드가 들고 있는 실지불 비용**이어야 한다(임의 수량 지급 금지 — 팀 계약 #3·#6).
+
+> **되돌리기가 타일을 되찾는 순서**(#281): 되돌린 타워는 `Object.Destroy` **전에** `TowerFootprint.Release()`를 명시적으로 부른다. `Destroy`는 프레임 끝까지 지연되므로 그러지 않으면, 합성 되돌리기가 곧바로 재료를 `Reoccupy`할 때 그 타일이 아직 점유 상태로 보여 `TowerFootprint`가 소유권을 포기한다(재료가 타일 없는 타워로 되살아난다).
 
 ---
 
@@ -272,7 +338,7 @@ const float PopDuration      = 0.28f;   // 〃
 >
 > 콜라이더도 이 창 동안 함께 죽는다. 단 **드래그 선택은 콜라이더가 아니라 위치 기반**(`MouseManager.RefreshBoxHits`)이라 스케일 0인 타워에도 도달한다 — "연출 중엔 선택이 안 된다"고 가정하면 안 된다.
 >
-> 공격은 문제가 되지 않는다. `AttackBehaviour.ActivePhase == NightOnly`이고 `Tower.Update`가 낮이면 Tick을 건너뛴다.
+> 공격은 문제가 되지 않는다. `AttackAction.ActivePhase == NightOnly`이고 `Tower.Update`가 낮이면 Tick을 건너뛴다.
 
 **왜 이렇게까지 하는가**: 타워 에셋이 임시라 통째로 교체될 예정이기 때문이다. 연출이 특정 메시·머티리얼·계층 구성을 조금이라도 참조하면 교체와 함께 깨진다. 그 결과 **대상이 타워일 필요조차 없어서** Renderer가 달린 큐브에 그대로 재생되고, 에셋 없이 연출을 튜닝·검증할 수 있다.
 
@@ -375,7 +441,7 @@ const float PopDuration      = 0.28f;   // 〃
 - **WL-034 (`tileSize` 이중화, PARTIAL)** — 신맵은 단일 출처화됐으나 `TowerPlacer.tileSize`와 `StageBuilder.TileSize`가 여전히 독립이고, 좌표 변환식 사본이 여러 곳에 있다. 공용 셀↔월드 변환 유틸로 흡수 예정. (코드 주석의 `WL-032` 표기는 오기 — §3)
 - **WL-067 (타일 계약 이원화)** — 배치는 `BattleTile.Kind`, 스킬 조준은 `CombatMapTileView.TileType`. `TowerPlacer`를 후자로 이관.
 - **WL-011 (선택 통지 이중 경로)** — 타워 정보 패널 연동에 영향.
-- **WL-001 (PARTIAL)** — `lightning_tower`(TowerType=Chain)만 Attack/ChainRadius/MaxChainTargets가 전부 0이라 **배치해도 무동작**이다.
+- **WL-001 (PARTIAL)** — `lightning_tower`(`Impact=Chain`)만 Attack/ChainRadius/MaxChainTargets가 전부 0이라 **배치해도 무동작**이다. ⚠ `TowerPrefab`/`GhostPrefab`이 둘 다 null이라 저작 검증(`TowerAsset.OnValidate`)도 이 SO에는 **침묵한다** — 프리팹이 없으면 검증을 건너뛰기 때문이다.
 - **WL-005 (PARTIAL)** — 대상 탐지를 LayerMask로 할지 Tag로 할지 미확정.
 
 **연출(§9.3) — 검증은 끝났고(§9.3.4), 남은 것은 "할 일"이라기보다 "열려 있는 결정"이다**
@@ -385,7 +451,9 @@ const float PopDuration      = 0.28f;   // 〃
 
 **해소됨** (`WatchList-Archive.md`)
 - ~~WL-004 (배치 검증 공백)~~ — `BattleTile` + `TowerPlacer`로 해소.
-- ~~WL-007 (좌표 이원화)~~ — 배치 측은 변환하지 않음. 단 그리드 축 정렬 가정 + WL-034에 의존.
+- **WL-007 (좌표 이원화) — 재개.** "배치 측은 변환하지 않는다"가 사실이 아니었다: 이웃 셀·중심 오프셋·하이라이트 쿼드 회전이 곧 셀→월드 변환이고, 그 사본이 월드축을 가정해 **맵 회전(Y 59.45°)에서 실제로 깨졌다**(§3 좌표, 2026-08-04 수정). 지금은 타일 루트(`CoordinateRoot`)를 기준축으로 받아 축의 출처는 통일했지만, **위치 변환식 자체는 `CombatMapTileSpawner`(로컬 공간 + `TransformPoint`)와 여전히 별개 구현**이다 — WL-034의 해소안(공용 셀↔월드 변환 유틸)이 남은 정답이다.
+- ~~**타워/고스트 회전 미결**~~ → **해소(2026-08-04).** 셀 하이라이트·타워 본체·고스트가 모두 그리드 축(`GridBasis`)을 따른다. 고스트는 `PlacementRequest.GhostRotation`으로 전달한다 — §3 좌표.
+- **`TileSize` 15 → 6 잔여: 보스 패턴 임계값**(§3.1의 미처리 항목) — `TankBossBehavior.asset` 블랙보드 변수를 소유자가 그래프 에디터에서 ×0.4 적용해야 한다(#235).
 - ~~WL-129 (산 SO ≠ 배치된 SO)~~ — `Tower.Build(_activeAsset)`로 해소(§7-7).
 
 **기타**: 점유 수명주기는 타일별 플래그 + `TowerFootprint.OnDestroy`라 맵 리셋(타일 파괴/재생성) 시 자동 초기화된다.

@@ -18,9 +18,9 @@ MonoBehaviour:
   Melee:
     Stat:
       MaxHp: 30
-      MoveSpeed: 40
+      MoveSpeed: 16
       AttackDamage: 10
-      AttackRange: 2
+      AttackRange: 0.8
       AttackInterval: 1
   Ranged:
     Stat:

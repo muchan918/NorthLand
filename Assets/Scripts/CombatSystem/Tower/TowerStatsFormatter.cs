@@ -47,6 +47,35 @@ namespace NorthLand.Combat
             return $"{modifier.Stat} {sign}{modifier.Amount:0.#}{(modifier.IsPercentage ? "%" : "")}";
         }
 
+        /// 합성으로 물려받는 효과 한 줄(#274 Phase 5).
+        /// 효과 이름은 DoT/Slow/Stun 줄과 같은 표기를 쓴다 — 툴팁에서 "물려받는다"고 본 이름과
+        /// 배치 후 정보 패널에 뜨는 이름이 다르면 플레이어가 같은 것으로 인식하지 못한다.
+        ///
+        /// ⚠ **null과 빈 집합을 다르게 표시한다**(`ResolveInheritedKinds`와 같은 구분):
+        ///   null    계승 개념이 없는 레시피 → 줄 자체를 안 낸다
+        ///   빈 집합  계승은 켰는데 물려줄 게 없다 → **"Inherit: 없음"**을 낸다
+        /// 빈 집합에 줄을 안 내면 "표시 0인데 실제로는 전부 off"가 되어 또 어긋난다.
+        public static string BuildInheritLine(System.Collections.Generic.IEnumerable<EffectKind> kinds)
+        {
+            if (kinds == null) return null;
+
+            string joined = null;
+            foreach (EffectKind kind in kinds)
+            {
+                string name = EffectName(kind);
+                joined = joined == null ? name : $"{joined} + {name}";
+            }
+
+            return $"Inherit: {joined ?? "없음"}";
+        }
+
+        /// 효과 종류의 표시명.
+        /// ⚠ 로컬라이즈 키를 새로 만들지 않는다 — `LocalizationHelper.Get`은 키가 없으면 빈 문자열이
+        /// 아니라 에러를 내므로, 키를 먼저 등록하지 않은 채 조회하면 콘솔이 더럽혀진다.
+        /// DoT/Slow/Stun 줄이 이미 하드코딩 라벨을 쓰고 있어 표기 일관성도 이쪽이 맞다.
+        /// 로컬라이즈가 필요해지면 이 함수 하나만 바꾸면 된다.
+        public static string EffectName(EffectKind kind) => kind.ToString();
+
         /// null·빈 줄을 건너뛰고 개행으로 잇는다. 전부 비면 null.
         public static string Join(params string[] lines)
         {

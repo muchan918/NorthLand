@@ -58,6 +58,19 @@ public class TowerMergeCoordinator : MonoBehaviour
         ApplyPreview(ResolveConsumeTargets(recipe)); // 매칭 불가(null)면 그대로 해제 — 버튼이 꺼져 있어야 정상
     }
 
+    /// 이 레시피를 지금 실행하면 결과 타워가 물려받을 효과 종류(#274 Phase 5). 계승이 없으면 null.
+    ///
+    /// **소모 대상 판정을 핑크 프리뷰와 공유한다** — 포함 매칭이라 선택 집합에 여분 타워가 있을 수 있고,
+    /// 여분까지 세면 "물려받는다고 표시됐는데 실제로는 안 걸리는" 어긋남이 생긴다. 계승 규칙 자체도
+    /// 실행부(TowerFusionController)와 같은 `TowerFusionMatcher.ResolveInheritedKinds`를 쓴다.
+    public HashSet<EffectKind> PreviewInheritedKinds(TowerRecipe recipe)
+    {
+        HashSet<Tower> targets = ResolveConsumeTargets(recipe);
+        if (targets == null) return null;
+
+        return TowerFusionMatcher.ResolveInheritedKinds(recipe, new List<Tower>(targets));
+    }
+
     /// 이 레시피가 현재 집합에서 **실제로 소모할** 타워들. 매칭 불가·밤이면 null.
     private HashSet<Tower> ResolveConsumeTargets(TowerRecipe recipe)
     {

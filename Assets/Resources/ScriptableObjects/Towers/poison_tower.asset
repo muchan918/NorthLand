@@ -15,52 +15,43 @@ MonoBehaviour:
   TowerID: poison_tower
   TowerPrefab: {fileID: 527708244005276318, guid: 3046675b0c7627047a8e5d9571fa45f0, type: 3}
   GhostPrefab: {fileID: 527708244005276318, guid: 3f7d03ebd2feee2468a836693208b76a, type: 3}
-  TowerType: 3
-  MagicEffectType: 2
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
     Amount: 40
   - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
     Amount: 20
-  Single:
-    Attack:
-      AttackDamage: 0
-      AttackRange: 0
-      AttackInterval: 0
-      ProjectilePrefab: {fileID: 0}
-      ProjectileSpeed: 0
-  Area:
-    Attack:
-      AttackDamage: 0
-      AttackRange: 0
-      AttackInterval: 0
-      ProjectilePrefab: {fileID: 0}
-      ProjectileSpeed: 0
-    SplashRadius: 0
-  Chain:
-    Attack:
-      AttackDamage: 0
-      AttackRange: 0
-      AttackInterval: 0
-      ProjectilePrefab: {fileID: 0}
-      ProjectileSpeed: 0
-    ChainRadius: 0
-    MaxChainTargets: 0
-    ChainDamageFalloff: 0
-  Magic:
-    BuffAura:
-      Radius: 0
-      Modifiers: []
-      Damage:
-        HasDamage: 0
-        DamageAmount: 0
-        TickInterval: 0
-    DebuffAura:
-      Radius: 30
-      Interval: 1
-      Duration: 4
-      Modifiers: []
-      Damage:
-        HasDamage: 1
-        DamageAmount: 5
+  Attack:
+    AttackDamage: 0
+    AttackRange: 0
+    AttackInterval: 0
+    ProjectilePrefab: {fileID: 0}
+    Flight:
+      rid: -2
+  Impact: 0
+  SplashRadius: 0
+  ChainRadius: 0
+  MaxChainTargets: 0
+  ChainDamageFalloff: 0
+  BuffAura:
+    Radius: 0
+    Modifiers: []
+    Damage:
+      HasDamage: 0
+      DamageAmount: 0
+      TickInterval: 0
+  DebuffAura:
+    Radius: 12
+    Interval: 1
+  Effects:
+  - rid: 3470829504553025632
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 3470829504553025632
+      type: {class: PoisonEffect, ns: NorthLand.Combat, asm: Assembly-CSharp}
+      data:
+        DamagePerTick: 5
         TickInterval: 1
+        Duration: 4

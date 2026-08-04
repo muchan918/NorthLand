@@ -18,6 +18,10 @@ namespace NorthLand.Combat
         float cooldownTimer;
         bool isDying;
 
+        // 원거리 공격의 비행 부품(#274 Phase 4.5). 발사마다 만들지 않고 인스턴스별 1회 생성해 재사용한다 —
+        // 부품은 무상태라 이 적이 쏜 투사체들이 함께 참조해도 안전하다(진행값은 Projectile이 소유).
+        HomingFlight rangedFlight;
+
         // 받는 피해 배수(#233). 1=그대로, 0=무적, 1 초과=취약. 방어 태세 패턴이 감소치를 건다.
         // 이 값을 Enemy가 소유하는 이유: 피해 적용 지점이 TakeDamage 하나뿐이라
         // EnemyAgent가 같은 값을 들면 동기화가 깨진다(EnemyAgent는 전달만 한다).
@@ -323,7 +327,16 @@ namespace NorthLand.Combat
                 return false;
             }
 
-            projectile.Init(target, AttackDamage, ranged.ProjectileSpeed, this, ProjectileImpact.MakeSingle());
+            // 비행은 쏘는 쪽이 정한다(#274). 적은 아직 궤적 저작 필드가 없어 유도탄 직선으로 고정한다 —
+            // 현재 모든 EnemyAsset의 Ranged.ProjectilePrefab이 null이라 이 경로 자체가 미사용이다.
+            // 원거리 적을 실제로 붙일 때 EnemyAsset.RangedFields에 [SerializeReference] ProjectileFlight를
+            // 추가하면 타워와 같은 부품을 그대로 쓴다.
+            //
+            // 발사마다 new 하지 않고 인스턴스별로 1회 만들어 재사용한다 — 부품은 무상태라 이 적이 쏜
+            // 투사체들이 함께 참조해도 안전하다(진행값은 각 Projectile의 FlightState에 있다).
+            rangedFlight ??= new HomingFlight { Speed = ranged.ProjectileSpeed, ArcHeight = 0f };
+
+            projectile.Init(target, AttackDamage, this, rangedFlight, ProjectileImpact.MakeSingle());
             return true;
         }
 

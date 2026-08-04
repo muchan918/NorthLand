@@ -15,53 +15,37 @@ MonoBehaviour:
   TowerID: archer_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: af8de5afe47137043ad4ec48d2323017, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: 5d9bff6eeac419349bde17bbdae0e99c, type: 3}
-  TowerType: 0
-  MagicEffectType: 0
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
     Amount: 20
-  Single:
-    Attack:
-      AttackDamage: 12
-      AttackRange: 45
-      AttackInterval: 1
-      ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
-      ProjectileSpeed: 800
-      OnHitStunDuration: 0
-  Area:
-    Attack:
-      AttackDamage: 0
-      AttackRange: 0
-      AttackInterval: 0
-      ProjectilePrefab: {fileID: 0}
-      ProjectileSpeed: 0
-      OnHitStunDuration: 0
-    SplashRadius: 0
-  Chain:
-    Attack:
-      AttackDamage: 0
-      AttackRange: 0
-      AttackInterval: 0
-      ProjectilePrefab: {fileID: 0}
-      ProjectileSpeed: 0
-      OnHitStunDuration: 0
-    ChainRadius: 0
-    MaxChainTargets: 0
-    ChainDamageFalloff: 0
-  Magic:
-    BuffAura:
-      Radius: 0
-      Modifiers: []
-      Damage:
-        HasDamage: 0
-        DamageAmount: 0
-        TickInterval: 0
-    DebuffAura:
-      Radius: 0
-      Interval: 0
-      Duration: 0
-      Modifiers: []
-      Damage:
-        HasDamage: 0
-        DamageAmount: 0
-        TickInterval: 0
+  Attack:
+    AttackDamage: 12
+    AttackRange: 18
+    AttackInterval: 1
+    ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
+    Flight:
+      rid: 3470829504553025636
+  Impact: 0
+  SplashRadius: 0
+  ChainRadius: 0
+  MaxChainTargets: 0
+  ChainDamageFalloff: 0
+  BuffAura:
+    Radius: 0
+    Modifiers: []
+    Damage:
+      HasDamage: 0
+      DamageAmount: 0
+      TickInterval: 0
+  DebuffAura:
+    Radius: 0
+    Interval: 0
+  Effects: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 3470829504553025636
+      type: {class: HomingFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
+      data:
+        Speed: 320
+        ArcHeight: 0

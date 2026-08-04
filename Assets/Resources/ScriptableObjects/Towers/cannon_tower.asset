@@ -15,52 +15,39 @@ MonoBehaviour:
   TowerID: cannon_tower
   TowerPrefab: {fileID: 3104185744962560807, guid: 3aa39c2dca7c6674484d79f6043acd6e, type: 3}
   GhostPrefab: {fileID: 3104185744962560807, guid: 017965e4e87759048b99f86070e0dee8, type: 3}
-  TowerType: 1
-  MagicEffectType: 0
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
     Amount: 20
   - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
     Amount: 10
-  Single:
-    Attack:
-      AttackDamage: 0
-      AttackRange: 0
-      AttackInterval: 0
-      ProjectilePrefab: {fileID: 0}
-      ProjectileSpeed: 0
-  Area:
-    Attack:
-      AttackDamage: 28
-      AttackRange: 35
-      AttackInterval: 2
-      ProjectilePrefab: {fileID: 4221183324172678294, guid: 58184368b64351d4094976b3524ed9a1, type: 3}
-      ProjectileSpeed: 100
-    SplashRadius: 4
-  Chain:
-    Attack:
-      AttackDamage: 0
-      AttackRange: 0
-      AttackInterval: 0
-      ProjectilePrefab: {fileID: 0}
-      ProjectileSpeed: 0
-    ChainRadius: 0
-    MaxChainTargets: 0
-    ChainDamageFalloff: 0
-  Magic:
-    BuffAura:
-      Radius: 0
-      Modifiers: []
-      Damage:
-        HasDamage: 0
-        DamageAmount: 0
-        TickInterval: 0
-    DebuffAura:
-      Radius: 0
-      Interval: 0
-      Duration: 0
-      Modifiers: []
-      Damage:
-        HasDamage: 0
-        DamageAmount: 0
-        TickInterval: 0
+  Attack:
+    AttackDamage: 28
+    AttackRange: 14
+    AttackInterval: 2
+    ProjectilePrefab: {fileID: 4221183324172678294, guid: 58184368b64351d4094976b3524ed9a1, type: 3}
+    Flight:
+      rid: 3470829504553025650
+  Impact: 1
+  SplashRadius: 1.6
+  ChainRadius: 0
+  MaxChainTargets: 0
+  ChainDamageFalloff: 0
+  BuffAura:
+    Radius: 0
+    Modifiers: []
+    Damage:
+      HasDamage: 0
+      DamageAmount: 0
+      TickInterval: 0
+  DebuffAura:
+    Radius: 0
+    Interval: 0
+  Effects: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 3470829504553025650
+      type: {class: HomingFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
+      data:
+        Speed: 40
+        ArcHeight: 15

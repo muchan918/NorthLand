@@ -120,51 +120,41 @@ CsvHelper가 자동으로 처리하지만 수기로 행을 추가할 때 빠뜨�
 
 ### TowerTable (GDD 5.1/6.2 — 전투 공간 타워)
 
-| 컬럼              | 타입                                | 설명                                                |
-| ----------------- | ----------------------------------- | --------------------------------------------------- |
-| `TowerID`         | string (PK)                         | 타워 고유 키 (`archer_tower`, `cannon_tower`, ...)  |
-| `DisplayName`     | string                              | 표시용 한글 이름                                     |
-| `TowerType`       | enum(`Single`/`Area`/`Chain`/`Magic`) | 공격 방식 분류                                     |
-| `MagicEffectType` | enum(`None`/`Buff`/`Debuff`)        | `TowerType=Magic`일 때만 의미 있음. 그 외는 `None` 고정 |
-| `GridWidth`       | int                                  | 배치 시 차지하는 그리드 칸수(가로). 공격 방식과 무관하게 모든 타워 공통 |
-| `GridHeight`      | int                                  | 배치 시 차지하는 그리드 칸수(세로). 공격 방식과 무관하게 모든 타워 공통 |
-| `Role`            | string                              | 역할 한 줄 요약                                      |
-| `Description`     | string                              | 기본 효과 설명 (UI 툴팁용)                          |
+| 컬럼              | 타입        | 설명                                                |
+| ----------------- | ----------- | --------------------------------------------------- |
+| `TowerID`         | string (PK) | 타워 고유 키 (`archer_tower`, `cannon_tower`, ...). SO 파일명이자 합성 매칭 키 |
+| `NameKey`         | string      | 표시 이름의 로컬라이제이션 키 (`NorthLand_Towers` 테이블) |
+| `GridWidth`       | int         | 배치 시 차지하는 그리드 칸수(가로) |
+| `GridHeight`      | int         | 배치 시 차지하는 그리드 칸수(세로) |
+| `RoleKey`         | string      | 역할 한 줄 요약의 로컬라이제이션 키 |
+| `DescriptionKey`  | string      | 기본 효과 설명(UI 툴팁용)의 로컬라이제이션 키 |
 
-CSV에는 위 공통 필드(분류 정보 포함)만 있고, 타워별 세부 수치(공격력/사거리/투사체,
-버프·디버프 효과량 등)는 CSV가 아니라 `TowerAsset`(SO)에 `TowerType`(+ Magic이면
-`MagicEffectType`)별 필드 그룹으로 들어간다. Building과 달리 타입 분기가 2단계다:
+⚠ **#274에서 컬럼이 바뀌었다** — 구 `DisplayName`/`Role`/`Description`은 로컬라이제이션 키로
+대체됐고(WL-013), 종류 분류 컬럼 `TowerType`/`MagicEffectType`은 **삭제**됐다. 타워 종류의 정본은
+이제 CSV도 SO도 아니라 **프리팹의 `Tower.Actions` 리스트**다.
 
-- `Single` → `SingleFields { Attack }`
-- `Area` → `AreaFields { Attack, SplashRadius }`
-- `Chain` → `ChainFields { Attack, ChainRadius, MaxChainTargets, ChainDamageFalloff }`
-- `Magic` → `MagicFields { BuffAura, DebuffAura }`, 그중 `MagicEffectType`이 가리키는
-  쪽(`BuffAuraFields` 또는 `DebuffAuraFields`)만 실제로 사용
-- `Attack { AttackDamage, AttackRange, AttackInterval, ProjectilePrefab, ProjectileSpeed }`는
-  Single/Area/Chain이 공통으로 내장하는 nested 구조체(중복 필드 선언 방지). 필드 의미는
-  Combat의 기존 `TowerData`(`Assets/Scripts/CombatSystem/Tower/TowerData.cs`)와
-  대응되도록 맞춰뒀다 — 실제 Combat 마이그레이션은 아직 미착수(WL-001)
-- `BuffAuraFields`/`DebuffAuraFields { Radius, Interval, Modifiers: List<StatModifier>, Damage: OptionalDamage }`
-  — 버프/디버프도 데미지가 있을 수 있어 `OptionalDamage { HasDamage, DamageAmount, TickInterval }`를
-  공통 재사용
-- 건설 비용은 모든 타입 공통으로 `TowerAsset.Cost : List<ResourceCost>` (2절, `ResourceCost` 재사용)
-- `GridWidth`/`GridHeight`는 `Role`/`Description`과 같은 성격의 공통 CSV 필드다 — 다른 에셋을
-  참조하지 않는 순수 수치라 `TowerAsset`(SO)에 별도 필드로 중복시키지 않고, `TowerData`(POCO)에만
-  존재하며 `TowerAsset.Data.GridWidth`/`GridHeight`로 런타임에 조회한다(4.2절 조회 패턴).
-  아직 MouseManager/BattleMapBuilder의 배치 검증(WL-004)이 이 값을 소비하진 않음 — 데이터만 우선 마련
-- `TowerType`(1차) + `MagicEffectType`(Magic일 때 2차)에 따라 인스펙터에 관련 필드 그룹만
-  보이도록 `TowerAssetEditor`(`Assets/Scripts/Editor/TowerAssetEditor.cs`)가
-  `BuildingAssetEditor`와 동일한 패턴의 커스텀 인스펙터를 그린다
+**CSV에는 수치 컬럼이 하나도 없다.** 공격력·사거리·투사체·오라 반경·명중 효과는 전부 `TowerAsset`(SO)에
+인스펙터로 손입력한다(WL-015). SO 스키마는 #274 Phase 1에서 평탄화되어
+`Attack`/`Impact`/`BuffAura`/`DebuffAura`/`Effects`가 한 층에 놓인다 — 구 `SingleFields`/`AreaFields`/
+`ChainFields`/`MagicFields` 래퍼와 `TowerAssetEditor`(타입별 필드 그룹을 골라 그리던 커스텀 인스펙터)는
+함께 삭제됐다. 필드별 저작 방법은 [TowerAddGuide.md](../Core/TowerAddGuide.md) §3.5, 구조 근거는
+[Tower.md](../Core/Tower.md) §3·§4.
+
+- `GridWidth`/`GridHeight`는 SO에 중복시키지 않고 `TowerData`(POCO)에만 두며, 런타임에
+  `TowerAsset.Data.GridWidth`/`GridHeight`로 조회한다(4.2절 조회 패턴). `TowerPlacer`가 이 값을
+  풋프린트로 소비한다 — **CSV 행이 없으면 `Data`가 null이라 배치가 거부된다.**
+- 건설 비용은 `TowerAsset.Cost : List<ResourceCost>` (2절, `ResourceCost` 재사용)
+- ⚠ `TableImporter.ImportTower`가 **동기화하는 필드는 `TowerID` 하나뿐**이다(#274 Phase 3). 나머지
+  필드는 건드리지 않고 고아 SO도 지우지 않으므로, 이 임포터의 실질적 역할은 **없는 SO를 만들어주는 것**이고
+  재실행이 안전하다.
 
 CSV: `Assets/Resources/DataTables/TowerTable.csv`
 
 ```
-TowerID,DisplayName,TowerType,MagicEffectType,GridWidth,GridHeight,Role,Description
-archer_tower,궁수 타워,Single,None,1,1,단일 대상 공격,사거리 내 가장 가까운 적 하나를 지속 공격
-cannon_tower,대포,Area,None,1,1,광역 공격,착탄 지점 주변 범위 피해
-lightning_tower,번개 타워,Chain,None,1,1,연쇄 공격,적 하나를 맞히면 주변 적으로 번개가 튐
-haste_tower,가속의 탑,Magic,Buff,1,1,아군 공격속도 강화,범위 내 아군 타워 공격속도 증가
-poison_tower,독의 탑,Magic,Debuff,1,1,적 지속 피해,범위 내 적에게 독 도트 피해
+TowerID,NameKey,GridWidth,GridHeight,RoleKey,DescriptionKey
+archer_tower,towers.archer.name,1,1,towers.archer.role,towers.archer.desc
+cannon_tower,towers.cannon.name,1,1,towers.cannon.role,towers.cannon.desc
+poison_tower,towers.poison.name,1,1,towers.poison.role,towers.poison.desc
 ```
 
 ### EnemyTable (GDD 5.2 — 전투 공간 몬스터)
@@ -283,12 +273,12 @@ CLI 빌드/테스트가 없는 프로젝트이므로 Unity Editor에서 직접 �
 5. [`BuildingTableTest.cs`](../../Assets/Scripts/Data/Building/BuildingTableTest.cs)로 Play 모드에서
    9개 건물의 `DisplayName`/`BuildingType`/`Role`이 출력되는지 확인
 6. `Tools > Table Importer` → `Tower` → `Import` → `Assets/Resources/ScriptableObjects/Towers/`에
-   5개 타워 `.asset` 생성 확인. `TowerType`별로 하나씩 인스펙터를 열어 `TowerAssetEditor`가
-   해당 타입 필드 그룹만 보여주는지, `Magic` 타입에서는 `MagicEffectType`(Buff/Debuff)에 따라
-   `BuffAuraFields`/`DebuffAuraFields`가 올바르게 토글되는지 확인
+   CSV 행 수(현재 9개)만큼 `.asset`이 있는지 확인. 임포터는 `TowerID`만 동기화하므로 수치는
+   인스펙터로 직접 채운다 — 저작 실수는 저장 시 `TowerAsset.OnValidate` 경고로 드러난다
+   ([TowerAddGuide.md](../Core/TowerAddGuide.md) §4)
 7. [`TowerTableTest.cs`](../../Assets/Scripts/Data/Tower/TowerTableTest.cs)로 Play 모드에서
-   5개 타워의 `DisplayName`/`TowerType`/`MagicEffectType`/`GridWidth`/`GridHeight`가
-   출력되는지 확인
+   타워의 로컬라이즈된 이름/`GridWidth`/`GridHeight`/역할이 출력되는지 확인
+   (⚠ 이 스크립트는 하드코딩된 5개 ID만 순회한다 — 새 타워를 확인하려면 배열에 ID를 추가할 것)
 8. `Tools > Table Importer` → `Enemy` → `Import` → `Assets/Resources/ScriptableObjects/Enemies/`에
    3개 몬스터 `.asset` 생성 확인. `EnemyType`별로 하나씩 인스펙터를 열어 `EnemyAssetEditor`가
    해당 타입 필드 그룹만 보여주는지(`Boss`는 `BehaviorTree` placeholder 필드까지) 확인
