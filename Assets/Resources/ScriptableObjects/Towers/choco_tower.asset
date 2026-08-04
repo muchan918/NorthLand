@@ -23,10 +23,8 @@ MonoBehaviour:
     AttackRange: 0
     AttackInterval: 0
     ProjectilePrefab: {fileID: 0}
-    ProjectileSpeed: 0
-    Flight: 0
-    ArcHeight: 0
-    OnHitStunDuration: 0
+    Flight:
+      rid: -2
   Impact: 0
   SplashRadius: 0
   ChainRadius: 0
@@ -40,22 +38,15 @@ MonoBehaviour:
       DamageAmount: 0
       TickInterval: 0
   DebuffAura:
-    Radius: 40
+    Radius: 16
     Interval: 1
-    Duration: 2
-    Modifiers:
-    - Stat: 2
-      Amount: -20
-      IsPercentage: 1
-    Damage:
-      HasDamage: 0
-      DamageAmount: 0
-      TickInterval: 0
   Effects:
   - rid: 3470829504553025631
   references:
     version: 2
     RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
     - rid: 3470829504553025631
       type: {class: SlowEffect, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:

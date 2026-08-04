@@ -8,6 +8,10 @@ public class PlacementRequest
 {
     public GameObject GhostPrefab; // 마우스를 따라다닐 프리뷰
     public Func<RaycastHit, Vector3> Snap; // 히트 → 배치 기준 위치(그리드 스냅). null이면 hit.point 사용
+    // 고스트·배치물의 회전. 그리드가 회전된 맵(`CombatMapTileSpawner.CoordinateRoot`) 아래에 있으면
+    // 월드 정렬로 놓으면 타일과 각이 어긋난다 → 요청 측이 그리드 기준축을 넣는다.
+    // 배치 세션 동안 상수라 매 프레임 갱신하지 않는다(맵 루트는 런타임에 돌지 않는다).
+    public Quaternion GhostRotation = Quaternion.identity;
     public Func<RaycastHit, bool> CanPlaceAt; // 배치 가능 여부 (그리드/검증 시스템이 제공)
     public Action<RaycastHit, Vector3> OnConfirmed; // (히트, 스냅 위치) 확정 시 실제 배치 수행
     public Action OnEnded; // 배치 모드 종료(취소 또는 확정 후 복귀) 시 호출 — 프리뷰/고스트 부가물 정리용. 선택(null 허용)

@@ -22,7 +22,7 @@ MonoBehaviour:
     Amount: 20
   Attack:
     AttackDamage: 7
-    AttackRange: 32
+    AttackRange: 12.8
     AttackInterval: 0.35
     ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
     Flight:
@@ -49,5 +49,5 @@ MonoBehaviour:
     - rid: 3470829504553025638
       type: {class: HomingFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
-        Speed: 800
+        Speed: 320
         ArcHeight: 0
