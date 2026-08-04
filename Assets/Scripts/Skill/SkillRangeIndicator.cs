@@ -10,8 +10,11 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class SkillRangeIndicator : MonoBehaviour
 {
-    const float k_UnitCylinderRadius = 0.5f; // Unity 기본 Cylinder 프리미티브의 로컬 반지름(고정값)
-    const float k_UnitCylinderHalfHeight = 1f; // 〃 반높이(로컬 Y가 -1~+1이므로)
+    // 바닥 캡을 시전 평면보다 아주 살짝 띄운다. 시전 높이(SkillButtonView._castHeight)를 도로 타일
+    // 윗면에 정확히 맞추면 캡과 지면이 완전 공면이 되어 z-파이팅이 난다 — 게다가 캡은 수직 페이드가
+    // 0인 가장 진한 부분이고 ZWrite Off라 정렬로도 안 풀린다. 구 구현의 y=0.05f, RangeCircle.k_YOffset(0.06f)이
+    // 같은 이유로 존재했다.
+    const float k_GroundClearance = 0.05f;
 
     [SerializeField] GameObject auraVisualPrefab; // SkillAura.prefab(원기둥 + 아우라 셰이더)
 
@@ -25,16 +28,32 @@ public class SkillRangeIndicator : MonoBehaviour
             return;
         }
 
-        var visual = Instantiate(auraVisualPrefab, transform).transform;
+        Transform visual = Instantiate(auraVisualPrefab, transform).transform;
+
+        // 메시 규격(반경·바닥 높이)은 메시에서 직접 읽는다 — 상수로 적어 두면 프리팹 메시를 교체했을 때
+        // 컴파일 에러도 로그도 없이 반경·바닥 정렬만 조용히 어긋난다(PR#289 리뷰).
+        // 셰이더가 쓰는 _LocalRadius/_LocalHeight(SkillAura.mat)는 여전히 수동 authoring이라, 메시를
+        // 교체하면 그쪽은 함께 고쳐야 한다(SkillAura.shader 헤더 주석 참고).
+        MeshFilter meshFilter = visual.GetComponentInChildren<MeshFilter>();
+        Mesh mesh = meshFilter != null ? meshFilter.sharedMesh : null;
+        if (mesh == null)
+        {
+            Debug.LogError("[SkillRangeIndicator] auraVisualPrefab에 MeshFilter/메시가 없습니다.", auraVisualPrefab);
+            return;
+        }
+
+        Bounds bounds = mesh.bounds;
+        Vector3 s = visual.localScale;
 
         // X/Z만 조정하고 Y(높이)는 프리팹에 저장된 값을 그대로 둔다 — 스킬 사거리가 커져도
         // 아우라 높이는 고정, 반경만 넓어지는 게 자연스럽다.
-        float scaleXZ = radius / k_UnitCylinderRadius;
-        Vector3 s = visual.localScale;
+        float meshRadius = Mathf.Max(bounds.extents.x, bounds.extents.z);
+        float scaleXZ = meshRadius > Mathf.Epsilon ? radius / meshRadius : s.x; // 퇴화 메시면 프리팹 스케일 유지
         visual.localScale = new Vector3(scaleXZ, s.y, scaleXZ);
 
-        // 기본 Cylinder는 피봇이 중심이라 그대로 두면 아래 절반이 지면에 파묻힌다. 스케일된 반높이만큼
-        // 올려 "고스트 루트 위치 = 원기둥 바닥"이 되게 한다(프리팹에 남아있던 x/z 오프셋도 여기서 제거).
-        visual.localPosition = new Vector3(0f, k_UnitCylinderHalfHeight * s.y, 0f);
+        // 메시 바닥(bounds.min.y)을 고스트 루트 높이에 맞춘다. 기본 Cylinder처럼 피봇이 중심인 메시는
+        // 그만큼 위로 올라가고, 피봇이 이미 바닥인 메시면 오프셋 0이 나와 그대로 앉는다
+        // (프리팹에 남아있던 x/z 오프셋도 여기서 함께 제거된다).
+        visual.localPosition = new Vector3(0f, -bounds.min.y * s.y + k_GroundClearance, 0f);
     }
 }
