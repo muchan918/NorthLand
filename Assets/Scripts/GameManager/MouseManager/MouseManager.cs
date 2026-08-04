@@ -177,7 +177,8 @@ public class MouseManager : MonoBehaviour
         CancelInteractions();
         ResetGesture();   // 버튼을 누른 채 배치가 시작됐다면 그 제스처는 버린다
         _request = request;
-        _ghost = Instantiate(request.GhostPrefab);
+        // 회전은 요청이 주는 그리드 기준축을 따른다 — 회전된 맵에서 고스트가 타일과 각이 맞아야 한다.
+        _ghost = Instantiate(request.GhostPrefab, Vector3.zero, request.GhostRotation);
         SetMode(Mode.Placement);
     }
 

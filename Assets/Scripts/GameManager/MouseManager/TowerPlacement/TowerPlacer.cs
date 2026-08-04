@@ -240,6 +240,7 @@ public class TowerPlacer : MonoBehaviour
         MouseManager.Instance.BeginPlacement(new PlacementRequest
         {
             GhostPrefab = ghostPrefab,
+            GhostRotation = GridBasis, // 회전된 맵에서 고스트가 타일과 각이 맞게(배치 세션 동안 상수)
             Snap = SnapToFootprintCenter,
             CanPlaceAt = CanPlaceFootprint,
             OnConfirmed = PlaceTower,
@@ -348,7 +349,8 @@ public class TowerPlacer : MonoBehaviour
 
         // 점유 타일을 인스턴스에 기록해 둔다: 타워가 파괴되면(합성 소모·철거 등)
         // TowerFootprint.OnDestroy가 그 타일들의 Occupied를 되돌려 재배치를 허용한다.
-        var placed = Instantiate(towerPrefab, snappedPos, Quaternion.identity);
+        // 회전은 그리드 기준축을 따른다 — 회전된 맵에서 월드 정렬로 놓으면 타일과 각이 어긋난다.
+        var placed = Instantiate(towerPrefab, snappedPos, GridBasis);
         var occupant = placed.AddComponent<TowerFootprint>();
         // 배치된 타워를 합성(#183) 그룹 선택 대상으로 표시(마커 런타임 부착).
         // 합성 결과 타워도 이 경로로 배치되므로 다단 합성의 재료가 될 수 있다.
