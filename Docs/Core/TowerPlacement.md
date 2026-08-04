@@ -83,6 +83,8 @@
 
 **`tileSize` 출처 (WL-034)**: `TowerPlacer.Awake`가 씬의 `CombatMapGenerator.Settings.TileSize`를 찾아 인스펙터 값을 **덮어쓴다**. 인스펙터 `tileSize`(기본 5)는 구맵·테스트 씬 폴백이다.
 
+**확정 값: 타일 스케일 1 + `TileSize` 6** (2026-08-04, sunjin1222·n0wst4ndup 합의). 이전은 스케일을 키우고 `TileSize` 15였다. 배치 측은 위 단일 출처 덕에 자동 추종하지만, **15 기준으로 authoring된 것들은 따로 맞춰야 한다** — 확장된 크기에 맞춰진 오브젝트·회전값이 대상이며, 이 PR에서 처리하거나 별도 이슈로 분리한다. 특히 `monsterWaypointYOffset`(WL-063)·보스 사거리처럼 **월드 단위 상수로 authoring된 값**은 자동 추종하지 않으므로 확인이 필요하다.
+
 | 출처 | 값 | 비고 |
 | --- | --- | --- |
 | `CombatMapGenerationSettings.asset` (신맵 정본) | **15** | `Assets/Personal/SUNJIN/ScriptableObjects/Setting/` |
