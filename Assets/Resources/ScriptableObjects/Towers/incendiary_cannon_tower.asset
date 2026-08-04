@@ -53,7 +53,7 @@ MonoBehaviour:
         Speed: 100
         ArcHeight: 20
     - rid: 1498367259597078619
-      type: {class: BurnEffect, ns: NorthLand.Combat, asm: Assembly-CSharp}
+      type: {class: BurnStatus, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
         DamagePerTick: 3
         TickInterval: 0.5

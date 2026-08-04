@@ -20,10 +20,15 @@ namespace NorthLand.Combat
         public bool debugLog;   // 검증용: 적용/갱신/틱/만료를 Console에 출력
 
         // effectId당 하나. 같은 소스(같은 타워)는 갱신(refresh), 다른 소스는 공존.
-        readonly Dictionary<int, DotEffect> effects = new Dictionary<int, DotEffect>();
+        //
+        // ⚠ 아래 두 nested 클래스는 **살아 있는 상태**(대상이 소유)이고, 타워 SO에 담기는
+        //   `BurnStatus`/`SlowStatus` 등은 **저작 명세**다. 역할이 달라 이름을 `*State`로 갈라둔다 —
+        //   예전에 nested 이름이 `SlowEffect`여서 이 파일 안에서 `NorthLand.Combat.SlowEffect`를
+        //   가리고 있었다.
+        readonly Dictionary<int, DotState> effects = new Dictionary<int, DotState>();
         readonly List<int> expiredBuffer = new List<int>();
 
-        class DotEffect
+        class DotState
         {
             public float damagePerTick;
             public float tickInterval;
@@ -36,10 +41,10 @@ namespace NorthLand.Combat
         IMovementAgent mover;
 
         // 슬로우/스턴(#164). effectId당 하나(같은 소스=갱신). 여러 개면 가장 강한 감속(최소 배율)을 적용.
-        readonly Dictionary<int, SlowEffect> slows = new Dictionary<int, SlowEffect>();
+        readonly Dictionary<int, SlowState> slows = new Dictionary<int, SlowState>();
         readonly List<int> expiredSlowBuffer = new List<int>();
 
-        class SlowEffect
+        class SlowState
         {
             public float multiplier;  // 0=스턴, 0.6=40%감속, 1=정상
             public float remaining;   // 남은 지속시간(초)
@@ -93,7 +98,7 @@ namespace NorthLand.Combat
             }
             else
             {
-                effects[effectId] = new DotEffect
+                effects[effectId] = new DotState
                 {
                     damagePerTick = damagePerTick,
                     tickInterval = tickInterval,
@@ -132,7 +137,7 @@ namespace NorthLand.Combat
             }
             else
             {
-                slows[effectId] = new SlowEffect { multiplier = multiplier, remaining = duration };
+                slows[effectId] = new SlowState { multiplier = multiplier, remaining = duration };
             }
 
             if (isStun)

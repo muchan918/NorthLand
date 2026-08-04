@@ -50,7 +50,7 @@ MonoBehaviour:
     - rid: -2
       type: {class: , ns: , asm: }
     - rid: 1498367259597078620
-      type: {class: BurnEffect, ns: NorthLand.Combat, asm: Assembly-CSharp}
+      type: {class: BurnStatus, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
         DamagePerTick: 4
         TickInterval: 0.5
