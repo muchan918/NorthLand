@@ -20,11 +20,11 @@ public class BurnEffect : SkillEffect
 
     // 보상 패널(#287) 표시용. HandleImpact의 실제 계산과 같은 식이라 표시와 실효가 어긋날 수 없다
     // (미보유 = Lv0 = 0).
-    public float GetCurrentTickDamage() => tickDamagePerLevel * Level;
-    public float GetNextTickDamage() => tickDamagePerLevel * NextLevel;
+    public float GetCurrentTickDamage() => GetTickDamageAt(Level);
+    public float GetTickDamageAt(int level) => tickDamagePerLevel * level;
 
-    public override string GetStatSummary()
-        => SkillStatsFormatter.BuildTickDamageLine(GetCurrentTickDamage(), GetNextTickDamage());
+    public override string GetStatSummary(int levelDelta)
+        => SkillStatsFormatter.BuildTickDamageLine(GetCurrentTickDamage(), GetTickDamageAt(Level + levelDelta));
 
     protected override void HandleImpact(SkillCastContext context)
     {

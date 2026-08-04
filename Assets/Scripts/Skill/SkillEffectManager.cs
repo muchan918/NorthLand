@@ -53,9 +53,10 @@ public class SkillEffectManager : MonoBehaviour
         return effects.TryGetValue(type, out var effect) ? effect.Level : 0;
     }
 
-    // 보상 패널(#287)이 카드에 표시할 수치 줄. 효과 미부착 시 빈 문자열.
-    public string GetStatSummary(WaveRewardType type)
+    // 보상 패널(#287)이 카드에 표시할 "현재 → 획득 후" 수치 줄. 효과 미부착 시 빈 문자열.
+    // levelDelta는 그 보상의 Amount — 호출부가 넘긴다(SkillEffect.GetStatSummary 주석 참고).
+    public string GetStatSummary(WaveRewardType type, int levelDelta)
     {
-        return effects.TryGetValue(type, out var effect) ? effect.GetStatSummary() : string.Empty;
+        return effects.TryGetValue(type, out var effect) ? effect.GetStatSummary(levelDelta) : string.Empty;
     }
 }

@@ -13,10 +13,6 @@ public abstract class SkillEffect : MonoBehaviour
 
     public int Level { get; private set; }
 
-    // 보상 카드(#287)는 "이걸 고르면 어떻게 바뀌는지"를 현재값 → 획득 후 값으로 보여준다.
-    // 파생이 자기 수치를 이 레벨로 한 번 더 계산하기 위한 것.
-    protected int NextLevel => Level + 1;
-
     bool subscribed;
 
     // 보상 선택 시 SkillEffectManager가 호출한다.
@@ -33,8 +29,12 @@ public abstract class SkillEffect : MonoBehaviour
         Debug.Log($"[SkillEffect] {Type} Lv{previousLevel} → Lv{Level}", this);
     }
 
-    // 보상 패널(#287)에 표시할 현재 레벨 기준 수치 줄. 서식·라벨은 SkillStatsFormatter가 소유한다.
-    public abstract string GetStatSummary();
+    // 보상 패널(#287)에 표시할 "현재 → 획득 후" 수치 줄. 서식·라벨은 SkillStatsFormatter가 소유한다.
+    //
+    // levelDelta는 호출부가 보상(WaveRewardData.Amount)에서 그대로 받아 넘긴다 — 표시부가 "한 번에 1씩
+    // 오른다"고 가정하면 안 된다. 실제 가산은 OnRewardApplied의 amount이고 그 값은 보상 SO가 소유하므로,
+    // 하드코딩하면 SO 수치를 바꾸는 순간 카드가 조용히 거짓 수치를 보여준다.
+    public abstract string GetStatSummary(int levelDelta);
 
     // 어느 스킬의 이벤트에 붙을지는 파생이 정한다. 기본: 감전(SkillManager.ImpactResolved).
     protected virtual bool TrySubscribe()

@@ -15,11 +15,11 @@ public class CountEffect : SkillEffect
 
     // 보상 패널(#287) 표시용. 총 발동 = 1 + 레벨(HandleImpact의 ExtraImpacts 가산과 같은 정의).
     // 미보유(Lv0)면 1회 — 추가시전 없이 기본 1번 발동한다는 뜻이라 그대로 맞는 값이다.
-    public int GetCurrentCastCount() => 1 + Level;
-    public int GetNextCastCount() => 1 + NextLevel;
+    public int GetCurrentCastCount() => GetCastCountAt(Level);
+    public int GetCastCountAt(int level) => 1 + level;
 
-    public override string GetStatSummary()
-        => SkillStatsFormatter.BuildCastCountLine(GetCurrentCastCount(), GetNextCastCount());
+    public override string GetStatSummary(int levelDelta)
+        => SkillStatsFormatter.BuildCastCountLine(GetCurrentCastCount(), GetCastCountAt(Level + levelDelta));
 
     protected override void HandleImpact(SkillCastContext context)
     {

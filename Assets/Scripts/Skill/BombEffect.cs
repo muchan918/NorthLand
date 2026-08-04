@@ -20,12 +20,12 @@ public class BombEffect : SkillEffect
 
     // 보상 패널(#287) 표시용. HandleImpact의 실제 계산과 같은 식(미보유 = Lv0 = 0).
     // 반경은 레벨과 무관한 고정값이라 그대로 노출한다.
-    public float GetCurrentDamage() => damagePerLevel * Level;
-    public float GetNextDamage() => damagePerLevel * NextLevel;
+    public float GetCurrentDamage() => GetDamageAt(Level);
+    public float GetDamageAt(int level) => damagePerLevel * level;
     public float ExplosionRadius => explosionRadius;
 
-    public override string GetStatSummary()
-        => SkillStatsFormatter.BuildBombLines(GetCurrentDamage(), GetNextDamage(), ExplosionRadius);
+    public override string GetStatSummary(int levelDelta)
+        => SkillStatsFormatter.BuildBombLines(GetCurrentDamage(), GetDamageAt(Level + levelDelta), ExplosionRadius);
 
     protected override void HandleImpact(SkillCastContext context)
     {
