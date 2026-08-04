@@ -51,16 +51,10 @@ public class OutlineHighlight : MonoBehaviour
         return go.TryGetComponent(out OutlineHighlight existing) ? existing : go.AddComponent<OutlineHighlight>();
     }
 
-    /// <summary>
-    /// 셸 시절의 전역 아웃라인 폭 API. **스크린 스페이스 실루엣에서는 아무 일도 하지 않는다.**
-    /// 두께가 스크린 픽셀 단위라 줌에 따라 보정할 필요가 없어졌다 — 오브젝트를 삼키던 문제 자체가 없다.
-    /// 호출부(`OutlineInteractionDriver`)를 건드리지 않기 위해 시그니처만 남겼다.
-    /// 두께는 렌더러 피처의 `Thickness`(px)로 조정한다.
-    /// </summary>
-    public static void SetWidth(float width)
-    {
-        // 의도적으로 비어 있다. 지우면 드라이버가 컴파일되지 않으므로 이행 정리 시 함께 제거한다.
-    }
+    // 셸 시절에는 줌에 따라 헐 두께를 몰아주는 static `SetWidth(float)`가 있었다. 스크린 스페이스
+    // 실루엣은 두께가 **스크린 픽셀 단위**라 줌 보정이 필요 없어져 no-op으로 남아 있었고,
+    // 이행 정리에서 호출부(`OutlineInteractionDriver.UpdateWidth`)와 함께 제거했다.
+    // 두께의 유일한 출처는 렌더러 피처 인스펙터의 `Thickness`(px)다.
 
     /// 상태 플래그를 켜고 끈다(멱등). 최종 색은 MergePreview > (Selected | GroupSelected) > Hover.
     public void Set(OutlineKind kind, bool on)
