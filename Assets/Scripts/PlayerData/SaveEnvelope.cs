@@ -1,4 +1,5 @@
 using System;
+using Newtonsoft.Json;
 
 namespace NorthLand.Core
 {
@@ -8,8 +9,16 @@ namespace NorthLand.Core
     [Serializable]
     public sealed class SaveEnvelope
     {
-        public int Version = 1;
+        [JsonProperty("version", Required = Required.Always)]
+        public int Version;
 
-        public RunData Data = new RunData();
+        [JsonProperty("data", Required = Required.Always)]
+        public RunData Data;
+
+        public SaveEnvelope(int version, RunData data)
+        {
+            Version = version;
+            Data = data ?? throw new ArgumentNullException(nameof(data));
+        }
     }
 }

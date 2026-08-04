@@ -27,6 +27,11 @@ public class ManagementController : MonoBehaviour
              "실제 상한은 둘을 합친 MaxVillagers다. 전 라인 배치 합계 상한.")]
     [SerializeField] int _maxVillagers = 2;
 
+    /// <summary>
+    /// 증축 주민을 제외한 게임 시작 시 기본 주민 수.
+    /// </summary>
+    public int BaseMaxVillagers => _maxVillagers;
+
     [Tooltip("웨이브 클리어(밤→낮 정산) 시 지급되는 마나석 고정량 (GDD §4.3)")]
     [SerializeField] int _manaPerWaveClear = 10;
 
@@ -118,6 +123,27 @@ public class ManagementController : MonoBehaviour
     public bool CanAdvancePhase => _dayNight != null;
 
     public int ResourceCount(ResourceKind kind) => _wallet != null ? _wallet.Get(kind) : 0;
+
+    /// <summary>
+    /// 자원 보유량을 지정한 절대값으로 복원한다.
+    /// 획득량을 더하거나 비용을 차감하지 않고 지갑 잔액을 직접 맞춘다.
+    /// </summary>
+    /// <param name="kind">복원할 자원 종류.</param>
+    /// <param name="amount">복원할 보유량. 0 이상이어야 한다.</param>
+    /// <returns>
+    /// 지갑이 준비되어 있고 값이 유효하면 true.
+    /// </returns>
+    public bool TryRestoreResource(ResourceKind kind,int amount)
+    {
+        if (_wallet == null)
+        {
+            Debug.LogError("[경영 복원] ResourceWallet이 준비되지 않았습니다.",this);
+
+            return false;
+        }
+
+        return _wallet.TrySet(kind, amount);
+    }
 
     // ── 비용 소비 게이트웨이 (소비처는 지갑에 직접 접근하지 않고 컨트롤러 경유 — WL-017) ──
     /// <summary>Cost 리스트를 감당할 수 있는지 판정한다. null/빈 리스트는 무료(true).</summary>
@@ -308,6 +334,8 @@ public class ManagementController : MonoBehaviour
         }
         return -1;
     }
+
+    public int UpgradeBuildingCount =>_upgradeBuildingRefs != null? _upgradeBuildingRefs.Length: 0;
 
     public int UpgradeBuildingLevel(int index) => IsValidUpgrade(index) ? _upgradeLevel[index] : 0;
     // 실질 Max — 행 수가 아니라 '본진 레벨로 열려 있는 만큼'이다(#229). 본진 자신은 게이팅에서 제외한다.
@@ -952,4 +980,252 @@ public class ManagementController : MonoBehaviour
 
     private bool IsValidLine(int index) =>
         _sources != null && index >= 0 && index < _sources.Length && _sources[index] != null;
+
+
+    /// <summary>
+    /// 생산 라인 인덱스에 대응하는 안정적인 BuildingID를 반환한다.
+    /// 인덱스가 유효하지 않거나 건물이 없으면 null을 반환한다.
+    /// </summary>
+    public string LineBuildingId(int index)
+    {
+        if (!IsValidLine(index))
+            return null;
+
+        return _lineBuildings[index]?.BuildingID;
+    }
+
+    /// <summary>
+    /// 업그레이드 건물 인덱스에 대응하는 안정적인 BuildingID를 반환한다.
+    /// 인덱스가 유효하지 않거나 건물이 없으면 null을 반환한다.
+    /// </summary>
+    public string UpgradeBuildingId(int index)
+    {
+        if (!IsValidUpgrade(index))
+            return null;
+
+        return _upgradeBuildingRefs[index]?.BuildingID;
+    }
+
+    /// <summary>
+    /// 저장된 BuildingID에 대응하는 현재 생산 라인 인덱스를 찾는다.
+    /// 인스펙터 배열 순서가 변경돼도 ID를 기준으로 복원하기 위한 검색 함수다.
+    /// </summary>
+    /// <param name="buildingId">찾을 생산 건물 ID.</param>
+    /// <returns>일치하는 인덱스, 찾지 못하면 -1.</returns>
+    private int FindLineIndexById(string buildingId)
+    {
+        if (string.IsNullOrEmpty(buildingId) ||
+            _lineBuildings == null)
+        {
+            return -1;
+        }
+
+        for (int i = 0; i < _lineBuildings.Length; i++)
+        {
+            BuildingAsset building = _lineBuildings[i];
+
+            if (building != null && string.Equals(building.BuildingID,buildingId,StringComparison.Ordinal))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    /// 저장된 BuildingID에 대응하는 현재 업그레이드 건물 인덱스를 찾는다.
+    /// </summary>
+    /// <param name="buildingId">찾을 업그레이드 건물 ID.</param>
+    /// <returns>일치하는 인덱스, 찾지 못하면 -1.</returns>
+    private int FindUpgradeIndexById(string buildingId)
+    {
+        if (string.IsNullOrEmpty(buildingId) || _upgradeBuildingRefs == null)
+        {
+            return -1;
+        }
+
+        for (int i = 0;i < _upgradeBuildingRefs.Length;i++)
+        {
+            BuildingAsset building = _upgradeBuildingRefs[i];
+
+            if (building != null && string.Equals(building.BuildingID,buildingId,StringComparison.Ordinal))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    /// BuildingID를 기준으로 생산 라인의 레벨과 주민 배치를 복원한다.
+    /// 비용 차감과 낮 여부 검사를 거치지 않는다.
+    /// </summary>
+    /// <param name="buildingId">복원할 생산 건물 ID.</param>
+    /// <param name="level">복원할 업그레이드 레벨.</param>
+    /// <param name="villagers">복원할 배치 주민 수.</param>
+    /// <returns>
+    /// 건물이 존재하고 값이 유효해 복원됐으면 true.
+    /// </returns>
+    public bool TryRestoreProductionLine(string buildingId,int level,int villagers)
+    {
+        if (!CanRestoreProductionLine(buildingId,level,villagers))
+        {
+            return false;
+        }
+
+        int index = FindLineIndexById(buildingId);
+
+        List<BuildingAsset.UpgradeLevel> levels = _lineUpgradeLevels[index];
+
+        _level[index] = level;
+        _villagerCounts[index] = villagers;
+
+        if (level == 0)
+        {
+            _amountPerVillager[index] =Mathf.Max(0,_lineBuildings[index].Production.BaseAmountPerVillager);
+        }
+        else
+        {
+            _amountPerVillager[index] =Mathf.Max(0,levels[level - 1].AmountPerVillager);
+        }
+
+        OnChanged?.Invoke();
+
+        return true;
+    }
+
+    /// <summary>
+    /// 생산 건물 복원 값이 현재 데이터에서 유효한지 검사한다.
+    /// 런타임 상태는 변경하지 않는다.
+    /// </summary>
+    /// <param name="buildingId">검사할 생산 건물 ID.</param>
+    /// <param name="level">검사할 업그레이드 레벨.</param>
+    /// <param name="villagers">검사할 배치 주민 수.</param>
+    /// <returns>건물이 존재하고 값이 유효하면 true.</returns>
+    public bool CanRestoreProductionLine(string buildingId,int level,int villagers)
+    {
+        int index = FindLineIndexById(buildingId);
+
+        if (index < 0)
+        {
+            Debug.LogWarning($"[경영 복원] 생산 건물을 찾을 수 없습니다: {buildingId}",this);
+
+            return false;
+        }
+
+        if (level < 0)
+        {
+            Debug.LogError($"[경영 복원] 생산 건물 레벨이 음수입니다: {buildingId}={level}",this);
+
+            return false;
+        }
+
+        if (villagers < 0)
+        {
+            Debug.LogError($"[경영 복원] 배치 주민 수가 음수입니다: {buildingId}={villagers}",this);
+
+            return false;
+        }
+
+        List<BuildingAsset.UpgradeLevel> levels = _lineUpgradeLevels[index];
+
+        int maxLevel = levels != null ? levels.Count : 0;
+
+        if (level > maxLevel)
+        {
+            Debug.LogError($"[경영 복원] 생산 건물 레벨이 현재 최대치를 초과합니다: {buildingId}={level}, 최대={maxLevel}",this);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// 업그레이드 건물 복원 값이 현재 데이터에서 유효한지 검사한다.
+    /// 런타임 상태는 변경하지 않는다.
+    /// </summary>
+    /// <param name="buildingId">검사할 업그레이드 건물 ID.</param>
+    /// <param name="level">검사할 업그레이드 레벨.</param>
+    /// <returns>건물이 존재하고 레벨이 유효하면 true.</returns>
+    public bool CanRestoreUpgradeBuilding(string buildingId,int level)
+    {
+        int index = FindUpgradeIndexById(buildingId);
+
+        if (index < 0)
+        {
+            Debug.LogWarning($"[경영 복원] 업그레이드 건물을 찾을 수 없습니다: {buildingId}",this);
+
+            return false;
+        }
+
+        if (level < 0)
+        {
+            Debug.LogError($"[경영 복원] 업그레이드 건물 레벨이 음수입니다: {buildingId}={level}",this);
+
+            return false;
+        }
+
+        IReadOnlyList<BuildingAsset.UpgradeStep> levels = _upgradeLevelTables[index];
+
+        int maxLevel = levels != null ? levels.Count : 0;
+
+        if (level > maxLevel)
+        {
+            Debug.LogError($"[경영 복원] 업그레이드 건물 레벨이 현재 최대치를 초과합니다: {buildingId}={level}, 최대={maxLevel}",this);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// BuildingID를 기준으로 업그레이드 건물 레벨을 복원한다.
+    /// 비용 차감과 본진 레벨 제한을 적용하지 않는다.
+    /// </summary>
+    /// <param name="buildingId">복원할 업그레이드 건물 ID.</param>
+    /// <param name="level">복원할 레벨.</param>
+    /// <returns>검증과 적용에 성공하면 true.</returns>
+    public bool TryRestoreUpgradeBuilding(string buildingId,int level)
+    {
+        if (!CanRestoreUpgradeBuilding(buildingId,level))
+        {
+            return false;
+        }
+
+        int index = FindUpgradeIndexById(buildingId);
+
+        _upgradeLevel[index] = level;
+
+        OnChanged?.Invoke();
+
+        return true;
+    }
+
+    /// <summary>
+    /// 본진에서 증축한 주민 수를 절대값으로 복원한다.
+    /// 비용 차감이나 증축 횟수 진행을 다시 수행하지 않는다.
+    /// </summary>
+    /// <param name="bonusVillagers">
+    /// 복원할 증축 주민 수. 0 이상이어야 한다.
+    /// </param>
+    /// <returns>값이 유효하고 적용됐으면 true.</returns>
+    public bool TryRestoreBonusVillagers(int bonusVillagers)
+    {
+        if (bonusVillagers < 0)
+        {
+            Debug.LogError($"[경영 복원] 증축 주민 수가 음수입니다: {bonusVillagers}",this);
+
+            return false;
+        }
+
+        _bonusVillagers = bonusVillagers;
+
+        OnChanged?.Invoke();
+
+        return true;
+    }
 }
