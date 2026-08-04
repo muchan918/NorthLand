@@ -26,7 +26,31 @@
 | Command (되돌리기 커맨드·히스토리, #263/#281) | muchan | `Assets/Scripts/Command`(계약·히스토리), `Assets/Scripts/GameManager/MouseManager/TowerPlacement`(구현체 2종), `Assets/Scripts/UI/TowerPanel/TowerUndoButtonView.cs` | 낮 동안의 **타워 배치·합성**을 되돌린다(#281). `IReversibleCommand` 4단 트랜잭션 + static `CommandHistory`(LIFO 20, 씬 배선 없음). **경영 조작은 범위 밖**이고, 되돌릴 수 있는 것은 "방금 한 조작"뿐이라 **임의 철거 경로는 여전히 없다**(`Tower.md` §6 #1 미해소). Redo 없음. 명세 `Docs/Core/TowerPlacement.md` §7·§8, `Docs/Core/TowerMerge.md` §9.3 |
 | BossAI (보스 BT 패턴 AI, #232/#233/#234/#235) | n0wst4ndup | `Assets/Scripts/CombatSystem/Enemy/AI`(`EnemyAgent`/`EnemyPatternMemory`/`EnemyNodeQuery`/열거형), `Assets/Scripts/CombatSystem/Enemy/AI/Nodes`(리프 노드 14종), `Assets/Behavior/TankBossBehavior.asset`(그래프), `Assets/Prefabs/Monster/Tank.prefab`, `Assets/Resources/ScriptableObjects/Enemies/tank.asset` | 기반(#233)·리프 노드 세트(#234)·패턴 그래프(#235) 구현 완료. **패턴 4종 + 기본 진군이 Play에서 동작 확인됨** — P2(뒤쪽 잡몹→크롤+피해감소, 조건 해제 시 복귀) / P3(앞쪽 타워+잡몹→타워 `AttackInterval` 1→2) / P1 / P4 / 감속 파훼(`AddSpeedDebuff` 대체 검증: 감속 2중첩으로 충돌 피해 0). **잔여 2건**: ① 보스 몸체가 캡슐이고 `AnimatorController` 미착수 — P1 준비 모션이 그래프에서 빠져 있다(`EnemyPlayAnimationAction`은 `Animator` 없으면 Failure) ② P1 충돌 후 보스 생존(경로 끝 `RouteCompleted → Destroy` 회피) 미검증. 수치는 전부 placeholder. 패턴 수치는 그래프 Blackboard 변수 37개로 authoring(WL-094 해소). 보스는 `EnemyTable.csv`에 `tank` 행으로 등재돼 CSV 파이프라인 안에 있다(importer는 기존 SO의 `EnemyID`/`EnemyType`만 덮어써 손입력 `Boss.Stat`·`BehaviorTree`를 보존한다 — `TableImporter.ImportEnemy`). `EnemyAgent.unitLayerMask`는 896(Enemy 7 \| Soldier 8 \| PlayerBase 9) — 이 마스크는 "질의 후보 집합"이고 진영 판정은 `EnemyNodeQuery.TryAccept`가 사후에 하므로 넓게 잡는 것이 계약과 일치한다(부분적으로 비면 `Hostile` 조건이 조용히 항상 0). **감속 파훼 불변식**(`MoveSpeed × MaxFactor × slow^n < MinSpeed`)이 수치 튜닝으로 깨졌다 복원된 이력이 있다(WL-122) — 밸런싱 시 `TankGraphSpec.md` 「감속 파훼 불변식」 표를 재계산할 것. `EnemyAgent`는 `Enemy`를 상속하지 않고 **병존**하는 무상태 파사드로, 값은 `MonsterMove`/`Enemy`가 소유하고 전달만 한다(유일한 예외는 패턴 쿨다운 기록). 노드는 `Enemy`/`MonsterMove`/`Animator`에 직접 닿지 않고 `EnemyAgent` 경계만 안다. **네임스페이스를 두지 않는 규약**이라 노드·보조 타입 클래스 이름이 전역 유일해야 한다(기존 MiniBoss 노드 4종은 `NorthLand.Combat.Boss`를 쓰며 이 세트와 무관·GUID 충돌 없음). 수치는 코드가 아니라 그래프 Blackboard 변수로 authoring한다(WL-094와 같은 축). 단 **`LayerMask`는 Blackboard 지원 타입이 아니라** `EnemyAgent.UnitLayerMask`(프리팹 인스펙터)에 둔다. **타워 접점(#164 리팩토링 반영 완료)**: P3 마력 봉인의 대상 집합은 `EnemyNodeQuery.IsAttackTower` = `Tower.Has<AttackBehaviour>()`로 판정한다. 모든 타워가 단일 `Tower` 타입이 된 뒤 **이 판정이 처음으로 실제 필터 역할을 한다**(예전엔 오라 타워가 별개 클래스라 `Tower.Active`에 없어서 자동으로 빠졌고, 그 뒤엔 `AttackInterval > 0` 휴리스틱이었다). 능력 질의로 바꿔 판정 근거가 다른 시스템의 구현 세부에 의존하지 않는다. 지키는 설계 의도: **"봉인 중에도 감속은 살아남아 P1 파훼 수단이 유지된다."** 편집모드 실측으로 `choco_tower`(Magic/Debuff)가 `IsAttackTower=false`임을 확인(2026-07-29). **감속 중첩 해소 + 밸런스 미결**: 감속 소스키가 인스턴스별로 바뀌어 같은 종류 감속 타워가 실제로 중첩되기 시작했다(구 `TowerID` 해시에선 1중첩에 고정 — **P1 파훼가 원천 불가**였다). 이후 `choco_tower` 감속을 −40%→**−20%(배율 0.8)** 로 조정(2026-07-29, n0wst4ndup) → `MoveSpeedComposer` 실측 `84 × 0.8ⁿ`: 5중첩 27.53(`MinSpeed 25` 초과) / **6중첩 22.02(피해 0)**. **파훼에 감속 타워 6개가 필요해 프로토타입 기준 과할 수 있다** — 조정 후보(감속 −30% 강화 / `P1_MinSpeed` 상향 / 합산 중첩 전환)와 권고는 `TankGraphSpec.md` 「감속 파훼 불변식」 절에 정리. 인게임 검증 미완. 보스 이름은 프로토타입 임시명 `Tank`이며 웨이브 편성은 프로토타입에서 조정하지 않는다(임의 웨이브에 `Count: 1`, WL-096은 이 이슈 범위 밖). 설계 `Docs/Monster/Boss/BossDesign.md` · 노드 대장 `Docs/Monster/Boss/BossNodeReference.md` |
 
+### Run/Seed (Run 단위 마스터 시드)
+
+- **소유자**: sunjin1222
+- **경로**: `Assets/Scripts/SeedData`, `Assets/Scripts/PlayerData/RunData.cs`
+- `RunBootstrapper`가 `[DefaultExecutionOrder(-1000)]`으로 영토·전투맵보다 먼저 마스터 시드를 확정한다.
+- 마스터 시드 결정 우선순위는 **Inspector 개발용 override → 타이틀에서 전달된 시드 → 새 무작위 시드**다.
+- `RunSeedDeriver.Derive(masterSeed, systemTag)`는 고정 FNV-1a를 사용한다. 문자열 태그 기반이므로 시스템 추가나 호출 순서 변경이 기존 시스템 시드를 밀지 않는다.
+- 현재 태그는 `CombatMap`, `Territory`이며 각 시스템은 하나의 `System.Random` 인스턴스를 공유하지 않는다.
+- `RunSeedData`는 마스터 시드, 파생 규칙 버전, 시스템별 요청 시드와 최종 사용 시드를 기록하고 `RunData`에 포함된다.
+- 신규 Run은 요청 시드로 생성하고, 복원된 Run은 `UsedSeed != 0`이면 최종 사용 시드를 우선 주입한다. 전투맵 fallback으로 요청값과 실제 사용값이 달라질 수 있기 때문이다.
+- `RunSeedContext`와 `RunData`는 씬의 `RunBootstrapper`가 소유한다. 새 static `Instance`는 추가하지 않는다. 향후 저장 소비자는 `RunBootstrapper`를 명시적으로 참조한다.
+- **Play 검증(2026-08-04)**: 같은 마스터 시드로 전투맵·버프 타일·영토 그래프가 동일하며, 일반 새 게임은 시작할 때마다 다른 마스터 시드를 사용함을 확인했다.
+
 ## 2. 공개 API (다른 시스템이 소비해도 되는 것)
+
+### Run/Seed
+
+- `RunSeedDeriver.Derive(int masterSeed, string systemTag)` — 플랫폼·호출 순서와 무관한 시스템별 시드 파생.
+- `RunSeedContext.CreateRandomRun()` / `CreateRun(int)` / `Restore(RunData)` — Run 시드 생성·복원.
+- `RunSeedContext.RecordCombatMapUsedSeed(int)` / `RecordTerritoryUsedSeed(int)` — 생성 완료 후 실제 사용 시드 기록.
+- `RunBootstrapper.RunData` / `SeedData` / `MasterSeed` — 현재 씬 Run의 읽기 접근자.
+- `GameSceneManager.LoadManageSpaceWithSeed(int)` / `TryConsumePendingMasterSeed(out int)` — 타이틀 입력 시드의 1회성 씬 전환 핸드오프.
+- `CombatMapGenerator.TryGenerate(int)` / `RequestedSeed` / `UsedSeed` — 전투맵 요청·최종 시드 계약.
+- `CombatMapInitializer.InitializeCombatMap(int)` / `UsedSeed` — 전투맵 생성·타일 배치 초기화 진입점.
+- `TerritoryController.Initialize(int)` / `UsedSeed` — 영토 그래프 외부 시드 초기화 진입점.
 
 - `DataTableManager.Get<T>(string id)` — static. **null 반환 가능 → 호출부 null 체크 필수**
 - `ResourceTable.Get(string id)` — null 반환 가능
@@ -329,7 +353,7 @@
   `TerritoryDefinition`(SO): `ResourceKind Kind`(금/루비/사파이어/다이아), `GameObject IslandPrefab`(확보 시 섬),
   `int MinDaily`/`MaxDaily`, `int RollDailyYield(System.Random)`(주입 시 [Min,Max] 1회 롤), 표시명/설명 키(`NorthLand_Territories`).
   수치는 **SO에 authored(CSV 아님, 팀 결정)**. `TerritoryNode.Definition`(SO ref)+`TerritoryNode.DailyYield`(롤 결과)에 주입되며,
-  배정·롤은 `TerritoryController`가 생성 시 `_seed`로 수행(SO 4종<노드라 자원 중복 정상, 시드 결정성).
+  배정·롤은 `TerritoryController.Initialize(requestedSeed)`로 주입된 Run 영토 시드로 수행(SO 4종<노드라 자원 중복 정상, 시드 결정성).
   **수급**: `ManagementController.HandleNightToDay`가 매 정산 시 `Graph.Nodes` 중 Owned+Definition 노드를 순회해
   `ResourceWallet.Add(Definition.Kind, DailyYield)` — **확보 즉시 지급 없음, 주민 배치 무관**(GDD §3.2 자동 수급).
   ⚠ 종전 효과 SO 계층(`TerritoryEffect`/`GrantResourceEffect`/`GainResidentEffect`/`ProductionMultiplierEffect`/`TerritoryEffectContext`)은 **삭제됨**.
