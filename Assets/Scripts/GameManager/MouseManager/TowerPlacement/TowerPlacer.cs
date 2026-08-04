@@ -42,6 +42,11 @@ public enum PlacementOwner
 /// 자원 차감·낮 전용 게이팅은 훅 지점만 표시(TODO) — Docs/Core/TowerPlacement.md §8.
 public class TowerPlacer : MonoBehaviour
 {
+
+    [Header("세이브 복원")]
+    [SerializeField]
+    private CombatMapTileSpawner combatMapTileSpawner;
+
     [Header("배치물")]
     [SerializeField] private GameObject towerPrefab; // 실제 배치될 타워(Combat)
     [SerializeField] private GameObject ghostPrefab; // 고스트(Collider 없음)
@@ -246,6 +251,25 @@ public class TowerPlacer : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// 기준 타일과 타워 풋프린트 크기로 실제 타워 중심 위치를 계산한다.
+    /// 일반 배치와 세이브 복원이 동일한 좌표 계산식을 사용한다.
+    /// </summary>
+    private Vector3 CalculateFootprintCenter(BattleTile anchor,TowerPlacementData data)
+    {
+        if (anchor == null)
+            return Vector3.zero;
+
+        return new Vector3(
+            anchor.transform.position.x +
+            (data.GridWidth - 1) * 0.5f * tileSize,
+
+            anchor.AnchorPosition.y,
+
+            anchor.transform.position.z +
+            (data.GridHeight - 1) * 0.5f * tileSize);
+    }
+
     // ── 스냅: 앵커(히트 타일) 기준 W×H 풋프린트의 중심 월드 좌표 ─────────────────────
     // 그리드가 월드 X/Z축에 정렬돼 있다고 가정한다(battlespace 회전 없음). 프리뷰도 여기서 갱신.
     // y는 hit.point.y(레이가 타일 옆면에 맞으면 벽면 높이) 대신 타일 앵커 y를 써서 타워가 항상 윗면에 앉는다.
@@ -265,12 +289,7 @@ public class TowerPlacer : MonoBehaviour
             UpdateRangeIndicator(CalculatePreviewRange());
         }
 
-        Vector3 result = anchor != null
-            ? new Vector3(
-                anchor.transform.position.x + (_activeData.GridWidth - 1) * 0.5f * tileSize,
-                anchor.AnchorPosition.y,
-                anchor.transform.position.z + (_activeData.GridHeight - 1) * 0.5f * tileSize)
-            : hit.point;
+        Vector3 result = anchor != null? CalculateFootprintCenter(anchor, _activeData) : hit.point;
 
         if (_rangeCircle != null)
         {
@@ -302,7 +321,18 @@ public class TowerPlacer : MonoBehaviour
     {
         // 확정은 프레임당 1회 → 캐시에 의존하지 않고 신선하게 재확인(방어).
         BattleTile anchor = hit.collider.GetComponentInParent<BattleTile>();
-        if (anchor == null) return;
+        if (anchor == null)
+            return;
+
+        CombatMapTileView anchorView = anchor.GetComponentInParent<CombatMapTileView>();
+
+        if (anchorView == null)
+        {
+            Debug.LogError("[TowerPlacer] 기준 타일의 CombatMapTileView를 찾을 수 없습니다.",anchor);
+
+            return;
+        }
+
         RebuildFootprint(anchor);
 
         foreach ((Vector3 _, BattleTile tile) in _footprint)
@@ -319,45 +349,12 @@ public class TowerPlacer : MonoBehaviour
             return;
         }
 
-        // 점유 타일을 인스턴스에 기록해 둔다: 타워가 파괴되면(합성 소모·철거 등)
-        // TowerFootprint.OnDestroy가 그 타일들의 Occupied를 되돌려 재배치를 허용한다.
-        var placed = Instantiate(towerPrefab, snappedPos, Quaternion.identity);
-        var occupant = placed.AddComponent<TowerFootprint>();
-        // 배치된 타워를 합성(#183) 그룹 선택 대상으로 표시(마커 런타임 부착).
-        // 합성 결과 타워도 이 경로로 배치되므로 다단 합성의 재료가 될 수 있다.
-        placed.AddComponent<TowerGroupSelectable>();
-        foreach ((Vector3 _, BattleTile tile) in _footprint)
+        // 일반 배치와 세이브 복원이 동일한 생성 경로를 사용한다.
+        if (!TryCreateTower(_activeAsset,anchor,anchorView,out GameObject placed))
         {
-            occupant.Occupy(tile);
-        }
+            Debug.LogError($"[TowerPlacer] 타워 생성에 실패했습니다: {_activeAsset?.TowerID}",this);
 
-        //KSJ
-        // 타워가 점유한 모든 타일의 버프를 중첩 규칙에 따라 계산하고,
-        // 계산 결과를 배치된 타워의 TowerTileBuff 컴포넌트에 저장한다.
-        TowerTileBuff towerTileBuff = placed.GetComponent<TowerTileBuff>();
-
-        if (towerTileBuff == null)
-        {
-            towerTileBuff = placed.AddComponent<TowerTileBuff>();
-        }
-
-        // ⚠ 순서 주의: 타일 버프를 Tower.Build **앞에** 적용한다. 버프 오라는 조립 시점에 자기 반경으로
-        // 대상을 한 번 훑는데, 그 반경이 타일 버프(사거리)에 의존하기 때문이다. 순서가 뒤바뀌면
-        // 첫 적용이 버프 이전 반경으로 계산된다 — 구 AuraTower가 Start에서 반경을 재계산하던 우회로가
-        // 정확히 이 순서 문제였다. 여기서 한 번 정해두면 그 우회로가 필요 없다.
-        towerTileBuff.Initialize(CalculateTileBuff(occupant.Tiles));
-
-        // 배치 확정된 SO로 조립한다. **패널에서 산 SO가 프리팹이 물고 있는 SO를 이긴다** —
-        // 둘이 다르면 Tower.Build가 경고를 내고 산 쪽으로 재조립한다(WL-129의 무증상 불일치 해소).
-        if (placed.TryGetComponent(out NorthLand.Combat.Tower placedTower))
-        {
-            placedTower.Build(_activeAsset);
-        }
-        else
-        {
-            Debug.LogError(
-                $"[TowerPlacer] 배치한 프리팹({placed.name})에 Tower 컴포넌트가 없습니다 — " +
-                "게임플레이가 동작하지 않습니다. 타워 프리팹 구성을 확인하세요.", placed);
+            return;
         }
 
         // 되돌리기 커맨드(#281). 배치는 이미 끝났고 이 커맨드는 그 결과를 **인수**한다 —
@@ -572,6 +569,172 @@ public class TowerPlacer : MonoBehaviour
         }
 
         return previewBuffCalculator.Calculate(previewDefinitions, tileBuffRules);
+    }
+
+    /// <summary>
+    /// 저장된 TowerAsset과 기준 셀 좌표를 이용해 타워를 복원한다.
+    /// 비용 차감, Undo 등록, 입력 처리, 등장 연출은 수행하지 않는다.
+    /// </summary>
+    /// <param name="asset">TowerID로 조회한 타워 에셋.</param>
+    /// <param name="anchorCell">저장된 풋프린트 기준 셀 좌표.</param>
+    /// <param name="restoredTower">
+    /// 복원된 타워. 실패하면 null.
+    /// </param>
+    /// <returns>타워 복원에 성공하면 true.</returns>
+    public bool TryRestoreTower(TowerAsset asset,Vector2Int anchorCell,out NorthLand.Combat.Tower restoredTower)
+    {
+        restoredTower = null;
+
+        if (combatMapTileSpawner == null)
+        {
+            Debug.LogError("[TowerPlacer] CombatMapTileSpawner가 연결되지 않았습니다.",this);
+
+            return false;
+        }
+
+        if (asset == null)
+        {
+            Debug.LogError("[TowerPlacer] 복원할 TowerAsset이 없습니다.",this);
+
+            return false;
+        }
+
+        if (!combatMapTileSpawner.TryGetTileView(anchorCell,out CombatMapTileView tileView))
+        {
+            Debug.LogError($"[TowerPlacer] 저장된 셀의 타일을 찾을 수 없습니다: {anchorCell}",this);
+
+            return false;
+        }
+
+        if (tileView == null)
+        {
+            Debug.LogError($"[TowerPlacer] 셀의 타일 뷰가 비어 있습니다: {anchorCell}",this);
+
+            return false;
+        }
+
+        BattleTile anchor = tileView.GetComponentInParent<BattleTile>();
+
+        if (anchor == null)
+        {
+            Debug.LogError($"[TowerPlacer] 셀에 BattleTile이 없습니다: {anchorCell}",tileView);
+
+            return false;
+        }
+
+        if (!TryCreateTower(asset,anchor,tileView,out GameObject placed))
+        {
+            Debug.LogError($"[TowerPlacer] 저장된 타워 생성에 실패했습니다: {asset.TowerID}, 셀={anchorCell}",this);
+
+            return false;
+        }
+
+        if (!placed.TryGetComponent(out restoredTower))
+        {
+            Debug.LogError($"[TowerPlacer] 복원된 오브젝트에 Tower 컴포넌트가 없습니다: {asset.TowerID}",placed);
+
+            Destroy(placed);
+            restoredTower = null;
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// 검증된 기준 타일에 타워를 생성하고,
+    /// 풋프린트 점유·타일 버프·Tower 조립을 수행한다.
+    /// 자원 차감, Undo 등록, 등장 연출은 처리하지 않는다.
+    /// </summary>
+    private bool TryCreateTower(TowerAsset asset,BattleTile anchor,CombatMapTileView anchorView,out GameObject placed)
+    {
+        placed = null;
+
+
+        if (asset == null ||anchor == null ||anchorView == null)
+        {
+            Debug.LogError("[TowerPlacer] 타워 생성에 필요한 데이터가 없습니다.",this);
+
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(asset.TowerID))
+        {
+            Debug.LogError("[TowerPlacer] TowerID가 비어 있어 타워를 생성할 수 없습니다.", asset);
+
+            return false;
+        }
+
+        if (asset.Data == null)
+        {
+            asset.Data =DataTableManager.Get<TowerTable>("TowerTable")?.Get(asset.TowerID);
+        }
+
+        if (asset.Data == null)
+        {
+            Debug.LogError($"[TowerPlacer] TowerData를 찾을 수 없습니다: {asset.TowerID}",asset);
+
+            return false;
+        }
+
+        _activeData = new TowerPlacementData(asset.Data.GridWidth,asset.Data.GridHeight,asset.PreviewRadius);
+
+        Vector3 position =CalculateFootprintCenter(anchor,_activeData);
+
+        GameObject prefab = asset.TowerPrefab;
+
+        if (prefab == null)
+        {
+            Debug.LogError($"[TowerPlacer] TowerPrefab이 없습니다: {asset.TowerID}",asset);
+
+            return false;
+        }
+
+        RebuildFootprint(anchor);
+
+        foreach ((Vector3 _, BattleTile tile) in _footprint)
+        {
+            if (!IsBuildable(tile))
+            {
+                Debug.LogError($"[TowerPlacer] 배치할 수 없는 셀이 포함되어 있습니다: {anchorView.GridPosition}",anchor);
+
+                return false;
+            }
+        }
+
+        placed = Instantiate(prefab,position,Quaternion.identity);
+
+        var footprint = placed.AddComponent<TowerFootprint>();
+
+        footprint.SetAnchorCell(anchorView.GridPosition);
+
+        placed.AddComponent<TowerGroupSelectable>();
+
+        foreach ((Vector3 _, BattleTile tile) in _footprint)
+        {
+            footprint.Occupy(tile);
+        }
+
+        TowerTileBuff towerTileBuff = placed.GetComponent<TowerTileBuff>();
+
+        if (towerTileBuff == null)
+        {
+            towerTileBuff = placed.AddComponent<TowerTileBuff>();
+        }
+
+        towerTileBuff.Initialize(CalculateTileBuff(footprint.Tiles));
+
+        if (!placed.TryGetComponent(out NorthLand.Combat.Tower placedTower))
+        {
+            Debug.LogError($"[TowerPlacer] 배치한 프리팹에 Tower 컴포넌트가 없습니다: {asset.TowerID}",placed);
+
+            Destroy(placed);
+            placed = null;
+            return false;
+        }
+
+        placedTower.Build(asset);
+        return true;
     }
 
 }
