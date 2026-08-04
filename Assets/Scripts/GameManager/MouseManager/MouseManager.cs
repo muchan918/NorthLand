@@ -45,6 +45,8 @@ public class MouseManager : MonoBehaviour
     /// 드래그 중인 사각형의 스크린 좌표 영역. 사각형 UI가 매 프레임 읽어 간다(IsBoxSelecting이 true일 때만 유효).
     public Rect BoxSelectScreenRect { get; private set; }
     public bool IsBoxSelecting => _mode == Mode.BoxSelect;
+    /// 배치 고스트를 들고 있는가. 되돌리기 버튼(#281)이 "먼저 이 고스트부터 치운다"를 판정하는 데 쓴다.
+    public bool IsPlacing => _mode == Mode.Placement;
     // 현재 포인터 화면 좌표. 다른 시스템(툴팁 등)이 Mouse.current를 직접 읽지 않고 여기서 얻는다(입력 단일 창구 계약).
     public Vector2 PointerPosition { get; private set; }
 
@@ -510,7 +512,7 @@ public class MouseManager : MonoBehaviour
 
     // ── SkillTargeting: 스킬 범위 지정 (요구사항 ③, #103) ─────────
     // 전투 타일 위이기만 하면(종류 무관) 시전 가능하다. 고스트는 전투 타일 위에서만 표시하고,
-    // 타일 밖(빈 칸·틈·맵 밖)에서는 숨긴다. 고스트를 실제 히트 표면(hit.point)에 붙이므로
+    // 타일 밖(빈 칸·틈·맵 밖)에서는 숨긴다. 고스트를 실제 히트 표면(hit)에 붙이므로
     // 도로처럼 낮게 모델링된 타일 위에서도 표면에 자연스럽게 앉는다.
     private void UpdateSkillTargeting(Vector2 screenPos, bool overUI)
     {
@@ -534,12 +536,14 @@ public class MouseManager : MonoBehaviour
         }
 
         if (!_ghost.activeSelf) _ghost.SetActive(true);
-        _ghost.transform.position = hit.point; // 실제 표면 → 도로면 낮게 앉음
+        Ray ray = _camera.ScreenPointToRay(screenPos);
+        Vector3 pos = _skillRequest.Snap != null ? _skillRequest.Snap(ray, hit) : hit.point;
+        _ghost.transform.position = pos;
 
         // 전투 타일 위이면 시전한다. 타일 밖은 위에서 이미 고스트를 숨기고 return 했다.
         if (!overUI && Mouse.current.leftButton.wasPressedThisFrame)
         {
-            _skillRequest.OnConfirmed(hit.point);
+            _skillRequest.OnConfirmed(pos);
             CancelSkillTargeting(); // 한 번 시전하면 조준 모드 종료(연속 시전 불필요)
         }
     }

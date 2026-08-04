@@ -122,6 +122,15 @@
 
 ---
 
+### 4.1 Run 시드 초기화 계약
+
+- 정본 게임에서는 `RunBootstrapper`가 마스터 시드에서 `Territory` 태그로 파생한 값을 `TerritoryController.Initialize(int)`에 전달한다.
+- `TerritoryController.Initialize(int)`는 전달받은 시드만 사용하며 Inspector 값으로 운영 시드를 덮어쓰지 않는다.
+- `TerritoryGraphGenerator.Generate(settings, seed)`가 전용 `System.Random`을 만들고 노드 위치·연결·영지 정의 및 일일 수급량 배정에 사용한다.
+- 성공한 값은 `TerritoryController.UsedSeed`와 `RunSeedData.TerritoryUsedSeed`에 기록한다. 복원된 Run에서는 저장된 UsedSeed를 우선 사용한다.
+- `RunBootstrapper`가 없는 테스트 씬은 `initializeWithoutRunBootstrapper`가 켜진 경우에만 고정 테스트 시드로 초기화한다. 정본 씬에서는 `RunBootstrapper`가 먼저 생성하므로 중복 초기화되지 않는다.
+- Play 검증(2026-08-04): 동일 마스터 시드에서 그래프 배치·연결·영지 종류가 동일하고, 일반 새 게임에서는 매 Run 결과가 달라진다.
+
 ## 5. 자원 영지 SO 주입 (#166)
 
 **각 노드는 "미개척 영지 정의"(`TerritoryDefinition`) SO 하나를 주입받는다.** 구현 타입:
@@ -132,7 +141,7 @@
   - `int MinDaily`/`MaxDaily` + `int RollDailyYield(System.Random)` — 매일 수급량 범위. **주입 시점에 [Min,Max]에서 1회 롤**해 노드에 확정.
   - 표시명/설명 스트링 테이블 키(`NorthLand_Territories`, `territories.{id}.name/.desc`).
 - `TerritoryNode.Definition`(SO ref) + `TerritoryNode.DailyYield`(롤된 일일량) — 노드가 보관하는 주입 결과.
-- **주입·롤**: `TerritoryController._definitionPool`(authored SO 리스트)을 그래프 생성 시 `_seed`로 셔플해 본진 제외 노드에 배정하고, 각 노드의 `DailyYield`를 같은 rng로 롤(`AssignDefinitions`). **자원 종류(≈4종) < 노드(최대 30)라 같은 자원이 여러 노드에 정상 재등장**(GDD §3.2 "영지 수↑→총 수급↑"). 같은 seed면 지형+영지 배치+일일량이 재현된다(WL-008).
+- **주입·롤**: `TerritoryController._definitionPool`(authored SO 리스트)을 `Initialize(requestedSeed)`로 전달받은 Run 영토 시드로 셔플해 본진 제외 노드에 배정하고, 각 노드의 `DailyYield`를 같은 rng로 롤(`AssignDefinitions`). **자원 종류(≈4종) < 노드(최대 30)라 같은 자원이 여러 노드에 정상 재등장**(GDD §3.2 "영지 수↑→총 수급↑"). 같은 시드면 지형+영지 배치+일일량이 재현된다(WL-008).
 - **수급(즉시 아님)**: 확보 즉시 지급은 없다. `ManagementController.HandleNightToDay`가 매 정산마다 `Graph.Nodes` 중 Owned+Definition 노드를 순회해 `ResourceWallet.Add(Definition.Kind, DailyYield)` — **주민 배치와 무관한 매일 자동 수급**(Resources.md §5.5 A).
 - **새 자원 종류가 생겨도 `TerritoryGraph`/전이/뷰/주입 코드는 불변** — SO만 추가하고 풀에 넣으면 된다.
 

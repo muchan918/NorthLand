@@ -4,6 +4,8 @@
 
 > 코드가 바뀌면 이 문서도 함께 갱신해서, 문서와 실제 구현이 어긋나지 않게 유지한다.
 
+> **현재 정본 주의**: 이 문서는 구 `CombatSpace/MapBuilder` 경로를 설명한다. 정본 `GameScene`의 전투맵은 `CombatSpace/Map`의 `CombatMapGenerator`를 사용하며, Run 마스터 시드에서 파생된 `CombatMap` 시드를 외부 주입받는다. 구 MapBuilder의 전역 `UnityEngine.Random` 경로는 WL-008 잔여 정리 대상이다.
+
 ## 1. 기본 단위
 
 | 용어 | 정의 |
@@ -60,3 +62,13 @@
 - [ ] 블록 내부 중심점 후보 배치 (`centerPoints`)
 - [ ] 용암 타일 개수 범위(`minLavaCount`/`maxLavaCount`) 확인
 - [ ] 최종 목표 오브젝트 배치 오프셋(`finalCenterObjectOffset`) 확인
+
+## 8. 정본 전투맵 시드 계약
+
+- `RunBootstrapper`가 마스터 시드에서 `CombatMap` 태그로 요청 시드를 파생한다.
+- 운영 경로는 `CombatMapInitializer.InitializeCombatMap(seed)` → `CombatMapGenerator.TryGenerate(seed)`다.
+- 생성기는 `new System.Random(generationSeed)` 하나를 웨이포인트·경로·침식·물·버프 타일 생성기에 주입한다. 전역 `UnityEngine.Random`을 소비하지 않는다.
+- 일반 재시도는 `RequestedSeed + attempt`, 검증된 예비 시드의 시작 위치는 `RequestedSeed`에서 결정한다.
+- 최종 성공값은 `UsedSeed`와 `CombatMapData.Seed`에 기록한다. 세이브 복원 시에는 저장된 `CombatMapUsedSeed`를 우선 사용한다.
+- Inspector의 `debugSeed`와 자동 시작 옵션은 ContextMenu/단독 테스트 전용이며 운영 주입 시드를 덮어쓰지 않는다.
+- Play 검증(2026-08-04): 동일 마스터 시드에서 경로·지형·버프 타일이 동일하고, 일반 새 게임에서는 매 Run 결과가 달라진다.
