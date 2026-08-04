@@ -89,13 +89,17 @@ public class TowerPlacer : MonoBehaviour
     private PlacementOwner _historyOwner = PlacementOwner.Placer;
     private ManagementController _management; // 자원 차감 게이트웨이(WL-017). null이면 무료 배치(테스트 씬).
 
-    // 그리드 기준축. 맵 루트(`CombatMapTileSpawner.tileRoot`)가 회전돼 있으면 타일도 그 회전을
-    // 물려받는다 — 타일은 루트의 자식으로 `localRotation = identity`로 생성되기 때문이다.
-    // 따라서 **앵커 타일의 월드 회전이 곧 그리드 기준축**이고, 이웃 셀 오프셋과 하이라이트 쿼드가
-    // 이 축을 따라야 한다. 월드 X/Z를 그대로 쓰면 맵을 조금만 돌려도 셀 뷰가 타일과 어긋난다
-    // (실제 발생: 맵 Y 59.45° — 쿼드가 그만큼 돌아가 타일 경계와 안 맞았다).
-    // 앵커가 없는 프레임(맵 밖)에는 직전 값을 유지한다 — 어차피 그 프레임엔 표시할 셀이 없다.
-    private Quaternion _gridBasis = Quaternion.identity;
+    // 그리드 기준축의 출처. `CombatMapTileSpawner.CoordinateRoot`(= 타일들의 부모)의 회전이다 —
+    // 타일은 그 아래에 `localRotation = identity`로 생성되므로 루트 회전이 곧 셀 축이다.
+    // 월드 X/Z를 그대로 쓰면 맵을 조금만 돌려도 셀 뷰가 타일과 어긋난다(실제 발생: 맵 Y 59.45°).
+    //
+    // 왜 앵커 타일이 아니라 루트인가: 앵커 타일의 회전을 읽으면 "타일 로컬 회전이 항상 0"이라는
+    // 전제에 기대게 된다. 타일 프리팹에 랜덤 yaw(반복감 제거)가 들어오면 셀마다 축이 튀어
+    // 이웃 셀을 엉뚱한 방향으로 짚는다 — `tileSize`와 같은 출처(스포너)에서 받아 그 전제를 없앤다.
+    // 스포너가 없는 씬(구맵·테스트)에서는 identity, 즉 기존 월드 축 동작으로 떨어진다.
+    private Transform _gridRoot;
+
+    private Quaternion GridBasis => _gridRoot != null ? _gridRoot.rotation : Quaternion.identity;
 
     // 프레임당 풋프린트를 1회만 계산해 캐시(스냅에서 채우고, 검증·하이라이트가 공유).
     // MouseManager는 매 프레임 Snap → CanPlaceAt 순으로 호출하므로 CanPlaceAt은 이 캐시를 신뢰한다.
@@ -132,6 +136,13 @@ public class TowerPlacer : MonoBehaviour
         if (combatMap != null && combatMap.Settings != null && combatMap.Settings.TileSize > 0f)
         {
             tileSize = combatMap.Settings.TileSize;
+        }
+
+        // 그리드 축도 간격과 같은 출처(스포너)에서 받는다 — 근거는 _gridRoot 주석.
+        var tileSpawner = FindFirstObjectByType<CombatSpace.CombatMapTileSpawner>();
+        if (tileSpawner != null)
+        {
+            _gridRoot = tileSpawner.CoordinateRoot;
         }
 
         // WL-032/034 방어: 신맵 반영 후에도 구맵(StageBuilder)과 불일치하면 경고한다(둘 다 있는 씬 대비).
@@ -255,17 +266,11 @@ public class TowerPlacer : MonoBehaviour
     }
 
     // ── 스냅: 앵커(히트 타일) 기준 W×H 풋프린트의 중심 월드 좌표 ─────────────────────
-    // 그리드 축은 앵커 타일의 회전에서 가져온다(`_gridBasis`) — 맵 루트가 회전돼 있어도 맞는다. 프리뷰도 여기서 갱신.
+    // 그리드 축은 타일 루트에서 가져온다(`GridBasis`) — 맵 루트가 회전돼 있어도 맞는다. 프리뷰도 여기서 갱신.
     // y는 hit.point.y(레이가 타일 옆면에 맞으면 벽면 높이) 대신 타일 앵커 y를 써서 타워가 항상 윗면에 앉는다.
     private Vector3 SnapToFootprintCenter(RaycastHit hit)
     {
         BattleTile anchor = hit.collider.GetComponentInParent<BattleTile>();
-
-        // RebuildFootprint가 이 값을 쓰므로 그보다 먼저 갱신한다.
-        if (anchor != null)
-        {
-            _gridBasis = anchor.transform.rotation;
-        }
 
         bool footprintChanged = !previewFootprintInitialized || anchor != lastPreviewAnchor;
 
@@ -431,7 +436,7 @@ public class TowerPlacer : MonoBehaviour
     // (순수 yaw면 오프셋이 수평이라 어차피 유지되지만, 축이 기울어도 호출부의 y 규약을 깨지 않게 못박는다).
     private Vector3 GridStep(Vector3 origin, float i, float j)
     {
-        Vector3 offset = _gridBasis * new Vector3(i * tileSize, 0f, j * tileSize);
+        Vector3 offset = GridBasis * new Vector3(i * tileSize, 0f, j * tileSize);
         return new Vector3(origin.x + offset.x, origin.y, origin.z + offset.z);
     }
 
@@ -506,7 +511,7 @@ public class TowerPlacer : MonoBehaviour
             // 쿼드를 XZ 바닥에 눕히고(Euler 90) 그 위에 그리드 yaw를 얹는다 — 순서가 뒤바뀌면 축이 틀어진다.
             q.transform.SetPositionAndRotation(
                 new Vector3(pos.x, topY + 0.03f, pos.z), // z-파이팅 방지 살짝 위로
-                _gridBasis * Quaternion.Euler(90f, 0f, 0f));
+                GridBasis * Quaternion.Euler(90f, 0f, 0f));
             q.GetComponent<Renderer>().sharedMaterial = IsBuildable(tile) ? _cellMatValid : _cellMatInvalid;
         }
     }
