@@ -162,9 +162,9 @@ public class InteractionOutlineFeature : ScriptableRendererFeature
         private static readonly int k_MaskTexelSizeId = Shader.PropertyToID("_MaskTexelSize");
 
         private readonly ProfilingSampler _sampler = new ProfilingSampler("Interaction Outline");
-        private readonly List<Renderer> _hover = new List<Renderer>();
-        private readonly List<Renderer> _selected = new List<Renderer>();
-        private readonly List<Renderer> _mergePreview = new List<Renderer>();
+        private readonly List<InteractionOutlineRegistry.Target> _hover = new List<InteractionOutlineRegistry.Target>();
+        private readonly List<InteractionOutlineRegistry.Target> _selected = new List<InteractionOutlineRegistry.Target>();
+        private readonly List<InteractionOutlineRegistry.Target> _mergePreview = new List<InteractionOutlineRegistry.Target>();
 
         private Material _maskHover;
         private Material _maskSelected;
@@ -192,9 +192,9 @@ public class InteractionOutlineFeature : ScriptableRendererFeature
             public Material MaskHover;
             public Material MaskSelected;
             public Material MaskMergePreview;
-            public List<Renderer> Hover;
-            public List<Renderer> Selected;
-            public List<Renderer> MergePreview;
+            public List<InteractionOutlineRegistry.Target> Hover;
+            public List<InteractionOutlineRegistry.Target> Selected;
+            public List<InteractionOutlineRegistry.Target> MergePreview;
         }
 
         private sealed class CompositePassData
@@ -286,16 +286,18 @@ public class InteractionOutlineFeature : ScriptableRendererFeature
             }
         }
 
-        private static void DrawSlot(RasterCommandBuffer cmd, List<Renderer> renderers, Material material)
+        // 서브메시 수는 등록 시점에 확정돼 Target에 담겨 온다 — 이 루프에서 `sharedMaterials`를 읽으면
+        // 게터가 매번 배열을 새로 만들어 프레임당 렌더러 수만큼 GC 쓰레기가 생긴다(InteractionOutlineRegistry.Target).
+        private static void DrawSlot(RasterCommandBuffer cmd, List<InteractionOutlineRegistry.Target> targets, Material material)
         {
             if (material == null)
             {
                 return;
             }
 
-            for (int i = 0; i < renderers.Count; i++)
+            for (int i = 0; i < targets.Count; i++)
             {
-                Renderer r = renderers[i];
+                Renderer r = targets[i].Renderer;
 
                 if (r == null || !r.enabled || !r.gameObject.activeInHierarchy)
                 {
@@ -303,7 +305,7 @@ public class InteractionOutlineFeature : ScriptableRendererFeature
                 }
 
                 // 서브메시가 여럿이면 전부 그려야 실루엣에 구멍이 안 생긴다.
-                int subMeshCount = Mathf.Max(1, r.sharedMaterials.Length);
+                int subMeshCount = targets[i].SubMeshCount;
 
                 for (int sub = 0; sub < subMeshCount; sub++)
                 {

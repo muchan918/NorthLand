@@ -21,10 +21,28 @@ public static class InteractionOutlineRegistry
         MergePreview = 3,
     }
 
+    /// <summary>
+    /// 그릴 렌더러 + 그 렌더러의 서브메시 수. **서브메시 수를 등록 시점에 확정해 들고 다니는 이유**는
+    /// 렌더 루프에서 `Renderer.sharedMaterials`를 읽지 않기 위해서다 — 그 게터는 호출마다 새 배열을
+    /// 반환하므로(복사본) 렌더러 루프 안에서 부르면 "등록 렌더러 수 × 프레임"만큼 GC 쓰레기가 생긴다.
+    /// 본진처럼 렌더러가 수백 개인 대상을 호버하는 동안 프레임당 수백 개가 할당됐다.
+    /// </summary>
+    public readonly struct Target
+    {
+        public readonly Renderer Renderer;
+        public readonly int SubMeshCount;
+
+        public Target(Renderer renderer, int subMeshCount)
+        {
+            Renderer = renderer;
+            SubMeshCount = subMeshCount;
+        }
+    }
+
     private sealed class Entry
     {
         public Slot Slot;
-        public readonly List<Renderer> Renderers = new List<Renderer>();
+        public readonly List<Target> Targets = new List<Target>();
     }
 
     // 키는 등록 주체(OutlineHighlight 등). 오브젝트가 파괴되면 키가 null이 되므로 소비 시점에 정리한다.
@@ -59,7 +77,7 @@ public static class InteractionOutlineRegistry
         }
 
         entry.Slot = slot;
-        entry.Renderers.Clear();
+        entry.Targets.Clear();
 
         for (int i = 0; i < renderers.Count; i++)
         {
@@ -68,14 +86,34 @@ public static class InteractionOutlineRegistry
             // 파괴된 렌더러를 넘기면 DrawRenderer에서 터진다. 등록 시점에 걸러낸다.
             if (r != null)
             {
-                entry.Renderers.Add(r);
+                entry.Targets.Add(new Target(r, ResolveSubMeshCount(r)));
             }
         }
 
-        if (entry.Renderers.Count == 0)
+        if (entry.Targets.Count == 0)
         {
             Clear(owner);
         }
+    }
+
+    /// <summary>
+    /// 서브메시 수는 **메시**에서 읽는다 — 머티리얼 슬롯 수(`sharedMaterials.Length`)는 서브메시 수가 아니다.
+    /// 슬롯이 서브메시보다 적은 메시(벤더 에셋에 섞여 있다)에서는 남는 서브메시가 마스크에 안 찍혀
+    /// 실루엣에 구멍이 나고, 슬롯이 더 많으면 존재하지 않는 인덱스로 `DrawRenderer`를 부른다.
+    /// 메시를 못 찾는 경우에만 슬롯 수로 폴백한다(등록 시점 1회라 할당이 문제되지 않는다).
+    /// </summary>
+    private static int ResolveSubMeshCount(Renderer r)
+    {
+        Mesh mesh = r is SkinnedMeshRenderer smr
+            ? smr.sharedMesh
+            : r.TryGetComponent(out MeshFilter mf) ? mf.sharedMesh : null;
+
+        if (mesh != null)
+        {
+            return Mathf.Max(1, mesh.subMeshCount);
+        }
+
+        return Mathf.Max(1, r.sharedMaterials.Length);
     }
 
     public static void Clear(Object owner)
@@ -98,7 +136,7 @@ public static class InteractionOutlineRegistry
     /// 렌더러 피처가 그릴 목록을 채운다. 죽은 키·렌더러는 이 시점에 정리한다 —
     /// 등록 주체가 OnDestroy에서 해제하지 못하고 사라지는 경우(씬 언로드)가 있다.
     /// </summary>
-    public static void Collect(List<Renderer> hover, List<Renderer> selected, List<Renderer> mergePreview)
+    public static void Collect(List<Target> hover, List<Target> selected, List<Target> mergePreview)
     {
         s_deadKeys.Clear();
 
@@ -110,18 +148,18 @@ public static class InteractionOutlineRegistry
                 continue;
             }
 
-            List<Renderer> into = pair.Value.Slot switch
+            List<Target> into = pair.Value.Slot switch
             {
                 Slot.MergePreview => mergePreview,
                 Slot.Selected => selected,
                 _ => hover,
             };
 
-            List<Renderer> source = pair.Value.Renderers;
+            List<Target> source = pair.Value.Targets;
 
             for (int i = source.Count - 1; i >= 0; i--)
             {
-                if (source[i] == null)
+                if (source[i].Renderer == null)
                 {
                     source.RemoveAt(i);
                     continue;
