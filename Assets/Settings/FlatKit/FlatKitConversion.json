@@ -342,6 +342,16 @@
             "converted": "54cf9ff543d0c4f449f89920b02240de"
         },
         {
+            "name": "Color_2_Glossy",
+            "source": "f803b207ea218a7499c97b1a6c21ab3a",
+            "converted": "4871028ccae7ebf4f8152d8e1168d004"
+        },
+        {
+            "name": "Emission",
+            "source": "df342bc1c167c0d46a187908e33c5bcc",
+            "converted": "f8a796fce93bbab4da7834fc7472292b"
+        },
+        {
             "name": "FOLIAGE_HP",
             "source": "7dc776485969c124c8e915284a618513",
             "converted": "7ae9202022bad5445a3c0f5603b634e3"
@@ -355,6 +365,11 @@
             "name": "Ground",
             "source": "c8dc7f6ba3f8ed945b6943e8cfcc1dc3",
             "converted": "6f584ccba6f17ee41ad0529cc182b021"
+        },
+        {
+            "name": "Ground",
+            "source": "12d81ce3733cc8b4c98a5c738d54729c",
+            "converted": "787f26caac11f0b439a63c44f890423a"
         },
         {
             "name": "KAMIEN_LP",
