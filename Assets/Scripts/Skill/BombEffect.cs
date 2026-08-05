@@ -24,8 +24,8 @@ public class BombEffect : SkillEffect
     public float GetDamageAt(int level) => damagePerLevel * level;
     public float ExplosionRadius => explosionRadius;
 
-    public override string GetStatSummary(int levelDelta)
-        => SkillStatsFormatter.BuildBombLines(GetCurrentDamage(), GetDamageAt(Level + levelDelta), ExplosionRadius);
+    public override string GetStatSummary()
+        => SkillStatsFormatter.BuildBombLines(GetCurrentDamage(), GetDamageAt(NextLevel), ExplosionRadius);
 
     protected override void HandleImpact(SkillCastContext context)
     {

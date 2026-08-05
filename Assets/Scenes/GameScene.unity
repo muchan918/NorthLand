@@ -9705,7 +9705,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1548195583}
   m_HandleRect: {fileID: 1548195582}
   m_Direction: 2
-  m_Value: 1.0000001
+  m_Value: 1
   m_Size: 0.6
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -14914,6 +14914,10 @@ MonoBehaviour:
   - {fileID: 1276908196}
   - {fileID: 1284791785}
   - {fileID: 779890673}
+  rewardCards:
+  - {fileID: 1108664596}
+  - {fileID: 1848733563}
+  - {fileID: 1746131169}
   nameLocalizers:
   - {fileID: 1472403745}
   - {fileID: 111996086}
@@ -18118,6 +18122,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8c1b78e1aa720614ca7e67c570d14d00, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BurnEffect
+  maxLevel: 3
   tickDamagePerLevel: 2
   tickInterval: 0.5
   duration: 3
@@ -18134,6 +18139,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a5ddd60424c13594bac94a0b29800ee8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BombEffect
+  maxLevel: 3
   bombPrefab: {fileID: 8925636819348908530, guid: b4c2d3008892ecf4ba6ba30b57d958a1, type: 3}
   damagePerLevel: 20
   explosionDelay: 2
@@ -18154,6 +18160,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dd23ebe2cccf4664ba479f0097390e0a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CountEffect
+  maxLevel: 3
   repeatInterval: 0.5
   debugLog: 0
 --- !u!114 &1995850075
@@ -18168,6 +18175,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eacf04ed19c59734dac9e0d0a543fcfd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BurnBuff
+  maxLevel: 3
   tickDamagePerLevel: 1
   tickInterval: 0.5
   duration: 3

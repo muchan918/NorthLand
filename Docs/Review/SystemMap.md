@@ -196,12 +196,15 @@
   `BuffResolved` 이벤트(`Action<BuffCastContext>`, #169) — 버프 시전마다 발행(Duration 포함), 버프 계열 특수효과 구독용
 - `SkillEffectManager.Instance` — **null 반환 가능 → 호출부 null 체크 필수**(#169). 보상 라우터:
   `ApplyReward(WaveRewardData)`(타입 매칭 `SkillEffect` 컴포넌트에 레벨 가산 위임), `GetLevel(WaveRewardType)`(미보유 0),
-  **`GetStatSummary(WaveRewardType, int levelDelta)`**(#287) — 보상 카드에 표시할 "현재 → 획득 후" 수치 줄(평문, 여러 줄 가능).
+  **`GetStatSummary(WaveRewardType)`**(#287, 시그니처 변경 #292) — 보상 카드에 표시할 "현재 → 획득 후" 수치 줄(평문, 여러 줄 가능).
   효과 미부착 시 **빈 문자열**이며, 그 상태는 `ApplyReward`가 경고만 내고 보상을 무시하는 상태와 같다 —
   표시부는 빈 문자열을 받으면 레벨 줄까지 비워야 "고르면 오른다"는 거짓 표시가 생기지 않는다(`WaveRewardSelectionUI`).
-  `levelDelta`는 **호출부가 `WaveRewardData.Amount`를 그대로 넘긴다** — 표시부가 "한 번에 1씩 오른다"고 가정하면
-  SO 수치를 바꾸는 순간 표시와 실효가 조용히 갈린다.
-  ⚠ **`SkillEffect` 파생 계약이 강해졌다(#287)**: `public abstract string GetStatSummary(int levelDelta)` 때문에
+  **레벨 상한 조회(#292)**: `IsMaxLevel(WaveRewardType)`(만렙 여부 — 보상 후보 필터가 쓴다, 효과 미부착 시 false라
+  후보에 남아 `ApplyReward` 경고로 배선 사고가 드러난다), `GetNextLevel(WaveRewardType)`(고르면 도달할 레벨, 상한에서 잘림),
+  `ReachesMaxLevel(WaveRewardType)`(이번 선택으로 상한에 닿는가 — 카드의 `Lv 2 → Max` 표기용).
+  ⚠ **증가폭은 보상 SO가 아니라 레벨 규칙이 소유한다(#292)**: `WaveRewardData.amount`가 제거되어 **한 번 선택 = 1레벨** 고정이다.
+  수량형 보상(마나석 등)은 이 트랙에 넣지 않는다는 것이 팀 결정이며(GDD §5.6), 되살리면 증가폭이 SO와 효과 양쪽에 생겨 표시/실효가 갈린다.
+  ⚠ **`SkillEffect` 파생 계약이 강해졌다(#287)**: `public abstract string GetStatSummary()` 때문에
   **파생 클래스만 만들면 컴파일이 깨진다.** 수치 표시가 없는 효과가 조용히 출시되는 것을 막기 위한 의도된 강제다.
   라벨·서식은 파생이 각자 조립하지 않고 `SkillStatsFormatter`(단일 출처, `TowerStatsFormatter` 대응)에 추가한다.
   스킬 스탯 라벨의 스트링 테이블은 `NorthLand_Skills`(`skills.stat.*`)로, 타워 스탯 라벨(`NorthLand_default`의
