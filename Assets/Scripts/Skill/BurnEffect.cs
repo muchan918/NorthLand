@@ -23,8 +23,8 @@ public class BurnEffect : SkillEffect
     public float GetCurrentTickDamage() => GetTickDamageAt(Level);
     public float GetTickDamageAt(int level) => tickDamagePerLevel * level;
 
-    public override string GetStatSummary(int levelDelta)
-        => SkillStatsFormatter.BuildTickDamageLine(GetCurrentTickDamage(), GetTickDamageAt(Level + levelDelta));
+    public override string GetStatSummary()
+        => SkillStatsFormatter.BuildTickDamageLine(GetCurrentTickDamage(), GetTickDamageAt(NextLevel));
 
     protected override void HandleImpact(SkillCastContext context)
     {
