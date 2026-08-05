@@ -38,6 +38,9 @@ public abstract class SkillEffect : MonoBehaviour
 
     public int NextLevel => Mathf.Min(Level + 1, maxLevel);
 
+    // 다음 레벨이 상한인가 — 보상 카드가 "Lv 2 → Max"로 표시할지 판단한다(#292).
+    public bool NextIsMaxLevel => NextLevel >= maxLevel;
+
     // 보상 패널(#287)에 표시할 "현재 → 획득 후" 수치 줄. 서식·라벨은 SkillStatsFormatter가 소유한다.
     // 파생은 Level과 NextLevel로만 계산한다 — 증가폭은 보상 SO가 아니라 레벨 규칙이 소유하므로
     // 표시와 실효가 어긋날 여지가 없다.

@@ -189,12 +189,14 @@ public class WaveRewardSelectionUI : MonoBehaviour
                 // 다음 레벨은 UI가 +1로 계산하지 않고 효과에게 묻는다 — 상한(#292)이 여기 반영돼야 한다.
                 int level = 0;
                 int nextLevel = 0;
+                bool nextIsMax = false;
                 string stats = null;
 
                 if (SkillEffectManager.Instance != null)
                 {
                     level = SkillEffectManager.Instance.GetLevel(reward.RewardType);
                     nextLevel = SkillEffectManager.Instance.GetNextLevel(reward.RewardType);
+                    nextIsMax = SkillEffectManager.Instance.ReachesMaxLevel(reward.RewardType);
                     stats = SkillEffectManager.Instance.GetStatSummary(reward.RewardType);
                 }
 
@@ -203,7 +205,7 @@ public class WaveRewardSelectionUI : MonoBehaviour
                 // 통째로 비워 씬 배선 사고가 화면에 드러나게 한다.
                 levelStatTexts[i].text = string.IsNullOrEmpty(stats)
                     ? string.Empty
-                    : $"{SkillStatsFormatter.BuildLevelLine(level, nextLevel)}\n{stats}";
+                    : $"{SkillStatsFormatter.BuildLevelLine(level, nextLevel, nextIsMax)}\n{stats}";
             }
 
             rewardButtons[i].onClick.AddListener(() => SelectReward(reward)

@@ -71,4 +71,10 @@ public class SkillEffectManager : MonoBehaviour
     {
         return effects.TryGetValue(type, out var effect) ? effect.NextLevel : 0;
     }
+
+    // 이 보상을 고르면 상한에 도달하는가. 효과 미부착 시 false.
+    public bool ReachesMaxLevel(WaveRewardType type)
+    {
+        return effects.TryGetValue(type, out var effect) && effect.NextIsMaxLevel;
+    }
 }
