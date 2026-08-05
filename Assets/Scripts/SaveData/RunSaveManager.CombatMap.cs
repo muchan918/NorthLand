@@ -56,6 +56,9 @@ namespace NorthLand.Core
             combatMapTileSpawner.SkipNextRevealAnimation();
             combatMapRevealController.RevealForRound(data.WaveCount);
 
+            // 타일 Transform 변경을 즉시 물리 엔진에 반영한다.
+            // 바로 다음 타워 복원에서 OverlapSphere로 타일을 찾기 위해 필요하다.
+            Physics.SyncTransforms();
 
             return true;
         }
