@@ -29,6 +29,13 @@ public abstract class SkillEffect : MonoBehaviour
         Debug.Log($"[SkillEffect] {Type} Lv{previousLevel} → Lv{Level}", this);
     }
 
+    // 보상 패널(#287)에 표시할 "현재 → 획득 후" 수치 줄. 서식·라벨은 SkillStatsFormatter가 소유한다.
+    //
+    // levelDelta는 호출부가 보상(WaveRewardData.Amount)에서 그대로 받아 넘긴다 — 표시부가 "한 번에 1씩
+    // 오른다"고 가정하면 안 된다. 실제 가산은 OnRewardApplied의 amount이고 그 값은 보상 SO가 소유하므로,
+    // 하드코딩하면 SO 수치를 바꾸는 순간 카드가 조용히 거짓 수치를 보여준다.
+    public abstract string GetStatSummary(int levelDelta);
+
     // 어느 스킬의 이벤트에 붙을지는 파생이 정한다. 기본: 감전(SkillManager.ImpactResolved).
     protected virtual bool TrySubscribe()
     {

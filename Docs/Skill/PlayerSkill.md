@@ -10,8 +10,9 @@
 | --- | --- |
 | `SkillManager` | 감전 스킬(#103). 클릭 위치 AoE 즉시 데미지, 밤 게이팅+쿨다운. 임팩트마다 `ImpactResolved(SkillCastContext)` 이벤트 발행 |
 | `BuffSkillManager` | 버프 스킬(#103). 즉시 발동, `Tower.Active` 전체에 공격력/공속 배율. 시전마다 `BuffResolved(BuffCastContext)` 이벤트 발행 |
-| `SkillEffectManager` | 보상 라우터(씬 싱글톤). `WaveRewardController.GrantReward` → `ApplyReward(reward)` → 타입 매칭 효과에 레벨 가산 위임. `GetLevel(type)` 조회 제공 |
-| `SkillEffect` (추상) | 특수효과 공통 베이스(MonoBehaviour, `SkillEffectManager` 오브젝트에 부착). 레벨 소유 + 스킬 이벤트 구독 관리 |
+| `SkillEffectManager` | 보상 라우터(씬 싱글톤). `WaveRewardController.GrantReward` → `ApplyReward(reward)` → 타입 매칭 효과에 레벨 가산 위임. `GetLevel(type)` / `GetStatSummary(type, levelDelta)`(#287) 조회 제공 |
+| `SkillEffect` (추상) | 특수효과 공통 베이스(MonoBehaviour, `SkillEffectManager` 오브젝트에 부착). 레벨 소유 + 스킬 이벤트 구독 관리 + 표시 수치 제공(`GetStatSummary`) |
+| `SkillStatsFormatter` | 보상 카드 표시 문자열의 단일 출처(#287). 라벨 조회(`NorthLand_Skills`)와 숫자 서식이 여기 한 곳에만 있다 — `TowerStatsFormatter` 대응 |
 | `SkillCastContext` / `BuffCastContext` | 시전 1회의 정보 묶음. 효과들이 읽고(위치/맞은 적/지속시간), 일부 필드는 효과가 써넣는다(`ExtraImpacts`) |
 
 ## 2. 핵심 구조 — 이벤트 구독 (#169 확정)
@@ -63,8 +64,13 @@
 2. `SkillEffect` 파생 클래스 1개 작성 — `Type` 프로퍼티 + 훅 구현:
    - 감전에 붙는 효과: `HandleImpact(SkillCastContext)` override.
    - 다른 스킬에 붙는 효과: `TrySubscribe`/`Unsubscribe` override(대상 이벤트 교체) + 자기 핸들러.
-3. `GameScene`의 `SkillEffectManager` 오브젝트에 컴포넌트 부착 + 인스펙터 수치 입력.
-4. 보상 에셋(`WaveRewardData`)의 `rewardType`을 새 타입으로 지정해 풀에 등록.
+3. **`GetStatSummary(int levelDelta)` 구현 — 선택이 아니라 필수다(#287).** `abstract`라 빠뜨리면 컴파일이 깨진다
+   ("수치 표시가 없는 효과"가 조용히 출시되는 것을 막는 의도된 강제). 라벨·서식은 이 클래스 안에서 조립하지 말고
+   `SkillStatsFormatter`에 Build 메서드를 추가하고, 라벨 키는 `NorthLand_Skills` 테이블의 `skills.stat.*`에 넣는다.
+   수치 계산은 실제 적용부(`HandleImpact` 등)와 **같은 식**을 쓸 것 — 표시와 실효가 갈리지 않게 하려는 규약이다.
+   `levelDelta`는 보상의 `Amount`이며 호출부가 넘긴다(파생이 1로 가정하지 않는다).
+4. `GameScene`의 `SkillEffectManager` 오브젝트에 컴포넌트 부착 + 인스펙터 수치 입력.
+5. 보상 에셋(`WaveRewardData`)의 `rewardType`을 새 타입으로 지정해 풀에 등록.
 
 `SkillManager`/`BuffSkillManager`/`SkillEffectManager`의 **이벤트 구독 흐름(`ImpactResolved`/`BuffResolved`, `SkillEffect` 구독 관리)은 수정하지 않는 것이 정상**이다. 수정이 필요해 보이면 구조가 어긋난 것. (예외: §3.1의 마법 연구소 기본 스탯 배율은 시전 시점 base 값 계산에 얹는 별개 축이라 이 제약 밖 — 구독 흐름 자체는 그대로다.)
 
