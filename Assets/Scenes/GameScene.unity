@@ -821,8 +821,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterSpawnWaveProvider
   waves:
-  - {fileID: 11400000, guid: a5fbdb74804bc794d8a9fb61b84a55f8, type: 2}
   - {fileID: 11400000, guid: 40a711574a6a3a7498811530abcde0b4, type: 2}
+  - {fileID: 11400000, guid: a5fbdb74804bc794d8a9fb61b84a55f8, type: 2}
   - {fileID: 11400000, guid: 72b61fd7206a3a34daa374550ec32b5f, type: 2}
   - {fileID: 11400000, guid: 4f677ed7963a95041b0dc37a1a0712c9, type: 2}
   - {fileID: 11400000, guid: 84c85404c0bade847a1de0477ee7c30a, type: 2}
@@ -6193,7 +6193,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SkillButtonView
   _button: {fileID: 679170508}
   _skillGhostPrefab: {fileID: 1627122659657980782, guid: 8b590d985dec8554b96c873e2491f147, type: 3}
-  _castHeight: 20
+  _castHeight: 2
 --- !u!114 &679170508
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6452,7 +6452,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 54.75
+  m_fontSize: 60.35
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
