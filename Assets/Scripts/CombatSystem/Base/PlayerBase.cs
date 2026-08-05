@@ -66,6 +66,41 @@ namespace NorthLand.Combat
             }
             GameManager.Instance.TriggerGameOver();
         }
-     
+
+        /// <summary>
+        /// 저장된 현재 HP를 절대값으로 복원한다.
+        /// 피해 처리와 게임오버 판정은 발생시키지 않는다.
+        /// </summary>
+        /// <param name="hp">복원할 현재 HP.</param>
+        /// <returns>HP 값이 유효하고 복원에 성공하면 true.</returns>
+        public bool TryRestoreCurrentHp(float hp)
+        {
+            if (float.IsNaN(hp) ||float.IsInfinity(hp))
+            {
+                Debug.LogError($"[PlayerBase] 유효하지 않은 HP입니다: {hp}",this);
+
+                return false;
+            }
+
+            if (hp <= 0f)
+            {
+                Debug.LogError($"[PlayerBase] 죽은 본진 HP는 복원할 수 없습니다: {hp}",this);
+
+                return false;
+            }
+
+            if (hp > maxHp)
+            {
+                Debug.LogError($"[PlayerBase] 저장된 HP가 최대 HP를 초과합니다: 저장={hp}, 최대={maxHp}",this);
+
+                return false;
+            }
+
+            currentHp = hp;
+            OnHpChanged?.Invoke(currentHp,maxHp);
+
+            return true;
+        }
+
     }
 }
