@@ -17,6 +17,11 @@ public class WaveRewardSelectionUI : MonoBehaviour
     [SerializeField]
     private Button[] rewardButtons;
 
+    // 카드 루트(Reward1~3). 후보가 3개 미만일 때(만렙 제외 등, #292) 남는 슬롯을 통째로 감춘다 —
+    // 버튼만 끄면 이름·설명·아이콘·수치가 이전 웨이브 값 그대로 남아 유령 카드가 보인다.
+    [SerializeField]
+    private GameObject[] rewardCards;
+
     [SerializeField]
     private LocalizeStringEvent[] nameLocalizers;
 
@@ -152,6 +157,11 @@ public class WaveRewardSelectionUI : MonoBehaviour
         for (int i = 0; i < rewardButtons.Length; i++)
         {
             bool hasCandidate = i < candidates.Count && candidates[i] != null;
+
+            if (rewardCards != null && i < rewardCards.Length && rewardCards[i] != null)
+            {
+                rewardCards[i].SetActive(hasCandidate);
+            }
 
             rewardButtons[i].gameObject.SetActive(hasCandidate);
 
