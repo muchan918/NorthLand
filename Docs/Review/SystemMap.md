@@ -135,6 +135,19 @@
   **정적 싱글톤을 노출하지 않는다** — 스포너 다중 구성을 막지 않기 위해, 소환체는 스폰 시점에
   `EnemyAgent.BindSpawner`로 자기를 만든 스포너에 묶인다(경로 주입과 같은 자리).
   ⚠ `AliveMonsterCount`는 `childCount`라 **보스 자신과 사망 연출 중인 몬스터(`destroyDelay` 2초)를 포함**한다
+- `MonsterSpawnWaveProvider.TryGetWave(int, out IReadOnlyList<MonsterSpawnEntry>)` /
+  `TryGetRewardPool(int, out WaveRewardPool)` / `FinalWaveNumber` / `IsFinalWave(int)` (#294) —
+  **웨이브 번호 = `waves` 리스트에서 몇 번째인가(1-base)**. 진행 순서의 진실 공급원은 인스펙터
+  리스트 순서 하나뿐이며, `MonsterWaveAsset`은 자기 번호를 갖지 않는다(`waveNumber` 필드 제거 —
+  직렬화된 값과 실제 순서가 조용히 어긋나는 WL-126형 함정 제거). 순서 변경은 리스트 드래그,
+  웨이브 추가는 리스트 append로 한다. **리스트의 마지막 항목이 최종 웨이브** —
+  `FinalWaveNumber = 등록 개수`라 웨이브를 추가하면 승리 조건이 자동으로 따라온다.
+  1-base↔0-base 변환은 `TryGetWaveAsset` 한 곳에만 있다(`MonsterSpawnWaveProvider.cs:99`).
+  ⚠ 리스트 중간의 null 슬롯은 경고 후 제외·압축된다(런타임 `orderedWaves`) — 빈 밤을 만들지 않기 위한
+  **의도된 동작**으로, null은 웨이브가 아니라 authoring 노이즈로 본다. 빈 슬롯 뒤의 웨이브가 한 칸씩
+  당겨지고 `FinalWaveNumber`(=유효 웨이브 개수)도 함께 줄어든다 → 빈 슬롯이 있으면 인스펙터 행 번호와
+  웨이브 번호는 어긋난다
+  ⚠ `Awake` 1회 빌드 — 런타임 중 `waves` 변경은 반영되지 않는다
 - `EnemyAgent` (#233, 네임스페이스 없음) — 보스 BT 리프 노드가 참조하는 **유일한** 컴포넌트.
   `Enemy`와 병존하는 무상태 파사드. 노출 멤버 전체 목록은 `Docs/Monster/Boss/BossNodeReference.md`
   「EnemyAgent가 노출하는 것」. 잡몹 프리팹에 이 컴포넌트만 추가하면 같은 노드를 재사용할 수 있고,
