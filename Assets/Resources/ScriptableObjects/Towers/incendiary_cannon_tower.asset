@@ -22,13 +22,13 @@ MonoBehaviour:
     Amount: 15
   Attack:
     AttackDamage: 16
-    AttackRange: 35
+    AttackRange: 14
     AttackInterval: 2.2
     ProjectilePrefab: {fileID: 4221183324172678294, guid: 58184368b64351d4094976b3524ed9a1, type: 3}
     Flight:
       rid: 1498367259597078618
   Impact: 1
-  SplashRadius: 5
+  SplashRadius: 2
   ChainRadius: 0
   MaxChainTargets: 0
   ChainDamageFalloff: 0
@@ -50,8 +50,8 @@ MonoBehaviour:
     - rid: 1498367259597078618
       type: {class: BallisticFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
-        Speed: 100
-        ArcHeight: 20
+        Speed: 40
+        ArcHeight: 8
     - rid: 1498367259597078619
       type: {class: BurnStatus, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
