@@ -88,10 +88,23 @@ namespace NorthLand.Core
                 pendingRestoreData = null;
                 isRestoring = false;
             }
-
             if (!restored)
             {
                 Debug.LogError("[Load] 전체 상태 복원에 실패하여 타이틀로 돌아갑니다.",this);
+
+                // 복원이 불가능한 세이브를 남겨두면 이어하기 실패가 반복되므로 삭제한다.
+                if (fileStore == null)
+                {
+                    Debug.LogError("[Load] 세이브 삭제 시스템이 초기화되지 않았습니다.",this);
+                }
+                else if (!fileStore.TryDelete(out string deleteError))
+                {
+                    Debug.LogError($"[Load] 복원 불가 세이브 삭제에 실패했습니다: {deleteError}",this);
+                }
+                else
+                {
+                    Debug.Log("[Load] 복원 불가 세이브를 삭제했습니다.",this);
+                }
 
                 enabled = false;
 
