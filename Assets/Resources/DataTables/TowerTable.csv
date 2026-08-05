@@ -8,3 +8,6 @@ gatling_tower,towers.gatling.name,1,1,towers.gatling.role,towers.gatling.desc
 Sniper_tower,towers.Sniper.name,1,1,towers.Sniper.role,towers.Sniper.desc
 choco_tower,towers.choco.name,1,1,towers.choco.role,towers.choco.desc
 soda_tower,towers.soda.name,1,1,towers.soda.role,towers.soda.desc
+flame_archer_tower,towers.flame_archer.name,1,1,towers.flame_archer.role,towers.flame_archer.desc
+incendiary_cannon_tower,towers.incendiary_cannon.name,1,1,towers.incendiary_cannon.role,towers.incendiary_cannon.desc
+flame_field_tower,towers.flame_field.name,1,1,towers.flame_field.role,towers.flame_field.desc

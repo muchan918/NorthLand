@@ -15,18 +15,14 @@ MonoBehaviour:
   TowerID: lightning_tower
   TowerPrefab: {fileID: 0}
   GhostPrefab: {fileID: 0}
-  TowerType: 2
-  MagicEffectType: 0
   Cost: []
   Attack:
     AttackDamage: 0
     AttackRange: 0
     AttackInterval: 0
     ProjectilePrefab: {fileID: 0}
-    ProjectileSpeed: 0
-    Flight: 0
-    ArcHeight: 0
-    OnHitStunDuration: 0
+    Flight:
+      rid: -2
   Impact: 2
   SplashRadius: 0
   ChainRadius: 0
@@ -42,60 +38,9 @@ MonoBehaviour:
   DebuffAura:
     Radius: 0
     Interval: 0
-    Duration: 0
-    Modifiers: []
-    Damage:
-      HasDamage: 0
-      DamageAmount: 0
-      TickInterval: 0
-  Single:
-    Attack:
-      AttackDamage: 0
-      AttackRange: 0
-      AttackInterval: 0
-      ProjectilePrefab: {fileID: 0}
-      ProjectileSpeed: 0
-      Flight: 0
-      ArcHeight: 0
-      OnHitStunDuration: 0
-  Area:
-    Attack:
-      AttackDamage: 0
-      AttackRange: 0
-      AttackInterval: 0
-      ProjectilePrefab: {fileID: 0}
-      ProjectileSpeed: 0
-      Flight: 0
-      ArcHeight: 0
-      OnHitStunDuration: 0
-    SplashRadius: 0
-  Chain:
-    Attack:
-      AttackDamage: 0
-      AttackRange: 0
-      AttackInterval: 0
-      ProjectilePrefab: {fileID: 0}
-      ProjectileSpeed: 0
-      Flight: 0
-      ArcHeight: 0
-      OnHitStunDuration: 0
-    ChainRadius: 0
-    MaxChainTargets: 0
-    ChainDamageFalloff: 0
-  Magic:
-    BuffAura:
-      Radius: 0
-      Modifiers: []
-      Damage:
-        HasDamage: 0
-        DamageAmount: 0
-        TickInterval: 0
-    DebuffAura:
-      Radius: 0
-      Interval: 0
-      Duration: 0
-      Modifiers: []
-      Damage:
-        HasDamage: 0
-        DamageAmount: 0
-        TickInterval: 0
+  Effects: []
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
