@@ -25,12 +25,12 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _FillIntensity: 0.327
+    - _FillIntensity: 0.922
     - _HeightFade: 1
     - _LocalHeight: 2
     - _LocalRadius: 0.5
     - _RingPosition: 0.978
-    - _RingWidth: 0.038
+    - _RingWidth: 0.06
     m_Colors:
     - _Color: {r: 0.4, g: 0.9, b: 1, a: 0.85}
   m_BuildTextureStacks: []
