@@ -108,6 +108,16 @@ public partial class ResidentRestAction : Action
 
     private bool ShouldRest()
     {
+        // 대화가 성립된 주민은 이미 그 자리에 세워져 있다(ResidentTryStartConversationAction).
+        // 여기서 쉬기 시작하면 OnEnd의 ResumeMovement가 그 정지를 풀어, 대화 상대를 두고 걸어가 버린다.
+        //
+        // 보통은 Priority Abort가 이 시퀀스를 그 전에 중단시켜 여기까지 오지 않는다. 선점이 어떤 이유로든
+        // 동작하지 않을 때의 안전망이다 — 이 가드가 있으면 선점 실패가 버그가 아니라 합류 지연으로 끝난다.
+        if (agent.HasConversation)
+        {
+            return false;
+        }
+
         float chance = Chance != null ? Chance.Value : 0f;
 
         if (chance <= 0f || Random.value >= chance)
