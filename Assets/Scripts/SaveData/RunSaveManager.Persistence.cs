@@ -12,6 +12,9 @@ namespace NorthLand.Core
 
         private RunData pendingRestoreData;
 
+        private DayNightManager dayNightManager;
+        private bool suppressNextDayStartSave;
+
         /// <summary>
         /// 현재 세이브 파일이 존재하는지 반환한다.
         /// </summary>
@@ -46,6 +49,17 @@ namespace NorthLand.Core
 
         private void Start()
         {
+            dayNightManager = DayNightManager.Instance;
+
+            if (dayNightManager == null)
+            {
+                Debug.LogError("[Save] DayNightManager가 준비되지 않았습니다.",this);
+
+                return;
+            }
+
+            dayNightManager.OnDayStart += HandleDayStart;
+
             if (pendingRestoreData == null)
                 return;
 
@@ -164,10 +178,13 @@ namespace NorthLand.Core
 
             // 이 시점부터 자동 저장을 억제한다.
             isRestoring = true;
+            suppressNextDayStartSave = true;
 
             if (!runBootstrapper.TryPrepareRestore(data))
             {
                 isRestoring = false;
+                suppressNextDayStartSave = false;
+
                 return false;
             }
 
@@ -177,5 +194,33 @@ namespace NorthLand.Core
 
             return true;
         }
+
+        /// <summary>
+        /// 낮이 시작되면 현재 Run 상태를 자동 저장한다.
+        /// 이어하기 직후 발생하는 최초 낮 시작 이벤트는 한 번 건너뛴다.
+        /// </summary>
+        private void HandleDayStart()
+        {
+            if (isRestoring)
+                return;
+
+            if (suppressNextDayStartSave)
+            {
+                suppressNextDayStartSave = false;
+
+                Debug.Log("[Save] 이어하기 직후 낮 시작 자동 저장을 억제했습니다.",this);
+
+                return;
+            }
+
+            TrySaveNow();
+        }
+
+        private void OnDestroy()
+        {
+            if (dayNightManager != null)
+                dayNightManager.OnDayStart -= HandleDayStart;
+        }
+
     }
 }
