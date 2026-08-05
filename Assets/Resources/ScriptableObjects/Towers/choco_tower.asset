@@ -38,7 +38,7 @@ MonoBehaviour:
       DamageAmount: 0
       TickInterval: 0
   DebuffAura:
-    Radius: 40
+    Radius: 16
     Interval: 1
   Effects:
   - rid: 3470829504553025631

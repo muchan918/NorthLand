@@ -19,6 +19,16 @@ namespace CombatSpace
         [SerializeField]
         private Transform tileRoot;
 
+        /// <summary>
+        /// 셀 좌표계의 기준 Transform. 타일을 이 아래에 `localPosition` + `localRotation = identity`로
+        /// 붙이므로 **이 Transform의 회전이 그리드 축의 단일 출처**다(내부 `coordinateRoot`와 같은 값).
+        ///
+        /// 배치 측(`TowerPlacer`)이 이웃 셀 오프셋과 셀 하이라이트 회전을 여기서 가져온다 — 앵커 타일의
+        /// 회전을 읽으면 "타일 로컬 회전이 항상 0"이라는 전제에 기대게 되고, 타일 프리팹에 랜덤 yaw
+        /// (반복감 제거)가 들어오는 순간 셀마다 축이 튄다.
+        /// </summary>
+        public Transform CoordinateRoot => tileRoot != null ? tileRoot : transform;
+
         [Header("Prefabs")]
         [SerializeField]
         private GameObject roadTilePrefab;

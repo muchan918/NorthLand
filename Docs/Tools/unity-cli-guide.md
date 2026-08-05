@@ -309,16 +309,36 @@ Volume 시스템은 전부 공개 API. VolumeProfile은 ScriptableObject 에셋�
 
 ```bash
 echo '
-var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>("Assets/Settings/GlobalVolume.asset");
-if (!profile.TryGet<Bloom>(out var bloom)) bloom = profile.Add<Bloom>(true);
+var path = "Assets/Settings/GlobalVolume.asset";
+var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(path);
+if (!profile.TryGet<Bloom>(out var bloom)) {
+    bloom = profile.Add<Bloom>(false);                    // overrides=false — 손댈 파라미터만 켠다
+    bloom.hideFlags = HideFlags.HideInInspector | HideFlags.HideInHierarchy;
+    AssetDatabase.AddObjectToAsset(bloom, profile);       // ★ 필수 — 없으면 디스크에 저장되지 않는다
+}
 bloom.intensity.overrideState = true;
 bloom.intensity.value = 0.8f;
 EditorUtility.SetDirty(profile);
-AssetDatabase.SaveAssets();
+EditorUtility.SetDirty(bloom);
+AssetDatabase.SaveAssetIfDirty(profile);                 // SaveAssets() 금지 — §7
 return "ok";' | unity-cli exec --usings UnityEngine.Rendering --usings UnityEngine.Rendering.Universal
 ```
 
 (HDRP면 `UnityEngine.Rendering.HighDefinition`으로 교체.) 검증: `screenshot` 전후 비교.
+
+⚠️ **`AddObjectToAsset`을 빼면 오버라이드가 조용히 사라진다 (2026-08-04 실측).**
+`VolumeProfile.Add<T>()`는 `VolumeComponent` 인스턴스를 만들어 `components` 리스트에만 넣는다 —
+**에셋 서브오브젝트 등록은 별개 호출**이고, 그것이 없으면 영속화될 대상이 없어 `{fileID: 0}`(null)로 기록된다.
+Unity는 다음 로드에서 그 null을 조용히 버려 **빈 프로파일**이 되고, **에러 로그도 인스펙터 경고도 없다.**
+Volume이 프로파일을 물고 카메라 post도 켜져 있는데 화면만 안 바뀐다.
+(실제 사고: `MiniatureLookProfile`의 Tonemapping이 이 상태로 커밋됐다 — `Docs/Rendering/VisualLookPipeline.md` §3.1.1)
+
+**검증은 인메모리가 아니라 디스크로 한다** — 저장 실패는 인메모리 상태에 드러나지 않는다:
+
+```bash
+grep -c "^--- !u!114" Assets/Settings/GlobalVolume.asset   # 1(프로파일) + 컴포넌트 수 여야 한다
+grep -A5 "components:" Assets/Settings/GlobalVolume.asset   # {fileID: 0}이 있으면 실패
+```
 
 ### G. 셰이더 / VFX Graph 작업 (그래프 저작물의 한계)
 
@@ -568,6 +588,10 @@ public static class SpawnTool
 - 비주얼 저작 방침: **Shuriken 파티클(§4.K) · 코드 포스트프로세싱(§4.F) · HLSL 셰이더(§4.G)** 우선. VFX Graph/Shader Graph는 값 조정만, 신규 저작은 코드 경로로(그래프는 AI 저작 API가 막혀 있음 — N2).
 - 건드리면 안 되는 에셋/폴더:
 - 씬 저장 정책 (자동 저장 허용 여부): No
+- ⚠️ **`AssetDatabase.SaveAssets()`를 쓰지 말 것.** 무관한 더티 에셋까지 디스크에 써서 남의 작업 트리를
+  더럽힌다(실측 사례: 동적 JP 폰트 아틀라스, 미니맵 `RenderTexture`, 플레이 모드가 건드린 머티리얼).
+  대상을 특정해 `AssetDatabase.SaveAssetIfDirty(target)`만 쓴다. (#213 이행 중 확인 — 원 출처는 삭제된
+  `WIP-OutlineMigration.md` 주의사항)
 - 테스트 필수 영역:
 - 렌더 파이프라인: URP
 - Unity 버전: 6000.3.15f1

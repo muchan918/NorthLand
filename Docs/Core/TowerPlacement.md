@@ -66,9 +66,66 @@
 | TileKind | Grass(건설가능) / Road(경로) / Lava(위험) |
 | 점유 | `BattleTile.Occupied` (타일별 런타임 bool) |
 
-**좌표**: 배치 측은 월드↔셀 변환을 하지 않는다. 히트한 **타일 GameObject를 직접** 다루고, 풋프린트의 이웃 셀은 `tileSize` 간격으로 앵커 주변 지점을 공간 질의(`OverlapSphere(cell, tileSize*0.4f)`)해 찾는다. **그리드가 월드 X/Z축에 정렬돼 있다고 가정**한다(battlespace 회전 없음).
+**좌표**: 배치 측은 월드↔셀 변환을 하지 않는다. 히트한 **타일 GameObject를 직접** 다루고, 풋프린트의 이웃 셀은 `tileSize` 간격으로 앵커 주변 지점을 공간 질의(`OverlapSphere(cell, tileSize*0.4f)`)해 찾는다.
+
+**그리드 축 = 타일 루트(`CombatMapTileSpawner.CoordinateRoot`)의 회전**(2026-08-04 확정).
+이전 판은 **월드 X/Z축 정렬을 가정**했는데, 맵 루트를 회전시키자 깨졌다(실제 발생: `MapBuilder` Y **59.45°**).
+
+- `TowerPlacer`가 `Awake`에서 `CombatMapTileSpawner.CoordinateRoot`(공개 프로퍼티)를 `_gridRoot`로 잡고,
+  `GridBasis`(= `_gridRoot.rotation`)를 이웃 셀 오프셋(`GridStep`)·셀 하이라이트 회전·배치물/고스트 회전에 쓴다.
+- `tileSize`와 **같은 출처**(스포너)에서 축을 받으므로 앵커 유무와 무관하다.
+- 스포너가 없는 씬(구맵·테스트)에서는 identity로 떨어져 기존 월드 축 동작이 유지된다.
+
+> **이력 주의** — 이 절은 하루 안에 두 번 바뀌었다. 1차 수정은 **앵커 타일의 회전**을 기준축으로 썼고
+> "`tileRoot`를 노출할 필요가 없다"고 적었다. 그것이 성립한 이유는 타일이 `localRotation = identity`로
+> 생성된다는 전제뿐이어서, **타일 프리팹에 랜덤 yaw(반복감 제거)가 들어오면 셀마다 축이 튄다.**
+> 그래서 2차로 타일 루트를 공개해 출처를 통일했다(현행). 옛 서술(`_gridBasis`를 앵커에서 읽는다)은 폐기다.
+
+| 증상 | 수정 전 | 수정 후 |
+|---|---|---|
+| 셀 하이라이트 쿼드 방향 | 월드 고정 `Euler(90,0,0)` → 타일 경계와 **59.45° 어긋남** | `GridBasis * Euler(90,0,0)` → 각도차 **0.0000°** |
+| 이웃 셀 (1,0) 위치 | 월드 X로 이동 → 정답에서 **5.95유닛** 벗어남(`OverlapSphere` 반경 2.4 초과 → 타일 못 찾음) | 맵 로컬 X로 정확히 `tileSize` 이동 |
+
+⚠️ 쿼드 회전은 `basis * Euler(90,0,0)` **순서**여야 한다 — 뒤바꾸면 축이 틀어진다. 그리고 쿼드 회전을 `CreateCellHighlights`(배치 시작 1회)에서 `UpdateCellHighlights`(매 프레임)로 옮겼다.
+
+> 셀 하이라이트 어긋남만 눈에 보였던 이유는 **현재 타워 9종이 전부 1×1**이라서다(`TowerTable.csv`). W=H=1이면 이웃 셀 오프셋과 중심 오프셋이 모두 0이 되어 위치 버그가 드러나지 않는다. 다중 셀 타워가 추가되는 순간 배치 자체가 불가능해질 잠재 버그였다.
+
+**타워 본체와 고스트도 그리드 축에 맞춘다** (2026-08-04). 이전에는 `Instantiate`에 회전 인자가 없어 identity로 놓여, 회전된 그리드 위에 월드 정렬된 타워가 앉았다.
+
+- 배치물: `Instantiate(towerPrefab, snappedPos, GridBasis)`
+- 고스트: `PlacementRequest.GhostRotation`(신설, 기본 identity)에 요청 측이 그리드 기준축을 넣는다.
+  배치 세션 동안 상수라 매 프레임 갱신하지 않는다 — 맵 루트는 런타임에 돌지 않는다.
+- `PlacementButton`(테스트 헬퍼)은 `Snap`이 없어 그리드에 붙지 않으므로 identity 기본값이 맞다 — 손대지 않았다.
 
 **`tileSize` 출처 (WL-034)**: `TowerPlacer.Awake`가 씬의 `CombatMapGenerator.Settings.TileSize`를 찾아 인스펙터 값을 **덮어쓴다**. 인스펙터 `tileSize`(기본 5)는 구맵·테스트 씬 폴백이다.
+
+**확정 값: 타일 스케일 1 + `TileSize` 6** (2026-08-04, sunjin1222·n0wst4ndup 합의). 이전은 같은 타일 아트를 2.5배 키워 `TileSize` 15였다.
+
+**타일 아트가 스케일 1에서 정확히 6.00 × 6.00 유닛이다**(`RoadTile`·`GrassTile`·`LavaTile` 실측). 그래서 `TileSize 6`이 아트와 일치하는 값이고, **월드 단위로 authoring된 모든 값은 `6/15 = 0.4`를 곱해야** 타일 대비 비율이 유지된다. 배치 측 `tileSize`는 위 단일 출처로 자동 추종하지만 월드 단위 authoring 값은 추종하지 않으므로, 2026-08-04에 일괄 조정했다(아래).
+
+**`TileSize` 15 → 6 일괄 조정 기록**
+
+| 대상 | 처리 |
+|---|---|
+| 타워 프리팹 16개(본체·고스트·투사체) | 루트 스케일 **×0.4** — `CandyCanon`·`CandyCanon-Ghost`는 선행 조정돼 있어 건너뜀 |
+| `TowerAsset` 9개 | `AttackRange`·`Radius`·`SplashRadius`·투사체 `Speed` **×0.4** |
+| `EnemyAsset` 8개 | `MoveSpeed`·`AttackRange`·`ProjectileSpeed` **×0.4** |
+| 씬 값 | `revealYOffset` 18→7.2 · `monsterWaypointYOffset` 8→3.2(WL-063) · `SkillManager.radius` 15→6 · `TowerPlacer.dummyAttackRange` 48→19.2 |
+
+조정 후 실측 — **타일 15 시절 의도값으로 복귀했다.**
+
+| | 조정 전 | **조정 후** | 타일 15 시절 의도 |
+|---|---|---|---|
+| 타워 크기 | 1.65 ~ 1.94칸 | **0.60 ~ 0.78칸** | 0.66칸 |
+| 타워 사거리 | 5.0 ~ 15.0칸 | **2.00 ~ 6.00칸** | 2.0 ~ 6.0칸 |
+
+⚠️ **스케일 대상이 아닌 것** — 헷갈리기 쉬운 항목이다.
+- **`BaseProtectionRange`(5)**: `int`이고 `GrassEroder`가 **타일 거리**로 비교한다(`distance <= BaseProtectionRange`) → 월드 단위가 아니라 이미 타일 단위다.
+- **배율·시간류**: `DamagePerSpeedUnit`·`SpeedFactor`·`AttackSpeedMul`·`HoldDuration`·쿨다운·간격.
+- **`RangeCircle`·`TowerSpawnEffect`·`GrainSwarm`**: 사거리/`tileSize`를 인자로 받으므로 위 값이 바뀌면 자동 추종한다.
+- **카메라 줌 범위(30~150)**: 룩 기준으로 별도 튜닝됨(`VisualLookPipeline.md` §3.7).
+
+⚠️ **미처리 — 보스 패턴 임계값**(`Assets/Behavior/TankBossBehavior.asset`, #235 진행 중). 블랙보드 변수라 C# grep에 걸리지 않고 그래프 에셋에 **같은 변수가 여러 벌 직렬화**돼 있어 일괄 곱하면 조용히 어긋난다. `BossDesign.md`가 이미 "시드 3개에서 눈으로 확인 후 확정"을 요구하는 항목이므로 **소유자가 Behavior Graph 에디터에서 적용할 것** — 목표값은 `BossDesign.md`에 적었다.
 
 | 출처 | 값 | 비고 |
 | --- | --- | --- |
@@ -394,7 +451,9 @@ const float PopDuration      = 0.28f;   // 〃
 
 **해소됨** (`WatchList-Archive.md`)
 - ~~WL-004 (배치 검증 공백)~~ — `BattleTile` + `TowerPlacer`로 해소.
-- ~~WL-007 (좌표 이원화)~~ — 배치 측은 변환하지 않음. 단 그리드 축 정렬 가정 + WL-034에 의존.
+- **WL-007 (좌표 이원화) — 재개.** "배치 측은 변환하지 않는다"가 사실이 아니었다: 이웃 셀·중심 오프셋·하이라이트 쿼드 회전이 곧 셀→월드 변환이고, 그 사본이 월드축을 가정해 **맵 회전(Y 59.45°)에서 실제로 깨졌다**(§3 좌표, 2026-08-04 수정). 지금은 타일 루트(`CoordinateRoot`)를 기준축으로 받아 축의 출처는 통일했지만, **위치 변환식 자체는 `CombatMapTileSpawner`(로컬 공간 + `TransformPoint`)와 여전히 별개 구현**이다 — WL-034의 해소안(공용 셀↔월드 변환 유틸)이 남은 정답이다.
+- ~~**타워/고스트 회전 미결**~~ → **해소(2026-08-04).** 셀 하이라이트·타워 본체·고스트가 모두 그리드 축(`GridBasis`)을 따른다. 고스트는 `PlacementRequest.GhostRotation`으로 전달한다 — §3 좌표.
+- **`TileSize` 15 → 6 잔여: 보스 패턴 임계값**(§3.1의 미처리 항목) — `TankBossBehavior.asset` 블랙보드 변수를 소유자가 그래프 에디터에서 ×0.4 적용해야 한다(#235).
 - ~~WL-129 (산 SO ≠ 배치된 SO)~~ — `Tower.Build(_activeAsset)`로 해소(§7-7).
 
 **기타**: 점유 수명주기는 타일별 플래그 + `TowerFootprint.OnDestroy`라 맵 리셋(타일 파괴/재생성) 시 자동 초기화된다.

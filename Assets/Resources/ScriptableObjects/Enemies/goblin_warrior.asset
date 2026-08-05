@@ -14,12 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAsset
   EnemyID: goblin_warrior
   EnemyType: 0
+  MovementMode: 0
   Melee:
     Stat:
       MaxHp: 20
-      MoveSpeed: 70
+      MoveSpeed: 28
       AttackDamage: 10
-      AttackRange: 2
+      AttackRange: 0.8
       AttackInterval: 2
   Ranged:
     Stat:

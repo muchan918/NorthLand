@@ -19,17 +19,14 @@ using UnityEngine.SceneManagement;
 [DisallowMultipleComponent]
 public class OutlineInteractionDriver : MonoBehaviour
 {
-    // 폭 = k_WidthNumerator / orthographicSize (§3.4). 게임 줌 범위(70~300)에서 size 70 → 0.5, 300 → 0.117.
-    private const float k_WidthNumerator = 35f;
-    private const float k_MinWidth = 0.12f;
-    private const float k_MaxWidth = 0.7f;
-    private const float k_PerspectiveWidth = 0.5f; // 원근 카메라(에디터 프리뷰 등)에서는 줌 스케일이 무의미
+    // 셸 시절에는 여기서 줌에 따라 헐 두께를 계산해 넘겼다. 스크린 스페이스 실루엣은 두께가
+    // **스크린 픽셀 단위**라 줌 보정이 필요 없어(§3.4) 그 경로 전체를 제거했다 —
+    // 두께는 렌더러 피처 인스펙터의 `Thickness`(px)가 유일한 출처다.
 
     private static OutlineInteractionDriver s_instance;
 
     private OutlineHighlight _hovered;
     private OutlineHighlight _selected;
-    private Camera _camera;
     private bool _subscribed;
     private bool _warnedNoMouseManager;
 
@@ -78,8 +75,6 @@ public class OutlineInteractionDriver : MonoBehaviour
     {
         // MouseManager가 뒤늦게(다른 씬에서) 등장할 수 있어 붙을 때까지 확인한다 — null 체크 1회라 비용은 없다.
         if (!_subscribed) TrySubscribe();
-
-        UpdateWidth();
     }
 
     private void TrySubscribe()
@@ -108,7 +103,6 @@ public class OutlineInteractionDriver : MonoBehaviour
     {
         _hovered = null;
         _selected = null;
-        _camera = null;
     }
 
     private void HandleHoverChanged(IHoverable hoverable)
@@ -143,15 +137,4 @@ public class OutlineInteractionDriver : MonoBehaviour
         return go == null ? null : OutlineHighlight.GetOrAdd(go);
     }
 
-    private void UpdateWidth()
-    {
-        if (_camera == null) _camera = Camera.main;
-        if (_camera == null) return;
-
-        float width = _camera.orthographic
-            ? Mathf.Clamp(k_WidthNumerator / Mathf.Max(0.001f, _camera.orthographicSize), k_MinWidth, k_MaxWidth)
-            : k_PerspectiveWidth;
-
-        OutlineHighlight.SetWidth(width); // 같은 값이면 내부에서 무시된다
-    }
 }
