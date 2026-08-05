@@ -7,8 +7,8 @@ namespace NorthLand.Core
     public sealed partial class RunSaveManager
     {
         /// <summary>
-        /// 모든 보상 특수효과의 현재 중첩 레벨을 수집한다.
-        /// 레벨이 0인 효과도 전체 스키마에 포함한다.
+        /// 씬에 등록된 보상 특수효과의 현재 중첩 레벨을 수집한다.
+        /// 등록된 효과는 레벨이 0이어도 포함하며, 컴포넌트가 없는 enum 값은 제외한다.
         /// </summary>
         private bool TryCaptureRewardEffects(out List<RewardEffectSaveData> data)
         {
@@ -27,6 +27,9 @@ namespace NorthLand.Core
 
             foreach (WaveRewardType type in Enum.GetValues(typeof(WaveRewardType)))
             {
+                if (!manager.HasEffect(type))
+                    continue;
+
                 int level = manager.GetLevel(type);
 
                 if (level < 0)
@@ -106,18 +109,15 @@ namespace NorthLand.Core
 
                 if (!manager.HasEffect(savedEffect.Type))
                 {
-                    Debug.LogError($"[Load] 보상 효과 컴포넌트가 없습니다: {savedEffect.Type}",this);
+                    // 미부착 효과의 0레벨은 저장 당시에도 미보유 상태였으므로 안전하게 무시한다.
+                    // 1레벨 이상은 실제 획득 진행을 잃게 되므로 배선 오류로 취급한다.
+                    if (savedEffect.Level == 0)
+                        continue;
 
-                    return false;
-                }
-            }
-
-            // v1은 모든 효과 종류를 담는 완전한 스키마이다.
-            foreach (WaveRewardType type in Enum.GetValues(typeof(WaveRewardType)))
-            {
-                if (!restoredTypes.Contains(type))
-                {
-                    Debug.LogError($"[Load] 저장 데이터에 보상 효과가 누락됐습니다: {type}",this);
+                    Debug.LogError(
+                        $"[Load] 보유 중인 보상 효과 컴포넌트가 없습니다: " +
+                        $"{savedEffect.Type}=Lv{savedEffect.Level}",
+                        this);
 
                     return false;
                 }
@@ -127,6 +127,9 @@ namespace NorthLand.Core
             for (int i = 0; i < data.Count; i++)
             {
                 RewardEffectSaveData savedEffect = data[i];
+
+                if (!manager.HasEffect(savedEffect.Type))
+                    continue;
 
                 if (!manager.TryRestoreLevel(savedEffect.Type,savedEffect.Level))
                 {
