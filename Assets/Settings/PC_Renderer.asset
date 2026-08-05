@@ -1,5 +1,19 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-3564134667331482456
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: edb250ac097f481fa89c38a1e224b773, type: 3}
+  m_Name: Flat Kit Pixelation
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::FlatKit.FlatKitPixelation
+  m_Active: 1
+  settings: {fileID: 11400000, guid: 6f6b1e07cadeedf4e8a277108c0639a8, type: 2}
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -26,21 +40,22 @@ MonoBehaviour:
     probeVolumeBlendStatesCS: {fileID: 7200000, guid: b9a23f869c4fd45f19c5ada54dd82176, type: 3}
   m_RendererFeatures:
   - {fileID: 7833122117494664109}
-  - {fileID: 3367652129590346614}
-  m_RendererFeatureMap: ad6b866f10d7b46c
+  - {fileID: -3564134667331482456}
+  - {fileID: 3458502798988065057}
+  m_RendererFeatureMap: ad6b866f10d7b46ca84c0d5667a689ce21b960c4f811ff2f
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   m_AssetVersion: 3
   m_PrepassLayerMask:
     serializedVersion: 2
-    m_Bits: 4294963199
+    m_Bits: 4294967295
   m_OpaqueLayerMask:
     serializedVersion: 2
-    m_Bits: 4294963199
+    m_Bits: 4294967295
   m_TransparentLayerMask:
     serializedVersion: 2
-    m_Bits: 4294963199
+    m_Bits: 4294967295
   m_DefaultStencilState:
     overrideStencilState: 0
     stencilReference: 1
@@ -56,7 +71,7 @@ MonoBehaviour:
   m_DepthTextureFormat: 0
   m_AccurateGbufferNormals: 0
   m_IntermediateTextureMode: 0
---- !u!114 &3367652129590346614
+--- !u!114 &3458502798988065057
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -65,42 +80,21 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 576f949be0794f548b825c9ce6f556db, type: 3}
-  m_Name: Flat Kit Per Object Outline
-  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::FlatKit.ObjectOutlineRendererFeature
+  m_Script: {fileID: 11500000, guid: 506a4e339e5edfa43a33bab5415e825f, type: 3}
+  m_Name: Interaction Outline
+  m_EditorClassIdentifier: Assembly-CSharp::InteractionOutlineFeature
   m_Active: 1
-  settings:
-    passTag: RenderObjectsFeature
-    Event: 300
-    filterSettings:
-      RenderQueueType: 0
-      LayerMask:
-        serializedVersion: 2
-        m_Bits: 4096
-      PassNames:
-      - Outline
-    overrideMaterial: {fileID: 0}
-    overrideMaterialPassIndex: 0
-    overrideShader: {fileID: 4800000, guid: bee44b4a58655ee4cbff107302a3e131, type: 3}
-    overrideShaderPassIndex: 1
-    overrideMode: 2
-    overrideDepthState: 0
-    depthCompareFunction: 4
-    enableWrite: 1
-    stencilSettings:
-      overrideStencilState: 0
-      stencilReference: 0
-      stencilCompareFunction: 8
-      passOperation: 0
-      failOperation: 0
-      zFailOperation: 0
-    cameraSettings:
-      overrideCamera: 0
-      restoreCamera: 1
-      offset: {x: 0, y: 0, z: 0, w: 0}
-      cameraFieldOfView: 60
-  materials: []
-  autoReferenceMaterials: 0
+  maskShader: {fileID: 4800000, guid: 5875f6f9b909738419d0c27f8a8e7d36, type: 3}
+  compositeShader: {fileID: 4800000, guid: 59ce852ea0aa9124cb38860498a969b3, type: 3}
+  thickness: 3
+  hoverColor: {r: 1, g: 0.92, b: 0.2, a: 1}
+  selectedColor: {r: 0.25, g: 1, b: 0.35, a: 1}
+  mergePreviewColor: {r: 1, g: 0.35, b: 0.75, a: 1}
+  hoverSeeThrough: 0
+  selectedSeeThrough: 1
+  mergePreviewSeeThrough: 1
+  excludedCameraNames:
+  - MinMapCamera
 --- !u!114 &7833122117494664109
 MonoBehaviour:
   m_ObjectHideFlags: 0

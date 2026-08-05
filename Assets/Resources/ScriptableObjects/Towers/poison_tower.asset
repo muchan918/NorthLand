@@ -25,10 +25,8 @@ MonoBehaviour:
     AttackRange: 0
     AttackInterval: 0
     ProjectilePrefab: {fileID: 0}
-    ProjectileSpeed: 0
-    Flight: 0
-    ArcHeight: 0
-    OnHitStunDuration: 0
+    Flight:
+      rid: -2
   Impact: 0
   SplashRadius: 0
   ChainRadius: 0
@@ -42,19 +40,15 @@ MonoBehaviour:
       DamageAmount: 0
       TickInterval: 0
   DebuffAura:
-    Radius: 30
+    Radius: 12
     Interval: 1
-    Duration: 4
-    Modifiers: []
-    Damage:
-      HasDamage: 1
-      DamageAmount: 5
-      TickInterval: 1
   Effects:
   - rid: 3470829504553025632
   references:
     version: 2
     RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
     - rid: 3470829504553025632
       type: {class: PoisonEffect, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
