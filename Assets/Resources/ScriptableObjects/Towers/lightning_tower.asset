@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: lightning_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
   TowerID: lightning_tower
-  TowerPrefab: {fileID: 6801833135963741600, guid: a025b9ffbf42aa741a4e0c5700732242, type: 3}
-  GhostPrefab: {fileID: 6801833135963741600, guid: 82f5d9bbc7cb29245b07a1c94a021790, type: 3}
+  TowerPrefab: {fileID: 6801833135963741600, guid: 2f350d29b0c9ff345a683bea32ebbd33, type: 3}
+  GhostPrefab: {fileID: 6801833135963741600, guid: a420cf74a9b14b74d8a9344d8e8c65e5, type: 3}
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
     Amount: 30
@@ -22,7 +22,7 @@ MonoBehaviour:
     Amount: 10
   Attack:
     AttackDamage: 30
-    AttackRange: 40
+    AttackRange: 18
     AttackInterval: 2
     ProjectilePrefab: {fileID: 0}
     Flight:
