@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Wave SO를 MonsterSpawnEntry로 변환하여 제공
+// Wave SO를 MonsterSpawnEntry로 변환하여 제공.
+// 웨이브 진행 순서 = waves 리스트의 등록 순서(1-base 인덱스). 마지막 항목이 최종 웨이브다(#294).
 public sealed class MonsterSpawnWaveProvider :
     MonoBehaviour
 {
@@ -9,11 +10,12 @@ public sealed class MonsterSpawnWaveProvider :
     [SerializeField]
     private List<MonsterWaveAsset> waves = new List<MonsterWaveAsset>();
 
-    private readonly Dictionary<int, MonsterWaveAsset> waveByNumber = new Dictionary<int, MonsterWaveAsset>();
+    // 인스펙터 waves에서 null 슬롯만 걸러낸 런타임 진행 순서. 인덱스 0 = 1웨이브.
+    private readonly List<MonsterWaveAsset> orderedWaves = new List<MonsterWaveAsset>();
 
     private readonly List<MonsterSpawnEntry> cachedEntries = new List<MonsterSpawnEntry>();
 
-    // 등록된 웨이브 중 가장 큰 번호 = 최종 웨이브. 등록된 웨이브가 없으면 0.
+    // 등록된 웨이브 개수 = 리스트 마지막 항목의 웨이브 번호 = 최종 웨이브. 등록된 웨이브가 없으면 0.
     public int FinalWaveNumber { get; private set; }
 
     // 이 웨이브를 클리어하면 게임이 끝나는가(승리 판정용). 웨이브 미등록(0)이면 판정하지 않는다.
@@ -22,15 +24,15 @@ public sealed class MonsterSpawnWaveProvider :
 
     private void Awake()
     {
-        BuildWaveLookup();
+        BuildWaveOrder();
     }
 
-    // 웨이브 번호에 해당하는 스폰 목록 제공
+    // 웨이브 번호(1-base = waves 리스트에서 몇 번째인가)에 해당하는 스폰 목록 제공
     public bool TryGetWave(int waveNumber,out IReadOnlyList<MonsterSpawnEntry> entries)
     {
         cachedEntries.Clear();
 
-        if (!waveByNumber.TryGetValue(waveNumber,out MonsterWaveAsset wave))
+        if (!TryGetWaveAsset(waveNumber,out MonsterWaveAsset wave))
         {
             entries = cachedEntries;
             return false;
@@ -71,46 +73,46 @@ public sealed class MonsterSpawnWaveProvider :
         return cachedEntries.Count > 0;
     }
 
-    // 웨이브 번호로 빠르게 찾을 수 있도록 Dictionary 생성
-    private void BuildWaveLookup()
+    // 리스트 등록 순서를 그대로 진행 순서로 삼는다.
+    // null 슬롯만 걸러내 뒤 웨이브의 인덱스가 밀리지 않게 한다.
+    private void BuildWaveOrder()
     {
-        waveByNumber.Clear();
-        FinalWaveNumber = 0;
+        orderedWaves.Clear();
 
         foreach (MonsterWaveAsset wave in waves)
         {
             if (wave == null)
             {
-                continue;
-            }
-
-            int waveNumber = wave.WaveNumber;
-
-            if (waveNumber < 1)
-            {
-                Debug.LogWarning($"{wave.name}의 Wave Number는 1 이상이어야 합니다.", wave);
+                Debug.LogWarning("waves 리스트에 비어 있는 슬롯이 있어 건너뜁니다.", this);
 
                 continue;
             }
 
-            if (waveByNumber.ContainsKey(waveNumber))
-            {
-                Debug.LogWarning($"Wave Number {waveNumber}가 중복되었습니다. 먼저 등록된 SO를 사용합니다.", this);
-
-                continue;
-            }
-
-            waveByNumber.Add(waveNumber, wave);
-
-            FinalWaveNumber = Mathf.Max(FinalWaveNumber, waveNumber);
+            orderedWaves.Add(wave);
         }
 
+        FinalWaveNumber = orderedWaves.Count;
     }
+
+    // 웨이브 번호(1-base)를 리스트 인덱스로 변환한다. 범위 밖이면 false.
+    // 1-base ↔ 0-base 변환은 이 한 곳에만 둔다.
+    private bool TryGetWaveAsset(int waveNumber, out MonsterWaveAsset wave)
+    {
+        if (waveNumber < 1 || waveNumber > orderedWaves.Count)
+        {
+            wave = null;
+            return false;
+        }
+
+        wave = orderedWaves[waveNumber - 1];
+        return true;
+    }
+
     public bool TryGetRewardPool(int waveNumber,out WaveRewardPool rewardPool)
     {
         rewardPool = null;
 
-        if (!waveByNumber.TryGetValue(waveNumber,out MonsterWaveAsset wave))
+        if (!TryGetWaveAsset(waveNumber,out MonsterWaveAsset wave))
         {
             return false;
         }
