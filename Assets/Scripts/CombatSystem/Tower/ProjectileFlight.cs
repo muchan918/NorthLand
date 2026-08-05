@@ -56,6 +56,19 @@ namespace NorthLand.Combat
 
         /// 누적 이동 거리.
         public float Traveled;
+
+        /// 고정된 진행 방향(단위 벡터). 대상을 몰라도 되는 비행 방식(산탄 펠릿·부메랑)이 쓴다 —
+        /// 발사 순간 회전에 조준·부채꼴 오프셋이 이미 실려 있으므로 `Begin`에서 한 번만 스냅샷한다.
+        public Vector3 Direction;
+
+        /// 현재 "구간"(왕복 비행의 나갈 때/돌아올 때 각각 1구간) 번호. `LegHitSet`을 언제 비울지
+        /// 판단하는 기준이다 — 구간이 바뀌면 그 구간에서 새로 만나는 적은 다시 때릴 수 있다(#298).
+        public int CurrentLeg;
+
+        /// 이번 구간에서 이미 명중한 적들. **같은 적을 이번 구간에서 두 번 때리지 않되, 서로 다른
+        /// 적은 같은 구간 안에서 몇 마리든 때린다** — 부메랑이 줄 서 있는 적 여러 마리를 관통하는
+        /// 그림이 여기서 나온다. 구간이 바뀌면(`CurrentLeg` 변화) 비워서 다음 구간엔 다시 맞을 수 있다.
+        public System.Collections.Generic.HashSet<IDamageable> LegHitSet;
     }
 
     /// "어떻게 날아가는가" 한 조각. **타워 SO(`TowerAsset.Attack.Flight`)에 [SerializeReference]로 담긴다** —
@@ -152,6 +165,124 @@ namespace NorthLand.Combat
             self.transform.position = pos;
 
             return t >= 1f ? FlightStep.HitAndExpire(state.Landing) : FlightStep.Flying;
+        }
+    }
+
+    /// 발사 순간의 `transform.forward`를 방향으로 고정하고 유도 없이 그대로 직진한다(산탄 펠릿).
+    /// 발사 시 회전에 부채꼴 오프셋이 이미 실려 있으므로(`AttackAction.TryAttack`) 이 부품은
+    /// 대상이 누구인지 몰라도 된다 — 특정 대상을 쫓지 않는 최초의 비행 방식이라 접촉 판정을
+    /// 자체적으로 하며, 마스크는 `self.EnemyMask`(= `Projectile.impact.EnemyMask`, 곧 타워의
+    /// `enemyLayerMask`)를 그대로 읽는다. 여기 따로 저작하면 같은 값이 두 곳에 살아 어긋난다(#298).
+    ///
+    /// 최대 사거리도 같은 이유로 SO에 고정 수치를 따로 두지 않고 `self.Range`(=`AttackAction.Range`,
+    /// 사거리 버프가 반영된 원장 합성값)를 그대로 쓴다 — 고정값을 뒀다면 사거리 버프를 받아도
+    /// 탐색 반경만 늘고 실제 비행 거리는 그대로인 어긋남이 생긴다.
+    ///
+    /// 첫 접촉에서 소멸하므로(`HitAndExpire`) 중복 타격 문제가 없다 — 왕복하며 여러 번 때리는
+    /// 부메랑과 다른 지점이다. `Impact`는 반드시 `Area`(작은 `SplashRadius`)여야 한다 — `Single`은
+    /// 대상의 생사만 보고 위치와 무관하게 데미지를 넣으므로, 빗나간 펠릿도 명중해버린다.
+    [Serializable]
+    public sealed class StraightFlight : ProjectileFlight
+    {
+        public float Speed = 100f;
+
+        [Tooltip("접촉 판정 반경.")]
+        public float HitRadius = 0.3f;
+
+        public override void Begin(Projectile self, IDamageable target, ref FlightState state)
+        {
+            state.Start = self.transform.position;
+            state.Direction = self.transform.forward;
+        }
+
+        public override FlightStep Step(Projectile self, IDamageable target, ref FlightState state, float deltaTime)
+        {
+            Vector3 delta = state.Direction * (Speed * deltaTime);
+            self.transform.position += delta;
+            state.Traveled += delta.magnitude;
+
+            if (Physics.CheckSphere(self.transform.position, HitRadius, self.EnemyMask))
+                return FlightStep.HitAndExpire(self.transform.position);
+
+            return state.Traveled >= self.Range ? FlightStep.Expire : FlightStep.Flying;
+        }
+    }
+
+    /// 발사 순간의 `transform.forward`를 방향으로 고정하고 그 직선을 따라 `self.Range`(=`AttackAction.Range`,
+    /// 사거리 버프가 반영된 원장 합성값)까지 나갔다가 발사 지점(`state.Start`)으로 돌아온다 —
+    /// 이 왕복을 `Laps`번 반복하고 마지막 복귀가 끝나면 소멸한다. 편도 거리를 SO에 고정 수치로 따로
+    /// 두지 않는 이유는 `StraightFlight.MaxDistance`와 같다 — 그러면 사거리 버프를 받아도 탐색 반경만
+    /// 늘고 실제로 나가는 거리는 그대로인 어긋남이 생긴다.
+    ///
+    /// `StraightFlight`와 같은 이유로 특정 대상을 쫓지 않아 접촉 판정을 자체적으로 하며,
+    /// 마스크는 `self.EnemyMask`(`Projectile.impact.EnemyMask`)를 그대로 읽는다.
+    ///
+    /// ⚠ 왕복 중 접촉마다 때리므로(`HitAndContinue`) 매 프레임 때리면 안 된다 — **같은 적을 이번
+    /// 구간(나갈 때/돌아올 때)에서 두 번 때리지 않되, 서로 다른 적은 같은 구간 안에서 몇 마리든
+    /// 때린다**(`FlightState.LegHitSet`, #298). 그래서 줄 서서 오는 적 여러 마리를 한 구간에 전부
+    /// 관통할 수 있다 — 총 명중 횟수가 그 구간에 몇 마리가 걸리느냐에 따라 달라진다(예전의
+    /// "구간당 최대 1회"와 다른 지점. 그쪽은 총 명중 횟수가 항상 2회로 고정됐었다).
+    /// `Impact`는 반드시 `Area`(`SplashRadius ≥ HitRadius` 권장)여야 한다 — `StraightFlight`와 같은
+    /// 이유. `SplashRadius`가 `HitRadius`보다 작으면 여기서 "새로 맞았다"고 표시한 적 중 일부가
+    /// 실제 데미지 적용(`Projectile.ApplyArea`)의 더 좁은 반경에서 빠져 표시만 되고 안 맞을 수 있다.
+    [Serializable]
+    public sealed class BoomerangFlight : ProjectileFlight
+    {
+        public float Speed = 60f;
+
+        [Tooltip("왕복 횟수. 1이면 나갔다 한 번 돌아오고 소멸.")]
+        public int Laps = 1;
+
+        [Tooltip("접촉 판정 반경.")]
+        public float HitRadius = 0.4f;
+
+        public override void Begin(Projectile self, IDamageable target, ref FlightState state)
+        {
+            state.Start = self.transform.position;
+            state.Direction = self.transform.forward;
+            state.CurrentLeg = -1;
+            state.LegHitSet = new System.Collections.Generic.HashSet<IDamageable>();
+        }
+
+        public override FlightStep Step(Projectile self, IDamageable target, ref FlightState state, float deltaTime)
+        {
+            state.Traveled += Speed * deltaTime;
+
+            float outAndBack = self.Range * 2f;
+            float totalPath = Mathf.Max(1, Laps) * outAndBack;
+
+            if (state.Traveled >= totalPath)
+            {
+                self.transform.position = state.Start;
+                return FlightStep.Expire;   // 마지막 복귀 완료 — 명중 없이 소멸(수명 종료와 명중은 독립이다)
+            }
+
+            // 삼각파: 0→self.Range(왕복 전진)→0(복귀), Laps만큼 반복.
+            float cycle = state.Traveled % outAndBack;
+            float legDistance = cycle <= self.Range ? cycle : outAndBack - cycle;
+            self.transform.position = state.Start + state.Direction * legDistance;
+
+            // 구간 번호: 0=1차 전진, 1=1차 복귀, 2=2차 전진, ... self.Range만큼 지날 때마다 1씩 증가.
+            // 구간이 바뀌면 이번 구간의 "이미 맞은 적" 목록을 비워서 다음 구간엔 같은 적도 다시 맞을 수 있다.
+            int leg = (int)(state.Traveled / self.Range);
+            if (leg != state.CurrentLeg)
+            {
+                state.CurrentLeg = leg;
+                state.LegHitSet.Clear();
+            }
+
+            Collider[] hits = Physics.OverlapSphere(self.transform.position, HitRadius, self.EnemyMask);
+            bool anyFresh = false;
+            for (int i = 0; i < hits.Length; i++)
+            {
+                IDamageable victim = hits[i].GetComponentInParent<IDamageable>();
+                if (victim == null || victim.IsDead) continue;
+                if (state.LegHitSet.Add(victim)) anyFresh = true;   // Add()가 true = 이번 구간 첫 접촉
+            }
+
+            if (anyFresh) return FlightStep.HitAndContinue(self.transform.position);
+
+            return FlightStep.Flying;
         }
     }
 }

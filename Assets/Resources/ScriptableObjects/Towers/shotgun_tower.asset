@@ -10,25 +10,23 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
-  m_Name: archer_tower
+  m_Name: shotgun_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
-  TowerID: archer_tower
-  TowerPrefab: {fileID: 6801833135963741600, guid: af8de5afe47137043ad4ec48d2323017, type: 3}
-  GhostPrefab: {fileID: 6801833135963741600, guid: 5d9bff6eeac419349bde17bbdae0e99c, type: 3}
-  Cost:
-  - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-    Amount: 20
+  TowerID: shotgun_tower
+  TowerPrefab: {fileID: 6801833135963741600, guid: 32f20ff8123df644db927f0b6ddf86a8, type: 3}
+  GhostPrefab: {fileID: 6801833135963741600, guid: 02bd685941e50c74a861dd02e3773db9, type: 3}
+  Cost: []
   Attack:
-    AttackDamage: 12
-    AttackRange: 18
-    AttackInterval: 1
+    AttackDamage: 18
+    AttackRange: 17
+    AttackInterval: 1.2
     ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
     Flight:
-      rid: 3470829504553025636
-    PelletCount: 1
-    SpreadAngle: 0
-  Impact: 0
-  SplashRadius: 0
+      rid: 1498367290197934080
+    PelletCount: 3
+    SpreadAngle: 40
+  Impact: 1
+  SplashRadius: 0.5
   ChainRadius: 0
   MaxChainTargets: 0
   ChainDamageFalloff: 0
@@ -46,8 +44,9 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 3470829504553025636
-      type: {class: HomingFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
+    - rid: 1498367290197934080
+      type: {class: StraightFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
-        Speed: 320
-        ArcHeight: 0
+        Speed: 600
+        MaxDistance: 17
+        HitRadius: 0.4

@@ -265,6 +265,14 @@ unity-cli editor refresh --compile
 `ref FlightState`에 담는다(액션과 정반대). 반환하는 `FlightStep`의 `Impact`와 `Finished`가 분리돼 있어
 "여러 번 명중 후 소멸"(관통·부메랑)이 표현된다([Tower.md](Tower.md) §3.7). 단일 필드라 Unity가 타입
 피커를 안 주지만 `ManagedReferencePickerDrawer`가 이미 그 자리를 메워, 새 파생은 자동으로 드롭다운에 뜬다.
+>
+> ⚠ **유도 없이 고정 방향으로만 나는 비행 방식**(`StraightFlight`/`BoomerangFlight`처럼 발사 순간
+> 방향을 스냅샷하고 이후 대상을 안 쫓는 것)은 **발사 높이가 곧 평생 비행 높이**다(#298). `Homing`은
+> 매 프레임 `target.HitPosition`을 쫓고 `Ballistic`은 그 지점에 착탄하므로 발사 높이가 어디든 결국
+> 대상 높이로 수렴하지만, 이 둘은 그런 보정이 없다 — **프리팹의 `firePoint`를 몬스터 콜라이더 높이
+> 언저리(지면 기준 대략 월드 Y 2~3)로 낮춰둘 것.** 기존 아처 계열 프리팹의 `firePoint`(월드 Y 약 12.8,
+> 유도탄 전제로 높게 잡혀 있음)를 그대로 복제해서 쓰면, 몬스터 콜라이더가 정상 크기일 때 완전히
+> 허공으로만 날아가 아무것도 못 맞히는 무증상 실패가 난다.
 
 **`TowerAction`**([TowerAction.cs](../../Assets/Scripts/CombatSystem/Tower/TowerAction.cs)) — 규칙
 4가지가 그 파일 상단에 명문화돼 있다: ① 수치를 갖지 않는다(전부 SO) ② 씬 배선은 `Owner`를 통해 읽는다

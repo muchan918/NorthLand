@@ -11,3 +11,6 @@ soda_tower,towers.soda.name,1,1,towers.soda.role,towers.soda.desc
 flame_archer_tower,towers.flame_archer.name,1,1,towers.flame_archer.role,towers.flame_archer.desc
 incendiary_cannon_tower,towers.incendiary_cannon.name,1,1,towers.incendiary_cannon.role,towers.incendiary_cannon.desc
 flame_field_tower,towers.flame_field.name,1,1,towers.flame_field.role,towers.flame_field.desc
+shotgun_tower,towers.shotgun.name,1,1,towers.shotgun.role,towers.shotgun.desc
+boomerang_tower,towers.boomerang.name,1,1,towers.boomerang.role,towers.boomerang.desc
+multi_inferno_tower,towers.multi_inferno.name,1,1,towers.multi_inferno.role,towers.multi_inferno.desc

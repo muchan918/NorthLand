@@ -10,25 +10,23 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
-  m_Name: archer_tower
+  m_Name: boomerang_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
-  TowerID: archer_tower
-  TowerPrefab: {fileID: 6801833135963741600, guid: af8de5afe47137043ad4ec48d2323017, type: 3}
-  GhostPrefab: {fileID: 6801833135963741600, guid: 5d9bff6eeac419349bde17bbdae0e99c, type: 3}
-  Cost:
-  - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-    Amount: 20
+  TowerID: boomerang_tower
+  TowerPrefab: {fileID: 6801833135963741600, guid: 977f5bc74f84c4f4793dc1f54fc45390, type: 3}
+  GhostPrefab: {fileID: 6801833135963741600, guid: babe5261b8910674780692e1c6cef94a, type: 3}
+  Cost: []
   Attack:
-    AttackDamage: 12
-    AttackRange: 18
-    AttackInterval: 1
-    ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
+    AttackDamage: 6
+    AttackRange: 20
+    AttackInterval: 2
+    ProjectilePrefab: {fileID: 2063295315579062000, guid: 18cf1c0733a021e468a7d1d1e0452d55, type: 3}
     Flight:
-      rid: 3470829504553025636
+      rid: 1498367290197934156
     PelletCount: 1
     SpreadAngle: 0
-  Impact: 0
-  SplashRadius: 0
+  Impact: 1
+  SplashRadius: 1
   ChainRadius: 0
   MaxChainTargets: 0
   ChainDamageFalloff: 0
@@ -42,12 +40,18 @@ MonoBehaviour:
   DebuffAura:
     Radius: 0
     Interval: 0
+  Beam:
+    Range: 0
+    MaxTargets: 1
+    TickInterval: 1
+    DamagePerTick: 0
   Effects: []
   references:
     version: 2
     RefIds:
-    - rid: 3470829504553025636
-      type: {class: HomingFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
+    - rid: 1498367290197934156
+      type: {class: BoomerangFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
-        Speed: 320
-        ArcHeight: 0
+        Speed: 60
+        Laps: 1
+        HitRadius: 0.5

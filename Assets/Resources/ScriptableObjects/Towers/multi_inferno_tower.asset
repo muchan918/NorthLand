@@ -10,16 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
-  m_Name: poison_tower
+  m_Name: multi_inferno_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
-  TowerID: poison_tower
-  TowerPrefab: {fileID: 527708244005276318, guid: 3046675b0c7627047a8e5d9571fa45f0, type: 3}
-  GhostPrefab: {fileID: 527708244005276318, guid: 3f7d03ebd2feee2468a836693208b76a, type: 3}
-  Cost:
-  - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-    Amount: 40
-  - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
-    Amount: 20
+  TowerID: multi_inferno_tower
+  TowerPrefab: {fileID: 6801833135963741600, guid: f22a1137e86e5b54297c2bcae46c2062, type: 3}
+  GhostPrefab: {fileID: 6801833135963741600, guid: a2f1472cfb0fbb84f9e687d3138834e4, type: 3}
+  Cost: []
   Attack:
     AttackDamage: 0
     AttackRange: 0
@@ -42,18 +38,16 @@ MonoBehaviour:
       DamageAmount: 0
       TickInterval: 0
   DebuffAura:
-    Radius: 12
-    Interval: 1
-  Effects:
-  - rid: 3470829504553025632
+    Radius: 0
+    Interval: 0
+  Beam:
+    Range: 13
+    MaxTargets: 5
+    TickInterval: 1
+    DamagePerTick: 8
+  Effects: []
   references:
     version: 2
     RefIds:
     - rid: -2
       type: {class: , ns: , asm: }
-    - rid: 3470829504553025632
-      type: {class: PoisonStatus, ns: NorthLand.Combat, asm: Assembly-CSharp}
-      data:
-        DamagePerTick: 5
-        TickInterval: 1
-        Duration: 4

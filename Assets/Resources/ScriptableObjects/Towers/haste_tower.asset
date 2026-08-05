@@ -27,6 +27,8 @@ MonoBehaviour:
     ProjectilePrefab: {fileID: 0}
     Flight:
       rid: -2
+    PelletCount: 1
+    SpreadAngle: 0
   Impact: 0
   SplashRadius: 0
   ChainRadius: 0

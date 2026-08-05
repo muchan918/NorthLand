@@ -54,6 +54,16 @@ namespace NorthLand.Combat
         ProjectileFlight flight;
         ProjectileImpact impact;
 
+        // 비행 부품(StraightFlight 등)이 자체 접촉 판정에 쓰는 읽기 창구. Tower의 enemyLayerMask →
+        // AttackAction.BuildImpact → impact.EnemyMask로 이미 흘러온 값을 그대로 노출한다 — 비행 부품에
+        // 마스크를 따로 저작시키면 같은 값이 SO 두 곳(Tower와 Flight)에 살아 어긋날 수 있다(#298).
+        public LayerMask EnemyMask => impact.EnemyMask;
+
+        // 비행 부품이 "얼마나 멀리 갈 수 있는가"의 기준으로 쓰는 읽기 창구. AttackAction.Range는
+        // 원장 합성값(사거리 버프 반영)인데, 이걸 비행 부품에 고정 수치로 따로 저작시키면 사거리 버프를
+        // 받아도 실제 비행 거리는 그대로인 어긋남이 생긴다(#298) — EnemyMask와 같은 이유·같은 해법.
+        public float Range { get; private set; } = float.MaxValue;
+
         // 명중 시 걸 효과(화상·독·감속·스턴). SO의 TowerAsset.Effects를 발사 시 그대로 넘겨받는다.
         IReadOnlyList<HitEffect> effects;
 
@@ -66,7 +76,7 @@ namespace NorthLand.Combat
 
         public void Init(IDamageable target, float damage, IAttacker source,
                          ProjectileFlight flight, ProjectileImpact impact,
-                         IReadOnlyList<HitEffect> effects = null)
+                         IReadOnlyList<HitEffect> effects = null, float range = float.MaxValue)
         {
             this.target = target;
             this.damage = damage;
@@ -74,6 +84,7 @@ namespace NorthLand.Combat
             this.flight = flight;
             this.impact = impact;
             this.effects = effects;
+            this.Range = range;
 
             if (flight == null)
             {

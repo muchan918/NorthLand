@@ -27,6 +27,8 @@ MonoBehaviour:
     ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
     Flight:
       rid: 3470829504553025640
+    PelletCount: 1
+    SpreadAngle: 0
   Impact: 0
   SplashRadius: 0
   ChainRadius: 0
