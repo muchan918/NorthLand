@@ -41,10 +41,10 @@ MonoBehaviour:
     Radius: 0
     Interval: 0
   Beam:
-    Range: 13
+    Range: 20
     MaxTargets: 5
     TickInterval: 1
-    DamagePerTick: 8
+    DamagePerTick: 3
   Effects: []
   references:
     version: 2
