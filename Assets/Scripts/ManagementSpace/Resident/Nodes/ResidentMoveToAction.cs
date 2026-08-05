@@ -29,6 +29,15 @@ public partial class ResidentMoveToAction : Action
     // 그래야 다음 주기에 뽑기 노드가 새 목적지를 받아 온다.
     [SerializeReference] public BlackboardVariable<bool> HasDestination;
 
+    // 한 번에 이동할 구간 길이(초). 0 이하면 도착할 때까지 한 번에 간다.
+    //
+    // 도착 전이라도 이 시간이 지나면 목적지를 **유지한 채** Success를 돌려 브랜치를 끊는다.
+    // 두 가지를 얻는다:
+    //  · 뒤따르는 휴식 노드(R15)가 걷는 도중에 끼어들 자리가 생긴다
+    //  · 브랜치가 짧아져 밤 전환·이탈처럼 즉시 끊겨야 하는 것에 덜 취약해진다
+    //    (Docs/ManagementArea/Resident.md §7 「Selector는 비선점이다」)
+    [SerializeReference] public BlackboardVariable<float> SegmentSeconds;
+
     // 이동 상한(초). 0 이하면 상한 없음.
     [SerializeReference] public BlackboardVariable<float> MaxSeconds;
 
@@ -87,13 +96,22 @@ public partial class ResidentMoveToAction : Action
             return Status.Success;
         }
 
-        if (!agent.HasArrived)
+        if (agent.HasArrived)
         {
-            return Status.Running;
+            ClearDestination();
+            return Status.Success;
         }
 
-        ClearDestination();
-        return Status.Success;
+        // 구간 끝 — 목적지는 그대로 두고 브랜치만 끊는다. 다음 주기에 뽑기 노드가 통과시키고
+        // 이 노드가 다시 이어받는다. 걷는 것은 멈추지 않는다(OnEnd 참조).
+        float segmentSeconds = SegmentSeconds != null ? SegmentSeconds.Value : 0f;
+
+        if (segmentSeconds > 0f && elapsed >= segmentSeconds)
+        {
+            return Status.Success;
+        }
+
+        return Status.Running;
     }
 
     // 도착했으니 목적지를 비운다. 다음 주기에 뽑기 노드가 새 목적지를 받아 온다.
@@ -109,10 +127,19 @@ public partial class ResidentMoveToAction : Action
     {
         if (agent != null)
         {
-            // 중단(밤 전환·드래그)으로 끝났을 수도 있다. 경로를 남겨 두면 다음 브랜치가
-            // 정지를 지시해도 Agent가 계속 끌고 간다.
-            agent.StopMoving();
-            agent.SetMoving(false);
+            // 목적지가 남아 있으면 **아직 가는 중이다**(구간 끝). 여기서 멈추면 구간마다 끊겨
+            // 4초마다 서다 걷다를 반복한다. 경로와 이동 상태를 그대로 두고 넘긴다.
+            //
+            // ⚠ 대가: 밤 전환·드래그로 이 브랜치가 중단돼도 Agent가 계속 걷는다. 그 브랜치들이
+            //   이동 소유권을 직접 가져가는 설계라(§8.2 드래그는 NavMeshAgent를 끈다) 지금은 문제가
+            //   없지만, 소유권을 안 가져가는 브랜치를 추가하면 여기서 정지를 지시해야 한다.
+            bool journeyDone = HasDestination == null || !HasDestination.Value;
+
+            if (journeyDone)
+            {
+                agent.StopMoving();
+                agent.SetMoving(false);
+            }
         }
 
         agent = null;

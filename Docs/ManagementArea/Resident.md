@@ -1,6 +1,7 @@
 # 주민 캐릭터 & 행동(BT) 명세
 
-> **구현 미착수 — 문서 선행.** §6 행위 목록은 대화하며 채워 나가는 **살아있는 표**다.
+> **구현 진행 중.** R1 유휴 · R2 산책 · R15 휴식이 동작한다(§11). 나머지는 문서 선행 상태다.
+> §6 행위 목록은 대화하며 채워 나가는 **살아있는 표**다.
 
 - 관련 이슈: TBD
 - 이 문서 **1본**이 주민 설계 · 행위 목록 · BT 노드를 전부 담는다. 보스처럼 설계/노드 문서를 나누지 않는다 — 주민은 **BT 그래프 1개를 전원이 공유**하기 때문이다. 그래프가 2개 이상으로 갈라지면 그때 분리한다.
@@ -25,15 +26,15 @@
 
 ### 컴포넌트 구성
 
-| 컴포넌트 | 책임 |
-|---|---|
-| `ResidentSpawner` | 군중 인원 관리 — 생성·소멸·밤낮 출입 (§3). `ManagementController`를 **구독만** 한다 |
-| `Resident` | 주민 1명의 신원·상태(대화 중 여부, 들려 있음 등) |
-| `ResidentAgent` | BT 리프 노드가 참조하는 파사드 (이동·애니메이션·주변 질의). `EnemyAgent`와 같은 역할 |
-| `BehaviorGraphAgent` | Unity Behavior 런타임 (`com.unity.behavior` 1.0.16) |
-| `NavMeshAgent` | 경영 공간 이동 (`com.unity.ai.navigation` 2.0.12) |
-| `Animator` | Humanoid 아바타 + `Resident.controller` |
-| `IGroupSelectable` / `IDragHandle` | 마우스 선택 · 끌기 — §8 |
+| 컴포넌트 | 책임 | 상태 |
+|---|---|---|
+| `ResidentAgent` | BT 리프 노드가 참조하는 파사드 (이동·애니메이션). `EnemyAgent`와 같은 역할 | **구현됨** |
+| `BehaviorGraphAgent` | Unity Behavior 런타임 (`com.unity.behavior` 1.0.16) | **구현됨** |
+| `NavMeshAgent` | 경영 공간 이동 (`com.unity.ai.navigation` 2.0.12) | **구현됨** |
+| `Animator` | Humanoid 아바타 + `Resident.controller` | **구현됨** |
+| `ResidentSpawner` | 군중 인원 관리 — 생성·소멸·밤낮 출입 (§3). `ManagementController`를 **구독만** 한다 | 미착수 |
+| `Resident` | 주민 1명의 신원·상태(대화 중 여부, 들려 있음 등) | 미착수 — 아직 담을 상태가 없다 |
+| `IGroupSelectable` / `IDragHandle` | 마우스 선택 · 끌기 — §8 | 미착수 |
 
 > 노드는 `ResidentAgent`만 참조하고 `Resident` / `ManagementController` / `NavMeshAgent`에 직접 닿지 않는다. 보스 BT에서 검증된 규약이다(`EnemyAgent`).
 
@@ -136,6 +137,7 @@
 
 | 앵커 | 심는 곳 | 들고 있는 것 | 쓰는 곳 |
 |---|---|---|---|
+| **`ResidentWaypoint`** | 빈 GameObject. 주민이 모일 만한 곳 | 위치 + **반경** | **구현됨** — R2 산책의 목적지 출처(§11.1) |
 | `ResidentDoorPoint` | 집스러운 에셋 · 생산 건물의 문 앞 | 위치 + **+Z 전방** | 밤 귀가(§3.3) · 아침 등장 · 배치 −1 퇴장(§3.2) |
 | `ResidentSitPoint` | 벤치·의자 소품 | 위치 + 방향 + 점유 플래그 | R6 앉기 |
 | (예약) `ResidentPerformSpot` | 넓은 공터 | 공연자 앵커 + 관객 슬롯 N(점유 플래그) | **후속 이슈** — R13 공연 · R14 구경 (§10) |
@@ -167,9 +169,10 @@ Marshie는 임포터가 `Generic`이지만 **골격이 Mixamo 표준 네이밍**
 | 원본 클립 (벤더, 읽기 전용) | `Assets/Imported/Sweet_Land/Characters/Animations/<종족>/` | 손대지 않음 |
 | Humanoid 사본 FBX | `Assets/Imported/@NorthLand/Meshes/Resident/` | **메시 + Avatar 전용. 클립 0본** |
 | **공용 클립 라이브러리** | `Assets/Imported/@NorthLand/Animations/Resident/` | **`.anim` 7본 구성 완료** |
-| AnimatorController | `Assets/Imported/@NorthLand/Animations/Resident/Resident.controller` | 미착수 |
-| BT 그래프 에셋 | `Assets/Behavior/ResidentBehavior.asset` | 미착수 |
-| BT 노드 스크립트 | `Assets/Scripts/ManagementSpace/Resident/Nodes/` | 미착수 |
+| AnimatorController | `Assets/Imported/@NorthLand/Animations/Resident/Resident.controller` | **구성 완료** — Idle ↔ Walk 2상태 + Bool `IsMoving` |
+| BT 그래프 에셋 | `Assets/Behavior/ResidentBehavior.asset` | **구성 완료** — 코드로 저작한다(§11.2) |
+| BT 노드 스크립트 | `Assets/Scripts/ManagementSpace/Resident/Nodes/` | **3본 구현** — 뽑기 · 이동 · 휴식 |
+| 주민 프리팹 | `Assets/Imported/@NorthLand/Prefabs/Resident/Marshie_01~03.prefab` | **구성 완료** — 툰 셰이딩 포함(§11.4) |
 
 > **FBX는 클립을 들지 않는다.** 3본 모두 `importAnimation`을 끄고 클립은 라이브러리 한 곳에만 둔다. 셋은 색만 다른 메시 변형이라 같은 클립을 3중으로 들고 있게 되고, 그러면 컨트롤러를 배선할 때 `Marshies_Walk`이 3개 떠서 매번 어느 것을 물릴지 헷갈린다.
 >
@@ -295,8 +298,8 @@ Hide/Unhide는 **팔다리를 스케일로 줄여 몸통에 집어넣는** 방�
 
 | # | 행위 | 발동 조건 | 애니메이션 | 클립 출처 | 클립 | 합의 |
 |---|---|---|---|---|---|---|
-| R1 | **유휴** | 목적지 없음 · 낮 | `Idle` | `Marshies_Idle_1` | ✅ | 확정 |
-| R2 | **산책** | 유휴 N초 경과 → 길 위 임의 지점 | `Walk` | `Marshies_Walk` | ✅ | 확정 |
+| R1 | **유휴** | 목적지 없음 · 낮. 2~5초 머문 뒤 다음 목적지를 정한다 | `Idle` | `Marshies_Idle_1` | ✅ | **구현됨** |
+| R2 | **산책** | 유휴 종료 → **무작위 `ResidentWaypoint`의 반경 안 한 점**(§11.1) | `Walk` | `Marshies_Walk` | ✅ | **구현됨** |
 | R3 | **인사** | 산책 중 다른 주민과 조우 | `Wave` | `Marshies_Wave` | ✅ | 확정 |
 | R4 | **수다** | 인사 성립 → 서로 마주 봄 (§7.1) | 화자 `Talking_1~3` 교대 / 청자 `Idle` | `Talking_1` `Talking_2` `Talking_3` | ✅ | 확정 |
 | R5 | **춤** | 유휴 중 낮은 확률 | `Dance` | `Marshies_Happy_Dance` | ✅ | 확정 |
@@ -309,6 +312,7 @@ Hide/Unhide는 **팔다리를 스케일로 줄여 몸통에 집어넣는** 방�
 | R12 | **웃음** | 대화 중 **듣는 쪽**일 때 확률 발동 (§7.2) | `Laugh` | `Laughing` (3.00초) | ✅ | 확정 |
 | R13 | **공연** | **직업 보유** + 공연 spot 점유 (§10) | 직업별로 다름 | Mixamo 수급 | ❌ | **후속 이슈** |
 | R14 | **구경** | **직업 None** + 근처 spot이 공연 중 · 확률 (§10) | `Idle` + 공연자 주시 | `Marshies_Idle_1` | ✅ | **후속 이슈** |
+| R15 | **휴식** | **걷는 도중** 구간마다 확률 판정 (§11.1) | `Idle` (목적지 유지) | `Marshies_Idle_1` | ✅ | **구현됨** |
 
 ### Mixamo 수급 목록
 
@@ -576,9 +580,10 @@ Repeat (세션이 유지되는 동안)
 
 **설계**
 
-- [ ] **길(Road) 위를 걷게 하는 방법** (R2) — **보류.** 본진 에셋 확정 + NavMesh 베이크 이후에 결정한다. NavMesh Area로 길에 낮은 비용을 줄지, 웨이포인트 그래프를 따로 깔지는 실제 경영 씬이 깔린 뒤에야 판단할 수 있다
+- [x] **길(Road) 위를 걷게 하는 방법** (R2) — **웨이포인트 방식으로 해소**(§11.1). NavMesh Area 비용이나 별도 웨이포인트 그래프를 깔지 않고, **목적지를 영역으로 심는 것**으로 갈음했다. 배치자가 광장·시장에 `ResidentWaypoint`를 놓으면 주민이 그 사이를 오간다. 길 자체를 따라 걷게 하는 것이 나중에 필요해지면 그때 NavMesh Area를 검토한다
 - [ ] **빈 땅 드롭 시 행렬 해산 방식 · 드롭 실패 피드백** (§8.3)
-- [ ] **행위 목록 추가** (§6). R1~R12 중 10건 확정 · R10·R11은 조건만 확정 · **R13·R14는 후속 이슈**(§10) · 후보 6건 대기
+- [ ] **행위 목록 추가** (§6). **R1·R2·R15는 구현됨**(§11) · R3~R9·R12는 확정만 · R10·R11은 조건만 확정 · **R13·R14는 후속 이슈**(§10) · 후보 6건 대기
+- [ ] **웨이포인트 배치 방침** (§11.1) — 지금은 테스트 씬에 임의로 심었다. 실제 경영 씬에서 어디에 몇 개를, 반경 얼마로 놓을지는 본진 에셋이 깔린 뒤에 정한다
 - [ ] **대화 확률과 사교성 수치** (§7.1) — 조우 시 성립 확률 · 실패 쿨다운 · 사교성 분포. 실제 밀도를 보고 조정
 - [ ] **대화 세션 3명 이상 확장** (§7.1)
 - [ ] **성능 상한**. 20~30명 × (NavMeshAgent + BT + Animator) 실측. BT 틱을 개체마다 분산(stagger)하는 것이 기본 대응. **§10 도입 시 직업 소품(비활성 K개/인)이 여기 더해진다**
@@ -679,6 +684,111 @@ Marshie 프리팹에 직업 소품(마술사 모자 · 바이올린 · 덤벨 �
 - [ ] **직업 소품 에셋** — SweetLand에 쓸 만한 것이 있는지, 없으면 어디서 받는지
 - [ ] **R13 공연 클립** — 직업 목록에 종속(§6 Mixamo 수급 목록)
 - [ ] **덤벨처럼 관객이 필요 없는 직업을 어떻게 다룰까** — 운동은 혼자 해도 자연스럽다. spot 종류를 나눌지, 관객이 안 붙어도 그만인 것으로 둘지
+
+---
+
+## 11. 구현 현황 — R1 유휴 · R2 산책 · R15 휴식
+
+> 여기부터는 **실제로 도는 것**을 적는다. 설계(§1~§10)와 어긋나면 이 절이 맞다.
+
+### 11.1 동작
+
+```text
+Repeat (Forever)
+└─ Sequence
+    ├─ Resident Pick Waypoint Destination   목적지 있으면 즉시 통과
+    │                                       없으면 2~5초 머문 뒤(R1) 무작위 웨이포인트에서 한 점을 받는다
+    ├─ Resident Move To                     도착 or 구간(4초) 경과 → Success. 목적지는 유지된다
+    └─ Resident Rest                        15% 확률로 1.5~3.5초 정지(R15). 아니면 즉시 통과
+```
+
+상태는 Blackboard 값 **`HasDestination`(bool) 하나**로 표현된다. 뽑기 노드가 세우고 이동 노드가 도착 시 내린다.
+
+| 상황 | 동작 |
+|---|---|
+| 목적지 있음 | 뽑기 노드가 **건드리지 않고 통과** → 이동 노드가 계속 그리로 |
+| 도착 (또는 상한 60초 초과) | 이동 노드가 `HasDestination = false` |
+| 목적지 없음 | 2~5초 머문 뒤 무작위 웨이포인트에서 새 목적지 |
+
+> **목적지가 있을 때 덮어쓰지 않는 것이 중요하다.** 그래야 나중에 다른 경로(R8 귀가 · R9 등장 · 드래그 후 복귀)가 목적지를 꽂아 두면 산책이 가로채지 않는다.
+
+**`ResidentWaypoint` — 목적지의 출처**
+
+빈 GameObject에 붙이는 **영역**이다. 점이 아니라 영역인 이유는, 점이면 주민 전원이 같은 좌표로 모여 겹치기 때문이다. 반경 안에서 매번 다른 점을 뽑으므로 같은 장소를 향하면서도 서로 다른 자리에 선다.
+
+| 항목 | 내용 |
+|---|---|
+| 공개 API | `TryGetRandomPoint(out Vector3)` — 반경 안의 **NavMesh 위** 한 점 |
+| 기즈모 | XZ 평면 원 + 중심 표식. `DrawWireSphere`는 구라서 지면 영역으로 읽히지 않아 선분으로 직접 그린다 |
+| 등록 | `ResidentWaypointRegistry`에 자기 등록. 주민 30명이 목적지를 갱신할 때마다 씬을 훑지 않기 위해서다 |
+| 가중치 | **두지 않는다.** 두면 반경 하나로 크기와 인기를 동시에 조절하게 되어 둘을 따로 못 만진다 — 인기를 올리려면 같은 자리에 하나 더 놓는다 |
+
+**R15 휴식 — 언제 쉬는가**
+
+먼 웨이포인트로 갈 때 도착까지 한 번도 안 멈추면 사람이 걷는 그림이 아니라 컨베이어에 실린 그림이 된다.
+
+- **구간마다 확률로 굴린다.** 시간·거리 고정 주기로 하면 30명이 같은 박자로 멈춰 군무가 된다.
+- 이동 노드가 구간(4초)마다 브랜치를 끊으므로 **여정이 길수록 판정이 잦다** — 별도 계산 없이 "멀면 여러 번 쉬고 가까우면 안 쉰다"가 성립한다.
+- **도착 임박에는 쉬지 않는다**(남은 거리 6 미만). 목적지 몇 걸음 앞에서 멈추면 길을 잃은 것처럼 보인다.
+- 출발 직후도 안 쉰다 — 첫 판정이 구간 끝에 오므로 저절로 막힌다.
+- **목적지를 건드리지 않는다.** `ResidentAgent.PauseMovement()`는 경로를 남긴다 — `StopMoving()`은 `ResetPath()`까지 하므로 여기 쓸 수 없다.
+
+**확정 수치** (전부 `ResidentBehaviorGraphBuilder`의 상수)
+
+| 값 | 수치 | 근거 |
+|---|---|---|
+| 유휴 | 2~5초 | 고정이면 도착 시각이 비슷한 주민들이 같은 박자로 출발한다 |
+| 이동 구간 | 4초 | 짧으면 판정이 잦아 확률을 낮춰야 하고, 길면 짧은 여정에서 한 번도 안 굴려진다 |
+| 휴식 확률 | **0.15** | 0.25로 시작했다가 실제로 보고 낮췄다 — 너무 자주 서면 자꾸 멈칫하는 그림이 된다 |
+| 휴식 길이 | 1.5~3.5초 | 고정이면 또 박자가 맞아떨어진다 |
+| 남은 거리 하한 | 6 | 속도 1.5 기준 약 4초 거리 — "곧 도착"의 경계 |
+| 이동 상한 | 60초 | 도달 불가능한 지점이 잡혔을 때의 안전장치 |
+
+### 11.2 BT 그래프를 코드로 저작한다
+
+`ResidentBehaviorGraphBuilder`(에디터 전용)가 `ResidentBehavior.asset`을 만든다. 메뉴 `NorthLand/Resident/Rebuild Behavior Graph`.
+
+손으로 그리면 값 하나 고치는 데도 에디터를 열어야 하고, 무엇이 왜 그 값인지가 에셋 안에만 남아 리뷰가 안 된다. 코드로 만들면 구조와 수치가 diff에 드러난다.
+
+`com.unity.behavior`의 저작 API는 전부 `internal`이지만 패키지가 `InternalsVisibleTo("Assembly-CSharp-Editor")`를 선언하고 있어, **프로젝트에 asmdef이 없는 한** `Assets/Scripts/Editor/`에서 리플렉션 없이 닿는다.
+
+> ⚠ **에디터에서 그래프를 손으로 고치면 다음 재빌드에 사라진다.** 튜닝은 빌더 상수를 고치고 다시 돌린다. 손 편집을 시작하려면 빌더를 버려야 한다.
+
+### 11.3 저작에서 밟은 함정 — 전부 조용히 실패한다
+
+에러도 경고도 없이 잘못된 결과가 나온 것들이다. 다시 만질 때 같은 곳에 빠지지 않도록 적어 둔다.
+
+| 함정 | 증상 | 대응 |
+|---|---|---|
+| `SetField`의 3번째 인자에 **변수의 타입**을 넘김 | 컴파일 시 타입 검증이 필드를 선언 타입으로 다시 만들며 **링크를 버린다** | **필드의 선언 타입**을 넘긴다 |
+| 블랙보드에 변수 추가 후 **더티 표시·저장 안 함** | `BuildRuntimeGraph`가 블랙보드를 다시 확인할 때 추가분이 사라진 채 컴파일 → 노드마다 **로컬 복사본**이 생겨 값이 안 통한다. **주민 전원이 월드 원점으로 걸어갔다** | 추가 직후 `SetAssetDirty` + `SaveAssetIfDirty` |
+| 노드 스크립트 삭제 후 재빌드 | 고아 managed reference가 남아 컴파일이 **통째로 거부**된다 | `ClearAllManagedReferencesWithMissingTypes`를 **모든 서브에셋**에 건다 — 고아는 컴파일된 `BehaviorGraph` 쪽에 남는다 |
+| 에셋을 지우고 다시 만듦 | 파일 GUID는 유지되지만 **서브에셋 fileID가 새로 발급**되어 이를 참조하던 프리팹·씬이 전부 missing reference | 내용만 비우고 다시 채운다 |
+| `NavMeshSurface.BuildNavMesh()` | 인메모리 베이크라 **씬을 다시 열면 사라진다** | `NavMeshData`를 에셋으로 저장 |
+| `Random.insideUnitSphere`로 목적지 표본 | Y 성분 때문에 후보가 지면 위아래로 떠 스냅 거리를 넘긴다. **반경을 키울수록 실패율이 오른다** | XZ 원판(`insideUnitCircle`)에서 뽑는다 |
+| 유휴를 별도 `Wait` 노드로 시퀀스 앞에 둠 | 이동이 구간으로 쪼개지면서 **걷는 도중 4초마다 3초씩 섰다** | 유휴를 뽑기 노드 안으로 — "목적지가 없을 때만" 머무는 것이 유휴의 정의다 |
+
+빌더는 마지막 두 줄에서 **런타임 블랙보드를 디스크로 검사**해, 두 번째 함정이 재발하면 `FAIL`과 에러 로그를 낸다.
+
+### 11.4 프리팹 · 셰이딩
+
+`Marshie_01~03.prefab` 3종을 그대로 쓴다. 원래 Animator가 없는 언팩된 메시 계층이었고(메시는 벤더 원본, 머티리얼은 Humanoid 사본 참조), 여기에 `Animator`(아바타 = `Marshie_0NAvatar`) · `NavMeshAgent` · `ResidentAgent` · `BehaviorGraphAgent`를 붙였다.
+
+- `NavMeshAgent`: radius 0.3 / height 1.63 / speed 1.5 / stoppingDistance 0.2. 기본 radius 0.5는 치비 체형(키 1.63)에 과하다.
+- `applyRootMotion = false` — 방향·위치는 `NavMeshAgent`가 소유한다.
+- **툰 셰이딩 적용 완료**(2026-08-05). 벤더 `Color_2.mat`(URP/Lit)을 물고 있어 하드 컷이 안 걸려 있었다. `FlatKitMaterialConverter`로 `FK_Color_2`로 교체했다 — 템플릿이 이미 완전 하드 컷(`_ShadowEdgeSize = 0`)이라 변환만으로 `Docs/Rendering/VisualLookPipeline.md` §3.4 룩이 따라온다.
+
+> 세 프리팹은 **같은 머티리얼 하나**를 공유한다. 색이 다른 것은 텍스처 아틀라스(`Textures_3`)의 UV 위치 차이라, 변환해도 세 색이 유지된다.
+
+### 11.5 테스트 씬
+
+`Assets/Personal/n0wst4ndup/Test/ResidentBTTest.unity` — 정본 `GameScene`은 건드리지 않는다(`Docs/Core/SceneWorkflow.md` §2·§3).
+
+200×200 평면 + 장애물 큐브 7개 + `NavMeshSurface` 베이크(삼각형 150), 웨이포인트 20곳, 주민 30명.
+
+### 11.6 아직 없는 것
+
+`ResidentSpawner`(인원 계산·밤낮 출입) · `ResidentDoorPoint` / `ResidentSitPoint` · 대화 세션(R3·R4·R7·R12) · 드래그/선택(§8) · `AssignVillager` 계약. 전부 §9 TODO에 그대로 남아 있다.
 
 ---
 

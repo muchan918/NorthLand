@@ -19,14 +19,36 @@ public static class ResidentBehaviorGraphBuilder
 {
     public const string GraphPath = "Assets/Behavior/ResidentBehavior.asset";
 
-    // R1 유휴 시간(초). 지금은 전원 같은 값이라 동시에 스폰하면 첫 주기가 겹친다 —
-    // 목적지가 개체마다 달라 경로 길이가 갈리므로 한 바퀴 뒤에는 저절로 흩어진다.
-    // 개체차를 명시적으로 주는 것은 사교성(§7.1)과 함께 Blackboard 축으로 들어올 몫이다.
-    private const float IdleSeconds = 3f;
+    // R1 유휴 — 도착해서 다음 목적지를 정하기 전까지 머무는 시간.
+    // 고정값이면 도착 시각이 비슷한 주민들이 같은 박자로 동시에 출발하므로 구간에서 뽑는다.
+    private const float IdleMinSeconds = 2f;
+
+    private const float IdleMaxSeconds = 5f;
 
     // 이동 상한(초). 도달 불가능한 지점이 잡혔을 때 브랜치가 멎는 것을 막는 안전장치다.
     // 목적지가 웨이포인트가 되면서 이동 거리가 맵 크기에 비례하므로, 예전(제자리 근처 산책)보다 넉넉해야 한다.
     private const float MoveTimeoutSeconds = 60f;
+
+    // 한 번에 걷는 구간(초). 도착 전이라도 여기서 브랜치를 끊어 휴식 판정 자리를 만든다.
+    // 짧으면 판정이 잦아 확률을 낮춰야 하고, 길면 짧은 여정에서 한 번도 안 굴려진다.
+    private const float MoveSegmentSeconds = 4f;
+
+    // ── R15 휴식 ─────────────────────────────
+    // 구간마다 한 번 판정하므로 **여정이 길수록 판정이 잦다** — 먼 웨이포인트일수록 자연히 여러 번 쉰다.
+    // 50유닛(속도 1.5 → 약 33초) 여정이면 약 7회 판정 → 평균 1.7회 휴식.
+    // 10유닛(약 7초)이면 1회 판정 → 25% 확률로 한 번.
+
+    // 0.25로 시작했다가 실제로 걷는 것을 보고 0.15로 낮췄다 — 너무 자주 서면 산책이 아니라
+    // 자꾸 멈칫하는 그림이 된다.
+    private const float RestChance = 0.15f;
+
+    // 남은 거리가 이보다 짧으면 쉬지 않는다. 속도 1.5 기준 약 4초 거리 — "곧 도착"의 경계다.
+    private const float RestMinRemainingDistance = 6f;
+
+    // 휴식 길이. 고정값이면 박자가 맞아떨어지므로 구간에서 뽑는다.
+    private const float RestMinSeconds = 1.5f;
+
+    private const float RestMaxSeconds = 3.5f;
 
     [MenuItem("NorthLand/Resident/Rebuild Behavior Graph")]
     private static void RebuildFromMenu()
@@ -118,16 +140,14 @@ public static class ResidentBehaviorGraphBuilder
         // 루트가 영원히 반복한다 — Docs/ManagementArea/Resident.md §7의 Repeat (Forever)에 해당한다.
         start.Repeat = true;
 
-        BehaviorGraphNodeModel wait = CreateNode(graph, typeof(WaitAction), new Vector2(0f, 260f));
-        BehaviorGraphNodeModel pick = CreateNode(graph, typeof(ResidentPickWaypointDestinationAction), new Vector2(0f, 380f));
-        BehaviorGraphNodeModel move = CreateNode(graph, typeof(ResidentMoveToAction), new Vector2(0f, 500f));
+        BehaviorGraphNodeModel pick = CreateNode(graph, typeof(ResidentPickWaypointDestinationAction), new Vector2(0f, 300f));
+        BehaviorGraphNodeModel move = CreateNode(graph, typeof(ResidentMoveToAction), new Vector2(0f, 420f));
+        BehaviorGraphNodeModel rest = CreateNode(graph, typeof(ResidentRestAction), new Vector2(0f, 540f));
 
-        if (wait == null || pick == null || move == null)
+        if (pick == null || move == null || rest == null)
         {
-            return $"FAIL: 노드 생성 실패 wait={wait != null} pick={pick != null} move={move != null}";
+            return $"FAIL: 노드 생성 실패 pick={pick != null} move={move != null} rest={rest != null}";
         }
-
-        wait.SetField("SecondsToWait", IdleSeconds);
 
         // ⚠ SetField의 세 번째 인자는 **필드의 선언 타입**이지 연결할 변수의 타입이 아니다.
         //   Self는 GameObject인데 여기에 self.Type(GameObject)을 넘기면 GameObject 타입 필드가 만들어지고,
@@ -138,11 +158,20 @@ public static class ResidentBehaviorGraphBuilder
         pick.SetField("Agent", self, typeof(ResidentAgent));
         pick.SetField("Destination", destination, typeof(Vector3));
         pick.SetField("HasDestination", hasDestination, typeof(bool));
+        pick.SetField("IdleMinSeconds", IdleMinSeconds);
+        pick.SetField("IdleMaxSeconds", IdleMaxSeconds);
 
         move.SetField("Agent", self, typeof(ResidentAgent));
         move.SetField("Destination", destination, typeof(Vector3));
         move.SetField("HasDestination", hasDestination, typeof(bool));
+        move.SetField("SegmentSeconds", MoveSegmentSeconds);
         move.SetField("MaxSeconds", MoveTimeoutSeconds);
+
+        rest.SetField("Agent", self, typeof(ResidentAgent));
+        rest.SetField("Chance", RestChance);
+        rest.SetField("MinRemainingDistance", RestMinRemainingDistance);
+        rest.SetField("MinSeconds", RestMinSeconds);
+        rest.SetField("MaxSeconds", RestMaxSeconds);
 
         // 세 노드를 한 Sequence로 묶는다. 에디터 UI가 액션을 쌓을 때 만드는 것과 같은 구조라
         // 사람이 그래프를 열었을 때도 손으로 그린 것과 같은 모양으로 보인다.
@@ -153,9 +182,9 @@ public static class ResidentBehaviorGraphBuilder
             return "FAIL: SequenceNodeModel 생성 실패";
         }
 
-        graph.AddNodeToSequence(wait, sequence, 0);
-        graph.AddNodeToSequence(pick, sequence, 1);
-        graph.AddNodeToSequence(move, sequence, 2);
+        graph.AddNodeToSequence(pick, sequence, 0);
+        graph.AddNodeToSequence(move, sequence, 1);
+        graph.AddNodeToSequence(rest, sequence, 2);
 
         if (!start.TryDefaultOutputPortModel(out PortModel startOut))
         {

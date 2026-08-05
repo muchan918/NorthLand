@@ -3,12 +3,16 @@ using Unity.Properties;
 using UnityEngine;
 using Action = Unity.Behavior.Action;
 
-// 목적지가 없으면 무작위 웨이포인트에서 하나 받아 온다(#276, R2 산책).
+// 목적지가 없으면 잠시 머물렀다가 무작위 웨이포인트에서 하나 받아 온다(#276, R1 유휴 + R2 산책).
 //
 // 상태 흐름은 이렇다:
-//   목적지가 있으면  → 그대로 둔다(이동 노드가 계속 그리로 간다)
-//   목적지가 없으면  → 무작위 ResidentWaypoint를 골라 그 반경 안의 한 점을 받아 목적지로 삼는다
+//   목적지가 있으면  → 즉시 통과한다(이동 노드가 계속 그리로 간다)
+//   목적지가 없으면  → IdleSeconds만큼 머문 뒤, 무작위 ResidentWaypoint의 반경 안 한 점을 목적지로 삼는다
 // 도착 시 해제는 ResidentMoveToAction이 한다.
+//
+// ⚠ 유휴를 별도 Wait 노드로 앞에 두면 안 된다. 이동 노드가 구간마다 브랜치를 끊으므로
+//   시퀀스가 한 바퀴 돌 때마다 Wait이 걸려 **걷는 도중에 4초마다 3초씩 서 버린다.**
+//   "목적지가 없을 때만" 머무는 것이 유휴의 정의라, 그 판정을 들고 있는 이 노드가 함께 갖는다.
 //
 // 목적지를 이미 들고 있으면 건드리지 않는 것이 중요하다. 그래야 나중에 다른 경로(R8 귀가·R9 등장·
 // 드래그 후 복귀)가 목적지를 꽂아 두면 이 노드가 덮어쓰지 않고 그대로 존중한다.
@@ -37,6 +41,15 @@ public partial class ResidentPickWaypointDestinationAction : Action
     // 목적지 보유 여부. 이 노드가 세우고 이동 노드가 내린다.
     [SerializeReference] public BlackboardVariable<bool> HasDestination;
 
+    // 다음 목적지를 정하기 전에 머무는 시간의 하한·상한(초). R1 유휴에 해당한다.
+    // 고정값이면 도착 시각이 비슷한 주민들이 같은 박자로 동시에 출발한다 — 구간에서 뽑는다.
+    [SerializeReference] public BlackboardVariable<float> IdleMinSeconds;
+
+    [SerializeReference] public BlackboardVariable<float> IdleMaxSeconds;
+
+    private ResidentAgent agent;
+    private float idleRemaining;
+
     protected override Status OnStart()
     {
         if (HasDestination == null || Destination == null)
@@ -46,11 +59,46 @@ public partial class ResidentPickWaypointDestinationAction : Action
         }
 
         // 이미 목적지가 있으면 그대로 둔다 — 덮어쓰면 걸어가던 주민이 매 주기 방향을 바꾼다.
+        // 유휴도 걸지 않는다: 걷는 도중이므로 여기서 멈추면 구간마다 서 버린다.
         if (HasDestination.Value)
         {
             return Status.Success;
         }
 
+        agent = Agent?.Value;
+
+        float min = IdleMinSeconds != null ? IdleMinSeconds.Value : 0f;
+        float max = IdleMaxSeconds != null ? IdleMaxSeconds.Value : min;
+        idleRemaining = max > min ? Random.Range(min, max) : min;
+
+        if (idleRemaining > 0f)
+        {
+            // ?. 를 쓰면 안 된다 — Unity의 가짜 null이 순수 참조검사를 통과한다.
+            if (agent != null)
+            {
+                agent.SetMoving(false);
+            }
+
+            return Status.Running;
+        }
+
+        return PickDestination();
+    }
+
+    protected override Status OnUpdate()
+    {
+        idleRemaining -= Time.deltaTime;
+
+        return idleRemaining > 0f ? Status.Running : PickDestination();
+    }
+
+    protected override void OnEnd()
+    {
+        agent = null;
+    }
+
+    private Status PickDestination()
+    {
         if (!ResidentWaypointRegistry.TryGetRandomWaypoint(out ResidentWaypoint waypoint))
         {
             if (!s_warnedNoWaypoint)

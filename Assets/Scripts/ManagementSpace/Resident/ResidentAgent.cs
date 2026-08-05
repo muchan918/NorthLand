@@ -93,6 +93,22 @@ public class ResidentAgent : MonoBehaviour
         }
     }
 
+    // 목적지까지 남은 거리. 경로 계산 중에는 아직 값이 없으므로 무한대로 본다 —
+    // "도착 임박이면 쉬지 않는다"(R15) 판정이 계산 전 0을 읽고 오판하는 것을 막는다.
+    public float RemainingDistance
+    {
+        get
+        {
+            if (navAgent == null || !navAgent.isOnNavMesh || navAgent.pathPending)
+            {
+                return float.PositiveInfinity;
+            }
+
+            return navAgent.remainingDistance;
+        }
+    }
+
+    // 이동을 끝낸다. 경로까지 지우므로 이후 목적지는 새로 지정해야 한다.
     public void StopMoving()
     {
         if (navAgent == null || !navAgent.isOnNavMesh)
@@ -102,6 +118,28 @@ public class ResidentAgent : MonoBehaviour
 
         navAgent.isStopped = true;
         navAgent.ResetPath();
+    }
+
+    // 걷던 것을 잠깐 멈춘다(R15 휴식). **경로를 지우지 않는다** —
+    // StopMoving은 ResetPath까지 하므로 여기에 쓸 수 없다. 재개하면 가던 길을 그대로 이어 간다.
+    public void PauseMovement()
+    {
+        if (navAgent == null || !navAgent.isOnNavMesh)
+        {
+            return;
+        }
+
+        navAgent.isStopped = true;
+    }
+
+    public void ResumeMovement()
+    {
+        if (navAgent == null || !navAgent.isOnNavMesh)
+        {
+            return;
+        }
+
+        navAgent.isStopped = false;
     }
 
     // ── 애니메이션 ─────────────────────────────
