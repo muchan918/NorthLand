@@ -34,6 +34,14 @@ public class BurnBuff : SkillEffect
 
     public override WaveRewardType Type => WaveRewardType.BuffBurn;
 
+    // 보상 패널(#287) 표시용. HandleTowerDamage의 실제 계산과 같은 식이라 표시와 실효가 어긋날 수 없다
+    // (미보유 = Lv0 = 0).
+    public float GetCurrentTickDamage() => GetTickDamageAt(Level);
+    public float GetTickDamageAt(int level) => tickDamagePerLevel * level;
+
+    public override string GetStatSummary()
+        => SkillStatsFormatter.BuildTickDamageLine(GetCurrentTickDamage(), GetTickDamageAt(NextLevel));
+
     // 이 효과는 감전이 아니라 버프 스킬에 붙는다.
     protected override bool TrySubscribe()
     {
@@ -88,10 +96,10 @@ public class BurnBuff : SkillEffect
     {
         if (source is not Tower tower) return;   // 안전망 — 다른 IAttacker가 이 통지를 쓰게 되더라도
 
-        // **투사체 타워만**. AttackBehaviour는 전달 축이 투사체인 구현체이므로, 여기서는 능력 인터페이스
-        // (IAttackBehaviour)가 아니라 **구상 클래스로 묻는 것이 의도**다 — 히트스캔 체인을 제외해야 한다.
+        // **투사체 타워만**. AttackAction은 전달 축이 투사체인 액션이므로, 여기서는 능력 인터페이스
+        // (IAttackAction)가 아니라 **구상 액션으로 묻는 것이 의도**다 — 히트스캔 체인을 제외해야 한다.
         // 클래스 주석의 두 근거(번개 테마 / 1발 최대 4명) 참조.
-        if (!tower.Has<AttackBehaviour>()) return;
+        if (!tower.Has<AttackAction>()) return;
 
         if (target == null || target.IsDead) return;
         if (target is not Component targetComponent) return;

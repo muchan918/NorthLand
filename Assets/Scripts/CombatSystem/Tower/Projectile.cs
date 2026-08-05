@@ -1,10 +1,11 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace NorthLand.Combat
 {
     // 투사체 명중 시 동작 종류.
-    // 체인은 여기 없다 — 히트스캔으로 전달되므로 투사체가 배달하지 않는다(#252, HitscanAttackBehaviour).
+    // 체인은 여기 없다 — 히트스캔으로 전달되므로 투사체가 배달하지 않는다(#252, HitscanAttackAction).
     public enum ImpactKind { Single, Area }
 
     // 타워가 발사 시 넘기는 "명중하면 어떻게 터질지" 기술자
@@ -13,7 +14,6 @@ namespace NorthLand.Combat
         public ImpactKind Kind;
         public LayerMask EnemyMask;
         public float SplashRadius;        // Area
-        public float StunDuration;        // >0이면 명중 대상에 스턴(초) 부여(#164 소다타워). 타워가 발사 시 세팅
 
         public static ProjectileImpact MakeSingle()
             => new ProjectileImpact { Kind = ImpactKind.Single };
@@ -22,11 +22,9 @@ namespace NorthLand.Combat
             => new ProjectileImpact { Kind = ImpactKind.Area, SplashRadius = splashRadius, EnemyMask = mask };
     }
 
-    // 투사체 비행 방식
-    //  Homing   : 매 프레임 살아있는 대상을 추적하는 유도탄 (반드시 명중). arcHeight>0이면 곡사(포물선) 비주얼도 적용.
-    //  Ballistic: 발사 순간 대상의 월드 위치를 착탄점으로 고정하고 그 지점까지 비행.
-    //             대상이 도중에 죽거나 움직여도 고정된 착탄점에 그대로 명중(박격포 등).
-    public enum FlightMode { Homing, Ballistic }
+    // 비행 축은 부품으로 분리돼 있다 → ProjectileFlight.cs
+    //  구 `FlightMode` enum + Update의 분기는 #274 Phase 4.5에서 사라졌다. 새 비행 방식은
+    //  `ProjectileFlight` 파생 클래스 1개이며 이 파일은 무수정이다.
 
     public class Projectile : MonoBehaviour
     {
@@ -47,117 +45,63 @@ namespace NorthLand.Combat
         internal static void RaiseDamageDealt(IAttacker source, IDamageable target)
             => DamageDealt?.Invoke(source, target);
 
+        // 프리팹에 남는 **유일한** 설정 — 모델 메시의 기수가 어느 축을 보는지 보정한다(화살 −90, 공 0).
+        // 타워가 알 이유가 없는 값이라 여기 남는다. 비행·명중은 전부 타워 SO가 정한다(#274).
         [SerializeField] Vector3 rotationOffset;
-
-        [Header("Flight")]
-        [SerializeField] FlightMode flightMode = FlightMode.Homing;
-        // Ballistic 전용: 착탄점까지의 포물선 정점 높이(월드 단위). 0이면 직선.
-        [SerializeField] float arcHeight = 0f;
 
         IDamageable target;
         float damage;
-        float speed;
         IAttacker source;
+        ProjectileFlight flight;
         ProjectileImpact impact;
 
-        // Ballistic 상태: 발사 순간 스냅샷한 착탄점과 시작점, 진행 거리
-        Vector3 startPos;
-        Vector3 landingPos;
-        float totalDistance;   // 발사 시 시작점→대상까지 거리(호밍 아크 진행도 계산에도 재사용)
-        float traveled;
+        // 명중 시 걸 효과(화상·독·감속·스턴). SO의 TowerAsset.Effects를 발사 시 그대로 넘겨받는다.
+        IReadOnlyList<HitEffect> effects;
 
-        // Homing 상태: 아크를 얹기 전의 "평면" 추적 위치. transform.position = homingPos + 아크 높이.
-        Vector3 homingPos;
+        // 비행 진행 상태. **부품이 아니라 이쪽이 소유한다** — 부품은 SO에 살아 여러 투사체가
+        // 공유하므로 진행값을 두면 서로 덮어쓴다(FlightState 주석 참조).
+        FlightState flightState;
 
-        public void Init(IDamageable target, float damage, float speed, IAttacker source, ProjectileImpact impact)
+        public void Init(IDamageable target, float damage, IAttacker source,
+                         ProjectileFlight flight, ProjectileImpact impact,
+                         IReadOnlyList<HitEffect> effects = null)
         {
             this.target = target;
             this.damage = damage;
-            this.speed = speed;
             this.source = source;
+            this.flight = flight;
             this.impact = impact;
+            this.effects = effects;
 
-            if (flightMode == FlightMode.Ballistic)
+            if (flight == null)
             {
-                // 발사 순간의 대상 위치를 착탄점으로 고정 (이후 대상 이동/사망과 무관)
-                startPos = transform.position;
-                landingPos = target.HitPosition.position;
-                totalDistance = Vector3.Distance(startPos, landingPos);
-            }
-            else // Homing
-            {
-                // 평면 추적 시작점 + 초기 거리(아크 진행도 t 계산 기준) 스냅샷.
-                homingPos = transform.position;
-                var at = target.HitPosition;
-                Vector3 tp = at.transform.position;
-                totalDistance = Vector3.Distance(homingPos, tp);
-            }
-        }
-
-        void Update()
-        {
-            if (flightMode == FlightMode.Ballistic)
-                UpdateBallistic();
-            else
-                UpdateHoming();
-        }
-
-        // 살아있는 대상을 매 프레임 추적하는 유도탄. arcHeight>0이면 평면 추적 위에 포물선 높이를 얹어 곡사로 보이게 한다.
-        void UpdateHoming()
-        {
-            var targetTransform = target.HitPosition;
-            if (targetTransform == null || target.IsDead)
-            {
-                Destroy(gameObject);   // 대상이 도중에 사라지면 소멸
+                Debug.LogError("[Projectile] ProjectileFlight 없이 발사됐습니다 — 타워 SO의 Attack.Flight를 확인하세요.", this);
+                Destroy(gameObject);
                 return;
             }
 
-            Vector3 targetPos = targetTransform.position;
+            flight.Begin(this, target, ref flightState);
+        }
+
+        // **분기가 없다.** 어떻게 나는지는 부품이 정하고, 호스트는 그 결과(명중/수명)만 해석한다.
+        // 새 비행 방식이 추가돼도 이 메서드는 안 바뀐다(#274 Phase 4.5).
+        void Update()
+        {
+            if (flight == null) return;
+
             Vector3 prevPos = transform.position;
 
-            // 평면(비아크) 추적 위치를 대상으로 이동. 아크는 이 위에 시각적 높이만 더한다.
-            homingPos = Vector3.MoveTowards(homingPos, targetPos, speed * Time.deltaTime);
+            FlightStep step = flight.Step(this, target, ref flightState, Time.deltaTime);
 
-            // 진행도 t: 시작 시 0, 대상에 근접할수록 1(초기 거리 기준). 대상이 멀어지면 0으로 clamp.
-            float remaining = Vector3.Distance(homingPos, targetPos);
-            float t = totalDistance > 0.0001f ? Mathf.Clamp01(1f - remaining / totalDistance) : 1f;
-            float arcY = arcHeight * 4f * t * (1f - t);   // 양 끝 0, t=0.5에서 정점(arcHeight)인 포물선
-
-            transform.position = homingPos + Vector3.up * arcY;
-
-            // 실제 이동 방향(아크 포함)을 향하도록 회전 → 곡사 시 상승/하강에 맞춰 기수가 기운다.
+            // 기수 회전은 호스트가 한 곳에서 한다 — 부품은 위치만 정한다.
+            // 실제 이동 방향(아크 포함)을 향하므로 곡사에서 상승/하강에 맞춰 기울어진다.
             Vector3 moveDir = transform.position - prevPos;
             if (moveDir.sqrMagnitude > 0.0001f)
                 transform.rotation = Quaternion.LookRotation(moveDir.normalized) * Quaternion.Euler(rotationOffset);
 
-            if (remaining < 0.1f)
-            {
-                OnHit(targetPos);
-                Destroy(gameObject);
-            }
-        }
-
-        // 고정된 착탄점까지 (선택적 포물선으로) 비행. 대상 생사와 무관.
-        void UpdateBallistic()
-        {
-            Vector3 prevPos = transform.position;
-
-            traveled += speed * Time.deltaTime;
-            float t = totalDistance > 0.0001f ? Mathf.Clamp01(traveled / totalDistance) : 1f;
-
-            Vector3 pos = Vector3.Lerp(startPos, landingPos, t);
-            pos.y += arcHeight * 4f * t * (1f - t);   // t=0.5에서 정점(arcHeight), 양 끝 0인 포물선
-            transform.position = pos;
-
-            Vector3 dir = pos - prevPos;
-            if (dir.sqrMagnitude > 0.0001f)
-                transform.rotation = Quaternion.LookRotation(dir.normalized) * Quaternion.Euler(rotationOffset);
-
-            if (t >= 1f)
-            {
-                OnHit(landingPos);
-                Destroy(gameObject);
-            }
+            // ★ Impact와 Finished는 독립이다 — 때리고도 계속 나는 탄(관통·부메랑)이 이 분리로 성립한다.
+            if (step.Impact) OnHit(step.ImpactPos);
+            if (step.Finished) Destroy(gameObject);
         }
 
         void OnHit(Vector3 impactPos)
@@ -168,28 +112,52 @@ namespace NorthLand.Combat
                     ApplyArea(impactPos);   // 위치 기반: 대상 생사와 무관
                     break;
                 default:
-                    if (target != null && !target.IsDead)
-                    {
-                        target.TakeDamage(new DamageInfo(damage, source));
-                        DamageDealt?.Invoke(source, target);
-                        if (impact.StunDuration > 0f) ApplyStun(target);
-                    }
+                    if (target != null && !target.IsDead) Hit(target, damage);
                     break;
             }
         }
 
-        // 명중 시 스턴 부여(#164). CC 인프라 공유: 배율 0을 넘기면 StatusEffectHandler가 속도 축이 아니라
-        // 스턴 축(IMovementAgent.AddStun)으로 보낸다 — 속도 축은 하한 클램프 때문에 배율 0으로도 멈추지 않는다.
-        // 공유 effectId라 중첩 없이 갱신만 된다.
-        static readonly int StunEffectId = "onhit.stun".GetHashCode();
-        void ApplyStun(IDamageable enemy)
+        /// 한 대상에 대한 명중 처리 전부 — 데미지 + 통지 + 효과.
+        ///
+        /// **투사체의 두 명중 경로(Single/Area)가 전부 여기를 지난다.** 예전에는 스턴이 Single 경로에서만
+        /// 적용돼, Area 타워 SO에 `OnHitStunDuration`을 저작하면 예외 없이 조용히 무시됐다
+        /// (#274 Phase 4에서 구조적으로 해소).
+        ///
+        /// ⚠ **체인은 이 경로를 지나지 않는다** — 히트스캔으로 전달되므로 `ChainResolver`가 데미지·통지를
+        /// 직접 처리하고 **명중 효과는 걸지 않는다**(#252의 확정 결정, 근거는 그쪽 주석).
+        /// 그 어긋남이 조용해지지 않도록 `TowerAsset.OnValidate`가 저장 시점에 경고한다.
+        void Hit(IDamageable victim, float amount)
         {
-            if (impact.StunDuration <= 0f) return;
-            if (enemy is not Component c) return;
+            victim.TakeDamage(new DamageInfo(amount, source));
+            DamageDealt?.Invoke(source, victim);
+            ApplyEffects(victim);
+        }
 
-            var handler = c.GetComponent<StatusEffectHandler>();
-            if (handler == null) handler = c.gameObject.AddComponent<StatusEffectHandler>();
-            handler.ApplySlow(StunEffectId, 0f, impact.StunDuration);
+        void ApplyEffects(IDamageable victim)
+        {
+            if (effects == null || effects.Count == 0) return;
+
+            // 소스 키 채번은 HitEffect.SourceKey 하나만 쓴다 — 오라 경로와 규칙이 갈라지면
+            // 같은 효과가 두 슬롯을 잡거나 서로 덮어쓴다(그 자리의 실패 이력은 그 함수 주석 참조).
+            int baseId = source is Component c ? c.GetInstanceID() : 0;
+
+            // 쏜 쪽이 타워면 원장(DoT 수치가 타일 버프·오라 버프를 타도록)과 계승 필터를 함께 본다.
+            // 적이 쏜 경우엔 둘 다 없다(스코프 밖에서 쓰므로 삼항 패턴 변수가 아니라 지역 변수로 둔다).
+            Tower tower = source as Tower;
+            TowerStats stats = tower != null ? tower.Stats : null;
+
+            for (int i = 0; i < effects.Count; i++)
+            {
+                HitEffect effect = effects[i];
+                if (effect == null) continue;   // [SerializeReference] rename 시 null 항목이 생긴다
+
+                // 합성 계승(#274 Phase 5): 결과 타워는 SO에 정의된 효과 중 **재료가 물려준 종류만** 낸다.
+                // 평범하게 배치된 타워는 필터가 없어 전부 통과한다. 목록을 미리 거르지 않고 여기서 묻는
+                // 이유는 Build가 계승 부여보다 먼저 돌기 때문이다(Tower.IsEffectActive 주석 참조).
+                if (tower != null && !tower.IsEffectActive(effect.Kind)) continue;
+
+                effect.Apply(victim, source, stats, HitEffect.SourceKey(baseId, effect.Kind));
+            }
         }
 
         // 명중 지점 반경 내 모든 적에게 동일 데미지
@@ -199,11 +167,7 @@ namespace NorthLand.Combat
             foreach (var h in hits)
             {
                 var d = h.GetComponentInParent<IDamageable>();
-                if (d != null && d.Faction != source.Faction && !d.IsDead)
-                {
-                    d.TakeDamage(new DamageInfo(damage, source));
-                    DamageDealt?.Invoke(source, d);
-                }
+                if (d != null && d.Faction != source.Faction && !d.IsDead) Hit(d, damage);
             }
         }
     }

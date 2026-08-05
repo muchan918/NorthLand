@@ -27,11 +27,22 @@ public class TowerMergeCandidateHover : MonoBehaviour, IPointerEnterHandler, IPo
     {
         if (_coordinator == null || _recipe == null) return;
         _coordinator.PreviewMerge(_recipe);
+
+        // 합성 결과 툴팁 + 물려받는 효과(#274 Phase 5). 계승을 표시하지 않으면 플레이어는 합성을
+        // 그냥 "상위 타워 만들기"로만 인식하고 조합의 재미를 느끼지 못한다(TowerRedesign.md §9.4).
+        // 계승 종류는 코디네이터가 **핑크 프리뷰와 같은 소모 대상**으로 계산하므로 표시와 실제가 어긋날 수 없다.
+        if (_recipe.Result == null) return;
+
+        string inherit = NorthLand.Combat.TowerStatsFormatter.BuildInheritLine(
+            _coordinator.PreviewInheritedKinds(_recipe));
+
+        TowerTooltipView.EnsureExists().Show(_recipe.Result, transform as RectTransform, inherit);
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
         if (_coordinator != null) _coordinator.ClearMergePreview();
+        TowerTooltipView.Instance?.Hide();
     }
 
     // 호버 중 버튼이 꺼지면(매칭 해제로 SetActive(false), 패널 닫힘, 밤 전환) EventSystem이 OnPointerExit를
@@ -39,5 +50,6 @@ public class TowerMergeCandidateHover : MonoBehaviour, IPointerEnterHandler, IPo
     private void OnDisable()
     {
         if (_coordinator != null) _coordinator.ClearMergePreview();
+        TowerTooltipView.Instance?.Hide();   // 툴팁도 같은 함정을 공유한다(OnPointerExit가 안 온다)
     }
 }

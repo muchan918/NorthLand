@@ -30,6 +30,12 @@ public class CameraController2 : MonoBehaviour
     [SerializeField] private float minZoomSize = 6f;
     [SerializeField] private float maxZoomSize = 35f;
 
+    // 줌 범위를 읽기 전용으로 공개한다. 룩 계층(#148 PixelationZoomBinder)이 현재 줌을
+    // 0~1로 정규화하는 데 쓴다 — 여기서 범위를 바꾸면 그쪽 설정을 따로 고칠 필요가 없다.
+    public float MinZoomSize => minZoomSize;
+
+    public float MaxZoomSize => maxZoomSize;
+
     [Header("미니맵 이동")]
     [SerializeField] private float minimapMoveSmoothTime = 0.15f;
 

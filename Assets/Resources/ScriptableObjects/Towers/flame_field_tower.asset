@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
+  m_Name: flame_field_tower
+  m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
+  TowerID: flame_field_tower
+  TowerPrefab: {fileID: 527708244005276318, guid: e140b9458a468234d80d74ec42a8409c, type: 3}
+  GhostPrefab: {fileID: 527708244005276318, guid: 4c7a365b5aa7f434bbfcaf5f6896c694, type: 3}
+  Cost:
+  - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
+    Amount: 45
+  - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+    Amount: 25
+  Attack:
+    AttackDamage: 0
+    AttackRange: 0
+    AttackInterval: 0
+    ProjectilePrefab: {fileID: 0}
+    Flight:
+      rid: -2
+  Impact: 0
+  SplashRadius: 0
+  ChainRadius: 0
+  MaxChainTargets: 0
+  ChainDamageFalloff: 0
+  BuffAura:
+    Radius: 0
+    Modifiers: []
+    Damage:
+      HasDamage: 0
+      DamageAmount: 0
+      TickInterval: 0
+  DebuffAura:
+    Radius: 9.6
+    Interval: 1
+  Effects:
+  - rid: 1498367259597078620
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 1498367259597078620
+      type: {class: BurnStatus, ns: NorthLand.Combat, asm: Assembly-CSharp}
+      data:
+        DamagePerTick: 4
+        TickInterval: 0.5
+        Duration: 2

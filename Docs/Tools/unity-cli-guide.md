@@ -28,6 +28,7 @@
 3. 씬/프리팹 YAML에 **새** GameObject·Component 블록을 텍스트로 추가하지 않는다. (fileID/GUID 수동 발급은 reserialize를 통과하고도 missing reference로 조용히 깨진다) → 구조 변경은 exec로.
 4. 플레이 모드 중 `editor refresh`를 실행하지 않는다. (`--force`는 사용자가 명시적으로 요청한 경우에만)
 5. exec에 async / 코루틴 / 지연 콜백 코드를 넣지 않는다. (기본 차단됨. 지연 완료가 의도된 경우에만 `--allow-async` + 사유를 사용자에게 설명)
+6. **exec에서 `EditorApplication.Step()`을 호출하지 않는다.** 프레임 단위 스크럽 용도로 쓰고 싶어지지만, **커넥터가 응답 불능이 되어 이후 모든 명령이 타임아웃한다**(2026-08-02 #265 실측 — `exec`가 2분 타임아웃으로 두 번 죽고, 그 뒤 `status`는 `paused`만 반복. `editor stop`으로만 복구됐다). 프레임을 세어야 하는 시간 기반 검증은 §5.9의 대안을 쓸 것.
 6. 에셋 삭제, 전체 덮어쓰기 등 파괴적 일괄 작업을 사용자 확인 없이 실행하지 않는다.
 
 ---
@@ -308,16 +309,36 @@ Volume 시스템은 전부 공개 API. VolumeProfile은 ScriptableObject 에셋�
 
 ```bash
 echo '
-var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>("Assets/Settings/GlobalVolume.asset");
-if (!profile.TryGet<Bloom>(out var bloom)) bloom = profile.Add<Bloom>(true);
+var path = "Assets/Settings/GlobalVolume.asset";
+var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(path);
+if (!profile.TryGet<Bloom>(out var bloom)) {
+    bloom = profile.Add<Bloom>(false);                    // overrides=false — 손댈 파라미터만 켠다
+    bloom.hideFlags = HideFlags.HideInInspector | HideFlags.HideInHierarchy;
+    AssetDatabase.AddObjectToAsset(bloom, profile);       // ★ 필수 — 없으면 디스크에 저장되지 않는다
+}
 bloom.intensity.overrideState = true;
 bloom.intensity.value = 0.8f;
 EditorUtility.SetDirty(profile);
-AssetDatabase.SaveAssets();
+EditorUtility.SetDirty(bloom);
+AssetDatabase.SaveAssetIfDirty(profile);                 // SaveAssets() 금지 — §7
 return "ok";' | unity-cli exec --usings UnityEngine.Rendering --usings UnityEngine.Rendering.Universal
 ```
 
 (HDRP면 `UnityEngine.Rendering.HighDefinition`으로 교체.) 검증: `screenshot` 전후 비교.
+
+⚠️ **`AddObjectToAsset`을 빼면 오버라이드가 조용히 사라진다 (2026-08-04 실측).**
+`VolumeProfile.Add<T>()`는 `VolumeComponent` 인스턴스를 만들어 `components` 리스트에만 넣는다 —
+**에셋 서브오브젝트 등록은 별개 호출**이고, 그것이 없으면 영속화될 대상이 없어 `{fileID: 0}`(null)로 기록된다.
+Unity는 다음 로드에서 그 null을 조용히 버려 **빈 프로파일**이 되고, **에러 로그도 인스펙터 경고도 없다.**
+Volume이 프로파일을 물고 카메라 post도 켜져 있는데 화면만 안 바뀐다.
+(실제 사고: `MiniatureLookProfile`의 Tonemapping이 이 상태로 커밋됐다 — `Docs/Rendering/VisualLookPipeline.md` §3.1.1)
+
+**검증은 인메모리가 아니라 디스크로 한다** — 저장 실패는 인메모리 상태에 드러나지 않는다:
+
+```bash
+grep -c "^--- !u!114" Assets/Settings/GlobalVolume.asset   # 1(프로파일) + 컴포넌트 수 여야 한다
+grep -A5 "components:" Assets/Settings/GlobalVolume.asset   # {fileID: 0}이 있으면 실패
+```
 
 ### G. 셰이더 / VFX Graph 작업 (그래프 저작물의 한계)
 
@@ -503,6 +524,17 @@ YAML의 오브젝트 참조는 fileID(파일 내)와 GUID(파일 간, .meta에 �
 - **before/after는 다른 `--output_path`로.** 기본 경로(`Screenshots/screenshot.png`)는 덮어쓴다.
 - **한 번에 한 축만 변경.** 여러 축을 동시에 바꾸면 어느 변경이 효과를 냈는지 스크린샷으로 분리 불가.
 
+### 5.9 시간 기반 연출(UniTask/코루틴) 검증 — 프레임 스크럽은 불가능하다
+
+`UniTask.Yield` 기반 연출은 **플레이 모드에서만 진행한다**(편집 모드엔 플레이어 루프가 없다). 그런데 CLI 왕복이 1회당 0.3~1초라, 0.5초짜리 연출 구간을 스크린샷으로 잡으려 하면 대부분 놓친다. `EditorApplication.isPaused`로 멈추는 것까지는 되지만 **`Step()`은 커넥터를 물리므로 금지**(규칙 N6) — 즉 **프레임 단위 스크럽 수단이 없다.**
+
+그래서 시간 기반 연출은 "중간 그림"이 아니라 **불변식**으로 검증한다:
+
+- **한 exec 안에서 시나리오를 완성한다.** 연출 시작과 상태 전이 통지를 같은 exec에 넣으면 통지가 프레임 0에 확정되어, 왕복 지연과 무관하게 원하는 최악 케이스가 재현된다. (예: `Play(...)` 직후 같은 줄에서 `ConvergeTo(...)` → "폭발 전에 확정이 도착"이 결정론적으로 성립)
+- **사라졌어야 할 것이 없음을 확인한다.** 특정 시각의 좌표·알파를 쫓지 말고, "이 시점 이후로는 X가 0개여야 한다" 같은 판정을 쓴다. 그런 불변식은 구간 어디에서 조회해도 결과가 같아 왕복 지연에 강하다.
+- **같은 함수 안 무분기 라인은 하나만 확인하면 된다.** 정리 함수가 A·B를 연달아 한다면 A만 확인해도 B가 보장된다 — 굳이 둘 다 잡으려고 왕복을 늘리지 않는다.
+- 정지 화면으로 충분한 구간(무한 루프·대기 상태)은 그냥 스크린샷으로 본다. **움직이는 0.5초를 눈으로 확인해야 하는 판단은 사용자에게 넘긴다** — 에디터를 쥔 사람이 재생하는 것이 CLI로 쫓는 것보다 빠르고 정확하다.
+
 ---
 
 ## 6. 커스텀 툴 작성 (반복 패턴의 승격)
@@ -556,6 +588,10 @@ public static class SpawnTool
 - 비주얼 저작 방침: **Shuriken 파티클(§4.K) · 코드 포스트프로세싱(§4.F) · HLSL 셰이더(§4.G)** 우선. VFX Graph/Shader Graph는 값 조정만, 신규 저작은 코드 경로로(그래프는 AI 저작 API가 막혀 있음 — N2).
 - 건드리면 안 되는 에셋/폴더:
 - 씬 저장 정책 (자동 저장 허용 여부): No
+- ⚠️ **`AssetDatabase.SaveAssets()`를 쓰지 말 것.** 무관한 더티 에셋까지 디스크에 써서 남의 작업 트리를
+  더럽힌다(실측 사례: 동적 JP 폰트 아틀라스, 미니맵 `RenderTexture`, 플레이 모드가 건드린 머티리얼).
+  대상을 특정해 `AssetDatabase.SaveAssetIfDirty(target)`만 쓴다. (#213 이행 중 확인 — 원 출처는 삭제된
+  `WIP-OutlineMigration.md` 주의사항)
 - 테스트 필수 영역:
 - 렌더 파이프라인: URP
 - Unity 버전: 6000.3.15f1

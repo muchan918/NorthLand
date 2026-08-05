@@ -72,7 +72,7 @@ public static class EnemyNodeQuery
     // 봉인 대상에서 조용히 빠지면, "공격 타워를 봉인한다"는 의도가 타워 종류에 따라 갈린다(#252).
     public static bool IsAttackTower(Tower tower)
     {
-        return tower != null && tower.Has<IAttackBehaviour>();
+        return tower != null && tower.Has<IAttackAction>();
     }
 
     // 진행 방향 기준 앞뒤 판정. y를 버리고 수평면에서만 본다 —

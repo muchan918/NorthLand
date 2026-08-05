@@ -219,6 +219,10 @@ MonoBehaviour:
     m_Key: building.upgrade.require_castle
     m_Metadata:
       m_Items: []
+  - m_Id: 8850533168615424
+    m_Key: game.btn.undo
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

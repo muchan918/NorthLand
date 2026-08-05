@@ -92,7 +92,11 @@ public class TowerTooltipView : MonoBehaviour
     }
 
     /// <summary>타워 정보를 채워 <paramref name="anchor"/>(호버한 버튼) 바로 위에 툴팁을 표시한다. tower가 null이면 숨긴다.</summary>
-    public void Show(TowerAsset tower, RectTransform anchor)
+    /// <param name="extraStatsLine">
+    /// 스탯 아래에 덧붙일 한 줄(없으면 null). 합성 후보 호버가 "물려받는 효과"를 여기로 넘긴다(#274 Phase 5) —
+    /// SO만 봐서는 알 수 없고 **현재 선택 집합에 의존하는** 정보라 툴팁이 스스로 만들 수 없다.
+    /// </param>
+    public void Show(TowerAsset tower, RectTransform anchor, string extraStatsLine = null)
     {
         if (!_ready) return;
         if (tower == null) { Hide(); return; }
@@ -101,7 +105,7 @@ public class TowerTooltipView : MonoBehaviour
         string desc = ResolveDescription(tower);
         _descText.text = desc;
         _descText.gameObject.SetActive(!string.IsNullOrEmpty(desc)); // 설명 없으면 빈 줄 안 남기고 접음
-        _statsText.text = BuildStats(tower);
+        _statsText.text = NorthLand.Combat.TowerStatsFormatter.Join(BuildStats(tower), extraStatsLine);
         _costText.text = BuildCost(tower);
 
         // 아이콘: TowerAsset에 Sprite 필드가 생기면 여기서 `_icon.sprite = tower.Icon;` 로 바인딩한다.
@@ -278,15 +282,20 @@ public class TowerTooltipView : MonoBehaviour
     }
 
     // 배치 **전** 툴팁이라 인스턴스가 없다 → SO 원본 값을 쓴다(타일 버프·오라 버프가 반영되기 전 값).
-    // 라벨과 서식은 인스턴스 경로(AttackBehaviour.DescribeStats)와 같은 포매터를 공유한다(WL-079).
+    // 라벨과 서식은 인스턴스 경로(AttackAction.DescribeStats)와 같은 포매터를 공유한다(WL-079).
     private string BuildStats(TowerAsset t)
     {
-        TowerAsset.AttackFields atk = NorthLand.Combat.TowerBehaviourFactory.ResolveAttackFields(t);
+        // "이 타워가 공격하는가"는 프리팹의 Actions가 답한다(#274) — 예전에는 SO의 TowerType을 보고
+        // TowerBehaviourFactory가 해석했지만, 종류의 정본이 프리팹으로 옮겨가면서 그 팩토리가 사라졌다.
+        //
+        // 능력 인터페이스로 묻는다 — 구상 액션으로 물으면 히트스캔 타워(체인)가 공격 타워로 인식되지 않아
+        // 공격 스탯 대신 오라용 반경 줄이 뜬다(#252). 플레이어에게는 전달 방식이 보일 이유가 없다.
+        TowerAsset.AttackFields atk = t.Attack;
 
-        return atk != null
+        return t.HasAction<NorthLand.Combat.IAttackAction>() && atk != null
             ? NorthLand.Combat.TowerStatsFormatter.BuildAttackLines(atk.AttackDamage, atk.AttackRange, atk.AttackInterval)
             // 오라 타워는 공통 공격 스탯이 없어 반경으로 대체 표기한다.
-            : NorthLand.Combat.TowerStatsFormatter.BuildRangeLine(t.MagicRadius);
+            : NorthLand.Combat.TowerStatsFormatter.BuildRangeLine(t.PreviewRadius);
     }
 
     // 코스트: '자원명 x수량' 줄 나열(자원명은 default 테이블 로컬라이즈, BuildingInfoUI 표기와 동일 계열).

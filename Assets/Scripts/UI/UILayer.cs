@@ -5,6 +5,9 @@
 /// </summary>
 public static class UILayer
 {
+    /// <summary>월드 오버레이(SelectionBoxView) — 드래그 선택 사각형. 입력을 받지 않으며 HUD 아래에 그린다.</summary>
+    public const int SelectionBox = 50;
+
     /// <summary>일반 HUD(UICanvas) — 미니맵, 관리·타워·스킬·정보 패널, 호버 툴팁.</summary>
     public const int Hud = 100;
 

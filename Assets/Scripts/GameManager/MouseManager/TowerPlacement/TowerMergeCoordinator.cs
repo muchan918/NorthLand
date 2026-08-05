@@ -21,13 +21,12 @@ public class TowerMergeCoordinator : MonoBehaviour
     private readonly HashSet<Tower> _highlighted = new();
 
     // 후보 버튼 호버 프리뷰로 핑크가 켜진 타워(#213 §5.3). 그룹 하이라이트와 같은 diff 패턴.
+    //
+    // 핑크는 **호버 동안만** 켜진다. 예전에는 버튼을 클릭한 뒤 배치가 끝날 때까지 고정하는 잠금
+    // (_previewCommitted)이 있었는데, 클릭 순간 커서가 버튼을 벗어나면서 "무엇이 소모되는지"가
+    // 사라지는 것을 막기 위한 것이었다. #263이 소모를 클릭 시점으로 앞당기면서 **칠할 대상 자체가
+    // 그 순간 사라지므로** 잠금이 의미를 잃었다 — 무엇이 소모됐는지는 재료가 없어진 자리가 말해준다.
     private readonly HashSet<Tower> _previewed = new();
-
-    // 후보 버튼을 **클릭**해 결과 타워 배치가 시작된 동안 켜진다. 이 구간의 핑크는 "호버 프리뷰"가 아니라
-    // "지금 소모가 확정 대기 중인 재료" 표시라, 커서가 버튼을 떠나도(OnPointerExit)·패널 버튼이 꺼져도
-    // (OnDisable) 풀리면 안 된다 — 잠그지 않으면 클릭하는 순간 커서가 버튼을 벗어나며 초록으로 되돌아간다.
-    // 해제 신호는 단 하나, 배치 세션 종료(확정 or 취소) 콜백 EndMergeCommit.
-    private bool _previewCommitted;
 
     // RefreshPanel이 인포를 띄워준 타워(= OnSelected를 직접 호출한 대상). 대칭 OnDeselected를 부를 상대를
     // 기억해 두는 1개짜리 diff 슬롯 — _highlighted HashSet과 같은 패턴의 축소판이다(WL-087).
@@ -35,6 +34,14 @@ public class TowerMergeCoordinator : MonoBehaviour
     // RefreshPanel은 TowerInfoUI.HideInfo()밖에 모르고, Shift 경로는 MouseManager._selected를 안 건드려
     // 나중의 Select(null)도 그 타워의 OnDeselected를 부르지 못하기 때문.
     private Tower _infoShownFor;
+
+    // ── 드래그 사각형 선택(#261) ──────────────────────────────────────
+    // 드래그 중에는 하이라이트만 실시간으로 따라가고 **패널 갱신은 유예**한다. 사각형을 넓히다가 2개를
+    // 넘나들면 합성 패널이 열렸다 닫혔다 하고, 후보 버튼을 매 프레임 재생성해 GC까지 튄다.
+    // 유예분은 드래그 종료 시 한 번에 처리한다.
+    private bool _boxDragging;
+    private readonly List<Tower> _dragBase = new();   // 드래그 시작 시점의 기준 집합(Shift면 유지, 아니면 빈 집합)
+    private readonly List<Tower> _dragResult = new(); // 기준 + 사각형 내용, 매 갱신마다 재구성
 
     // ── 파사드 (패널 뷰가 쓰는 것) ────────────────────────────────────
     public IReadOnlyList<Tower> SelectedTowers => _group.Towers;
@@ -48,12 +55,23 @@ public class TowerMergeCoordinator : MonoBehaviour
     /// TowerFusionController.TryFuse와 **똑같이** null/Asset 없는 타워를 걸러낸 리스트로 맞춘다.
     public void PreviewMerge(TowerRecipe recipe)
     {
-        if (_previewCommitted) return; // 배치 중엔 클릭 시점에 고정된 재료가 이긴다(다른 버튼 호버 무시)
         ApplyPreview(ResolveConsumeTargets(recipe)); // 매칭 불가(null)면 그대로 해제 — 버튼이 꺼져 있어야 정상
     }
 
+    /// 이 레시피를 지금 실행하면 결과 타워가 물려받을 효과 종류(#274 Phase 5). 계승이 없으면 null.
+    ///
+    /// **소모 대상 판정을 핑크 프리뷰와 공유한다** — 포함 매칭이라 선택 집합에 여분 타워가 있을 수 있고,
+    /// 여분까지 세면 "물려받는다고 표시됐는데 실제로는 안 걸리는" 어긋남이 생긴다. 계승 규칙 자체도
+    /// 실행부(TowerFusionController)와 같은 `TowerFusionMatcher.ResolveInheritedKinds`를 쓴다.
+    public HashSet<EffectKind> PreviewInheritedKinds(TowerRecipe recipe)
+    {
+        HashSet<Tower> targets = ResolveConsumeTargets(recipe);
+        if (targets == null) return null;
+
+        return TowerFusionMatcher.ResolveInheritedKinds(recipe, new List<Tower>(targets));
+    }
+
     /// 이 레시피가 현재 집합에서 **실제로 소모할** 타워들. 매칭 불가·밤이면 null.
-    /// 클릭 경로(RequestMerge)가 집합이 비워지기 전에 스냅샷을 뜨는 데도 쓰므로 판정만 하고 표시는 하지 않는다.
     private HashSet<Tower> ResolveConsumeTargets(TowerRecipe recipe)
     {
         if (recipe == null || !IsDay) return null;
@@ -77,12 +95,7 @@ public class TowerMergeCoordinator : MonoBehaviour
     }
 
     /// 커서가 후보 버튼을 벗어남·버튼 비활성·집합 변경·밤 전환 시 프리뷰를 해제한다(잔존 방지).
-    /// 단 배치 확정 대기 중(`_previewCommitted`)에는 무시한다 — 그 구간의 유일한 해제 권한은 EndMergeCommit.
-    public void ClearMergePreview()
-    {
-        if (_previewCommitted) return;
-        ApplyPreview(null);
-    }
+    public void ClearMergePreview() => ApplyPreview(null);
 
     private void ApplyPreview(HashSet<Tower> next)
     {
@@ -116,28 +129,9 @@ public class TowerMergeCoordinator : MonoBehaviour
         if (!IsDay) return; // 방어(패널도 밤엔 숨김)
         if (_controller == null) { Debug.LogError("[TowerMerge] TowerFusionController가 연결되지 않았습니다."); return; }
 
-        // 판정은 **먼저**, 칠하기는 **나중**. 사이에 낀 TryFuse가 배치를 시작하면서
-        // MouseManager.BeginPlacement → 전체 해제로 선택 집합을 비우기 때문이다:
-        //   - 먼저 판정: 집합이 비면 소모 대상을 계산할 근거 자체가 사라진다.
-        //   - 나중에 칠하기: BeginPlacement가 직전 배치를 취소하며 그쪽 EndMergeCommit(+집합 해제→ClearMergePreview)을
-        //     발화시키므로, 먼저 칠하면 방금 켠 핑크가 그 정리에 지워진다.
-        // 판정 출처는 호버 프리뷰와 동일(TowerFusionMatcher)이라 TryFuse가 고른 재료와 일치한다.
-        var consume = ResolveConsumeTargets(recipe);
-
-        // 배치가 실제로 시작된 경우에만 핑크를 고정한다. 재료·코스트 부족으로 반려되면(=false) 종료 콜백도
-        // 오지 않으므로 잠갔다간 핑크가 영구 잔류한다.
-        if (!_controller.TryFuse(recipe, _group, EndMergeCommit)) return;
-
-        ApplyPreview(consume);
-        _previewCommitted = true;
-    }
-
-    /// 결과 타워 배치 세션이 끝났다(확정 or 취소) → 핑크 고정 해제. 확정이면 재료는 이미 파괴 중이고,
-    /// 취소면 재료가 그대로 남아 그룹 초록으로 되돌아간다.
-    private void EndMergeCommit()
-    {
-        _previewCommitted = false;
-        ClearMergePreview();
+        // 소모 대상을 미리 스냅샷해 둘 필요가 없다(#263). 예전에는 TryFuse가 배치를 시작하며 선택 집합을
+        // 비우기 전에 "무엇을 칠할지"를 확보해야 했지만, 이제 그 재료들은 클릭과 동시에 사라진다.
+        _controller.TryFuse(recipe, _group);
     }
 
     // ── 수명주기 ──────────────────────────────────────────────────────
@@ -149,6 +143,9 @@ public class TowerMergeCoordinator : MonoBehaviour
         {
             mm.OnPrimarySelect += HandlePrimarySelect;
             mm.OnGroupSelectToggled += HandleGroupToggle;
+            mm.OnBoxSelectBegin += HandleBoxSelectBegin;
+            mm.OnBoxSelectUpdate += HandleBoxSelectUpdate;
+            mm.OnBoxSelectEnd += HandleBoxSelectEnd;
         }
         else
         {
@@ -177,6 +174,9 @@ public class TowerMergeCoordinator : MonoBehaviour
         {
             mm.OnPrimarySelect -= HandlePrimarySelect;
             mm.OnGroupSelectToggled -= HandleGroupToggle;
+            mm.OnBoxSelectBegin -= HandleBoxSelectBegin;
+            mm.OnBoxSelectUpdate -= HandleBoxSelectUpdate;
+            mm.OnBoxSelectEnd -= HandleBoxSelectEnd;
         }
 
         if (DayNightManager.Instance != null)
@@ -216,13 +216,66 @@ public class TowerMergeCoordinator : MonoBehaviour
         }
     }
 
+    // ── 드래그 사각형 선택(#261) ──────────────────────────────────────
+    // 시작: 기준 집합을 스냅샷한다. Shift면 기존 집합을 유지한 채 합집합으로 더하고(추가), 아니면 교체다.
+    // Shift 클릭이 **토글**인 것과 달리 Shift 드래그는 **합집합**이다(의도된 비대칭, 명세 §4.1).
+    private void HandleBoxSelectBegin(bool additive)
+    {
+        if (!IsDay) return;
+
+        _boxDragging = true;
+        _dragBase.Clear();
+        if (additive) _dragBase.AddRange(_group.Towers);
+    }
+
+    // 갱신: 기준 + 사각형 내용(들어온 순서)으로 집합을 원자 교체. 안 바뀐 프레임은 SetAll이 no-op으로 흡수한다.
+    private void HandleBoxSelectUpdate(IReadOnlyList<IGroupSelectable> hits)
+    {
+        if (!IsDay || !_boxDragging) return;
+
+        _dragResult.Clear();
+
+        // 기준 집합은 드래그 **시작 시점**의 사본이라 그새 사라진 타워(합성 소모·철거·사망)가 섞일 수 있다.
+        // 그대로 되넣으면 (1) Prune이 방금 지운 타워가 되살아나고 (2) TowerMergeGroup.SameAs가 정규화 전
+        // 리스트와 비교하는 탓에 매 갱신마다 OnChanged가 헛발행된다(WL-145). 판정 출처는 HandleActiveChanged와 동일.
+        foreach (var t in _dragBase)
+        {
+            if (t == null || !Tower.Active.Contains(t)) continue;
+            _dragResult.Add(t);
+        }
+
+        for (int i = 0; i < hits.Count; i++)
+        {
+            // 마커는 도메인 중립이라 타워 해석은 여기서 한다(Shift 토글 경로와 같은 규칙).
+            Tower t = hits[i] is TowerGroupSelectable tgs ? tgs.Tower : null;
+            if (t == null || _dragResult.Contains(t)) continue;
+            _dragResult.Add(t);
+        }
+
+        _group.SetAll(_dragResult);
+    }
+
+    // 종료: 유예했던 패널·후보 버튼 갱신을 여기서 한 번 처리한다.
+    private void HandleBoxSelectEnd()
+    {
+        if (!_boxDragging) return;
+
+        _boxDragging = false;
+        _dragBase.Clear();
+        _dragResult.Clear();
+
+        RefreshPanel();
+        OnGroupChanged?.Invoke();
+    }
+
     // 밤 진입: 선택 집합만 리셋. 진행 중 배치 취소(F5)는 페이즈 취소 책임 일원화로 PhasePanelSwitcher.ShowNight가
     // 담당한다(낮 진입 스킬 조준 취소와 대칭) — 코디네이터는 전역 CancelPlacement를 더 이상 호출하지 않는다.
     private void HandleDayToNight()
     {
-        // 밤 진입 시 진행 중 배치는 PhasePanelSwitcher.ShowNight가 취소한다 → 그 경로로도 EndMergeCommit이
-        // 오지만, 구독 순서(어느 쪽이 먼저 도는지)에 기대지 않도록 여기서 잠금을 직접 푼다.
-        _previewCommitted = false;
+        // 드래그 도중 밤이 되면 이후 통지가 IsDay 게이팅에 막혀 종료 신호를 못 받는다 → 유예 상태를 직접 푼다.
+        _boxDragging = false;
+        _dragBase.Clear();
+        _dragResult.Clear();
         ClearMergePreview(); // 패널이 닫히면 OnPointerExit가 오지 않을 수 있다
         _group.Clear();
     }
@@ -236,7 +289,10 @@ public class TowerMergeCoordinator : MonoBehaviour
     private void HandleGroupChanged()
     {
         ClearMergePreview(); // 집합이 바뀌면 프리뷰의 근거(소모 대상)가 사라진다
-        RefreshHighlight();
+        RefreshHighlight();  // 하이라이트는 드래그 중에도 실시간 — 지금 무엇이 잡히는지가 보여야 한다
+
+        if (_boxDragging) return; // 패널·후보 버튼은 유예, 드래그 종료 시 한 번에(HandleBoxSelectEnd)
+
         RefreshPanel();
         OnGroupChanged?.Invoke();
     }

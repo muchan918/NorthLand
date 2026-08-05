@@ -18,6 +18,10 @@ namespace NorthLand.Combat
         float cooldownTimer;
         bool isDying;
 
+        // 원거리 공격의 비행 부품(#274 Phase 4.5). 발사마다 만들지 않고 인스턴스별 1회 생성해 재사용한다 —
+        // 부품은 무상태라 이 적이 쏜 투사체들이 함께 참조해도 안전하다(진행값은 Projectile이 소유).
+        HomingFlight rangedFlight;
+
         // 받는 피해 배수(#233). 1=그대로, 0=무적, 1 초과=취약. 방어 태세 패턴이 감소치를 건다.
         // 이 값을 Enemy가 소유하는 이유: 피해 적용 지점이 TakeDamage 하나뿐이라
         // EnemyAgent가 같은 값을 들면 동기화가 깨진다(EnemyAgent는 전달만 한다).
@@ -258,7 +262,14 @@ namespace NorthLand.Combat
         {
             // 받는 피해 배수를 여기 한 곳에서만 적용한다(#233) — 방어 태세 패턴의 감쇠 지점.
             currentHp -= info.Amount * damageTakenFactor;
-            // Debug.Log($"{name} took {info.Amount} dmg, hp={currentHp}");
+            // 피격 로그(검증용) — 필요할 때 아래 주석을 풀어 쓴다.
+            // 적·소스 양쪽에 InstanceID를 붙이는 이유: 같은 프리팹에서 나온 개체는 이름이 전부 같아
+            // (Yellow_Grummy(Clone) 2마리, FlameRollyShooter(Clone) 2기) 로그가 뒤섞이면 못 가른다.
+            // 소스 ID는 곧 상태이상 중첩 키(HitEffect.SourceKey의 baseId)라 중첩 판정의 근거이기도 하다.
+            // Component src = info.Source as Component;
+            // Debug.Log($"[HP] {name}#{GetInstanceID()}: -{info.Amount * damageTakenFactor:F1} " +
+            //           $"(from {(src != null ? $"{src.name}#{src.GetInstanceID()}" : "?")}) " +
+            //           $"→ {currentHp:F1}/{MaxHp:F1}");
             OnHpChanged?.Invoke(currentHp, MaxHp);
 
             if (IsDead)
@@ -323,7 +334,16 @@ namespace NorthLand.Combat
                 return false;
             }
 
-            projectile.Init(target, AttackDamage, ranged.ProjectileSpeed, this, ProjectileImpact.MakeSingle());
+            // 비행은 쏘는 쪽이 정한다(#274). 적은 아직 궤적 저작 필드가 없어 유도탄 직선으로 고정한다 —
+            // 현재 모든 EnemyAsset의 Ranged.ProjectilePrefab이 null이라 이 경로 자체가 미사용이다.
+            // 원거리 적을 실제로 붙일 때 EnemyAsset.RangedFields에 [SerializeReference] ProjectileFlight를
+            // 추가하면 타워와 같은 부품을 그대로 쓴다.
+            //
+            // 발사마다 new 하지 않고 인스턴스별로 1회 만들어 재사용한다 — 부품은 무상태라 이 적이 쏜
+            // 투사체들이 함께 참조해도 안전하다(진행값은 각 Projectile의 FlightState에 있다).
+            rangedFlight ??= new HomingFlight { Speed = ranged.ProjectileSpeed, ArcHeight = 0f };
+
+            projectile.Init(target, AttackDamage, this, rangedFlight, ProjectileImpact.MakeSingle());
             return true;
         }
 

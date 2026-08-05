@@ -25,6 +25,11 @@ MonoBehaviour:
     m_ReadOnly: 1
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 71c06a74242ce2c4e8c062d793e6b546
+    m_Address: Assets/Localization/NorthLand_Skills Shared Data.asset
+    m_ReadOnly: 1
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 9345e22f18ba7c446a8626f8882a2ea7
     m_Address: Assets/Localization/NorthLand_Enemies Shared Data.asset
     m_ReadOnly: 1

@@ -19,6 +19,16 @@ namespace CombatSpace
         [SerializeField]
         private Transform tileRoot;
 
+        /// <summary>
+        /// 셀 좌표계의 기준 Transform. 타일을 이 아래에 `localPosition` + `localRotation = identity`로
+        /// 붙이므로 **이 Transform의 회전이 그리드 축의 단일 출처**다(내부 `coordinateRoot`와 같은 값).
+        ///
+        /// 배치 측(`TowerPlacer`)이 이웃 셀 오프셋과 셀 하이라이트 회전을 여기서 가져온다 — 앵커 타일의
+        /// 회전을 읽으면 "타일 로컬 회전이 항상 0"이라는 전제에 기대게 되고, 타일 프리팹에 랜덤 yaw
+        /// (반복감 제거)가 들어오는 순간 셀마다 축이 튄다.
+        /// </summary>
+        public Transform CoordinateRoot => tileRoot != null ? tileRoot : transform;
+
         [Header("Prefabs")]
         [SerializeField]
         private GameObject roadTilePrefab;
@@ -35,11 +45,27 @@ namespace CombatSpace
         private float revealYOffset = 20f;
 
         [SerializeField]
-        [Min(0.01f)]
-        private float revealDuration = 0.5f;
+        private AnimationCurve revealCurve =AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
         [SerializeField]
-        private AnimationCurve revealCurve =AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+        [Min(0f)]
+        private float minRevealDelay = 0f;
+
+        [SerializeField]
+        [Min(0f)]
+        private float maxRevealDelay = 0.35f;
+
+        [SerializeField]
+        [Min(0.01f)]
+        private float minRevealDuration = 0.25f;
+
+        [SerializeField]
+        [Min(0.01f)]
+        private float maxRevealDuration = 0.55f;
+
+        public float MaxRevealTime => maxRevealDelay + maxRevealDuration;
+
+        private readonly System.Random revealRandom = new System.Random();
 
 
         [Tooltip("Road 타일 피벗에서 몬스터 발 위치까지의 월드 Y 오프셋. " +"Road 프리팹의 피벗·높이 변경 시 함께 조정해야 합니다.")]
@@ -60,6 +86,13 @@ namespace CombatSpace
         public float TileSize =>mapGenerator != null &&mapGenerator.Settings != null? mapGenerator.Settings.TileSize: 1f;
 
         public int SpawnedTileCount =>spawnedTiles.Count;
+
+        private void OnValidate()
+        {
+            maxRevealDelay = Mathf.Max(minRevealDelay, maxRevealDelay);
+
+            maxRevealDuration = Mathf.Max(minRevealDuration, maxRevealDuration);
+        }
 
         private void OnEnable()
         {
@@ -161,10 +194,7 @@ namespace CombatSpace
                 RefreshTileVisibility();
             }
 
-            Debug.Log(
-                $"타일 GameObject 생성 완료: " +
-                $"{spawnedTiles.Count}개",
-                this);
+            Debug.Log($"타일 GameObject 생성 완료: {spawnedTiles.Count}개",this);
         }
 
         private void SpawnTile(CombatTileData tileData)
@@ -173,27 +203,16 @@ namespace CombatSpace
 
             if (prefab == null)
             {
-                Debug.LogError(
-                    $"{tileData.Type}에 사용할 " +
-                    "프리팹이 없습니다.",
-                    this);
+                Debug.LogError($"{tileData.Type}에 사용할 프리팹이 없습니다.",this);
 
                 return;
             }
 
-            Transform parent =
-                tileRoot != null
-                    ? tileRoot
-                    : transform;
+            Transform parent =tileRoot != null? tileRoot : transform;
 
-            GameObject instance =
-                Instantiate(
-                    prefab,
-                    parent);
+            GameObject instance =Instantiate(prefab,parent);
 
-            instance.transform.localPosition =
-                GridToLocalPosition(
-                    tileData.Position);
+            instance.transform.localPosition =GridToLocalPosition(tileData.Position);
 
             instance.transform.localRotation =
                 Quaternion.identity;
@@ -402,21 +421,17 @@ namespace CombatSpace
 
                 tileObject.SetActive(isRevealed);
 
-                if (!isRevealed)
-                {
-                    continue;
-                }
+                bool shouldPlayReveal =revealController.CurrentRound > 0 &&!wasVisible;
 
-                visibleTileCount++;
-
-                // 이미 공개되어 있던 타일은 움직이지 않고
-                // 이번에 새로 공개된 타일만 상승시킨다.
-                if (!wasVisible)
+                if (shouldPlayReveal)
                 {
-                    PlayTileRevealAsync(
-                        tileView.transform,
-                        tileView.GetCancellationTokenOnDestroy()
-                    ).Forget();
+                    float delay =NextRevealRandom(minRevealDelay,maxRevealDelay);
+
+                    float duration =NextRevealRandom(minRevealDuration,maxRevealDuration);
+
+                    Vector3 targetPosition = GridToLocalPosition(pair.Key);
+
+                    PlayTileRevealAsync(tileView.transform,targetPosition,delay,duration,tileView.GetCancellationTokenOnDestroy()).Forget();
                 }
             }
 
@@ -432,40 +447,36 @@ namespace CombatSpace
             );
         }
 
-        private async UniTask PlayTileRevealAsync(
-        Transform tileTransform,
-        CancellationToken cancellationToken)
+        private async UniTask PlayTileRevealAsync(Transform tileTransform,Vector3 targetPosition,float delay,float duration,CancellationToken cancellationToken)
         {
-            Vector3 targetPosition = tileTransform.localPosition;
-            Vector3 startPosition =
-                targetPosition + Vector3.down * revealYOffset;
+            Vector3 startPosition = targetPosition + Vector3.down * revealYOffset;
 
             tileTransform.localPosition = startPosition;
 
             try
             {
+                float delayElapsed = 0f;
+
+                while (delayElapsed < delay)
+                {
+                    delayElapsed += Time.unscaledDeltaTime;
+
+                    await UniTask.Yield(PlayerLoopTiming.Update,cancellationToken);
+                }
+
                 float elapsed = 0f;
 
-                while (elapsed < revealDuration)
+                while (elapsed < duration)
                 {
-                    elapsed += Time.deltaTime;
+                    elapsed += Time.unscaledDeltaTime;
 
-                    float normalizedTime =
-                        Mathf.Clamp01(elapsed / revealDuration);
+                    float normalizedTime =Mathf.Clamp01(elapsed / duration);
 
-                    float curvedTime =
-                        revealCurve.Evaluate(normalizedTime);
+                    float curvedTime =revealCurve.Evaluate(normalizedTime);
 
-                    tileTransform.localPosition =
-                        Vector3.LerpUnclamped(
-                            startPosition,
-                            targetPosition,
-                            curvedTime
-                        );
+                    tileTransform.localPosition =Vector3.LerpUnclamped(startPosition,targetPosition,curvedTime);
 
-                    await UniTask.Yield(
-                        PlayerLoopTiming.Update,
-                        cancellationToken
+                    await UniTask.Yield(PlayerLoopTiming.Update,cancellationToken
                     );
                 }
 
@@ -473,7 +484,7 @@ namespace CombatSpace
             }
             catch (OperationCanceledException)
             {
-                // 타일이 제거되거나 씬이 종료된 정상적인 취소
+                // 타일 제거 및 씬 종료
             }
         }
 
@@ -481,25 +492,18 @@ namespace CombatSpace
         [ContextMenu("Clear Map Tiles")]
         public void ClearTiles()
         {
-            Transform parent =
-                tileRoot != null
-                    ? tileRoot
-                    : transform;
+            Transform parent =tileRoot != null? tileRoot: transform;
 
-            for (int i = parent.childCount - 1;
-                 i >= 0;
-                 i--)
+            for (int i = parent.childCount - 1;i >= 0;i--)
             {
-                DestroyTileObject(
-                    parent.GetChild(i).gameObject);
+                DestroyTileObject(parent.GetChild(i).gameObject);
             }
 
             spawnedTiles.Clear();
             currentWorldEnemyRoute.Clear();
         }
 
-        private void DestroyTileObject(
-            GameObject target)
+        private void DestroyTileObject(GameObject target)
         {
             if (Application.isPlaying)
             {
@@ -514,12 +518,9 @@ namespace CombatSpace
         [ContextMenu("Validate Spawned Tiles")]
         public void ValidateSpawnedTiles()
         {
-            if (mapGenerator == null ||
-                mapGenerator.CurrentMap == null)
+            if (mapGenerator == null || mapGenerator.CurrentMap == null)
             {
-                Debug.LogError(
-                    "검사할 맵 데이터가 없습니다.",
-                    this);
+                Debug.LogError("검사할 맵 데이터가 없습니다.",this);
 
                 return;
             }
@@ -529,8 +530,7 @@ namespace CombatSpace
                 RebuildSpawnedTileCache();
             }
 
-            CombatMapData map =
-                mapGenerator.CurrentMap;
+            CombatMapData map = mapGenerator.CurrentMap;
 
             int mapTileCount = 0;
             int missingTileCount = 0;
@@ -541,19 +541,13 @@ namespace CombatSpace
             {
                 for (int y = 0; y < map.Height; y++)
                 {
-                    Vector2Int position =
-                        new Vector2Int(x, y);
+                    Vector2Int position = new Vector2Int(x, y);
 
-                    CombatTileData tileData =
-                        map.GetTile(position);
+                    CombatTileData tileData = map.GetTile(position);
 
-                    bool hasSpawnedObject =
-                        spawnedTiles.TryGetValue(
-                            position,
-                            out CombatMapTileView tileView);
+                    bool hasSpawnedObject = spawnedTiles.TryGetValue(position,out CombatMapTileView tileView);
 
-                    if (tileData.Type ==
-                        CombatTileType.Empty)
+                    if (tileData.Type == CombatTileType.Empty)
                     {
                         if (hasSpawnedObject)
                         {
@@ -571,8 +565,7 @@ namespace CombatSpace
                         continue;
                     }
 
-                    if (tileView.TileType !=
-                        tileData.Type)
+                    if (tileView.TileType != tileData.Type)
                     {
                         wrongTypeCount++;
                     }
@@ -600,6 +593,11 @@ namespace CombatSpace
 
             Debug.Log(
                 $"타일 시각화 검증 완료\n 맵 데이터 타일:{mapTileCount}개\n생성된 오브젝트:{spawnedTiles.Count}개",this);
+        }
+
+        private float NextRevealRandom(float minimum,float maximum)
+        {
+            return minimum +(float)revealRandom.NextDouble() * (maximum - minimum);
         }
 
         // 현재 공개 범위에 맞춰 몬스터용 월드 경로 갱신

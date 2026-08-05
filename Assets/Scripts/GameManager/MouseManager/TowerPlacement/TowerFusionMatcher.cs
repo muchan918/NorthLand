@@ -70,6 +70,58 @@ public static class TowerFusionMatcher
         return list;
     }
 
+    /// 재료들이 결과 타워에 물려주는 **효과 종류**를 계산한다(#274 Phase 5, TowerRedesign.md §9).
+    ///
+    /// **툴팁(TowerMergeCandidateHover)과 실행부(TowerFusionController)가 반드시 이 하나를 공유한다** —
+    /// 규칙을 두 벌로 구현하면 "물려받는다고 표시됐는데 실제로는 안 걸리는" 어긋남이 생긴다.
+    /// BuildRequired가 후보 버튼과 실행부의 매칭 규칙을 단일 출처로 두는 것과 같은 이유다.
+    ///
+    /// 계승되는 것은 **종류뿐이고 수치는 결과 SO가 적는다.** 수치까지 물려받으면 "같은 효과가 겹칠 때
+    /// max냐 합산이냐"를 정해야 하는데, 합산은 같은 타워를 계속 합성하면 무한 스택이 된다.
+    ///
+    /// ⚠ **반환 null과 빈 집합은 뜻이 다르다** — 이 구분이 fail-open을 막는다.
+    ///
+    ///   null      계승 자체를 안 하는 레시피(`InheritEffects == false`) → 필터 없음 = SO 효과 전부 활성
+    ///   빈 집합    계승은 켰는데 물려줄 종류가 0개 → **전부 비활성**
+    ///
+    /// 예전에는 둘 다 null이라, 계승을 켠 레시피에 효과 없는 재료(archer×3 등)를 넣으면
+    /// `Tower.IsEffectActive`의 "activeKinds == null = 전부 활성" 규약과 겹쳐 결과 타워가 SO의
+    /// `Effects`를 **전부 켠 채** 배치됐다 — 의도의 정반대이고, 툴팁엔 `Inherit:` 줄이 안 떠서
+    /// 표시와 실제가 어긋났다(PR #278 리뷰).
+    public static HashSet<EffectKind> ResolveInheritedKinds(TowerRecipe recipe, IReadOnlyList<Tower> materials)
+    {
+        // 여기서만 null을 낸다 — "이 레시피는 계승 개념이 없다".
+        if (recipe == null || !recipe.InheritEffects) return null;
+
+        // 아래부터는 계승을 켠 레시피다. 무엇도 못 물려주면 **빈 집합**(= 전부 off)이지 null이 아니다.
+        if (recipe.Result == null || materials == null) return new HashSet<EffectKind>();
+
+        // 재료가 **실제로 활성인** 종류만 모은다 — SO가 아니라 인스턴스에게 묻는다.
+        // 다단 합성(A+B→C, C+D→E)에서 C의 SO를 읽으면 꺼져 있는 효과까지 잡힌다(§9.2 ②).
+        var kinds = new HashSet<EffectKind>();
+        for (int i = 0; i < materials.Count; i++)
+        {
+            Tower material = materials[i];
+            if (material == null) continue;
+            foreach (EffectKind kind in material.ActiveEffectKinds) kinds.Add(kind);
+        }
+
+        // 결과 SO에 **정의된** 종류만 남긴다. 정의되지 않은 종류는 켤 수단(수치)이 없어 무의미하고,
+        // 그런 저작 실수는 TowerRecipe.OnValidate가 별도로 경고한다(§9.5).
+        var defined = new HashSet<EffectKind>();
+        if (recipe.Result.Effects != null)
+        {
+            foreach (HitEffect effect in recipe.Result.Effects)
+            {
+                if (effect != null) defined.Add(effect.Kind);
+            }
+        }
+        kinds.IntersectWith(defined);
+
+        // 교집합이 비어도 빈 집합을 그대로 낸다 — null로 바꾸면 "전부 활성"으로 뒤집힌다.
+        return kinds;
+    }
+
     /// 지갑 타워들로 이 레시피를 합성할 수 있는지 판정한다(포함 매칭). 후보 버튼(#183) 활성 판정용.
     public static bool CanFuse(IReadOnlyList<Tower> walletTowers, TowerRecipe recipe)
     {

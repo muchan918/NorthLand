@@ -8,6 +8,11 @@
 > - `Assets/Scripts/GameManager/MouseManager/TowerPlacement/TowerFusionController.cs` — 실행 진입점(`TryFuse(recipe, group)`)
 > - `Assets/Scripts/GameManager/MouseManager/TowerPlacement/TowerPlacer.cs` — 배치 오버로드 + 배치 시 그룹 마커 부착
 > - `Assets/Scripts/CombatSystem/Tower/Tower.cs` — `Asset` 읽기 접근자
+> **구현 파일 — 커맨드 패턴(#263)**:
+> - `Assets/Scripts/Command/IReversibleCommand.cs` — Execute/Confirm/Commit/Undo **4단 계약**(#281에서 중립 위치로 이전)
+> - `Assets/Scripts/Command/CommandHistory.cs` — 되돌리기 LIFO 히스토리(#281)
+> - `Assets/Scripts/GameManager/MouseManager/TowerPlacement/TowerMergeCommand.cs` — 재료 소프트 소모·확정·원복
+> - `Assets/Scripts/GameManager/MouseManager/TowerPlacement/TowerFootprint.cs` — `Release()`/`Reoccupy()`(점유만 임시 해제)
 > **구현 파일 — 선택·패널 UI(#183)**:
 > - `Assets/Scripts/GameManager/MouseManager/IGroupSelectable.cs` — 그룹 선택 자격 마커(도메인 중립)
 > - `Assets/Scripts/GameManager/MouseManager/TowerPlacement/TowerGroupSelectable.cs` — 타워 마커 구현(런타임 부착)
@@ -45,8 +50,13 @@
 **In — 구현·검증 완료 (#194 데이터 / #195 실행)**
 - 레시피 데이터(`TowerRecipe`: 재료 TowerID별 개수 → 결과 `TowerAsset` + 추가비용 `ExtraCost`)
 - 포함 매칭(`TowerFusionMatcher`) — 선택 ≥ 필요면 성립, 소모는 필요 개수만, 여분 허용
-- 실행(`TowerFusionController.TryFuse(recipe, group)`): 매칭 검증 → `CanAfford` → `TowerPlacer` 고스트 배치 → 확정 시 `ExtraCost` 지불 + 재료 `Destroy`
+- 실행(`TowerFusionController.TryFuse(recipe, group)`): 매칭 검증 → `CanAfford` → **재료 소프트 소모(#263)** → `TowerPlacer` 고스트 배치 → 확정 시 `ExtraCost` 지불 + 재료 진짜 파괴 / 취소 시 재료 원복
 - (구 임시 홀더 `TowerWallet`은 #183에서 `TowerMergeGroup`으로 대체·폐기)
+
+**In — 구현·검증 완료 (#263 커맨드 패턴)**
+- 소모 시점을 배치 확정 → **후보 버튼 클릭**으로 이동. **재료가 점유했던 타일에 결과를 놓을 수 있다**(구 F2 제약 해소)
+- 되돌리기: 배치 취소 시 재료 타워 재활성화 + 타일 재점유(`IReversibleCommand` 트랜잭션). **#281에서 4단이 되면서 확정한 합성도 밤 전까지 되돌릴 수 있다**(§9.3)
+- 배치 중 핑크 고정(`_previewCommitted`) 제거 — 칠할 대상이 클릭 순간 사라져 목적을 잃음(§8.4)
 
 **In — 코드 구현 완료 (#183, 씬 배선·E2E 예정)**
 - 멀티 선택 모델: 설치 타워를 수정키로 추가 선택 → 순서 있는 재료 집합(§7)
@@ -72,6 +82,9 @@
 | 매칭 규칙 | `TowerFusionMatcher` | 레거시(Fusion). 순수 static, `TryResolve`/`BuildRequired`/`CanFuse` |
 | 레시피 | `TowerRecipe` (SO) | 레거시(접두 없음). `Materials`/`Result`/`ExtraCost` |
 | 재료 집합(선택 상태) | `TowerMergeGroup` | 순수 C#·코디네이터 소유. `Towers`/`Add`/`Remove`/`Clear`/`Prune`/`OnChanged`. 구 `TowerWallet` 대체 |
+| 되돌릴 수 있는 조작 | `IReversibleCommand` | `Execute`/`Confirm`/`Commit`/`Undo` **4단**(#263→#281). 구현체는 합성·배치 둘 |
+| 되돌리기 히스토리 | `CommandHistory` | LIFO 20. `Confirm`이 등록 시점, 밤 진입에 일괄 `Commit`(#281) |
+| 재료 소모 트랜잭션 | `TowerMergeCommand` | 소프트 소모(타일 `Release`+비활성화) → `Confirm`=세션 성공(재료는 살아 있다) → `Commit`=밤에 진짜 파괴 / `Undo`=결과 회수+재료 원복 |
 | 선택 코디네이터 | `TowerMergeCoordinator` | 그룹 소유·게이팅·패널 권위·실행 오케스트레이션(파사드: `SelectedTowers`/`OnGroupChanged`/`CanMerge`/`RequestMerge`) |
 | 합성 패널 뷰 | `TowerMergePanelView` | 선택 리스트 + 후보 버튼. 코디네이터만 참조 |
 | 그룹 선택 자격 마커 | `IGroupSelectable`(도메인 중립) + `TowerGroupSelectable`(타워 구현) | MouseManager가 마커만 소비 → 타워 개념 없이 제네릭 |
@@ -106,8 +119,11 @@
                                                                       │ onClick → 코디네이터.RequestMerge
                                                                       ▼
                                               TowerFusionController.TryFuse(recipe, group)
-                                                 매칭 → CanAfford → TowerPlacer 고스트 배치
-                                                 → 확정 시 ExtraCost 지불 + 재료 Destroy
+                                                 매칭 → CanAfford
+                                                 → 커맨드 Execute (재료 즉시 소프트 소모·타일 해제)
+                                                 → TowerPlacer 고스트 배치
+                                                    ├ 확정 → ExtraCost 지불 + Commit(재료 파괴)
+                                                    └ 취소 → Undo(재료 원복)
 ```
 
 **흐름 요약**: 선택(MouseManager+마커) → 집합 소유(코디네이터가 `TowerMergeGroup`) → 이음매(그룹) → {버튼 활성 판정 = 매칭, 실행 = 컨트롤러}. 버튼 활성 판정과 실행이 **같은 매칭 함수**(`TowerFusionMatcher`)를 공유해 규칙이 단일 출처다.
@@ -198,33 +214,137 @@
 ### 8.4 시각 피드백
 - 집합에 든 타워를 월드에서 강조(아웃라인/하이라이트). 코디네이터가 마커의 그룹 훅(§7.1)으로 켜고 끈다 — **단일 선택 하이라이트와 별개**. 아트·연출 방식 TBD.
 - 색 규약은 `InteractionOutline.md`(#213): 그룹 재료 = 초록, **그 레시피가 실제로 소모할 재료 = 핑크**.
-- 핑크는 후보 버튼 **호버**에서 켜지고, 버튼을 **클릭해 결과 타워 배치가 시작되면 배치가 끝날 때까지 고정**된다(`_previewCommitted`). 잠그지 않으면 클릭과 동시에 커서가 버튼을 벗어나 `OnPointerExit`가 핑크를 걷어가, 정작 배치 중에 "무엇이 소모되는지"가 안 보인다. 해제는 배치 종료 콜백(`TowerPlacer` → `TryFuse(onEnded)` → `EndMergeCommit`) 하나뿐 — 확정이면 재료가 소멸하고, 취소면 그룹 초록으로 복귀한다. 상세·순서 계약은 `InteractionOutline.md` §5.3.
+- 핑크는 후보 버튼 **호버 동안만** 켜진다. 예전에는 클릭 후 배치가 끝날 때까지 고정하는 잠금(`_previewCommitted`)이 있었는데, 클릭 순간 커서가 버튼을 벗어나며 "무엇이 소모되는지"가 사라지는 것을 막기 위한 것이었다. **#263이 소모를 클릭 시점으로 앞당기면서 칠할 대상 자체가 그 순간 없어져 잠금이 목적을 잃었다** — 무엇이 소모됐는지는 재료가 비워진 자리가 말해준다. 상세는 `InteractionOutline.md` §5.3.
+- 소모→배치 구간의 시각적 공백은 연출(#265)이 채운다 — **구현됨, §9.2**. 재료가 있던 자리에 흰 입자가 떠 있으므로, 핑크 고정이 하던 "무엇을 소모했는지가 배치 내내 보인다"를 그대로 이어받는다.
 
 ---
 
-## 9. 실행 흐름 (#195, 완료 — 후보 버튼이 부르는 대상)
+## 9. 실행 흐름 (#195 → #263 커맨드 패턴으로 교체, 완료 — 후보 버튼이 부르는 대상)
 
 ```
-후보 버튼 onClick → 코디네이터.RequestMerge(recipe) → TowerFusionController.TryFuse(recipe, group, onEnded) : bool
+후보 버튼 onClick → 코디네이터.RequestMerge(recipe) → TowerFusionController.TryFuse(recipe, group) : bool
   ① 그룹 타워 → TowerID 목록 (null/파괴/Asset 없음 제외)
   ② TowerFusionMatcher.BuildRequired(recipe) → (TowerID,개수) 집계
   ③ TowerFusionMatcher.TryResolve → 소모할 타워 인덱스 확정 (부족 시 false 반환·로그)
   ④ ManagementController.CanAfford(recipe.ExtraCost) (관리 없으면 무료)
   ⑤ 결과 SO의 런타임 Data 방어 채움(패널 경로 안 거칠 때 대비)
-  ⑥ TowerPlacer.BeginTowerPlacement(recipe.Result, recipe.ExtraCost, onConfirmed, onEnded) : bool
-       고스트 → 타일 확정 → ExtraCost TrySpend + 결과 Instantiate
-       → onConfirmed: 소모 대상 타워 group.Remove(OnChanged 발행) + Destroy
-       → onEnded  : 확정/취소 무관 배치 세션 종료 1회 (EndPlacement에서 발화)
-  ⑦ (반환 true일 때만) 코디네이터가 소모 대상을 핑크로 고정 — §8.4
+  ⑥ TowerDissolveEffect.Play(재료들, TileSize)      ← 소모 **직전**. 시각 사본을 여기서 뜬다 (§9.2)
+  ⑦ TowerMergeCommand.Execute()  ← 재료를 **여기서** 소모한다 (클릭 시점)
+       재료마다: TowerFootprint.Release()(타일 점유 해제) + SetActive(false)
+  ⑧ TowerPlacer.BeginTowerPlacement(recipe.Result, recipe.ExtraCost, onConfirmed, onEnded) : bool
+       고스트 → 타일 확정 → ExtraCost TrySpend + 결과 Instantiate + 결과가 타일 Occupy
+       → onConfirmed(place)  : AdoptResult(결과 커맨드 편입) → CommandHistory.Push(=Confirm)
+                               **재료는 아직 살아 있다** — 진짜 Destroy는 밤 진입 Commit에서 (#281)
+                               + 연출.ConvergeTo(place.Placed)
+       → onEnded             : IsConfirmed면 연출.Abort()만 하고 **즉시 반환**(#281 — 확정 뒤 Undo가
+                               이제 동작하므로 무조건 부르면 확정한 합성이 되감긴다)
+                               아니면 Undo + 연출.Reassemble()
+       (반환 false면 배치를 열지 못한 것 → 즉시 Undo + 연출.Abort. 이 경로엔 종료 통지가 오지 않는다)
 ```
 
-> ⑥의 `BeginTowerPlacement`는 `MouseManager.BeginPlacement`를 거치며 **선택 집합을 통째로 비운다**(§7.3 마지막 행) → 합성 패널이 닫히고 그룹 초록도 꺼진다. 그래서 코디네이터는 ⑦에서 칠할 소모 대상을 **⑥ 이전에 스냅샷**해 둔다. `TryFuse`가 쓰는 `toConsume`도 같은 이유로 ⑥ 앞에서 확정되므로(①~③) 집합이 비어도 소모는 정상 동작하며, `ConsumeMaterials`의 `group.Remove`는 빈 집합에 대한 무해한 no-op이 된다.
->
-> **부작용(수용)**: 고스트를 취소하면 재료·비용은 보존되지만 **선택 집합은 돌아오지 않는다** — 다시 합성하려면 재료를 다시 고른다.
+- **소모 시점 = 후보 버튼 클릭 시점**(#263). 이 순서 하나가 커맨드 패턴을 도입한 이유 전부이며, **재료가 점유했던 타일에 결과를 놓을 수 있게 된다**(구 F2 제약 해소, WL-077 후단).
+- `Destroy`는 되돌릴 수 없으므로 **소프트 소모**(타일 해제 + 비활성화)로 한다. 나머지(`Tower.Active` 등록 해제, 스탯 원장 비움, 버프 오라가 남긴 modifier 회수와 그 복원)는 **`Tower.OnDisable`/`OnEnable`이 이미 대칭**이라 커맨드가 손대지 않는다 — 풀 재사용을 대비해 만들어 둔 왕복이 그대로 쓰인다.
+- **확정/취소 판단은 커맨드가 자기 상태로 한다.** 배치 세션 종료 통지(`TowerPlacer`의 `onEnded`)는 어느 쪽으로 끝났는지 알려주지 않으므로 `IsConfirmed`를 읽어 가른다 → **`TowerPlacer`·`MouseManager` 무수정.**
+  ⚠ **#281에서 이 콜백이 조건부가 됐다.** 예전에는 확정 뒤의 `Undo`가 상태 검사에 막혀 조용히 무시돼서 두 콜백을 다 걸어도 안전했다. 이제 `Confirmed`에서 `Undo`는 **동작하므로**, `IsConfirmed`면 먼저 반환해야 한다.
+- **선택 집합에서 빼는 일은 아무도 명시적으로 하지 않는다.** 비활성화 → `Tower.Active` 이탈 → `ActiveChanged` → 코디네이터의 `Prune`이 걷어낸다(구 `ConsumeMaterials`의 `group.Remove`가 하던 몫). 커맨드는 `TowerMergeGroup`을 모른다.
+- **부작용(수용)**: 고스트를 취소하면 재료·타일·비용은 원복되지만 **선택 집합은 돌아오지 않는다** — 다시 합성하려면 재료를 다시 고른다. `BeginPlacement`의 `ClearSelection`(§7.3 마지막 행)은 그대로 두고 커맨드 범위를 "재료"로 좁게 유지했다(§14 확장 여지).
+- 비용 지불은 `ManagementController.CanAfford/TrySpend`(WL-017 게이트웨이)로만 — `TowerPlacer` 확정 경로 재사용(별도 차감 로직 없음). 관리가 씬에 없으면 무료(permissive). **`ExtraCost`는 종전대로 확정 시점 차감**이다(클릭 시점 차감 아님) — 자원은 타일과 달리 먼저 빼야 할 이유가 없고, 그러면 환불 경로가 늘고 자원 UI가 깜빡인다.
 
-- **소모 시점 = 배치 확정 시점**(고스트 Esc 취소 시 재료·비용 보존). 재료 소모(`Destroy`)는 `Tower.OnDisable`로 `Tower.Active`에서 자동 해제되고, `TowerFootprint`(배치 인스턴스 부착)가 `OnDestroy`로 점유 타일을 해제한다 → 소모 자리 재배치 가능.
-- **알려진 제약(F2, 현행 유지)**: 소모가 확정 시점이라 **재료가 점유한 타일에는 결과를 즉시 놓을 수 없다**(재료는 확정 후에야 `Destroy`되어 타일 해제). 지금은 이 제약을 안고 가고, 향후 커맨드 패턴('클릭 즉시 소모 + 취소 시 원복')으로 개선 예정(§13).
-- 비용 지불은 `ManagementController.CanAfford/TrySpend`(WL-017 게이트웨이)로만 — `TowerPlacer` 확정 경로 재사용(별도 차감 로직 없음). 관리가 씬에 없으면 무료(permissive).
+### 9.1 진행 중 커맨드의 수명 (별도 안전망을 두지 않은 근거)
+
+진행 중인 커맨드는 **항상 최대 1개**다. 그것을 떠받치는 것은 `BeginPlacement`가 **새 세션을 열기 전에 `CancelPlacement`를 먼저 부른다**는 사실이다 — 그 취소가 이전 세션의 종료 콜백(= 이전 커맨드의 `Undo`)을 발화시키므로, 새 커맨드가 자리를 잡는 시점엔 이전 커맨드가 이미 해소돼 있다. (`TowerPlacer.keepPlacing`은 이 보장과 무관하다 — WL-105는 별개 축이다.)
+
+#281 이후에도 **진행 중(`Executed`) 커맨드**는 최대 1개라는 이 불변식이 그대로다. `Confirm`을 지난 커맨드는 `CommandHistory` 스택으로 넘어가므로 **진행 중인 것과 쌓인 것은 겹치지 않는 두 집합**이고, 그 사실이 밤 진입 시 `CommandHistory.CommitAll`과 `PhasePanelSwitcher.ShowNight`의 구독 순서를 무의미하게 만든다(어느 쪽이 먼저 와도 결과가 같아 순서 강제 장치를 두지 않았다).
+
+그래서 전역 Undo 스택이 없고, 아래 경로가 전부 **기존 취소 경로 하나로 수렴**하므로 별도 정리 코드도 두지 않았다:
+
+| 상황 | 원복 경로 |
+| --- | --- |
+| Esc·우클릭 취소 | `MouseManager.UpdatePlacement` → `CancelPlacement` → `onEnded` → `Undo` |
+| 밤 전환 | `PhasePanelSwitcher.ShowNight` → `CancelPlacement` → 〃 |
+| 새 배치 시작 | `BeginPlacement`가 먼저 `CancelPlacement` → 〃 (이전 커맨드가 원복된 뒤 새 커맨드가 걸린다) |
+| **확정 클릭했지만 배치 실패** | `PlaceTower`가 앵커 없음·건설 불가·`TrySpend` 실패로 조기 반환 → `onConfirmed`(=`Confirm`+등록) **미발화** → 그래도 `MouseManager`가 뒤이어 `CancelPlacement` → `Undo`. 재료가 정확히 복구된다 |
+| 씬 전환 | `MouseManager.HandleSceneLoaded` → `CancelPlacement` → 〃. 이 시점엔 재료가 이미 파괴됐지만 `Undo`의 null 가드가 흡수한다 |
+| 게임오버 | 합성은 낮 전용이고 승패는 밤에 갈리므로, 그 시점엔 밤 전환이 이미 배치를 취소한 뒤다 |
+
+> **불변식 하나는 코드로 강제한다**: `Release`된 발자국이 `Reoccupy` 없이 되살아나면 타워는 살아나는데 타일은 빈 칸으로 남아 그 위에 또 배치된다. 정상 경로(`Undo`)는 활성화 전에 `Reoccupy`를 부르지만, 커맨드를 거치지 않는 경로(향후 연출·철거)가 생길 수 있어 `TowerFootprint.OnEnable`에 자기치유 안전망을 뒀다(정상 경로에선 no-op).
+
+> 씬 언로드 시 "비활성 재료가 씬에 남는" 문제는 없다 — 비활성 GameObject도 씬과 함께 파괴되고, 재료는 `DontDestroyOnLoad`가 아니다. 반대로 `TowerFusionController.OnDestroy`에서 `Undo`를 부르는 식의 안전망은 **오히려 해롭다**: 파괴 중인 오브젝트에 `SetActive(true)`를 걸게 된다.
+
+### 9.2 소모 연출 (`TowerDissolveEffect`) — #265
+
+> **⚠ 룩·수치는 임시다.** `TowerPlacement.md` §9.3의 단서가 그대로 적용된다 — 타워 에셋이 임시이고 아트 방향이 미정이라, 아래는 "플레이에서 이상하지 않다"까지만 확인된 값이다. **다만 아래 §9.2.2의 세 순서 계약은 임시가 아니다.**
+
+#### 9.2.1 무엇을 하는가
+
+```
+후보 버튼 클릭
+  → 재료가 하얘짐 (시각 사본의 머티리얼을 흰 언릿으로 교체)
+  → 살짝 부풀었다가 bounds.center로 수축 → 사라짐
+  → 그 중심 1점에서 입자로 폭발
+  → 재료 자리 상공에서 부유 (배치 대기 동안 무한 루프 — Y축 회전 + 개별 위상 흔들림)
+      ├ 확정 → 결과 타워로 수렴 → 소멸        (등장 연출의 팝과 동시에 도착)
+      └ 취소 → 제자리로 역수렴 → 재조립 팝     (바닥 링 없음 — 링은 "새로 배치됨"의 언어)
+```
+
+재료가 여러 개면 각자 자기 자리에서 출발해 자기 자리로 돌아오고, 폭발은 약간의 시차를 둔다.
+
+**메시 정점을 한 번도 읽지 않는다.** 입자 시작점이 중심 한 점이라 실루엣 분해가 필요 없고, 따라서 `isReadable: 0`(프로젝트 FBX 1664개 중 573개)과 무관하다. 이 시퀀스는 취향이 아니라 그 제약이 고른 형태다.
+
+**화이트아웃은 `OutlineHighlight`의 shell이 아니라 사본 머티리얼 교체다.** 어차피 사본을 뜨므로 그 사본만 칠하면 되고, 원본 무편집이라는 shell의 이점은 그대로 남는다. shell은 `OutlineShell` 레이어 + 본체 패스 제외라는 **다른 목적의 셋업**을 타고 있어 이 용도로 쓰려면 레이어·패스를 따로 맞춰야 한다. (반대로 재료가 그룹 선택 상태면 shell이 켜져 있으므로, 사본을 뜰 때 그 레이어의 렌더러는 **걸러낸다** — 안 그러면 실루엣이 두 겹이 된다.)
+
+#### 9.2.2 계약 — **이 부분은 유지해야 한다**
+
+| # | 규칙 | 어기면 |
+| --- | --- | --- |
+| ⓐ | `Play`는 커맨드 `Execute` **직전**에 부른다 | 커맨드가 재료를 `SetActive(false)` 하고 나면 **복제할 시각물이 없다** — 연출이 통째로 빈다 |
+| ⓑ | `ConvergeTo`는 `TowerPlacer` 확정 콜백에서, **등장 연출보다 앞**에 부른다 | 등장 연출이 결과 타워 스케일을 0으로 만든 뒤라 **쪼그라든 bounds의 중심**으로 입자가 모인다 |
+| ⓒ | `Reassemble`은 커맨드 `Undo` **직후 같은 프레임**에 부른다 | 되살아난 재료가 원본 크기로 **한 프레임 번쩍인** 뒤에야 입자가 도착한다 |
+
+**마무리 통지는 폭발이 끝나기 전에도 온다.** 배치 대기가 짧으면(실수로 눌렀다가 바로 취소, 다른 후보 버튼 클릭, 밤 전환) 소멸 구간(재료 2개 기준 약 0.52초) 도중에 확정/취소가 도착한다. 그 경로는 남은 구간을 **즉시 완료 상태로 밀어붙인 뒤**(실루엣 파괴 + 알갱이를 부유 위치·정상 크기로 스냅 + 알파 1) 마무리로 넘어간다. 그냥 빠져나가면 흰 실루엣이 재료 타일에 최대 0.73초 얼어붙고 알파가 0에 멈춰 **수렴 입자가 아예 보이지 않는다** — 연출이 존재하는 이유가 그 구간에서만 통째로 사라진다. 폭발만 건너뛰므로 "재료 자리에서 출발한다"는 인과는 유지된다.
+
+**bounds는 스케일 점유를 푼 뒤에 잰다.** 재료가 방금 배치됐거나(등장 팝) 직전 합성이 취소돼 재조립 중이면 루트 스케일이 0~과도기 값이라, 그대로 재면 bounds가 한 점으로 붕괴해 화이트아웃·수축이 통째로 보이지 않는다. `VfxScaleHold.Acquire(target).Release()`로 원본만 되찾고 점유는 넘겨받지 않는다(이 연출은 소멸 구간에서 대상 스케일을 건드리지 않는다). 등장 연출이 `Acquire`를 측정보다 먼저 부르는 것과 같은 규칙이다.
+
+**시간 축은 등장 연출과 공유한다**(`TowerSpawnEffect.ConvergeDuration` / `.PopDuration`). 유입 입자의 비행 시간을 **거리가 아니라 시간으로** 묶는 것이 핵심이다 — 재료가 배치 지점에서 얼마나 떨어져 있든 `ConvergeDuration` 안에 도착하므로 결과 타워가 튀어나오는 순간을 넘기지 않는다. 속도를 고정하면(= 거리에 비례한 시간) 먼 재료의 입자가 **타워가 다 선 뒤에** 도착해 "재료가 모여 타워가 됐다"는 인과가 뒤집히고, 이 연출이 존재하는 이유가 사라진다.
+
+그 상한 **안에서는** 알갱이마다 속도가 다르다. 도착 시각을 **알갱이 크기가 정한다** — 작은 것은 듀레이션의 절반쯤에 먼저 닿고, 가장 큰 것만이 듀레이션을 꽉 채운다. "가벼운 게 빠르다"는 직관과 맞고, **가장 느린 놈의 도착 시각이 곧 상한**이라 어느 알갱이도 팝보다 늦지 않는다. 크기와 속도는 **같은 난수 하나**에서 뽑는다(따로 뽑으면 큰데 빠른 알갱이가 섞여 규칙이 안 읽힌다).
+
+궤적은 **직선**이고 속도는 거의 등속이다. 둘 다 속도 차이를 보이게 하려는 선택이다: 궤적을 휘게 하면(소용돌이·포물선) 알갱이가 전부 같은 곡선을 그려 한 덩어리로 보이고, 강한 ease-in을 걸면 이동이 끝자락에 몰려 빠른 알갱이와 느린 알갱이가 구분되지 않는다.
+
+**#265는 결과 타워에 `TowerSpawnEffect.PlayAsync`를 걸지 않는다.** 배치 확정이면 `TowerPlacer`가 어차피 등장 연출을 재생하므로, 합성은 거기에 자기 입자를 나란히 얹기만 한다 — 같은 대상에 두 번 재생되는 일이 없다.
+
+**길이 기준은 전부 타일 한 칸이다**(풋프린트가 아니라). 이 연출이 말하려는 것은 "이 알갱이는 저 칸 것"이고 칸 하나가 그 언어의 단위다 — 다중 셀 타워가 재료가 돼도 구름이 커지면 옆 칸까지 덮어 오히려 식별을 해친다. 알갱이 크기도 같은 이유로 타일 기준이며, **등장 연출도 알갱이만은 타일 기준을 쓴다**(`TowerPlacement.md` §9.3.2 앵커 표). 두 연출이 같은 물질로 보이려면 알갱이 크기가 타워 칸 수에 흔들리면 안 된다.
+
+#### 9.2.3 로직과의 분리
+
+연출은 **시각 전용·논블로킹**이다. 커맨드는 연출을 기다리지 않고(타일을 즉시 비우는 것이 #263의 목적) 연출은 사본으로 독립 재생하므로, 연출이 중간에 죽어도 합성 상태는 어긋나지 않는다. 반대로 §9.1의 취소 경로가 전부 `Undo` 하나로 수렴하는 덕에 연출의 마무리도 그 한 지점에 얹힌다.
+
+마무리는 **선착순**이다(`Abort`/`ConvergeTo`/`Reassemble` 중 먼저 정해진 것이 이긴다). 그래서 확정 뒤에 오는 종료 통지의 `Abort`가 진행 중인 수렴을 잘라먹지 않고, 확정/취소 어느 쪽도 아닌 종료 경로(밤 전환 등)에서는 안전망으로 동작한다.
+
+재조립 동안 재료 스케일은 `VfxScaleHold`가 배타 점유하며, 어떤 경로로 끊겨도(씬 전환·취소·예외) 연출 호스트의 `OnDestroy`가 원복한다 — **안 보이는 타워가 최악의 실패 모드**라는 판단은 등장 연출과 같다.
+
+### 9.3 확정한 합성 되돌리기 — #281
+
+배치 세션이 성공으로 끝나도 합성은 **밤 전까지 되돌릴 수 있다.** 되돌리기 버튼(`TowerUndoButtonView`, 페이즈 패널 밖에 상시 배치 — 밤엔 비활성)이 `CommandHistory.Undo()`를 부르고, 히스토리 최상단이 이 합성이면 결과 타워가 회수되고 재료가 복원된다.
+
+**되돌리기 순서 — 네 단계 전부가 계약이다:**
+
+```
+① TowerDissolveEffect.Play([결과 타워], TileSize, DissolveMode.Rewind)
+     ← 결과 타워가 **아직 살아 있는 동안**. Play의 시각 사본 복제가 동기로 끝나므로
+       바로 아래에서 Destroy해도 안전하다
+② _result.Undo()      결과 타워: TowerFootprint.Release() → Destroy → ExtraCost 환원(Grant)
+③ RestoreMaterials()  재료: Reoccupy() → SetActive(true)
+④ effect.RestoreTo(재료들)  가루의 목적지 등록 + 같은 프레임에 스케일 0으로 잡기
+```
+
+- **② → ③ 순서가 핵심이다.** 결과 타워의 풋프린트는 재료가 쓰던 타일과 겹친다(그 자리에 놓을 수 있게 한 것이 #263의 목적이다). `Object.Destroy`는 프레임 끝까지 지연되므로 `TowerFootprint.OnDestroy`도 그때까지 안 도는데, 그 전에 재료를 `Reoccupy`하면 타일이 아직 점유로 보여 `TowerFootprint`가 **소유권을 실제 점유자에게 남기고 목록에서 뺀다**(§9.1의 불변식 ②). 그러면 재료는 살아나는데 타일이 없다. 그래서 `TowerPlaceCommand.Undo`가 `Destroy` **전에** `Release()`를 명시적으로 부른다.
+- **④는 ③ 직후 같은 프레임이어야 한다** — `Reassemble`과 같은 규율이다(③이 `SetActive(true)`를 걸었으므로 렌더 전에 숨기지 않으면 원본 크기 타워가 한 프레임 번쩍인다).
+- **결과 배치는 히스토리에 따로 오르지 않는다.** `TowerFusionController`가 `PlacementOwner.Caller`로 배치를 열고 `AdoptResult`로 편입하므로, 합성 전체가 커맨드 하나로 되돌아간다. 나눠 올리면 한 번의 합성이 두 번에 나눠 되감겨 **결과도 재료도 없는 빈 타일**이 중간에 한 번 보인다. 연출 소유권도 함께 넘어간다(`PlaysUndoDissolve`를 내려, 결과 타워가 자기 몫으로 한 번 더 터지지 않게 한다).
+- **자원은 `ExtraCost`만 환원된다.** 재료 원가는 재료가 되살아나는 것으로 이미 갚아지기 때문이고, 커맨드가 **실지불 비용**을 들고 있어 이 구분이 자동으로 성립한다.
+- **밤에는 불가능하다.** `OnDayToNight`에 히스토리 전체가 `Commit`되어 재료가 진짜로 파괴되고 스택이 비워진다.
+
+**LIFO여야 하는 이유**는 편의가 아니다. `A 배치(tile1) → A+B 합성 → C를 (비워진) tile1에 배치` 상태에서 합성을 먼저 되돌리면 A가 tile1을 되찾지 못하고 위의 불변식 ②가 발동해 **A가 타일 없는 타워가 된다.** LIFO가 C를 먼저 되돌리게 강제해 이 경로를 원천 차단한다 — LIFO 자체가 유효성 검사다. ⚠ 낮 중 타워 철거·사망처럼 히스토리를 거치지 않고 대상이 사라지는 경로가 생기면 이 불변식이 깨진다.
 
 ---
 
@@ -245,9 +365,11 @@
 | 선택 집합(순서)·낮 게이팅·리셋·그룹/하이라이트/패널 구동·실행 오케스트레이션 | **`TowerMergeCoordinator`**(#183, n0wst4ndup) | MouseManager 이벤트 구독, 파사드 노출 |
 | 재료 집합 저장(이음매) | **`TowerMergeGroup`**(순수 C#, 코디네이터 소유) | 실행부·매칭이 소비, `OnChanged` 단일 통지 |
 | 매칭 규칙 | **`TowerFusionMatcher`**(순수) | 버튼 활성·실행 공유 단일 출처 |
-| 합성 실행(검증·배치·소모) | **`TowerFusionController`**(muchan) | `TryFuse(recipe, group)` |
-| 결과 고스트 배치·타일 검증·점유 | **`TowerPlacer`** / `TowerFootprint` | TowerPlacement.md |
+| 합성 실행(검증·배치·소모) | **`TowerFusionController`**(muchan) | `TryFuse(recipe, group)`. 진행 중 커맨드 1개를 배치 콜백으로 물고 있다 |
+| 재료 소모의 되돌리기 | **`TowerMergeCommand`**(#263) | 소프트 소모/확정/원복. `TowerMergeGroup`을 모른다(집합 정리는 `Prune`이 담당) |
+| 결과 고스트 배치·타일 검증·점유 | **`TowerPlacer`** / `TowerFootprint` | TowerPlacement.md. `TowerFootprint`가 `Release`/`Reoccupy`로 임시 해제도 담당(#263) |
 | 자원(ExtraCost) 지불 | **`ManagementController`** | `CanAfford`/`TrySpend`, WL-017 |
+| 소모 연출(화이트아웃·폭발·부유·수렴·재조립) | **`TowerDissolveEffect`**(#265, n0wst4ndup, #281에서 개명) | 시각 전용·논블로킹. **도메인 무지** — `Transform` 목록과 타일 한 칸 크기만 받는다. 등장 연출과 부품(`GrainSwarm`·`VfxScaleHold`)·시간 축을 공유. §9.2 |
 | 재료 원본 SO 조회 | **`Tower.Asset`**(Combat, 읽기) | SUNGSOO |
 | 낮/밤 게이팅 신호 | **`DayNightManager`** | `CurrentPhase`/전환 이벤트 |
 
@@ -259,7 +381,7 @@
 - [x] 레시피 데이터 정의(재료 TowerID별 개수 → 결과 `TowerAsset` + `ExtraCost`)
 - [x] 결과 타워를 일반 `TowerAsset`로 표현
 - [x] 포함 매칭(정확 충족/여분 허용/부족 실패/다종 재료) — 순수 함수 검증 가능(EditMode 후보)
-- [x] 그룹 충족 시 결과 타워 고스트 생성 → 타일 배치 → 확정 시 재료 `Destroy` + `ExtraCost` 차감
+- [x] 그룹 충족 시 결과 타워 고스트 생성 → 타일 배치 → 확정 시 재료 `Destroy` + `ExtraCost` 차감 *(#263에서 소모 시점이 클릭으로 앞당겨짐 — 현행 흐름은 §9)*
 - [x] 재료·비용 부족 시 실행 안 됨(로그), 고스트 취소 시 재료·비용 보존
 
 **선택/패널 UI (#183) — 코드 구현·컴파일 완료 / 아래는 정본 씬 배선 후 E2E로 확정할 인수 항목**
@@ -286,11 +408,14 @@
 - **추가 선택 키 = Shift**(§7.2): WL-073(우클릭 이중 점유) 회피 겸. 재조정 시 이 문서·구현 동시 수정.
 - **레시피 카탈로그 출처 = 패널 인스펙터 배열 `TowerRecipe[] _recipes`**(§5, WL-076(a)): 후보 레시피 SO를 인스펙터에 등록. 순서 = 배열 순서(결정적). 예시 SO 2종은 `Assets/Resources/ScriptableObjects/TowerRecipes/`.
 - **stale 버튼 방어**(§10, WL-076(b) 해소): `TowerMergeGroup.Prune(predicate)` + 코디네이터가 `Tower.ActiveChanged` 구독해 **`Tower.Active` 멤버십 기준**으로 호출(OnDisable 시점 가짜-null 미형성 문제 회피).
-- **결과 배치·소모 타이밍(F2 결정)**: **현행 유지** — 새 타일에 고스트 배치 + 확정 시 재료 `Destroy`. 재료 타일 재사용 불가 제약(WL-077a)을 인지하고 안고 간다. **향후 방향 = 커맨드 패턴**: 버튼 클릭 즉시 재료를 소모(타일 해제)해 자리를 재사용 가능하게 하되, **배치 취소 시 소모한 재료를 원복**한다. 이때 `Destroy`는 되돌릴 수 없으므로, 커맨드는 즉시 파괴 대신 **비활성화(SetActive false + 타일/점유 해제)로 '소프트 소모'** → 확정 시 진짜 `Destroy`, 취소 시 재활성화·재점유로 원복하는 형태가 자연스럽다(재료 스냅샷 재구성도 대안). 도입 시 §9 흐름 교체.
+- ~~**결과 배치·소모 타이밍(F2 결정)**~~ → **해소(#263)**. 커맨드 패턴을 도입해 소모를 클릭 시점으로 앞당겼다: 소프트 소모(타일 `Release` + 비활성화) → 확정 시 `Commit`(진짜 `Destroy`) / 취소 시 `Undo`(재활성화 + `Reoccupy`). **재료가 점유했던 타일에 결과를 놓을 수 있다.** 흐름은 §9로 교체됨. 남은 선택지(취소 시 선택 집합까지 복원)는 §14 확장 여지로 이월.
 - **낮/밤 실행 게이팅**(§10, WL-077 phase): 코디네이터 `RequestMerge`/입력 핸들러가 낮 게이팅 → UI 경로 밤 실행 차단. 실행부 `TryFuse` 자체 방어 게이팅은 미추가(옵션, muchan 협의).
 - **결과 정보 패널 배선**(§8.3): 스탯 표시를 `Tower`/`TowerInfoUI`와 공유할지 별도 조합할지(WL-079 축).
 - **결과 타워 콘텐츠**: 합성 결과용 신규 `TowerAsset`(`TowerTable.csv` 행 + 프리팹/고스트/스탯). 현재 테스트는 기존 타워를 결과로 재사용.
 - **밸런스·규칙**(GDD §8): 레시피 족보(재료 조합→결과)·`ExtraCost` 수치·재료 승계(레벨/버프) 여부 미정.
+  - **효과 승계는 구현됐다 → [`Tower.md`](Tower.md) §3.9**(#274 Phase 5). 효과의 *종류*만 계승하고 수치는 결과 SO가 적으며, 계승 여부는 `TowerRecipe.InheritEffects`가 레시피별로 정한다. 후보 버튼 호버 시 툴팁에 `Inherit: Stun + Slow` 형태로 표시된다(판정은 핑크 프리뷰와 **같은 소모 대상**을 쓴다).
+    ⚠ **남은 것은 족보다** — 현재 `InheritEffects`를 켠 레시피가 **0개**라 게임 동작은 그대로다. 그리고 **기존 타워 SO를 결과로 쓰면 안 된다**: 필터는 합성 산물에만 걸리므로, 결과 SO에 효과를 정의하는 순간 그 타워를 평범하게 배치해도 효과가 켜져 조용히 강화된다. 결과 SO는 **합성으로만 나오는 것**이어야 한다.
+  - **레벨/버프 승계**는 여전히 미정(효과 승계와 별개 축).
 - **드래그 범위 선택**: 후속 입력 확장(범위에 먼저 들어온 순서로 등록).
 
 ---
@@ -299,7 +424,8 @@
 
 - **다단 합성**: 합성 결과를 다시 다른 레시피 재료로(레시피가 `TowerAsset` 참조라 자연 지원).
 - **레시피 조건 확장**: 재료 타워의 레벨·버프 상태 승계 여부(`Tower.ApplyBuff`/`RemoveBuff` 계약 연동 시).
-- **연출**: 재료 소멸 → 결과 등장 이펙트.
+- **취소 시 선택 집합 복원**(#263에서 의도적으로 범위 밖): 지금은 재료·타일만 원복하고 그룹은 비워진 채다. 재선택이 번거롭다는 피드백이 나오면 커맨드 복원 대상에 그룹 스냅샷을 더한다 — 커맨드가 이미 재료 목록을 들고 있어 확장 비용은 작다.
+- ~~**연출**(#264 배치 등장 / #265 합성 소모)~~ — **구현됨(§9.2)**. 로직 위에 시각만 얹었으므로 §9 흐름은 바뀌지 않았다. 남은 확장은 룩 자체(아트 방향 확정 후 전면 재검토)와 재료가 많을 때의 밀도 조정 정도다.
 - **그룹 선택 일반화**: `IGroupSelectable` 마커가 도메인 중립이라, 향후 병사 등 다른 전투/경영 오브젝트의 다중 선택에도 코디네이터 패턴을 재사용 가능.
 
 ---

@@ -44,12 +44,37 @@ public class SkillEffectManager : MonoBehaviour
             return;
         }
 
-        effect.OnRewardApplied(reward.Amount);
+        effect.OnRewardApplied();
     }
 
     // 현재 효과 레벨. 효과 미부착/미보유 시 0.
     public int GetLevel(WaveRewardType type)
     {
         return effects.TryGetValue(type, out var effect) ? effect.Level : 0;
+    }
+
+    // 보상 패널(#287)이 카드에 표시할 "현재 → 획득 후" 수치 줄. 효과 미부착 시 빈 문자열.
+    public string GetStatSummary(WaveRewardType type)
+    {
+        return effects.TryGetValue(type, out var effect) ? effect.GetStatSummary() : string.Empty;
+    }
+
+    // 이 타입이 이미 최대 레벨인가(#292). 효과 미부착 시 false —
+    // 배선 누락을 필터가 조용히 삼키지 않도록 후보에 남겨 ApplyReward의 경고가 뜨게 한다.
+    public bool IsMaxLevel(WaveRewardType type)
+    {
+        return effects.TryGetValue(type, out var effect) && effect.IsMaxLevel;
+    }
+
+    // 이 보상을 고르면 도달할 레벨. 효과 미부착 시 0.
+    public int GetNextLevel(WaveRewardType type)
+    {
+        return effects.TryGetValue(type, out var effect) ? effect.NextLevel : 0;
+    }
+
+    // 이 보상을 고르면 상한에 도달하는가. 효과 미부착 시 false.
+    public bool ReachesMaxLevel(WaveRewardType type)
+    {
+        return effects.TryGetValue(type, out var effect) && effect.NextIsMaxLevel;
     }
 }

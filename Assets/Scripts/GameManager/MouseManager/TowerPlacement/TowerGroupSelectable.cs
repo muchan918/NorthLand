@@ -23,6 +23,12 @@ public class TowerGroupSelectable : MonoBehaviour, IGroupSelectable, IHoverable
 
     private void Awake() => _tower = GetComponent<Tower>();
 
+    // 드래그 사각형 선택(#261)의 후보 목록에 스스로 등록/해제한다. 사각형은 레이캐스트로 판정할 수 없어
+    // 후보를 순회해야 하는데, 매 프레임 씬을 긁지 않으려면 대상이 자기 존재를 알려야 한다.
+    // 투영 기준점은 이 컴포넌트의 Transform(= 타워 루트, 콜라이더와 같은 GO)이다.
+    private void OnEnable() => GroupSelectableRegistry.Register(this, transform);
+    private void OnDisable() => GroupSelectableRegistry.Unregister(this);
+
     // ── 그룹 선택(합성 재료) = 초록 아웃라인 ────────────────────────────
     // 코디네이터의 RefreshHighlight가 diff로 대칭 호출하는 단일 경로다(#213 §5.2).
     // 임시 하늘색 바닥 쿼드는 아웃라인으로 대체됐다(TowerMerge.md §8.4 확정).

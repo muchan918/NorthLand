@@ -10,7 +10,7 @@ namespace NorthLand.Combat
     // 좌표를 스냅샷으로 고정하고 대상을 추적하지 않는다: 순간 판정이라 번개가 공중에 얼어붙은 모습이
     // 자연스럽고, 홉 대상이 연출 도중 죽어도 선이 깨지지 않는다(추적하면 파괴된 Transform을 역참조한다).
     //
-    // 프리팹(ChainFields.BeamPrefab)이 있으면 그 외형을 쓰고, 없으면 코드가 최소 LineRenderer를 만든다.
+    // 프리팹(TowerAsset.BeamPrefab)이 있으면 그 외형을 쓰고, 없으면 코드가 최소 LineRenderer를 만든다.
     // 폴백을 두는 이유는 아트 머티리얼을 기다리지 않고 검증할 수 있게 하기 위함이며,
     // firePoint 미할당 시 타워 루트에서 발사하는 하위 호환과 같은 결이다.
     [DisallowMultipleComponent]

@@ -13,6 +13,14 @@ public class CountEffect : SkillEffect
 
     public override WaveRewardType Type => WaveRewardType.ExtraCast;
 
+    // 보상 패널(#287) 표시용. 총 발동 = 1 + 레벨(HandleImpact의 ExtraImpacts 가산과 같은 정의).
+    // 미보유(Lv0)면 1회 — 추가시전 없이 기본 1번 발동한다는 뜻이라 그대로 맞는 값이다.
+    public int GetCurrentCastCount() => GetCastCountAt(Level);
+    public int GetCastCountAt(int level) => 1 + level;
+
+    public override string GetStatSummary()
+        => SkillStatsFormatter.BuildCastCountLine(GetCurrentCastCount(), GetCastCountAt(NextLevel));
+
     protected override void HandleImpact(SkillCastContext context)
     {
         // 최초 시전에서만 반복을 예약한다 — 반복분에서 또 가산하면 무한 반복.

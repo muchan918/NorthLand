@@ -84,7 +84,17 @@ MonoBehaviour:
   enemyLayerMask:
     serializedVersion: 2
     m_Bits: 128
+  selectionRangeColor: {r: 0.3, g: 1, b: 0.4, a: 0.9}
+  selectionRangeFillColor: {r: 0.3, g: 1, b: 0.4, a: 0.15}
   firePoint: {fileID: 1414083816465471360}
+  actions:
+  - rid: 3470829504553025623
+  references:
+    version: 2
+    RefIds:
+    - rid: 3470829504553025623
+      type: {class: AttackAction, ns: NorthLand.Combat, asm: Assembly-CSharp}
+      data: 
 --- !u!114 &7606764782955880520
 MonoBehaviour:
   m_ObjectHideFlags: 0

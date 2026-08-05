@@ -15,7 +15,7 @@ MonoBehaviour:
   Width: 70
   Height: 70
   MapMargin: 7
-  TileSize: 15
+  TileSize: 6
   TileHeight: 0
   MinWaypointCount: 8
   MaxWaypointCount: 12
@@ -26,6 +26,7 @@ MonoBehaviour:
   TurnPenalty: 0.5
   RouteStartPosition: {x: 0, y: 35}
   GrassRadius: 5
+  BaseProtectionRange: 5
   BuffTilePool: {fileID: 11400000, guid: a0a3fc912827b8b44b122fafdc78f75c, type: 2}
   BuffTileRules: {fileID: 11400000, guid: 4e66e06684a153f4b80a97f47b2debfc, type: 2}
   ErosionProbability: 0.3

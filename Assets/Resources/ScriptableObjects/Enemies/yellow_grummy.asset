@@ -14,12 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAsset
   EnemyID: yellow_grummy
   EnemyType: 0
+  MovementMode: 0
   Melee:
     Stat:
       MaxHp: 40
-      MoveSpeed: 25
+      MoveSpeed: 10
       AttackDamage: 10
-      AttackRange: 2
+      AttackRange: 0.8
       AttackInterval: 2
   Ranged:
     Stat:
