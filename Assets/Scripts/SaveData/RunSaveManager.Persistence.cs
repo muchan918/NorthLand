@@ -15,6 +15,8 @@ namespace NorthLand.Core
         private DayNightManager dayNightManager;
         private bool suppressNextDayStartSave;
 
+        private GameManager gameManager;
+
         /// <summary>
         /// 현재 세이브 파일이 존재하는지 반환한다.
         /// </summary>
@@ -59,6 +61,17 @@ namespace NorthLand.Core
             }
 
             dayNightManager.OnDayStart += HandleDayStart;
+
+            gameManager = GameManager.Instance;
+
+            if (gameManager == null)
+            {
+                Debug.LogError("[Save] GameManager가 준비되지 않았습니다.",this);
+
+                return;
+            }
+
+            gameManager.OnResultDecided += HandleResultDecided;
 
             if (pendingRestoreData == null)
                 return;
@@ -220,6 +233,34 @@ namespace NorthLand.Core
         {
             if (dayNightManager != null)
                 dayNightManager.OnDayStart -= HandleDayStart;
+
+            if (gameManager != null)
+                gameManager.OnResultDecided -= HandleResultDecided;
+        }
+
+        /// <summary>
+        /// 패배 또는 승리로 Run이 종료되면 이어하기 세이브를 삭제한다.
+        /// </summary>
+        private void HandleResultDecided(GameResult result)
+        {
+            if (result == GameResult.Playing)
+                return;
+
+            if (fileStore == null)
+            {
+                Debug.LogError("[Save] 세이브 삭제 시스템이 초기화되지 않았습니다.",this);
+
+                return;
+            }
+
+            if (!fileStore.TryDelete(out string error))
+            {
+                Debug.LogError($"[Save] 종료된 Run의 세이브 삭제에 실패했습니다: {error}",this);
+
+                return;
+            }
+
+            Debug.Log($"[Save] Run 종료({result})로 세이브를 삭제했습니다.",this);
         }
 
     }

@@ -204,6 +204,64 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!1 &27708746
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 27708748}
+  - component: {fileID: 27708747}
+  m_Layer: 0
+  m_Name: RunSaveManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &27708747
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 27708746}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d27418d4108fc3a4480e634de86922ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NorthLand.Core.RunSaveManager
+  runBootstrapper: {fileID: 1384901249}
+  management: {fileID: 544968473}
+  territory: {fileID: 340814262}
+  towerPlacer: {fileID: 1645270244}
+  towerAssets:
+  - {fileID: 11400000, guid: 7ecd80d44165e644591aafb428cf5efe, type: 2}
+  - {fileID: 11400000, guid: a752545bbde5030438f8995ae4ee0849, type: 2}
+  - {fileID: 11400000, guid: 56f2e9daf4ee38a4697c62a594e9a7bd, type: 2}
+  - {fileID: 11400000, guid: a644f4da55393c0449049fe2ae101343, type: 2}
+  - {fileID: 11400000, guid: 76dc473896fb1b642ba2c5e5eb22104f, type: 2}
+  - {fileID: 11400000, guid: ff152a9cabaa0ca4cacd2eb9ae3f4805, type: 2}
+  - {fileID: 11400000, guid: fbb3a339d8f737043ade73b0cad2374c, type: 2}
+  - {fileID: 11400000, guid: 12559c63206463b478dc0e4fbd7ea193, type: 2}
+  - {fileID: 11400000, guid: b5c8fdb0241cbcb4aa7bce1b65fdd03e, type: 2}
+--- !u!4 &27708748
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 27708746}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 6.75784, y: 0.2, z: 2.98094}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &33573809
 GameObject:
   m_ObjectHideFlags: 0
@@ -9705,7 +9763,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1548195583}
   m_HandleRect: {fileID: 1548195582}
   m_Direction: 2
-  m_Value: 1.0000001
+  m_Value: 1
   m_Size: 0.6
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -14756,6 +14814,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bab236e5f7f761b448c8a88ef1ba39d8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TowerPlacer
+  combatMapTileSpawner: {fileID: 1175259920}
   towerPrefab: {fileID: 4828097712758218341, guid: 20d807b0a7cea9147bb69ff9c3c95951, type: 3}
   ghostPrefab: {fileID: 4828097712758218341, guid: 1c4fe65468dd4524a90ebe19c3110df8, type: 3}
   keepPlacing: 0
@@ -20033,6 +20092,7 @@ SceneRoots:
   - {fileID: 172629912}
   - {fileID: 528513835}
   - {fileID: 1823682327}
+  - {fileID: 27708748}
   - {fileID: 1384901248}
   - {fileID: 1551337336}
   - {fileID: 1318080317}
