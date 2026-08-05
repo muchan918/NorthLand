@@ -30,8 +30,8 @@ public class BurnBuff : SkillEffect
     public float GetCurrentTickDamage() => GetTickDamageAt(Level);
     public float GetTickDamageAt(int level) => tickDamagePerLevel * level;
 
-    public override string GetStatSummary(int levelDelta)
-        => SkillStatsFormatter.BuildTickDamageLine(GetCurrentTickDamage(), GetTickDamageAt(Level + levelDelta));
+    public override string GetStatSummary()
+        => SkillStatsFormatter.BuildTickDamageLine(GetCurrentTickDamage(), GetTickDamageAt(NextLevel));
 
     // 이 효과는 감전이 아니라 버프 스킬에 붙는다.
     protected override bool TrySubscribe()

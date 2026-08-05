@@ -18,8 +18,8 @@ public class CountEffect : SkillEffect
     public int GetCurrentCastCount() => GetCastCountAt(Level);
     public int GetCastCountAt(int level) => 1 + level;
 
-    public override string GetStatSummary(int levelDelta)
-        => SkillStatsFormatter.BuildCastCountLine(GetCurrentCastCount(), GetCastCountAt(Level + levelDelta));
+    public override string GetStatSummary()
+        => SkillStatsFormatter.BuildCastCountLine(GetCurrentCastCount(), GetCastCountAt(NextLevel));
 
     protected override void HandleImpact(SkillCastContext context)
     {
