@@ -18,6 +18,7 @@ NorthLand: Last Stand (팀 유유아) 프로젝트 문서 모음.
 | [ManagementArea/Resources.md](ManagementArea/Resources.md) | 경영 자원 시스템(지갑·생산처·패널) + 확장 자원 방향(§5.5) |
 | [ManagementArea/TerritoryGraph.md](ManagementArea/TerritoryGraph.md) | 경영 영토 확장(그래프 노드) — **영토=미개척 영지 방향 전환(§0)** |
 | [ManagementArea/BuildingUpgrade.md](ManagementArea/BuildingUpgrade.md) | 생산 건물 업그레이드(주민당 획득량 증가) 설계 (#139) |
+| [ManagementArea/Resident.md](ManagementArea/Resident.md) | 주민 캐릭터(경영 공간 분위기 군중) 명세 + 행위 목록 + BT 구조 — **구현 미착수, 행위 목록은 계속 채워 나가는 표** |
 | [Monster/Boss/BossNodeReference.md](Monster/Boss/BossNodeReference.md) | 보스 BT 커스텀 리프 노드 정의 대장 — 보스 간 재사용, 노드가 늘어날 때마다 행 추가. **구현 미착수** |
 | [Rendering/VisualLookPipeline.md](Rendering/VisualLookPipeline.md) | 전역 비주얼 룩(미니어처) 파이프라인 설계 — 틸트-시프트·그레이딩·라이팅·툰 셰이더 (#148). **렌더러 피처 순서의 단일 진실 원천**(§3.8) |
 | [Tools/StringTable.md](Tools/StringTable.md) | 로컬라이제이션 String Table 사용법·현재 상태 (`ko-KR`/`en-US`/`ja-JP`) |
