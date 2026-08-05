@@ -74,7 +74,8 @@ public sealed class MonsterSpawnWaveProvider :
     }
 
     // 리스트 등록 순서를 그대로 진행 순서로 삼는다.
-    // null 슬롯만 걸러내 뒤 웨이브의 인덱스가 밀리지 않게 한다.
+    // null 슬롯은 웨이브가 아니라 authoring 노이즈로 보고 제외·압축한다 — 웨이브는 빈 밤 없이
+    // 순차적으로 이어져야 하므로, 빈 슬롯 뒤의 웨이브가 한 칸씩 당겨지고 진행 웨이브 수도 그만큼 줄어든다.
     private void BuildWaveOrder()
     {
         orderedWaves.Clear();
