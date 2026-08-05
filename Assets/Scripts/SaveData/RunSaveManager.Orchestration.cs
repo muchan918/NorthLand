@@ -149,6 +149,10 @@ namespace NorthLand.Core
             if (!TryRestoreManagement(data.Management))
                 return false;
 
+            // 저장된 웨이브까지 전투 맵을 공개한 뒤 타워를 복원한다.
+            if (!TryRestoreCombatMapReveal(data.Progress))
+                return false;
+
             // 타워는 전투 맵의 셀과 타일 버프가 준비된 뒤 복원한다.
             if (!TryRestoreTowers(data.Towers))
                 return false;

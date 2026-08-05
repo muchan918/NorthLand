@@ -233,6 +233,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d27418d4108fc3a4480e634de86922ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NorthLand.Core.RunSaveManager
+  combatMapRevealController: {fileID: 1175259919}
+  combatMapTileSpawner: {fileID: 1175259920}
   runBootstrapper: {fileID: 1384901249}
   management: {fileID: 544968473}
   territory: {fileID: 340814262}
