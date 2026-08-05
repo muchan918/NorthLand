@@ -136,6 +136,19 @@
   **정적 싱글톤을 노출하지 않는다** — 스포너 다중 구성을 막지 않기 위해, 소환체는 스폰 시점에
   `EnemyAgent.BindSpawner`로 자기를 만든 스포너에 묶인다(경로 주입과 같은 자리).
   ⚠ `AliveMonsterCount`는 `childCount`라 **보스 자신과 사망 연출 중인 몬스터(`destroyDelay` 2초)를 포함**한다
+- `MonsterSpawnWaveProvider.TryGetWave(int, out IReadOnlyList<MonsterSpawnEntry>)` /
+  `TryGetRewardPool(int, out WaveRewardPool)` / `FinalWaveNumber` / `IsFinalWave(int)` (#294) —
+  **웨이브 번호 = `waves` 리스트에서 몇 번째인가(1-base)**. 진행 순서의 진실 공급원은 인스펙터
+  리스트 순서 하나뿐이며, `MonsterWaveAsset`은 자기 번호를 갖지 않는다(`waveNumber` 필드 제거 —
+  직렬화된 값과 실제 순서가 조용히 어긋나는 WL-126형 함정 제거). 순서 변경은 리스트 드래그,
+  웨이브 추가는 리스트 append로 한다. **리스트의 마지막 항목이 최종 웨이브** —
+  `FinalWaveNumber = 등록 개수`라 웨이브를 추가하면 승리 조건이 자동으로 따라온다.
+  1-base↔0-base 변환은 `TryGetWaveAsset` 한 곳에만 있다(`MonsterSpawnWaveProvider.cs:99`).
+  ⚠ 리스트 중간의 null 슬롯은 경고 후 제외·압축된다(런타임 `orderedWaves`) — 빈 밤을 만들지 않기 위한
+  **의도된 동작**으로, null은 웨이브가 아니라 authoring 노이즈로 본다. 빈 슬롯 뒤의 웨이브가 한 칸씩
+  당겨지고 `FinalWaveNumber`(=유효 웨이브 개수)도 함께 줄어든다 → 빈 슬롯이 있으면 인스펙터 행 번호와
+  웨이브 번호는 어긋난다
+  ⚠ `Awake` 1회 빌드 — 런타임 중 `waves` 변경은 반영되지 않는다
 - `EnemyAgent` (#233, 네임스페이스 없음) — 보스 BT 리프 노드가 참조하는 **유일한** 컴포넌트.
   `Enemy`와 병존하는 무상태 파사드. 노출 멤버 전체 목록은 `Docs/Monster/Boss/BossNodeReference.md`
   「EnemyAgent가 노출하는 것」. 잡몹 프리팹에 이 컴포넌트만 추가하면 같은 노드를 재사용할 수 있고,
@@ -196,7 +209,20 @@
   즉시 발동, 밤+쿨다운 게이팅 통과 못하면 false), `CanCast()`, `IsReady`, `CooldownRemaining01`.
   `BuffResolved` 이벤트(`Action<BuffCastContext>`, #169) — 버프 시전마다 발행(Duration 포함), 버프 계열 특수효과 구독용
 - `SkillEffectManager.Instance` — **null 반환 가능 → 호출부 null 체크 필수**(#169). 보상 라우터:
-  `ApplyReward(WaveRewardData)`(타입 매칭 `SkillEffect` 컴포넌트에 레벨 가산 위임), `GetLevel(WaveRewardType)`(미보유 0)
+  `ApplyReward(WaveRewardData)`(타입 매칭 `SkillEffect` 컴포넌트에 레벨 가산 위임), `GetLevel(WaveRewardType)`(미보유 0),
+  **`GetStatSummary(WaveRewardType)`**(#287, 시그니처 변경 #292) — 보상 카드에 표시할 "현재 → 획득 후" 수치 줄(평문, 여러 줄 가능).
+  효과 미부착 시 **빈 문자열**이며, 그 상태는 `ApplyReward`가 경고만 내고 보상을 무시하는 상태와 같다 —
+  표시부는 빈 문자열을 받으면 레벨 줄까지 비워야 "고르면 오른다"는 거짓 표시가 생기지 않는다(`WaveRewardSelectionUI`).
+  **레벨 상한 조회(#292)**: `IsMaxLevel(WaveRewardType)`(만렙 여부 — 보상 후보 필터가 쓴다, 효과 미부착 시 false라
+  후보에 남아 `ApplyReward` 경고로 배선 사고가 드러난다), `GetNextLevel(WaveRewardType)`(고르면 도달할 레벨, 상한에서 잘림),
+  `ReachesMaxLevel(WaveRewardType)`(이번 선택으로 상한에 닿는가 — 카드의 `Lv 2 → Max` 표기용).
+  ⚠ **증가폭은 보상 SO가 아니라 레벨 규칙이 소유한다(#292)**: `WaveRewardData.amount`가 제거되어 **한 번 선택 = 1레벨** 고정이다.
+  수량형 보상(마나석 등)은 이 트랙에 넣지 않는다는 것이 팀 결정이며(GDD §5.6), 되살리면 증가폭이 SO와 효과 양쪽에 생겨 표시/실효가 갈린다.
+  ⚠ **`SkillEffect` 파생 계약이 강해졌다(#287)**: `public abstract string GetStatSummary()` 때문에
+  **파생 클래스만 만들면 컴파일이 깨진다.** 수치 표시가 없는 효과가 조용히 출시되는 것을 막기 위한 의도된 강제다.
+  라벨·서식은 파생이 각자 조립하지 않고 `SkillStatsFormatter`(단일 출처, `TowerStatsFormatter` 대응)에 추가한다.
+  스킬 스탯 라벨의 스트링 테이블은 `NorthLand_Skills`(`skills.stat.*`)로, 타워 스탯 라벨(`NorthLand_default`의
+  `game.tower.*`)과 **의도적으로 분리**돼 있다 — 스킬 문자열 증가와 `NorthLand_default` 병합 충돌 회피가 이유
 - `Projectile.DamageDealt`(`static event Action<IAttacker, IDamageable>`, `NorthLand.Combat`, #169 muchan 추가) —
   투사체 데미지가 실제로 들어간 직후 발행(단일/스플래시/체인 전 경로). **static이므로 구독 해제는 구독자 책임**
   (파괴된 MonoBehaviour를 남기면 죽은 구독자 호출 버그). 현재 구독자: `BurnBuff`(버프 창 동안만)

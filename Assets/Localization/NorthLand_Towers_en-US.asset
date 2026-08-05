@@ -132,6 +132,49 @@ MonoBehaviour:
       advance.'
     m_Metadata:
       m_Items: []
+  - m_Id: 5373136235831296
+    m_Localized: Flame Archer Tower
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5373136273580032
+    m_Localized: Single Target Damage Over Time
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5373136273580033
+    m_Localized: Attacks the closest enemy in range with fire arrows, burning it
+      for 2 seconds
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5391670919733248
+    m_Localized: Incendiary Cannon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5391670940704768
+    m_Localized: Area Burn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5391670940704769
+    m_Localized: 'Drops a shell at the predicted impact point
+
+      Damages and
+      ignites every enemy in the blast radius'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5393806898405376
+    m_Localized: Flame Field Tower
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5393806898405377
+    m_Localized: Applies Burn to Enemies
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5393806898405378
+    m_Localized: 'Creates a blazing field
+
+      Enemies passing through take burn
+      damage'
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

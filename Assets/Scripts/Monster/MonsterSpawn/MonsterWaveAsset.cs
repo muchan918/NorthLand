@@ -2,17 +2,15 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-// 하나의 웨이브에 사용할 몬스터 구성과 생성 간격
+// 하나의 웨이브에 사용할 몬스터 구성과 생성 간격.
+// 이 에셋은 "몇 번째 웨이브인가"를 스스로 갖지 않는다 — 진행 순서는 전적으로
+// MonsterSpawnWaveProvider.waves 리스트의 등록 순서(1-base)가 결정한다(#294).
 [CreateAssetMenu(
     fileName = "MonsterWave",
     menuName = "Monster/Wave")]
 public sealed class MonsterWaveAsset : ScriptableObject
 {
     [Header("Wave")]
-    [Min(1)]
-    [SerializeField]
-    private int waveNumber = 1;
-
     [Min(0f)]
     [SerializeField]
     private float spawnInterval = 1f;
@@ -25,7 +23,6 @@ public sealed class MonsterWaveAsset : ScriptableObject
     [SerializeField]
     private WaveRewardPool rewardPool;
 
-    public int WaveNumber => waveNumber;
     public float SpawnInterval => spawnInterval;
     public List<MonsterWaveGroup> Groups => groups;
 

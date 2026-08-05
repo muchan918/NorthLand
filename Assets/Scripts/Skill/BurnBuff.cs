@@ -25,6 +25,14 @@ public class BurnBuff : SkillEffect
 
     public override WaveRewardType Type => WaveRewardType.BuffBurn;
 
+    // 보상 패널(#287) 표시용. HandleTowerDamage의 실제 계산과 같은 식이라 표시와 실효가 어긋날 수 없다
+    // (미보유 = Lv0 = 0).
+    public float GetCurrentTickDamage() => GetTickDamageAt(Level);
+    public float GetTickDamageAt(int level) => tickDamagePerLevel * level;
+
+    public override string GetStatSummary()
+        => SkillStatsFormatter.BuildTickDamageLine(GetCurrentTickDamage(), GetTickDamageAt(NextLevel));
+
     // 이 효과는 감전이 아니라 버프 스킬에 붙는다.
     protected override bool TrySubscribe()
     {

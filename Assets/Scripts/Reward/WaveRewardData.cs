@@ -28,13 +28,8 @@ public class WaveRewardData : ScriptableObject
     [SerializeField]
     private WaveRewardType rewardType;
 
-    [Min(1)]
-    [SerializeField]
-    private int amount = 1;
-
     public string DisplayName => displayName;
     public string Description => description;
     public Sprite Icon => icon;
     public WaveRewardType RewardType => rewardType;
-    public int Amount => amount;
 }

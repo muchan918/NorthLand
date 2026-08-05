@@ -46,7 +46,7 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 3470829504553025630
-      type: {class: StunEffect, ns: NorthLand.Combat, asm: Assembly-CSharp}
+      type: {class: StunStatus, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
         Duration: 0.7
     - rid: 3470829504553025637

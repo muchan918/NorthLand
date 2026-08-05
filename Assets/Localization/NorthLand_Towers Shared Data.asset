@@ -123,6 +123,42 @@ MonoBehaviour:
     m_Key: towers.soda.desc
     m_Metadata:
       m_Items: []
+  - m_Id: 5373136235831296
+    m_Key: towers.flame_archer.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5373136273580032
+    m_Key: towers.flame_archer.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5373136273580033
+    m_Key: towers.flame_archer.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5391670919733248
+    m_Key: towers.incendiary_cannon.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5391670940704768
+    m_Key: towers.incendiary_cannon.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5391670940704769
+    m_Key: towers.incendiary_cannon.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5393806898405376
+    m_Key: towers.flame_field.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5393806898405377
+    m_Key: towers.flame_field.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5393806898405378
+    m_Key: towers.flame_field.desc
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

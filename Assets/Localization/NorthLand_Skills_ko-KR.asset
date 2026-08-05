@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: NorthLand_Skills_ko-KR
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: ko-KR
+  m_SharedData: {fileID: 11400000, guid: 71c06a74242ce2c4e8c062d793e6b546, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 404131840
+    m_Localized: Lv
+    m_Metadata:
+      m_Items: []
+  - m_Id: 429297664
+    m_Localized: "\uD2F1 \uB370\uBBF8\uC9C0"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 429297665
+    m_Localized: "\uD3ED\uBC1C \uB370\uBBF8\uC9C0"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 429297666
+    m_Localized: "\uD3ED\uBC1C \uBC94\uC704"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 429297667
+    m_Localized: "\uBC1C\uB3D9 \uD69F\uC218"
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []
