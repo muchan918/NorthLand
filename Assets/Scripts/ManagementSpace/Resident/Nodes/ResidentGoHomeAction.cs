@@ -27,6 +27,13 @@ public partial class ResidentGoHomeAction : Action
     // 씬에 문이 하나도 없을 때의 경고를 1회로 제한한다. 주민 30명이 매 밤 경고를 뱉으면 콘솔이 묻힌다.
     private static bool s_warnedNoDoor;
 
+    /// 플레이 세션 시작마다 되돌린다. 도메인 리로드가 꺼져 있으면 **1회차에 소진된 래치가 그대로 남아**,
+    /// 이후 세션에서 문을 지워도 경고가 한 줄도 안 나온다 — 증상은 "주민이 안 들어간다"뿐이라
+    /// 이 시스템이 §11.7에 모아 둔 「조용히 실패」에 그대로 해당한다.
+    /// 레지스트리 3종이 같은 이유로 같은 처리를 한다.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics() => s_warnedNoDoor = false;
+
     [SerializeReference] public BlackboardVariable<ResidentAgent> Agent;
 
     [SerializeReference] public BlackboardVariable<string> RunState;

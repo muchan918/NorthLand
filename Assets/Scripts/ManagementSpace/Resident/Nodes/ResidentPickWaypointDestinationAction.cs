@@ -33,6 +33,12 @@ public partial class ResidentPickWaypointDestinationAction : Action
     // 주민 30명이 매 주기 경고를 뱉으면 콘솔이 묻혀 정작 원인을 못 찾는다.
     private static bool s_warnedNoWaypoint;
 
+    /// 플레이 세션 시작마다 되돌린다. 도메인 리로드가 꺼져 있으면 **1회차에 소진된 래치가 그대로 남아**,
+    /// 이후 세션에서 웨이포인트를 지워도 경고가 한 줄도 안 나온다 — 증상은 "주민이 안 움직인다"뿐이다.
+    /// 레지스트리 3종이 같은 이유로 같은 처리를 한다.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics() => s_warnedNoWaypoint = false;
+
     [SerializeReference] public BlackboardVariable<ResidentAgent> Agent;
 
     // 뽑은 지점의 출력. ResidentMoveToAction이 같은 변수를 입력으로 받는다.
