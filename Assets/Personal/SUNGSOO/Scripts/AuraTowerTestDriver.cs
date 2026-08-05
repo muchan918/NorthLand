@@ -42,7 +42,7 @@ namespace NorthLand.Sungsoo
             // Duration/Damage가 수기 필드로 박혀 있었다.
             asset.Effects = new List<HitEffect>
             {
-                new PoisonEffect { DamagePerTick = 5f, TickInterval = 0.3f, Duration = 2f },
+                new PoisonStatus { DamagePerTick = 5f, TickInterval = 0.3f, Duration = 2f },
             };
 
             // 타워: 필드 세팅 후 활성화(OnEnable이 직렬화된 data로 액션을 초기화한다)

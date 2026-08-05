@@ -17,6 +17,11 @@ public class WaveRewardSelectionUI : MonoBehaviour
     [SerializeField]
     private Button[] rewardButtons;
 
+    // 카드 루트(Reward1~3). 후보가 3개 미만일 때(만렙 제외 등, #292) 남는 슬롯을 통째로 감춘다 —
+    // 버튼만 끄면 이름·설명·아이콘·수치가 이전 웨이브 값 그대로 남아 유령 카드가 보인다.
+    [SerializeField]
+    private GameObject[] rewardCards;
+
     [SerializeField]
     private LocalizeStringEvent[] nameLocalizers;
 
@@ -153,6 +158,11 @@ public class WaveRewardSelectionUI : MonoBehaviour
         {
             bool hasCandidate = i < candidates.Count && candidates[i] != null;
 
+            if (rewardCards != null && i < rewardCards.Length && rewardCards[i] != null)
+            {
+                rewardCards[i].SetActive(hasCandidate);
+            }
+
             rewardButtons[i].gameObject.SetActive(hasCandidate);
 
             if (!hasCandidate)
@@ -185,15 +195,19 @@ public class WaveRewardSelectionUI : MonoBehaviour
             if (i < levelStatTexts.Length && levelStatTexts[i] != null)
             {
                 // 실제 보유 레벨을 그대로 보여준다 — 미보유는 Lv 0, 한 번 고르면 Lv 1.
-                // 클램프를 걸면 Lv0과 Lv1의 표시가 겹쳐서 첫 획득이 화면상 아무 변화가 없어 보인다.
-                // 증가폭은 보상이 소유하므로(reward.Amount) UI가 +1로 가정하지 않는다.
+                // 하한 클램프를 걸면 Lv0과 Lv1의 표시가 겹쳐서 첫 획득이 화면상 아무 변화가 없어 보인다.
+                // 다음 레벨은 UI가 +1로 계산하지 않고 효과에게 묻는다 — 상한(#292)이 여기 반영돼야 한다.
                 int level = 0;
+                int nextLevel = 0;
+                bool nextIsMax = false;
                 string stats = null;
 
                 if (SkillEffectManager.Instance != null)
                 {
                     level = SkillEffectManager.Instance.GetLevel(reward.RewardType);
-                    stats = SkillEffectManager.Instance.GetStatSummary(reward.RewardType, reward.Amount);
+                    nextLevel = SkillEffectManager.Instance.GetNextLevel(reward.RewardType);
+                    nextIsMax = SkillEffectManager.Instance.ReachesMaxLevel(reward.RewardType);
+                    stats = SkillEffectManager.Instance.GetStatSummary(reward.RewardType);
                 }
 
                 // 수치가 비었다 = 이 타입의 효과 컴포넌트가 없다 = 선택해도 SkillEffectManager가
@@ -201,7 +215,7 @@ public class WaveRewardSelectionUI : MonoBehaviour
                 // 통째로 비워 씬 배선 사고가 화면에 드러나게 한다.
                 levelStatTexts[i].text = string.IsNullOrEmpty(stats)
                     ? string.Empty
-                    : $"{SkillStatsFormatter.BuildLevelLine(level, level + reward.Amount)}\n{stats}";
+                    : $"{SkillStatsFormatter.BuildLevelLine(level, nextLevel, nextIsMax)}\n{stats}";
             }
 
             rewardButtons[i].onClick.AddListener(() => SelectReward(reward)

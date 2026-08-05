@@ -6253,7 +6253,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SkillButtonView
   _button: {fileID: 679170508}
   _skillGhostPrefab: {fileID: 1627122659657980782, guid: 8b590d985dec8554b96c873e2491f147, type: 3}
-  _castHeight: 20
+  _castHeight: 2
 --- !u!114 &679170508
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6512,7 +6512,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 54.75
+  m_fontSize: 60.35
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -8589,11 +8589,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 33617990186157567, guid: fc7fa4ab884a59b41aad973d8f70e979, type: 3}
       propertyPath: m_fontAsset
-      value: 
+      value:
       objectReference: {fileID: 11400000, guid: abd3dbb38214e2542946d1e6ecbad192, type: 2}
     - target: {fileID: 33617990186157567, guid: fc7fa4ab884a59b41aad973d8f70e979, type: 3}
       propertyPath: m_sharedMaterial
-      value: 
+      value:
       objectReference: {fileID: 3648609920881002622, guid: abd3dbb38214e2542946d1e6ecbad192, type: 2}
     - target: {fileID: 33617990186157567, guid: fc7fa4ab884a59b41aad973d8f70e979, type: 3}
       propertyPath: m_hasFontAssetChanged
@@ -9765,8 +9765,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1548195583}
   m_HandleRect: {fileID: 1548195582}
   m_Direction: 2
-  m_Value: 1
-  m_Size: 0.6
+  m_Value: 0.9999998
+  m_Size: 0.59999996
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -14766,6 +14766,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b5c8fdb0241cbcb4aa7bce1b65fdd03e, type: 2}
   - {fileID: 11400000, guid: a644f4da55393c0449049fe2ae101343, type: 2}
   - {fileID: 11400000, guid: 12559c63206463b478dc0e4fbd7ea193, type: 2}
+  - {fileID: 11400000, guid: 7514f594c88a6604ea7b199df58585cd, type: 2}
+  - {fileID: 11400000, guid: d451c0408b7905a4fa9142e763eac2f5, type: 2}
+  - {fileID: 11400000, guid: cfaa47a527e3e4844a94440f9d357f0f, type: 2}
 --- !u!114 &1645270242
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14972,6 +14975,10 @@ MonoBehaviour:
   - {fileID: 1276908196}
   - {fileID: 1284791785}
   - {fileID: 779890673}
+  rewardCards:
+  - {fileID: 1108664596}
+  - {fileID: 1848733563}
+  - {fileID: 1746131169}
   nameLocalizers:
   - {fileID: 1472403745}
   - {fileID: 111996086}
@@ -18176,6 +18183,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8c1b78e1aa720614ca7e67c570d14d00, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BurnEffect
+  maxLevel: 3
   tickDamagePerLevel: 2
   tickInterval: 0.5
   duration: 3
@@ -18192,6 +18200,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a5ddd60424c13594bac94a0b29800ee8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BombEffect
+  maxLevel: 3
   bombPrefab: {fileID: 8925636819348908530, guid: b4c2d3008892ecf4ba6ba30b57d958a1, type: 3}
   damagePerLevel: 20
   explosionDelay: 2
@@ -18212,6 +18221,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dd23ebe2cccf4664ba479f0097390e0a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CountEffect
+  maxLevel: 3
   repeatInterval: 0.5
   debugLog: 0
 --- !u!114 &1995850075
@@ -18226,6 +18236,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eacf04ed19c59734dac9e0d0a543fcfd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BurnBuff
+  maxLevel: 3
   tickDamagePerLevel: 1
   tickInterval: 0.5
   duration: 3
@@ -19819,6 +19830,18 @@ PrefabInstance:
       propertyPath: _coordinator
       value: 
       objectReference: {fileID: 230092176}
+    - target: {fileID: 5262100445004343832, guid: d539c413d032ea441bd8184c2a4dddc3, type: 3}
+      propertyPath: _recipes.Array.size
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 5262100445004343832, guid: d539c413d032ea441bd8184c2a4dddc3, type: 3}
+      propertyPath: '_recipes.Array.data[2]'
+      value:
+      objectReference: {fileID: 11400000, guid: 9e8eacedb40159e4f80d1f17e302eb58, type: 2}
+    - target: {fileID: 5262100445004343832, guid: d539c413d032ea441bd8184c2a4dddc3, type: 3}
+      propertyPath: '_recipes.Array.data[3]'
+      value:
+      objectReference: {fileID: 11400000, guid: 8166054680972df4db8dd6b8363da200, type: 2}
     - target: {fileID: 6414358444844159426, guid: d539c413d032ea441bd8184c2a4dddc3, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0

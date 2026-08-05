@@ -13,7 +13,10 @@ public static class SkillStatsFormatter
     const string k_TickDamageKey = "skills.stat.tick_damage";
     const string k_BombDamageKey = "skills.stat.bomb_damage";
     const string k_RadiusKey     = "skills.stat.bomb_radius";
-    const string k_CastCountKey  = "skills.stat.cast_count";
+    const string k_CastCountKey = "skills.stat.cast_count";
+    
+    // 상한 도달 표기. 언어와 무관하게 통용되는 토큰이라 로컬라이제이션 테이블에 넣지 않는다(#292).
+    const string k_MaxText = "Max";
 
     static string Label(string key) => LocalizationHelper.Get(LocalizationHelper.k_SkillsTable, key);
 
@@ -21,9 +24,9 @@ public static class SkillStatsFormatter
     // 화살표는 BuildingInfoUI의 업그레이드 표기(주민당 5 → 7)와 같은 문자를 쓴다.
     const string k_Arrow = " → ";
 
-    /// 보상 카드의 레벨 줄. 미보유는 "Lv 0 → Lv 1".
-    public static string BuildLevelLine(int current, int next)
-        => $"{Label(k_LevelKey)} {current}{k_Arrow}{Label(k_LevelKey)} {next}";
+    /// 보상 카드의 레벨 줄. 미보유는 "Lv 0 → Lv 1", 이번 선택으로 상한에 닿으면 "Lv 2 → Max"(#292).
+    public static string BuildLevelLine(int current, int next, bool nextIsMax)
+        => $"{Label(k_LevelKey)} {current}{k_Arrow}{(nextIsMax ? k_MaxText : $"{Label(k_LevelKey)} {next}")}";
 
     /// 화상·버프 화상 공용 틱 데미지 한 줄.
     public static string BuildTickDamageLine(float current, float next)

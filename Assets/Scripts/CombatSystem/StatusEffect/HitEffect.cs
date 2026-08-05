@@ -1,8 +1,20 @@
 using System;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
 namespace NorthLand.Combat
 {
+    // ── 이름 규칙 ──────────────────────────────────────────────────────────
+    // 이 파일의 파생 클래스는 **`*Status`**로 끝난다. 스킬 계열(`Skill/`의 `SkillEffect : MonoBehaviour`
+    // 파생)이 `*Effect`를 쓰고 있어서, 예전에는 `NorthLand.Combat.BurnEffect`와 전역 `BurnEffect`가
+    // 이름으로 충돌했다 — `using NorthLand.Combat`을 걸어도 전역(스킬) 쪽이 이겨서, 타워 화상을
+    // 코드로 저작하려 하면 "'BurnEffect'에 'DamagePerTick' 정의가 없다"는 컴파일 에러가 났다.
+    //
+    //   *Effect  = 스킬 계열 (MonoBehaviour, 플레이어 스킬·웨이브 보상)
+    //   *Status  = 타워가 대상에게 거는 상태이상 (HitEffect 파생, TowerAsset.Effects에 담긴다)
+    //
+    // ⚠ 이 클래스들은 `[SerializeReference]`로 **타입 이름 문자열**이 에셋에 박힌다. 다시 rename하려면
+    //   `[MovedFrom]`을 반드시 함께 갱신할 것 — 빠뜨리면 기존 SO의 Effects 항목이 조용히 null이 된다.
     // 이 효과가 무엇인지. 합성 계승(#274 Phase 5)이 "종류"를 물려주는 단위이기도 하다.
     public enum EffectKind
     {
@@ -38,7 +50,7 @@ namespace NorthLand.Combat
         ///
         /// ⚠ 예전에는 `baseId ^ (int)kind`였는데 `EffectKind`가 0~3이라 **하위 2비트만 흔들었다.**
         /// 두 타워의 `GetInstanceID()`가 bit0만 달라도 `A^Poison == B^Burn`이 되어,
-        /// `StatusEffectHandler`의 `Dictionary<int, DotEffect>` 슬롯 하나를 두 타워가 공유해
+        /// `StatusEffectHandler`의 `Dictionary<int, DotState>` 슬롯 하나를 두 타워가 공유해
         /// **중첩 대신 갱신만** 됐다 — 한쪽 DoT가 조용히 사라지는 경로다(PR #278 리뷰).
         /// 예전 "감속 타워 2기 → 1중첩" 사고와 같은 실패 유형이라 해시 결합으로 바꿨다.
         public static int SourceKey(int baseId, EffectKind kind) => HashCode.Combine(baseId, (int)kind);
@@ -95,22 +107,25 @@ namespace NorthLand.Combat
     }
 
     [Serializable]
-    public sealed class BurnEffect : DamageOverTimeEffect
+    [MovedFrom(true, sourceClassName: "BurnEffect")]
+    public sealed class BurnStatus : DamageOverTimeEffect
     {
         public override EffectKind Kind => EffectKind.Burn;
     }
 
     [Serializable]
-    public sealed class PoisonEffect : DamageOverTimeEffect
+    [MovedFrom(true, sourceClassName: "PoisonEffect")]
+    public sealed class PoisonStatus : DamageOverTimeEffect
     {
         public override EffectKind Kind => EffectKind.Poison;
     }
 
     // ── 감속 ───────────────────────────────────────────────────────────────
     [Serializable]
-    public sealed class SlowEffect : HitEffect
+    [MovedFrom(true, sourceClassName: "SlowEffect")]
+    public sealed class SlowStatus : HitEffect
     {
-        [Tooltip("이동속도 배율. 0.6 = 40% 감속. 0이면 스턴이 되므로 StunEffect를 쓸 것.")]
+        [Tooltip("이동속도 배율. 0.6 = 40% 감속. 0이면 스턴이 되므로 StunStatus를 쓸 것.")]
         [Range(0.01f, 1f)] public float Multiplier = 0.6f;
         public float Duration = 2f;
 
@@ -127,7 +142,8 @@ namespace NorthLand.Combat
 
     // ── 스턴 ───────────────────────────────────────────────────────────────
     [Serializable]
-    public sealed class StunEffect : HitEffect
+    [MovedFrom(true, sourceClassName: "StunEffect")]
+    public sealed class StunStatus : HitEffect
     {
         public float Duration = 0.7f;
 
