@@ -29,7 +29,7 @@ Material:
     - _HeightFade: 1
     - _LocalHeight: 2
     - _LocalRadius: 0.5
-    - _RingPosition: 0.978
+    - _RingPosition: 0.936
     - _RingWidth: 0.06
     m_Colors:
     - _Color: {r: 0.4, g: 0.9, b: 1, a: 0.85}
