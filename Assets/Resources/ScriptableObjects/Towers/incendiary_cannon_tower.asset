@@ -15,11 +15,7 @@ MonoBehaviour:
   TowerID: incendiary_cannon_tower
   TowerPrefab: {fileID: 3104185744962560807, guid: 34cedffb59030164ca577c754e27aec0, type: 3}
   GhostPrefab: {fileID: 3104185744962560807, guid: 7d78ffcc46993dd46a03b462daf40438, type: 3}
-  Cost:
-  - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-    Amount: 25
-  - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
-    Amount: 15
+  Cost: []
   Attack:
     AttackDamage: 16
     AttackRange: 14
@@ -44,6 +40,11 @@ MonoBehaviour:
   DebuffAura:
     Radius: 0
     Interval: 0
+  Beam:
+    Range: 0
+    MaxTargets: 1
+    TickInterval: 1
+    DamagePerTick: 0
   Effects:
   - rid: 1498367259597078619
   references:
