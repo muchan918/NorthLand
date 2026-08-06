@@ -319,7 +319,7 @@ public partial class ResidentConverseAction : Action
     // 인사하는 그림이 나온다.
     //
     // 거리를 좁히는 것과 벌리는 것을 같은 계산이 처리한다. 조우 반경 안 어디서든 성립하므로 거리가
-    // 제각각이고, 붙어 있던 쌍은 **머리가 부딪히는 0.6까지** 갈 수 있다(NavMeshAgent radius 0.3 × 2).
+    // 제각각이고, 붙어 있던 쌍은 **머리가 부딪히는 1.2까지** 갈 수 있다(NavMeshAgent radius 0.6 × 2).
     // 둘 다 정지한 Agent는 서로를 밀어내지 않으므로 회피에 기대서도 풀리지 않는다.
     private Status UpdateApproaching()
     {
@@ -359,9 +359,9 @@ public partial class ResidentConverseAction : Action
         agent.PauseMovement();
         agent.SetMoving(false);
 
-        // **MarkApproached보다 먼저 못을 박는다.** 그 안에서 회피물이 세워지므로, 여기서 걸지 않으면
-        // 다음 틱의 단계 전환 감지까지 한 틱 동안 회피가 살아 있어 회피물에 한 번 밀린다
-        // (간격이 StandDistance 4 대신 5.68로 벌어지는 것을 실측했다).
+        // **MarkApproached보다 먼저 못을 박는다.** 한 틱이라도 회피가 살아 있으면 그 틱의 회피 해가
+        // 자리를 벌린다 — 간격이 StandDistance 4 대신 5.68로 벌어지는 것을 실측했다(당시 원인은
+        // 세션이 세우던 회피물이었지만, 지나가는 주민과의 회피만으로도 같은 어긋남이 난다).
         agent.SetStationaryHold(true);
 
         session.MarkApproached(self);
