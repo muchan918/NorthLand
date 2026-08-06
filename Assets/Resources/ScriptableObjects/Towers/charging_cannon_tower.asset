@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: charging_cannon_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
   TowerID: charging_cannon_tower
-  TowerPrefab: {fileID: 3104185744962560807, guid: 12ab43e7a311a3a4caaf2ec7e0d64a31, type: 3}
-  GhostPrefab: {fileID: 3104185744962560807, guid: 9f29ea011e6c6fa468a7e9ff77a8366a, type: 3}
+  TowerPrefab: {fileID: 6801833135963741600, guid: 64509423a9185b94db615ec4d689b371, type: 3}
+  GhostPrefab: {fileID: 6801833135963741600, guid: 8a023a413077da44e8856c25d26c0389, type: 3}
   Cost: []
   Attack:
     AttackDamage: 0
