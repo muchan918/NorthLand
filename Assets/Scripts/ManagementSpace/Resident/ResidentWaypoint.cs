@@ -19,8 +19,7 @@ public class ResidentWaypoint : MonoBehaviour
     private const int SampleAttempts = 12;
 
     [Tooltip("이 지점 주변 몇 유닛 안에서 목적지를 뽑을지. 기즈모로 씬에 표시된다.")]
-    [Min(0f)]
-    [SerializeField] private float radius = 8f;
+    [SerializeField, Range(1f, 20f)] private float radius = 8f;
 
     [Tooltip("끄면 목적지 후보에서 제외된다. 오브젝트를 지우지 않고 잠시 빼 볼 때 쓴다.")]
     [SerializeField] private bool active = true;
