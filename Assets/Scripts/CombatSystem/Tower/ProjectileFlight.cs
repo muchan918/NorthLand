@@ -232,8 +232,8 @@ namespace NorthLand.Combat
     /// 발사 순간의 `transform.forward`를 방향으로 고정하고 그 직선을 따라 `self.Range`(=`AttackAction.Range`,
     /// 사거리 버프가 반영된 원장 합성값)까지 나갔다가 발사 지점(`state.Start`)으로 돌아온다 —
     /// 이 왕복을 `Laps`번 반복하고 마지막 복귀가 끝나면 소멸한다. 편도 거리를 SO에 고정 수치로 따로
-    /// 두지 않는 이유는 `StraightFlight.MaxDistance`와 같다 — 그러면 사거리 버프를 받아도 탐색 반경만
-    /// 늘고 실제로 나가는 거리는 그대로인 어긋남이 생긴다.
+    /// 두지 않고 `self.Range`를 쓰는 이유는 `StraightFlight`와 같다 — 고정값을 두면 사거리 버프를
+    /// 받아도 탐색 반경만 늘고 실제로 나가는 거리는 그대로인 어긋남이 생긴다.
     ///
     /// `StraightFlight`와 같은 이유로 특정 대상을 쫓지 않아 접촉 판정을 자체적으로 하며,
     /// 마스크는 `self.EnemyMask`(`Projectile.impact.EnemyMask`)를 그대로 읽는다.

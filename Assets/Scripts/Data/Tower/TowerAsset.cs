@@ -156,7 +156,7 @@ public class TowerAsset : ScriptableObject
             Debug.LogWarning($"[TowerAsset] {name}: Impact=Chain인데 MaxChainTargets가 {MaxChainTargets}입니다 — 튕기지 않습니다.", this);
 
         // ── 산탄(PelletCount>1) 저작 규칙(#298) ─────────────────────────────
-        // 둘 다 "예외 없이 조용히 의미가 사라지는" 조합이라 여기서 잡는다.
+        // 셋 다 "예외 없이 조용히 의미가 사라지는" 조합이라 여기서 잡는다.
         if (hasAttack && attackAuthored && Attack.PelletCount > 1)
         {
             if (Attack.Flight != null && !(Attack.Flight is NorthLand.Combat.StraightFlight))
@@ -166,6 +166,13 @@ public class TowerAsset : ScriptableObject
             if (Impact != NorthLand.Combat.ImpactKind.Area)
                 Debug.LogWarning($"[TowerAsset] {name}: PelletCount>1인데 Impact=Area가 아닙니다 — " +
                                  "Single은 위치와 무관하게 명중 처리돼 빗나간 펠릿도 피해를 줍니다.", this);
+
+            // AttackAction.TryAttack의 각도 분할이 Mathf.Lerp(-half, +half, ...)이므로 SpreadAngle이 0이면
+            // 모든 펠릿의 각도가 0으로 접힌다 — 위 둘과 같은 "예외 없이 조용히 의미가 사라지는" 조합이다.
+            if (Attack.SpreadAngle <= 0f)
+                Debug.LogWarning($"[TowerAsset] {name}: PelletCount({Attack.PelletCount})>1인데 " +
+                                 $"SpreadAngle이 {Attack.SpreadAngle}입니다 — 펠릿이 전부 같은 방향으로 겹쳐 날아가 " +
+                                 $"부채꼴이 사라지고, 한 대상에 피해가 {Attack.PelletCount}배로 집중됩니다.", this);
         }
 
         // 부메랑도 산탄과 같은 이유로 Area가 필요하다(#298) — Single은 위치 무관 판정이라
@@ -176,9 +183,10 @@ public class TowerAsset : ScriptableObject
                 Debug.LogWarning($"[TowerAsset] {name}: Flight=BoomerangFlight인데 Impact=Area가 아닙니다 — " +
                                  "Single/Chain은 위치 기반 재타격을 지원하지 않습니다.", this);
 
-            // BoomerangFlight가 "이번 구간에서 새로 접촉한 적"으로 표시해도, 실제 데미지는
-            // Projectile.ApplyArea가 SplashRadius로 별도 조회해 적용한다 — SplashRadius가
-            // HitRadius보다 좁으면 표시만 되고 데미지가 안 들어가는 적이 생긴다.
+            // BoomerangFlight는 HitRadius로 "닿았다"만 알리고, 실제로 누구를 때릴지는
+            // Projectile.ApplyArea가 SplashRadius로 조회해 정한다 — SplashRadius가 HitRadius보다
+            // 좁으면 접촉을 알린 프레임에 아무도 안 맞을 수 있고, 그 적이 원장에 오르지 않으므로
+            // 접촉이 유지되는 내내 매 프레임 헛된 Impact가 반복된다.
             if (Impact == NorthLand.Combat.ImpactKind.Area && SplashRadius < boomerang.HitRadius)
                 Debug.LogWarning($"[TowerAsset] {name}: SplashRadius({SplashRadius})가 BoomerangFlight의 " +
                                  $"HitRadius({boomerang.HitRadius})보다 좁습니다 — 접촉 판정된 적 일부가 " +

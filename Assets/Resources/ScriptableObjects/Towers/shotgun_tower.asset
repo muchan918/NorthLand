@@ -40,6 +40,11 @@ MonoBehaviour:
   DebuffAura:
     Radius: 0
     Interval: 0
+  Beam:
+    Range: 0
+    MaxTargets: 1
+    TickInterval: 1
+    DamagePerTick: 0
   Effects: []
   references:
     version: 2
@@ -48,5 +53,4 @@ MonoBehaviour:
       type: {class: StraightFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
         Speed: 600
-        MaxDistance: 17
         HitRadius: 0.4
