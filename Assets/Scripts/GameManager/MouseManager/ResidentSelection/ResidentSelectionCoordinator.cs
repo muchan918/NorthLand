@@ -198,6 +198,18 @@ public class ResidentSelectionCoordinator : MonoBehaviour
         _boxDragging = false;
         _dragBase.Clear();
         _dragResult.Clear();
+
+        // **단일 클릭 초록은 `Clear()`로 안 꺼진다** — 그 초록의 소유자는 이 코디네이터가 아니라
+        // `MouseManager.OnSelectionChanged`를 구독하는 `OutlineInteractionDriver`다. 위 주석의 유령 초록
+        // 시나리오가 드래그 경로에서만 닫히고 단일 클릭 경로로 그대로 재발한다(WL-158과 같은 뿌리 —
+        // 전역 `MouseManager._selected`와 도메인 집합이 선택 상태를 나눠 갖는다).
+        //
+        // ⚠ **주민이었을 때만 푼다.** 무조건 `ClearSelection()`을 부르면 낮에 고른 타워 선택까지 풀린다 —
+        // 타워는 밤에도 선택이 유지되는 것이 설계고(사거리 원·정보 패널과 피드백 일치,
+        // `OutlineInteractionDriver` 상단 주석 (3)), 그래서 `TowerMergeCoordinator.HandleDayToNight`도
+        // 그룹만 리셋하고 단일 선택은 남긴다. `HandleManagementChanged`와 같은 판정·같은 이유다.
+        // ⚠ 판정이 `_lastSingle = null`보다 **먼저** 와야 한다 — 순서를 바꾸면 조용히 무효가 된다.
+        if (_lastSingle != null) MouseManager.Instance?.ClearSelection();
         _lastSingle = null;
 
         Clear();

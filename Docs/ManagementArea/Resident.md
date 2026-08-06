@@ -1311,7 +1311,10 @@ OK path=Assets/Behavior/ResidentBehavior.asset nodes=15 linkedAgents=9
 
 **`OnSelectionChanged`가 아니라 `OnPrimarySelect`를 구독한다.** 전자는 중복 제거되어 같은 대상을 다시 클릭하면 발행되지 않는다 — 빈 곳 클릭으로 해제하는 경로가 조용히 죽는다.
 
-**밤에는 전부 비운다.** `DayNightManager.OnDayToNight`에서 진행 중인 드래그 상태까지 함께 리셋한다(주민이 존재하지 않는 페이즈다, §3.3). ⚠ 밤 일괄 수거로 참가자가 전원 사라지면 대화 세션은 `Resident.OnDisable`이 참조를 끊어 GC되지만 **해산 쿨다운이 남지 않는다** — 아침에 같은 짝이 즉시 다시 성립할 수 있다(WL-159).
+**밤에는 전부 비운다.** `DayNightManager.OnDayToNight`에서 진행 중인 드래그 상태까지 함께 리셋한다(주민이 존재하지 않는 페이즈다, §3.3).
+
+> ⚠ **집합을 비우는 것만으로는 부족하다 — 단일 클릭 초록은 따로 풀어야 한다.** `Clear()`는 코디네이터가 소유한 그룹 초록만 끈다. 단일 클릭 초록의 소유자는 `OutlineInteractionDriver`이므로 그대로 남고, 밤에 스포너가 주민을 비활성하면 `OutlineHighlight`가 **플래그를 유지한 채**(`OnDisable`은 레지스트리만 비운다) 아침 `OnEnable → Apply()`에서 초록을 복원한다 — 아무도 선택하지 않은 주민이 초록을 달고 등장하고, 드라이버도 그 대상을 계속 들고 있어(`ReferenceEquals`) **다음 클릭까지 안 꺼진다.** 그래서 `MouseManager.ClearSelection()`을 함께 부른다.
+> ⚠ **단, 마지막 단일 선택이 주민이었을 때만 부른다.** 무조건 부르면 낮에 고른 **타워 선택까지 풀린다** — 타워는 밤에도 선택이 유지되는 것이 설계고(사거리 원·정보 패널과 피드백 일치) `TowerMergeCoordinator`의 밤 정리도 그룹만 리셋한다. 판정은 `_lastSingle`을 비우기 **전에** 와야 한다(WL-145·WL-158). ⚠ 밤 일괄 수거로 참가자가 전원 사라지면 대화 세션은 `Resident.OnDisable`이 참조를 끊어 GC되지만 **해산 쿨다운이 남지 않는다** — 아침에 같은 짝이 즉시 다시 성립할 수 있다(WL-159).
 
 > 코디네이터는 씬 배선 없이 `RuntimeInitializeOnLoadMethod(AfterSceneLoad)`로 자가 부팅한다(`OutlineInteractionDriver`·`TowerGroupSelectable`과 같은 계보 — 정본 씬 병합 규칙 회피). `ManagementController`를 못 찾으면 **120프레임 간격으로** 재시도한다(매 프레임 씬 탐색 금지).
 
