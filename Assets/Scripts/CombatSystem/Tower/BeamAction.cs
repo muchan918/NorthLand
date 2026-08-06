@@ -177,7 +177,15 @@ namespace NorthLand.Combat
             EnsureBeamPool();
             while (beams.Count < lockedTargets.Count) beams.Add(CreateBeam());
 
-            Vector3 origin = Origin.position;
+            // 빔이 **나가는 곳**은 포신(firePoint)이다 — AttackAction이 투사체를 그 지점에서
+            // 생성하는 것과 같은 규칙이며, 미할당 프리팹은 타워 루트로 폴백하는 것도 동일하다.
+            // ⚠ `MaintainLocks`의 사거리 판정 원점은 **일부러 루트(`Origin`)로 남겨 둔다** — 포신
+            // 높이에서 구형 판정을 하면 지상 적 기준 수평 도달거리가 그 높이만큼 줄고, 바닥에
+            // 그리는 사거리 원(`DrawGizmos`/`DisplayRange`)과 실제 도달 범위가 어긋난다.
+            // 즉 여기는 연출, 저기는 규칙이라 원점이 갈리는 것이 의도다.
+            Transform firePoint = Owner.FirePoint;
+            Vector3 origin = firePoint != null ? firePoint.position : Origin.position;
+
             for (int i = 0; i < beams.Count; i++)
             {
                 IDamageable victim = i < lockedTargets.Count ? lockedTargets[i] : null;
