@@ -15,9 +15,7 @@ MonoBehaviour:
   TowerID: flame_archer_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: ad18bc0797391de4db72c77838c11c00, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: 5f7b3ba163abd21499207565fa06a6a3, type: 3}
-  Cost:
-  - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-    Amount: 30
+  Cost: []
   Attack:
     AttackDamage: 10
     AttackRange: 18
@@ -42,6 +40,11 @@ MonoBehaviour:
   DebuffAura:
     Radius: 0
     Interval: 0
+  Beam:
+    Range: 0
+    MaxTargets: 1
+    TickInterval: 1
+    DamagePerTick: 0
   Effects:
   - rid: 1498367259597078616
   references:
