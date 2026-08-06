@@ -2,7 +2,8 @@
 
 > **이 문서는 "어떻게 하는가"다.** "왜 이런 구조인가 / 무엇이 어떻게 동작하는가"는
 > [Tower.md](Tower.md)가 정본이고, 여기서는 손을 움직이는 순서만 다룬다.
-> **기준 코드: #274 Phase 5 + Phase 4.5(투사체 비행 부품화) 이후** — 타워 구조가 바뀌면 이 문서부터 의심할 것.
+> **기준 코드: #300(성장형 램프업) 이후** — #274 Phase 5 + Phase 4.5(투사체 비행 부품화) ·
+> #298(산탄·부메랑·빔) · #300(성장 액션·대상별 램프)까지 반영. 타워 구조가 바뀌면 이 문서부터 의심할 것.
 > **대상**: §0~§5·§7은 기획·아트용(코드 지식 불필요), §6만 프로그래머용.
 > 관련: [Tower.md](Tower.md)(명세) · [TowerPlacement.md](TowerPlacement.md)(배치) ·
 > [TowerMerge.md](TowerMerge.md)(합성) · [DataTableManager.md](../Tools/DataTableManager.md)(CSV) ·
@@ -37,10 +38,14 @@
 | 독 장판 / 화상 장판 | `DebuffAuraAction` · `Effects=[Poison]` / `[Burn]` |
 | 아군 공격력·공속·사거리 강화 | `BuffAuraAction` · `BuffAura.Modifiers` |
 | **공격하면서 아군도 강화하는 하이브리드** | `AttackAction` **+** `BuffAuraAction` 둘 다 담기 |
+| 다수를 동시에 지지는 지속딜 | `BeamAction` · `Beam.MaxTargets` > 1 |
+| 한 대상을 오래 지질수록 아파지는 지속딜 | `BeamAction` · `Beam.MaxTargets` = 1 **+** `Beam.LockRamp` |
+| 때릴수록·잡을수록 스스로 강해지는 타워 | `AttackAction` **+** `RampAction` · `Ramp`의 축·트리거 지정 |
 
-부품 재고: 액션 3종(공격 / 버프 오라 / 디버프 오라) · 명중 3종(`Single`/`Area`/`Chain`) ·
-비행 2종(`Homing`/`Ballistic`) · 효과 4종(`Burn`/`Poison`/`Slow`/`Stun`). 각각의 동작은
-[Tower.md](Tower.md) §3.5(액션) · §3.7(비행·명중) · §3.8(효과).
+부품 재고: 액션 **5종**(공격 / 버프 오라 / 디버프 오라 / 빔 / 성장) · 명중 3종(`Single`/`Area`/`Chain`) ·
+비행 **4종**(`Homing`/`Ballistic`/`Straight`/`Boomerang`) · 효과 4종(`Burn`/`Poison`/`Slow`/`Stun`) ·
+램프 수치 부품 `RampProfile`. 각각의 동작은 [Tower.md](Tower.md) §3.5(액션) · §3.7(비행·명중) ·
+§3.8(효과) · §3.10(성장).
 
 위 표로 표현되면 **코드 0줄**이니 [§2](#2-7단계-마스터-체크리스트)부터 그대로 따라간다.
 없는 **효과**(빙결·출혈)·**궤적**(관통탄)·**행동 축**(아군 소환)이 필요하면 파생 클래스 1개를 먼저
@@ -113,7 +118,7 @@ archer_tower,towers.archer.name,1,1,towers.archer.role,towers.archer.desc
 |---|---|---|
 | `Tower` 컴포넌트 | ✅ | 없으면 배치 시 LogError |
 | Collider | ✅ | 클릭 선택용. 레이어가 `MouseManager._selectableMask`에 포함돼야 한다 |
-| **`Actions` 리스트** | ✅ | **이 타워가 무엇을 하는지의 정본.** 인스펙터 `+`로 `Attack Action`(공격) / `Buff Aura Action`(아군 강화) / `Debuff Aura Action`(적 약화)을 담는다. **여러 개 담아도 된다** — 하이브리드가 그렇게 만들어진다 |
+| **`Actions` 리스트** | ✅ | **이 타워가 무엇을 하는지의 정본.** 인스펙터 `+`로 `Attack Action`(공격) / `Buff Aura Action`(아군 강화) / `Debuff Aura Action`(적 약화) / `Beam Action`(다중 잠금 지속딜) / `Ramp Action`(자가 성장)을 담는다. **여러 개 담아도 된다** — 하이브리드가 그렇게 만들어진다(성장 타워 = 공격 + 성장) |
 | `enemyLayerMask` | 공격 타워면 ✅ | 대상 탐색 레이어 |
 | `firePoint` | 선택 | 발사 위치. 비우면 타워 루트에서 나간다 |
 | `data`(TowerAsset) | 선택 | 채우면 3.5의 SO와 **같은 것**이어야 한다(다르면 경고 후 배치된 쪽으로 재조립) |
@@ -142,6 +147,12 @@ archer_tower,towers.archer.name,1,1,towers.archer.role,towers.archer.desc
       **`Flight`**(줄 오른쪽 드롭다운에서 `Homing` 또는 `Ballistic` 선택 → 그 안에 `Speed`·`ArcHeight`)
 - [ ] `Impact` — `Single` / `Area`(+`SplashRadius`) / `Chain`(+`ChainRadius`·`MaxChainTargets`·`ChainDamageFalloff`)
 - [ ] `BuffAura` — `Radius` + `Modifiers`(강화할 스탯·수치) / `DebuffAura` — `Radius` + `Interval`(재적용 주기)
+- [ ] `Beam` — `Range` / `MaxTargets` / `TickInterval` / `DamagePerTick`, 그리고 대상별 성장을 줄 거면
+      `LockRamp`(`PerStack`·`MaxStacks`·`StackInterval`). **`MaxTargets`와 `LockRamp`만으로 멀티/단일
+      인페르노가 갈린다** — 액션은 같다
+- [ ] `Ramp` — 타워 전체가 성장할 거면 `Stat`(무엇이 오르는가) · `Trigger`(`Hit`/`Kill`) ·
+      `Profile`(`PerStack`·`MaxStacks`·`DecaySeconds`). ⚠ `DecaySeconds = 0`은 "영구"가 아니라
+      "웨이브 동안 유지"다 — 성장은 웨이브 종료에 일괄 초기화된다
 - [ ] `Effects` — `+`로 `Burn`/`Poison`/`Slow`/`Stun`을 담고 **그 자리에서 수치 입력**.
       **공격 액션과 디버프 오라가 이 리스트를 공유**한다 — 같은 "화상"이 명중 효과도 되고 장판도 된다
 
@@ -203,6 +214,12 @@ SO를 저장하면 아래 조합을 경고한다. **전부 "예외도 없이 조
 | `BuffAuraAction이 있는데 BuffAura.Radius가 0입니다` (Debuff도 동일) | [3.5](#35-so-수치-기입) 오라 `Radius` |
 | `Impact=Area인데 SplashRadius가 0입니다` | [3.5](#35-so-수치-기입) |
 | `Impact=Chain인데 MaxChainTargets가 …입니다` | [3.5](#35-so-수치-기입) |
+| `PelletCount>1인데 …`(Flight·Impact·SpreadAngle 3종) | [3.5](#35-so-수치-기입) 산탄 저작 규칙(#298) |
+| `Flight=BoomerangFlight인데 Impact=Area가 아닙니다` / `SplashRadius가 … HitRadius보다 좁습니다` | [3.5](#35-so-수치-기입) |
+| `BeamAction이 있는데 Beam 수치가 비었습니다` (`MaxTargets`·`TickInterval` 경고도 동일) | [3.5](#35-so-수치-기입) `Beam` |
+| `RampAction이 있는데 Ramp 수치가 비었습니다` (역방향 경고도 동일) | [3.5](#35-so-수치-기입) `Ramp` |
+| `Ramp.Trigger=Hit인데 프리팹에 AttackAction이 없습니다` | 명중 통지(`Projectile.DamageDealt`)는 **투사체 공격만** 발행한다 — 빔 타워면 `Trigger=Kill` 또는 `Beam.LockRamp`를 쓴다 |
+| `Beam.LockRamp를 적었는데 BeamAction이 없습니다` / `StackInterval이 0 이하입니다` | [3.5](#35-so-수치-기입) `Beam.LockRamp` |
 
 > `TowerPrefab`이 비어 있으면 검증을 **건너뛴다**(저작 도중 경고 폭탄 방지). 즉 프리팹을 안 물린 SO는
 > 경고도 안 난다 — `lightning_tower`가 전 필드 0인 채 조용한 이유다. 근거는 [Tower.md](Tower.md) §4.3.
@@ -254,6 +271,17 @@ unity-cli editor refresh --compile
 | `ProjectileFlight` | 새 궤적(관통탄·부메랑) | `ProjectileFlight` 파생 1개 | SO의 `Attack.Flight` |
 | `TowerAction` | 새 행동 축(아군 소환, 자원 생산) | `TowerAction` 파생 1개 | **프리팹**의 `Actions` 리스트 |
 
+> **먼저 확인할 것 — 새 액션이 정말 필요한가.** #300의 성장 타워 3종은 **액션 1개(`RampAction`)로 셋을
+> 다 만들었다.** 명중 램프와 처치 램프는 트리거만 다르고(SO의 `Ramp.Trigger`), 단일 인페르노는 아예
+> 액션을 추가하지 않고 기존 `BeamAction`에 `Beam.LockRamp` 저작만 얹은 것이다. "거동이 다르다"가
+> 곧 "액션이 다르다"는 아니다 — `AttackAction` 하나가 단일·스플래시·체인·산탄·부메랑을 전부 덮는 것과
+> 같은 축이다. **트리거·수치로 갈릴 수 있으면 액션을 늘리지 않는다.**
+>
+> ⚠ **스탯을 바꾸는 거동이면 액션을 만들기 전에 원장을 볼 것.** 공격·빔·DoT 수치가 이미 전부
+> `Owner.Stats.Evaluate`를 통과하므로, `TowerStats`에 소스를 얹는 것만으로 정보 패널·사거리 원까지
+> 자동으로 따라온다(#300의 원장형 램프가 기존 액션을 한 줄도 고치지 않은 이유). 반대로 **대상별로
+> 달라야 하는 값은 원장에 넣으면 안 된다** — 원장은 타워 단위다([Tower.md](Tower.md) §3.10).
+
 **`HitEffect`**([HitEffect.cs](../../Assets/Scripts/CombatSystem/StatusEffect/HitEffect.cs)) — 지속
 피해류는 `DamageOverTimeEffect`를 상속하면 `Kind` 한 줄로 끝난다. 공격 액션과 디버프 오라가 같은
 리스트를 공유하므로 **하나 만들면 양쪽에서 쓴다.** ⚠ 기존 `Effects` 리스트의 **순서를 섞거나 항목을
@@ -277,6 +305,12 @@ unity-cli editor refresh --compile
 **`TowerAction`**([TowerAction.cs](../../Assets/Scripts/CombatSystem/Tower/TowerAction.cs)) — 규칙
 4가지가 그 파일 상단에 명문화돼 있다: ① 수치를 갖지 않는다(전부 SO) ② 씬 배선은 `Owner`를 통해 읽는다
 ③ 런타임 상태는 `[NonSerialized]` ④ 소스 키는 `SourceId`를 쓴다. 생명주기 규약은 [Tower.md](Tower.md) §3.3.
+>
+> ⚠ **웨이브를 넘겨선 안 되는 상태가 있으면 `OnWaveEnd()`를 구현할 것**(#300). 기본 no-op이라 잊어도
+> 컴파일은 되지만, 특히 `NightOnly` 액션은 **낮에 `Tick`이 아예 돌지 않으므로 스스로 정리할 기회가
+> 없다** — 밤 마지막 프레임의 상태(진행 중인 잠금, 켜진 `LineRenderer`)가 그대로 굳는다.
+> `BeamAction`이 실제로 이 문제를 갖고 있었다(#298 → #300에서 해소). 페이즈 통지는 호스트가 주므로
+> 액션이 `DayNightManager`를 구독하면 안 된다(WL-044).
 
 > ⚠ **히트스캔(빔)형 공격 액션은 투사체 기반 보상 효과에서 제외된다.** 버프 화상(#169,
 > [BurnBuff.cs](../../Assets/Scripts/Skill/BurnBuff.cs))처럼 `Projectile.DamageDealt` 이벤트를 구독하는
@@ -332,3 +366,4 @@ unity-cli editor refresh --compile
 | 개정 | 내용 |
 |---|---|
 | 초판 (#274) | `TowerRedesign.md` §11(제안 시제·4행 표)을 이관해 실측 절차서로 재작성. 7단계 체크리스트·`OnValidate` 경고 역인덱스·증상 역인덱스·확장점 3개 신설 |
+| 2차 (#300) | 부품 재고를 실측치로 정정 — 액션 3종 → **5종**(`BeamAction`·`RampAction`), 비행 2종 → **4종**(`Straight`·`Boomerang`). #298·#300에서 늘어난 분이 §1에 반영돼 있지 않았다. §1 조립표에 빔·램프 3행 추가. §3.5 체크리스트에 `Beam`·`Ramp` 항목 추가(⚠ `DecaySeconds=0`은 "영구"가 아니라 "웨이브 동안 유지"). §4① `OnValidate` 역인덱스에 산탄·부메랑·빔·램프 경고 7행 추가. §6에 **"새 액션이 정말 필요한가"** 경고 신설 — #300은 타워 3종을 액션 1개로 만들었고(트리거·수치로 갈림) 단일 인페르노는 액션 추가 0이다. 스탯을 바꾸는 거동은 액션보다 원장을 먼저 보라는 지침과, `OnWaveEnd`를 구현하지 않으면 `NightOnly` 액션이 낮에 상태를 정리할 기회가 없다는 경고 추가 |
