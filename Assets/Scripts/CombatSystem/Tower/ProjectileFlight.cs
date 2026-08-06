@@ -197,12 +197,27 @@ namespace NorthLand.Combat
 
         public override FlightStep Step(Projectile self, IDamageable target, ref FlightState state, float deltaTime)
         {
-            Vector3 delta = state.Direction * (Speed * deltaTime);
-            self.transform.position += delta;
-            state.Traveled += delta.magnitude;
+            Vector3 prevPos = self.transform.position;
+            float remaining = self.Range - state.Traveled;
+            float step = Mathf.Min(Speed * deltaTime, Mathf.Max(0f, remaining));
 
-            if (Physics.CheckSphere(self.transform.position, HitRadius, self.EnemyMask))
-                return FlightStep.HitAndExpire(self.transform.position);
+            if (step <= 0f)
+                return FlightStep.Expire;
+
+            // 프레임 시작→끝 구간 전체를 스윕해 판정한다 — CheckSphere를 이동 후 "점"에서만 찍으면
+            // 고속탄(예: 산탄 Speed 600)이 판정 반경보다 훨씬 크게 이동해 사이 구간을 놓치고
+            // 지나가 버린다(#298 WL-154). 사거리도 이동 전에 먼저 클램프해 사거리 밖 지점에서
+            // 판정이 성립하는 일이 없게 한다.
+            if (Physics.SphereCast(prevPos, HitRadius, state.Direction, out RaycastHit hit, step, self.EnemyMask))
+            {
+                Vector3 hitPos = prevPos + state.Direction * hit.distance;
+                self.transform.position = hitPos;
+                state.Traveled += hit.distance;
+                return FlightStep.HitAndExpire(hitPos);
+            }
+
+            self.transform.position = prevPos + state.Direction * step;
+            state.Traveled += step;
 
             return state.Traveled >= self.Range ? FlightStep.Expire : FlightStep.Flying;
         }
