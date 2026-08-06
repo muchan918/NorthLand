@@ -159,6 +159,42 @@ MonoBehaviour:
     m_Key: towers.flame_field.desc
     m_Metadata:
       m_Items: []
+  - m_Id: 5956874338476032
+    m_Key: towers.triple_shoot.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5956874363641856
+    m_Key: towers.triple_shoot.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5956874363641857
+    m_Key: towers.triple_shoot.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5956874363641858
+    m_Key: towers.boomerang.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5956874363641859
+    m_Key: towers.boomerang.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5956874363641860
+    m_Key: towers.boomerang.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5956874363641861
+    m_Key: towers.multi_inferno.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5956874363641862
+    m_Key: towers.multi_inferno.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5956874363641863
+    m_Key: towers.multi_inferno.desc
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

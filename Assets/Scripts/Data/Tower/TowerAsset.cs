@@ -32,6 +32,11 @@ public class TowerAsset : ScriptableObject
     public BuffAuraFields BuffAura;
     public DebuffAuraFields DebuffAura;
 
+    // 다수 타겟 동시 잠금 + 균일 지속딜(#298). 투사체가 없는 행동 축이라 Attack과 완전히 분리된
+    // 자기 필드 블록을 쓴다 — Attack.Flight/ProjectilePrefab 같은 투사체 전용 개념이 여기 섞이지 않는다.
+    [Header("빔(다중 타겟 지속딜)")]
+    public BeamFields Beam;
+
     // 이 타워가 대상에게 거는 효과와 그 수치(#274 Phase 4). 인스펙터에서 `+ Burn`, `+ Slow`를 골라 붙인다.
     //
     // **공격 액션과 디버프 오라가 같은 리스트를 공유한다** — "맞으면 화상"과 "장판에 화상"은 거는 방식만
@@ -57,7 +62,9 @@ public class TowerAsset : ScriptableObject
     /// 구 `MagicRadius`는 `MagicEffectType`으로 Buff/Debuff를 골랐는데, 오라를 둘 다 가진 타워를
     /// 표현할 수 없었다. 최댓값을 쓰면 공격+오라 하이브리드 타워도 자연히 커버된다.
     public float PreviewRadius => Mathf.Max(
-        Attack != null ? Attack.AttackRange : 0f,
+        Mathf.Max(
+            Attack != null ? Attack.AttackRange : 0f,
+            Beam != null ? Beam.Range : 0f),
         Mathf.Max(
             BuffAura != null ? BuffAura.Radius : 0f,
             DebuffAura != null ? DebuffAura.Radius : 0f));
@@ -78,7 +85,8 @@ public class TowerAsset : ScriptableObject
         {
             bool authored = (Attack != null && (Attack.AttackDamage > 0f || Attack.ProjectilePrefab != null))
                             || (BuffAura != null && BuffAura.Radius > 0f)
-                            || (DebuffAura != null && DebuffAura.Radius > 0f);
+                            || (DebuffAura != null && DebuffAura.Radius > 0f)
+                            || (Beam != null && Beam.DamagePerTick > 0f);
 
             if (authored)
             {
@@ -96,7 +104,7 @@ public class TowerAsset : ScriptableObject
         }
 
         var actions = tower.Actions;
-        bool hasAttack = false, hasBuff = false, hasDebuff = false;
+        bool hasAttack = false, hasBuff = false, hasDebuff = false, hasBeam = false;
         var seen = new HashSet<System.Type>();
 
         for (int i = 0; i < actions.Count; i++)
@@ -118,6 +126,7 @@ public class TowerAsset : ScriptableObject
             hasAttack |= a is NorthLand.Combat.AttackAction;
             hasBuff |= a is NorthLand.Combat.BuffAuraAction;
             hasDebuff |= a is NorthLand.Combat.DebuffAuraAction;
+            hasBeam |= a is NorthLand.Combat.BeamAction;
         }
 
         // ── 액션 ↔ 수치 짝 검사 ────────────────────────────────────────────
@@ -145,6 +154,59 @@ public class TowerAsset : ScriptableObject
             Debug.LogWarning($"[TowerAsset] {name}: Impact=Area인데 SplashRadius가 0입니다 — 단일 명중과 같아집니다.", this);
         if (hasAttack && Impact == NorthLand.Combat.ImpactKind.Chain && MaxChainTargets <= 1)
             Debug.LogWarning($"[TowerAsset] {name}: Impact=Chain인데 MaxChainTargets가 {MaxChainTargets}입니다 — 튕기지 않습니다.", this);
+
+        // ── 산탄(PelletCount>1) 저작 규칙(#298) ─────────────────────────────
+        // 셋 다 "예외 없이 조용히 의미가 사라지는" 조합이라 여기서 잡는다.
+        if (hasAttack && attackAuthored && Attack.PelletCount > 1)
+        {
+            if (Attack.Flight != null && !(Attack.Flight is NorthLand.Combat.StraightFlight))
+                Debug.LogWarning($"[TowerAsset] {name}: PelletCount>1인데 Flight가 StraightFlight가 아닙니다 — " +
+                                 "Homing/Ballistic과 조합하면 펠릿 전부가 같은 대상으로 수렴해 부채꼴이 사라집니다.", this);
+
+            if (Impact != NorthLand.Combat.ImpactKind.Area)
+                Debug.LogWarning($"[TowerAsset] {name}: PelletCount>1인데 Impact=Area가 아닙니다 — " +
+                                 "Single은 위치와 무관하게 명중 처리돼 빗나간 펠릿도 피해를 줍니다.", this);
+
+            // AttackAction.TryAttack의 각도 분할이 Mathf.Lerp(-half, +half, ...)이므로 SpreadAngle이 0이면
+            // 모든 펠릿의 각도가 0으로 접힌다 — 위 둘과 같은 "예외 없이 조용히 의미가 사라지는" 조합이다.
+            if (Attack.SpreadAngle <= 0f)
+                Debug.LogWarning($"[TowerAsset] {name}: PelletCount({Attack.PelletCount})>1인데 " +
+                                 $"SpreadAngle이 {Attack.SpreadAngle}입니다 — 펠릿이 전부 같은 방향으로 겹쳐 날아가 " +
+                                 $"부채꼴이 사라지고, 한 대상에 피해가 {Attack.PelletCount}배로 집중됩니다.", this);
+        }
+
+        // 부메랑도 산탄과 같은 이유로 Area가 필요하다(#298) — Single은 위치 무관 판정이라
+        // 왕복 경로의 재타격 게이트와 무관하게 항상 원래 타겟만 맞아버린다.
+        if (hasAttack && attackAuthored && Attack.Flight is NorthLand.Combat.BoomerangFlight boomerang)
+        {
+            if (Impact != NorthLand.Combat.ImpactKind.Area)
+                Debug.LogWarning($"[TowerAsset] {name}: Flight=BoomerangFlight인데 Impact=Area가 아닙니다 — " +
+                                 "Single/Chain은 위치 기반 재타격을 지원하지 않습니다.", this);
+
+            // BoomerangFlight는 HitRadius로 "닿았다"만 알리고, 실제로 누구를 때릴지는
+            // Projectile.ApplyArea가 SplashRadius로 조회해 정한다 — SplashRadius가 HitRadius보다
+            // 좁으면 접촉을 알린 프레임에 아무도 안 맞을 수 있고, 그 적이 원장에 오르지 않으므로
+            // 접촉이 유지되는 내내 매 프레임 헛된 Impact가 반복된다.
+            if (Impact == NorthLand.Combat.ImpactKind.Area && SplashRadius < boomerang.HitRadius)
+                Debug.LogWarning($"[TowerAsset] {name}: SplashRadius({SplashRadius})가 BoomerangFlight의 " +
+                                 $"HitRadius({boomerang.HitRadius})보다 좁습니다 — 접촉 판정된 적 일부가 " +
+                                 "실제 데미지 적용 범위에서 빠질 수 있습니다. SplashRadius ≥ HitRadius로 맞추세요.", this);
+        }
+
+        // ── 빔(BeamAction) ↔ 수치 짝 검사(#298) ─────────────────────────────
+        bool beamAuthored = Beam != null && Beam.DamagePerTick > 0f;
+        if (hasBeam && !beamAuthored)
+            Debug.LogWarning($"[TowerAsset] {name}: 프리팹에 BeamAction이 있는데 Beam 수치가 비었습니다 " +
+                             "(DamagePerTick 0) — 배치해도 피해가 안 나갑니다.", this);
+        if (!hasBeam && beamAuthored)
+            Debug.LogWarning($"[TowerAsset] {name}: Beam 수치를 적었는데 프리팹에 BeamAction이 없습니다 " +
+                             "— 이 수치는 아무도 읽지 않습니다.", this);
+        if (hasBeam && beamAuthored && Beam.MaxTargets <= 0)
+            Debug.LogWarning($"[TowerAsset] {name}: BeamAction이 있는데 Beam.MaxTargets가 {Beam.MaxTargets}입니다 " +
+                             "— 아무도 안 잠급니다.", this);
+        if (hasBeam && beamAuthored && Beam.TickInterval <= 0f)
+            Debug.LogWarning($"[TowerAsset] {name}: BeamAction이 있는데 Beam.TickInterval이 0 이하입니다 " +
+                             "— 매 프레임 재잠금·재적용이 돌아 비용이 폭주할 수 있습니다.", this);
     }
 #endif
 
@@ -167,6 +229,16 @@ public class TowerAsset : ScriptableObject
         // 부메랑의 왕복 거리처럼 **특정 비행 방식에만 있는 수치**가 자기 부품 안에 들어가므로
         // 이 클래스가 다시 부풀지 않는다. 새 비행 방식 = ProjectileFlight 파생 1개(Projectile 무수정).
         [SerializeReference] public NorthLand.Combat.ProjectileFlight Flight;
+
+        // ── 산탄 (#298) ─────────────────────────────────────────────────────
+        // 기본값 1 = 발사당 1발, 기존 전 타워 거동 무변경(회귀 위험 없음). 2 이상이면
+        // `AttackAction.TryAttack`이 SpreadAngle 안에 균등 분할한 각도로 여러 발을 동시 Instantiate한다.
+        // 데미지(AttackDamage)는 펠릿 1발당 값이다 — 전탄 명중 시 N배(근접 밀집 화력 보상).
+        [Tooltip("발사당 펠릿 수. 1이면 기존 거동과 동일.")]
+        public int PelletCount = 1;
+
+        [Tooltip("PelletCount>1일 때 펠릿들이 균등 분할되는 부채꼴 총 각도(도).")]
+        public float SpreadAngle;
     }
 
     [System.Serializable]
@@ -186,6 +258,23 @@ public class TowerAsset : ScriptableObject
         // 재스캔 주기. 무엇을 거는지는 TowerAsset.Effects가 정한다(#274 Phase 4) —
         // 예전에는 여기에 Duration/Modifiers/Damage가 수기 필드로 박혀 있어 공격 명중 효과와 저작이 갈렸다.
         public float Interval;
+    }
+
+    // 인페르노 타워(#298) — 다수 타겟 동시 잠금 + 균일 지속딜. 램프업(유지 시간에 따른 가중치)은
+    // 이 이슈 범위 밖이라 필드가 없다 — 별도 "램프업 타워" 이슈에서 공용 부품으로 얹을 예정.
+    [System.Serializable]
+    public class BeamFields
+    {
+        public float Range;
+
+        [Tooltip("한 번에 동시 잠그는 최대 대상 수.")]
+        public int MaxTargets = 1;
+
+        [Tooltip("잠금·피해 적용 주기(초). AttackSpeed 원장을 거쳐 실제 틱 간격이 줄어든다.")]
+        public float TickInterval = 1f;
+
+        [Tooltip("틱마다 각 대상에게 들어가는 피해(대상별 동일, 유지 시간 가중치 없음).")]
+        public float DamagePerTick;
     }
 }
 

@@ -175,6 +175,44 @@ MonoBehaviour:
       damage'
     m_Metadata:
       m_Items: []
+  - m_Id: 5956874338476032
+    m_Localized: Shotgun Tower
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5956874363641856
+    m_Localized: Close-range Sweep
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5956874363641857
+    m_Localized: Fires several pellets in a spread, striking multiple nearby enemies
+      at once.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5956874363641858
+    m_Localized: Boomerang Tower
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5956874363641859
+    m_Localized: Piercing Strike
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5956874363641860
+    m_Localized: Flies out and returns, piercing every enemy along its path.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5956874363641861
+    m_Localized: Multi-Inferno Tower
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5956874363641862
+    m_Localized: Multi-target DoT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5956874363641863
+    m_Localized: Locks onto multiple enemies in range and deals continuous damage
+      to all of them.
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

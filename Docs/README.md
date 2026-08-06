@@ -13,6 +13,7 @@ NorthLand: Last Stand (팀 유유아) 프로젝트 문서 모음.
 | [Core/TowerAddGuide.md](Core/TowerAddGuide.md) | **새 타워 종류 추가 절차** — CSV·SO·프리팹·씬 등록·로컬라이제이션 7단계 + 검증 + 확장점 3개 (#274). Tower.md가 "왜/무엇"이면 이쪽은 "어떻게" |
 | [Core/TowerRedesign.md](Core/TowerRedesign.md) | 타워 구조 재설계 **제안**(#274) — 액션 리스트·효과 부품화·합성 계승. **Phase 1~5 구현·병합 완료 → 폐기 대기. 흡수처는 두 곳(명세=Tower.md / 절차=TowerAddGuide.md)** |
 | [Core/TowerMerge.md](Core/TowerMerge.md) | 타워 합성(Merge) — 레시피·매칭·실행(#194/#195) + 멀티 선택·합성 패널(#183) 단일 진실 원천 |
+| [Core/TowerRoster.md](Core/TowerRoster.md) | 타워별 획득 경로(직접배치/합성 전용) 정리표 + 미해결 항목 — 전수 스탯 카탈로그는 #282 잔여 범위 |
 | [Core/InteractionOutline.md](Core/InteractionOutline.md) | 상호작용 아웃라인(호버/선택/합성 프리뷰) 설계·측정 근거 (#213) — **구현 완료**(shell 방식은 임시, 스크린 스페이스 실루엣으로 이행 예정) |
 | [Core/UIZOrder.md](Core/UIZOrder.md) | HUD·모달 Canvas 표시 우선순위와 상위 패널 입력 차단 규칙 (#188) |
 | [ManagementArea/Resources.md](ManagementArea/Resources.md) | 경영 자원 시스템(지갑·생산처·패널) + 확장 자원 방향(§5.5) |

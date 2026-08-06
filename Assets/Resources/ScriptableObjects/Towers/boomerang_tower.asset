@@ -10,36 +10,29 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
-  m_Name: haste_tower
+  m_Name: boomerang_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
-  TowerID: haste_tower
-  TowerPrefab: {fileID: 527708244005276318, guid: b8dd447b76ed929439c677e7e946362a, type: 3}
-  GhostPrefab: {fileID: 527708244005276318, guid: 176674a10a91cf948b2304f59bba8820, type: 3}
-  Cost:
-  - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-    Amount: 30
-  - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
-    Amount: 20
+  TowerID: boomerang_tower
+  TowerPrefab: {fileID: 6801833135963741600, guid: 977f5bc74f84c4f4793dc1f54fc45390, type: 3}
+  GhostPrefab: {fileID: 6801833135963741600, guid: babe5261b8910674780692e1c6cef94a, type: 3}
+  Cost: []
   Attack:
-    AttackDamage: 0
-    AttackRange: 0
-    AttackInterval: 0
-    ProjectilePrefab: {fileID: 0}
+    AttackDamage: 6
+    AttackRange: 20
+    AttackInterval: 2
+    ProjectilePrefab: {fileID: 2063295315579062000, guid: 18cf1c0733a021e468a7d1d1e0452d55, type: 3}
     Flight:
-      rid: -2
+      rid: 1498367290197934156
     PelletCount: 1
     SpreadAngle: 0
-  Impact: 0
-  SplashRadius: 0
+  Impact: 1
+  SplashRadius: 1
   ChainRadius: 0
   MaxChainTargets: 0
   ChainDamageFalloff: 0
   BuffAura:
-    Radius: 13.6
-    Modifiers:
-    - Stat: 1
-      Amount: 35
-      IsPercentage: 1
+    Radius: 0
+    Modifiers: []
     Damage:
       HasDamage: 0
       DamageAmount: 0
@@ -56,5 +49,9 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: -2
-      type: {class: , ns: , asm: }
+    - rid: 1498367290197934156
+      type: {class: BoomerangFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
+      data:
+        Speed: 60
+        Laps: 1
+        HitRadius: 0.5
