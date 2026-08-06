@@ -65,9 +65,15 @@ namespace NorthLand.Combat
         /// 판단하는 기준이다 — 구간이 바뀌면 그 구간에서 새로 만나는 적은 다시 때릴 수 있다(#298).
         public int CurrentLeg;
 
-        /// 이번 구간에서 이미 명중한 적들. **같은 적을 이번 구간에서 두 번 때리지 않되, 서로 다른
-        /// 적은 같은 구간 안에서 몇 마리든 때린다** — 부메랑이 줄 서 있는 적 여러 마리를 관통하는
+        /// 이번 구간에서 **이미 피해를 입은** 적들. **같은 적을 이번 구간에서 두 번 때리지 않되, 서로
+        /// 다른 적은 같은 구간 안에서 몇 마리든 때린다** — 부메랑이 줄 서 있는 적 여러 마리를 관통하는
         /// 그림이 여기서 나온다. 구간이 바뀌면(`CurrentLeg` 변화) 비워서 다음 구간엔 다시 맞을 수 있다.
+        ///
+        /// ★ **채우는 쪽은 비행이 아니라 `Projectile.ApplyArea`다**(#298). 비행이 자기 `HitRadius`로
+        /// 걸러 채우면, 실제 피해는 `ApplyArea`가 `SplashRadius`(≥ `HitRadius`, `OnValidate` 강제)로
+        /// **다시** 조회해 넣으므로 두 반경의 차이만큼 중복이 샌다 — 밀집 대형에서 A가 걸려 A·B가
+        /// 맞고, 곧이어 B가 걸려 A가 또 맞았다. 판정 게이트와 피해 게이트를 하나로 합쳐 막는다.
+        /// `FlightStep.Impact`가 명문화한 "무엇을 때릴지는 명중 축이 정한다" 규약 그대로다.
         public System.Collections.Generic.HashSet<IDamageable> LegHitSet;
     }
 
@@ -237,9 +243,12 @@ namespace NorthLand.Combat
     /// 때린다**(`FlightState.LegHitSet`, #298). 그래서 줄 서서 오는 적 여러 마리를 한 구간에 전부
     /// 관통할 수 있다 — 총 명중 횟수가 그 구간에 몇 마리가 걸리느냐에 따라 달라진다(예전의
     /// "구간당 최대 1회"와 다른 지점. 그쪽은 총 명중 횟수가 항상 2회로 고정됐었다).
-    /// `Impact`는 반드시 `Area`(`SplashRadius ≥ HitRadius` 권장)여야 한다 — `StraightFlight`와 같은
-    /// 이유. `SplashRadius`가 `HitRadius`보다 작으면 여기서 "새로 맞았다"고 표시한 적 중 일부가
-    /// 실제 데미지 적용(`Projectile.ApplyArea`)의 더 좁은 반경에서 빠져 표시만 되고 안 맞을 수 있다.
+    ///
+    /// **그 중복 방지는 이 부품이 하지 않는다** — 여기는 "닿았다"만 알리고 `Projectile.ApplyArea`가
+    /// 원장을 보며 거른다. 이 부품이 걸러 봐야 `ApplyArea`가 `SplashRadius`로 재조회하는 몫은 못 막기
+    /// 때문이다(#298 리뷰에서 잡힌 실제 결함). `Impact`는 반드시 `Area`여야 한다 — `StraightFlight`와
+    /// 같은 이유. `SplashRadius ≥ HitRadius`(`OnValidate` 강제)라 이 부품이 접촉을 알린 적은 항상
+    /// 피해 조회에도 들어온다 — 반대였다면 "닿았다고 알렸는데 아무도 안 맞는" 프레임이 반복된다.
     [Serializable]
     public sealed class BoomerangFlight : ProjectileFlight
     {
@@ -286,16 +295,13 @@ namespace NorthLand.Combat
                 state.LegHitSet.Clear();
             }
 
-            Collider[] hits = Physics.OverlapSphere(self.transform.position, HitRadius, self.EnemyMask);
-            bool anyFresh = false;
-            for (int i = 0; i < hits.Length; i++)
-            {
-                IDamageable victim = hits[i].GetComponentInParent<IDamageable>();
-                if (victim == null || victim.IsDead) continue;
-                if (state.LegHitSet.Add(victim)) anyFresh = true;   // Add()가 true = 이번 구간 첫 접촉
-            }
-
-            if (anyFresh) return FlightStep.HitAndContinue(self.transform.position);
+            // **접촉 여부만 답한다 — 누구를 때릴지는 명중 축(`Projectile.ApplyArea`)이 정한다**(#298,
+            // `FlightStep.Impact` 규약). 예전에는 여기서 대상을 열거해 `LegHitSet`에 넣고 "새로 걸린 적이
+            // 있을 때만" Impact를 냈지만, 그 목록은 `HitRadius` 기준이고 실제 피해는 `SplashRadius` 기준
+            // 재조회라 두 반경의 차이만큼 중복이 샜다(`FlightState.LegHitSet` 주석). 원장을 피해 쪽이
+            // 채우게 넘기면 게이트가 하나로 합쳐지고, 덤으로 여기서 할당형 쿼리도 사라진다(WL-025).
+            if (Physics.CheckSphere(self.transform.position, HitRadius, self.EnemyMask))
+                return FlightStep.HitAndContinue(self.transform.position);
 
             return FlightStep.Flying;
         }

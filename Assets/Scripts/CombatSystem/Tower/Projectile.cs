@@ -174,13 +174,25 @@ namespace NorthLand.Combat
         }
 
         // 명중 지점 반경 내 모든 적에게 동일 데미지
+        //
+        // **"이번 구간에 이미 맞았는가"의 판정도 여기서 한다**(#298). 여러 번 때리며 나는 탄(부메랑)의
+        // 중복 방지를 비행 부품 쪽에 두면 그쪽 기준(`HitRadius`)과 이쪽 기준(`SplashRadius`)이 갈라져,
+        // 두 반경의 차이만큼 중복이 샌다 — 밀집 대형에서 A가 걸려 A·B가 맞고 곧이어 B가 걸려 A가 또
+        // 맞았다. 원장은 비행 상태(구간 개념이 거기 있다)에 두되 **채우는 것은 실제로 때리는 이쪽**이며,
+        // 이것이 `FlightStep.Impact`가 명문화한 "무엇을 때릴지는 명중 축이 정한다" 규약이다.
         void ApplyArea(Vector3 impactPos)
         {
             var hits = Physics.OverlapSphere(impactPos, impact.SplashRadius, impact.EnemyMask);
             foreach (var h in hits)
             {
                 var d = h.GetComponentInParent<IDamageable>();
-                if (d != null && d.Faction != source.Faction && !d.IsDead) Hit(d, damage);
+                if (d == null || d.Faction == source.Faction || d.IsDead) continue;
+
+                // 왕복 비행만 이 원장을 든다 — 나머지는 null이라 무조건 통과한다(첫 명중에 소멸하므로
+                // 중복 자체가 없다). Add()가 false = 이번 구간에 이미 피해를 입힌 대상.
+                if (flightState.LegHitSet != null && !flightState.LegHitSet.Add(d)) continue;
+
+                Hit(d, damage);
             }
         }
 
