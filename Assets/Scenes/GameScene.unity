@@ -4239,7 +4239,7 @@ MonoBehaviour:
     m_Top: 8
     m_Bottom: 8
   m_ChildAlignment: 0
-  m_Spacing: 4
+  m_Spacing: 40
   m_ChildForceExpandWidth: 1
   m_ChildForceExpandHeight: 0
   m_ChildControlWidth: 1
@@ -4865,6 +4865,7 @@ RectTransform:
   - {fileID: 1311671237}
   - {fileID: 1145694838684023321}
   - {fileID: 1016629096}
+  - {fileID: 830651685}
   - {fileID: 1042878413}
   - {fileID: 1886028635}
   - {fileID: 2082790718}
@@ -4873,7 +4874,6 @@ RectTransform:
   - {fileID: 367777890}
   - {fileID: 1336033871}
   - {fileID: 586166556}
-  - {fileID: 830651685}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
