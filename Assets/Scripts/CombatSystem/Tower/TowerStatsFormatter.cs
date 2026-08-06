@@ -32,6 +32,12 @@ namespace NorthLand.Combat
                 ? $"DoT: {damagePerTick:0.#} / {tickInterval:0.#}s"
                 : null;
 
+        /// 다중 타겟 지속딜(빔) 한 줄 — 대상 1기당 DPS와 동시 타격 대상 수(#298).
+        public static string BuildBeamLine(float dps, int maxTargets)
+            => dps > 0f && maxTargets > 0
+                ? $"DPS: {dps:0.#} × {maxTargets}"
+                : null;
+
         /// 감속 한 줄. 감속이 없으면(배율 1) null.
         public static string BuildSlowLine(float slowMultiplier)
             => slowMultiplier < 1f

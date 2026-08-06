@@ -4,8 +4,12 @@ using UnityEngine;
 using NorthLand.Combat;
 
 // 버프 화상(#169): 버프 스킬 지속시간 동안 타워 투사체 공격에 명중당한 적에게 화상 도트를 부여한다.
-// Projectile.DamageDealt 이벤트 기반이라 투사체를 쏘는 타워만 대상 — AuraTower(Magic)는 투사체가
-// 없어 자연 제외되며, 애초에 버프 대상도 아니다. 레벨업 = 틱 데미지 증가.
+// Projectile.DamageDealt 이벤트 기반이라 실제 Projectile을 띄우는 공격만 대상이다 — 이 축을 타지
+// 않는 타워는 전부 의도적 제외다: AuraTower(Magic)는 투사체가 없고 애초에 버프 대상도 아니며,
+// BeamAction처럼 LineRenderer로 즉시 히트스캔 판정하는 공격(#298 멀티인페르노)도 투사체를 만들지
+// 않아 마찬가지로 제외된다. 향후 체이닝·빔 등 LineRenderer 기반 히트스캔 공격을 새로 만들 때도
+// 이 축을 타려면 별도로 Projectile.DamageDealt를 발행해야 한다 — 안 하면 이 보상은 자동으로
+// 그 타워를 건너뛴다(설계상 의도, 표시 문구 "투사체 타워"와 일치). 레벨업 = 틱 데미지 증가.
 // 버프 대상 스냅샷은 하지 않는다(단순성 우선) — 창이 열린 동안 새로 지은 타워의 명중에도 화상이 붙는다.
 public class BurnBuff : SkillEffect
 {

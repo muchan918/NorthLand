@@ -73,4 +73,26 @@ public class ResourceWallet
         OnChanged?.Invoke(kind, _balances[kind]);
         return true;
     }
+
+    /// <summary>
+    /// 자원 보유량을 지정한 절대값으로 변경한다.
+    /// 음수는 허용하지 않는다.
+    /// </summary>
+    public bool TrySet(ResourceKind kind, int amount)
+    {
+        if (amount < 0)
+        {
+            Debug.LogError($"자원 보유량은 음수일 수 없습니다: {kind} {amount}");
+
+            return false;
+        }
+
+        if (_balances[kind] == amount)
+            return true;
+
+        _balances[kind] = amount;
+        OnChanged?.Invoke(kind, amount);
+
+        return true;
+    }
 }

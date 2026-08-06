@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using NorthLand.Core;
+using UnityEngine.UI;
 
 namespace NorthLand.UI
 {
@@ -17,6 +18,16 @@ namespace NorthLand.UI
 
         [SerializeField]
         private GameObject seedGamePanle;
+
+        [Header("Continue")]
+
+        [SerializeField]
+        private Button continueButton;
+
+        private void Awake()
+        {
+            RefreshContinueButton();
+        }
 
         // 랜덤 시드로 시작
         public void OnClickStart()
@@ -114,5 +125,85 @@ namespace NorthLand.UI
             seedGamePanle.SetActive(isActive);
         }
 
+        /// <summary>
+        /// 정상적으로 읽을 수 있는 세이브가 있을 때만 이어하기 버튼을 표시한다.
+        /// </summary>
+        private void RefreshContinueButton()
+        {
+            if (continueButton == null)
+            {
+                Debug.LogError(
+                    "[MainMenuUI] 이어하기 버튼이 연결되지 않았습니다.",
+                    this);
+
+                return;
+            }
+
+            bool canContinue =
+                HasLoadableSave(out string error);
+
+            continueButton.gameObject.SetActive(canContinue);
+
+            if (!canContinue &&
+                !string.IsNullOrEmpty(error))
+            {
+                Debug.LogWarning(
+                    $"[MainMenuUI] 이어하기 숨김: {error}",
+                    this);
+            }
+        }
+
+        private bool HasLoadableSave(out string error)
+        {
+            var fileStore = new SaveFileStore(Application.persistentDataPath);
+
+            if (!fileStore.Exists)
+            {
+                error = null;
+                return false;
+            }
+
+            if (!fileStore.TryRead(out string json,out error))
+            {
+                return false;
+            }
+
+            var serializer = new SaveSerializer();
+
+            if (!serializer.TryDeserialize(json,out RunData data,out error))
+            {
+                return false;
+            }
+
+            if (data == null)
+            {
+                error = "세이브 RunData가 비어 있습니다.";
+                return false;
+            }
+
+            error = null;
+            return true;
+        }
+
+        public void OnClickContinue()
+        {
+            // 타이틀이 열린 뒤 파일이 삭제·손상됐을 가능성도 다시 확인한다.
+            if (!HasLoadableSave(out string error))
+            {
+                if (continueButton != null)
+                    continueButton.gameObject.SetActive(false);
+
+                Debug.LogWarning($"[MainMenuUI] 이어하기를 시작할 수 없습니다: {error}",this);
+
+                return;
+            }
+
+            if (!TryGetSceneManager(out GameSceneManager sceneManager))
+            {
+                return;
+            }
+
+            sceneManager.LoadContinue();
+        }
     }
 }
