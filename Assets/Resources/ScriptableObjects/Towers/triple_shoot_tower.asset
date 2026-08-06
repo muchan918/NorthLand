@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
-  m_Name: shotgun_tower
+  m_Name: triple_shoot_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
-  TowerID: shotgun_tower
+  TowerID: triple_shoot_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: 32f20ff8123df644db927f0b6ddf86a8, type: 3}
-  GhostPrefab: {fileID: 6801833135963741600, guid: 02bd685941e50c74a861dd02e3773db9, type: 3}
+  GhostPrefab: {fileID: 6801833135963741600, guid: 3a45e3ede25a4e04dbe0f760784d4c40, type: 3}
   Cost: []
   Attack:
     AttackDamage: 18
@@ -22,7 +22,7 @@ MonoBehaviour:
     AttackInterval: 1.2
     ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
     Flight:
-      rid: 1498367290197934080
+      rid: 1498367303671873620
     PelletCount: 3
     SpreadAngle: 40
   Impact: 1
@@ -49,7 +49,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 1498367290197934080
+    - rid: 1498367303671873620
       type: {class: StraightFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
         Speed: 600

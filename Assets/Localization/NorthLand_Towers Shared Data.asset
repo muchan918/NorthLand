@@ -160,15 +160,15 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 5956874338476032
-    m_Key: towers.shotgun.name
+    m_Key: towers.triple_shoot.name
     m_Metadata:
       m_Items: []
   - m_Id: 5956874363641856
-    m_Key: towers.shotgun.role
+    m_Key: towers.triple_shoot.role
     m_Metadata:
       m_Items: []
   - m_Id: 5956874363641857
-    m_Key: towers.shotgun.desc
+    m_Key: towers.triple_shoot.desc
     m_Metadata:
       m_Items: []
   - m_Id: 5956874363641858

@@ -44,6 +44,11 @@ MonoBehaviour:
   DebuffAura:
     Radius: 12
     Interval: 1
+  Beam:
+    Range: 0
+    MaxTargets: 1
+    TickInterval: 1
+    DamagePerTick: 0
   Effects:
   - rid: 3470829504553025632
   references:
