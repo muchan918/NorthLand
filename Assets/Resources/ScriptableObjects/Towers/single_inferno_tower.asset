@@ -1,0 +1,66 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
+  m_Name: single_inferno_tower
+  m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
+  TowerID: single_inferno_tower
+  TowerPrefab: {fileID: 6801833135963741600, guid: 1eb442e5b5aa7d845968f5e64dc42fd5, type: 3}
+  GhostPrefab: {fileID: 6801833135963741600, guid: a99b7685e434fed48ad917a81a4382ec, type: 3}
+  Cost: []
+  Attack:
+    AttackDamage: 0
+    AttackRange: 0
+    AttackInterval: 0
+    ProjectilePrefab: {fileID: 0}
+    Flight:
+      rid: -2
+    PelletCount: 1
+    SpreadAngle: 0
+  Impact: 0
+  SplashRadius: 0
+  ChainRadius: 0
+  MaxChainTargets: 0
+  ChainDamageFalloff: 0
+  BuffAura:
+    Radius: 0
+    Modifiers: []
+    Damage:
+      HasDamage: 0
+      DamageAmount: 0
+      TickInterval: 0
+  DebuffAura:
+    Radius: 0
+    Interval: 0
+  Beam:
+    Range: 20
+    MaxTargets: 1
+    TickInterval: 0.5
+    DamagePerTick: 4
+    LockRamp:
+      PerStack: 0.5
+      MaxStacks: 6
+      StackInterval: 1
+      DecaySeconds: 0
+  Ramp:
+    Stat: 2
+    Trigger: 0
+    Profile:
+      PerStack: 0
+      MaxStacks: 0
+      StackInterval: 0
+      DecaySeconds: 0
+  Effects: []
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }

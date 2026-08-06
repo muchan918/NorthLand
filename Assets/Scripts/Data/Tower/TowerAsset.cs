@@ -214,6 +214,15 @@ public class TowerAsset : ScriptableObject
             Debug.LogWarning($"[TowerAsset] {name}: BeamAction이 있는데 Beam.TickInterval이 0 이하입니다 " +
                              "— 매 프레임 재잠금·재적용이 돌아 비용이 폭주할 수 있습니다.", this);
 
+        // 대상별 조준 유지 램프(#300). 셋 다 "예외 없이 조용히 램프가 사라지는" 조합이다.
+        bool lockRampAuthored = Beam != null && Beam.LockRamp != null && Beam.LockRamp.IsAuthored;
+        if (lockRampAuthored && !hasBeam)
+            Debug.LogWarning($"[TowerAsset] {name}: Beam.LockRamp를 적었는데 프리팹에 BeamAction이 없습니다 " +
+                             "— 이 수치는 아무도 읽지 않습니다.", this);
+        if (lockRampAuthored && Beam.LockRamp.StackInterval <= 0f)
+            Debug.LogWarning($"[TowerAsset] {name}: Beam.LockRamp의 StackInterval이 0 이하입니다 — " +
+                             "이 램프는 경과 시간으로 단계를 세므로 배율이 영원히 ×1에 머뭅니다.", this);
+
         // ── 성장(램프업) ↔ 수치 짝 검사(#300) ────────────────────────────────
         bool rampAuthored = Ramp != null && Ramp.Profile != null && Ramp.Profile.IsAuthored;
         if (hasRamp && !rampAuthored)
@@ -296,8 +305,18 @@ public class TowerAsset : ScriptableObject
         [Tooltip("잠금·피해 적용 주기(초). AttackSpeed 원장을 거쳐 실제 틱 간격이 줄어든다.")]
         public float TickInterval = 1f;
 
-        [Tooltip("틱마다 각 대상에게 들어가는 피해(대상별 동일, 유지 시간 가중치 없음).")]
+        [Tooltip("틱마다 각 대상에게 들어가는 피해. LockRamp 미저작이면 대상별로 동일하다.")]
         public float DamagePerTick;
+
+        // 대상별 조준 유지 램프(#300). **미저작(MaxStacks 0)이면 기존 균일 지속딜 그대로**라
+        // multi_inferno_tower의 거동이 변하지 않는다. MaxTargets=1 + 이 값 = 단일 인페르노.
+        //
+        // ⚠ 이 램프는 `Ramp`(원장형)와 **다른 축**이다. 원장은 타워 단위라 대상이 바뀌어도 배율이
+        // 유지되고 그 타워의 다른 액션·DoT까지 함께 강해진다 — "한 놈을 오래 지질수록 아프다"는
+        // 정체성은 그렇게 표현할 수 없다. 그래서 BeamAction이 대상별로 따로 센다.
+        [Tooltip("같은 대상을 계속 잠글수록 피해가 오르는 램프. StackInterval초마다 한 단계씩 오르고, " +
+                 "대상이 죽거나 사거리를 벗어나면 0에서 다시 시작한다. 비워두면 균일 지속딜(기존 거동).")]
+        public NorthLand.Combat.RampProfile LockRamp;
     }
 
     // 성장(램프업) 저작 묶음(#300). 계기와 축은 여기서, 수치는 공용 부품 `RampProfile`이 소유한다 —

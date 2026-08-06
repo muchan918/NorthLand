@@ -239,6 +239,20 @@ MonoBehaviour:
       Resets when the wave ends.'
     m_Metadata:
       m_Items: []
+  - m_Id: 6219949113253888
+    m_Localized: Single Inferno Tower
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6219949146808320
+    m_Localized: Focused Melter
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6219949146808321
+    m_Localized: "Burns a single target, ramping up the longer the lock holds: +50%
+      per second, 4x at 6s (8 \u2192 32 DPS). Resets if the target dies or leaves
+      range."
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []
