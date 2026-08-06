@@ -42,6 +42,11 @@ public class TowerAsset : ScriptableObject
     [Header("성장(램프업)")]
     public RampFields Ramp;
 
+    // 사각 레이저 즉시타(#300). 투사체가 없고 대상을 잠그지도 않는 세 번째 공격 축이라
+    // Attack·Beam과 완전히 분리된 자기 블록을 쓴다.
+    [Header("레이저(사각 범위 즉시타)")]
+    public LaserFields Laser;
+
     // 이 타워가 대상에게 거는 효과와 그 수치(#274 Phase 4). 인스펙터에서 `+ Burn`, `+ Slow`를 골라 붙인다.
     //
     // **공격 액션과 디버프 오라가 같은 리스트를 공유한다** — "맞으면 화상"과 "장판에 화상"은 거는 방식만
@@ -68,8 +73,10 @@ public class TowerAsset : ScriptableObject
     /// 표현할 수 없었다. 최댓값을 쓰면 공격+오라 하이브리드 타워도 자연히 커버된다.
     public float PreviewRadius => Mathf.Max(
         Mathf.Max(
-            Attack != null ? Attack.AttackRange : 0f,
-            Beam != null ? Beam.Range : 0f),
+            Mathf.Max(
+                Attack != null ? Attack.AttackRange : 0f,
+                Beam != null ? Beam.Range : 0f),
+            Laser != null ? Laser.Range : 0f),
         Mathf.Max(
             BuffAura != null ? BuffAura.Radius : 0f,
             DebuffAura != null ? DebuffAura.Radius : 0f));
@@ -109,7 +116,7 @@ public class TowerAsset : ScriptableObject
         }
 
         var actions = tower.Actions;
-        bool hasAttack = false, hasBuff = false, hasDebuff = false, hasBeam = false, hasRamp = false;
+        bool hasAttack = false, hasBuff = false, hasDebuff = false, hasBeam = false, hasRamp = false, hasLaser = false;
         var seen = new HashSet<System.Type>();
 
         for (int i = 0; i < actions.Count; i++)
@@ -133,6 +140,7 @@ public class TowerAsset : ScriptableObject
             hasDebuff |= a is NorthLand.Combat.DebuffAuraAction;
             hasBeam |= a is NorthLand.Combat.BeamAction;
             hasRamp |= a is NorthLand.Combat.RampAction;
+            hasLaser |= a is NorthLand.Combat.LaserAction;
         }
 
         // ── 액션 ↔ 수치 짝 검사 ────────────────────────────────────────────
@@ -213,6 +221,34 @@ public class TowerAsset : ScriptableObject
         if (hasBeam && beamAuthored && Beam.TickInterval <= 0f)
             Debug.LogWarning($"[TowerAsset] {name}: BeamAction이 있는데 Beam.TickInterval이 0 이하입니다 " +
                              "— 매 프레임 재잠금·재적용이 돌아 비용이 폭주할 수 있습니다.", this);
+
+        // ── 레이저(LaserAction) ↔ 수치 짝 검사(#300) ────────────────────────
+        bool laserAuthored = Laser != null && Laser.Damage > 0f && Laser.Width > 0f && Laser.Range > 0f;
+        if (hasLaser && !laserAuthored)
+            Debug.LogWarning($"[TowerAsset] {name}: 프리팹에 LaserAction이 있는데 Laser 수치가 비었습니다 " +
+                             "(Damage/Width/Range 중 0) — 배치해도 쏘지 않습니다.", this);
+        if (!hasLaser && laserAuthored)
+            Debug.LogWarning($"[TowerAsset] {name}: Laser 수치를 적었는데 프리팹에 LaserAction이 없습니다 " +
+                             "— 이 수치는 아무도 읽지 않습니다.", this);
+
+        if (hasLaser && laserAuthored && Laser.Interval <= 0f)
+            Debug.LogWarning($"[TowerAsset] {name}: LaserAction이 있는데 Laser.Interval이 0 이하입니다 " +
+                             "— 매 프레임 발사·박스 판정이 돌아 비용이 폭주합니다.", this);
+
+        // 차징 저작 규칙. 둘 다 "예외 없이 조용히 의도가 사라지는" 조합이다.
+        if (hasLaser && laserAuthored && Laser.ChargeRamp != null && Laser.ChargeRamp.IsAuthored)
+        {
+            if (Laser.ChargeRamp.StackInterval <= 0f)
+                Debug.LogWarning($"[TowerAsset] {name}: Laser.ChargeRamp의 StackInterval이 0 이하입니다 — " +
+                                 "충전은 경과 시간으로 단계를 세므로 폭이 영원히 기본값에 머뭅니다.", this);
+
+            // 이 조건이 깨지면 정상 연사만으로도 스택이 쌓여 "참을수록 두꺼워진다"가 사라진다.
+            else if (Laser.ChargeRamp.StackInterval < Laser.Interval)
+                Debug.LogWarning($"[TowerAsset] {name}: Laser.ChargeRamp.StackInterval" +
+                                 $"({Laser.ChargeRamp.StackInterval})이 Laser.Interval({Laser.Interval})보다 " +
+                                 "짧습니다 — 쉬지 않고 쏘는 중에도 충전이 쌓여 얇은 레이저가 나오지 않습니다. " +
+                                 "StackInterval ≥ Interval로 맞추세요.", this);
+        }
 
         // 대상별 조준 유지 램프(#300). 셋 다 "예외 없이 조용히 램프가 사라지는" 조합이다.
         bool lockRampAuthored = Beam != null && Beam.LockRamp != null && Beam.LockRamp.IsAuthored;
@@ -331,6 +367,36 @@ public class TowerAsset : ScriptableObject
         public NorthLand.Combat.RampTrigger Trigger = NorthLand.Combat.RampTrigger.Hit;
 
         public NorthLand.Combat.RampProfile Profile = new NorthLand.Combat.RampProfile();
+    }
+
+    // 사각 레이저 즉시타 + 차징(#300). `Attack`을 쓰지 않는 이유: `AttackAction`이 없는 프리팹에
+    // 공격 수치를 적으면 OnValidate가 "아무도 읽지 않는다"고 경고한다(BeamFields가 분리된 것과 같다).
+    [System.Serializable]
+    public class LaserFields
+    {
+        public float Range;
+
+        [Tooltip("미충전 상태의 레이저 폭. 충전 배율(ChargeRamp)이 여기 곱해진다.")]
+        public float Width = 2f;
+
+        [Tooltip("판정 박스의 세로 높이. 지면 기준이라 넉넉히(3~5) 주면 발사 높이와 무관하게 지상 적을 덮는다.")]
+        public float Height = 4f;
+
+        [Tooltip("미충전 상태의 피해. 충전분은 DamagePerStack이 절댓값으로 더한다.")]
+        public float Damage;
+
+        [Tooltip("발사 주기(초). AttackSpeed 원장을 거쳐 실제 간격이 줄어든다.")]
+        public float Interval = 1.5f;
+
+        // ⚠ **StackInterval ≥ Interval로 저작할 것.** 그래야 정상 연사 중에는 스택이 0~1에 머물러
+        // 얇은 레이저가 나가고, 참을 때만 두꺼워진다. "쿨타임이 돈 뒤부터 충전"을 액션 간 결합 없이
+        // 수치로 표현하는 방법이다(AttackAction의 private 쿨다운을 들여다보지 않는다).
+        [Tooltip("충전: StackInterval초마다 한 단계씩, PerStack이 폭 배율(0.25 = 단계당 +25%), MaxStacks가 상한. " +
+                 "비워두면 충전 없는 평범한 즉시 레이저가 된다.")]
+        public NorthLand.Combat.RampProfile ChargeRamp;
+
+        [Tooltip("충전 한 단계당 공격력 +절댓값(배율이 아니다). 기본 공격력과 독립적으로 밸런싱하기 위한 것.")]
+        public float DamagePerStack;
     }
 }
 

@@ -253,6 +253,20 @@ MonoBehaviour:
       range."
     m_Metadata:
       m_Items: []
+  - m_Id: 6325615991627776
+    m_Localized: Charging Cannon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6325616020987904
+    m_Localized: Charged Line Blast
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6325616020987905
+    m_Localized: "Fires a rectangular laser that hits every enemy in the box at once.
+      Holding fire widens the beam and raises damage (one step per 2s, up to 5) \u2014
+      firing resets it."
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

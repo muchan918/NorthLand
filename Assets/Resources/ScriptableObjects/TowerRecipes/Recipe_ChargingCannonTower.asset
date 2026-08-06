@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 859521b250c8be343b7927656fda76f7, type: 3}
+  m_Name: Recipe_ChargingCannonTower
+  m_EditorClassIdentifier: Assembly-CSharp::TowerRecipe
+  Materials:
+  - Tower: {fileID: 11400000, guid: a752545bbde5030438f8995ae4ee0849, type: 2}
+    Count: 3
+  Result: {fileID: 11400000, guid: 0c81e78b78459134cb457aeed52d82b9, type: 2}
+  ExtraCost: []
+  InheritEffects: 0

@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
+  m_Name: charging_cannon_tower
+  m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
+  TowerID: charging_cannon_tower
+  TowerPrefab: {fileID: 3104185744962560807, guid: 12ab43e7a311a3a4caaf2ec7e0d64a31, type: 3}
+  GhostPrefab: {fileID: 3104185744962560807, guid: 9f29ea011e6c6fa468a7e9ff77a8366a, type: 3}
+  Cost: []
+  Attack:
+    AttackDamage: 0
+    AttackRange: 0
+    AttackInterval: 0
+    ProjectilePrefab: {fileID: 0}
+    Flight:
+      rid: -2
+    PelletCount: 1
+    SpreadAngle: 0
+  Impact: 0
+  SplashRadius: 0
+  ChainRadius: 0
+  MaxChainTargets: 0
+  ChainDamageFalloff: 0
+  BuffAura:
+    Radius: 0
+    Modifiers: []
+    Damage:
+      HasDamage: 0
+      DamageAmount: 0
+      TickInterval: 0
+  DebuffAura:
+    Radius: 0
+    Interval: 0
+  Beam:
+    Range: 0
+    MaxTargets: 1
+    TickInterval: 1
+    DamagePerTick: 0
+    LockRamp:
+      PerStack: 0
+      MaxStacks: 0
+      StackInterval: 0
+      DecaySeconds: 0
+  Ramp:
+    Stat: 2
+    Trigger: 0
+    Profile:
+      PerStack: 0
+      MaxStacks: 0
+      StackInterval: 0
+      DecaySeconds: 0
+  Laser:
+    Range: 28
+    Width: 2
+    Height: 4
+    Damage: 18
+    Interval: 1.5
+    ChargeRamp:
+      PerStack: 0.25
+      MaxStacks: 5
+      StackInterval: 2
+      DecaySeconds: 0
+    DamagePerStack: 12
+  Effects: []
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
