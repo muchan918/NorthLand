@@ -51,7 +51,7 @@ public class ResidentSelectable : MonoBehaviour, IGroupSelectable, IHoverable, I
     //
     // **호버 노랑은 살려 둔다.** 이전에는 상한 0이면 주민을 Selectable 레이어에서 내려 레이캐스트
     // 자체를 끊었는데, 그러면 호버·툴팁까지 사라져 "고를 수 없다"와 "대상이 아니다"가 구분되지 않고
-    // 나중에 거절 피드백을 걸 자리도 없어진다(WL-154).
+    // 나중에 거절 피드백을 걸 자리도 없어진다(WL-158).
     public bool AllowsOutline(OutlineKind kind)
     {
         if (kind != OutlineKind.Selected)

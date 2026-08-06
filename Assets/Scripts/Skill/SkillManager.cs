@@ -27,6 +27,8 @@ public class SkillManager : MonoBehaviour
     [Header("연출")]
     [SerializeField] GameObject impactEffectPrefab;
     [SerializeField] AudioClip impactSfx;
+    [Tooltip("마법 연구소 레벨별 착탄 이펙트. 비우거나 해당 레벨 엔트리가 없으면 impactEffectPrefab 사용")]
+    [SerializeField] SkillVisualSet _visualSet;
 
     // 마법 연구소(#205) — 레벨 비례로 기본 스탯(damage/radius/cooldown)을 배율 강화한다.
     // 컨트롤러는 레벨(int)만 노출하고, 레벨→배율 매핑은 `_magicLabAsset.Skill.UpgradeLevels`(SO)에
@@ -55,6 +57,10 @@ public class SkillManager : MonoBehaviour
     float effectiveRadius;
     float effectiveCooldown;
     int lastMagicLabLevel = -1; // 레벨 변경 시에만 로그를 남기기 위한 캐시(-1: 최초 1회는 무조건 로그).
+
+    // 레벨별 착탄 이펙트. 레벨이 바뀔 때만 조회하면 되므로 RefreshUpgrade에서 캐싱한다
+    // (effectiveDamage 등을 미리 계산해 두는 것과 같은 이유).
+    SkillVisualSet.LevelVisual _currentVisual;
 
     public float Radius => effectiveRadius;
     public bool IsReady => cooldownTimer <= 0f;
@@ -131,6 +137,8 @@ public class SkillManager : MonoBehaviour
             effectiveRadius = radius;
             effectiveCooldown = cooldown;
         }
+
+        _currentVisual = _visualSet != null ? _visualSet.Resolve(level) : null;
 
         if (level != lastMagicLabLevel)
         {
@@ -243,10 +251,22 @@ public class SkillManager : MonoBehaviour
     // 테스트 하네스 전용: 검증용으로 소모한 쿨다운을 즉시 리셋해 인터랙티브 테스트를 바로 이어갈 수 있게 한다.
     public void DebugResetCooldown() => cooldownTimer = 0f;
 
+
+    // 착탄 이펙트: 마법 연구소 레벨에 맞는 프리팹(_currentVisual)을 쓰고, 세트가 없거나
+    // 해당 레벨 엔트리가 없으면 기존 impactEffectPrefab으로 폴백한다.
     void ApplyImpact(Vector3 position)
     {
-        if (impactEffectPrefab != null)
-            Instantiate(impactEffectPrefab, position, Quaternion.identity);
+        SkillVisualSet.LevelVisual entry = _currentVisual;
+        GameObject prefab = entry != null ? entry.Prefab : impactEffectPrefab;
+
+        if (prefab != null)
+        {
+            var go = Instantiate(prefab, position, Quaternion.identity);
+            // 연구소는 RadiusMultiplier도 올린다. 이펙트 크기만 그대로면 인디케이터와 어긋나 티가 난다
+            // (SkillRangeIndicator가 aura를 Radius에 맞춰 스케일하는 것과 같은 맥락).
+            if (entry != null && entry.ScaleWithRadius && radius > 0f)
+                go.transform.localScale *= effectiveRadius / radius;
+        }
 
         if (impactSfx != null)
             AudioSource.PlayClipAtPoint(impactSfx, position);

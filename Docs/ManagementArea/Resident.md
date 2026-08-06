@@ -1307,11 +1307,11 @@ OK path=Assets/Behavior/ResidentBehavior.asset nodes=15 linkedAgents=9
 **상한 = 유휴 주민 수 = `MaxVillagers − AssignedTotal`.** 드래그 결과를 **선택 순서대로** 잘라낸다(상한 2면 5명을 담아도 먼저 담긴 2명). `MaxVillagers`를 읽는 두 번째 소비처가 이렇게 생겼다.
 
 > ⚠ **상한은 집합만 막는다 — 초록 표시는 다른 경로다.** 단일 클릭의 초록은 코디네이터가 아니라 `OutlineInteractionDriver`가 `MouseManager.OnSelectionChanged`로 **직접** 켠다. 그래서 코디네이터가 집합을 거부해도 초록은 그대로 떴다(실제 버그였다: 드래그는 막히는데 단일 클릭은 통과). 표시를 막는 자리는 `IOutlineKindFilter.AllowsOutline(kind)` 하나뿐이다.
-> ⚠ **호버 노랑은 살려 둔다.** 처음에는 상한 0이면 주민을 Selectable 레이어에서 내려 레이캐스트를 끊었는데, 그러면 호버·툴팁까지 사라져 **"고를 수 없다"와 "대상이 아니다"가 구분되지 않고** 나중에 거절 피드백(흔들림·토스트)을 걸 자리도 없어진다(WL-154).
+> ⚠ **호버 노랑은 살려 둔다.** 처음에는 상한 0이면 주민을 Selectable 레이어에서 내려 레이캐스트를 끊었는데, 그러면 호버·툴팁까지 사라져 **"고를 수 없다"와 "대상이 아니다"가 구분되지 않고** 나중에 거절 피드백(흔들림·토스트)을 걸 자리도 없어진다(WL-158).
 
 **`OnSelectionChanged`가 아니라 `OnPrimarySelect`를 구독한다.** 전자는 중복 제거되어 같은 대상을 다시 클릭하면 발행되지 않는다 — 빈 곳 클릭으로 해제하는 경로가 조용히 죽는다.
 
-**밤에는 전부 비운다.** `DayNightManager.OnDayToNight`에서 진행 중인 드래그 상태까지 함께 리셋한다(주민이 존재하지 않는 페이즈다, §3.3). ⚠ 밤 일괄 수거로 참가자가 전원 사라지면 대화 세션은 `Resident.OnDisable`이 참조를 끊어 GC되지만 **해산 쿨다운이 남지 않는다** — 아침에 같은 짝이 즉시 다시 성립할 수 있다(WL-155).
+**밤에는 전부 비운다.** `DayNightManager.OnDayToNight`에서 진행 중인 드래그 상태까지 함께 리셋한다(주민이 존재하지 않는 페이즈다, §3.3). ⚠ 밤 일괄 수거로 참가자가 전원 사라지면 대화 세션은 `Resident.OnDisable`이 참조를 끊어 GC되지만 **해산 쿨다운이 남지 않는다** — 아침에 같은 짝이 즉시 다시 성립할 수 있다(WL-159).
 
 > 코디네이터는 씬 배선 없이 `RuntimeInitializeOnLoadMethod(AfterSceneLoad)`로 자가 부팅한다(`OutlineInteractionDriver`·`TowerGroupSelectable`과 같은 계보 — 정본 씬 병합 규칙 회피). `ManagementController`를 못 찾으면 **120프레임 간격으로** 재시도한다(매 프레임 씬 탐색 금지).
 
