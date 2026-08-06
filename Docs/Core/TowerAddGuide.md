@@ -278,6 +278,15 @@ unity-cli editor refresh --compile
 4가지가 그 파일 상단에 명문화돼 있다: ① 수치를 갖지 않는다(전부 SO) ② 씬 배선은 `Owner`를 통해 읽는다
 ③ 런타임 상태는 `[NonSerialized]` ④ 소스 키는 `SourceId`를 쓴다. 생명주기 규약은 [Tower.md](Tower.md) §3.3.
 
+> ⚠ **히트스캔(빔)형 공격 액션은 투사체 기반 보상 효과에서 제외된다.** 버프 화상(#169,
+> [BurnBuff.cs](../../Assets/Scripts/Skill/BurnBuff.cs))처럼 `Projectile.DamageDealt` 이벤트를 구독하는
+> 보상 효과는 실제 `Projectile`을 생성하는 공격에만 적용된다. `BeamAction`처럼 `LineRenderer`로
+> 즉시 판정하는 히트스캔 공격은 이 이벤트를 발행하지 않아 자동으로 제외되고, 이는 버그가 아니라
+> 설계 의도다(보상 텍스트도 "투사체 타워"로 스코프됨). **향후 체이닝 타워·빔형 공격 등 새 히트스캔
+> `TowerAction`을 추가할 때도 기본적으로 같은 축에서 제외된다** — 그 공격에도 이 보상이 적용되길
+> 원하면 해당 액션의 `ApplyToLocked`(또는 동급 지점)에서 같은 `Projectile.DamageDealt`를 직접
+> 발행해야 한다.
+
 > **공통** — 인스펙터 드롭다운에 뜨려면 **구상 클래스 · 비제네릭 · public 무인자 생성자**여야 한다.
 > 클래스를 rename하면 기존 에셋·프리팹에 null 항목이 남으므로 `[MovedFrom]`을 붙일 것.
 
