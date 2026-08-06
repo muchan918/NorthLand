@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
+  m_Name: rampup_tower
+  m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
+  TowerID: rampup_tower
+  TowerPrefab: {fileID: 6801833135963741600, guid: 22f90d4dfb6e7b84088c84393944b9af, type: 3}
+  GhostPrefab: {fileID: 6801833135963741600, guid: 17f7b303891c39a48b5a798c7cf7bb6e, type: 3}
+  Cost: []
+  Attack:
+    AttackDamage: 6
+    AttackRange: 12
+    AttackInterval: 0.8
+    ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
+    Flight:
+      rid: 3470829504553025638
+    PelletCount: 1
+    SpreadAngle: 0
+  Impact: 0
+  SplashRadius: 0
+  ChainRadius: 0
+  MaxChainTargets: 0
+  ChainDamageFalloff: 0
+  BuffAura:
+    Radius: 0
+    Modifiers: []
+    Damage:
+      HasDamage: 0
+      DamageAmount: 0
+      TickInterval: 0
+  DebuffAura:
+    Radius: 0
+    Interval: 0
+  Beam:
+    Range: 0
+    MaxTargets: 1
+    TickInterval: 1
+    DamagePerTick: 0
+  Ramp:
+    Stat: 2
+    Trigger: 0
+    Profile:
+      PerStack: 0.08
+      MaxStacks: 10
+      StackInterval: 0
+      DecaySeconds: 2
+  Effects: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 3470829504553025638
+      type: {class: HomingFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
+      data:
+        Speed: 320
+        ArcHeight: 0

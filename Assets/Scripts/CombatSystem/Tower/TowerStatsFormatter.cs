@@ -38,6 +38,16 @@ namespace NorthLand.Combat
                 ? $"DPS: {dps:0.#} × {maxTargets}"
                 : null;
 
+        /// 성장(램프업) 한 줄 — 현재 스택/상한과 그 배율(#300).
+        ///
+        /// ⚠ 정보 패널은 **선택 시점 스냅샷**이라 이 줄은 실시간으로 갱신되지 않는다. 그래서 현재
+        /// 값만 쓰지 않고 상한을 함께 낸다 — 플레이어가 "이 타워가 어디까지 자라는가"를 알 수 있어야
+        /// 한 장면의 숫자가 전부인 것으로 오해하지 않는다.
+        public static string BuildRampLine(TowerStat stat, int stacks, int maxStacks, float multiplier)
+            => maxStacks > 0
+                ? $"Ramp({stat}): {stacks}/{maxStacks} ×{multiplier:0.##}"
+                : null;
+
         /// 감속 한 줄. 감속이 없으면(배율 1) null.
         public static string BuildSlowLine(float slowMultiplier)
             => slowMultiplier < 1f

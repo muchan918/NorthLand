@@ -195,6 +195,18 @@ MonoBehaviour:
     m_Key: towers.multi_inferno.desc
     m_Metadata:
       m_Items: []
+  - m_Id: 6166220603301888
+    m_Key: towers.rampup.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6166220632662016
+    m_Key: towers.rampup.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6166220632662017
+    m_Key: towers.rampup.desc
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

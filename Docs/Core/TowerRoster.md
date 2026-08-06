@@ -20,6 +20,7 @@
 | `triple_shoot_tower` | 산탄 | 합성 전용 | 아처×3 (`Recipe_tripleshootTower`) | #298 신규 — 아처 개수 = 펠릿 수(총알 3발 동시 발사). 아래 "아처 계열 재료 개수 규약" 참조 |
 | `boomerang_tower` | 부메랑 | 합성 전용 | 아처×1 + 캐논×2 (`Recipe_BoomerangTower`) | #298 신규 — 원안(아처×2+캐논×1)이 기존 `Recipe_Example_Sniper`와 겹쳐 비율을 뒤집음 |
 | `multi_inferno_tower` | 멀티인페르노 | 합성 전용 | 개틀링×2 + 포이즌×1 (`Recipe_multiinfernoTower`) | #298 신규 |
+| `rampup_tower` | 램프업 | 합성 전용 | 개틀링×1 + 헤이스트×1 (`Recipe_RampUpTower`) | #300 신규 — 명중할수록 공속이 오르는 성장형. 공속을 올리는 재료(개틀링=동시 사격, 헤이스트=공속 버프)끼리 묶었다. 획득 경로는 이슈 제안대로 **사인오프 완료**(2026-08-06) |
 | `gatling_tower` | 개틀링 | 합성 전용 ⚠ | 아처×2 (`Recipe_Example_Gatling`) | 아처 개수 = 동시 사격 문수(2기가 함께 쏘는 개념 → 공속 상승). **획득 경로**는 #298(커밋 1b69373)에서 직접배치 제외로 전환 — #282 표엔 없는 신규 판단, 팀 사인오프 미완료(WL-156) |
 | `Sniper_tower` | 스나이퍼 | 합성 전용 ⚠ | 아처×1 + 캐논×1 (`Recipe_Example_Sniper`) | 위와 동일(WL-156) |
 | `lightning_tower` | 번개사슬 | **없음(획득 불가)** | — | #282 후보#3 — SO만 존재, 레시피·프리팹 미배선. 별도 착수 필요 |
