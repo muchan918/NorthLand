@@ -81,6 +81,19 @@ public static class ResidentBehaviorGraphBuilder
     // 이것이 없으면 나란히 걷는 두 명이 구간마다 다시 굴려져 "확률로 거른다"가 무너진다.
     private const float EncounterFailCooldownSeconds = 8f;
 
+    // 한 대화의 최대 인원(§7.1 진행 중 합류). 2면 합류가 꺼져 기존 2인 전용과 같아진다.
+    //
+    // 3으로 둔다. 원주 배치의 반지름이 `distance / (2·sin(π/N))`이라 3명이면 2.31로,
+    // 2명일 때의 2.0에서 거의 커지지 않아 골목을 막지 않는다. 4명이면 2.83까지 벌어진다.
+    private const int ConversationMaxParticipants = 3;
+
+    // 진행 중인 대화에 끼어들 확률(자기 사교성이 곱해진다).
+    //
+    // 새로 여는 확률(0.05)과 별개 축이다 — 이미 모여 있는 무리에 끌리는 정도가 더 높다고 보고 2배로 둔다.
+    // **산술로 잡은 첫 값이고, 3인 대화가 너무 흔하지 않은지 눈으로 보고 조정할 대상이다**
+    // (EncounterChance와 같은 성격의 미해결 수치).
+    private const float ConversationJoinChance = 0.10f;
+
     // 해산 후 같은 상대와 다시 성립하지 않는 시간(초). 없으면 두 명이 영원히 인사만 한다.
     private const float ConversationDisbandCooldownSeconds = 30f;
 
@@ -568,6 +581,8 @@ public static class ResidentBehaviorGraphBuilder
         tryStart.SetField("FailCooldownSeconds", EncounterFailCooldownSeconds);
         tryStart.SetField("MinTurns", MinTurns);
         tryStart.SetField("MaxTurns", MaxTurns);
+        tryStart.SetField("MaxParticipants", ConversationMaxParticipants);
+        tryStart.SetField("JoinChance", ConversationJoinChance);
 
         pick.SetField("Agent", self, typeof(ResidentAgent));
         pick.SetField("Destination", destination, typeof(Vector3));

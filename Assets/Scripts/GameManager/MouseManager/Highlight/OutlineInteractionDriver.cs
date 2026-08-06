@@ -107,12 +107,12 @@ public class OutlineInteractionDriver : MonoBehaviour
 
     private void HandleHoverChanged(IHoverable hoverable)
     {
-        Swap(ref _hovered, Resolve(hoverable), OutlineKind.Hover);
+        Swap(ref _hovered, Resolve(hoverable, OutlineKind.Hover), OutlineKind.Hover);
     }
 
     private void HandleSelectionChanged(ISelectable selectable)
     {
-        Swap(ref _selected, Resolve(selectable), OutlineKind.Selected);
+        Swap(ref _selected, Resolve(selectable, OutlineKind.Selected), OutlineKind.Selected);
     }
 
     private static void Swap(ref OutlineHighlight current, OutlineHighlight next, OutlineKind kind)
@@ -126,12 +126,20 @@ public class OutlineInteractionDriver : MonoBehaviour
 
     // 대상 GameObject 결정: 기본은 히트한 컴포넌트의 GameObject지만, IOutlineTargetProvider가 있으면
     // 그쪽이 지정한 대상을 쓴다(영지 노드는 상태에 따라 시각물이 회오리↔섬으로 갈린다, §5.4).
-    private static OutlineHighlight Resolve(object target)
+    //
+    // 종류(kind)를 함께 받는 이유: 대상이 **종류별로** 표시를 거부할 수 있다(IOutlineKindFilter).
+    // 주민은 가용 인원이 0일 때 선택 초록만 막고 호버 노랑은 살려 둔다 — 한쪽만 끄려면
+    // IOutlineTargetProvider(호버·선택 공용)로는 표현할 수 없다.
+    private static OutlineHighlight Resolve(object target, OutlineKind kind)
     {
         var component = target as Component;
         if (component == null) return null; // 해제(null) 또는 MonoBehaviour가 아닌 구현
 
         GameObject go = component.gameObject;
+
+        // 거부는 오류가 아니라 정상 경로 — "이 대상은 지금 이 종류의 아웃라인 없음"이다.
+        if (go.TryGetComponent(out IOutlineKindFilter filter) && !filter.AllowsOutline(kind)) return null;
+
         if (go.TryGetComponent(out IOutlineTargetProvider provider)) go = provider.OutlineTarget;
 
         return go == null ? null : OutlineHighlight.GetOrAdd(go);

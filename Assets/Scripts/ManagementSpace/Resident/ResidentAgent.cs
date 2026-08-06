@@ -21,6 +21,9 @@ public class ResidentAgent : MonoBehaviour
     private const string IdleState = "Idle";
 
     private NavMeshAgent navAgent;
+
+    // 프리팹이 정한 회피 방식. 대화 중에는 회피를 끄고, 끝나면 이 값으로 되돌린다.
+    private ObstacleAvoidanceType baseAvoidance;
     private Animator animator;
     private Resident resident;
 
@@ -46,6 +49,9 @@ public class ResidentAgent : MonoBehaviour
     {
         navAgent = GetComponent<NavMeshAgent>();
         baseSpeed = navAgent != null && navAgent.speed > 0f ? navAgent.speed : 1f;
+
+        // 프리팹이 정한 회피 방식. 대화 중 잠시 껐다가 이 값으로 되돌린다(SetStationaryHold).
+        baseAvoidance = navAgent != null ? navAgent.obstacleAvoidanceType : ObstacleAvoidanceType.HighQualityObstacleAvoidance;
 
         // 자식까지 탐색: Animator는 모델 자식에 붙는 프리팹 구성이 흔하다(EnemyAgent와 같은 이유, WL-093).
         animator = GetComponentInChildren<Animator>();
@@ -195,6 +201,24 @@ public class ResidentAgent : MonoBehaviour
 
     // 걷던 것을 잠깐 멈춘다(R15 휴식). **경로를 지우지 않는다** —
     // StopMoving은 ResetPath까지 하므로 여기에 쓸 수 없다. 재개하면 가던 길을 그대로 이어 간다.
+    /// 제자리에 **못을 박는다**. 대화 중 서 있는 동안 켠다.
+    ///
+    /// `isStopped`만으로는 부족하다 — 정지한 `NavMeshAgent`도 지역 회피 해에 따라 밀려난다.
+    /// 그래서 원래 버그(걸어가던 주민이 대화 중인 둘을 밀어냄)가 났고, 회피물을 세웠을 때는
+    /// **회피물이 참가자를 밀어내 무한히 튕겨 나가는 되먹임**이 났다(중심거리 5 → 47, 속도 65 실측).
+    ///
+    /// 자기 회피를 끄면 남이 밀어도, 회피물이 밀어도 움직이지 않는다. 반대로 **남들은 여전히 이 주민을
+    /// 피해 간다** — 회피는 각자 자기 몫을 푸는 것이고, 끄는 것은 "내가 남을 피하지 않는다"일 뿐이다.
+    public void SetStationaryHold(bool hold)
+    {
+        if (navAgent == null)
+        {
+            return;
+        }
+
+        navAgent.obstacleAvoidanceType = hold ? ObstacleAvoidanceType.NoObstacleAvoidance : baseAvoidance;
+    }
+
     public void PauseMovement()
     {
         if (navAgent == null || !navAgent.isOnNavMesh)

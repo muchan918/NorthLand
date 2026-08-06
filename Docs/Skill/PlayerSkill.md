@@ -14,6 +14,7 @@
 | `SkillEffect` (추상) | 특수효과 공통 베이스(MonoBehaviour, `SkillEffectManager` 오브젝트에 부착). 레벨·상한 소유 + 스킬 이벤트 구독 관리 + 표시 수치 제공(`GetStatSummary`) |
 | `SkillStatsFormatter` | 보상 카드 표시 문자열의 단일 출처(#287). 라벨 조회(`NorthLand_Skills`)와 숫자 서식이 여기 한 곳에만 있다 — `TowerStatsFormatter` 대응 |
 | `SkillCastContext` / `BuffCastContext` | 시전 1회의 정보 묶음. 효과들이 읽고(위치/맞은 적/지속시간), 일부 필드는 효과가 써넣는다(`ExtraImpacts`) |
+| `SkillVisualSet` | 마법 연구소 레벨 → 감전 착탄 이펙트 프리팹 매핑 SO(`Assets/Resources/ScriptableObjects/Skill/`). `Resolve(level)`로 구간 조회, `SkillManager`가 레벨 변경 시에만 캐싱 |
 
 ## 2. 핵심 구조 — 이벤트 구독 (#169 확정)
 
@@ -51,13 +52,25 @@
 - 반복 임팩트(Count)에서도 Burn/Bomb이 정상 발동한다 — 조합 시너지 의도.
 - **웨이브 종료 시** 진행 중이던 추가시전 반복분·미폭발 폭탄은 취소된다(§5 규약, #200).
 
-### 3.1 마법 연구소 기본 스탯 배율 (#205, 보상 축과 독립)
+### 3.1 마법 연구소 강화 (#205, 보상 축과 독립) — 기본 스탯 배율
 
 마법 연구소(`magic_lab`) 업그레이드 레벨은 위 보상 특수효과(`SkillEffect.Level`)와는 **완전히 별개인 두 번째 축**이다 —
 연구소 레벨 = **기본 스탯 배율**(`SkillManager`의 damage/radius/cooldown, `BuffSkillManager`의 공격력·공속 배율/지속시간/쿨다운), 보상 = **특수 효과 레벨**(불변). 두 축은 동시 스택된다(`BuildingUpgrade.md` §8 착지점 확정).
 
 - `SkillManager`/`BuffSkillManager`가 `ManagementController.GetUpgradeLevel(magicLabAsset)`로 레벨(int)만 pull하고, 레벨→배율 매핑(인스펙터 authoring 리스트, 수치 placeholder)은 각 스킬 클래스가 소유한다. `ManagementController`는 "스킬"을 전혀 모른다.
 - 시전 시점에 캐싱된 유효값(`effectiveDamage` 등)을 사용 — `ImpactResolved`/`BuffResolved` 이벤트 발행이나 `SkillEffect` 구독 흐름은 건드리지 않는다. 보상 효과들은 여전히 자기 소유 필드 × `Level`로 완전히 독립 계산한다(§3 표 참고).
+
+### 3.2 마법 연구소 착탄 이펙트 교체 (#206)
+
+연구소 레벨은 기본 스탯 배율(§3.1)뿐 아니라 **감전 착탄 이펙트 프리팹**도 바꾼다. 같은 축(연구소 레벨)의 두 번째 효과이며, 보상 특수효과(§3)와는 여전히 독립이다.
+
+- 매핑은 `magic_lab.asset`이 아니라 **별도 SO(`SkillVisualSet`)** 가 소유한다. 배율은 도달 비용과 같은 리스트에 있어야 레벨 개수가 어긋나지 않지만(§3.1, PR#216), 이펙트는 **레벨마다 하나씩 있을 필요가 없어** 요구 조건이 다르다. 데이터 SO에 뷰 에셋 참조를 섞지 않으려는 의도도 있다.
+- **희소 매핑**: 각 엔트리의 `FromLevel`은 "이 레벨 **이상**에서 적용"을 뜻하고, `Resolve(level)`은 `FromLevel <= level` 중 가장 큰 것을 고른다. 연구소가 5레벨이어도 `0 / 3 / 5` 세 칸만 채우면 되고, 나중에 레벨이 늘어도 세트를 손댈 필요가 없다. **`FromLevel = 0` 엔트리는 넣어둘 것** — 없으면 레벨 0 구간에서 폴백으로 떨어져 이펙트가 안 보인다.
+- 조회 결과(`LevelVisual`)는 `SkillManager.RefreshUpgrade`에서 **레벨이 바뀔 때만** 캐싱한다(`_currentVisual`) — `effectiveDamage` 등을 미리 계산해 두는 것과 같은 이유로, 시전마다 리스트를 돌지 않는다.
+- `ApplyImpact`이 그 프리팹을 스폰한다. 세트 미배선이거나 해당 레벨 엔트리가 없으면 기존 `impactEffectPrefab`으로 **폴백**하므로, 세트를 비워두면 이 기능 도입 전과 동일하게 동작한다.
+- 엔트리별 `ScaleWithRadius`(기본 켬)를 켜면 이펙트 크기를 `effectiveRadius / radius` 비율로 보정한다 — 연구소가 `RadiusMultiplier`도 올리므로, 보정하지 않으면 조준 인디케이터 반경과 눈에 띄게 어긋난다.
+
+**축 경계 — 낙하·메테오 연출은 이 축이 아니다.** 이 축이 바꾸는 건 "착탄 지점에 무엇을 스폰하느냐"뿐이고, 스킬은 **즉발형 그대로**다(데미지는 `CastAt` 시점에 확정, 시전 흐름 `CastAt`/`RepeatImpactsAsync`/`ImpactResolved` 무수정). 하늘에서 떨어지는 메테오처럼 **이동 + 지연 데미지**가 필요한 연출은 보상 특수효과 축(§3, §4 절차)에 `SkillEffect` 파생으로 넣는다 — `BombEffect`+`SkillBomb`이 이미 "착탄 지점에 프리팹 소환 → 자체 타이머 → 자기 반경 데미지 → 웨이브 종료 시 발동 없이 소멸" 패턴을 확립해 뒀다. 그렇게 나누면 기본 감전 데미지는 즉발로 이미 들어간 뒤라 "적이 먼저 죽고 나중에 메테오가 떨어지는" 어색함도 생기지 않는다.
 
 ## 4. 새 특수효과 추가 절차
 
@@ -81,6 +94,8 @@
 - **효과는 ScriptableObject가 아니라 MonoBehaviour** — 구독 여부·레벨이 런타임 상태라 SO에 넣으면 에디터에서 에셋에 값이 남는다. 레벨은 런(run) 단위 리셋이 의도 동작(씬 생명주기).
 - **레벨 상한은 베이스가 소유한다(#292)** — `SkillEffect.maxLevel`(인스펙터, 기본 3)과 `NextLevel`/`IsMaxLevel`/`NextIsMaxLevel`이 전부 베이스에 있어 파생 4종은 클램프를 신경 쓰지 않는다. 만렙 효과를 후보에서 빼는 판정은 `WaveRewardController.CanOffer`가 소유하며, `WaveRewardPool`은 델리게이트만 받는다(SO가 씬 싱글톤을 모르게 하려는 경계). 상한값은 보상 종류 수와 함께 판단할 것 — GDD §5.6 참고.
 - **`SkillCastContext.HitTargets`는 재사용 버퍼** — 이벤트 처리 중에만 유효, 필드에 보관 금지.
+- **착탄 이펙트 프리팹은 스스로 끝나야 한다(§3.2)** — `ApplyImpact`은 `Instantiate`만 하고 수명을 관리하지 않는다. 프리팹 파티클의 `Stop Action`을 `Destroy`로 두는 것이 유일한 정리 수단이며, **자식 파티클이 하나라도 `Looping`이면 발동하지 않는다**(루트+자식이 모두 끝나야 트리거). 루프용 변형(`*_Loop_*`)을 쓸 때 특히 주의. 세트에 프리팹을 꽂을 때마다 확인할 것.
+- **`_currentVisual`은 레벨 변경 시에만 갱신된다(§3.2)** — 플레이 중 `SkillVisualSet`을 편집해도 즉시 반영되지 않는다. 튜닝 중이면 플레이를 재시작하거나 연구소를 한 단계 올려 `RefreshUpgrade`를 태울 것.
 - **`StatusEffectHandler` effectId 분리 규약**: 다른 id는 공존(각자 틱), 같은 id는 갱신. 현재 사용: 타워 오라=TowerID 해시, 감전 화상=`"skill_burn"` 해시, 버프 화상=`"buff_burn"` 해시. 새 도트 효과는 고유 문자열 해시로 분리할 것.
 - **`DamageInfo` source=null 규약**: 플레이어 스킬 계열은 `IAttacker` 개체가 아니므로 source를 null로 넘긴다(`SkillManager` 주석 참고).
 - **`Projectile.DamageDealt`는 static 이벤트** — 구독 해제는 구독자 책임. 파괴 경로(`OnDestroy`→`Unsubscribe`)에서 반드시 해제(`BurnBuff.DeactivateWindow` 참고).
