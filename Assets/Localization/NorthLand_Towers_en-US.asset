@@ -223,7 +223,20 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 6166220632662017
     m_Localized: Each hit makes it fire faster, up to +80%. Stacks decay one step
-      every 2s without a hit.
+      every 2s without a hit, and reset when the wave ends.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6203434620067840
+    m_Localized: Hunter Tower
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6203434653622272
+    m_Localized: Scaling Marksman
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6203434653622273
+    m_Localized: 'Every kill raises its damage: +15% per kill, up to 2.2x at 8 kills.
+      Resets when the wave ends.'
     m_Metadata:
       m_Items: []
   references:

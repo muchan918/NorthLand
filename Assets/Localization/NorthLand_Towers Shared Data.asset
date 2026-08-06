@@ -207,6 +207,26 @@ MonoBehaviour:
     m_Key: towers.rampup.desc
     m_Metadata:
       m_Items: []
+  - m_Id: 6203434620067840
+    m_Key: towers.killstack.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6203434653622272
+    m_Key: towers.killstack.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6203434653622273
+    m_Key: towers.killstack.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6206285891149824
+    m_Key: towers.killstack.desc 1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6206285920509952
+    m_Key: towers.rampup.desc 1
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

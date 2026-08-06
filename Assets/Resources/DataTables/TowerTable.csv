@@ -15,3 +15,4 @@ triple_shoot_tower,towers.triple_shoot.name,1,1,towers.triple_shoot.role,towers.
 boomerang_tower,towers.boomerang.name,1,1,towers.boomerang.role,towers.boomerang.desc
 multi_inferno_tower,towers.multi_inferno.name,1,1,towers.multi_inferno.role,towers.multi_inferno.desc
 rampup_tower,towers.rampup.name,1,1,towers.rampup.role,towers.rampup.desc
+killstack_tower,towers.killstack.name,1,1,towers.killstack.role,towers.killstack.desc

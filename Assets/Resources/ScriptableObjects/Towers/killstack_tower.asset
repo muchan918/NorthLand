@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
+  m_Name: killstack_tower
+  m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
+  TowerID: killstack_tower
+  TowerPrefab: {fileID: 6801833135963741600, guid: 44d1d8dc79781934ab0adc4e4066c493, type: 3}
+  GhostPrefab: {fileID: 6801833135963741600, guid: 03bc07acd71da4b46862037d92106a8f, type: 3}
+  Cost: []
+  Attack:
+    AttackDamage: 22
+    AttackRange: 30
+    AttackInterval: 1.6
+    ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
+    Flight:
+      rid: 3470829504553025640
+    PelletCount: 1
+    SpreadAngle: 0
+  Impact: 0
+  SplashRadius: 0
+  ChainRadius: 0
+  MaxChainTargets: 0
+  ChainDamageFalloff: 0
+  BuffAura:
+    Radius: 0
+    Modifiers: []
+    Damage:
+      HasDamage: 0
+      DamageAmount: 0
+      TickInterval: 0
+  DebuffAura:
+    Radius: 0
+    Interval: 0
+  Beam:
+    Range: 0
+    MaxTargets: 1
+    TickInterval: 1
+    DamagePerTick: 0
+  Ramp:
+    Stat: 0
+    Trigger: 1
+    Profile:
+      PerStack: 0.15
+      MaxStacks: 8
+      StackInterval: 0
+      DecaySeconds: 0
+  Effects: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 3470829504553025640
+      type: {class: HomingFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
+      data:
+        Speed: 640
+        ArcHeight: 0

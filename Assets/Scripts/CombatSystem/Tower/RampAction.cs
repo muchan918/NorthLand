@@ -80,6 +80,23 @@ namespace NorthLand.Combat
             // ⚠ stacks는 지우지 않는다 — 위 OnInitialize 주석의 합성 롤백 때문이다.
         }
 
+        /// 웨이브가 끝나면 성장이 전부 풀린다 — **감쇠 설정과 무관한 일괄 규칙**이다.
+        ///
+        /// 그래서 `DecaySeconds = 0`은 "영구"가 아니라 **"이 웨이브 동안 유지"**를 뜻한다. 이 경계를 두는
+        /// 이유는 성장이 Run 내내 누적되면 ① 웨이브가 갈수록 눈덩이가 되어 밸런싱이 후반 한 점에 묶이고
+        /// ② 이어하기(#270)가 스택을 저장하지 않으므로 "저장 후 재개하면 약해지는" 불일치가 생긴다는 것.
+        /// 웨이브 안으로 가두면 두 문제가 함께 사라진다.
+        ///
+        /// 웨이브별로 다르게 굴리고 싶어지면 `RampProfile`에 유지 플래그를 하나 두면 되지만, 지금은
+        /// 규칙이 하나인 편이 플레이어가 예측하기 쉽다.
+        public override void OnWaveEnd()
+        {
+            if (stacks == 0) return;
+
+            stacks = 0;
+            PushStacks();   // 스택 0 → 원장에서 소스를 제거한다
+        }
+
         public override void Tick(float deltaTime)
         {
             if (!Authored || stacks <= 0) return;
