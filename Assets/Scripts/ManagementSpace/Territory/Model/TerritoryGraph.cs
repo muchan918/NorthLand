@@ -168,4 +168,102 @@ public class TerritoryGraph
             }
         }
     }
+
+    /// <summary>
+    /// 저장된 확보 노드 ID를 이용해 영토 상태를 복원한다.
+    /// 일반 확보 이벤트는 발생시키지 않고 최종 변경 이벤트만 한 번 발행한다.
+    /// </summary>
+    /// <param name="ownedNodeIds">저장된 확보 노드 ID 목록.</param>
+    /// <returns>데이터가 유효하고 복원에 성공하면 true.</returns>
+    public bool TryRestoreOwnedNodes(IReadOnlyList<int> ownedNodeIds)
+    {
+        if (ownedNodeIds == null)
+        {
+            Debug.LogError("[영토 복원] 확보 노드 목록이 없습니다.");
+
+            return false;
+        }
+
+        var ownedIds = new HashSet<int>();
+
+        for (int i = 0; i < ownedNodeIds.Count; i++)
+        {
+            int nodeId = ownedNodeIds[i];
+
+            if (!_nodesById.ContainsKey(nodeId))
+            {
+                Debug.LogError(
+                    $"[영토 복원] 존재하지 않는 노드 ID입니다: {nodeId}");
+
+                return false;
+            }
+
+            if (!ownedIds.Add(nodeId))
+            {
+                Debug.LogError(
+                    $"[영토 복원] 중복된 노드 ID입니다: {nodeId}");
+
+                return false;
+            }
+        }
+
+        if (!ownedIds.Contains(HomeNodeId))
+        {
+            Debug.LogError(
+                $"[영토 복원] 본진 노드가 확보 목록에 없습니다: {HomeNodeId}");
+
+            return false;
+        }
+
+
+        // 확보된 영토가 본진에서부터 연결되어 있는지 검증한다.
+        var visited = new HashSet<int>();
+        var pending = new Stack<int>();
+
+        visited.Add(HomeNodeId);
+        pending.Push(HomeNodeId);
+
+        while (pending.Count > 0)
+        {
+            int currentId = pending.Pop();
+            TerritoryNode current = _nodesById[currentId];
+
+            for (int i = 0; i < current.NeighborIds.Count; i++)
+            {
+                int neighborId = current.NeighborIds[i];
+
+                if (ownedIds.Contains(neighborId) && visited.Add(neighborId))
+                {
+                    pending.Push(neighborId);
+                }
+            }
+        }
+
+        if (visited.Count != ownedIds.Count)
+        {
+            Debug.LogError("[영토 복원] 확보된 영토가 본진과 연결되어 있지 않습니다.");
+
+            return false;
+        }
+
+        // 검증이 끝난 뒤 상태를 적용한다.
+        for (int i = 0; i < _nodes.Count; i++)
+        {
+            _nodes[i].State = TerritoryState.Locked;
+        }
+
+        foreach (int nodeId in ownedIds)
+        {
+            _nodesById[nodeId].State = TerritoryState.Owned;
+        }
+
+        // 확보 노드 주변의 미확보 노드를 Selectable로 복구한다.
+        foreach (int nodeId in ownedIds)
+        {
+            PromoteLockedNeighbors(_nodesById[nodeId]);
+        }
+
+        OnChanged?.Invoke();
+        return true;
+    }
 }

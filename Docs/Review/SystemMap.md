@@ -18,6 +18,7 @@
 | PlayerSkill (플레이어 스킬, #103)           | muchan     | `Assets/Scripts/Skill`                                                | 클릭 시전 감전 스킬(기본 스킬 1종). 밤 게이팅(`Tower.cs`와 동일하게 `DayNightManager.CurrentPhase` 직접 폴링)·쿨다운·범위 데미지(`IDamageable`/`DamageInfo` 재사용, 새 데미지 경로 없음). 수치는 CSV가 아니라 `SkillManager` 인스펙터 직접 입력(WL-015와 같은 축). **버프 스킬 구현 완료**(2번째 스킬, `BuffSkillManager`) — 타겟팅 없이 클릭 즉시 발동, `Tower.Active` 순회해 씬의 모든 Tower에 공격력/공격속도 배율을 일정 시간 부여(`Tower.ApplyBuff`). **#164 리팩토링 후**: 모든 타워가 단일 `Tower` 타입이라 오라 타워도 순회 대상에 들어오지만, 공격 행동이 없어 공격력/공속 modifier가 아무 효과를 내지 않는다(원장에 죽은 항목만 남음 — 무해). 오라 타워를 명시적으로 제외하려면 `tower.Has<AttackBehaviour>()` 게이팅을 넣으면 되나, "버프 스킬이 오라 타워도 강화해야 하는가"는 미결 기획 질문이라 현행 유지(muchan 소유). 보상 기반 특수효과 업그레이드(#169, 레벨 중첩) 진행 중 — **이벤트 구독 구조**(이슈 원문의 "enum+중앙 컨트롤러" 방침에서 변경): `SkillManager`가 임팩트마다 `ImpactResolved(SkillCastContext)` 이벤트 발행(효과 존재 모름, 구독자 0이면 기본 감전만). 특수효과는 추상 `SkillEffect`(MonoBehaviour, `SkillEffectManager` 오브젝트에 부착) 파생 — 레벨 0→1 시 스스로 이벤트 구독, 재선택은 `Level` 변수만 가산, 파괴 시 해제. `SkillEffectManager`는 라우터로 축소(`ApplyReward`→타입 매칭 효과에 위임, `GetLevel` 조회). `SkillCastContext`(착탄 위치·맞은 적 버퍼·`ExtraImpacts` 가산 필드)로 시전 계열 효과(추가시전: `ImpactIndex==0` 재귀 가드)까지 같은 이벤트로 수용. **화상(`BurnEffect`) 구현 완료** — 대상의 `StatusEffectHandler.ApplyOrRefresh` 재사용(AuraTower 패턴, effectId=`"skill_burn"` 해시, Combat 무수정), 틱 데미지 = 레벨 × 인스펙터 수치. **폭탄(`BombEffect`+`SkillBomb`) 구현 완료** — 착탄 지점에 `Assets/Prefabs/Skill/SkillBomb.prefab` 설치 → 지연 후 반경 폭발(OverlapSphere, 감전과 동일 LayerMask/DamageInfo 규약), 폭발 데미지 = 레벨 × 인스펙터 수치. **추가시전(`CountEffect`) 구현 완료** — 총 발동 = 1+레벨, 반복분은 UniTask로 `repeatInterval`(기본 0.5s) 간격 발동(`ImpactIndex==0` 재귀 가드, 반복분에서도 화상·폭탄 정상 발동). **버프 화상(`BurnBuff`) 구현 완료** — `SkillEffect`의 구독 대상이 가상화됨(`TrySubscribe`/`Unsubscribe` override, 기본은 감전): BurnBuff는 `BuffSkillManager.BuffResolved(BuffCastContext)`에 구독, 버프 지속시간 창 동안 `Projectile.DamageDealt`를 구독해 타워 투사체에 명중당한 적에게 화상(effectId=`"buff_burn"`, 재시전 시 창 연장, 창 밖 구독 해제). 새 효과 추가 = `SkillEffect` 파생 1개 + 씬 컴포넌트 부착(스킬·매니저 무수정). **웨이브 종료 취소(#200)**: `SkillManager`(추가시전 반복분)·`SkillBomb`(지연 폭탄)이 `DayNightManager.OnNightToDay` 구독 → 밤→낮 시 진행 중 효과 취소(낮 잔존 발동 방지). 조준 모드 취소는 `PhasePanelSwitcher`가 `OnDayStart`에서 담당(기존). **마법 연구소 기본 스탯 배율 강화 구현 완료(#205)** — `SkillManager`/`BuffSkillManager`가 각자 `magic_lab` `BuildingAsset` 참조 + `ManagementController.GetUpgradeLevel`로 레벨을 pull, 레벨→배율 매핑은 `BuildingAsset.Skill.UpgradeLevels`(SO, 도달 비용과 같은 리스트, WL-015와 같은 축)에 authoring — 씬에는 배율 데이터가 없어 밸런싱이 `GameScene.unity`를 안 건드린다(PR#216 리뷰 반영). 시전 시점 base damage/radius/cooldown·버프 배율/지속시간/쿨다운에 배율로 적용 — 보상 기반 특수효과(`SkillEffect.Level`, 위) 축과는 완전히 독립, 이벤트 구독 흐름 무수정(`PlayerSkill.md` §3.1) |
 | WaveReward (웨이브 클리어 3택1 보상)        | SUNJIN     | `Assets/Scripts/Reward`                                               | 3택1 선택 UI(`WaveRewardSelectionUI`, timeScale 0 정지 + UniTask 대기)·랜덤 추출(`WaveRewardPool`)·웨이브 클리어 트리거(`WaveCompletionCoordinator`) 배선 완료(#132/#133, PR#150). `WaveRewardController.GrantReward`는 로그 + `SkillEffectManager.ApplyReward` 호출(#169 1단계, 매니저 없어도 동작). `WaveRewardType`(Burn/Bomb/Count/BuffBurn — 전부 스킬 특수효과, 임시 슬롯 소진)별로 매니저가 레벨 누적. 타입 확정·`NorthLand_Rewards` 로컬라이즈 키 정리는 #169 후속 단계(WL-043) |
 | Localization                                | n0wst4ndup | `Assets/Scripts/Localization/LocalizationHelper.cs`, `Assets/Localization/*`(String Table 컬렉션), `Assets/Scripts/Test/LocalizationTest.cs` | String Table 4종(`NorthLand_default`/`NorthLand_buildings`/`NorthLand_Enemies`/`NorthLand_Towers`, ko-KR/en-US/ja-JP) 구축. Building/Enemy/Resource/Tower CSV 표시 문자열은 키로 이관 완료(WL-013 해소, PR#126 — 신규 `poison_tower` 행 포함). `LocalizationHelper`(static 동기 pull 헬퍼) 신설 — 호버 툴팁 등 '호출 시점 1회' 풀 경로 전용, 지속형 표시는 `LocalizeStringEvent`/`LocalizedString.StringChanged` 사용. 전투 공간(TowerInfoUI) 표시 배선은 후속(#102) |
+| RunSave (Run 저장·이어하기, #270)            | sunjin1222 | `Assets/Scripts/SaveData` | **v1 구현 완료**. 단일 슬롯 JSON을 `Application.persistentDataPath/run-save.json`에 저장하며, `{ version, data }` 봉투와 Newtonsoft `JObject` 지연 파싱으로 버전을 먼저 판별한다. 스키마는 인스턴스나 배열 인덱스 대신 ResourceKind·BuildingID·영토 노드 Id·TowerID+셀 좌표·WaveRewardType을 저장한다. `RunSaveManager`가 복원 순서(시드/맵 생성 → 영토 → 경영 → 맵 공개 → 타워 → 본진/보상 → 페이즈)를 중앙에서 소유하며, 매 낮 시작 자동 저장·복원 중 저장 억제·임시 파일 교체·상위 버전 거부·타이틀 이어하기 숨김·게임오버/승리 시 삭제를 담당한다. 밤 저장·다중 슬롯·수동 저장은 v1 범위 밖. |
 | DayNightManager (낮/밤 상태·전환 이벤트 훅) | muchan     | `Assets/Scripts/DayNight`                                    | 상태 관리 + 전환 이벤트 훅 구현. 자원 정산/주민 배치 초기화는 `Management(Resource)`가 구현(#66), 본진 회복은 미구현(소유 시스템 대기). 밤→낮 트리거는 임시 UI(`NightActionPanelView`의 "웨이브 성공" 버튼, #66)가 `EndNight()` 직접 호출(웨이브 클리어 로직으로 교체 예정, WL-018) |
 | DayNightLighting (낮/밤 전환 조명·스카이박스 연출, #7) | muchan     | `Assets/Scripts/DayNight`                                    | `OnDayToNight`/`OnNightToDay` 구독해 Directional Light·Ambient(Trilight)·Skybox를 즉시 전환(스냅). 부드러운 Lerp 전환은 미구현 — 밤 종료 자동화의 UniTask 전환 작업과 함께 후속 예정 |
 | Management(Resource) (자원 지갑·생산처)     | n0wst4ndup | `Assets/Scripts/ManagementSpace`                              | 지갑·생산처(#42) + 경영 패널 UI·DayNightManager 낮/밤 루프 연동(#43, #66). 정산+주민 배치 초기화=OnNightToDay(정산 먼저). **밤→낮 전환은 이제 밤 전용 임시 UI(`NightActionPanelView`)의 "웨이브 성공" 버튼이 트리거(WL-018)** — 경영 패널(`RequestAdvancePhase`)은 낮→밤(`EndDay`)만 담당. 주민 수는 placeholder(주민 시스템 부재). 소비처·마나석 생산 후속. **✅ 확장 자원 라인 구현(#166)**: 미개척 영지(영토 해금) = 특수 자원(금/루비/사파이어/다이아) **매일 자동 수급** — `HandleNightToDay`가 Owned 노드에서 `SupplyDaily`만큼 `Add`(주민 배치 무관). 패널은 **고정 8행**(기본3+마나+특수4, 동적 등록 아님): 특수/마나는 +/- 숨김, 특수는 "+n"(일일 수급)·**미개방 시 회색**·활성 우선 재정렬, 마나 "+n"=`ManaPerWaveClear`. `ProductionLineView`에 Villager/Supply/Mana 모드. **지갑(보유량) 표기를 탑 바 → 각 행의 지갑 칸(`_balanceText`→ProdRow Wallet)으로 이관**(#166): 탑 바 `Wood/Iron/Food/Mana_hud` 비활성화, 주민 풀·페이즈만 탑 바 유지. **🔀 잔여 방향**: ②생산 건물 3종 업그레이드(#139 구현됨), ③탑 바 HUD 오브젝트 완전 삭제는 후속. **✅ 마법 연구소 업그레이드**: 생산 라인과 별개인 **업그레이드 전용 건물 트랙**(`_upgradeBuildings`)으로 구현 — 마나석 비용·레벨 추적 + 강화 효과(스킬 시스템이 `GetUpgradeLevel`로 레벨 참조, 결합도 최소)도 **구현 완료(#205)**. BuildingUpgrade.md §8 |
@@ -32,7 +33,7 @@
 ### Run/Seed (Run 단위 마스터 시드)
 
 - **소유자**: sunjin1222
-- **경로**: `Assets/Scripts/SeedData`, `Assets/Scripts/PlayerData/RunData.cs`
+- **경로**: `Assets/Scripts/SeedData`, `Assets/Scripts/SaveData/RunData.cs`
 - `RunBootstrapper`가 `[DefaultExecutionOrder(-1000)]`으로 영토·전투맵보다 먼저 마스터 시드를 확정한다.
 - 마스터 시드 결정 우선순위는 **Inspector 개발용 override → 타이틀에서 전달된 시드 → 새 무작위 시드**다.
 - `RunSeedDeriver.Derive(masterSeed, systemTag)`는 고정 FNV-1a를 사용한다. 문자열 태그 기반이므로 시스템 추가나 호출 순서 변경이 기존 시스템 시드를 밀지 않는다.
@@ -41,6 +42,18 @@
 - 신규 Run은 요청 시드로 생성하고, 복원된 Run은 `UsedSeed != 0`이면 최종 사용 시드를 우선 주입한다. 전투맵 fallback으로 요청값과 실제 사용값이 달라질 수 있기 때문이다.
 - `RunSeedContext`와 `RunData`는 씬의 `RunBootstrapper`가 소유한다. 새 static `Instance`는 추가하지 않는다. 향후 저장 소비자는 `RunBootstrapper`를 명시적으로 참조한다.
 - **Play 검증(2026-08-04)**: 같은 마스터 시드로 전투맵·버프 타일·영토 그래프가 동일하며, 일반 새 게임은 시작할 때마다 다른 마스터 시드를 사용함을 확인했다.
+
+### RunSave (Run 단위 저장/복원)
+
+- **소유자**: sunjin1222
+- **경로**: `Assets/Scripts/SaveData`
+- 저장 파일은 단일 슬롯 `run-save.json`이며 임시 파일 기록 성공 후 교체해 기존 세이브 손상을 막는다.
+- `SaveSerializer`는 봉투의 `version`을 먼저 읽고 지원 버전의 `data`만 DTO로 변환한다. 마이그레이션은 인접 버전 순차 체인의 이음매만 마련했으며, v1에는 실제 마이그레이션 함수가 없다. 알 수 없는 상위 버전은 다운그레이드 손상을 막기 위해 거부한다.
+- `RunSaveManager`는 각 시스템의 공개 조회/복원 API를 호출하는 중앙 오케스트레이터다. 기존 시스템에 `ISaveable`을 분산하지 않는다.
+- v1 저장 시점은 낮 시작(`OnDayStart`)뿐이다. 복원 중에는 자동 저장을 억제해 읽은 파일을 초기 상태로 덮어쓰지 않는다.
+- 전투 맵은 타일 전체가 아니라 Run 시드로 재생성한다. 저장 웨이브까지 공개 범위를 즉시 복원한 뒤 `TowerPlacer.TryRestoreTower`로 타워를 배치해 점유와 타일 버프를 동일 경로로 적용한다.
+- 타이틀의 이어하기는 정상 파싱 가능한 지원 버전 세이브가 있을 때만 보인다. 게임오버·승리로 Run이 끝나면 세이브를 삭제한다.
+- **Play 검증(2026-08-05)**: 3일차 상태에서 종료 후 이어하기 시 자원·건물 레벨·주민 배치·영토·타워·본진 HP·보상 중첩·맵 공개 범위가 동일하며, 복원 후 신규 타워 배치와 다음 웨이브 진행이 가능함을 확인했다. 게임오버·승리 후 세이브 삭제도 확인했다.
 
 ## 2. 공개 API (다른 시스템이 소비해도 되는 것)
 
@@ -54,6 +67,17 @@
 - `CombatMapGenerator.TryGenerate(int)` / `RequestedSeed` / `UsedSeed` — 전투맵 요청·최종 시드 계약.
 - `CombatMapInitializer.InitializeCombatMap(int)` / `UsedSeed` — 전투맵 생성·타일 배치 초기화 진입점.
 - `TerritoryController.Initialize(int)` / `UsedSeed` — 영토 그래프 외부 시드 초기화 진입점.
+
+### RunSave
+
+- `SaveSerializer.Serialize(RunData)` / `TryDeserialize(string, out RunData, out string)` — v1 봉투 직렬화·버전 판별·역직렬화 진입점.
+- `SaveFileStore.Exists` / `TryRead` / `TryWrite` / `TryDelete` — 단일 세이브 파일 IO. 게임 상태나 JSON 구조는 알지 않는다.
+- `GameSceneManager.LoadContinue()` / `TryConsumeContinueRequest()` — 타이틀에서 게임 씬으로 이어하기 요청을 한 번 전달한다.
+- `ManagementController.TryRestoreResource` / `TryRestoreProductionLine` / `TryRestoreUpgradeBuilding` / `TryRestoreBonusVillagers` — 비용·보상 경로를 거치지 않는 경영 복원 전용 진입점. 건물은 배열 인덱스가 아니라 BuildingID로 찾는다.
+- `TerritoryGraph.TryRestoreOwnedNodes(...)` — 생성 완료된 동일 시드 그래프에 확보 노드 Id를 적용한다.
+- `TowerPlacer.TryRestoreTower(TowerAsset, Vector2Int, out Tower)` — 비용 차감·Undo·연출 없이 일반 배치 확정 경로를 재사용해 점유·타일 버프·`Tower.Build`를 적용한다.
+- `CombatMapTileSpawner.SkipNextRevealAnimation()` — 이어하기에서 공개 타일을 즉시 최종 위치에 놓아 같은 프레임의 타워 물리 검색을 보장한다.
+- `PlayerBase.TryRestoreCurrentHp` / `SkillEffectManager.TryRestoreLevel` / `DayNightManager.TryRestoreState` — 본진·보상 중첩·진행 상태의 절대값 복원 진입점.
 
 - `DataTableManager.Get<T>(string id)` — static. **null 반환 가능 → 호출부 null 체크 필수**
 - `ResourceTable.Get(string id)` — null 반환 가능

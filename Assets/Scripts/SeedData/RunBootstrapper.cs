@@ -1,5 +1,6 @@
-using UnityEngine;
+using System;
 using CombatSpace;
+using UnityEngine;
 
 namespace NorthLand.Core
 {
@@ -36,9 +37,37 @@ namespace NorthLand.Core
 
         public int MasterSeed => seedContext.MasterSeed;
 
+        /// <summary>
+        /// 이어하기에서 읽은 RunData를 월드 생성 전에 주입한다.
+        /// 이후 Start가 저장된 최종 사용 시드로 영토와 전투 맵을 생성한다.
+        /// </summary>
+        public bool TryPrepareRestore(RunData savedRunData)
+        {
+            if (seedContext.IsInitialized)
+            {
+                Debug.LogError("[Load] Run 시드가 이미 초기화되어 복원 데이터를 주입할 수 없습니다.",this);
+
+                return false;
+            }
+
+            try
+            {
+                seedContext.Restore(savedRunData);
+                return true;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError($"[Load] Run 시드 복원 준비에 실패했습니다: {exception.Message}",this);
+
+                return false;
+            }
+        }
+
         private void Start()
         {
-            InitializeRunSeed();
+            if (!seedContext.IsInitialized)
+                InitializeRunSeed();
+
             InitializeTerritory();
             InitializeCombatMap();
         }

@@ -105,4 +105,31 @@ public class DayNightManager : MonoBehaviour
         WaveCount++;
         OnDayStart?.Invoke();
     }
+
+    /// <summary>
+    /// 저장된 웨이브 수와 페이즈를 절대값으로 복원한다.
+    /// 복원 중 자동 저장과 게임 진행 이벤트가 발생하지 않도록
+    /// 페이즈 전환 이벤트는 발행하지 않는다.
+    /// </summary>
+    public bool TryRestoreState(int waveCount,Phase phase)
+    {
+        if (waveCount < 0)
+        {
+            Debug.LogError($"[DayNight] WaveCount는 음수일 수 없습니다: {waveCount}",this);
+
+            return false;
+        }
+
+        if (!Enum.IsDefined(typeof(Phase),phase))
+        {
+            Debug.LogError($"[DayNight] 알 수 없는 페이즈입니다: {(int)phase}",this);
+
+            return false;
+        }
+
+        WaveCount = waveCount;
+        CurrentPhase = phase;
+
+        return true;
+    }
 }

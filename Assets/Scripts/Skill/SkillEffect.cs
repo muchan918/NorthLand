@@ -36,6 +36,48 @@ public abstract class SkillEffect : MonoBehaviour
         Debug.Log($"[SkillEffect] {Type} Lv{previousLevel} → Lv{Level}", this);
     }
 
+    /// <summary>
+    /// 저장된 효과 레벨을 절대값으로 복원한다.
+    /// 일반 보상 획득 경로처럼 기존 레벨에 더하지 않는다.
+    /// </summary>
+    /// <param name="level">복원할 효과 레벨.</param>
+    /// <returns>레벨과 이벤트 구독 복원에 성공하면 true.</returns>
+    public bool TryRestoreLevel(int level)
+    {
+        if (level < 0 || level > maxLevel)
+        {
+            Debug.LogError(
+                $"[SkillEffect] 효과 레벨이 유효 범위를 벗어났습니다: " +
+                $"{Type}={level}, 허용=0~{maxLevel}",
+                this);
+
+            return false;
+        }
+
+        // 효과를 보유한 상태라면 먼저 필요한 스킬 이벤트에 연결한다.
+        if (level > 0 && !subscribed)
+        {
+            if (!TrySubscribe())
+            {
+                Debug.LogError($"[SkillEffect] 효과 이벤트 구독에 실패했습니다: {Type}",this);
+
+                return false;
+            }
+
+            subscribed = true;
+        }
+
+        // 0레벨로 복원하는 경우 기존 구독을 제거한다.
+        if (level == 0 && subscribed)
+        {
+            Unsubscribe();
+            subscribed = false;
+        }
+
+        Level = level;
+        return true;
+    }
+
     public int NextLevel => Mathf.Min(Level + 1, maxLevel);
 
     // 다음 레벨이 상한인가 — 보상 카드가 "Lv 2 → Max"로 표시할지 판단한다(#292).
