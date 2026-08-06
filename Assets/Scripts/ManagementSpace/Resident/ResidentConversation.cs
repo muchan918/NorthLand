@@ -483,6 +483,35 @@ public sealed class ResidentConversation
         return true;
     }
 
+    /// 합류를 시도한 외부인에게 **전 참가자와의** 조우 쿨다운을 건다(§7.1 재진입 방지).
+    ///
+    /// ⚠ 한 명(화자 등)에게만 걸면 실효가 없다. 후보 판정(`ResidentRegistry.TryFindNearestJoinable`)은
+    ///   **구성원마다** `IsReady`를 보고 통과하는 가장 가까운 사람을 고르므로, 표시가 안 된 다른 구성원을
+    ///   통해 같은 세션이 다음 틱에 다시 잡힌다 — 확률로 거른다는 규칙이 "몇 번 지나가면 결국 낀다"로
+    ///   무너지고, JoinChance 관측이 무의미해진다. 화자는 턴마다 회전해서 우연히 다 걸릴 일도 드물다.
+    ///
+    /// 양쪽 표에 남긴다 — 신규 대화 경로가 `self.Mark(other)` + `other.Mark(self)`인 것과 같은 규칙이다.
+    public void MarkEncounterWithAll(Resident outsider, float seconds)
+    {
+        if (outsider == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < slots.Count; i++)
+        {
+            Resident member = slots[i].Resident;
+
+            if (member == null || member == outsider)
+            {
+                continue;
+            }
+
+            outsider.Encounters.Mark(member, seconds);
+            member.Encounters.Mark(outsider, seconds);
+        }
+    }
+
     /// 방금 합류한 참가자. 합류 직후의 인사 동안 **전원의 시선을 이 사람에게 몰아 주는** 데 쓴다.
     /// 자리를 잡기 시작하면(<see cref="MarkApproached"/>) 비운다 — 그 뒤로는 화자를 봐야 한다.
     public Resident RecentJoiner { get; private set; }

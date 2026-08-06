@@ -14,7 +14,7 @@ using UnityEngine;
 /// 하나가 조용히 죽는다(`TowerGroupSelectable`에 같은 경고가 있다) → 반드시 여기 합칠 것.
 /// 마커는 콜라이더와 같은 GameObject(주민 루트)에 있어야 한다.
 [DisallowMultipleComponent]
-public class ResidentSelectable : MonoBehaviour, IGroupSelectable, IHoverable, ISelectable
+public class ResidentSelectable : MonoBehaviour, IGroupSelectable, IHoverable, ISelectable, IOutlineKindFilter
 {
     private Resident _resident;
 
@@ -42,6 +42,28 @@ public class ResidentSelectable : MonoBehaviour, IGroupSelectable, IHoverable, I
     public void OnHoverExit() { }
     public void OnSelected() { }
     public void OnDeselected() { }
+
+    // ── 인원 상한을 아웃라인 종류별로 게이팅 ─────────────────────────────
+    //
+    // 가용 인원(유휴 주민)이 0이면 **선택 초록만** 막는다. 단일 클릭의 초록은 코디네이터가 아니라
+    // `OutlineInteractionDriver`가 `MouseManager.OnSelectionChanged`로 직접 켜므로, 코디네이터가
+    // 집합을 거부해도 초록은 그대로 뜬다 — 그 경로를 막는 유일한 자리가 여기다.
+    //
+    // **호버 노랑은 살려 둔다.** 이전에는 상한 0이면 주민을 Selectable 레이어에서 내려 레이캐스트
+    // 자체를 끊었는데, 그러면 호버·툴팁까지 사라져 "고를 수 없다"와 "대상이 아니다"가 구분되지 않고
+    // 나중에 거절 피드백을 걸 자리도 없어진다(WL-154).
+    public bool AllowsOutline(OutlineKind kind)
+    {
+        if (kind != OutlineKind.Selected)
+        {
+            return true;
+        }
+
+        var coordinator = ResidentSelectionCoordinator.Instance;
+
+        // 코디네이터가 아직 없으면 막지 않는다 — 상한을 모르는 상태에서 거부하면 조용히 안 뜬다.
+        return coordinator == null || coordinator.SelectionCap > 0;
+    }
 
     private OutlineHighlight Highlight => OutlineHighlight.GetOrAdd(gameObject);
 }

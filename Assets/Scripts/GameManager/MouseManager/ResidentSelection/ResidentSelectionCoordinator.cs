@@ -27,6 +27,9 @@ public class ResidentSelectionCoordinator : MonoBehaviour
     /// 안전 재스캔 주기. 개수 비교만으로는 놓치는 창이 있는데, 매 프레임 전수 검사는 낭비다.
     private const int k_RescanIntervalFrames = 30;
 
+    /// `ManagementController`를 못 찾았을 때 다시 찾기까지 쉬는 프레임 수.
+    private const int k_ManagementRetryFrames = 120;
+
     private static ResidentSelectionCoordinator s_instance;
     public static ResidentSelectionCoordinator Instance => s_instance;
 
@@ -50,6 +53,7 @@ public class ResidentSelectionCoordinator : MonoBehaviour
 
     private ManagementController _management;
     private bool _subscribed;
+    private bool _dayNightSubscribed;
     private bool _warnedNoMouseManager;
     private bool _warnedNoManagement;
     private bool _warnedNoCollider;
@@ -57,13 +61,8 @@ public class ResidentSelectionCoordinator : MonoBehaviour
 
     private int _lastResidentCount = -1;
     private int _rescanCountdown;
+    private int _managementRetryCountdown;
     private int _selectableLayer = -2; // -2=미조회, -1=레이어 없음
-
-    // 마지막으로 주민에게 적용한 레이어. 상한이 0이 되면 Selectable에서 내려 **레이캐스트 자체를 끊는다**.
-    // 이게 없으면 클릭 단일 선택이 상한을 우회한다 — MouseManager.Select가 ISelectable을 찾는 순간
-    // OutlineInteractionDriver가 초록을 켜 버리고, 그 경로는 이 코디네이터를 거치지 않기 때문이다.
-    // (드래그는 레지스트리 순회라 SetAll의 상한에 막히지만, 클릭은 레이캐스트라 안 막힌다.)
-    private int _appliedLayer = -99;
 
     // MouseManager가 현재 단일 선택 중인 주민(있다면). MouseManager는 _selected를 공개하지 않으므로
     // 여기서 따라 들고 있다가, 상한이 0이 될 때 그 대상만 골라 푼다.
@@ -112,7 +111,7 @@ public class ResidentSelectionCoordinator : MonoBehaviour
         var mm = MouseManager.Instance;
         if (mm != null && _subscribed)
         {
-            mm.OnSelectionChanged -= HandleSelectionChanged;
+            mm.OnPrimarySelect -= HandleSelectionChanged;
             mm.OnGroupSelectToggled -= HandleGroupToggle;
             mm.OnBoxSelectBegin -= HandleBoxSelectBegin;
             mm.OnBoxSelectUpdate -= HandleBoxSelectUpdate;
@@ -121,6 +120,10 @@ public class ResidentSelectionCoordinator : MonoBehaviour
 
         if (_management != null) _management.OnChanged -= HandleManagementChanged;
 
+        // DayNightManager도 이쪽보다 오래 살 수 있다 → 반드시 해제.
+        var dayNight = DayNightManager.Instance;
+        if (dayNight != null && _dayNightSubscribed) dayNight.OnDayToNight -= HandleDayToNight;
+
         if (s_instance == this) s_instance = null;
     }
 
@@ -128,6 +131,7 @@ public class ResidentSelectionCoordinator : MonoBehaviour
     {
         // MouseManager가 뒤늦게(다른 씬에서) 등장할 수 있어 붙을 때까지 확인한다.
         if (!_subscribed) TrySubscribe();
+        if (!_dayNightSubscribed) TrySubscribeDayNight();
 
         EnsureManagement();
         EnsureMarkers();
@@ -148,12 +152,55 @@ public class ResidentSelectionCoordinator : MonoBehaviour
             return;
         }
 
-        mm.OnSelectionChanged += HandleSelectionChanged;
+        // ⚠ OnSelectionChanged가 아니라 OnPrimarySelect다(WL-145 계열 함정).
+        //
+        // OnSelectionChanged는 `_selected` 변화만 통지한다 — MouseManager.Select가 `_selected == next`면
+        // 조기 반환하기 때문이다. 그런데 BeginBoxSelect가 이미 Select(null)을 하므로 **드래그 뒤에는
+        // _selected가 null**이고, 그 다음 빈 땅 클릭·Esc의 Select(null)이 조기 반환에 삼켜져
+        // 해제 신호가 오지 않는다 → 드래그로 고른 주민의 초록이 안 꺼진다.
+        //
+        // Shift 경로도 같은 뿌리로 깨진다: 그쪽은 토글 전에 Select(null)을 부르므로
+        // OnSelectionChanged(null)이 날아와 집합이 통째로 비워진 뒤 한 명만 다시 들어간다.
+        //
+        // OnPrimarySelect는 중복 제거를 타지 않고 평클릭에서만 발행되므로 두 문제가 함께 닫힌다.
+        // TowerMergeCoordinator가 같은 이유로 같은 이벤트를 구독한다.
+        mm.OnPrimarySelect += HandleSelectionChanged;
         mm.OnGroupSelectToggled += HandleGroupToggle;
         mm.OnBoxSelectBegin += HandleBoxSelectBegin;
         mm.OnBoxSelectUpdate += HandleBoxSelectUpdate;
         mm.OnBoxSelectEnd += HandleBoxSelectEnd;
         _subscribed = true;
+    }
+
+    private void TrySubscribeDayNight()
+    {
+        var dayNight = DayNightManager.Instance;
+
+        if (dayNight == null)
+        {
+            return;   // 아직 없다 — 경고는 남기지 않는다(주민 테스트 씬에는 없을 수 있다)
+        }
+
+        dayNight.OnDayToNight += HandleDayToNight;
+        _dayNightSubscribed = true;
+    }
+
+    /// 밤이 되면 집합을 비운다(`TowerMergeCoordinator.HandleDayToNight`와 같은 이유·같은 형태).
+    ///
+    /// **없으면 초록이 밤을 넘어간다.** `IsDay` 게이팅은 들어오는 입력만 막고 이미 잡힌 집합은 건드리지
+    /// 않는다. 그 상태로 스포너가 주민을 비활성하면 `OnGroupDeselected`를 부르는 경로가 없고,
+    /// `OutlineHighlight`는 `OnDisable`에서 플래그를 지우지 않으므로(레지스트리만 비운다) 아침에
+    /// `OnEnable → Apply()`가 초록을 그대로 복원한다 — 아무도 선택하지 않은 주민이 초록을 달고 등장한다.
+    ///
+    /// 드래그 도중 밤이 되면 이후 통지가 IsDay 게이팅에 막혀 종료 신호를 못 받으므로 유예 상태도 직접 푼다.
+    private void HandleDayToNight()
+    {
+        _boxDragging = false;
+        _dragBase.Clear();
+        _dragResult.Clear();
+        _lastSingle = null;
+
+        Clear();
     }
 
     // 씬이 바뀌면 이전 대상은 이미 파괴됐다. MouseManager도 같은 시점에 알림 없이 필드만 리셋하므로
@@ -166,11 +213,14 @@ public class ResidentSelectionCoordinator : MonoBehaviour
         _dragResult.Clear();
         _boxDragging = false;
         _lastResidentCount = -1;
-        _appliedLayer = -99;
         _lastSingle = null;
 
         if (_management != null) _management.OnChanged -= HandleManagementChanged;
         _management = null;
+        _managementRetryCountdown = 0;
+
+        // 씬이 바뀌면 DayNightManager 인스턴스도 갈린다 — 새 씬에서 다시 붙는다.
+        _dayNightSubscribed = false;
     }
 
     // ── 마커 부착 ─────────────────────────────────────────────────────
@@ -190,14 +240,10 @@ public class ResidentSelectionCoordinator : MonoBehaviour
             }
         }
 
-        // 상한이 0이면 Default로 내려 클릭·호버 자체가 안 걸리게 한다(드래그와 동작을 맞춘다).
-        int wantLayer = (_selectableLayer >= 0 && ComputeCap() > 0) ? _selectableLayer : 0;
-
-        if (--_rescanCountdown > 0 && residents.Count == _lastResidentCount && wantLayer == _appliedLayer) return;
+        if (--_rescanCountdown > 0 && residents.Count == _lastResidentCount) return;
 
         _rescanCountdown = k_RescanIntervalFrames;
         _lastResidentCount = residents.Count;
-        _appliedLayer = wantLayer;
 
         for (int i = 0; i < residents.Count; i++)
         {
@@ -213,9 +259,9 @@ public class ResidentSelectionCoordinator : MonoBehaviour
 
             // MouseManager의 `_selectableMask`가 Selectable 레이어만 보므로, 레이어가 맞지 않으면
             // 콜라이더가 있어도 레이캐스트에 걸리지 않는다 — 증상은 "아웃라인이 안 뜬다"뿐이다.
-            if (go.layer != wantLayer)
+            if (_selectableLayer >= 0 && go.layer != _selectableLayer)
             {
-                go.layer = wantLayer;
+                go.layer = _selectableLayer;
             }
 
             if (!_warnedNoCollider && go.GetComponent<Collider>() == null)
@@ -230,6 +276,13 @@ public class ResidentSelectionCoordinator : MonoBehaviour
     private void EnsureManagement()
     {
         if (_management != null) return;
+
+        // 못 찾았으면 백오프한다. 이 컴포넌트는 DontDestroyOnLoad라 **모든 씬에 상주**하고,
+        // ManagementController가 없는 씬(TitleScene 등)에서는 조기 반환 조건이 영구히 거짓이다 —
+        // 백오프가 없으면 매 프레임 씬 전수 탐색(FindFirstObjectByType)을 돈다.
+        if (--_managementRetryCountdown > 0) return;
+
+        _managementRetryCountdown = k_ManagementRetryFrames;
 
         _management = FindFirstObjectByType<ManagementController>();
         if (_management == null)

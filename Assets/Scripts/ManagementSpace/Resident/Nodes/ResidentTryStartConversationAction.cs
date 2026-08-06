@@ -149,13 +149,10 @@ public partial class ResidentTryStartConversationAction : Action
             return false;
         }
 
-        Resident anchor = session.CurrentSpeaker ?? session.PartnerOf(self);
+        // **전 참가자에게** 건다. 한 명만 표시하면 다른 구성원을 통해 같은 세션이 다시 잡혀
+        // 확률 판정이 무력화된다(MarkEncounterWithAll 주석).
         float failCooldown = FailCooldownSeconds != null ? FailCooldownSeconds.Value : 0f;
-
-        if (anchor != null)
-        {
-            self.Encounters.Mark(anchor, failCooldown);
-        }
+        session.MarkEncounterWithAll(self, failCooldown);
 
         float chance = JoinChance != null ? JoinChance.Value : 0f;
 
