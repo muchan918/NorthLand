@@ -19,6 +19,8 @@ namespace CombatSpace
         [SerializeField]
         private Transform tileRoot;
 
+        private bool skipNextRevealAnimation;
+
         /// <summary>
         /// 셀 좌표계의 기준 Transform. 타일을 이 아래에 `localPosition` + `localRotation = identity`로
         /// 붙이므로 **이 Transform의 회전이 그리드 축의 단일 출처**다(내부 `coordinateRoot`와 같은 값).
@@ -402,9 +404,10 @@ namespace CombatSpace
             }
 
             int visibleTileCount = 0;
+            bool shouldSkipAnimation = skipNextRevealAnimation;
+            skipNextRevealAnimation = false;
 
-            foreach (KeyValuePair<Vector2Int, CombatMapTileView> pair
-                     in spawnedTiles)
+            foreach (KeyValuePair<Vector2Int, CombatMapTileView> pair in spawnedTiles)
             {
                 CombatMapTileView tileView = pair.Value;
 
@@ -421,17 +424,22 @@ namespace CombatSpace
 
                 tileObject.SetActive(isRevealed);
 
-                bool shouldPlayReveal =revealController.CurrentRound > 0 &&!wasVisible;
+                bool shouldPlayReveal = !shouldSkipAnimation &&revealController.CurrentRound > 0 && !wasVisible;
 
                 if (shouldPlayReveal)
                 {
-                    float delay =NextRevealRandom(minRevealDelay,maxRevealDelay);
+                    float delay = NextRevealRandom(minRevealDelay,maxRevealDelay);
 
-                    float duration =NextRevealRandom(minRevealDuration,maxRevealDuration);
+                    float duration = NextRevealRandom(minRevealDuration,maxRevealDuration);
 
                     Vector3 targetPosition = GridToLocalPosition(pair.Key);
 
                     PlayTileRevealAsync(tileView.transform,targetPosition,delay,duration,tileView.GetCancellationTokenOnDestroy()).Forget();
+                }
+                else if (isRevealed)
+                {
+                    // 이어하기에서는 타워 복원 전에 타일을 즉시 원래 위치에 둔다.
+                    tileView.transform.localPosition = GridToLocalPosition(pair.Key);
                 }
             }
 
@@ -703,6 +711,16 @@ namespace CombatSpace
                 coordinateRoot.rotation;
 
             return true;
+        }
+
+        /// <summary>
+        /// 다음 맵 공개 갱신에서는 공개 애니메이션을 생략하고
+        /// 타일을 즉시 최종 위치에 배치한다.
+        /// 세이브 복원처럼 즉시 타일 물리 판정이 필요할 때 사용한다.
+        /// </summary>
+        public void SkipNextRevealAnimation()
+        {
+            skipNextRevealAnimation = true;
         }
     }
 }

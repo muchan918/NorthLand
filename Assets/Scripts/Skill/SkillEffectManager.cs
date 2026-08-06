@@ -77,4 +77,27 @@ public class SkillEffectManager : MonoBehaviour
     {
         return effects.TryGetValue(type, out var effect) && effect.NextIsMaxLevel;
     }
+
+    /// <summary>
+    /// 저장된 효과 레벨을 해당 효과 컴포넌트에 복원한다.
+    /// </summary>
+    public bool TryRestoreLevel(WaveRewardType type,int level)
+    {
+        if (!effects.TryGetValue(type,out SkillEffect effect))
+        {
+            Debug.LogError($"[SkillEffect] 복원할 효과 컴포넌트가 없습니다: {type}",this);
+
+            return false;
+        }
+
+        return effect.TryRestoreLevel(level);
+    }
+
+    /// <summary>
+    /// 해당 보상 효과 컴포넌트가 등록되어 있는가.
+    /// </summary>
+    public bool HasEffect(WaveRewardType type)
+    {
+        return effects.ContainsKey(type);
+    }
 }

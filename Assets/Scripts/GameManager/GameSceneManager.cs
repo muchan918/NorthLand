@@ -15,6 +15,8 @@ namespace NorthLand.Core
 
         private int? pendingMasterSeed;
 
+        private bool pendingContinue;
+
         // 첫 씬이 로드되기 전에 Unity가 자동 호출한다. 매니저를 여기서 부팅한다.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Bootstrap()
@@ -47,13 +49,39 @@ namespace NorthLand.Core
         // 랜덤 시드로 새 게임 시작
         public void LoadManageSpace()
         {
+            pendingContinue = false;
             pendingMasterSeed = null;
 
             SceneManager.LoadScene(GameScene);
         }
 
+        /// <summary>
+        /// 기존 Run 세이브를 이어서 플레이하기 위해 게임 씬을 로드한다.
+        /// 실제 파일 읽기와 복원은 RunSaveManager가 담당한다.
+        /// </summary>
+        public void LoadContinue()
+        {
+            pendingContinue = true;
+            pendingMasterSeed = null;
+
+            SceneManager.LoadScene(GameScene);
+        }
+
+        /// <summary>
+        /// 이어하기 요청을 한 번만 소비한다.
+        /// </summary>
+        public bool TryConsumeContinueRequest()
+        {
+            if (!pendingContinue)
+                return false;
+
+            pendingContinue = false;
+            return true;
+        }
+
         public void LoadManageSpaceWithSeed(int masterSeed)
         {
+            pendingContinue = false;
             pendingMasterSeed = masterSeed;
 
             SceneManager.LoadScene(GameScene);

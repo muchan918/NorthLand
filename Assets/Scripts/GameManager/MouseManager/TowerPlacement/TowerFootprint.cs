@@ -16,6 +16,27 @@ public class TowerFootprint : MonoBehaviour
     // 점유를 놓아준 상태인가(Release 이후 Reoccupy 전). OnDestroy가 남의 점유를 건드리지 않게 하는 빗장이다.
     private bool _released;
 
+    private Vector2Int _anchorCell;
+    private bool _hasAnchorCell;
+
+
+
+    /// <summary>타워 풋프린트의 좌측 아래 기준 셀 좌표.</summary>
+    public Vector2Int AnchorCell => _anchorCell;
+
+    /// <summary>기준 셀 좌표가 정상적으로 기록됐는가.</summary>
+    public bool HasAnchorCell => _hasAnchorCell;
+
+    /// <summary>
+    /// 타워 배치 시 사용한 기준 타일의 논리 셀 좌표를 기록한다.
+    /// </summary>
+    public void SetAnchorCell(Vector2Int cell)
+    {
+        _anchorCell = cell;
+        _hasAnchorCell = true;
+    }
+
+
     /// 점유할 타일을 등록하고 즉시 Occupied=true로 잠근다.
     public void Occupy(BattleTile tile)
     {
