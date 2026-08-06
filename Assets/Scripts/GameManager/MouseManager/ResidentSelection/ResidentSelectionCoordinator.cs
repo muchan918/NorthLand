@@ -59,6 +59,16 @@ public class ResidentSelectionCoordinator : MonoBehaviour
     private int _rescanCountdown;
     private int _selectableLayer = -2; // -2=미조회, -1=레이어 없음
 
+    // 마지막으로 주민에게 적용한 레이어. 상한이 0이 되면 Selectable에서 내려 **레이캐스트 자체를 끊는다**.
+    // 이게 없으면 클릭 단일 선택이 상한을 우회한다 — MouseManager.Select가 ISelectable을 찾는 순간
+    // OutlineInteractionDriver가 초록을 켜 버리고, 그 경로는 이 코디네이터를 거치지 않기 때문이다.
+    // (드래그는 레지스트리 순회라 SetAll의 상한에 막히지만, 클릭은 레이캐스트라 안 막힌다.)
+    private int _appliedLayer = -99;
+
+    // MouseManager가 현재 단일 선택 중인 주민(있다면). MouseManager는 _selected를 공개하지 않으므로
+    // 여기서 따라 들고 있다가, 상한이 0이 될 때 그 대상만 골라 푼다.
+    private ResidentSelectable _lastSingle;
+
     /// 선택된 주민(선택 순서). 패널·배정 UI가 붙을 때 이 파사드를 본다.
     public IReadOnlyList<ResidentSelectable> Selected => _selected;
 
@@ -156,6 +166,8 @@ public class ResidentSelectionCoordinator : MonoBehaviour
         _dragResult.Clear();
         _boxDragging = false;
         _lastResidentCount = -1;
+        _appliedLayer = -99;
+        _lastSingle = null;
 
         if (_management != null) _management.OnChanged -= HandleManagementChanged;
         _management = null;
@@ -168,11 +180,6 @@ public class ResidentSelectionCoordinator : MonoBehaviour
     {
         var residents = ResidentRegistry.Residents;
 
-        if (--_rescanCountdown > 0 && residents.Count == _lastResidentCount) return;
-
-        _rescanCountdown = k_RescanIntervalFrames;
-        _lastResidentCount = residents.Count;
-
         if (_selectableLayer == -2)
         {
             _selectableLayer = LayerMask.NameToLayer("Selectable");
@@ -182,6 +189,15 @@ public class ResidentSelectionCoordinator : MonoBehaviour
                 Debug.LogWarning("[주민 선택] 'Selectable' 레이어가 없어 주민 클릭·호버가 동작하지 않습니다.");
             }
         }
+
+        // 상한이 0이면 Default로 내려 클릭·호버 자체가 안 걸리게 한다(드래그와 동작을 맞춘다).
+        int wantLayer = (_selectableLayer >= 0 && ComputeCap() > 0) ? _selectableLayer : 0;
+
+        if (--_rescanCountdown > 0 && residents.Count == _lastResidentCount && wantLayer == _appliedLayer) return;
+
+        _rescanCountdown = k_RescanIntervalFrames;
+        _lastResidentCount = residents.Count;
+        _appliedLayer = wantLayer;
 
         for (int i = 0; i < residents.Count; i++)
         {
@@ -197,9 +213,9 @@ public class ResidentSelectionCoordinator : MonoBehaviour
 
             // MouseManager의 `_selectableMask`가 Selectable 레이어만 보므로, 레이어가 맞지 않으면
             // 콜라이더가 있어도 레이캐스트에 걸리지 않는다 — 증상은 "아웃라인이 안 뜬다"뿐이다.
-            if (_selectableLayer >= 0 && go.layer != _selectableLayer)
+            if (go.layer != wantLayer)
             {
-                go.layer = _selectableLayer;
+                go.layer = wantLayer;
             }
 
             if (!_warnedNoCollider && go.GetComponent<Collider>() == null)
@@ -237,7 +253,18 @@ public class ResidentSelectionCoordinator : MonoBehaviour
         return Mathf.Max(0, _management.MaxVillagers - _management.AssignedTotal);
     }
 
-    private void HandleManagementChanged() => SetAll(_selected);
+    // 배정이 바뀌어 상한이 줄면 집합을 다시 깎는다. 상한이 0이 되는 순간에는 **MouseManager의 단일 선택도
+    // 풀어야** 한다 — 그 초록은 OutlineInteractionDriver가 들고 있어서 이 코디네이터가 집합을 비워도 안 꺼진다.
+    // 남의 선택(타워 등)까지 건드리지 않도록 마지막 단일 선택이 주민이었을 때만 푼다.
+    private void HandleManagementChanged()
+    {
+        SetAll(_selected);
+
+        if (ComputeCap() > 0 || _lastSingle == null) return;
+
+        _lastSingle = null;
+        MouseManager.Instance?.ClearSelection();
+    }
 
     // ── MouseManager 입력 ─────────────────────────────────────────────
 
@@ -245,6 +272,8 @@ public class ResidentSelectionCoordinator : MonoBehaviour
     // 자기 집합을 비우는 것과 대칭이다.
     private void HandleSelectionChanged(ISelectable sel)
     {
+        _lastSingle = sel as ResidentSelectable;   // 상한이 0으로 떨어질 때 풀어 줄 대상
+
         if (!IsDay) { Clear(); return; }
 
         if (sel is ResidentSelectable rs)
