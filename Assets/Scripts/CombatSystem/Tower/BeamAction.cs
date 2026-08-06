@@ -26,6 +26,7 @@ namespace NorthLand.Combat
 
         // 빔 비주얼 — 최소 구현(임시 머티리얼, LineRenderer). 연출 폴리싱은 별도 이슈.
         [NonSerialized] List<LineRenderer> beams;
+        [NonSerialized] Material beamMaterial;
 
         public override TowerActivePhase ActivePhase => TowerActivePhase.NightOnly;
 
@@ -149,39 +150,12 @@ namespace NorthLand.Combat
         }
 
         // ── 빔 비주얼(최소 구현) ──────────────────────────────────────────────
-
-        /// **모든 빔 타워가 공유하는 단 하나의 임시 머티리얼.**
-        ///
-        /// 인스턴스마다 `new Material`을 만들면 타워를 짓고 팔거나 합성 재료로 소모할 때마다 1개씩
-        /// 샌다 — `LineRenderer` GameObject는 `Owner.transform` 자식이라 타워와 함께 죽지만
-        /// `Material`은 씬 계층에 속하지 않아 남기 때문이다(#298 리뷰).
-        ///
-        /// `Dispose()`에서 파괴하는 해법을 택하지 않은 이유: `Dispose`는 `Tower.OnDisable`마다 돌고
-        /// 그 왕복을 **합성 소프트 소모(`Release`/`Reoccupy`)가 그대로 쓴다** — 되돌리기로 재활성화된
-        /// 타워의 `OnInitialize`는 `beams`가 살아 있어 풀을 다시 만들지 않으므로, 파괴된 머티리얼을
-        /// 물고 있는 빔을 되살리는 경로를 따로 둬야 한다. 색·셰이더가 인스턴스마다 다를 이유가 없으니
-        /// 공유가 더 단순하고 실패 표면도 없다.
-        ///
-        /// ⚠ 타워별로 빔 색을 다르게 하려면 이 공유를 풀어야 한다 — 그때도 **인스턴스가 아니라
-        /// `TowerAsset` 단위**로 캐시할 것(같은 종류 N기가 다시 N개를 만들지 않도록).
-        static Material sharedBeamMaterial;
-
         void EnsureBeamPool()
         {
-            beams ??= new List<LineRenderer>(Mathf.Max(1, fields?.MaxTargets ?? 1));
+            if (beams != null) return;
 
-            // Unity의 `==` 오버로드가 파괴된 객체도 null로 잡는다 — 도메인 리로드를 끈 에디터에서
-            // 이전 플레이 세션의 머티리얼이 파괴된 채 static 참조만 남는 경우를 여기서 흡수한다.
-            if (sharedBeamMaterial != null) return;
-
-            sharedBeamMaterial = new Material(Shader.Find("Sprites/Default"))
-            {
-                color = new Color(1f, 0.25f, 0.1f, 0.9f)
-            };
-
-            // 위 경로로 되살렸다면 이미 만들어 둔 빔이 파괴된 머티리얼을 물고 있다.
-            for (int i = 0; i < beams.Count; i++)
-                if (beams[i] != null) beams[i].sharedMaterial = sharedBeamMaterial;
+            beams = new List<LineRenderer>(Mathf.Max(1, fields?.MaxTargets ?? 1));
+            beamMaterial = new Material(Shader.Find("Sprites/Default")) { color = new Color(1f, 0.25f, 0.1f, 0.9f) };
         }
 
         LineRenderer CreateBeam()
@@ -192,9 +166,7 @@ namespace NorthLand.Combat
             var lr = go.AddComponent<LineRenderer>();
             lr.positionCount = 2;
             lr.widthMultiplier = 0.5f;   // 임시 연출값 — 콜라이더 반경 5 안팎의 월드 스케일에 맞춰 두껍게
-            // `material`이 아니라 `sharedMaterial`이다 — 전자는 읽는 순간 렌더러마다 사본을 떠서,
-            // 누수를 막으려고 공유로 바꾼 것이 빔 개수만큼 다시 늘어난다.
-            lr.sharedMaterial = sharedBeamMaterial;
+            lr.material = beamMaterial;
             lr.enabled = false;
             return lr;
         }
