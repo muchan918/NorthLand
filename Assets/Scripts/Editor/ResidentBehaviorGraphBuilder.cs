@@ -74,8 +74,8 @@ public static class ResidentBehaviorGraphBuilder
     // 것과 같아진다** — 주민 1명이 4~9초에 한 번 굴리므로 30명이면 초당 3~7회다. 대화 1건이 인사·다가감·
     // 수다 2~4턴·헤어짐으로 20~35초 동안 두 명을 붙잡으니, 확률이 0.1을 넘으면 정상 상태에서 마을 절반이
     // 대화 중이 되어 산책·춤·유휴가 화면에서 사라진다(§7.1이 경고하는 그림).
-    // **여전히 산술로 잡은 값이고 실제로 보고 조정할 대상이다.**
-    private const float EncounterChance = 0.05f;
+    // **플레이로 보고 조정한 값이다**(0.05 → 0.08). 마을 30명 기준으로 대화가 너무 뜸했다.
+    private const float EncounterChance = 0.08f;
 
     // 확률 판정에 실패한 상대를 다시 후보로 올리기까지의 시간(초).
     // 이것이 없으면 나란히 걷는 두 명이 구간마다 다시 굴려져 "확률로 거른다"가 무너진다.
@@ -90,18 +90,17 @@ public static class ResidentBehaviorGraphBuilder
     // 진행 중인 대화에 끼어들 확률(자기 사교성이 곱해진다).
     //
     // 새로 여는 확률(0.05)과 별개 축이다 — 이미 모여 있는 무리에 끌리는 정도가 더 높다고 보고 2배로 둔다.
-    // **산술로 잡은 첫 값이고, 3인 대화가 너무 흔하지 않은지 눈으로 보고 조정할 대상이다**
-    // (EncounterChance와 같은 성격의 미해결 수치).
-    private const float ConversationJoinChance = 0.10f;
+    // **플레이로 보고 조정한 값이다**(0.10 → 0.12).
+    private const float ConversationJoinChance = 0.12f;
 
     // 해산 후 같은 상대와 다시 성립하지 않는 시간(초). 없으면 두 명이 영원히 인사만 한다.
     private const float ConversationDisbandCooldownSeconds = 30f;
 
     // 주고받을 턴 수. **시간이 아니라 턴 수로 정한다** — 시간으로 끊으면 Talking_1(10.27초)이 뽑힌
     // 마지막 턴이 중간에 잘린다(§7.2). 문서에 T가 정의돼 있지 않아 여기서 정한다.
-    private const int MinTurns = 2;
+    private const int MinTurns = 3;
 
-    private const int MaxTurns = 4;
+    private const int MaxTurns = 5;
 
     // 수다 클립 상태 이름. **가중치는 같은 이름을 여러 번 넣어 표현한다** —
     // Talking_1이 10.27초로 나머지(3.93 / 3.77)의 2.6배라 균등하게 두면 한 사람이 10초를 독점하는 턴이
