@@ -53,13 +53,17 @@ namespace NorthLand.Combat
             // 왕복을 쓰므로(Tower.cs의 Build 주석) 여기서 0으로 밀면 롤백된 타워의 성장이 증발한다.
             // 반대로 **다른 SO로 재조립**되면 정체성이 바뀐 것이라 이전 성장분은 의미를 잃는다 —
             // Tower.Build가 같은 자리에서 `activeKinds`를 null로 되돌리는 것과 같은 판단이다.
+            // ⚠ 감쇠 타이머도 **이 분기 안에서만** 초기화한다. 밖에 두면 스택은 유지되는데 타이머만
+            // 다시 꽉 차서 감쇠가 부당하게 유예된다 — `Tower.Build`의 "이미 같은 SO로 조립됨" 빠른
+            // 경로(Dispose 없이 ReinitializeActions만 재호출)를 타면 재현된다. 지금은 `Build` 호출부가
+            // 배치 시점 1곳뿐이라(그때는 스택이 항상 0) 무증상이지만, 세이브 복원(#270)이 활성 타워에
+            // Build를 다시 태우게 되면 바로 드러난다. (PR #308 자동 리뷰 지적)
             if (boundAsset != asset)
             {
                 boundAsset = asset;
                 stacks = 0;
+                decayTimer = fields?.Profile != null ? fields.Profile.DecaySeconds : 0f;
             }
-
-            decayTimer = fields?.Profile != null ? fields.Profile.DecaySeconds : 0f;
 
             Resubscribe();
 
