@@ -37,6 +37,11 @@ public class TowerAsset : ScriptableObject
     [Header("빔(다중 타겟 지속딜)")]
     public BeamFields Beam;
 
+    // 전투 실적으로 이 타워가 스스로 강해지는 축(#300). 지금까지 타워 스탯을 바꾸는 소스는 전부
+    // 외부(타일 버프·오라·스킬·보스 봉인)에서 왔는데, 이것이 **자기 실적이 원장에 얹히는 첫 소스**다.
+    [Header("성장(램프업)")]
+    public RampFields Ramp;
+
     // 이 타워가 대상에게 거는 효과와 그 수치(#274 Phase 4). 인스펙터에서 `+ Burn`, `+ Slow`를 골라 붙인다.
     //
     // **공격 액션과 디버프 오라가 같은 리스트를 공유한다** — "맞으면 화상"과 "장판에 화상"은 거는 방식만
@@ -104,7 +109,7 @@ public class TowerAsset : ScriptableObject
         }
 
         var actions = tower.Actions;
-        bool hasAttack = false, hasBuff = false, hasDebuff = false, hasBeam = false;
+        bool hasAttack = false, hasBuff = false, hasDebuff = false, hasBeam = false, hasRamp = false;
         var seen = new HashSet<System.Type>();
 
         for (int i = 0; i < actions.Count; i++)
@@ -127,6 +132,7 @@ public class TowerAsset : ScriptableObject
             hasBuff |= a is NorthLand.Combat.BuffAuraAction;
             hasDebuff |= a is NorthLand.Combat.DebuffAuraAction;
             hasBeam |= a is NorthLand.Combat.BeamAction;
+            hasRamp |= a is NorthLand.Combat.RampAction;
         }
 
         // ── 액션 ↔ 수치 짝 검사 ────────────────────────────────────────────
@@ -207,6 +213,32 @@ public class TowerAsset : ScriptableObject
         if (hasBeam && beamAuthored && Beam.TickInterval <= 0f)
             Debug.LogWarning($"[TowerAsset] {name}: BeamAction이 있는데 Beam.TickInterval이 0 이하입니다 " +
                              "— 매 프레임 재잠금·재적용이 돌아 비용이 폭주할 수 있습니다.", this);
+
+        // 대상별 조준 유지 램프(#300). 셋 다 "예외 없이 조용히 램프가 사라지는" 조합이다.
+        bool lockRampAuthored = Beam != null && Beam.LockRamp != null && Beam.LockRamp.IsAuthored;
+        if (lockRampAuthored && !hasBeam)
+            Debug.LogWarning($"[TowerAsset] {name}: Beam.LockRamp를 적었는데 프리팹에 BeamAction이 없습니다 " +
+                             "— 이 수치는 아무도 읽지 않습니다.", this);
+        if (lockRampAuthored && Beam.LockRamp.StackInterval <= 0f)
+            Debug.LogWarning($"[TowerAsset] {name}: Beam.LockRamp의 StackInterval이 0 이하입니다 — " +
+                             "이 램프는 경과 시간으로 단계를 세므로 배율이 영원히 ×1에 머뭅니다.", this);
+
+        // ── 성장(램프업) ↔ 수치 짝 검사(#300) ────────────────────────────────
+        bool rampAuthored = Ramp != null && Ramp.Profile != null && Ramp.Profile.IsAuthored;
+        if (hasRamp && !rampAuthored)
+            Debug.LogWarning($"[TowerAsset] {name}: 프리팹에 RampAction이 있는데 Ramp 수치가 비었습니다 " +
+                             "(PerStack 0 또는 MaxStacks 0) — 아무리 때려도 성장하지 않습니다.", this);
+        if (!hasRamp && rampAuthored)
+            Debug.LogWarning($"[TowerAsset] {name}: Ramp 수치를 적었는데 프리팹에 RampAction이 없습니다 " +
+                             "— 이 수치는 아무도 읽지 않습니다.", this);
+
+        // 명중 트리거는 `Projectile.DamageDealt`를 타는데, 그 이벤트는 실제 투사체를 띄우는 공격만
+        // 발행한다. 히트스캔(BeamAction)은 발행하지 않는 것이 설계 의도라(TowerAddGuide.md §6)
+        // "빔 타워 + 명중 램프"는 **예외도 경고도 없이 스택이 0에 머무는** 조합이 된다.
+        if (hasRamp && rampAuthored && Ramp.Trigger == NorthLand.Combat.RampTrigger.Hit && !hasAttack)
+            Debug.LogWarning($"[TowerAsset] {name}: Ramp.Trigger=Hit인데 프리팹에 AttackAction이 없습니다 " +
+                             "— 명중 통지는 투사체 공격에서만 발행되므로 스택이 영영 쌓이지 않습니다. " +
+                             "빔 타워라면 대상별 램프를 쓰거나 Trigger=Kill로 바꾸세요.", this);
     }
 #endif
 
@@ -273,8 +305,32 @@ public class TowerAsset : ScriptableObject
         [Tooltip("잠금·피해 적용 주기(초). AttackSpeed 원장을 거쳐 실제 틱 간격이 줄어든다.")]
         public float TickInterval = 1f;
 
-        [Tooltip("틱마다 각 대상에게 들어가는 피해(대상별 동일, 유지 시간 가중치 없음).")]
+        [Tooltip("틱마다 각 대상에게 들어가는 피해. LockRamp 미저작이면 대상별로 동일하다.")]
         public float DamagePerTick;
+
+        // 대상별 조준 유지 램프(#300). **미저작(MaxStacks 0)이면 기존 균일 지속딜 그대로**라
+        // multi_inferno_tower의 거동이 변하지 않는다. MaxTargets=1 + 이 값 = 단일 인페르노.
+        //
+        // ⚠ 이 램프는 `Ramp`(원장형)와 **다른 축**이다. 원장은 타워 단위라 대상이 바뀌어도 배율이
+        // 유지되고 그 타워의 다른 액션·DoT까지 함께 강해진다 — "한 놈을 오래 지질수록 아프다"는
+        // 정체성은 그렇게 표현할 수 없다. 그래서 BeamAction이 대상별로 따로 센다.
+        [Tooltip("같은 대상을 계속 잠글수록 피해가 오르는 램프. StackInterval초마다 한 단계씩 오르고, " +
+                 "대상이 죽거나 사거리를 벗어나면 0에서 다시 시작한다. 비워두면 균일 지속딜(기존 거동).")]
+        public NorthLand.Combat.RampProfile LockRamp;
+    }
+
+    // 성장(램프업) 저작 묶음(#300). 계기와 축은 여기서, 수치는 공용 부품 `RampProfile`이 소유한다 —
+    // 같은 수치 규약을 대상별 램프와 공유하기 위해서다.
+    [System.Serializable]
+    public class RampFields
+    {
+        [Tooltip("무엇이 성장하는가. 명중 램프=AttackSpeed, 처치 램프=AttackDamage를 기본 상정.")]
+        public NorthLand.Combat.TowerStat Stat = NorthLand.Combat.TowerStat.AttackSpeed;
+
+        [Tooltip("스택을 얻는 계기. Hit=투사체 명중(빔 제외), Kill=적 처치.")]
+        public NorthLand.Combat.RampTrigger Trigger = NorthLand.Combat.RampTrigger.Hit;
+
+        public NorthLand.Combat.RampProfile Profile = new NorthLand.Combat.RampProfile();
     }
 }
 

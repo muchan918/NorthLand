@@ -18,6 +18,23 @@ namespace NorthLand.Combat
         float cooldownTimer;
         bool isDying;
 
+        /// 이 적이 **처치되어** 사라질 때 정확히 1회 발행된다. 첫 인자는 마지막으로 피해를 준 주체
+        /// (모르면 null). 킬스택 성장 타워(#300)가 처치 귀속을 아는 유일한 창구다.
+        ///
+        /// 왜 여기인가: 귀속을 알 수 있는 지점은 `TakeDamage`(소스가 실려 온다)뿐이고, 사망 확정은
+        /// `Die()`의 `isDying` 게이트뿐이다. 둘을 잇는 자리가 여기 하나다.
+        /// `Projectile.DamageDealt`와 같은 static 이벤트 idiom을 쓴다.
+        ///
+        /// ⚠ **경로 이탈(본진 도달)은 발행되지 않는다** — `HandleRouteCompleted`가 `Die()`를 거치지
+        /// 않고 바로 Destroy하기 때문이다. "죽인 것"과 "놓친 것"이 구조적으로 갈린다.
+        /// ⚠ static이므로 구독자는 **반드시 해제**할 것(죽은 구독자가 남으면 파괴된 타워를 계속 건드린다).
+        public static event Action<IAttacker, Enemy> Killed;
+
+        // 마지막으로 피해를 준 주체. DoT는 StatusEffectHandler가 원 소스를 그대로 실어 보내므로
+        // 화상·독으로 죽은 적도 그 타워에 귀속된다. 스킬·환경 피해는 소스가 null이라 귀속되지 않는데,
+        // 이것이 **의도**다 — 마지막 일격이 스킬이면 그 처치는 어느 타워의 것도 아니다.
+        IAttacker lastDamageSource;
+
         // 원거리 공격의 비행 부품(#274 Phase 4.5). 발사마다 만들지 않고 인스턴스별 1회 생성해 재사용한다 —
         // 부품은 무상태라 이 적이 쏜 투사체들이 함께 참조해도 안전하다(진행값은 Projectile이 소유).
         HomingFlight rangedFlight;
@@ -260,6 +277,10 @@ namespace NorthLand.Combat
 
         public void TakeDamage(DamageInfo info)
         {
+            // 처치 귀속(#300)의 유일한 기록 지점. **조건 없이 덮어쓴다** — "마지막으로 때린 쪽"이
+            // 곧 처치자이므로, 소스 없는 피해(스킬·환경)가 마지막이면 귀속도 함께 사라져야 맞다.
+            lastDamageSource = info.Source;
+
             // 받는 피해 배수를 여기 한 곳에서만 적용한다(#233) — 방어 태세 패턴의 감쇠 지점.
             currentHp -= info.Amount * damageTakenFactor;
             // 피격 로그(검증용) — 필요할 때 아래 주석을 풀어 쓴다.
@@ -288,6 +309,10 @@ namespace NorthLand.Combat
             }
 
             isDying = true;
+
+            // 처치 통지는 여기서 1회만 나간다 — 위 isDying 게이트 뒤라 같은 프레임 다중 타격에도
+            // 중복 발행되지 않는다. 사망 연출(destroyDelay)보다 앞이라 통지가 지연되지도 않는다.
+            Killed?.Invoke(lastDamageSource, this);
 
             // 사망 연출 지연 동안(파괴 전까지) 보스 BT가 계속 돌지 않도록 에이전트를 끈다.
             if (behaviorAgent != null)
