@@ -43,7 +43,7 @@ Shader "NorthLand/WaterURP_Ortho"
     {
         Tags
         {
-        "RenderPipline" = "Universal"
+        "RenderPipeline" = "Universal"
         "Queue" = "Transparent-100"
         }
 
