@@ -217,6 +217,51 @@ MonoBehaviour:
       \uC7A0\uADF8\uACE0 \uC9C0\uC18D\uC801\uC73C\uB85C \uD53C\uD574\uB97C \uC900\uB2E4."
     m_Metadata:
       m_Items: []
+  - m_Id: 6166220603301888
+    m_Localized: "\uB7A8\uD504\uC5C5 \uD0C0\uC6CC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6166220632662016
+    m_Localized: "\uC131\uC7A5\uD615 \uC18D\uC0AC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6166220632662017
+    m_Localized: "\uBA85\uC911\uD560 \uB54C\uB9C8\uB2E4 \uACF5\uACA9 \uC18D\uB3C4\uAC00
+      \uBE68\uB77C\uC9C4\uB2E4. \uACC4\uC18D \uB9DE\uD788\uBA74 \uCD5C\uB300 +80%\uAE4C\uC9C0
+      \uC624\uB974\uACE0, 2\uCD08\uAC04 \uB193\uCE58\uBA74 \uD55C \uB2E8\uACC4\uC529
+      \uC2DD\uC73C\uBA70 \uC6E8\uC774\uBE0C\uAC00 \uB05D\uB098\uBA74 \uCD08\uAE30\uD654\uB41C\uB2E4."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6203434620067840
+    m_Localized: "\uC0AC\uB0E5\uAFBC \uD0C0\uC6CC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6203434653622272
+    m_Localized: "\uC131\uC7A5\uD615 \uC800\uACA9"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6203434653622273
+    m_Localized: "\uC801\uC744 \uCC98\uCE58\uD560 \uB54C\uB9C8\uB2E4 \uACF5\uACA9\uB825\uC774
+      \uC624\uB978\uB2E4. \uCC98\uCE58\uB2F9 +15%, 8\uCC98\uCE58\uC5D0\uC11C 2.2\uBC30\uAC00
+      \uB418\uBA70 \uC6E8\uC774\uBE0C\uAC00 \uB05D\uB098\uBA74 \uCD08\uAE30\uD654\uB41C\uB2E4."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6219949113253888
+    m_Localized: "\uB2E8\uC77C \uC778\uD398\uB974\uB178 \uD0C0\uC6CC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6219949146808320
+    m_Localized: "\uB2E8\uC77C \uC9D1\uC911 \uC9C0\uC18D\uB51C"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6219949146808321
+    m_Localized: "\uD55C \uB300\uC0C1\uB9CC \uC9C0\uC9C0\uC9C0\uB9CC \uC870\uC900\uC744
+      \uC720\uC9C0\uD560\uC218\uB85D \uD53C\uD574\uAC00 \uCEE4\uC9C4\uB2E4. 1\uCD08\uB9C8\uB2E4
+      +50%, 6\uCD08\uC5D0 4\uBC30(8 \u2192 32 DPS)\uAC00 \uB418\uBA70 \uB300\uC0C1\uC774
+      \uC8FD\uAC70\uB098 \uC0AC\uAC70\uB9AC\uB97C \uBC97\uC5B4\uB098\uBA74 \uCC98\uC74C\uBD80\uD130
+      \uB2E4\uC2DC \uC2DC\uC791\uD55C\uB2E4."
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

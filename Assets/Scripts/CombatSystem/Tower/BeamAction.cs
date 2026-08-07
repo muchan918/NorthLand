@@ -10,9 +10,14 @@ namespace NorthLand.Combat
     // 유지되고, 빈 슬롯만 새 대상으로 채운다(`MaintainLocks`). 매 틱 전체를 다시 뽑는 방식이 아니다 —
     // 그러면 사거리 안 대상 구성이 그대로여도 물리 엔진 내부 순서에 따라 잠금이 흔들린다.
     //
-    // ⚠ 범위 조정: 대상별 유지 시간에 따라 피해가 늘어나는 램프업은 이 액션의 범위 밖이다 — 별도
-    // "램프업 타워" 이슈에서 공용 부품(가칭 램프 계수 제공자)으로 구현해 이 액션이 선택적으로 참조하는
-    // 형태로 확장할 예정이다. 지금은 매 틱 균일 계수로만 피해를 준다(대상마다 가중치 없음).
+    // 대상별 유지 시간 램프(#300)를 선택적으로 쓴다 — `BeamFields.LockRamp`를 저작하면 같은 대상을
+    // 계속 잠근 시간만큼 피해가 오르고, **미저작이면 기존처럼 균일 계수**다(거동 무변경).
+    // `MaxTargets=1` + `LockRamp` = 단일 인페르노, `MaxTargets=N` + 램프 없음 = 멀티 인페르노 —
+    // 두 타워가 같은 액션에서 SO 저작만으로 갈린다.
+    //
+    // ⚠ 이 램프는 `RampAction`(원장형)과 **적용 범위가 다르다.** 원장은 타워 단위라 대상이 바뀌어도
+    // 배율이 남고 다른 액션·DoT까지 강해진다 — 그래서 여기서는 원장을 쓰지 않고 대상별로 직접 곱한다.
+    // 공유하는 것은 수치 규약(`RampProfile`)뿐이다.
     [Serializable]
     public sealed class BeamAction : TowerAction
     {
@@ -23,6 +28,12 @@ namespace NorthLand.Combat
         [NonSerialized] float tickTimer;
         [NonSerialized] Collider[] hitBuffer;
         [NonSerialized] List<IDamageable> lockedTargets;
+
+        // 대상별 잠금 경과 시간(#300). `lockedTargets`와 **인덱스가 나란히 유지되는** 병렬 리스트다 —
+        // 잠금이 sticky해서 목록 순서가 안정적이므로 Dictionary 없이 인덱스로 짝지을 수 있고,
+        // 매 프레임 도는 경로라 딕셔너리 조회·할당을 피하는 편이 낫다.
+        // ⚠ `lockedTargets`를 넣거나 빼는 모든 지점에서 이 리스트도 같은 인덱스로 함께 갱신할 것.
+        [NonSerialized] List<float> lockElapsed;
 
         // 빔 비주얼 — 최소 구현(임시 머티리얼, LineRenderer). 연출 폴리싱은 별도 이슈.
         [NonSerialized] List<LineRenderer> beams;
@@ -56,6 +67,7 @@ namespace NorthLand.Combat
 
             hitBuffer ??= new Collider[32];
             lockedTargets ??= new List<IDamageable>();
+            lockElapsed ??= new List<float>();
 
             EnsureBeamPool();
         }
@@ -67,7 +79,24 @@ namespace NorthLand.Combat
             // 숨기기만 한다.
             tickTimer = 0f;
             lockedTargets?.Clear();
+            lockElapsed?.Clear();
             HideAllBeams();
+        }
+
+        /// 웨이브가 끝나면 잠금과 그 경과 시간을 버리고 빔을 끈다.
+        ///
+        /// ⚠ **이 훅이 없으면 빔이 낮에도 켜진 채로 남는다.** 이 액션은 `NightOnly`라 낮에는 `Tick`이
+        /// 아예 돌지 않고, 그래서 `MaintainLocks`(잠금 정리)도 `FollowLockedTargets`(빔 위치·표시 갱신)도
+        /// 멈춘다 — 밤 마지막 프레임의 `LineRenderer.enabled = true`가 그대로 굳는다. 대상이 이미
+        /// 파괴됐어도 스스로 지워질 경로가 없다(#300 검증 중 실측: 낮 내내 잠금 1기와 경과 19초가 잔존).
+        ///
+        /// 램프 관점에서도 맞다 — 성장은 웨이브를 넘기지 않는다는 규칙을 원장형 램프와 공유한다.
+        public override void OnWaveEnd()
+        {
+            lockedTargets?.Clear();
+            lockElapsed?.Clear();
+            HideAllBeams();
+            tickTimer = 0f;   // 다음 밤 첫 Tick에서 즉시 1회 적용
         }
 
         public override void Tick(float deltaTime)
@@ -77,6 +106,11 @@ namespace NorthLand.Combat
             // 잠금 유지·보충은 매 프레임 — "죽거나 사거리를 벗어나야만 교체"를 지키려면 빈 슬롯이
             // 생기자마자(다음 틱까지 기다리지 않고) 채워야 한다. 데미지 적용만 TickInterval을 따른다.
             MaintainLocks();
+
+            // 잠금 경과 시간은 **매 프레임** 누적한다 — 램프는 "조준을 유지한 시간"이라 피해 틱 주기와
+            // 무관해야 한다. 틱마다 세면 공속 버프가 붙었을 때 같은 실시간에 램프가 더 빨리 오른다.
+            AccumulateLockTime(deltaTime);
+
             FollowLockedTargets();
 
             tickTimer -= deltaTime;
@@ -99,7 +133,14 @@ namespace NorthLand.Combat
                 IDamageable v = lockedTargets[i];
                 bool outOfRange = v?.HitPosition == null
                     || (v.HitPosition.position - origin).sqrMagnitude > sqrRange;
-                if (v == null || v.IsDead || outOfRange) lockedTargets.RemoveAt(i);
+                if (v == null || v.IsDead || outOfRange)
+                {
+                    lockedTargets.RemoveAt(i);
+
+                    // 경과 시간도 함께 버린다 — 사거리를 벗어났다 돌아온 적은 0에서 다시 시작한다.
+                    // 램프를 "유지한 시간"으로 정의했으므로 잠금이 끊기면 그 시간도 끊긴다.
+                    lockElapsed.RemoveAt(i);
+                }
             }
 
             if (lockedTargets.Count >= fields.MaxTargets) return;   // 빈 슬롯 없으면 재탐색 불필요
@@ -111,7 +152,26 @@ namespace NorthLand.Combat
                 if (d == null || d.IsDead || d.Faction == Owner.Faction) continue;
                 if (lockedTargets.Contains(d)) continue;   // 이미 잠근 대상 중복 추가 방지
                 lockedTargets.Add(d);
+                lockElapsed.Add(0f);                      // 새 대상은 램프 0부터
             }
+        }
+
+        // 잠금 유지 시간 누적. `lockedTargets`와 인덱스가 나란하므로 길이가 어긋날 일이 없지만,
+        // 병렬 리스트라 방어적으로 짧은 쪽까지만 돈다.
+        void AccumulateLockTime(float deltaTime)
+        {
+            int count = lockedTargets.Count < lockElapsed.Count ? lockedTargets.Count : lockElapsed.Count;
+            for (int i = 0; i < count; i++) lockElapsed[i] += deltaTime;
+        }
+
+        // 이 대상에게 적용할 램프 배율. LockRamp 미저작이면 1(균일 지속딜 = 기존 거동).
+        float LockMultiplier(int index)
+        {
+            RampProfile ramp = fields?.LockRamp;
+            if (ramp == null || !ramp.IsAuthored) return 1f;
+            if (index < 0 || index >= lockElapsed.Count) return 1f;
+
+            return ramp.Multiplier(ramp.StacksFromTime(lockElapsed[index]));
         }
 
         void ApplyToLocked()
@@ -123,7 +183,11 @@ namespace NorthLand.Combat
             for (int i = 0; i < lockedTargets.Count; i++)
             {
                 IDamageable victim = lockedTargets[i];
-                victim.TakeDamage(new DamageInfo(damage, Owner));
+
+                // 램프는 **원장을 통과하지 않고 여기서만 곱해진다.** 원장에 넣으면 타워 단위가 되어
+                // 대상이 바뀌어도 유지되고 아래 효과(DoT)까지 함께 강해진다 — 그래서 효과 수치는
+                // 의도적으로 램프를 타지 않는다(효과는 `Owner.Stats`만 본다).
+                victim.TakeDamage(new DamageInfo(damage * LockMultiplier(i), Owner));
 
                 if (effects == null) continue;
                 for (int e = 0; e < effects.Count; e++)
@@ -137,15 +201,24 @@ namespace NorthLand.Combat
             }
         }
 
-        // 정보 패널: 사거리 / 대상 1기당 DPS × 동시 대상 수 / 효과.
+        // 정보 패널: 사거리 / 대상 1기당 DPS × 동시 대상 수 / (램프가 있으면) 성장 구간 / 효과.
         public override string DescribeStats()
         {
             if (fields == null) return null;
 
             float dps = TickInterval > 0f ? DamagePerTick / TickInterval : 0f;
+
+            // 램프가 있으면 최대 DPS를 함께 낸다 — 시작 DPS만 보여주면 단일 인페르노가 그냥 약한
+            // 타워로 읽힌다(정체성이 "오래 지지면 아프다"인데 그 절반이 표시에서 사라진다).
+            RampProfile ramp = fields.LockRamp;
+            string rampLine = ramp != null && ramp.IsAuthored
+                ? $"Lock ramp: ×1 → ×{ramp.Multiplier(ramp.MaxStacks):0.##} ({ramp.StackInterval * ramp.MaxStacks:0.#}s)"
+                : null;
+
             return TowerStatsFormatter.Join(
                 TowerStatsFormatter.BuildRangeLine(Range),
                 TowerStatsFormatter.BuildBeamLine(dps, fields.MaxTargets),
+                rampLine,
                 AttackAction.DescribeEffects(effects, Owner));
         }
 
