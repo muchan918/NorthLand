@@ -56,6 +56,25 @@ namespace NorthLand.Combat
 
         /// 누적 이동 거리.
         public float Traveled;
+
+        /// 고정된 진행 방향(단위 벡터). 대상을 몰라도 되는 비행 방식(산탄 펠릿·부메랑)이 쓴다 —
+        /// 발사 순간 회전에 조준·부채꼴 오프셋이 이미 실려 있으므로 `Begin`에서 한 번만 스냅샷한다.
+        public Vector3 Direction;
+
+        /// 현재 "구간"(왕복 비행의 나갈 때/돌아올 때 각각 1구간) 번호. `LegHitSet`을 언제 비울지
+        /// 판단하는 기준이다 — 구간이 바뀌면 그 구간에서 새로 만나는 적은 다시 때릴 수 있다(#298).
+        public int CurrentLeg;
+
+        /// 이번 구간에서 **이미 피해를 입은** 적들. **같은 적을 이번 구간에서 두 번 때리지 않되, 서로
+        /// 다른 적은 같은 구간 안에서 몇 마리든 때린다** — 부메랑이 줄 서 있는 적 여러 마리를 관통하는
+        /// 그림이 여기서 나온다. 구간이 바뀌면(`CurrentLeg` 변화) 비워서 다음 구간엔 다시 맞을 수 있다.
+        ///
+        /// ★ **채우는 쪽은 비행이 아니라 `Projectile.ApplyArea`다**(#298). 비행이 자기 `HitRadius`로
+        /// 걸러 채우면, 실제 피해는 `ApplyArea`가 `SplashRadius`(≥ `HitRadius`, `OnValidate` 강제)로
+        /// **다시** 조회해 넣으므로 두 반경의 차이만큼 중복이 샌다 — 밀집 대형에서 A가 걸려 A·B가
+        /// 맞고, 곧이어 B가 걸려 A가 또 맞았다. 판정 게이트와 피해 게이트를 하나로 합쳐 막는다.
+        /// `FlightStep.Impact`가 명문화한 "무엇을 때릴지는 명중 축이 정한다" 규약 그대로다.
+        public System.Collections.Generic.HashSet<IDamageable> LegHitSet;
     }
 
     /// "어떻게 날아가는가" 한 조각. **타워 SO(`TowerAsset.Attack.Flight`)에 [SerializeReference]로 담긴다** —
@@ -152,6 +171,139 @@ namespace NorthLand.Combat
             self.transform.position = pos;
 
             return t >= 1f ? FlightStep.HitAndExpire(state.Landing) : FlightStep.Flying;
+        }
+    }
+
+    /// 발사 순간의 `transform.forward`를 방향으로 고정하고 유도 없이 그대로 직진한다(산탄 펠릿).
+    /// 발사 시 회전에 부채꼴 오프셋이 이미 실려 있으므로(`AttackAction.TryAttack`) 이 부품은
+    /// 대상이 누구인지 몰라도 된다 — 특정 대상을 쫓지 않는 최초의 비행 방식이라 접촉 판정을
+    /// 자체적으로 하며, 마스크는 `self.EnemyMask`(= `Projectile.impact.EnemyMask`, 곧 타워의
+    /// `enemyLayerMask`)를 그대로 읽는다. 여기 따로 저작하면 같은 값이 두 곳에 살아 어긋난다(#298).
+    ///
+    /// 최대 사거리도 같은 이유로 SO에 고정 수치를 따로 두지 않고 `self.Range`(=`AttackAction.Range`,
+    /// 사거리 버프가 반영된 원장 합성값)를 그대로 쓴다 — 고정값을 뒀다면 사거리 버프를 받아도
+    /// 탐색 반경만 늘고 실제 비행 거리는 그대로인 어긋남이 생긴다.
+    ///
+    /// 첫 접촉에서 소멸하므로(`HitAndExpire`) 중복 타격 문제가 없다 — 왕복하며 여러 번 때리는
+    /// 부메랑과 다른 지점이다. `Impact`는 반드시 `Area`(작은 `SplashRadius`)여야 한다 — `Single`은
+    /// 대상의 생사만 보고 위치와 무관하게 데미지를 넣으므로, 빗나간 펠릿도 명중해버린다.
+    [Serializable]
+    public sealed class StraightFlight : ProjectileFlight
+    {
+        public float Speed = 100f;
+
+        [Tooltip("접촉 판정 반경.")]
+        public float HitRadius = 0.3f;
+
+        public override void Begin(Projectile self, IDamageable target, ref FlightState state)
+        {
+            state.Start = self.transform.position;
+            state.Direction = self.transform.forward;
+        }
+
+        public override FlightStep Step(Projectile self, IDamageable target, ref FlightState state, float deltaTime)
+        {
+            Vector3 prevPos = self.transform.position;
+            float remaining = self.Range - state.Traveled;
+            float step = Mathf.Min(Speed * deltaTime, Mathf.Max(0f, remaining));
+
+            if (step <= 0f)
+                return FlightStep.Expire;
+
+            // 프레임 시작→끝 구간 전체를 스윕해 판정한다 — CheckSphere를 이동 후 "점"에서만 찍으면
+            // 고속탄(예: 산탄 Speed 600)이 판정 반경보다 훨씬 크게 이동해 사이 구간을 놓치고
+            // 지나가 버린다(#298 WL-154). 사거리도 이동 전에 먼저 클램프해 사거리 밖 지점에서
+            // 판정이 성립하는 일이 없게 한다.
+            if (Physics.SphereCast(prevPos, HitRadius, state.Direction, out RaycastHit hit, step, self.EnemyMask))
+            {
+                Vector3 hitPos = prevPos + state.Direction * hit.distance;
+                self.transform.position = hitPos;
+                state.Traveled += hit.distance;
+                return FlightStep.HitAndExpire(hitPos);
+            }
+
+            self.transform.position = prevPos + state.Direction * step;
+            state.Traveled += step;
+
+            return state.Traveled >= self.Range ? FlightStep.Expire : FlightStep.Flying;
+        }
+    }
+
+    /// 발사 순간의 `transform.forward`를 방향으로 고정하고 그 직선을 따라 `self.Range`(=`AttackAction.Range`,
+    /// 사거리 버프가 반영된 원장 합성값)까지 나갔다가 발사 지점(`state.Start`)으로 돌아온다 —
+    /// 이 왕복을 `Laps`번 반복하고 마지막 복귀가 끝나면 소멸한다. 편도 거리를 SO에 고정 수치로 따로
+    /// 두지 않고 `self.Range`를 쓰는 이유는 `StraightFlight`와 같다 — 고정값을 두면 사거리 버프를
+    /// 받아도 탐색 반경만 늘고 실제로 나가는 거리는 그대로인 어긋남이 생긴다.
+    ///
+    /// `StraightFlight`와 같은 이유로 특정 대상을 쫓지 않아 접촉 판정을 자체적으로 하며,
+    /// 마스크는 `self.EnemyMask`(`Projectile.impact.EnemyMask`)를 그대로 읽는다.
+    ///
+    /// ⚠ 왕복 중 접촉마다 때리므로(`HitAndContinue`) 매 프레임 때리면 안 된다 — **같은 적을 이번
+    /// 구간(나갈 때/돌아올 때)에서 두 번 때리지 않되, 서로 다른 적은 같은 구간 안에서 몇 마리든
+    /// 때린다**(`FlightState.LegHitSet`, #298). 그래서 줄 서서 오는 적 여러 마리를 한 구간에 전부
+    /// 관통할 수 있다 — 총 명중 횟수가 그 구간에 몇 마리가 걸리느냐에 따라 달라진다(예전의
+    /// "구간당 최대 1회"와 다른 지점. 그쪽은 총 명중 횟수가 항상 2회로 고정됐었다).
+    ///
+    /// **그 중복 방지는 이 부품이 하지 않는다** — 여기는 "닿았다"만 알리고 `Projectile.ApplyArea`가
+    /// 원장을 보며 거른다. 이 부품이 걸러 봐야 `ApplyArea`가 `SplashRadius`로 재조회하는 몫은 못 막기
+    /// 때문이다(#298 리뷰에서 잡힌 실제 결함). `Impact`는 반드시 `Area`여야 한다 — `StraightFlight`와
+    /// 같은 이유. `SplashRadius ≥ HitRadius`(`OnValidate` 강제)라 이 부품이 접촉을 알린 적은 항상
+    /// 피해 조회에도 들어온다 — 반대였다면 "닿았다고 알렸는데 아무도 안 맞는" 프레임이 반복된다.
+    [Serializable]
+    public sealed class BoomerangFlight : ProjectileFlight
+    {
+        public float Speed = 60f;
+
+        [Tooltip("왕복 횟수. 1이면 나갔다 한 번 돌아오고 소멸.")]
+        public int Laps = 1;
+
+        [Tooltip("접촉 판정 반경.")]
+        public float HitRadius = 0.4f;
+
+        public override void Begin(Projectile self, IDamageable target, ref FlightState state)
+        {
+            state.Start = self.transform.position;
+            state.Direction = self.transform.forward;
+            state.CurrentLeg = -1;
+            state.LegHitSet = new System.Collections.Generic.HashSet<IDamageable>();
+        }
+
+        public override FlightStep Step(Projectile self, IDamageable target, ref FlightState state, float deltaTime)
+        {
+            state.Traveled += Speed * deltaTime;
+
+            float outAndBack = self.Range * 2f;
+            float totalPath = Mathf.Max(1, Laps) * outAndBack;
+
+            if (state.Traveled >= totalPath)
+            {
+                self.transform.position = state.Start;
+                return FlightStep.Expire;   // 마지막 복귀 완료 — 명중 없이 소멸(수명 종료와 명중은 독립이다)
+            }
+
+            // 삼각파: 0→self.Range(왕복 전진)→0(복귀), Laps만큼 반복.
+            float cycle = state.Traveled % outAndBack;
+            float legDistance = cycle <= self.Range ? cycle : outAndBack - cycle;
+            self.transform.position = state.Start + state.Direction * legDistance;
+
+            // 구간 번호: 0=1차 전진, 1=1차 복귀, 2=2차 전진, ... self.Range만큼 지날 때마다 1씩 증가.
+            // 구간이 바뀌면 이번 구간의 "이미 맞은 적" 목록을 비워서 다음 구간엔 같은 적도 다시 맞을 수 있다.
+            int leg = (int)(state.Traveled / self.Range);
+            if (leg != state.CurrentLeg)
+            {
+                state.CurrentLeg = leg;
+                state.LegHitSet.Clear();
+            }
+
+            // **접촉 여부만 답한다 — 누구를 때릴지는 명중 축(`Projectile.ApplyArea`)이 정한다**(#298,
+            // `FlightStep.Impact` 규약). 예전에는 여기서 대상을 열거해 `LegHitSet`에 넣고 "새로 걸린 적이
+            // 있을 때만" Impact를 냈지만, 그 목록은 `HitRadius` 기준이고 실제 피해는 `SplashRadius` 기준
+            // 재조회라 두 반경의 차이만큼 중복이 샜다(`FlightState.LegHitSet` 주석). 원장을 피해 쪽이
+            // 채우게 넘기면 게이트가 하나로 합쳐지고, 덤으로 여기서 할당형 쿼리도 사라진다(WL-025).
+            if (Physics.CheckSphere(self.transform.position, HitRadius, self.EnemyMask))
+                return FlightStep.HitAndContinue(self.transform.position);
+
+            return FlightStep.Flying;
         }
     }
 }

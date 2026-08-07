@@ -130,8 +130,41 @@ namespace NorthLand.Combat
             Transform firePoint = Owner.FirePoint;
             Vector3 spawnPos = firePoint != null ? firePoint.position : Origin.position;
 
-            GameObject obj = UnityEngine.Object.Instantiate(
-                fields.ProjectilePrefab, spawnPos, Quaternion.identity);
+            // 대상을 향한 회전을 항상 만든다 — Homing/Ballistic은 스폰 회전을 안 쓰므로(첫 Update에서
+            // 이동 방향으로 즉시 덮어써 렌더링 전에 사라진다) 회귀 위험이 없고, StraightFlight/
+            // BoomerangFlight처럼 "발사 순간 회전을 방향으로 고정"하는 비행 방식은 PelletCount==1이어도
+            // (부메랑이 그렇다, #298) 대상을 조준해야 한다 — 예전엔 PelletCount>1일 때만 계산해서
+            // 산탄 아닌 단발 직선형 비행이 항상 월드 +Z로 나가는 버그가 있었다.
+            Transform aimAt = target.HitPosition;
+            Vector3 aimDir = aimAt != null ? aimAt.position - spawnPos : Vector3.forward;
+            aimDir.y = 0f;
+            Quaternion baseRotation = aimDir.sqrMagnitude > 0.0001f
+                ? Quaternion.LookRotation(aimDir.normalized)
+                : Quaternion.identity;
+
+            int pelletCount = Mathf.Max(1, fields.PelletCount);
+            bool anyFired = false;
+            float half = fields.SpreadAngle * 0.5f;
+            for (int i = 0; i < pelletCount; i++)
+            {
+                // 부채꼴 균등 분할: -half ~ +half. 회전에 오프셋을 실어 보내므로 StraightFlight는
+                // 대상을 몰라도 그 방향 그대로 직진하기만 하면 된다(무상태 규칙 유지).
+                float angle = pelletCount == 1 ? 0f : Mathf.Lerp(-half, half, i / (float)(pelletCount - 1));
+                Quaternion rotation = angle == 0f ? baseRotation : baseRotation * Quaternion.Euler(0f, angle, 0f);
+
+                if (SpawnPellet(spawnPos, rotation, target)) anyFired = true;
+            }
+
+            if (!anyFired) return false;
+
+            // 발사 1회당 1번 — 펠릿 수와 무관하다(#298).
+            Owner.RaiseFired();
+            return true;
+        }
+
+        bool SpawnPellet(Vector3 spawnPos, Quaternion rotation, IDamageable target)
+        {
+            GameObject obj = UnityEngine.Object.Instantiate(fields.ProjectilePrefab, spawnPos, rotation);
 
             if (!obj.TryGetComponent(out Projectile projectile))
             {
@@ -140,8 +173,9 @@ namespace NorthLand.Combat
             }
 
             // 데미지 소스는 Owner다 — IAttacker 계약을 가진 쪽이 타워이므로 DamageInfo가 타워를 가리킨다.
-            projectile.Init(target, Damage, Owner, flight, impact, effects);
-            Owner.RaiseFired();
+            // Range(원장 합성값, 사거리 버프 반영)도 함께 넘긴다 — StraightFlight/BoomerangFlight가
+            // 이 값을 실제 비행 거리로 쓴다(#298).
+            projectile.Init(target, Damage, Owner, flight, impact, effects, Range);
             return true;
         }
 

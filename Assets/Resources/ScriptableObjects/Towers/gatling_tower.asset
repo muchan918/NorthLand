@@ -15,11 +15,7 @@ MonoBehaviour:
   TowerID: gatling_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: fc8cae31ccc3652479febc65cbf3e558, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: 42cd2c767e149584392896cc66892ff3, type: 3}
-  Cost:
-  - Resource: {fileID: 11400000, guid: 89825fd4ccdc8c0479da28304786292e, type: 2}
-    Amount: 5
-  - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
-    Amount: 20
+  Cost: []
   Attack:
     AttackDamage: 7
     AttackRange: 12.8
@@ -27,6 +23,8 @@ MonoBehaviour:
     ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
     Flight:
       rid: 3470829504553025638
+    PelletCount: 1
+    SpreadAngle: 0
   Impact: 0
   SplashRadius: 0
   ChainRadius: 0
@@ -42,6 +40,11 @@ MonoBehaviour:
   DebuffAura:
     Radius: 0
     Interval: 0
+  Beam:
+    Range: 0
+    MaxTargets: 1
+    TickInterval: 1
+    DamagePerTick: 0
   Effects: []
   references:
     version: 2

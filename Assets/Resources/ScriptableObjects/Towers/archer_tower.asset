@@ -25,6 +25,8 @@ MonoBehaviour:
     ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
     Flight:
       rid: 3470829504553025636
+    PelletCount: 1
+    SpreadAngle: 0
   Impact: 0
   SplashRadius: 0
   ChainRadius: 0
@@ -40,6 +42,11 @@ MonoBehaviour:
   DebuffAura:
     Radius: 0
     Interval: 0
+  Beam:
+    Range: 0
+    MaxTargets: 1
+    TickInterval: 1
+    DamagePerTick: 0
   Effects: []
   references:
     version: 2
