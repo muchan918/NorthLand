@@ -36,6 +36,6 @@ MonoBehaviour:
       MaxHp: 700
       MoveSpeed: 8
       AttackDamage: 40
-      AttackRange: 1.2
+      AttackRange: 2.4
       AttackInterval: 2.5
     BehaviorTree: {fileID: 8902802321230540427, guid: 3b5d5eafab930e542b7bb08daa8c9490, type: 2}

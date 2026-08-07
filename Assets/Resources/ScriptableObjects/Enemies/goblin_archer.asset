@@ -27,7 +27,7 @@ MonoBehaviour:
       MaxHp: 10
       MoveSpeed: 32
       AttackDamage: 10
-      AttackRange: 4
+      AttackRange: 8
       AttackInterval: 5
     ProjectilePrefab: {fileID: 0}
     ProjectileSpeed: 4
