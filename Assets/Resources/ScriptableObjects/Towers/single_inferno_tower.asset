@@ -46,9 +46,9 @@ MonoBehaviour:
     TickInterval: 0.5
     DamagePerTick: 4
     LockRamp:
-      PerStack: 0.5
-      MaxStacks: 6
-      StackInterval: 1
+      PerStack: 1.5
+      MaxStacks: 8
+      StackInterval: 0.75
       DecaySeconds: 0
   Ramp:
     Stat: 2
