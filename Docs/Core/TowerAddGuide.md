@@ -3,8 +3,7 @@
 > **이 문서는 "어떻게 하는가"다.** "왜 이런 구조인가 / 무엇이 어떻게 동작하는가"는
 > [Tower.md](Tower.md)가 정본이고, 여기서는 손을 움직이는 순서만 다룬다.
 > **기준 코드: #300(성장형 램프업) 이후** — #274 Phase 5 + Phase 4.5(투사체 비행 부품화) ·
-> #298(산탄·부메랑·빔) · #300(성장 액션·대상별 램프·사각 레이저)까지 반영.
-> 타워 구조가 바뀌면 이 문서부터 의심할 것.
+> #298(산탄·부메랑·빔) · #300(성장 액션·대상별 램프)까지 반영. 타워 구조가 바뀌면 이 문서부터 의심할 것.
 > **대상**: §0~§5·§7은 기획·아트용(코드 지식 불필요), §6만 프로그래머용.
 > 관련: [Tower.md](Tower.md)(명세) · [TowerPlacement.md](TowerPlacement.md)(배치) ·
 > [TowerMerge.md](TowerMerge.md)(합성) · [DataTableManager.md](../Tools/DataTableManager.md)(CSV) ·
@@ -42,10 +41,8 @@
 | 다수를 동시에 지지는 지속딜 | `BeamAction` · `Beam.MaxTargets` > 1 |
 | 한 대상을 오래 지질수록 아파지는 지속딜 | `BeamAction` · `Beam.MaxTargets` = 1 **+** `Beam.LockRamp` |
 | 때릴수록·잡을수록 스스로 강해지는 타워 | `AttackAction` **+** `RampAction` · `Ramp`의 축·트리거 지정 |
-| 조준 방향 사각 범위를 한 번에 쓸어버리는 즉시타 | `LaserAction` · `Laser`의 `Width`/`Range` |
-| 참을수록 굵고 강해지는 충전 레이저 | `LaserAction` · `Laser.ChargeRamp` + `Laser.DamagePerStack` |
 
-부품 재고: 액션 **6종**(공격 / 버프 오라 / 디버프 오라 / 빔 / 성장 / 레이저) · 명중 3종(`Single`/`Area`/`Chain`) ·
+부품 재고: 액션 **5종**(공격 / 버프 오라 / 디버프 오라 / 빔 / 성장) · 명중 3종(`Single`/`Area`/`Chain`) ·
 비행 **4종**(`Homing`/`Ballistic`/`Straight`/`Boomerang`) · 효과 4종(`Burn`/`Poison`/`Slow`/`Stun`) ·
 램프 수치 부품 `RampProfile`. 각각의 동작은 [Tower.md](Tower.md) §3.5(액션) · §3.7(비행·명중) ·
 §3.8(효과) · §3.10(성장).
@@ -121,7 +118,7 @@ archer_tower,towers.archer.name,1,1,towers.archer.role,towers.archer.desc
 |---|---|---|
 | `Tower` 컴포넌트 | ✅ | 없으면 배치 시 LogError |
 | Collider | ✅ | 클릭 선택용. 레이어가 `MouseManager._selectableMask`에 포함돼야 한다 |
-| **`Actions` 리스트** | ✅ | **이 타워가 무엇을 하는지의 정본.** 인스펙터 `+`로 `Attack Action`(공격) / `Buff Aura Action`(아군 강화) / `Debuff Aura Action`(적 약화) / `Beam Action`(다중 잠금 지속딜) / `Ramp Action`(자가 성장) / `Laser Action`(사각 범위 즉시타)을 담는다. **여러 개 담아도 된다** — 하이브리드가 그렇게 만들어진다(성장 타워 = 공격 + 성장) |
+| **`Actions` 리스트** | ✅ | **이 타워가 무엇을 하는지의 정본.** 인스펙터 `+`로 `Attack Action`(공격) / `Buff Aura Action`(아군 강화) / `Debuff Aura Action`(적 약화) / `Beam Action`(다중 잠금 지속딜) / `Ramp Action`(자가 성장)을 담는다. **여러 개 담아도 된다** — 하이브리드가 그렇게 만들어진다(성장 타워 = 공격 + 성장) |
 | `enemyLayerMask` | 공격 타워면 ✅ | 대상 탐색 레이어 |
 | `firePoint` | 선택 | 발사 위치. 비우면 타워 루트에서 나간다 |
 | `data`(TowerAsset) | 선택 | 채우면 3.5의 SO와 **같은 것**이어야 한다(다르면 경고 후 배치된 쪽으로 재조립) |
@@ -156,9 +153,6 @@ archer_tower,towers.archer.name,1,1,towers.archer.role,towers.archer.desc
 - [ ] `Ramp` — 타워 전체가 성장할 거면 `Stat`(무엇이 오르는가) · `Trigger`(`Hit`/`Kill`) ·
       `Profile`(`PerStack`·`MaxStacks`·`DecaySeconds`). ⚠ `DecaySeconds = 0`은 "영구"가 아니라
       "웨이브 동안 유지"다 — 성장은 웨이브 종료에 일괄 초기화된다
-- [ ] `Laser` — `Range` / `Width`(미충전 폭) / `Height`(판정 세로, 3~5) / `Damage` / `Interval`.
-      충전을 줄 거면 `ChargeRamp`(`StackInterval`·`MaxStacks`·`PerStack`=폭 배율) + `DamagePerStack`(절댓값).
-      ⚠ **`StackInterval` ≥ `Interval`** — 안 지키면 쉬지 않고 쏘는 중에도 충전이 쌓여 "참을수록 굵어진다"가 사라진다
 - [ ] `Effects` — `+`로 `Burn`/`Poison`/`Slow`/`Stun`을 담고 **그 자리에서 수치 입력**.
       **공격 액션과 디버프 오라가 이 리스트를 공유**한다 — 같은 "화상"이 명중 효과도 되고 장판도 된다
 
@@ -226,8 +220,6 @@ SO를 저장하면 아래 조합을 경고한다. **전부 "예외도 없이 조
 | `RampAction이 있는데 Ramp 수치가 비었습니다` (역방향 경고도 동일) | [3.5](#35-so-수치-기입) `Ramp` |
 | `Ramp.Trigger=Hit인데 프리팹에 AttackAction이 없습니다` | 명중 통지(`Projectile.DamageDealt`)는 **투사체 공격만** 발행한다 — 빔 타워면 `Trigger=Kill` 또는 `Beam.LockRamp`를 쓴다 |
 | `Beam.LockRamp를 적었는데 BeamAction이 없습니다` / `StackInterval이 0 이하입니다` | [3.5](#35-so-수치-기입) `Beam.LockRamp` |
-| `LaserAction이 있는데 Laser 수치가 비었습니다` (역방향·`Interval` 경고도 동일) | [3.5](#35-so-수치-기입) `Laser` |
-| `Laser.ChargeRamp.StackInterval이 … Laser.Interval보다 짧습니다` | [3.5](#35-so-수치-기입) — 연사 중에도 충전이 쌓인다 |
 
 > `TowerPrefab`이 비어 있으면 검증을 **건너뛴다**(저작 도중 경고 폭탄 방지). 즉 프리팹을 안 물린 SO는
 > 경고도 안 난다 — `lightning_tower`가 전 필드 0인 채 조용한 이유다. 근거는 [Tower.md](Tower.md) §4.3.
@@ -320,11 +312,6 @@ unity-cli editor refresh --compile
 > `BeamAction`이 실제로 이 문제를 갖고 있었다(#298 → #300에서 해소). 페이즈 통지는 호스트가 주므로
 > 액션이 `DayNightManager`를 구독하면 안 된다(WL-044).
 
-> ⚠ **확장점은 3개지만 `Projectile.cs`에 창구가 하나 열려 있다**(#300). `Projectile.RaiseDamageDealt`는
-> 투사체가 아닌 공격이 아래 보상 축에 **스스로 합류하기 위한** 것이다 — C# 이벤트는 선언한 클래스 밖에서
-> 발행할 수 없어서, 아래 문단이 말하는 탈출구를 실제로 쓰려면 이 창구가 필요했다. 새 히트스캔 액션은
-> 이것을 부를지 말지만 정하면 되고 `Projectile.cs`를 더 고칠 일은 없다.
-
 > ⚠ **히트스캔(빔)형 공격 액션은 투사체 기반 보상 효과에서 제외된다.** 버프 화상(#169,
 > [BurnBuff.cs](../../Assets/Scripts/Skill/BurnBuff.cs))처럼 `Projectile.DamageDealt` 이벤트를 구독하는
 > 보상 효과는 실제 `Projectile`을 생성하는 공격에만 적용된다. `BeamAction`처럼 `LineRenderer`로
@@ -332,9 +319,7 @@ unity-cli editor refresh --compile
 > 설계 의도다(보상 텍스트도 "투사체 타워"로 스코프됨). **향후 체이닝 타워·빔형 공격 등 새 히트스캔
 > `TowerAction`을 추가할 때도 기본적으로 같은 축에서 제외된다** — 그 공격에도 이 보상이 적용되길
 > 원하면 해당 액션의 `ApplyToLocked`(또는 동급 지점)에서 같은 `Projectile.DamageDealt`를 직접
-> 발행해야 한다. **`LaserAction`(#300)이 그 탈출구를 쓴 첫 사례다** — 충전 한 방이 정체성인 타워라
-> "한 방에 화상까지"가 결이 맞고, 플레이어가 보상을 골랐는데 특정 타워만 조용히 반응이 없는 것도
-> 설명하기 어려워서다. `BeamAction`은 여전히 제외 쪽이다(지속딜에 매 틱 보상이 얹히면 과하다).
+> 발행해야 한다.
 
 > **공통** — 인스펙터 드롭다운에 뜨려면 **구상 클래스 · 비제네릭 · public 무인자 생성자**여야 한다.
 > 클래스를 rename하면 기존 에셋·프리팹에 null 항목이 남으므로 `[MovedFrom]`을 붙일 것.
@@ -382,4 +367,3 @@ unity-cli editor refresh --compile
 |---|---|
 | 초판 (#274) | `TowerRedesign.md` §11(제안 시제·4행 표)을 이관해 실측 절차서로 재작성. 7단계 체크리스트·`OnValidate` 경고 역인덱스·증상 역인덱스·확장점 3개 신설 |
 | 2차 (#300) | 부품 재고를 실측치로 정정 — 액션 3종 → **5종**(`BeamAction`·`RampAction`), 비행 2종 → **4종**(`Straight`·`Boomerang`). #298·#300에서 늘어난 분이 §1에 반영돼 있지 않았다. §1 조립표에 빔·램프 3행 추가. §3.5 체크리스트에 `Beam`·`Ramp` 항목 추가(⚠ `DecaySeconds=0`은 "영구"가 아니라 "웨이브 동안 유지"). §4① `OnValidate` 역인덱스에 산탄·부메랑·빔·램프 경고 7행 추가. §6에 **"새 액션이 정말 필요한가"** 경고 신설 — #300은 타워 3종을 액션 1개로 만들었고(트리거·수치로 갈림) 단일 인페르노는 액션 추가 0이다. 스탯을 바꾸는 거동은 액션보다 원장을 먼저 보라는 지침과, `OnWaveEnd`를 구현하지 않으면 `NightOnly` 액션이 낮에 상태를 정리할 기회가 없다는 경고 추가 |
-| 3차 (#300 4번째 타워) | §1 부품 재고 액션 5종 → **6종**(`LaserAction`) + 조립표 2행(사각 범위 즉시타 / 충전 레이저). §3.3 Actions 목록·§3.5 체크리스트에 `Laser` 추가(⚠ `StackInterval` ≥ `Interval`). §4① 역인덱스에 레이저 경고 2행. §6에 **`Projectile.RaiseDamageDealt` 창구** 주의 신설 — 확장점은 3개지만 히트스캔이 보상 축에 합류하려면 이 창구가 필요했고(C# 이벤트는 선언 클래스 밖에서 발행 불가), 새 히트스캔 액션은 부를지 말지만 정하면 된다. 히트스캔 제외 문단에 `LaserAction`이 탈출구를 쓴 첫 사례임과 `BeamAction`은 여전히 제외인 이유를 추가 |

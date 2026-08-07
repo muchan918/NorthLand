@@ -44,18 +44,6 @@ namespace NorthLand.Combat
         // 구독한다. 순수 추가 훅으로 기존 공격 로직은 무수정. static이므로 구독자가 해제를 책임진다.
         public static event Action<IAttacker, IDamageable> DamageDealt;
 
-        /// 투사체가 아닌 공격이 이 축에 **스스로 합류하는 창구**(#300).
-        ///
-        /// 히트스캔 공격은 `Projectile`을 만들지 않아 위 이벤트에서 자동 제외되고, 그것이 기본
-        /// 설계다(TowerAddGuide.md §6). 다만 같은 문서가 "그 보상이 적용되길 원하면 해당 액션에서
-        /// 직접 발행하라"는 탈출구를 명시하고 있는데, C# 이벤트는 선언한 클래스 밖에서 발행할 수
-        /// 없으므로 그 탈출구를 실제로 쓰려면 이 창구가 필요하다. `LaserAction`이 첫 소비처다.
-        ///
-        /// ⚠ **피해를 실제로 넣은 직후에만** 부를 것 — 구독자(BurnBuff 등)는 "이 대상이 방금 맞았다"를
-        /// 전제로 효과를 얹는다.
-        internal static void RaiseDamageDealt(IAttacker source, IDamageable victim)
-            => DamageDealt?.Invoke(source, victim);
-
         // 프리팹에 남는 **유일한** 설정 — 모델 메시의 기수가 어느 축을 보는지 보정한다(화살 −90, 공 0).
         // 타워가 알 이유가 없는 값이라 여기 남는다. 비행·명중은 전부 타워 SO가 정한다(#274).
         [SerializeField] Vector3 rotationOffset;

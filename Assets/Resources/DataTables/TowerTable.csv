@@ -17,4 +17,3 @@ multi_inferno_tower,towers.multi_inferno.name,1,1,towers.multi_inferno.role,towe
 rampup_tower,towers.rampup.name,1,1,towers.rampup.role,towers.rampup.desc
 killstack_tower,towers.killstack.name,1,1,towers.killstack.role,towers.killstack.desc
 single_inferno_tower,towers.single_inferno.name,1,1,towers.single_inferno.role,towers.single_inferno.desc
-charging_cannon_tower,towers.charging_cannon.name,1,1,towers.charging_cannon.role,towers.charging_cannon.desc
