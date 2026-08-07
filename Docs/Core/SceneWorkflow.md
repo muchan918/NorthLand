@@ -58,7 +58,18 @@
 4. **정본 씬 diff 셀프 체크**: 커밋 전에 `git diff -- Assets/Scenes/GameScene.unity`로 변경 범위를
    확인한다. 특히 작업과 무관한 `RectTransform` 구동값(`m_AnchorMin`/`m_AnchorMax`/
    `m_AnchoredPosition`/`m_SizeDelta`), TMP 글꼴 크기, Canvas 설정이 함께 재저장되지 않았는지
-   검사하고 비의도 변경은 되돌린다. 큰 diff에서는 다음 명령으로 레이아웃 구동값을 제외한 변경을
+   검사하고 비의도 변경은 되돌린다.
+
+   실제로 반복 관측되는 구동값 3종이다(2026-08-07 기준, 씬을 저장할 때마다 뜬다):
+   TMP `m_fontSize`(오토사이징 캐시) · 슬라이더 `m_Value`의 부동소수 오차(`1` → `0.9999998`) ·
+   **`Assets/Settings/FlatKit/PixelationSettings_PC.asset`의 `_PixelSize`**(씬 파일은 아니지만
+   `PixelationZoomBinder`가 카메라 줌에서 매 프레임 몰아 쓰는 값이라 같이 뜬다 — 무해하므로
+   `git checkout`으로 되돌린다).
+
+   ⚠️ **씬 YAML 블록이 통째로 재정렬되면 `git diff`에 삭제(`-`)로 보인다.** 오브젝트가 사라진 것으로
+   오인하기 쉬우니, 삭제가 대량으로 보이면 diff를 읽지 말고 **개수로 확인**한다:
+   `grep -c '^--- !u!1 &'`(GameObject 수) · `grep -c '^--- !u!'`(전체 컴포넌트 수)를 `git show HEAD:<경로>`와
+   비교하면 증감이 바로 드러난다. 큰 diff에서는 다음 명령으로 레이아웃 구동값을 제외한 변경을
    먼저 확인하되, 최종적으로는 제외하지 않은 전체 diff도 검토한다.
 
    ```powershell
