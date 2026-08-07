@@ -55,8 +55,20 @@ public partial class ResidentMoveToAction : Action
     private float segmentElapsed;
     private float journeyElapsed;
 
-    // 직전 종료가 **구간 끝**이었는가(목적지를 들고 나갔는가). 참이면 journeyElapsed를 잇는다.
+    // 직전 종료가 **구간 끝**이었는가(목적지를 들고 나갔는가). 참이면 journeyElapsed를 잇는 후보가 된다.
     private bool continueJourney;
+
+    // 이월을 허락한 목적지. **continueJourney만으로는 부족하다.**
+    //
+    // HasDestination이 선 채로 브랜치가 끊기면(밤 선점 등) 이월 플래그가 참으로 남는데, 그 사이에 다른
+    // 노드가 **새 목적지를 덮어쓸** 수 있다(`ResidentExitDoorAction.HandOffToStroll`이 다음 아침에
+    // Destination과 HasDestination을 함께 써넣는다). 그때 옛 여정 시계를 그대로 이어받으면 새 목적지가
+    // 얼마 가지도 못하고 MaxSeconds에 걸려 Success로 빠진다 — 이름과 다른 것을 재는 셈이다.
+    private Vector3 journeyDestination;
+
+    // 같은 목적지로 볼 제곱거리 임계(1cm²). 목적지는 웨이포인트 반경 안에서 뽑은 실수 좌표라
+    // 정확히 같은 값이 되돌아온다는 보장이 없어 == 로 비교하지 않는다.
+    private const float SameDestinationSqrEpsilon = 0.0001f;
 
     protected override Status OnStart()
     {
@@ -88,11 +100,15 @@ public partial class ResidentMoveToAction : Action
         // 구간 시계는 **항상** 0에서 시작한다. 여정 시계는 같은 목적지를 이어받은 것일 때만 잇는다.
         segmentElapsed = 0f;
 
-        if (!continueJourney)
+        bool sameJourney = continueJourney
+            && (destination - journeyDestination).sqrMagnitude < SameDestinationSqrEpsilon;
+
+        if (!sameJourney)
         {
             journeyElapsed = 0f;
         }
 
+        journeyDestination = destination;
         continueJourney = false;
         agent.SetMoving(true);
 
@@ -166,6 +182,8 @@ public partial class ResidentMoveToAction : Action
             }
 
             // 여정이 이어지면 다음 진입에서 **여정 시계만** 잇는다. 구간 시계는 언제나 새로 시작한다.
+            // 여기서는 후보로만 표시하고, 실제 이월 여부는 OnStart가 목적지까지 대조해 결정한다
+            // (그 사이에 다른 노드가 목적지를 갈아끼울 수 있다 — journeyDestination 주석 참조).
             continueJourney = !journeyDone;
         }
 

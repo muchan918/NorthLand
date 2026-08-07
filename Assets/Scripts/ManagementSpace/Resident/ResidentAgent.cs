@@ -106,8 +106,11 @@ public class ResidentAgent : MonoBehaviour
 
     public bool HasConversation => resident != null && resident.Conversation != null;
 
-    // NavMesh 위에 올라가 있는가. 스폰 위치가 NavMesh 밖이면 목적지 지정이 조용히 무시되므로
-    // 이동 노드가 시작 시점에 이걸 먼저 본다.
+    // NavMesh 위에 올라가 있는가. **관측 전용이고 부작용이 없다** — 디버그·검증에서 상태만 볼 때 쓴다.
+    //
+    // ⚠ **이동 경로에서는 이걸 쓰지 말 것.** 이동 노드는 아래 `EnsureOnNavMesh`를 부른다. 이름이 비슷하지만
+    //   그쪽은 벗어난 주민을 `Warp`로 끌어올리는 **부작용이 있는 복구 함수**다. 잘못 고르면 증상이 조용히
+    //   갈린다 — 이쪽을 쓰면 굳은 주민이 영영 안 풀리고, 저쪽을 관측용으로 쓰면 의도치 않은 순간이동이 섞인다.
     public bool IsOnNavMesh => navAgent != null && navAgent.isOnNavMesh;
 
     // NavMesh 밖으로 밀려났으면 가장 가까운 지점으로 끌어올린다. 성공했거나 원래 위에 있었으면 참.
