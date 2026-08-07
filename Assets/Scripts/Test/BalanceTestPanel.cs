@@ -26,6 +26,31 @@ public class BalanceTestPanel : MonoBehaviour
 
     ResourceWallet _wallet;
 
+    [SerializeField]
+    private GameObject Panel;
+
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.F4))
+        {
+            Panel.SetActive(!Panel.activeSelf);
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     // ── 웨이브 ──────────────────────────────────────────────
     public void ForceWaveClear()
     {
@@ -91,4 +116,7 @@ public class BalanceTestPanel : MonoBehaviour
         _wallet = field?.GetValue(_controller) as ResourceWallet;
         return _wallet;
     }
+
+
+
 }
