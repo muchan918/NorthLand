@@ -167,7 +167,12 @@ private void OnDestroy()
 - [ ] **본진 체력 회복**: 이벤트 훅(`OnDayStart`)만 존재, 실제 로직은 본진/체력 소유 시스템(미구현)이 구독해서 채워야 함
 - [x] **낮/밤 전환 연출**: `DayNightLightingController.cs`로 구현 완료(#7, §6 참고)
 - [x] **부드러운 전환(UniTask)**: `DayNightTransition`으로 구현 완료(#101, §6.1). 단순 Lerp가 아니라 **셀 와이프**다 — 씬 라이팅은 전역 보간, "셀이 먼저 밤이 되는" 부분만 풀스크린 패스가 담당
-- [ ] **전환 중 입력·트리거 잠금** (#101 잔여): `DayNightTransition.IsTransitioning`과 `OnTransitionComplete`는 뚫려 있으나 **소비처가 아직 없다.** 각 진입점에서 이 값을 봐야 하는 항목:
+- [ ] **전환 중 입력·트리거 잠금** — **#101에서 분리됐다(팀 결정 2026-08-07). #101은 전환 연출로 닫는다.**
+  #101 원문의 잠금 명세는 "라이트 전환만 UniTask Lerp로 만든다"는 전제 위에 쓰였는데, 구현이 셀 와이프 +
+  전역 블렌드 구조로 가면서 그 전제가 바뀌었다. 잠금 대상·시점을 새 구조 기준으로 다시 정의해야 하므로
+  원문 명세를 그대로 소화하지 않고 **별도 축(WL-162)으로 옮겼다.**
+  `DayNightTransition.IsTransitioning`과 `OnTransitionComplete`는 그 배선을 위해 미리 뚫어 둔 것이며
+  **현재 소비처는 0이다.** 재정의 시 후보로 남는 진입점:
   - [ ] 몬스터 웨이브 시작 — `StageBuilder.GenerateNextStage`가 `OnDayToNight`에서 동기로 `monsterSpawn.StartRound` 호출 → `OnTransitionComplete`를 기다리도록 재배선
   - [ ] 낮 종료/웨이브 성공 버튼 재클릭 — `ManagementController.RequestAdvancePhase`, `NightActionPanelView`
   - [ ] 영토 확장 클릭 — `TerritoryController.TryClaim`(`HasExpandedToday`가 `OnDayStart`에서 즉시 리셋됨)
