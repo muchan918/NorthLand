@@ -119,11 +119,54 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &16637879 stripped
+--- !u!1 &14115875
 GameObject:
-  m_CorrespondingSourceObject: {fileID: 9089290642136113203, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
-  m_PrefabInstance: {fileID: 629296019}
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 14115877}
+  - component: {fileID: 14115876}
+  m_Layer: 0
+  m_Name: BalanceTestPanelHelper
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &14115876
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 14115875}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 567aa5000017adf4a9b22de16d4d5825, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BalanceTestPanel
+  _spawn: {fileID: 111725158}
+  _controller: {fileID: 544968473}
+  _grantAmount: 1000
+  Panel: {fileID: 446790162}
+--- !u!4 &14115877
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 14115875}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 927.6996, y: 0.00002, z: 2877.4634}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &27708746
 GameObject:
   m_ObjectHideFlags: 0
@@ -1468,6 +1511,37 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!1 &209562686
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 209562687}
+  m_Layer: 0
+  m_Name: '=== Helper========== '
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &209562687
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 209562686}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 6.75784, y: 0.2, z: 2.98094}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &230092175
 GameObject:
   m_ObjectHideFlags: 0
@@ -3767,7 +3841,7 @@ PrefabInstance:
     - target: {fileID: 1524296026423325386, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 2118600966}
+      objectReference: {fileID: 0}
     - target: {fileID: 1524296026423325386, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
       value: GrantMana
@@ -3859,7 +3933,7 @@ PrefabInstance:
     - target: {fileID: 1874557517974218919, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 2118600966}
+      objectReference: {fileID: 0}
     - target: {fileID: 1874557517974218919, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
       value: ForceWaveClear
@@ -3899,7 +3973,7 @@ PrefabInstance:
     - target: {fileID: 2516616663505495612, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 2118600966}
+      objectReference: {fileID: 0}
     - target: {fileID: 2516616663505495612, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
       value: SkipDay
@@ -3943,7 +4017,7 @@ PrefabInstance:
     - target: {fileID: 2826716841642239622, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 2118600966}
+      objectReference: {fileID: 0}
     - target: {fileID: 2826716841642239622, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
       value: GrantGold
@@ -3979,7 +4053,7 @@ PrefabInstance:
     - target: {fileID: 3163293841495891708, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 2118600966}
+      objectReference: {fileID: 0}
     - target: {fileID: 3163293841495891708, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
       value: GrantRuby
@@ -3995,7 +4069,7 @@ PrefabInstance:
     - target: {fileID: 3297881644331019485, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 2118600966}
+      objectReference: {fileID: 0}
     - target: {fileID: 3297881644331019485, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
       value: GrantSapphire
@@ -4011,7 +4085,7 @@ PrefabInstance:
     - target: {fileID: 3470146218626415655, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 2118600966}
+      objectReference: {fileID: 0}
     - target: {fileID: 3470146218626415655, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
       value: GrantFood
@@ -4027,7 +4101,7 @@ PrefabInstance:
     - target: {fileID: 3826093473963872234, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 2118600966}
+      objectReference: {fileID: 0}
     - target: {fileID: 3826093473963872234, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
       value: GrantWood
@@ -4223,7 +4297,7 @@ PrefabInstance:
     - target: {fileID: 5748279387547920546, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 2118600966}
+      objectReference: {fileID: 0}
     - target: {fileID: 5748279387547920546, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
       value: GrantDiamond
@@ -4355,7 +4429,7 @@ PrefabInstance:
     - target: {fileID: 6379868916071043712, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 2118600966}
+      objectReference: {fileID: 0}
     - target: {fileID: 6379868916071043712, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
       value: GrantIron
@@ -4927,10 +5001,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 9089290642136113203, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 2118600966}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
 --- !u!1 &629296020 stripped
 GameObject:
@@ -9584,22 +9655,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2054543367}
   m_CullTransparentMesh: 1
---- !u!114 &2118600966
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 16637879}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 567aa5000017adf4a9b22de16d4d5825, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BalanceTestPanel
-  _spawn: {fileID: 111725158}
-  _controller: {fileID: 544968473}
-  _grantAmount: 1000
-  Panel: {fileID: 446790162}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -9639,3 +9694,5 @@ SceneRoots:
   - {fileID: 1387240832}
   - {fileID: 306724149}
   - {fileID: 847527040}
+  - {fileID: 209562687}
+  - {fileID: 14115877}
