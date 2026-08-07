@@ -3841,7 +3841,7 @@ PrefabInstance:
     - target: {fileID: 1524296026423325386, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 14115876}
     - target: {fileID: 1524296026423325386, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
       value: GrantMana
@@ -3933,7 +3933,7 @@ PrefabInstance:
     - target: {fileID: 1874557517974218919, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 14115876}
     - target: {fileID: 1874557517974218919, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
       value: ForceWaveClear
@@ -3973,7 +3973,7 @@ PrefabInstance:
     - target: {fileID: 2516616663505495612, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 14115876}
     - target: {fileID: 2516616663505495612, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
       value: SkipDay
@@ -4017,7 +4017,7 @@ PrefabInstance:
     - target: {fileID: 2826716841642239622, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 14115876}
     - target: {fileID: 2826716841642239622, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
       value: GrantGold
@@ -4053,7 +4053,7 @@ PrefabInstance:
     - target: {fileID: 3163293841495891708, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 14115876}
     - target: {fileID: 3163293841495891708, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
       value: GrantRuby
@@ -4069,7 +4069,7 @@ PrefabInstance:
     - target: {fileID: 3297881644331019485, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 14115876}
     - target: {fileID: 3297881644331019485, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
       value: GrantSapphire
@@ -4085,7 +4085,7 @@ PrefabInstance:
     - target: {fileID: 3470146218626415655, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 14115876}
     - target: {fileID: 3470146218626415655, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
       value: GrantFood
@@ -4101,7 +4101,7 @@ PrefabInstance:
     - target: {fileID: 3826093473963872234, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 14115876}
     - target: {fileID: 3826093473963872234, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
       value: GrantWood
@@ -4297,7 +4297,7 @@ PrefabInstance:
     - target: {fileID: 5748279387547920546, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 14115876}
     - target: {fileID: 5748279387547920546, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
       value: GrantDiamond
@@ -4429,7 +4429,7 @@ PrefabInstance:
     - target: {fileID: 6379868916071043712, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 14115876}
     - target: {fileID: 6379868916071043712, guid: 158159f491590e440ad520dd4b8d47cf, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
       value: GrantIron
