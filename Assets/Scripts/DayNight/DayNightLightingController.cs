@@ -55,6 +55,12 @@ public class DayNightLightingController : MonoBehaviour
     [Tooltip("물 렌더러. 비워 두면 물 틴트를 건너뛴다.")]
     private Renderer waterRenderer;
 
+    // DayNightTransition이 전환을 구동하는 씬에서는 끈다. 켜 두면 이 컴포넌트가 페이즈 이벤트에
+    // 직접 반응해 프리셋을 즉시(스냅) 적용하므로, 전환 연출과 이중으로 적용된다.
+    [SerializeField]
+    [Tooltip("끄면 페이즈 이벤트를 직접 구독하지 않는다. DayNightTransition이 ApplyBlend로 구동하는 씬에서 끈다.")]
+    private bool subscribeToPhaseEvents = true;
+
     // 낮 값의 단일 출처를 씬으로 만드는 스위치(#148).
     //
     // 왜 필요한가: Awake가 조건 없이 Apply(dayPreset)를 돌려 라이트·앰비언트·스카이박스를 덮으므로,
@@ -73,6 +79,9 @@ public class DayNightLightingController : MonoBehaviour
     private Material _runtimeSkybox;
     private MaterialPropertyBlock _waterBlock;
     private Color[] _waterDayColors;
+
+    // ApplyBlend가 매 프레임 쓰는 스크래치. 프레임마다 새로 할당하지 않기 위해 하나만 들고 있는다.
+    private readonly LightingPreset _blendPreset = new LightingPreset();
 
     [SerializeField]
     private LightingPreset dayPreset = new LightingPreset
@@ -206,8 +215,34 @@ public class DayNightLightingController : MonoBehaviour
     [ContextMenu("Preview Night Preset")]
     private void PreviewNightPreset() => Apply(nightPreset);
 
+    /// <summary>
+    /// 낮(0)과 밤(1) 사이의 임의 지점을 적용한다. 전환 연출(DayNightTransition)이 매 프레임 부른다.
+    /// nightVolumeWeight도 함께 보간되므로, 셀 와이프 셰이더는 "1 - t"만큼만 추가로 얹으면
+    /// 뒤집힌 칸이 정확히 밤 100%가 된다.
+    /// </summary>
+    public void ApplyBlend(float t)
+    {
+        LerpPreset(dayPreset, nightPreset, Mathf.Clamp01(t), _blendPreset);
+        Apply(_blendPreset);
+    }
+
+    private static void LerpPreset(LightingPreset a, LightingPreset b, float t, LightingPreset result)
+    {
+        result.lightIntensity = Mathf.Lerp(a.lightIntensity, b.lightIntensity, t);
+        result.lightColor = Color.Lerp(a.lightColor, b.lightColor, t);
+        result.ambientSkyColor = Color.Lerp(a.ambientSkyColor, b.ambientSkyColor, t);
+        result.ambientEquatorColor = Color.Lerp(a.ambientEquatorColor, b.ambientEquatorColor, t);
+        result.ambientGroundColor = Color.Lerp(a.ambientGroundColor, b.ambientGroundColor, t);
+        result.skyboxExposure = Mathf.Lerp(a.skyboxExposure, b.skyboxExposure, t);
+        result.skyboxTint = Color.Lerp(a.skyboxTint, b.skyboxTint, t);
+        result.nightVolumeWeight = Mathf.Lerp(a.nightVolumeWeight, b.nightVolumeWeight, t);
+        result.waterTint = Color.Lerp(a.waterTint, b.waterTint, t);
+    }
+
     private void Start()
     {
+        if (!subscribeToPhaseEvents) return;
+
         if (DayNightManager.Instance == null)
         {
             Debug.LogError("DayNightManager 없음");

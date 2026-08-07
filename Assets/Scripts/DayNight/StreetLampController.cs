@@ -29,6 +29,19 @@ public class StreetLampController : MonoBehaviour
     // 오브젝트당 4개 한계에 걸리기 시작한다.
     [SerializeField] private float range = 12f;
 
+    [Header("전환 연출")]
+    // 전환 블렌드가 이 지점을 넘어서면 등이 켜지기 시작한다. 0.15면 해가 조금 기울었을 때
+    // 불이 들어오는 인상이 된다. 1이면 전환이 끝나는 순간에만 켜진다.
+    [SerializeField]
+    [Range(0f, 1f)]
+    private float turnOnAt = 0.15f;
+
+    // DayNightTransition이 SetBlend로 구동하는 씬에서는 끈다. 켜 두면 페이즈 이벤트에 직접
+    // 반응해 즉시 켜지므로, 전환 도중에 이미 최대 밝기로 들어와 연출과 어긋난다.
+    [SerializeField]
+    [Tooltip("끄면 페이즈 이벤트를 직접 구독하지 않는다. DayNightTransition이 SetBlend로 구동하는 씬에서 끈다.")]
+    private bool subscribeToPhaseEvents = true;
+
     private void Awake()
     {
         if (lamps == null || lamps.Length == 0)
@@ -49,10 +62,38 @@ public class StreetLampController : MonoBehaviour
         }
 
         // 세이브 복원으로 밤에서 시작할 수 있으므로 현재 페이즈를 보고 맞춘다.
-        SetLampsEnabled(DayNightManager.Instance.CurrentPhase == DayNightManager.Phase.Night);
+        // 이 초기 동기화는 전환 구동 여부와 무관하게 필요하다.
+        SetBlend(DayNightManager.Instance.CurrentPhase == DayNightManager.Phase.Night ? 1f : 0f);
+
+        if (!subscribeToPhaseEvents) return;
 
         DayNightManager.Instance.OnDayToNight += HandleDayToNight;
         DayNightManager.Instance.OnNightToDay += HandleNightToDay;
+    }
+
+    /// <summary>
+    /// 낮(0)과 밤(1) 사이의 임의 지점을 적용한다. 전환 연출(DayNightTransition)이 매 프레임 부른다.
+    /// turnOnAt 이전에는 꺼진 채로 두고, 이후 구간에서 밝기를 끌어올린다.
+    /// </summary>
+    public void SetBlend(float t)
+    {
+        if (lamps == null) return;
+
+        float k = turnOnAt >= 1f
+            ? (t >= 1f ? 1f : 0f)
+            : Mathf.Clamp01((t - turnOnAt) / (1f - turnOnAt));
+
+        bool on = k > 0f;
+
+        for (int i = 0; i < lamps.Length; i++)
+        {
+            Light lamp = lamps[i];
+
+            if (lamp == null) continue;
+
+            lamp.enabled = on;
+            lamp.intensity = intensity * k;
+        }
     }
 
     private void OnDestroy()
@@ -63,8 +104,8 @@ public class StreetLampController : MonoBehaviour
         DayNightManager.Instance.OnNightToDay -= HandleNightToDay;
     }
 
-    private void HandleDayToNight() => SetLampsEnabled(true);
-    private void HandleNightToDay() => SetLampsEnabled(false);
+    private void HandleDayToNight() => SetBlend(1f);
+    private void HandleNightToDay() => SetBlend(0f);
 
     private void SetLampsEnabled(bool on)
     {
