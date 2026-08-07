@@ -20,6 +20,10 @@ public class ResidentAgent : MonoBehaviour
     // 임의 클립 재생(PlayState)은 반대로 상태 이름을 전부 노드가 지정한다.
     private const string IdleState = "Idle";
 
+    // 오프메시 복구를 시도할 최대 거리(<see cref="EnsureOnNavMesh"/>). 주민 반경(0.6)의 몇 배 정도면
+    // 밀려나 벗어난 경우를 덮는다. 더 키우면 벽 너머로 끌어올려 순간이동처럼 보인다.
+    private const float OffMeshRecoverDistance = 2f;
+
     private NavMeshAgent navAgent;
 
     // 프리팹이 정한 회피 방식. 대화 중에는 회피를 끄고, 끝나면 이 값으로 되돌린다.
@@ -102,9 +106,41 @@ public class ResidentAgent : MonoBehaviour
 
     public bool HasConversation => resident != null && resident.Conversation != null;
 
-    // NavMesh 위에 올라가 있는가. 스폰 위치가 NavMesh 밖이면 목적지 지정이 조용히 무시되므로
-    // 이동 노드가 시작 시점에 이걸 먼저 본다.
+    // NavMesh 위에 올라가 있는가. **관측 전용이고 부작용이 없다** — 디버그·검증에서 상태만 볼 때 쓴다.
+    //
+    // ⚠ **이동 경로에서는 이걸 쓰지 말 것.** 이동 노드는 아래 `EnsureOnNavMesh`를 부른다. 이름이 비슷하지만
+    //   그쪽은 벗어난 주민을 `Warp`로 끌어올리는 **부작용이 있는 복구 함수**다. 잘못 고르면 증상이 조용히
+    //   갈린다 — 이쪽을 쓰면 굳은 주민이 영영 안 풀리고, 저쪽을 관측용으로 쓰면 의도치 않은 순간이동이 섞인다.
     public bool IsOnNavMesh => navAgent != null && navAgent.isOnNavMesh;
+
+    // NavMesh 밖으로 밀려났으면 가장 가까운 지점으로 끌어올린다. 성공했거나 원래 위에 있었으면 참.
+    //
+    // **왜 필요한가**: 오프메시가 되면 `SetDestination`이 통째로 무시되므로 주민이 그 자리에서 영구히 굳는다.
+    // 스폰 위치 오류는 <see cref="ResidentSpawner"/>가 걸러 주지만, 지역 회피에 밀리거나 발밑 지형이
+    // 바뀌면 **런타임에** 벗어날 수 있다 — 그건 아무도 되돌려 주지 않는다.
+    //
+    // `Warp`를 쓴다. `transform.position` 대입은 Agent 내부 위치와 어긋나 다음 프레임에 되돌아간다.
+    public bool EnsureOnNavMesh()
+    {
+        if (navAgent == null || !navAgent.isActiveAndEnabled)
+        {
+            return false;
+        }
+
+        if (navAgent.isOnNavMesh)
+        {
+            return true;
+        }
+
+        // 반경은 넉넉히 잡지 않는다 — 멀리서 끌어오면 순간이동으로 보인다. 이 거리로도 못 찾으면
+        // 베이크 자체가 없는 곳이라 끌어와도 곧 다시 벗어난다.
+        if (!NavMesh.SamplePosition(transform.position, out NavMeshHit hit, OffMeshRecoverDistance, NavMesh.AllAreas))
+        {
+            return false;
+        }
+
+        return navAgent.Warp(hit.position);
+    }
 
     // ── 목적지 ─────────────────────────────
     //
@@ -116,7 +152,9 @@ public class ResidentAgent : MonoBehaviour
     {
         // isOnNavMesh를 먼저 본다. NavMesh 밖에서 SetDestination을 부르면 Unity가 에러를 뱉고
         // false를 반환하는데, 그 에러가 개체마다 매 프레임 쏟아지면 콘솔이 묻힌다.
-        if (navAgent == null || !navAgent.isOnNavMesh)
+        // 벗어나 있으면 한 번 끌어올려 본다 — 여기가 모든 이동 지시가 지나는 길목이라, 복구를 여기 두면
+        // 호출부(이동·대화·귀가 노드)가 각자 챙기지 않아도 된다.
+        if (!EnsureOnNavMesh())
         {
             return false;
         }
