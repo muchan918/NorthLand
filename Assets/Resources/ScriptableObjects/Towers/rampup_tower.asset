@@ -18,7 +18,7 @@ MonoBehaviour:
   Cost: []
   Attack:
     AttackDamage: 6
-    AttackRange: 12
+    AttackRange: 18
     AttackInterval: 0.8
     ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
     Flight:
@@ -45,6 +45,11 @@ MonoBehaviour:
     MaxTargets: 1
     TickInterval: 1
     DamagePerTick: 0
+    LockRamp:
+      PerStack: 0
+      MaxStacks: 0
+      StackInterval: 0
+      DecaySeconds: 0
   Ramp:
     Stat: 2
     Trigger: 0
