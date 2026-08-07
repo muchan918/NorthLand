@@ -198,6 +198,43 @@ MonoBehaviour:
     m_Localized: "\u5C04\u7A0B\u5185\u306E\u8907\u6570\u306E\u6575\u3092\u540C\u6642\u306B\u30ED\u30C3\u30AF\u3057\u3001\u7D99\u7D9A\u7684\u306B\u30C0\u30E1\u30FC\u30B8\u3092\u4E0E\u3048\u308B\u3002"
     m_Metadata:
       m_Items: []
+  - m_Id: 6166220603301888
+    m_Localized: "\u30E9\u30F3\u30D7\u30A2\u30C3\u30D7\u30BF\u30EF\u30FC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6166220632662016
+    m_Localized: "\u6210\u9577\u578B\u901F\u5C04"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6166220632662017
+    m_Localized: "\u547D\u4E2D\u3059\u308B\u305F\u3073\u306B\u653B\u6483\u901F\u5EA6\u304C\u4E0A\u304C\u308A\u3001\u6700\u5927+80%\u307E\u3067\u52A0\u901F\u3059\u308B\u30022\u79D2\u9593\u5F53\u3066\u3089\u308C\u306A\u3044\u30681\u6BB5\u968E\u305A\u3064\u6E1B\u8870\u3057\u3001\u30A6\u30A7\u30FC\u30D6\u7D42\u4E86\u6642\u306B\u30EA\u30BB\u30C3\u30C8\u3055\u308C\u308B\u3002"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6203434620067840
+    m_Localized: "\u30CF\u30F3\u30BF\u30FC\u30BF\u30EF\u30FC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6203434653622272
+    m_Localized: "\u6210\u9577\u578B\u72D9\u6483"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6203434653622273
+    m_Localized: "\u6575\u3092\u5012\u3059\u305F\u3073\u306B\u653B\u6483\u529B\u304C\u4E0A\u6607\u3059\u308B\u30021\u4F53\u3054\u3068\u306B+15%\u30018\u4F53\u30672.2\u500D\u3002\u30A6\u30A7\u30FC\u30D6\u7D42\u4E86\u6642\u306B\u30EA\u30BB\u30C3\u30C8\u3055\u308C\u308B\u3002"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6219949113253888
+    m_Localized: "\u30B7\u30F3\u30B0\u30EB\u30A4\u30F3\u30D5\u30A7\u30EB\u30CE\u30BF\u30EF\u30FC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6219949146808320
+    m_Localized: "\u5358\u4F53\u96C6\u4E2D\u6301\u7D9A\u30C0\u30E1\u30FC\u30B8"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6219949146808321
+    m_Localized: "\u5358\u4F53\u306E\u307F\u3092\u713C\u304F\u304C\u3001\u7167\u6E96\u3092\u7DAD\u6301\u3059\u308B\u307B\u3069\u5A01\u529B\u304C\u4E0A\u304C\u308B\u30021\u79D2\u3054\u3068\u306B+50%\u30016\u79D2\u30674\u500D(8\u219232
+      DPS)\u3002\u5BFE\u8C61\u304C\u5012\u308C\u308B\u304B\u5C04\u7A0B\u5916\u306B\u51FA\u308B\u3068\u6700\u521D\u304B\u3089\u3002"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

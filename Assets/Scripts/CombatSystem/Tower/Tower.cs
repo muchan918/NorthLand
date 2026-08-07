@@ -133,6 +133,9 @@ namespace NorthLand.Combat
         public static readonly List<Tower> Active = new();
         // 타워가 씬에 추가/제거될 때 발생. 버프 타워가 배치 즉시(낮 포함) + layout 변화 시 사거리 내 타워를 갱신하는 데 쓴다(#164).
         public static event Action ActiveChanged;
+
+        // 직전 프레임의 페이즈. 밤→낮 전이 = 웨이브 종료 통지의 근거다(Update 참조).
+        bool wasNight;
         // Active 등록 여부. 등록 시점이 OnEnable이 아니라 Build라서, "켜졌지만 아직 조립되지 않은" 구간과
         // 재활성화를 구분해야 한다.
         bool registered;
@@ -416,6 +419,24 @@ namespace NorthLand.Combat
             // 규칙이 갈라진다(WL-044). 액션은 ActivePhase로 자기 요구만 선언한다.
             bool isNight = DayNightManager.Instance == null ||
                 DayNightManager.Instance.CurrentPhase == DayNightManager.Phase.Night;
+
+            // 웨이브 종료(밤→낮) 경계를 호스트가 감지해 액션에 통지한다 — "이 웨이브 동안만" 유효한
+            // 상태(성장 스택 등)를 일괄 초기화하는 지점이다(#300).
+            //
+            // 이벤트(DayNightManager.OnNightToDay)를 구독하지 않고 위에서 이미 읽은 값의 전이를 보는 이유:
+            //  ① 신호원이 하나로 유지된다 — 페이즈 게이팅과 같은 값을 쓰므로 "게이팅은 밤인데 통지는 안 온다"
+            //     같은 어긋남이 구조적으로 불가능하다(WL-044가 지적한 갈라짐).
+            //  ② 초기화 순서에 안전하다 — `Instance`가 아직 null인 시점에 조립된 타워(씬 선배치·테스트 씬)도
+            //     구독을 놓치지 않는다. 이벤트 구독이면 그 타워만 영구히 통지를 못 받는 무증상 실패가 된다.
+            //  ③ 구독 해제가 필요 없다 — 파괴된 타워가 매니저의 이벤트 목록에 남을 경로가 없다.
+            //
+            // `wasNight` 초기값 false는 안전하다: 밤에 조립된 타워는 첫 프레임에 false→true 전이만 만들고
+            // 그 방향으로는 통지하지 않는다.
+            if (wasNight && !isNight)
+            {
+                for (int i = 0; i < actions.Count; i++) actions[i]?.OnWaveEnd();
+            }
+            wasNight = isNight;
 
             float deltaTime = Time.deltaTime;
             for (int i = 0; i < actions.Count; i++)

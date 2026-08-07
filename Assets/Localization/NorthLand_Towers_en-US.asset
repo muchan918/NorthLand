@@ -213,6 +213,46 @@ MonoBehaviour:
       to all of them.
     m_Metadata:
       m_Items: []
+  - m_Id: 6166220603301888
+    m_Localized: Ramp-Up Tower
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6166220632662016
+    m_Localized: Scaling Rapid-Fire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6166220632662017
+    m_Localized: Each hit makes it fire faster, up to +80%. Stacks decay one step
+      every 2s without a hit, and reset when the wave ends.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6203434620067840
+    m_Localized: Hunter Tower
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6203434653622272
+    m_Localized: Scaling Marksman
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6203434653622273
+    m_Localized: 'Every kill raises its damage: +15% per kill, up to 2.2x at 8 kills.
+      Resets when the wave ends.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6219949113253888
+    m_Localized: Single Inferno Tower
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6219949146808320
+    m_Localized: Focused Melter
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6219949146808321
+    m_Localized: "Burns a single target, ramping up the longer the lock holds: +50%
+      per second, 4x at 6s (8 \u2192 32 DPS). Resets if the target dies or leaves
+      range."
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []
