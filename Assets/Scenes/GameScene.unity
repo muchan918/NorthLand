@@ -5788,6 +5788,85 @@ MonoBehaviour:
   references:
     version: 2
     RefIds: []
+--- !u!1 &1490825433
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1490825434}
+  m_Layer: 0
+  m_Name: '=== Helper ==========  '
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1490825434
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1490825433}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 6.75784, y: 0.2, z: 2.98094}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1541935838
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1541935840}
+  - component: {fileID: 1541935839}
+  m_Layer: 0
+  m_Name: BalanceTestPanel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1541935839
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1541935838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 567aa5000017adf4a9b22de16d4d5825, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BalanceTestPanel
+  _spawn: {fileID: 111725158}
+  _controller: {fileID: 544968473}
+  _grantAmount: 1000
+  Panel: {fileID: 6170868468874834284}
+--- !u!4 &1541935840
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1541935838}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 389.18695, y: -0, z: 1200.5009}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1551337333
 GameObject:
   m_ObjectHideFlags: 0
@@ -6228,7 +6307,7 @@ MonoBehaviour:
   - {fileID: 179844792}
   - {fileID: 33573812}
   openPanel: {fileID: 1123896257}
-  gameSpeedController: {fileID: 0}
+  gameSpeedController: {fileID: 7536131759758459493}
 --- !u!114 &1658482856
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10158,7 +10237,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 1541935839}
         m_TargetAssemblyTypeName: BalanceTestPanel, Assembly-CSharp
         m_MethodName: GrantDiamond
         m_Mode: 1
@@ -10287,7 +10366,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 1541935839}
         m_TargetAssemblyTypeName: BalanceTestPanel, Assembly-CSharp
         m_MethodName: GrantWood
         m_Mode: 1
@@ -12633,7 +12712,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 1541935839}
         m_TargetAssemblyTypeName: BalanceTestPanel, Assembly-CSharp
         m_MethodName: GrantGold
         m_Mode: 1
@@ -13137,7 +13216,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 1541935839}
         m_TargetAssemblyTypeName: BalanceTestPanel, Assembly-CSharp
         m_MethodName: GrantSapphire
         m_Mode: 1
@@ -18422,7 +18501,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 1541935839}
         m_TargetAssemblyTypeName: BalanceTestPanel, Assembly-CSharp
         m_MethodName: GrantFood
         m_Mode: 1
@@ -19534,7 +19613,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 1541935839}
         m_TargetAssemblyTypeName: BalanceTestPanel, Assembly-CSharp
         m_MethodName: GrantIron
         m_Mode: 1
@@ -20633,7 +20712,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 1541935839}
         m_TargetAssemblyTypeName: BalanceTestPanel, Assembly-CSharp
         m_MethodName: ForceWaveClear
         m_Mode: 1
@@ -22348,7 +22427,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 1541935839}
         m_TargetAssemblyTypeName: BalanceTestPanel, Assembly-CSharp
         m_MethodName: GrantMana
         m_Mode: 1
@@ -22641,7 +22720,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 1541935839}
         m_TargetAssemblyTypeName: BalanceTestPanel, Assembly-CSharp
         m_MethodName: GrantRuby
         m_Mode: 1
@@ -24801,7 +24880,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 1541935839}
         m_TargetAssemblyTypeName: BalanceTestPanel, Assembly-CSharp
         m_MethodName: SkipDay
         m_Mode: 1
@@ -25214,3 +25293,5 @@ SceneRoots:
   - {fileID: 1387240832}
   - {fileID: 306724149}
   - {fileID: 847527040}
+  - {fileID: 1490825434}
+  - {fileID: 1541935840}
