@@ -25,7 +25,7 @@
 | 현재 페이즈(`CurrentPhase`) 관리 | 본진 체력 회복 로직 → **본진/체력 시스템** |
 | 웨이브 카운트(`WaveCount`) 관리 | 주민 배치 기반 자원 정산 → **자원/경영 시스템** |
 | 전환 시점에 이벤트 발행 | 주민 배치 초기화 → **주민 시스템** |
-| | 낮/밤 전환 연출(비주얼) → **UI/연출 시스템** (`DayNightLightingController.cs`, #7·§6) |
+| | 낮/밤 전환 연출(비주얼) → **UI/연출 시스템** (`DayNightTransition`이 구동, `DayNightLightingController`/`StreetLampController`가 적용 — #7·#101·§6·§6.1) |
 
 ## 3. 상태 구조
 
@@ -102,7 +102,9 @@ private void OnDestroy()
 |---|---|
 | `DayNightManager.cs` | 중앙 매니저(씬 싱글톤 `Instance`, `DontDestroyOnLoad` 없음). 페이즈 관리·이벤트 발행. `EndDay()`/`EndNight()` 둘 다 public |
 | `DayNightManagerTest.cs` | (테스트) 세 이벤트를 구독해 Console에 로그 출력. null 가드 + `OnDestroy` 구독 해제 포함 |
-| `DayNightLightingController.cs` | (#7) `OnDayToNight`/`OnNightToDay` 구독, Directional Light·Ambient(Trilight)·Skybox를 프리셋 값으로 즉시 전환(스냅). Fog 제외 |
+| `DayNightLightingController.cs` | (#7·#136·#101) 낮/밤 룩의 **적용부**. Directional Light·Ambient(Trilight)·Skybox·`NightVolume` weight·물 틴트를 프리셋 값으로 적용한다. 진입점이 둘: `ApplyBlend(t)`(0=낮/1=밤, 임의 지점 — 전환이 매 프레임 호출)와 이벤트 구독(스냅). `subscribeToPhaseEvents`를 끄면 이벤트를 직접 구독하지 않는다 — **정본 `GameScene`은 꺼져 있고 `DayNightTransition`이 단독 구동**한다. Fog는 미채택(§6.1) |
+| `StreetLampController.cs` | (#136) 마을 가로등 31개(`5_obj05_1.0_0_0/StreetLamps/Lamp_01~31`)를 밤에만 켠다. `SetBlend(t)`로 `turnOnAt`(0.15) 이후 구간에서 밝기가 올라온다. `DayNightLightingController`와 같은 `subscribeToPhaseEvents` 스위치를 갖는다 |
+| `DayNightTransition.cs` | (#101) 전환 연출의 **구동부**. `OnDayToNight`/`OnNightToDay`를 구독해 UniTask로 위 둘의 블렌드와 셀 와이프 셰이더를 함께 몬다. `IsTransitioning`·`OnTransitionComplete` 공개(§6.1) |
 | `ManagementController.cs`(`HandleNightToDay`) | (#66) `OnNightToDay` 구독 — 자원 정산(먼저) + 주민 배치 초기화(그 다음) 실제 로직 구현. `OnDayToNight`은 더 이상 구독하지 않음 |
 | `NightActionPanelView.cs` | (#66, 임시) 밤에만 좌측 하단에 노출되는 "웨이브 성공/실패/보스 처치" + "낮 종료" 버튼 4개. "웨이브 성공"이 `EndNight()`를 직접 호출(WL-018 임시 트리거) |
 | `StageBuilder.cs`(`OnDayToNight` 구독) | (#17) 밤 진입 시 다음 스테이지 생성(전투영역 확장) + `MonsterSpawn.StartRound`로 몬스터 스폰(`currentMapCount > 1`). `Start()`에서 구독, `OnDestroy()`에서 해제 |
@@ -111,13 +113,66 @@ private void OnDestroy()
 - **생명주기**: 씬 싱글톤. 경영/전투 공간이 한 씬에 공존해 씬 전환에 걸쳐 상태를 유지할 이유가 없다는 판단(WL-002 참고 사례로 SystemMap §5에 기록).
 - **씬**: `Assets/Scenes/GameScene.unity` (정본, `Docs/Core/SceneWorkflow.md`). 낮/밤 전환 버튼은 `NightActionPanelView`(밤 전용 3개) + `ManagementPanelView`의 낮 종료 버튼(낮 전용 1개)로 구성
 
+### 6.1 전환 연출 — 셀 와이프 (#101)
+
+밤으로 넘어갈 때 화면을 정사각 셀로 나눠 **우하단에서 좌상단으로** 하나씩 뒤집는다. 낮으로 돌아올 때는 반대 방향.
+
+**왜 화면공간만으로는 안 되는가.** 밤 전환에서 화면공간인 것은 `NightVolume` 그레이드뿐이고, 나머지(디렉셔널
+라이트·앰비언트·스카이박스·가로등 31개·물 틴트)는 전부 **씬 라이팅**이라 "화면의 이 셀만 밤"이 원리적으로
+불가능하다. 같은 프레임에 낮과 밤을 동시에 보여주려면 씬을 두 번 렌더해야 하고, 그것을 피하면 한쪽은 정지
+이미지가 된다(주민·몬스터가 얼어붙는다). 그래서 역할을 나눴다:
+
+```
+씬 블렌드 = progress          (전역 — DayNightLightingController.ApplyBlend / StreetLampController.SetBlend)
+뒤집힌 셀 = 목표 - 씬 블렌드   (NightWipe 풀스크린 패스가 얹는 나머지)
+→ 뒤집힌 칸은 항상 목표 상태 100%, 아직 안 온 곳은 progress만큼만 진행된 중간 상태
+```
+
+얹을 양을 `목표 - 현재`로 넘기므로 **밤→낮이면 부호가 뒤집혀 같은 식이 양방향에 성립**한다.
+
+**이 배분의 핵심은 종료 지점이다.** `progress=1`에서 씬 블렌드가 목표에 도달해 패스의 기여가 정확히 0이 되므로,
+셰이더의 그레이드 근사식이 URP `ColorAdjustments`와 일치하지 않아도(이 패스는 톤매핑 **이후** LDR 이미지에
+걸리므로 애초에 일치할 수 없다) 전환이 끝날 때 튀지 않는다.
+
+| 구성 요소 | 경로 |
+|---|---|
+| 구동부 | `Assets/Scripts/DayNight/DayNightTransition.cs` (UniTask) |
+| 셰이더 | `Assets/Shaders/DayNight/NightWipe.shader` + `NightWipe.mat` |
+| 렌더러 피처 | `PC_Renderer`/`Mobile_Renderer`의 `Night Wipe`(`FullScreenPassRendererFeature`, AfterRenderingPostProcessing) |
+
+- **전환 중에만 피처를 켠다**(`SetActive`) — 평소 프레임 비용 0.
+- **HUD는 덮이지 않는다.** 이 패스는 카메라 렌더 안에서 돌고 ScreenSpaceOverlay 캔버스는 그 뒤에 그려지므로
+  구조상 자동으로 보장된다(별도 게이팅 코드 없음).
+- **셰이더 파라미터는 Properties가 아니라 전역 uniform**(`_NightWipe_` 접두사)이다. 매 프레임 구동하는 값이라
+  머티리얼 프로퍼티로 두면 쓸 때마다 **머티리얼 에셋이 dirty가 되어 git diff에 뜬다**. 튜닝 지점도
+  `DayNightTransition` 컴포넌트 하나로 모인다.
+- **재진입 가드**(#101 완료기준): 진행 중 다시 호출되면 이전 전환을 취소하고 그 목표를 즉시 확정한 뒤 새로
+  시작한다. 중간 상태로 멈추면 라이팅이 어중간한 값에 남아 다음 전환의 시작점이 어긋난다.
+
+⚠️ **`subscribeToPhaseEvents`를 켠 채로 두면 이중 적용된다.** 두 적용부(`DayNightLightingController`·
+`StreetLampController`)가 이벤트에 직접 반응해 스냅으로 목표값을 찍어버리므로 연출이 성립하지 않는다.
+정본 씬은 둘 다 꺼져 있다.
+
+**현재 값**: duration 0.8초 / cell 36px / jitter 0.18 / edgeGlow 0.15 (전부 인스펙터 노출)
+
+**튜닝 메모** — 와이프 방향은 **지터를 끄고** 계단 방향을 봐야 판별된다. 지터가 있으면 전선이 흩어져
+스크린샷 눈대중으로는 좌우가 뒤집혀 보인다(실제로 한 번 헛짚었다). blit `texcoord`는 **v=1이 화면 위쪽**이다.
+지터 0.35는 전선이 화면 절반에 흩뿌려져 "밤이 온다"가 아니라 노이즈로 읽혔고, 엣지 글로우도 지터와 겹쳐
+넓게 반짝이면 "반짝인다"로 읽힌다.
+
 ## 7. 미확정 / TODO
 
 - [ ] **밤 종료 자동화** (부분 착수, #17): `MonsterSpawn`이 웨이브 클리어(스폰 완료 후 생존 0) 시 `EndNight()`를 자동 호출하도록 연결. 단 "클리어"가 아직 처치가 아니라 본진 도달-디스폰 기준(처치 기반은 Enemy 병합 후 — WL-038)이고, "웨이브 실패/보스 처치" 판정 연동과 임시 버튼(`NightActionPanelView`) 제거는 WL-018 잔여. 자동 타이머로 되돌릴 일이 생기면 `DayNightManager.cs`에 주석 처리된 `NightTimerRoutine` 코루틴(UniTask로 교체 예정)을 참고
 - [x] **자원 정산 / 주민 배치 초기화**: `ManagementController.HandleNightToDay()`로 구현 완료(#66). `OnNightToDay` 시점에 정산(먼저)→초기화(그 다음) 순서로 실행
 - [ ] **본진 체력 회복**: 이벤트 훅(`OnDayStart`)만 존재, 실제 로직은 본진/체력 소유 시스템(미구현)이 구독해서 채워야 함
-- [x] **낮/밤 전환 연출**: `DayNightLightingController.cs`로 구현 완료(#7, §6 참고). Directional Light·Ambient·Skybox를 즉시 전환
-- [ ] **부드러운 전환(Lerp)**: 지금은 프리셋 값을 즉시 스냅 적용. 밤 종료 자동화(§7 상단 항목)를 코루틴에서 UniTask로 교체할 때 같이 Lerp 전환을 붙일 예정 — 별도 코루틴 기반으로 먼저 만들지 않기로 결정(작업 이중화 방지)
+- [x] **낮/밤 전환 연출**: `DayNightLightingController.cs`로 구현 완료(#7, §6 참고)
+- [x] **부드러운 전환(UniTask)**: `DayNightTransition`으로 구현 완료(#101, §6.1). 단순 Lerp가 아니라 **셀 와이프**다 — 씬 라이팅은 전역 보간, "셀이 먼저 밤이 되는" 부분만 풀스크린 패스가 담당
+- [ ] **전환 중 입력·트리거 잠금** (#101 잔여): `DayNightTransition.IsTransitioning`과 `OnTransitionComplete`는 뚫려 있으나 **소비처가 아직 없다.** 각 진입점에서 이 값을 봐야 하는 항목:
+  - [ ] 몬스터 웨이브 시작 — `StageBuilder.GenerateNextStage`가 `OnDayToNight`에서 동기로 `monsterSpawn.StartRound` 호출 → `OnTransitionComplete`를 기다리도록 재배선
+  - [ ] 낮 종료/웨이브 성공 버튼 재클릭 — `ManagementController.RequestAdvancePhase`, `NightActionPanelView`
+  - [ ] 영토 확장 클릭 — `TerritoryController.TryClaim`(`HasExpandedToday`가 `OnDayStart`에서 즉시 리셋됨)
+  - [ ] 주민 배치 변경 — `ManagementController.IsDay`가 즉시 true가 됨
+  - 타워 배치 게이팅은 이번 범위 밖(WL-019·#71) — 게이팅이 붙으면 같은 이유로 전환 중 배치 시작을 막아야 한다
 - [ ] **낮/밤 트리거 UI**: 지금은 임시 버튼 4개(밤: 웨이브 성공/실패/보스 처치, 낮: 낮 종료, `NightActionPanelView`/`ManagementPanelView`, #66). "웨이브 실패"/"보스 처치"도 Combat의 실제 웨이브 실패·보스 사망 판정 연동 전까지의 임시 대체물. 실제 UI 버튼/디자인 확정 필요
 
 ## 8. 참고
