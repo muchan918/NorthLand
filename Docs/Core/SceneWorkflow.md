@@ -84,7 +84,25 @@ WL-028(경영 공간 씬 정본 이원화, `Docs/Review/WatchList.md`)은 `GameS
 씬(`TitleScene`/`GameScene`)을 부팅하도록 정리되면 WL-028을 재검토할 수 있다 — 코드 작업
 (씬 이름 교체 + Build Settings 등록) 완료 후 `Docs/Review/WatchList.md`에서 상태를 갱신한다.
 
-## 7. 미확정 / TODO
+## 7. NavMesh 재베이크 — 소유자 · 순서 (#305)
+
+경영 공간 NavMesh는 **정적 베이크**다. 베이크 결과는 `Assets/Scenes/GameScene/NavMesh-NavMesh.asset`
+(약 758KB 바이너리) 한 덩어리이고, **씬 지오메트리를 건드리면 통째로 바뀐다.** diff로 검토할 수 없고
+병합할 수도 없어서, 두 사람이 각자 베이크해 커밋하면 충돌 해결책이 "한쪽을 버리고 다시 굽기"뿐이다.
+
+1. **재베이크 소유자는 한 번에 한 명이다.** 씬 지오메트리(지형·건물·다리·`NavMeshModifierVolume`)를
+   바꿔 재베이크가 필요해지면 **먼저 알리고**, 그 사이 다른 사람은 같은 씬의 지오메트리를 만지지 않는다.
+   지오메트리를 건드리지 않는 작업(UI·프리팹 배치·컴포넌트 값)은 굽지 말 것 — 안 구우면 이 파일은
+   diff에 안 나온다.
+2. **재베이크에는 `Assets/Imported` 체크아웃이 필요하다.** 보행면 대부분과 다리 프록시
+   (`NavProxy_ChocolateBridge`)가 `@NorthLand/Prefabs/Management/CandyLand.prefab` 안에 있다.
+   Imported 없이 구우면 **걸을 수 있는 면이 통째로 빠진 데이터**가 나오고, 그래도 에러는 안 난다.
+3. **`NavMeshSurface`는 아직 Imported 프리팹이 소유한다**(WL-160). 그래서 "베이크 데이터를 갈아끼운다"는
+   변경이 **본 저장소 diff에 보이지 않는다.** 두 저장소에 걸친 변경은 PR 본문에 **짝이 되는
+   NorthLand-Imported 커밋 SHA와 머지 순서**를 반드시 적는다 — 순서가 어긋나면 다리가 조용히 끊긴다.
+4. 커밋할 때는 `.asset`과 `.meta`를 **함께** 넣는다(CLAUDE.md의 `.meta` 규칙).
+
+## 8. 미확정 / TODO
 
 - [ ] 번호 붙은 스냅샷 파일이 여러 주에 걸쳐 쌓였을 때 git 히스토리/용량 관리 방안(예: 오래된
       스냅샷을 커밋 전에 정리할지) — 아직 합의 없음

@@ -66,19 +66,17 @@ public sealed class ResidentConversation
     /// 참가자. **배열이 아니라 List다** — 진행 중 합류(§7.1)로 인원이 늘어난다.
     private readonly List<Slot> slots;
 
-    /// 대화 중인 그룹을 지나가던 주민이 피해 가게 하는 회피용 오브젝트. 세션당 하나다.
-    /// `carving = false`라 NavMesh를 건드리지 않고 지역 회피에만 참여한다 — 참가자가
-    /// 자기가 판 구멍에 빠져 오프메시가 되는 일이 없다.
-    private ResidentConversationObstacle obstacle;
+    /// 이 거리보다 안쪽에 비참가자가 서 있으면 "무리가 그를 감싼다"고 본다. 원 반지름에서 주민 반경만큼
+    /// 뺀 자리 — 참가자 몸통 바로 안쪽부터가 감싸이는 위치다.
+    private const float OutsiderInsetFromRing = 0.6f;
+
+    /// 감싸는 것을 피하려고 중심을 옮길 수 있는 최대 거리. 무제한으로 밀면 무리가 벽 쪽으로 날아가
+    /// <see cref="SnapOrKeep"/>이 원을 찌그러뜨린다. 몸통 지름만큼이면 감싸는 그림은 풀린다.
+    private const float MaxCenterShift = 1.2f;
 
     /// 수다에 한 번이라도 들어갔는가. 합류로 Approaching에 되돌아왔을 때 턴 수를 초기화하지 않기 위한 구분이다 —
     /// 초기화하면 사람이 합류할 때마다 대화가 처음부터 다시 시작해 끝나지 않는다.
     private bool talkStarted;
-
-    // ResolveStandPoints가 확정한 원. 회피물의 크기·위치가 여기서만 나온다 —
-    // 참가자의 현재 위치에서 뽑으면 회피물이 자기 크기를 키우는 되먹임이 생긴다(TryGetCircle 주석).
-    private Vector3 standCenter;
-    private float standRadius;
 
     /// 총 몇 턴을 주고받고 끝낼지. **시간이 아니라 턴 수로 정한다** — 시간으로 끊으면 Talking_1(10.27초)이
     /// 뽑힌 마지막 턴이 중간에 잘린다(§7.2). 턴 수로 하면 항상 온전한 턴에서 끝난다.
@@ -275,12 +273,6 @@ public sealed class ResidentConversation
 
         Phase = ConversationPhase.Talking;
 
-        // 이야기하는 동안만 회피 대상이 된다. 다가가는 중에 켜면 자기들이 자기 회피물을 피해 돌아간다.
-        if (obstacle == null)
-        {
-            obstacle = ResidentConversationObstacle.Create(this);
-        }
-
         BeginTurn();
     }
 
@@ -352,7 +344,6 @@ public sealed class ResidentConversation
         if (live.Count < 2)
         {
             KeepCurrentPositions();
-            standRadius = 0f;   // 원이 성립하지 않는다 = 회피물도 세우지 않는다
             return;
         }
 
@@ -367,6 +358,10 @@ public sealed class ResidentConversation
 
         float span = Mathf.Max(0f, distance);
         float radius = span / (2f * Mathf.Sin(Mathf.PI / live.Count));
+
+        // 중심이 지나가던 주민 위에 얹히면 셋이 그를 에워싸며 자리를 잡는다 — 합류(TryJoin)로 자리를
+        // 다시 잡을 때 실제로 나오는 그림이다. 원래 둘 사이를 통과 중이던 사람이 새 중심 근처에 있기 때문.
+        center = PushCenterOffOutsiders(center, radius);
 
         Vector3 axis = live[0].Resident.transform.position - center;
         axis.y = 0f;
@@ -415,10 +410,77 @@ public sealed class ResidentConversation
             taken[best] = true;
             live[i].StandPoint = SnapOrKeep(spots[best], from, snapDistance);
         }
+    }
 
-        // 회피물이 쓸 원을 여기서 확정한다. 이후 참가자가 밀려도 이 값은 변하지 않는다.
-        standCenter = center;
-        standRadius = radius;
+    /// 무리 중심이 **대화에 참여하지 않는 주민을 감싸지 않도록** 옆으로 비킨다.
+    ///
+    /// 가장 깊이 들어와 있는 한 명만 본다. 여럿이면 비킨 자리에 또 걸릴 수 있지만, 자리 배치는 세션당
+    /// 한 번이라 반복 보정으로 늘어질 이유가 없다 — 최악(정중앙에 두고 에워싸기)만 피하면 된다.
+    ///
+    /// 옮기는 거리에 상한을 둔다(<see cref="MaxCenterShift"/>). 감싸는 그림을 완전히 없애는 것보다
+    /// 원이 벽으로 날아가지 않는 쪽이 중요하다 — 회피물이 없어진 뒤로 감싸임은 **교착이 아니라 그림 문제**다.
+    private Vector3 PushCenterOffOutsiders(Vector3 center, float radius)
+    {
+        float inside = radius - OutsiderInsetFromRing;
+
+        if (inside <= 0f)
+        {
+            return center;
+        }
+
+        IReadOnlyList<Resident> all = ResidentRegistry.Residents;
+        Resident nearest = null;
+        float nearestSqr = inside * inside;
+
+        for (int i = 0; i < all.Count; i++)
+        {
+            Resident other = all[i];
+
+            // 참가자는 감싸는 대상이 아니다 — 원을 이루는 것이 그들의 자리다.
+            if (other == null || !other.isActiveAndEnabled || IndexOf(other) >= 0)
+            {
+                continue;
+            }
+
+            // 높이는 무시한다 — ResidentRegistry의 질의와 같은 이유(계단·언덕).
+            Vector3 delta = other.transform.position - center;
+            delta.y = 0f;
+
+            float sqr = delta.sqrMagnitude;
+
+            if (sqr >= nearestSqr)
+            {
+                continue;
+            }
+
+            nearestSqr = sqr;
+            nearest = other;
+        }
+
+        if (nearest == null)
+        {
+            return center;
+        }
+
+        Vector3 away = center - nearest.transform.position;
+        away.y = 0f;
+
+        // 정확히 겹쳐 있으면 방향을 못 뽑는다. 그 사람의 정면을 축으로 삼는다 —
+        // 걸어가던 방향이므로 그 앞을 비워 주는 셈이 된다.
+        if (away.sqrMagnitude < 0.0001f)
+        {
+            away = nearest.transform.forward;
+            away.y = 0f;
+        }
+
+        if (away.sqrMagnitude < 0.0001f)
+        {
+            away = Vector3.forward;
+        }
+
+        float shift = Mathf.Min(inside - Mathf.Sqrt(nearestSqr), MaxCenterShift);
+
+        return center + away.normalized * shift;
     }
 
     /// 진행 중인 대화에 끼어든다(§7.1 진행 중 합류).
@@ -574,40 +636,6 @@ public sealed class ResidentConversation
         return true;
     }
 
-    /// 아직 살아 있는 참가자 수. 회피 오브젝트가 자기 수명을 판단하는 데 쓴다.
-    public int ActiveParticipantCount
-    {
-        get
-        {
-            int count = 0;
-
-            for (int i = 0; i < slots.Count; i++)
-            {
-                Resident r = slots[i].Resident;
-
-                if (r != null && r.isActiveAndEnabled)
-                {
-                    count++;
-                }
-            }
-
-            return count;
-        }
-    }
-
-    /// 회피물이 쓸 원. **현재 위치가 아니라 <see cref="ResolveStandPoints"/>가 확정한 자리에서 뽑는다.**
-    ///
-    /// ⚠ 이것이 요점이다. 현재 위치로 재면 회피물이 참가자를 밀어낼 때 원이 함께 커져
-    ///   **밀어내는 힘이 스스로 증폭한다** — 중심거리 5 → 47, 속도 65까지 튕겨 나가는 것을 실측했다.
-    ///   고정 좌표에서 뽑으면 그 되먹임이 구조적으로 성립하지 않는다.
-    public bool TryGetCircle(out Vector3 center, out float radius)
-    {
-        center = standCenter;
-        radius = standRadius;
-
-        return standPointsResolved && radius > 0f;
-    }
-
     /// 합류를 기다리다 지쳤는지 본다. 참이면 세션을 조용히 끝낸다 —
     /// 상대가 끝내 오지 않은 것은 이탈이 아니므로 R7을 띄우지 않는다.
     ///
@@ -709,13 +737,6 @@ public sealed class ResidentConversation
     public void Disband(float cooldownSeconds)
     {
         Phase = ConversationPhase.Ended;
-
-        // 회피물을 남기면 아무도 없는 자리를 주민들이 계속 돌아간다.
-        if (obstacle != null)
-        {
-            obstacle.Release();
-            obstacle = null;
-        }
 
         for (int i = 0; i < slots.Count; i++)
         {
