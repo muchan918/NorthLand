@@ -14,11 +14,24 @@ public class CoinFlipUI : MonoBehaviour
 
     private void Start()
     {
-        if (DayNightManager.Instance != null)
+        if (coinImage == null || frontSprite == null || backSprite == null)
         {
-            DayNightManager.Instance.OnDayToNight += HandleDayToNight;
-            DayNightManager.Instance.OnNightToDay += HandleNightToDay;
+            Debug.LogError("[CoinFlipUI] Image 또는 앞/뒷면 Sprite가 연결되지 않았습니다.", this);
+            enabled = false;
+            return;
         }
+
+        if (DayNightManager.Instance == null)
+        {
+            Debug.LogError("[CoinFlipUI] DayNightManager를 찾을 수 없습니다.", this);
+            enabled = false;
+            return;
+        }
+
+        DayNightManager.Instance.OnDayToNight += HandleDayToNight;
+        DayNightManager.Instance.OnNightToDay += HandleNightToDay;
+
+        ApplyPhase(DayNightManager.Instance.CurrentPhase);
     }
 
     private void OnDestroy()
@@ -87,6 +100,13 @@ public class CoinFlipUI : MonoBehaviour
         {
             Flip().Forget();
         }
+    }
+
+    private void ApplyPhase(DayNightManager.Phase phase)
+    {
+        isFront = phase == DayNightManager.Phase.Day;
+        coinImage.sprite = isFront ? frontSprite : backSprite;
+        transform.localRotation = Quaternion.identity;
     }
 
 }
