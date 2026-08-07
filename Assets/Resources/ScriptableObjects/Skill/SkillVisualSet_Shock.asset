@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f27485ab38a59db44931fdd231b43fd7, type: 3}
+  m_Name: SkillVisualSet_Shock
+  m_EditorClassIdentifier: Assembly-CSharp::SkillVisualSet
+  _levels:
+  - FromLevel: 0
+    Prefab: {fileID: 641016171047889443, guid: f72f3721080dfcd4da5987beec382fe9, type: 3}
+    ScaleWithRadius: 1
+    Note: 
+  - FromLevel: 3
+    Prefab: {fileID: 2944226388019238267, guid: d3983344392b1a14ca678c2c34276bf8, type: 3}
+    ScaleWithRadius: 0
+    Note: 
+  - FromLevel: 4
+    Prefab: {fileID: 7311398222022978211, guid: e717937858705324bab1614f08761168, type: 3}
+    ScaleWithRadius: 0
+    Note: 
+  - FromLevel: 5
+    Prefab: {fileID: 4163056027280596178, guid: c6d1a4307f493a94ba6e5e9f6c79c2d4, type: 3}
+    ScaleWithRadius: 0
+    Note: 

@@ -72,23 +72,51 @@ public static class ResidentBehaviorGraphBuilder
     //
     // 반경을 3.5 → 6으로 넓히면서 함께 낮췄다. 반경이 넓으면 후보가 거의 항상 있어 **롤이 매 주기 도는
     // 것과 같아진다** — 주민 1명이 4~9초에 한 번 굴리므로 30명이면 초당 3~7회다. 대화 1건이 인사·다가감·
-    // 수다 2~4턴·헤어짐으로 20~35초 동안 두 명을 붙잡으니, 확률이 0.1을 넘으면 정상 상태에서 마을 절반이
+    // 수다 3~5턴·헤어짐으로 **25~45초** 동안 두 명을 붙잡으니, 확률이 높으면 정상 상태에서 마을 절반이
     // 대화 중이 되어 산책·춤·유휴가 화면에서 사라진다(§7.1이 경고하는 그림).
-    // **여전히 산술로 잡은 값이고 실제로 보고 조정할 대상이다.**
-    private const float EncounterChance = 0.05f;
+    //
+    // ⚠ 이 점유시간은 아래 MinTurns/MaxTurns에 매여 있다. 산술로 잡았던 옛 임계 0.1은 **수다 2~4턴
+    //   = 20~35초** 전제로 계산한 값이라 턴이 3~5로 늘어난 지금은 그대로 쓸 수 없다 — 턴 수를 건드리면
+    //   이 확률도 반드시 함께 다시 본다.
+    //
+    // **튜닝 이력(전부 플레이로 보고 정했다): 0.05 → 0.1 → 0.08.** 0.05는 마을 30명 기준으로 대화가
+    // 너무 뜸했고, 0.1은 위 그림대로 과했다. **0.08이 최종이다.**
+    //
+    // ⚠ 중간의 0.1은 그래프 에셋에만 반영되고 이 상수는 0.05에 멈춰 있었다(WL-151 드리프트). 그래서
+    //   빌더 diff만 보면 0.05 → 0.08이라 "올렸다"로 읽히지만, 실제 마지막 조정은 **내린 것**이다.
+    private const float EncounterChance = 0.08f;
 
     // 확률 판정에 실패한 상대를 다시 후보로 올리기까지의 시간(초).
     // 이것이 없으면 나란히 걷는 두 명이 구간마다 다시 굴려져 "확률로 거른다"가 무너진다.
     private const float EncounterFailCooldownSeconds = 8f;
+
+    // 한 대화의 최대 인원(§7.1 진행 중 합류). 2면 합류가 꺼져 기존 2인 전용과 같아진다.
+    //
+    // 3으로 둔다. 원주 배치의 반지름이 `distance / (2·sin(π/N))`이라 3명이면 2.31로,
+    // 2명일 때의 2.0에서 거의 커지지 않아 골목을 막지 않는다. 4명이면 2.83까지 벌어진다.
+    private const int ConversationMaxParticipants = 3;
+
+    // 진행 중인 대화에 끼어들 확률(자기 사교성이 곱해진다).
+    //
+    // 새로 여는 확률(0.08)과 별개 축이다 — 이미 모여 있는 무리에 끌리는 정도가 더 높다고 보고 높게 둔다.
+    //
+    // **튜닝 이력(플레이 기준): 0.10 → 0.3 → 0.12.** 처음엔 "새로 여는 확률의 2배"라는 산술로 잡았지만
+    // 0.3은 무리가 3인 상한까지 즉시 차올라 통로를 몸으로 막았다. **0.12가 최종이고 결과적으로 1.5배다 —
+    // 「2배」라는 옛 규칙은 더 이상 유지되지 않는다.**
+    private const float ConversationJoinChance = 0.12f;
 
     // 해산 후 같은 상대와 다시 성립하지 않는 시간(초). 없으면 두 명이 영원히 인사만 한다.
     private const float ConversationDisbandCooldownSeconds = 30f;
 
     // 주고받을 턴 수. **시간이 아니라 턴 수로 정한다** — 시간으로 끊으면 Talking_1(10.27초)이 뽑힌
     // 마지막 턴이 중간에 잘린다(§7.2). 문서에 T가 정의돼 있지 않아 여기서 정한다.
-    private const int MinTurns = 2;
+    //
+    // ⚠ **턴 수는 EncounterChance와 한 몸이다.** 대화 1건의 점유시간을 통해 "정상 상태에서 몇 명이
+    //   대화 중인가"를 함께 결정한다(위 EncounterChance 주석의 산술). 2~4 → 3~5로 올린 만큼 점유가
+    //   늘었고 그래서 확률 쪽을 0.1에서 내렸다 — **한쪽만 건드리지 말 것.**
+    private const int MinTurns = 3;
 
-    private const int MaxTurns = 4;
+    private const int MaxTurns = 5;
 
     // 수다 클립 상태 이름. **가중치는 같은 이름을 여러 번 넣어 표현한다** —
     // Talking_1이 10.27초로 나머지(3.93 / 3.77)의 2.6배라 균등하게 두면 한 사람이 10초를 독점하는 턴이
@@ -568,6 +596,8 @@ public static class ResidentBehaviorGraphBuilder
         tryStart.SetField("FailCooldownSeconds", EncounterFailCooldownSeconds);
         tryStart.SetField("MinTurns", MinTurns);
         tryStart.SetField("MaxTurns", MaxTurns);
+        tryStart.SetField("MaxParticipants", ConversationMaxParticipants);
+        tryStart.SetField("JoinChance", ConversationJoinChance);
 
         pick.SetField("Agent", self, typeof(ResidentAgent));
         pick.SetField("Destination", destination, typeof(Vector3));

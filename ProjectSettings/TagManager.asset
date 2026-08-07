@@ -8,14 +8,14 @@ TagManager:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - Ground
+  - Tile
   - Water
   - UI
   - Selectable
   - Enemy
   - Soldier
   - PlayerBase
-  - 
+  - Ground
   - MinimapOverlay
   - 
   - 

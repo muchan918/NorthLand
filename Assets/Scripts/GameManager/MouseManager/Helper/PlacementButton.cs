@@ -24,7 +24,8 @@ public class PlacementButton : MonoBehaviour
             GhostPrefab = _ghostPrefab,
 
             // TODO: 해당 위치가 실제로 배치 가능한 셀인지(점유 여부·빌드 가능 영역 등) 검사 필요.
-            //       현재는 배치 표면(_placementMask = Ground)에만 고스트가 올라가므로, Ground이면 무조건 배치 허용.
+            //       현재는 배치 표면(_placementMask = Tile, 레이어 3)에만 고스트가 올라가므로 무조건 배치 허용.
+            //       ⚠ 레이어 3은 예전에 `Ground`였다 — 지금 `Ground`는 레이어 10(경영 보행면, NavMesh 베이크용)이다.
             //       실제 타워 배치의 그리드 검증은 TowerPlacer 참고.
             CanPlaceAt = hit => true,
 

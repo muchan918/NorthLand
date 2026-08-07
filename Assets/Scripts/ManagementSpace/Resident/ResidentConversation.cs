@@ -63,7 +63,20 @@ public sealed class ResidentConversation
     /// 그때는 같은 것을 다시 쓰는 것이 맞다 — 무한 루프로 막을 문제가 아니다.
     private const int TalkPickAttempts = 8;
 
-    private readonly Slot[] slots;
+    /// 참가자. **배열이 아니라 List다** — 진행 중 합류(§7.1)로 인원이 늘어난다.
+    private readonly List<Slot> slots;
+
+    /// 이 거리보다 안쪽에 비참가자가 서 있으면 "무리가 그를 감싼다"고 본다. 원 반지름에서 주민 반경만큼
+    /// 뺀 자리 — 참가자 몸통 바로 안쪽부터가 감싸이는 위치다.
+    private const float OutsiderInsetFromRing = 0.6f;
+
+    /// 감싸는 것을 피하려고 중심을 옮길 수 있는 최대 거리. 무제한으로 밀면 무리가 벽 쪽으로 날아가
+    /// <see cref="SnapOrKeep"/>이 원을 찌그러뜨린다. 몸통 지름만큼이면 감싸는 그림은 풀린다.
+    private const float MaxCenterShift = 1.2f;
+
+    /// 수다에 한 번이라도 들어갔는가. 합류로 Approaching에 되돌아왔을 때 턴 수를 초기화하지 않기 위한 구분이다 —
+    /// 초기화하면 사람이 합류할 때마다 대화가 처음부터 다시 시작해 끝나지 않는다.
+    private bool talkStarted;
 
     /// 총 몇 턴을 주고받고 끝낼지. **시간이 아니라 턴 수로 정한다** — 시간으로 끊으면 Talking_1(10.27초)이
     /// 뽑힌 마지막 턴이 중간에 잘린다(§7.2). 턴 수로 하면 항상 온전한 턴에서 끝난다.
@@ -77,7 +90,7 @@ public sealed class ResidentConversation
 
     private ResidentConversation(Resident first, Resident second, int turnCount)
     {
-        slots = new[]
+        slots = new List<Slot>(3)
         {
             new Slot { Resident = first },
             new Slot { Resident = second },
@@ -124,7 +137,7 @@ public sealed class ResidentConversation
                 return false;
             }
 
-            for (int i = 0; i < slots.Length; i++)
+            for (int i = 0; i < slots.Count; i++)
             {
                 Resident resident = slots[i].Resident;
 
@@ -168,7 +181,7 @@ public sealed class ResidentConversation
     {
         int self = IndexOf(resident);
 
-        for (int i = 0; i < slots.Length; i++)
+        for (int i = 0; i < slots.Count; i++)
         {
             if (i == self)
             {
@@ -200,7 +213,7 @@ public sealed class ResidentConversation
 
         slots[index].Joined = true;
 
-        for (int i = 0; i < slots.Length; i++)
+        for (int i = 0; i < slots.Count; i++)
         {
             if (!slots[i].Joined)
             {
@@ -231,18 +244,35 @@ public sealed class ResidentConversation
 
         slots[index].Approached = true;
 
-        for (int i = 0; i < slots.Length; i++)
+        for (int i = 0; i < slots.Count; i++)
         {
-            if (!slots[i].Approached)
+            // 빠진 참가자는 기다리지 않는다 — 영원히 도착 표시를 못 하므로 전원 대기가 걸린다.
+            // 이탈 자체는 HasLostParticipant가 따로 처리한다.
+            if (slots[i].Resident != null && !slots[i].Approached)
             {
                 return;
             }
         }
 
-        // 첫 화자는 무작위다. 제안자로 고정하면 말을 건 쪽이 항상 먼저 말하게 되어 규칙이 눈에 보인다.
-        speakerIndex = Random.Range(0, slots.Length);
-        turnsDone = 0;
+        // 자리를 잡았으면 합류 연출은 끝이다 — 이후 시선은 낀 사람이 아니라 화자를 향한다.
+        RecentJoiner = null;
+
+        if (!talkStarted)
+        {
+            talkStarted = true;
+
+            // 첫 화자는 무작위다. 제안자로 고정하면 말을 건 쪽이 항상 먼저 말하게 되어 규칙이 눈에 보인다.
+            // 합류로 되돌아온 경우도 여기로 온다(TryJoin이 talkStarted를 내린다) — 턴이 초기화된다.
+            speakerIndex = Random.Range(0, slots.Count);
+            turnsDone = 0;
+        }
+        else
+        {
+            speakerIndex = Mathf.Clamp(speakerIndex, 0, slots.Count - 1);
+        }
+
         Phase = ConversationPhase.Talking;
+
         BeginTurn();
     }
 
@@ -261,7 +291,7 @@ public sealed class ResidentConversation
 
         slots[index].Farewelled = true;
 
-        for (int i = 0; i < slots.Length; i++)
+        for (int i = 0; i < slots.Count; i++)
         {
             if (!slots[i].Farewelled)
             {
@@ -286,7 +316,11 @@ public sealed class ResidentConversation
     /// 중점이 이동해 두 사람의 목표가 어긋난다. 보통 두 호출이 같은 프레임에 오지만(그때는 위치가 같아
     /// 결과도 같다), BT 틱을 개체마다 분산시키면(§9 성능 상한) 프레임이 갈린다 — 그때 조용히 깨진다.
     ///
-    /// 2인 전용이다. 3인 이상으로 확장하면 중점 대칭이 아니라 원주 배치가 필요하다(§7.1 TBD).
+    /// **N명 원주 배치다.** 인접한 두 사람의 간격이 <paramref name="distance"/>가 되도록 반지름을 잡는다:
+    /// 현이 `2R·sin(π/N)`이므로 `R = distance / (2·sin(π/N))`. N=2면 R = distance/2라
+    /// **기존 2인 중점 대칭과 정확히 같은 결과**가 나온다 — 확장이 기존 그림을 바꾸지 않는다.
+    ///
+    /// 자리는 가까운 것부터 배정한다. 슬롯 순서대로 주면 두 사람이 서로의 자리로 건너가며 교차한다.
     public void ResolveStandPoints(float distance, float snapDistance)
     {
         if (standPointsResolved)
@@ -296,28 +330,310 @@ public sealed class ResidentConversation
 
         standPointsResolved = true;
 
-        if (slots.Length != 2 || slots[0].Resident == null || slots[1].Resident == null)
+        // 살아 있는 참가자만 자리를 받는다. 빠진 슬롯을 세면 원이 헐거워진다.
+        var live = new List<Slot>(slots.Count);
+
+        for (int i = 0; i < slots.Count; i++)
+        {
+            if (slots[i].Resident != null)
+            {
+                live.Add(slots[i]);
+            }
+        }
+
+        if (live.Count < 2)
         {
             KeepCurrentPositions();
             return;
         }
 
-        Vector3 a = slots[0].Resident.transform.position;
-        Vector3 b = slots[1].Resident.transform.position;
-        Vector3 midpoint = (a + b) * 0.5f;
+        Vector3 center = Vector3.zero;
 
-        Vector3 axis = a - b;
+        for (int i = 0; i < live.Count; i++)
+        {
+            center += live[i].Resident.transform.position;
+        }
+
+        center /= live.Count;
+
+        float span = Mathf.Max(0f, distance);
+        float radius = span / (2f * Mathf.Sin(Mathf.PI / live.Count));
+
+        // 중심이 지나가던 주민 위에 얹히면 셋이 그를 에워싸며 자리를 잡는다 — 합류(TryJoin)로 자리를
+        // 다시 잡을 때 실제로 나오는 그림이다. 원래 둘 사이를 통과 중이던 사람이 새 중심 근처에 있기 때문.
+        center = PushCenterOffOutsiders(center, radius);
+
+        Vector3 axis = live[0].Resident.transform.position - center;
         axis.y = 0f;
 
-        // 완전히 겹쳐 있으면 방향을 뽑을 수 없다. 한쪽의 정면을 축으로 삼는다 — 어느 방향이든 대칭이면 된다.
-        axis = axis.sqrMagnitude < 0.0001f
-            ? slots[0].Resident.transform.forward
-            : axis.normalized;
+        // 전원이 한 점에 겹쳐 있으면 방향을 뽑을 수 없다. 한쪽의 정면을 축으로 삼는다.
+        if (axis.sqrMagnitude < 0.0001f)
+        {
+            axis = live[0].Resident.transform.forward;
+            axis.y = 0f;
+        }
 
-        float half = Mathf.Max(0f, distance) * 0.5f;
+        axis = axis.sqrMagnitude < 0.0001f ? Vector3.forward : axis.normalized;
 
-        slots[0].StandPoint = SnapOrKeep(midpoint + axis * half, a, snapDistance);
-        slots[1].StandPoint = SnapOrKeep(midpoint - axis * half, b, snapDistance);
+        var spots = new Vector3[live.Count];
+
+        for (int i = 0; i < live.Count; i++)
+        {
+            Vector3 dir = Quaternion.AngleAxis(360f * i / live.Count, Vector3.up) * axis;
+            spots[i] = center + dir * radius;
+        }
+
+        var taken = new bool[live.Count];
+
+        for (int i = 0; i < live.Count; i++)
+        {
+            Vector3 from = live[i].Resident.transform.position;
+            int best = -1;
+            float bestSqr = float.MaxValue;
+
+            for (int s = 0; s < spots.Length; s++)
+            {
+                if (taken[s])
+                {
+                    continue;
+                }
+
+                float d = (spots[s] - from).sqrMagnitude;
+
+                if (d < bestSqr)
+                {
+                    bestSqr = d;
+                    best = s;
+                }
+            }
+
+            taken[best] = true;
+            live[i].StandPoint = SnapOrKeep(spots[best], from, snapDistance);
+        }
+    }
+
+    /// 무리 중심이 **대화에 참여하지 않는 주민을 감싸지 않도록** 옆으로 비킨다.
+    ///
+    /// 가장 깊이 들어와 있는 한 명만 본다. 여럿이면 비킨 자리에 또 걸릴 수 있지만, 자리 배치는 세션당
+    /// 한 번이라 반복 보정으로 늘어질 이유가 없다 — 최악(정중앙에 두고 에워싸기)만 피하면 된다.
+    ///
+    /// 옮기는 거리에 상한을 둔다(<see cref="MaxCenterShift"/>). 감싸는 그림을 완전히 없애는 것보다
+    /// 원이 벽으로 날아가지 않는 쪽이 중요하다 — 회피물이 없어진 뒤로 감싸임은 **교착이 아니라 그림 문제**다.
+    private Vector3 PushCenterOffOutsiders(Vector3 center, float radius)
+    {
+        float inside = radius - OutsiderInsetFromRing;
+
+        if (inside <= 0f)
+        {
+            return center;
+        }
+
+        IReadOnlyList<Resident> all = ResidentRegistry.Residents;
+        Resident nearest = null;
+        float nearestSqr = inside * inside;
+
+        for (int i = 0; i < all.Count; i++)
+        {
+            Resident other = all[i];
+
+            // 참가자는 감싸는 대상이 아니다 — 원을 이루는 것이 그들의 자리다.
+            if (other == null || !other.isActiveAndEnabled || IndexOf(other) >= 0)
+            {
+                continue;
+            }
+
+            // 높이는 무시한다 — ResidentRegistry의 질의와 같은 이유(계단·언덕).
+            Vector3 delta = other.transform.position - center;
+            delta.y = 0f;
+
+            float sqr = delta.sqrMagnitude;
+
+            if (sqr >= nearestSqr)
+            {
+                continue;
+            }
+
+            nearestSqr = sqr;
+            nearest = other;
+        }
+
+        if (nearest == null)
+        {
+            return center;
+        }
+
+        Vector3 away = center - nearest.transform.position;
+        away.y = 0f;
+
+        // 정확히 겹쳐 있으면 방향을 못 뽑는다. 그 사람의 정면을 축으로 삼는다 —
+        // 걸어가던 방향이므로 그 앞을 비워 주는 셈이 된다.
+        if (away.sqrMagnitude < 0.0001f)
+        {
+            away = nearest.transform.forward;
+            away.y = 0f;
+        }
+
+        if (away.sqrMagnitude < 0.0001f)
+        {
+            away = Vector3.forward;
+        }
+
+        float shift = Mathf.Min(inside - Mathf.Sqrt(nearestSqr), MaxCenterShift);
+
+        return center + away.normalized * shift;
+    }
+
+    /// 진행 중인 대화에 끼어든다(§7.1 진행 중 합류).
+    ///
+    /// 합류하면 **인사부터 다시 한다.** 단계를 <see cref="ConversationPhase.Greeting"/>으로 되돌리고
+    /// 인사·도착 표시를 전부 지우므로 순서가 이렇게 된다:
+    ///
+    ///   1. 낀 사람이 인사한다
+    ///   2. 원래 대화 중이던 사람들이 **낀 사람을 보면서** 인사한다(<see cref="RecentJoiner"/>가 시선을 몰아 준다)
+    ///   3. 세 명이 원주로 자리를 다시 잡는다(인원수에 따라 반지름·각도가 달라져 이미 서 있던 사람도 움직인다)
+    ///   4. 턴을 초기화하고 처음부터 다시 시작한다
+    ///
+    /// 4번의 턴 초기화가 안전한 이유: 인원 상한이 3이라 **한 세션에 합류는 최대 1번**이다
+    /// (<see cref="CanAccept"/>가 3에서 막는다). 상한을 4 이상으로 올리면 합류마다 턴이 초기화되어
+    /// 대화가 늘어지므로, 그때는 이 규칙을 다시 봐야 한다.
+    ///
+    /// 헤어지는 중이거나 끝난 세션에는 낄 수 없다.
+    public bool TryJoin(Resident newcomer, int maxParticipants)
+    {
+        if (newcomer == null || newcomer.Conversation != null)
+        {
+            return false;
+        }
+
+        if (Phase == ConversationPhase.Farewell || Phase == ConversationPhase.Ended)
+        {
+            return false;
+        }
+
+        if (slots.Count >= Mathf.Max(2, maxParticipants) || IndexOf(newcomer) >= 0)
+        {
+            return false;
+        }
+
+        slots.Add(new Slot
+        {
+            Resident = newcomer,
+            Joined = true,
+        });
+
+        newcomer.Conversation = this;
+
+        RecentJoiner = newcomer;
+        standPointsResolved = false;
+
+        // 인사부터 다시 한다 — 전원이 낀 사람을 보고 인사한 뒤에 자리를 잡는다.
+        for (int i = 0; i < slots.Count; i++)
+        {
+            slots[i].Greeted = false;
+            slots[i].Approached = false;
+        }
+
+        // 턴을 초기화한다(합류는 세션당 1회뿐이라 늘어지지 않는다 — 위 주석 4번).
+        talkStarted = false;
+
+        // Pending이면 아직 전원이 모이지 않았다는 뜻이라 그대로 둔다 — Join이 마저 처리한다.
+        if (Phase != ConversationPhase.Pending)
+        {
+            Phase = ConversationPhase.Greeting;
+        }
+
+        return true;
+    }
+
+    /// 합류를 시도한 외부인에게 **전 참가자와의** 조우 쿨다운을 건다(§7.1 재진입 방지).
+    ///
+    /// ⚠ 한 명(화자 등)에게만 걸면 실효가 없다. 후보 판정(`ResidentRegistry.TryFindNearestJoinable`)은
+    ///   **구성원마다** `IsReady`를 보고 통과하는 가장 가까운 사람을 고르므로, 표시가 안 된 다른 구성원을
+    ///   통해 같은 세션이 다음 틱에 다시 잡힌다 — 확률로 거른다는 규칙이 "몇 번 지나가면 결국 낀다"로
+    ///   무너지고, JoinChance 관측이 무의미해진다. 화자는 턴마다 회전해서 우연히 다 걸릴 일도 드물다.
+    ///
+    /// 양쪽 표에 남긴다 — 신규 대화 경로가 `self.Mark(other)` + `other.Mark(self)`인 것과 같은 규칙이다.
+    public void MarkEncounterWithAll(Resident outsider, float seconds)
+    {
+        if (outsider == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < slots.Count; i++)
+        {
+            Resident member = slots[i].Resident;
+
+            if (member == null || member == outsider)
+            {
+                continue;
+            }
+
+            outsider.Encounters.Mark(member, seconds);
+            member.Encounters.Mark(outsider, seconds);
+        }
+    }
+
+    /// 방금 합류한 참가자. 합류 직후의 인사 동안 **전원의 시선을 이 사람에게 몰아 주는** 데 쓴다.
+    /// 자리를 잡기 시작하면(<see cref="MarkApproached"/>) 비운다 — 그 뒤로는 화자를 봐야 한다.
+    public Resident RecentJoiner { get; private set; }
+
+    /// 지금 이 세션에 더 낄 수 있는가. 레지스트리가 후보를 거를 때 쓴다.
+    public bool CanAccept(int maxParticipants) =>
+        Phase != ConversationPhase.Farewell
+        && Phase != ConversationPhase.Ended
+        && slots.Count < Mathf.Max(2, maxParticipants);
+
+    /// 지금 말하고 있는 참가자. 빠졌으면 null이다.
+    public Resident CurrentSpeaker =>
+        speakerIndex >= 0 && speakerIndex < slots.Count ? slots[speakerIndex].Resident : null;
+
+    /// 이 참가자가 바라볼 지점. **화자를 본다** — 2인에서는 곧 상대이므로 기존 동작과 같고,
+    /// 3인 이상에서 "아무나 한 명"을 보는 것보다 대화로 읽힌다.
+    /// 자기가 화자면 나머지의 중심을 본다(한 명만 붙잡고 말하는 그림 방지).
+    public bool TryGetFocusPoint(Resident self, out Vector3 point)
+    {
+        point = Vector3.zero;
+
+        // 합류 직후 인사 동안에는 **전원이 낀 사람을 본다**(요청 순서 2번).
+        // 낀 사람 자신은 아래로 흘러 나머지의 중심을 본다.
+        if (Phase == ConversationPhase.Greeting && RecentJoiner != null && RecentJoiner != self)
+        {
+            point = RecentJoiner.transform.position;
+            return true;
+        }
+
+        Resident speaker = CurrentSpeaker;
+
+        if (Phase != ConversationPhase.Greeting && speaker != null && speaker != self)
+        {
+            point = speaker.transform.position;
+            return true;
+        }
+
+        Vector3 sum = Vector3.zero;
+        int count = 0;
+
+        for (int i = 0; i < slots.Count; i++)
+        {
+            Resident other = slots[i].Resident;
+
+            if (other == null || other == self)
+            {
+                continue;
+            }
+
+            sum += other.transform.position;
+            count++;
+        }
+
+        if (count == 0)
+        {
+            return false;
+        }
+
+        point = sum / count;
+        return true;
     }
 
     /// 합류를 기다리다 지쳤는지 본다. 참이면 세션을 조용히 끝낸다 —
@@ -342,9 +658,10 @@ public sealed class ResidentConversation
 
         slots[index].Greeted = true;
 
-        for (int i = 0; i < slots.Length; i++)
+        for (int i = 0; i < slots.Count; i++)
         {
-            if (!slots[i].Greeted)
+            // 빠진 참가자는 기다리지 않는다 — 영원히 인사 표시를 못 하므로 전원 대기가 걸린다.
+            if (slots[i].Resident != null && !slots[i].Greeted)
             {
                 return;
             }
@@ -409,7 +726,7 @@ public sealed class ResidentConversation
             return;
         }
 
-        speakerIndex = (speakerIndex + 1) % slots.Length;
+        speakerIndex = (speakerIndex + 1) % slots.Count;
         BeginTurn();
     }
 
@@ -421,7 +738,7 @@ public sealed class ResidentConversation
     {
         Phase = ConversationPhase.Ended;
 
-        for (int i = 0; i < slots.Length; i++)
+        for (int i = 0; i < slots.Count; i++)
         {
             Resident resident = slots[i].Resident;
 
@@ -430,7 +747,7 @@ public sealed class ResidentConversation
                 continue;
             }
 
-            for (int j = 0; j < slots.Length; j++)
+            for (int j = 0; j < slots.Count; j++)
             {
                 if (j != i)
                 {
@@ -448,7 +765,7 @@ public sealed class ResidentConversation
 
     private void KeepCurrentPositions()
     {
-        for (int i = 0; i < slots.Length; i++)
+        for (int i = 0; i < slots.Count; i++)
         {
             if (slots[i].Resident != null)
             {
@@ -481,7 +798,7 @@ public sealed class ResidentConversation
             return -1;
         }
 
-        for (int i = 0; i < slots.Length; i++)
+        for (int i = 0; i < slots.Count; i++)
         {
             if (slots[i].Resident == resident)
             {

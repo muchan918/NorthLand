@@ -118,6 +118,10 @@ public partial class ResidentConverseAction : Action
 
     private bool surprised;
 
+    // 직전 틱의 세션 단계. **합류(§7.1)로 Talking → Approaching 역방향 전이가 생겼다** —
+    // 단계가 되돌아온 것을 모르면 옛 자리로 걸어가거나(approachStarted) 끊긴 클립을 기다리며 멈춘다(handledTurn).
+    private ResidentConversation.ConversationPhase lastPhase;
+
     protected override Status OnStart()
     {
         agent = Agent?.Value;
@@ -154,6 +158,10 @@ public partial class ResidentConverseAction : Action
         hasLaughed = false;
         lastLaughTurn = 0;
         surprised = false;
+        lastPhase = session.Phase;
+
+        // 진입 시점의 단계에 맞춰 한 번 걸어 둔다. 아래 OnUpdate의 전환 감지는 **변화만** 잡는다.
+        agent.SetStationaryHold(session.Phase != ResidentConversation.ConversationPhase.Approaching);
 
         // 걷던 것을 멈춘다.
         //
@@ -214,13 +222,47 @@ public partial class ResidentConverseAction : Action
             return IsPlayDone() ? Finish() : Status.Running;
         }
 
-        Resident partner = session.PartnerOf(self);
+        // 단계가 바뀌면 그 단계용 캐시를 푼다. 합류로 되돌아오는 경로가 생겨 한 방향 진행을 가정할 수 없다.
+        if (session.Phase != lastPhase)
+        {
+            if (session.Phase == ResidentConversation.ConversationPhase.Greeting)
+            {
+                // 합류로 인사 단계가 다시 열렸다(§7.1). 전원이 낀 사람을 보고 다시 인사한다.
+                greetPlayed = false;
+                greetReported = false;
+
+                // 수다·웃음 상태에는 나가는 전이가 없다. 그대로 두면 그 포즈로 손을 흔든다.
+                EndPlay();
+            }
+            else if (session.Phase == ResidentConversation.ConversationPhase.Approaching)
+            {
+                approachStarted = false;
+                approachElapsed = 0f;
+
+                // 수다·웃음 상태에는 나가는 전이가 없다. 그대로 걸으면 그 포즈로 미끄러진다.
+                EndPlay();
+            }
+            else if (session.Phase == ResidentConversation.ConversationPhase.Talking)
+            {
+                // 현재 턴을 다시 준비한다 — 자리를 옮기느라 화자의 클립이 끊겼다.
+                handledTurn = -1;
+            }
+
+            // 걷는 단계(다가가기)만 회피를 켜고, 서 있는 단계에서는 제자리에 못을 박는다.
+            // 서 있는 동안 회피를 켜 두면 지나가던 주민이 밀어내고(원래 버그), 회피물이 밀어내
+            // 무한히 튕겨 나간다(되먹임 실측).
+            agent.SetStationaryHold(session.Phase != ResidentConversation.ConversationPhase.Approaching);
+
+            lastPhase = session.Phase;
+        }
 
         // 다가가는 중에는 상대를 보지 않는다 — 걸어가는 방향을 봐야 한다.
-        // 그 밖의 단계에서는 계속 상대를 향한다. NavMeshAgent는 정지 중에 회전하지 않으므로 여기서 직접 돌린다.
-        if (partner != null && session.Phase != ResidentConversation.ConversationPhase.Approaching)
+        // 그 밖의 단계에서는 **화자**를 향한다(2인이면 곧 상대라 기존 동작과 같고, 3인에서는
+        // 아무나 한 명을 보는 것보다 대화로 읽힌다). 자기가 화자면 나머지의 중심을 본다.
+        if (session.Phase != ResidentConversation.ConversationPhase.Approaching
+            && session.TryGetFocusPoint(self, out Vector3 focus))
         {
-            agent.FaceTowards(partner.transform.position);
+            agent.FaceTowards(focus);
         }
 
         switch (session.Phase)
@@ -230,7 +272,7 @@ public partial class ResidentConverseAction : Action
                 return session.HasPendingTimedOut(PendingTimeout) ? Finish() : Status.Running;
 
             case ResidentConversation.ConversationPhase.Greeting:
-                return UpdateGreeting(partner);
+                return UpdateGreeting();
 
             case ResidentConversation.ConversationPhase.Approaching:
                 return UpdateApproaching();
@@ -250,6 +292,10 @@ public partial class ResidentConverseAction : Action
     {
         if (agent != null)
         {
+            // 회피를 반드시 되돌린다. 빠뜨리면 그 주민은 이후로 남을 피하지 않아 계속 부딪힌다.
+            // 중단(선점)으로 끝난 경우에도 지나가는 유일한 경로다.
+            agent.SetStationaryHold(false);
+
             // 회전 소유권을 반납한다. 빠뜨리면 이후로 주민이 옆걸음으로 걷는다.
             agent.ReleaseRotation();
 
@@ -273,7 +319,7 @@ public partial class ResidentConverseAction : Action
     // 인사하는 그림이 나온다.
     //
     // 거리를 좁히는 것과 벌리는 것을 같은 계산이 처리한다. 조우 반경 안 어디서든 성립하므로 거리가
-    // 제각각이고, 붙어 있던 쌍은 **머리가 부딪히는 0.6까지** 갈 수 있다(NavMeshAgent radius 0.3 × 2).
+    // 제각각이고, 붙어 있던 쌍은 **머리가 부딪히는 1.2까지** 갈 수 있다(NavMeshAgent radius 0.6 × 2).
     // 둘 다 정지한 Agent는 서로를 밀어내지 않으므로 회피에 기대서도 풀리지 않는다.
     private Status UpdateApproaching()
     {
@@ -312,6 +358,12 @@ public partial class ResidentConverseAction : Action
         // 못 간 자리를 계속 노리며 서 있는 것보다 낫다.
         agent.PauseMovement();
         agent.SetMoving(false);
+
+        // **MarkApproached보다 먼저 못을 박는다.** 한 틱이라도 회피가 살아 있으면 그 틱의 회피 해가
+        // 자리를 벌린다 — 간격이 StandDistance 4 대신 5.68로 벌어지는 것을 실측했다(당시 원인은
+        // 세션이 세우던 회피물이었지만, 지나가는 주민과의 회피만으로도 같은 어긋남이 난다).
+        agent.SetStationaryHold(true);
+
         session.MarkApproached(self);
 
         return Status.Running;
@@ -349,14 +401,17 @@ public partial class ResidentConverseAction : Action
     }
 
     // 멀리서 알아보고 손을 흔든다(R3). **다가가기보다 먼저 온다** — 순서가 이 연출의 전부다.
-    private Status UpdateGreeting(Resident partner)
+    //
+    // 합류로 다시 열릴 때도 같은 경로를 탄다. 그때는 세션이 시선을 낀 사람에게 몰아 주므로
+    // (RecentJoiner) **원래 대화 중이던 사람들이 낀 사람을 보면서 인사한다.**
+    private Status UpdateGreeting()
     {
         if (!greetPlayed)
         {
             // 등을 돌린 채 손을 흔들지 않는다. 다 돌아섰을 때 시작한다(§7.1 「서로 마주 보고 정지」).
             float tolerance = FaceToleranceDegrees != null ? FaceToleranceDegrees.Value : 15f;
 
-            if (partner != null && !agent.IsFacing(partner.transform.position, tolerance))
+            if (session.TryGetFocusPoint(self, out Vector3 target) && !agent.IsFacing(target, tolerance))
             {
                 return Status.Running;
             }

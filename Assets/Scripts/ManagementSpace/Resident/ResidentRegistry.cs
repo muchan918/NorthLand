@@ -138,4 +138,63 @@ public static class ResidentRegistry
 
         return result != null;
     }
+
+    /// <paramref name="self"/>가 **끼어들 수 있는** 가장 가까운 대화를 찾는다(§7.1 진행 중 합류).
+    ///
+    /// <see cref="TryFindNearestCandidate"/>와 정반대의 필터다 — 저쪽은 "혼자인 사람"을 찾고,
+    /// 이쪽은 "이미 대화 중인 사람"을 찾는다. 그래서 <see cref="Resident.IsAvailableForConversation"/>을
+    /// 쓸 수 없다(대화 중이면 거짓이다).
+    ///
+    /// 쿨다운은 그대로 본다. 방금 헤어진 무리에 곧바로 다시 끼면 해산이 의미를 잃는다.
+    public static bool TryFindNearestJoinable(Resident self, float radius, int maxParticipants,
+        out ResidentConversation session)
+    {
+        session = null;
+
+        if (self == null || radius <= 0f || self.Conversation != null)
+        {
+            return false;
+        }
+
+        Vector3 origin = self.transform.position;
+        float bestSqr = radius * radius;
+
+        for (int i = 0; i < _residents.Count; i++)
+        {
+            Resident member = _residents[i];
+
+            if (member == null || member == self || !member.isActiveAndEnabled)
+            {
+                continue;
+            }
+
+            ResidentConversation candidate = member.Conversation;
+
+            if (candidate == null || !candidate.CanAccept(maxParticipants))
+            {
+                continue;
+            }
+
+            if (!self.Encounters.IsReady(member))
+            {
+                continue;
+            }
+
+            // 높이는 무시한다 — TryFindNearestCandidate와 같은 이유.
+            Vector3 delta = member.transform.position - origin;
+            delta.y = 0f;
+
+            float sqr = delta.sqrMagnitude;
+
+            if (sqr >= bestSqr)
+            {
+                continue;
+            }
+
+            bestSqr = sqr;
+            session = candidate;
+        }
+
+        return session != null;
+    }
 }

@@ -47,6 +47,13 @@ public partial class ResidentTryStartConversationAction : Action
 
     [SerializeReference] public BlackboardVariable<int> MaxTurns;
 
+    // 한 대화에 들어갈 수 있는 최대 인원(§7.1 진행 중 합류). 2면 기존과 같은 2인 전용이 된다.
+    [SerializeReference] public BlackboardVariable<int> MaxParticipants;
+
+    // 진행 중인 대화에 끼어들 확률. 자기 사교성이 곱해진다.
+    // 새로 말을 거는 확률과 따로 둔다 — 이미 모여 있는 무리에 끌리는 정도는 다른 축이다.
+    [SerializeReference] public BlackboardVariable<float> JoinChance;
+
     protected override Status OnStart()
     {
         ResidentAgent agent = Agent?.Value;
@@ -67,6 +74,15 @@ public partial class ResidentTryStartConversationAction : Action
         }
 
         float radius = Radius != null ? Radius.Value : 0f;
+
+        // ── 진행 중인 대화에 끼어드는 쪽을 먼저 본다(§7.1 진행 중 합류) ──
+        //
+        // 새로 여는 것보다 먼저 보는 이유: 이미 모여 있는 무리가 더 강한 유인이고, 인원 상한이 있어
+        // 무한정 커지지 않는다. 상한에 찬 무리는 레지스트리가 후보에서 빼므로 여기까지 오지 않는다.
+        if (TryJoinNearby(self, radius))
+        {
+            return Status.Success;
+        }
 
         if (!ResidentRegistry.TryFindNearestCandidate(self, radius, out Resident other))
         {
@@ -110,6 +126,42 @@ public partial class ResidentTryStartConversationAction : Action
         }
 
         return Status.Success;
+    }
+
+    // 근처에서 진행 중인 대화에 끼어든다.
+    //
+    // 성립하면 세션이 단계를 다가가기로 되돌리고 자리를 다시 잡는다 — **이미 서 있던 사람들도 움직인다.**
+    // 원의 반지름이 인원수에 따라 달라지기 때문이고, 그래서 합류가 그림에서 티가 난다.
+    //
+    // 확률에 실패해도 쿨다운을 남긴다. 안 남기면 무리 옆을 지나는 주민이 구간마다 다시 굴려
+    // "확률로 거른다"가 "몇 번 지나가면 결국 낀다"로 무너진다 — 새로 말을 거는 경로와 같은 이유다.
+    private bool TryJoinNearby(Resident self, float radius)
+    {
+        int maxParticipants = MaxParticipants != null ? MaxParticipants.Value : 2;
+
+        if (maxParticipants < 3)
+        {
+            return false;   // 2면 합류 개념이 없다
+        }
+
+        if (!ResidentRegistry.TryFindNearestJoinable(self, radius, maxParticipants, out ResidentConversation session))
+        {
+            return false;
+        }
+
+        // **전 참가자에게** 건다. 한 명만 표시하면 다른 구성원을 통해 같은 세션이 다시 잡혀
+        // 확률 판정이 무력화된다(MarkEncounterWithAll 주석).
+        float failCooldown = FailCooldownSeconds != null ? FailCooldownSeconds.Value : 0f;
+        session.MarkEncounterWithAll(self, failCooldown);
+
+        float chance = JoinChance != null ? JoinChance.Value : 0f;
+
+        if (chance <= 0f || Random.value >= chance * self.Sociability)
+        {
+            return false;
+        }
+
+        return session.TryJoin(self, maxParticipants);
     }
 
     // 사교성은 두 사람의 평균으로 본다(§7.1 개체차).

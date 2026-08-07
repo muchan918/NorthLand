@@ -51,7 +51,7 @@ public class ResidentDoorPoint : MonoBehaviour
 
     private void DrawGizmo(Color color)
     {
-        const float ArrowLength = 2f;
+        const float ArrowLength = 3f;
         const float HeadLength = 0.5f;
         const float HeadWidth = 0.3f;
 
