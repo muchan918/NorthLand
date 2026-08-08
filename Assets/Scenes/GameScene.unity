@@ -3834,7 +3834,13 @@ MonoBehaviour:
   panel: {fileID: 1909950348}
   cardPrefab: {fileID: 3180376243941213659, guid: ac3fe899a10bba2439346af1ccce7292, type: 3}
   cardContainer: {fileID: 915435450}
-  levelFaces: []
+  levelFaces:
+  - Sprite: {fileID: 0}
+    Tint: {r: 0.6901961, g: 0.5529412, b: 0.34117648, a: 0}
+  - Sprite: {fileID: 0}
+    Tint: {r: 0.78431374, g: 0.8156863, b: 0.84705883, a: 0}
+  - Sprite: {fileID: 0}
+    Tint: {r: 0.9490196, g: 0.75686276, b: 0.30588236, a: 0}
   openPanel: {fileID: 1123896257}
   gameSpeedController: {fileID: 7536131759758459493}
 --- !u!114 &1658482856
@@ -11499,7 +11505,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 60.35
+  m_fontSize: 54.75
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -22105,7 +22111,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 40.2
+  m_fontSize: 42.95
   m_fontSizeBase: 24
   m_fontWeight: 400
   m_enableAutoSizing: 1

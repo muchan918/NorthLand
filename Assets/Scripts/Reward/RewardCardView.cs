@@ -57,8 +57,8 @@ public class RewardCardView : MonoBehaviour
         }
     }
 
-    /// 보상 하나를 이 카드에 표시한다. face가 null이면 카드면을 건드리지 않는다.
-    public void Bind(WaveRewardData reward, Sprite face, Action<WaveRewardData> selectCallback)
+    /// 보상 하나를 이 카드에 표시한다. faceTint는 등급 색(RGB만 쓰고 알파는 프리팹 값을 유지).
+    public void Bind(WaveRewardData reward, Color faceTint, Action<WaveRewardData> selectCallback)
     {
         boundReward = reward;
         onSelect = selectCallback;
@@ -79,9 +79,11 @@ public class RewardCardView : MonoBehaviour
             icon.enabled = reward.Icon != null;
         }
 
-        if (cardFace != null && face != null)
+        // 알파는 프리팹이 정한 값을 그대로 둔다 — 카드면의 투명도는 등급이 아니라 디자인의 몫이고,
+        // 넘겨받은 색의 알파까지 적용하면 등급 색을 바꿀 때마다 투명도가 딸려 바뀐다.
+        if (cardFace != null)
         {
-            cardFace.sprite = face;
+            cardFace.color = new Color(faceTint.r, faceTint.g, faceTint.b, cardFace.color.a);
         }
 
         // 실제 보유 레벨을 그대로 보여준다 — 미보유는 Lv 0, 한 번 고르면 Lv 1.

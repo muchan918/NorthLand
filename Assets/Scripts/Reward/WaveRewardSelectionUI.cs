@@ -22,11 +22,19 @@ public class WaveRewardSelectionUI : MonoBehaviour
     [SerializeField]
     private Transform cardContainer;
 
-    [Header("등급 카드면 (인덱스 0 = Lv1)")]
-    // 레벨별 카드면. 비워두면 카드가 프리팹 기본 모습 그대로 나온다 — 에셋이 준비되기 전에도
-    // 별(RewardCardView) 표시만으로 정상 동작한다.
+    [Header("등급 색 (인덱스 0 = Lv1)")]
+    // 카드면 틴트. 비워두면 아래 기본 팔레트를 쓰므로 인스펙터 배선 없이도 동작한다
+    // (필드 초기화자는 이미 씬에 직렬화된 컴포넌트엔 적용되지 않아서, 폴백을 코드에 둔다).
     [SerializeField]
-    private Sprite[] levelFaces;
+    private Color[] levelColors;
+
+    // 동 → 은 → 금. 픽셀아트 톤에 맞춰 채도를 낮게 잡았다.
+    private static readonly Color[] DefaultLevelColors =
+    {
+        new Color(0.69f, 0.55f, 0.34f), // Lv1
+        new Color(0.78f, 0.82f, 0.85f), // Lv2
+        new Color(0.95f, 0.76f, 0.31f), // Lv3
+    };
 
     [SerializeField]
     [FormerlySerializedAs("Openpanel")]
@@ -167,19 +175,18 @@ public class WaveRewardSelectionUI : MonoBehaviour
             }
 
             RewardCardView card = Instantiate(cardPrefab, cardContainer);
-            card.Bind(reward, ResolveFace(reward), SelectReward);
+            card.Bind(reward, ResolveTint(reward), SelectReward);
             spawnedCards.Add(card);
         }
     }
 
-    // 이 보상을 고르면 도달할 레벨에 대응하는 카드면. 레벨 표시(별)와 같은 값을 쓰도록
+    // 이 보상을 고르면 도달할 레벨에 대응하는 카드 색. 레벨 표시(별)와 같은 값을 쓰도록
     // RewardCardView가 아니라 여기서 뽑아 넘긴다 — 매핑 소유자를 한 곳으로 모으기 위함.
-    private Sprite ResolveFace(WaveRewardData reward)
+    private Color ResolveTint(WaveRewardData reward)
     {
-        if (levelFaces == null || levelFaces.Length == 0)
-        {
-            return null;
-        }
+        Color[] palette = levelColors != null && levelColors.Length > 0
+            ? levelColors
+            : DefaultLevelColors;
 
         int nextLevel = 0;
 
@@ -189,7 +196,7 @@ public class WaveRewardSelectionUI : MonoBehaviour
         }
 
         // 매니저가 없으면 nextLevel이 0이라 -1이 되는데 Clamp가 0으로 받아낸다(배열 밖 접근 방지).
-        return levelFaces[Mathf.Clamp(nextLevel - 1, 0, levelFaces.Length - 1)];
+        return palette[Mathf.Clamp(nextLevel - 1, 0, palette.Length - 1)];
     }
 
     private void ClearCards()
