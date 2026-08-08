@@ -1,11 +1,8 @@
 using Cysharp.Threading.Tasks;
 using System.Collections.Generic;
 using System.Threading;
-using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.Serialization;
-using UnityEngine.Localization.Components;
 
 public class WaveRewardSelectionUI : MonoBehaviour
 {
@@ -13,28 +10,23 @@ public class WaveRewardSelectionUI : MonoBehaviour
     [SerializeField]
     private GameObject panel;
 
-    [Header("Reward Buttons")]
+    [Header("Cards")]
+    // 카드 한 장의 프리팹. 후보 수만큼 cardContainer 아래에 생성한다(#320).
+    // 도입 전에는 씬에 Reward1~3을 고정 배치하고 요소별 평행 배열 6개로 인덱싱했다 —
+    // 배열 순서가 어긋나면 조용히 엉뚱한 카드에 값이 들어갔고, 카드 개수도 씬에 박혀 있었다.
     [SerializeField]
-    private Button[] rewardButtons;
+    private RewardCardView cardPrefab;
 
-    // 카드 루트(Reward1~3). 후보가 3개 미만일 때(만렙 제외 등, #292) 남는 슬롯을 통째로 감춘다 —
-    // 버튼만 끄면 이름·설명·아이콘·수치가 이전 웨이브 값 그대로 남아 유령 카드가 보인다.
+    // 카드가 생성될 부모. HorizontalLayoutGroup을 붙여 두면 후보가 3장 미만일 때(#292 만렙 제외)
+    // 빈 슬롯 없이 가운데로 모인다.
     [SerializeField]
-    private GameObject[] rewardCards;
+    private Transform cardContainer;
 
+    [Header("등급 카드면 (인덱스 0 = Lv1)")]
+    // 레벨별 카드면. 비워두면 카드가 프리팹 기본 모습 그대로 나온다 — 에셋이 준비되기 전에도
+    // 별(RewardCardView) 표시만으로 정상 동작한다.
     [SerializeField]
-    private LocalizeStringEvent[] nameLocalizers;
-
-    [SerializeField]
-    private LocalizeStringEvent[] descriptionLocalizers;
-
-    [SerializeField]
-    private Image[] iconImages;
-
-    // #287: 카드별 "Lv N / 수치" 줄. 라벨은 로컬라이즈되지만 조합 결과는 평문이라
-    // LocalizeStringEvent가 아니라 TextMeshProUGUI에 직접 넣는다(TowerInfoUI의 statsText와 같은 형태).
-    [SerializeField]
-    private TextMeshProUGUI[] levelStatTexts;
+    private Sprite[] levelFaces;
 
     [SerializeField]
     [FormerlySerializedAs("Openpanel")]
@@ -47,6 +39,7 @@ public class WaveRewardSelectionUI : MonoBehaviour
     [SerializeField]
     private GameSpeedController gameSpeedController;
 
+    private readonly List<RewardCardView> spawnedCards = new List<RewardCardView>();
 
     private void Awake()
     {
@@ -100,7 +93,6 @@ public class WaveRewardSelectionUI : MonoBehaviour
 
         selectionSource = new UniTaskCompletionSource<WaveRewardData>();
 
-        ClearButtonListeners();
         ShowCandidates(candidates);
 
         if (gameSpeedController != null)
@@ -132,7 +124,8 @@ public class WaveRewardSelectionUI : MonoBehaviour
         }
         finally
         {
-            ClearButtonListeners();
+            ClearCards();
+
             if (gameSpeedController != null)
             {
                 gameSpeedController.SetPaused(GamePauseReason.Reward,false);
@@ -154,93 +147,66 @@ public class WaveRewardSelectionUI : MonoBehaviour
 
     private void ShowCandidates(IReadOnlyList<WaveRewardData> candidates)
     {
-        for (int i = 0; i < rewardButtons.Length; i++)
+        ClearCards();
+
+        if (cardPrefab == null || cardContainer == null)
         {
-            bool hasCandidate = i < candidates.Count && candidates[i] != null;
+            Debug.LogError(
+                "[WaveRewardSelectionUI] 카드 프리팹 또는 컨테이너가 연결되지 않았습니다.",
+                this);
+            return;
+        }
 
-            if (rewardCards != null && i < rewardCards.Length && rewardCards[i] != null)
-            {
-                rewardCards[i].SetActive(hasCandidate);
-            }
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            WaveRewardData reward = candidates[i];
 
-            rewardButtons[i].gameObject.SetActive(hasCandidate);
-
-            if (!hasCandidate)
+            if (reward == null)
             {
                 continue;
             }
 
-            WaveRewardData reward = candidates[i];
-            if (i < nameLocalizers.Length && nameLocalizers[i] != null)
-            {
-                nameLocalizers[i].StringReference.SetReference(LocalizationHelper.k_RewardsTable,reward.DisplayName);
-
-                nameLocalizers[i].RefreshString();
-            }
-
-            if (i < descriptionLocalizers.Length && descriptionLocalizers[i] != null)
-            {
-                descriptionLocalizers[i].StringReference.SetReference(LocalizationHelper.k_RewardsTable,reward.Description);
-
-                descriptionLocalizers[i].RefreshString();
-            }
-
-            if (i < iconImages.Length &&
-                iconImages[i] != null)
-            {
-                iconImages[i].sprite = reward.Icon;
-                iconImages[i].enabled = reward.Icon != null;
-            }
-
-            if (i < levelStatTexts.Length && levelStatTexts[i] != null)
-            {
-                // 실제 보유 레벨을 그대로 보여준다 — 미보유는 Lv 0, 한 번 고르면 Lv 1.
-                // 하한 클램프를 걸면 Lv0과 Lv1의 표시가 겹쳐서 첫 획득이 화면상 아무 변화가 없어 보인다.
-                // 다음 레벨은 UI가 +1로 계산하지 않고 효과에게 묻는다 — 상한(#292)이 여기 반영돼야 한다.
-                int level = 0;
-                int nextLevel = 0;
-                bool nextIsMax = false;
-                string stats = null;
-
-                if (SkillEffectManager.Instance != null)
-                {
-                    level = SkillEffectManager.Instance.GetLevel(reward.RewardType);
-                    nextLevel = SkillEffectManager.Instance.GetNextLevel(reward.RewardType);
-                    nextIsMax = SkillEffectManager.Instance.ReachesMaxLevel(reward.RewardType);
-                    stats = SkillEffectManager.Instance.GetStatSummary(reward.RewardType);
-                }
-
-                // 수치가 비었다 = 이 타입의 효과 컴포넌트가 없다 = 선택해도 SkillEffectManager가
-                // 경고만 내고 무시한다. 그때 레벨 줄만 남기면 "고르면 오른다"는 거짓 표시가 되므로
-                // 통째로 비워 씬 배선 사고가 화면에 드러나게 한다.
-                levelStatTexts[i].text = string.IsNullOrEmpty(stats)
-                    ? string.Empty
-                    : $"{SkillStatsFormatter.BuildLevelLine(level, nextLevel, nextIsMax)}\n{stats}";
-            }
-
-            rewardButtons[i].onClick.AddListener(() => SelectReward(reward)
-            );
+            RewardCardView card = Instantiate(cardPrefab, cardContainer);
+            card.Bind(reward, ResolveFace(reward), SelectReward);
+            spawnedCards.Add(card);
         }
+    }
+
+    // 이 보상을 고르면 도달할 레벨에 대응하는 카드면. 레벨 표시(별)와 같은 값을 쓰도록
+    // RewardCardView가 아니라 여기서 뽑아 넘긴다 — 매핑 소유자를 한 곳으로 모으기 위함.
+    private Sprite ResolveFace(WaveRewardData reward)
+    {
+        if (levelFaces == null || levelFaces.Length == 0)
+        {
+            return null;
+        }
+
+        int nextLevel = 0;
+
+        if (SkillEffectManager.Instance != null)
+        {
+            nextLevel = SkillEffectManager.Instance.GetNextLevel(reward.RewardType);
+        }
+
+        // 매니저가 없으면 nextLevel이 0이라 -1이 되는데 Clamp가 0으로 받아낸다(배열 밖 접근 방지).
+        return levelFaces[Mathf.Clamp(nextLevel - 1, 0, levelFaces.Length - 1)];
+    }
+
+    private void ClearCards()
+    {
+        for (int i = 0; i < spawnedCards.Count; i++)
+        {
+            if (spawnedCards[i] != null)
+            {
+                Destroy(spawnedCards[i].gameObject);
+            }
+        }
+
+        spawnedCards.Clear();
     }
 
     private void SelectReward(WaveRewardData reward)
     {
         selectionSource?.TrySetResult(reward);
-    }
-
-    private void ClearButtonListeners()
-    {
-        if (rewardButtons == null)
-        {
-            return;
-        }
-
-        foreach (Button button in rewardButtons)
-        {
-            if (button != null)
-            {
-                button.onClick.RemoveAllListeners();
-            }
-        }
     }
 }

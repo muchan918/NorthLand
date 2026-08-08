@@ -3745,6 +3745,68 @@ MonoBehaviour:
   references:
     version: 2
     RefIds: []
+--- !u!1 &915435449
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 915435450}
+  - component: {fileID: 915435451}
+  m_Layer: 0
+  m_Name: CardContainer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &915435450
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 915435449}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1909950349}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &915435451
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 915435449}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30649d3a9faa99c48a7b1166b86bf2a0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.HorizontalLayoutGroup
+  m_Padding:
+    m_Left: 0
+    m_Right: 0
+    m_Top: 0
+    m_Bottom: 0
+  m_ChildAlignment: 4
+  m_Spacing: 50
+  m_ChildForceExpandWidth: 0
+  m_ChildForceExpandHeight: 0
+  m_ChildControlWidth: 0
+  m_ChildControlHeight: 0
+  m_ChildScaleWidth: 0
+  m_ChildScaleHeight: 0
+  m_ReverseArrangement: 0
 --- !u!1 &1061213898
 GameObject:
   m_ObjectHideFlags: 0
@@ -6138,30 +6200,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WaveRewardSelectionUI
   panel: {fileID: 1909950348}
-  rewardButtons:
-  - {fileID: 1276908196}
-  - {fileID: 1284791785}
-  - {fileID: 779890673}
-  rewardCards:
-  - {fileID: 1108664596}
-  - {fileID: 1848733563}
-  - {fileID: 1746131169}
-  nameLocalizers:
-  - {fileID: 1472403745}
-  - {fileID: 111996086}
-  - {fileID: 291652670}
-  descriptionLocalizers:
-  - {fileID: 1901138691}
-  - {fileID: 1336136613}
-  - {fileID: 755456971}
-  iconImages:
-  - {fileID: 93109237}
-  - {fileID: 1374549039}
-  - {fileID: 869933966}
-  levelStatTexts:
-  - {fileID: 1989905586}
-  - {fileID: 179844792}
-  - {fileID: 33573812}
+  cardPrefab: {fileID: 3180376243941213659, guid: ac3fe899a10bba2439346af1ccce7292, type: 3}
+  cardContainer: {fileID: 915435450}
+  levelFaces: []
   openPanel: {fileID: 1123896257}
   gameSpeedController: {fileID: 7536131759758459493}
 --- !u!114 &1658482856
@@ -6852,6 +6893,7 @@ RectTransform:
   - {fileID: 1848733564}
   - {fileID: 1746131170}
   - {fileID: 2054543368}
+  - {fileID: 915435450}
   m_Father: {fileID: 1658482854}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -14304,7 +14346,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 60.35
+  m_fontSize: 54.75
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -24910,7 +24952,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 40.2
+  m_fontSize: 42.95
   m_fontSizeBase: 24
   m_fontWeight: 400
   m_enableAutoSizing: 1
