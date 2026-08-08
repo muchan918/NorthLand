@@ -43,6 +43,24 @@ public class ManagementController : MonoBehaviour
     /// <summary>상태(자원·주민 배치·페이즈)가 바뀔 때 발생. 뷰는 이걸 구독해 다시 렌더한다.</summary>
     public event Action OnChanged;
 
+    /// <summary>건물에 반영된 플레이어 행동의 종류 — <see cref="OnBuildingAction"/>의 페이로드.
+    /// 새 연출을 붙일 땐 여기에 값을 추가하고 해당 게이트웨이에서 발화만 하면 된다(구독 측은 안 바뀐다).</summary>
+    public enum BuildingAction
+    {
+        /// <summary>레벨이 올랐다 — 생산 라인(<see cref="TryUpgrade"/>)·업그레이드 전용 건물(<see cref="TryUpgradeBuilding"/>) 공통.</summary>
+        Upgraded,
+
+        /// <summary>본진에서 주민 수를 늘렸다(<see cref="TryIncreaseVillagers"/>).</summary>
+        VillagerIncreased,
+    }
+
+    /// <summary>
+    /// 특정 건물에 플레이어 행동이 반영됐을 때 발생 — "어느 건물(SO)에 무슨 일(<see cref="BuildingAction"/>)"만 알린다.<br/>
+    /// 상태 통지인 <see cref="OnChanged"/>와 달리 <b>대상이 특정되는</b> 이벤트라, 그 건물 자리에서 재생할
+    /// 연출(<c>BuildingFeedback</c>)·사운드가 구독한다. 컨트롤러는 연출을 전혀 모른다(결합도 최소, WL-016과 같은 취지).
+    /// </summary>
+    public event Action<BuildingAsset, BuildingAction> OnBuildingAction;
+
     private ResourceWallet _wallet;
     private ProductionModifiers _productionModifiers;
     private ResourceProductionSource[] _sources;
@@ -406,6 +424,7 @@ public class ManagementController : MonoBehaviour
         _upgradeLevel[index] = next + 1;
         Debug.Log($"[경영] {_upgradeBuildingRefs[index].BuildingID} 업그레이드 → Lv{_upgradeLevel[index]}");
         OnChanged?.Invoke();
+        OnBuildingAction?.Invoke(_upgradeBuildingRefs[index], BuildingAction.Upgraded);
         return true;
     }
 
@@ -490,6 +509,7 @@ public class ManagementController : MonoBehaviour
         _bonusVillagers++;
         Debug.Log($"[경영] 주민 수 증가 → {MaxVillagers}명 ({_bonusVillagers}/{levels.Count}회차)");
         OnChanged?.Invoke();
+        OnBuildingAction?.Invoke(building, BuildingAction.VillagerIncreased);
         return true;
     }
 
@@ -864,6 +884,7 @@ public class ManagementController : MonoBehaviour
         _amountPerVillager[index] = target.AmountPerVillager;
         Debug.Log($"[경영] {LineDisplayName(index)} 업그레이드 → Lv{_level[index]} (주민당량 {_amountPerVillager[index]})");
         OnChanged?.Invoke();
+        OnBuildingAction?.Invoke(_lineBuildings[index], BuildingAction.Upgraded);
         return true;
     }
 
