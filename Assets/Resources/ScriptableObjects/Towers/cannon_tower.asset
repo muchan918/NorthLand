@@ -21,16 +21,16 @@ MonoBehaviour:
   - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
     Amount: 10
   Attack:
-    AttackDamage: 28
+    AttackDamage: 9
     AttackRange: 14
-    AttackInterval: 2
+    AttackInterval: 0.8
     ProjectilePrefab: {fileID: 4221183324172678294, guid: 58184368b64351d4094976b3524ed9a1, type: 3}
     Flight:
       rid: 1498367259597078607
     PelletCount: 1
     SpreadAngle: 0
   Impact: 1
-  SplashRadius: 1.6
+  SplashRadius: 5
   ChainRadius: 0
   MaxChainTargets: 0
   ChainDamageFalloff: 0

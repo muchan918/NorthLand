@@ -44,7 +44,7 @@ MonoBehaviour:
     Range: 20
     MaxTargets: 5
     TickInterval: 1
-    DamagePerTick: 3
+    DamagePerTick: 6
   Effects: []
   references:
     version: 2

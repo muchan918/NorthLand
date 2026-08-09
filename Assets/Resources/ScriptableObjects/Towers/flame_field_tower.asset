@@ -59,6 +59,6 @@ MonoBehaviour:
     - rid: 1498367259597078620
       type: {class: BurnStatus, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
-        DamagePerTick: 4
+        DamagePerTick: 3
         TickInterval: 0.5
         Duration: 2

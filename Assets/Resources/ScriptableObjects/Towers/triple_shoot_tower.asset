@@ -17,16 +17,16 @@ MonoBehaviour:
   GhostPrefab: {fileID: 6801833135963741600, guid: 3a45e3ede25a4e04dbe0f760784d4c40, type: 3}
   Cost: []
   Attack:
-    AttackDamage: 18
+    AttackDamage: 11
     AttackRange: 17
-    AttackInterval: 1.2
+    AttackInterval: 0.9
     ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
     Flight:
       rid: 1498367303671873620
     PelletCount: 3
     SpreadAngle: 40
   Impact: 1
-  SplashRadius: 0.5
+  SplashRadius: 1
   ChainRadius: 0
   MaxChainTargets: 0
   ChainDamageFalloff: 0
