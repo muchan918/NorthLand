@@ -37,6 +37,13 @@ public class BurnBuff : SkillEffect
     public override string GetStatSummary()
         => SkillStatsFormatter.BuildTickDamageLine(GetCurrentTickDamage(), GetTickDamageAt(NextLevel));
 
+    // #315 — 이 효과는 버프 스킬에 붙는데 그 스킬이 은퇴했다. Instance가 항상 null이라 구독 자체가
+    // 불가능해 무해하지만, 씬 병합으로 되살아났을 때 어느 오브젝트인지 지목하기 위해 남긴다.
+    void Awake()
+    {
+        Debug.LogError("[#315] 제거된 버프 화상(BurnBuff)이 씬에 부착돼 있습니다 — 이 컴포넌트를 제거하세요.", this);
+    }
+
     // 이 효과는 감전이 아니라 버프 스킬에 붙는다.
     protected override bool TrySubscribe()
     {

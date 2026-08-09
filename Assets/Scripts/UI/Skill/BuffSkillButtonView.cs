@@ -10,8 +10,18 @@ public class BuffSkillButtonView : MonoBehaviour
 
     private void Awake()
     {
+        if (WarnRetired()) return;
+        
         if (_button == null) _button = GetComponent<Button>();
         _button.onClick.AddListener(HandleClick);
+    }
+
+    // #315 — BuffSkillManager와 같은 트립와이어. 되살릴 때는 이 메서드와 Awake 첫 줄만 지운다.
+    bool WarnRetired()
+    {
+        Debug.LogError("[#315] 제거된 버프 스킬 버튼(BuffSkillButtonView)이 씬에 배선돼 있습니다 — 이 오브젝트를 삭제하세요.", this);
+        enabled = false;
+        return true;
     }
 
     private void Update()
