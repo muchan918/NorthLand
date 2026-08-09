@@ -1,5 +1,6 @@
 using Cysharp.Threading.Tasks;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 
@@ -21,10 +22,23 @@ namespace CombatSpace
         [SerializeField]
         private MonsterSpawn monsterSpawn;
 
+        [SerializeField]
+        private FixedEnemyRoute fixedEnemyRoute;
+
         private DayNightManager subscribedDayNightManager;
 
         [SerializeField]
         private float spawnDelaySeconds = 1f;
+
+
+        [Header("Route Connection")]
+        [SerializeField]
+        [Min(0f)]
+        private float duplicatePointDistance = 0.25f;
+
+        private readonly List<Vector3> fixedWorldRoute = new List<Vector3>();
+
+        private readonly List<Vector3> combinedWorldRoute = new List<Vector3>();
 
         private void OnEnable()
         {
@@ -166,11 +180,20 @@ namespace CombatSpace
                 return;
             }
 
-            monsterSpawn.SetRoute(tileSpawner.CurrentWorldEnemyRoute);
+            if (!TryBuildCombinedRoute())
+            {
+                Debug.LogWarning("몬스터 전체 경로 결합에 실패했습니다.",this);
+
+                return;
+            }
+
+            monsterSpawn.SetRoute(combinedWorldRoute);
 
             monsterSpawn.SetSpawnPoint(spawnPosition,spawnRotation);
 
-            Debug.Log($"몬스터 맵 데이터 갱신 완료\n경로 좌표: {tileSpawner.CurrentWorldEnemyRoute.Count}개\n스폰 위치: {spawnPosition}",this);
+            Debug.Log($"몬스터 맵 데이터 갱신 완료\n고정 경로: {fixedWorldRoute.Count}개\n" +
+        $"자동 경로: {tileSpawner.CurrentWorldEnemyRoute.Count}개\n전체 경로: {combinedWorldRoute.Count}개\n" +
+        $"스폰 위치: {spawnPosition}",this);
         }
 
         private bool ValidateReferences()
@@ -196,6 +219,13 @@ namespace CombatSpace
                 return false;
             }
 
+            if (fixedEnemyRoute == null)
+            {
+                Debug.LogError("Fixed Enemy Route가 지정되지 않았습니다.",this);
+
+                return false;
+            }
+
             return true;
         }
 
@@ -216,6 +246,50 @@ namespace CombatSpace
 
                 await UniTask.Yield(PlayerLoopTiming.Update,cancellationToken);
             }
+        }
+        private bool TryBuildCombinedRoute()
+        {
+            combinedWorldRoute.Clear();
+
+            if (!fixedEnemyRoute.TryGetWorldPoints(fixedWorldRoute))
+            {
+                return false;
+            }
+
+            IReadOnlyList<Vector3> generatedRoute = tileSpawner.CurrentWorldEnemyRoute;
+
+            if (generatedRoute == null || generatedRoute.Count == 0)
+            {
+                Debug.LogWarning("결합할 자동 생성 경로가 없습니다.",this);
+
+                return false;
+            }
+
+            combinedWorldRoute.AddRange(fixedWorldRoute);
+
+            Vector3 fixedEnd = fixedWorldRoute[fixedWorldRoute.Count - 1];
+
+            Vector3 generatedStart = generatedRoute[0];
+
+            float connectionDistance = Vector3.Distance(fixedEnd, generatedStart);
+
+            if (connectionDistance > tileSpawner.TileSize)
+            {
+                Debug.LogError($"고정 경로와 자동 경로 사이가 너무 멉니다. " +
+                    $"거리: {connectionDistance:F2}, 허용 거리: {tileSpawner.TileSize:F2}",this);
+
+                combinedWorldRoute.Clear();
+                return false;
+            }
+
+            int generatedStartIndex = connectionDistance <= duplicatePointDistance? 1: 0;
+
+            for (int i = generatedStartIndex;i < generatedRoute.Count;i++)
+            {
+                combinedWorldRoute.Add(generatedRoute[i]);
+            }
+
+            return combinedWorldRoute.Count >= 2;
         }
     }
 }

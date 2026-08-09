@@ -213,7 +213,9 @@ MonoBehaviour:
   tileSpawner: {fileID: 1175259920}
   revealController: {fileID: 1175259919}
   monsterSpawn: {fileID: 111725158}
+  fixedEnemyRoute: {fileID: 2086857486}
   spawnDelaySeconds: 1
+  duplicatePointDistance: 0.25
 --- !u!114 &111725157
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2411,7 +2413,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 2147483647
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!23 &1185487564
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -4424,6 +4426,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2054543367}
   m_CullTransparentMesh: 1
+--- !u!114 &2086857486 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4963974573323370521, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
+  m_PrefabInstance: {fileID: 572341031524862308}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69d192c1bf266e64c858cc3d744331e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.FixedEnemyRoute
 --- !u!224 &6584907868821053
 RectTransform:
   m_ObjectHideFlags: 0
@@ -11288,7 +11301,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 60.35
+  m_fontSize: 54.75
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -21753,7 +21766,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 40.2
+  m_fontSize: 42.95
   m_fontSizeBase: 24
   m_fontWeight: 400
   m_enableAutoSizing: 1
