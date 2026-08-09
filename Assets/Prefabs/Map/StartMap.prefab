@@ -231,6 +231,7 @@ GameObject:
   - component: {fileID: 7013157425786752193}
   - component: {fileID: 1466531761241511268}
   - component: {fileID: 1505295603043527609}
+  - component: {fileID: 1151737800335740060}
   m_Layer: 3
   m_Name: Tile_Grass_0_32
   m_TagString: Untagged
@@ -361,6 +362,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 399361052095083497}
+--- !u!114 &1151737800335740060
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 216171772436300715}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_157
 --- !u!1 &225306211022205329
 GameObject:
   m_ObjectHideFlags: 0
@@ -499,6 +513,7 @@ GameObject:
   - component: {fileID: 760301252635608941}
   - component: {fileID: 1928486957800787246}
   - component: {fileID: 5355214812815304567}
+  - component: {fileID: 867523073452289593}
   m_Layer: 3
   m_Name: Tile_Grass_3_39
   m_TagString: Untagged
@@ -629,6 +644,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3340057945491714082}
+--- !u!114 &867523073452289593
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 288509119482749605}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_026
 --- !u!1 &321215055831321726
 GameObject:
   m_ObjectHideFlags: 0
@@ -705,6 +733,7 @@ GameObject:
   - component: {fileID: 7580801863283465912}
   - component: {fileID: 1243357138165195734}
   - component: {fileID: 1148265335804968678}
+  - component: {fileID: 7464571961555466600}
   m_Layer: 3
   m_Name: Tile_Grass_3_36
   m_TagString: Untagged
@@ -835,6 +864,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 5900130749507929852}
+--- !u!114 &7464571961555466600
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 424326137720566820}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_115
 --- !u!1 &445249916403612681
 GameObject:
   m_ObjectHideFlags: 0
@@ -880,6 +922,7 @@ GameObject:
   - component: {fileID: 3486038247425614484}
   - component: {fileID: 4440513238386919486}
   - component: {fileID: 4973637843429477746}
+  - component: {fileID: 8994658797635351400}
   m_Layer: 3
   m_Name: Tile_Grass_5_35
   m_TagString: Untagged
@@ -1010,6 +1053,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 9116396762224449138}
+--- !u!114 &8994658797635351400
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 459912008744356203}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_103
 --- !u!1 &466090422954751878
 GameObject:
   m_ObjectHideFlags: 0
@@ -1117,6 +1173,7 @@ GameObject:
   - component: {fileID: 6414260829589519906}
   - component: {fileID: 2330135796474836662}
   - component: {fileID: 3670814136523256272}
+  - component: {fileID: 3654971673658469002}
   m_Layer: 3
   m_Name: Tile_Grass_5_36
   m_TagString: Untagged
@@ -1247,6 +1304,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3243583089980869667}
+--- !u!114 &3654971673658469002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 497787562961325811}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_005
 --- !u!1 &498821293079142901
 GameObject:
   m_ObjectHideFlags: 0
@@ -1261,6 +1331,7 @@ GameObject:
   - component: {fileID: 3925126682263294882}
   - component: {fileID: 1275061309920509254}
   - component: {fileID: 927957821660724613}
+  - component: {fileID: 1133677809080514135}
   m_Layer: 3
   m_Name: Tile_Grass_0_37
   m_TagString: Untagged
@@ -1391,6 +1462,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3540832490552233495}
+--- !u!114 &1133677809080514135
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 498821293079142901}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_106
 --- !u!1 &510533308649907121
 GameObject:
   m_ObjectHideFlags: 0
@@ -1436,6 +1520,7 @@ GameObject:
   - component: {fileID: 4122488267253245878}
   - component: {fileID: 852415924178512089}
   - component: {fileID: 4619878693156925779}
+  - component: {fileID: 1136372602427244228}
   m_Layer: 3
   m_Name: Tile_Grass_5_39
   m_TagString: Untagged
@@ -1566,6 +1651,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3266964831637943012}
+--- !u!114 &1136372602427244228
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 543075264826517904}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_081
 --- !u!1 &613492598682746839
 GameObject:
   m_ObjectHideFlags: 0
@@ -1755,6 +1853,7 @@ GameObject:
   - component: {fileID: 5985593442962569739}
   - component: {fileID: 7820980227560566597}
   - component: {fileID: 4043968113463646776}
+  - component: {fileID: 8032813511620989098}
   m_Layer: 3
   m_Name: Tile_Grass_4_39
   m_TagString: Untagged
@@ -1885,6 +1984,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 857288042644076976}
+--- !u!114 &8032813511620989098
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 622662519463436549}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_116
 --- !u!1 &630679154772170385
 GameObject:
   m_ObjectHideFlags: 0
@@ -1899,6 +2011,7 @@ GameObject:
   - component: {fileID: 2662439406117355398}
   - component: {fileID: 6978703122789156724}
   - component: {fileID: 4689545762702792429}
+  - component: {fileID: 8419865635587786746}
   m_Layer: 3
   m_Name: Tile_Grass_3_32
   m_TagString: Untagged
@@ -2029,6 +2142,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 7824572113609352288}
+--- !u!114 &8419865635587786746
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 630679154772170385}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_042
 --- !u!1 &652056253402206076
 GameObject:
   m_ObjectHideFlags: 0
@@ -2074,6 +2200,7 @@ GameObject:
   - component: {fileID: 1497193911897470479}
   - component: {fileID: 541133643319177844}
   - component: {fileID: 6244553912603704998}
+  - component: {fileID: 7493239316820794927}
   m_Layer: 3
   m_Name: Tile_Grass_2_32
   m_TagString: Untagged
@@ -2204,6 +2331,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 6214427209967710512}
+--- !u!114 &7493239316820794927
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 748978820840826940}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_143
 --- !u!1 &775598684124395032
 GameObject:
   m_ObjectHideFlags: 0
@@ -2249,6 +2389,7 @@ GameObject:
   - component: {fileID: 3743363827534855128}
   - component: {fileID: 6840596166646228939}
   - component: {fileID: 6866941943669259098}
+  - component: {fileID: 5800657230481391768}
   m_Layer: 3
   m_Name: Tile_Grass_3_32
   m_TagString: Untagged
@@ -2379,6 +2520,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 582931321103625857}
+--- !u!114 &5800657230481391768
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 777358865476094343}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_008
 --- !u!1 &806761873794095351
 GameObject:
   m_ObjectHideFlags: 0
@@ -2424,6 +2578,7 @@ GameObject:
   - component: {fileID: 2670083914968025205}
   - component: {fileID: 5172326239636329766}
   - component: {fileID: 6518600507607496516}
+  - component: {fileID: 2341019693989026686}
   m_Layer: 3
   m_Name: Tile_Grass_4_35
   m_TagString: Untagged
@@ -2554,6 +2709,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 6192180786898934896}
+--- !u!114 &2341019693989026686
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 819421087670124263}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_136
 --- !u!1 &822811979445634656
 GameObject:
   m_ObjectHideFlags: 0
@@ -2568,6 +2736,7 @@ GameObject:
   - component: {fileID: 8097370879445439604}
   - component: {fileID: 5662324829612714768}
   - component: {fileID: 3043611928781780587}
+  - component: {fileID: 8164822453373169072}
   m_Layer: 3
   m_Name: Tile_Grass_1_32
   m_TagString: Untagged
@@ -2698,6 +2867,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 7201848702479775623}
+--- !u!114 &8164822453373169072
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 822811979445634656}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_150
 --- !u!1 &841500721806507116
 GameObject:
   m_ObjectHideFlags: 0
@@ -2774,6 +2956,7 @@ GameObject:
   - component: {fileID: 869103150247152825}
   - component: {fileID: 2177285397625098030}
   - component: {fileID: 9011052068544981313}
+  - component: {fileID: 6577607461325177590}
   m_Layer: 3
   m_Name: Tile_Grass_3_34
   m_TagString: Untagged
@@ -2904,6 +3087,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 1214624548549456876}
+--- !u!114 &6577607461325177590
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 903854372698645814}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_082
 --- !u!1 &914554344546420026
 GameObject:
   m_ObjectHideFlags: 0
@@ -3124,6 +3320,7 @@ GameObject:
   - component: {fileID: 3277689617922459995}
   - component: {fileID: 6115208675504751529}
   - component: {fileID: 3956380577104674682}
+  - component: {fileID: 1285047870069321573}
   m_Layer: 3
   m_Name: Tile_Grass_4_36
   m_TagString: Untagged
@@ -3254,6 +3451,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 5321914822740915451}
+--- !u!114 &1285047870069321573
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 994343596668984275}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_140
 --- !u!1 &1025263527772211970
 GameObject:
   m_ObjectHideFlags: 0
@@ -3299,6 +3509,7 @@ GameObject:
   - component: {fileID: 4312032727446768587}
   - component: {fileID: 1829991350146717694}
   - component: {fileID: 8036947135640463999}
+  - component: {fileID: 7237552139001680646}
   m_Layer: 3
   m_Name: Tile_Grass_0_33
   m_TagString: Untagged
@@ -3429,6 +3640,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3288176647291946596}
+--- !u!114 &7237552139001680646
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1053067453702140075}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_159
 --- !u!1 &1143340038266198274
 GameObject:
   m_ObjectHideFlags: 0
@@ -3474,6 +3698,7 @@ GameObject:
   - component: {fileID: 6082476571666596785}
   - component: {fileID: 6457005243364731206}
   - component: {fileID: 9043239009763562173}
+  - component: {fileID: 7654915484996361168}
   m_Layer: 3
   m_Name: Tile_Grass_1_33
   m_TagString: Untagged
@@ -3604,6 +3829,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 8389862037622476632}
+--- !u!114 &7654915484996361168
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1185132182398441131}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_093
 --- !u!1 &1234135207381734650
 GameObject:
   m_ObjectHideFlags: 0
@@ -3680,6 +3918,7 @@ GameObject:
   - component: {fileID: 378682284186204}
   - component: {fileID: 951073951644684701}
   - component: {fileID: 6350147702242503186}
+  - component: {fileID: 600005250687312528}
   m_Layer: 3
   m_Name: Tile_Grass_5_38
   m_TagString: Untagged
@@ -3810,6 +4049,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 1866094676893530092}
+--- !u!114 &600005250687312528
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1260920691756618102}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_077
 --- !u!1 &1277051839697564334
 GameObject:
   m_ObjectHideFlags: 0
@@ -3824,6 +4076,7 @@ GameObject:
   - component: {fileID: 2712110722787148716}
   - component: {fileID: 1734104938325920968}
   - component: {fileID: 5432557120141391817}
+  - component: {fileID: 6724553911459971216}
   m_Layer: 3
   m_Name: Tile_Grass_0_37
   m_TagString: Untagged
@@ -3954,6 +4207,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3302048634907993201}
+--- !u!114 &6724553911459971216
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1277051839697564334}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_133
 --- !u!1 &1280153331845758487
 GameObject:
   m_ObjectHideFlags: 0
@@ -4143,6 +4409,7 @@ GameObject:
   - component: {fileID: 2504615288037101675}
   - component: {fileID: 9118842109139502145}
   - component: {fileID: 1522610669621090577}
+  - component: {fileID: 1279581809368638631}
   m_Layer: 3
   m_Name: Tile_Grass_0_39
   m_TagString: Untagged
@@ -4273,6 +4540,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 884415451452389154}
+--- !u!114 &1279581809368638631
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1330246787180412917}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_166
 --- !u!1 &1333206295468503303
 GameObject:
   m_ObjectHideFlags: 0
@@ -4287,6 +4567,7 @@ GameObject:
   - component: {fileID: 7040547284140291546}
   - component: {fileID: 5243378672963048421}
   - component: {fileID: 1246681366152484558}
+  - component: {fileID: 2424521458912196840}
   m_Layer: 3
   m_Name: Tile_Grass_3_34 (1)
   m_TagString: Untagged
@@ -4417,6 +4698,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3681884215116953316}
+--- !u!114 &2424521458912196840
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1333206295468503303}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_006
 --- !u!1 &1341521525077282597
 GameObject:
   m_ObjectHideFlags: 0
@@ -4524,6 +4818,7 @@ GameObject:
   - component: {fileID: 2658881215918791156}
   - component: {fileID: 1519744972039214486}
   - component: {fileID: 1303086455145535093}
+  - component: {fileID: 1989570368928340939}
   m_Layer: 3
   m_Name: Tile_Grass_0_38
   m_TagString: Untagged
@@ -4654,6 +4949,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3323930072213353029}
+--- !u!114 &1989570368928340939
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1436773618368621949}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_041
 --- !u!1 &1460957760713896367
 GameObject:
   m_ObjectHideFlags: 0
@@ -4699,6 +5007,7 @@ GameObject:
   - component: {fileID: 3034231156579991207}
   - component: {fileID: 876547195191907656}
   - component: {fileID: 5954280015613803669}
+  - component: {fileID: 6543249187201974962}
   m_Layer: 3
   m_Name: Tile_Grass_0_36
   m_TagString: Untagged
@@ -4829,6 +5138,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 1949381783703336199}
+--- !u!114 &6543249187201974962
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1498094608140200439}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_131
 --- !u!1 &1557850699850310261
 GameObject:
   m_ObjectHideFlags: 0
@@ -4843,6 +5165,7 @@ GameObject:
   - component: {fileID: 7887806278772248450}
   - component: {fileID: 3514462713411610808}
   - component: {fileID: 8940635551432603765}
+  - component: {fileID: 1026520786736061114}
   m_Layer: 3
   m_Name: Tile_Grass_3_36
   m_TagString: Untagged
@@ -4973,6 +5296,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 4827846202002026864}
+--- !u!114 &1026520786736061114
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1557850699850310261}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_054
 --- !u!1 &1559410922323183972
 GameObject:
   m_ObjectHideFlags: 0
@@ -5018,6 +5354,7 @@ GameObject:
   - component: {fileID: 8303956227223405193}
   - component: {fileID: 1150823318899617237}
   - component: {fileID: 989929622097099659}
+  - component: {fileID: 2302095148320452100}
   m_Layer: 3
   m_Name: Tile_Grass_3_34
   m_TagString: Untagged
@@ -5148,6 +5485,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 6721121333237508030}
+--- !u!114 &2302095148320452100
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1568613923986147011}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_049
 --- !u!1 &1619327035422554236
 GameObject:
   m_ObjectHideFlags: 0
@@ -5193,6 +5543,7 @@ GameObject:
   - component: {fileID: 6471316862813111541}
   - component: {fileID: 8171607588885190358}
   - component: {fileID: 3991003252170490213}
+  - component: {fileID: 4931616074681519541}
   m_Layer: 3
   m_Name: Tile_Grass_4_39
   m_TagString: Untagged
@@ -5323,6 +5674,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 7825706343552212138}
+--- !u!114 &4931616074681519541
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1632308876376141439}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_019
 --- !u!1 &1652554220888198609
 GameObject:
   m_ObjectHideFlags: 0
@@ -5399,6 +5763,7 @@ GameObject:
   - component: {fileID: 2325958334423483163}
   - component: {fileID: 6721287270659667752}
   - component: {fileID: 8281273048655223723}
+  - component: {fileID: 6680285864649086123}
   m_Layer: 3
   m_Name: Tile_Grass_0_33
   m_TagString: Untagged
@@ -5529,6 +5894,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 1673484040380594321}
+--- !u!114 &6680285864649086123
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1705362889212560426}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_099
 --- !u!1 &1707878377923055355
 GameObject:
   m_ObjectHideFlags: 0
@@ -5636,6 +6014,7 @@ GameObject:
   - component: {fileID: 8092235359333486986}
   - component: {fileID: 5596761250872187605}
   - component: {fileID: 8185062225557684419}
+  - component: {fileID: 3032713827117825403}
   m_Layer: 3
   m_Name: Tile_Grass_1_34
   m_TagString: Untagged
@@ -5766,6 +6145,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 2510582366607130205}
+--- !u!114 &3032713827117825403
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1801014253430868963}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_123
 --- !u!1 &1813233921214717331
 GameObject:
   m_ObjectHideFlags: 0
@@ -5780,6 +6172,7 @@ GameObject:
   - component: {fileID: 7103048328745448246}
   - component: {fileID: 2025496341572392946}
   - component: {fileID: 1686975195918357144}
+  - component: {fileID: 4227145302485105343}
   m_Layer: 3
   m_Name: Tile_Grass_3_36
   m_TagString: Untagged
@@ -5910,6 +6303,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 5315981076318268461}
+--- !u!114 &4227145302485105343
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1813233921214717331}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_087
 --- !u!1 &1833737182709070320
 GameObject:
   m_ObjectHideFlags: 0
@@ -5955,6 +6361,7 @@ GameObject:
   - component: {fileID: 2375162415499470800}
   - component: {fileID: 417403451271743211}
   - component: {fileID: 3123975480790282105}
+  - component: {fileID: 2047871804681365843}
   m_Layer: 3
   m_Name: Tile_Grass_3_33 (2)
   m_TagString: Untagged
@@ -6085,6 +6492,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 9212220889978874290}
+--- !u!114 &2047871804681365843
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1874550712763910048}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_001
 --- !u!1 &1953369287345868616
 GameObject:
   m_ObjectHideFlags: 0
@@ -6099,6 +6519,7 @@ GameObject:
   - component: {fileID: 3262962049398859592}
   - component: {fileID: 7580608566958078444}
   - component: {fileID: 109167532364314005}
+  - component: {fileID: 8069466482702040097}
   m_Layer: 3
   m_Name: Tile_Grass_1_32
   m_TagString: Untagged
@@ -6229,6 +6650,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 6616368395511938802}
+--- !u!114 &8069466482702040097
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1953369287345868616}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_090
 --- !u!1 &1960177059112968156
 GameObject:
   m_ObjectHideFlags: 0
@@ -6305,6 +6739,7 @@ GameObject:
   - component: {fileID: 3789529666152768750}
   - component: {fileID: 7058134700704183460}
   - component: {fileID: 5811583247766739586}
+  - component: {fileID: 9191149239686476295}
   m_Layer: 3
   m_Name: Tile_Grass_1_32
   m_TagString: Untagged
@@ -6435,6 +6870,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 6528521199976304106}
+--- !u!114 &9191149239686476295
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2009936195531282498}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_022
 --- !u!1 &2014923167259751379
 GameObject:
   m_ObjectHideFlags: 0
@@ -6666,6 +7114,7 @@ GameObject:
   - component: {fileID: 3316003630578018772}
   - component: {fileID: 2716411304347397700}
   - component: {fileID: 7172560231505679531}
+  - component: {fileID: 611296045058891073}
   m_Layer: 3
   m_Name: Tile_Grass_2_32 (4)
   m_TagString: Untagged
@@ -6796,6 +7245,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 7718681072853322318}
+--- !u!114 &611296045058891073
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2132131617828267341}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_021
 --- !u!1 &2147362193088596574
 GameObject:
   m_ObjectHideFlags: 0
@@ -6841,6 +7303,7 @@ GameObject:
   - component: {fileID: 8064823904191133682}
   - component: {fileID: 5171222959332291831}
   - component: {fileID: 1634645735108776738}
+  - component: {fileID: 60649044990614152}
   m_Layer: 3
   m_Name: Tile_Grass_0_34
   m_TagString: Untagged
@@ -6971,6 +7434,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 5236388355816563779}
+--- !u!114 &60649044990614152
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2193010469869333230}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_068
 --- !u!1 &2247217135343604015
 GameObject:
   m_ObjectHideFlags: 0
@@ -6985,6 +7461,7 @@ GameObject:
   - component: {fileID: 2783125182263956412}
   - component: {fileID: 2767958097364285178}
   - component: {fileID: 3564798455759901870}
+  - component: {fileID: 2827162460567851228}
   m_Layer: 3
   m_Name: Tile_Grass_2_36
   m_TagString: Untagged
@@ -7115,6 +7592,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 441064826816845078}
+--- !u!114 &2827162460567851228
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2247217135343604015}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_061
 --- !u!1 &2278026566663043506
 GameObject:
   m_ObjectHideFlags: 0
@@ -7129,6 +7619,7 @@ GameObject:
   - component: {fileID: 8068251928906082675}
   - component: {fileID: 2105151377704207464}
   - component: {fileID: 7795325780063041209}
+  - component: {fileID: 6919218442988902826}
   m_Layer: 3
   m_Name: Tile_Grass_3_38
   m_TagString: Untagged
@@ -7259,6 +7750,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 8935651120875995550}
+--- !u!114 &6919218442988902826
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2278026566663043506}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_023
 --- !u!1 &2318055935897396884
 GameObject:
   m_ObjectHideFlags: 0
@@ -7541,6 +8045,7 @@ GameObject:
   - component: {fileID: 8756827175741343809}
   - component: {fileID: 206493168624779592}
   - component: {fileID: 1648198756120037459}
+  - component: {fileID: 478140957587623810}
   m_Layer: 3
   m_Name: Tile_Grass_1_34
   m_TagString: Untagged
@@ -7671,6 +8176,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 9214339931255501537}
+--- !u!114 &478140957587623810
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2389845151678275602}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_096
 --- !u!1 &2432313271198690949
 GameObject:
   m_ObjectHideFlags: 0
@@ -7902,6 +8420,7 @@ GameObject:
   - component: {fileID: 906704463403010871}
   - component: {fileID: 1231980056794927543}
   - component: {fileID: 3568113001658004138}
+  - component: {fileID: 3455328451575295148}
   m_Layer: 3
   m_Name: Tile_Grass_0_32
   m_TagString: Untagged
@@ -8032,6 +8551,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 1766671078947674660}
+--- !u!114 &3455328451575295148
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2678543720638315838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_124
 --- !u!1 &2689252520784638980
 GameObject:
   m_ObjectHideFlags: 0
@@ -8190,6 +8722,7 @@ GameObject:
   - component: {fileID: 8205839196287250972}
   - component: {fileID: 5062865026642429213}
   - component: {fileID: 1452856008957491484}
+  - component: {fileID: 2225704938925714448}
   m_Layer: 3
   m_Name: Tile_Grass_0_38
   m_TagString: Untagged
@@ -8320,6 +8853,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 8220661925470716976}
+--- !u!114 &2225704938925714448
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2746311301274697820}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_107
 --- !u!1 &2759520263023498889
 GameObject:
   m_ObjectHideFlags: 0
@@ -8334,6 +8880,7 @@ GameObject:
   - component: {fileID: 3451407719223598429}
   - component: {fileID: 4669153009136483742}
   - component: {fileID: 7929186359595663250}
+  - component: {fileID: 8154299656737940005}
   m_Layer: 3
   m_Name: Tile_Grass_4_38
   m_TagString: Untagged
@@ -8464,6 +9011,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 374489897342264648}
+--- !u!114 &8154299656737940005
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2759520263023498889}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_145
 --- !u!1 &2760328420347157606
 GameObject:
   m_ObjectHideFlags: 0
@@ -8478,6 +9038,7 @@ GameObject:
   - component: {fileID: 1945153786641593343}
   - component: {fileID: 7882359722622411883}
   - component: {fileID: 6109421176139681693}
+  - component: {fileID: 1807133279966500064}
   m_Layer: 3
   m_Name: Tile_Grass_3_33
   m_TagString: Untagged
@@ -8608,6 +9169,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 1552084549566172007}
+--- !u!114 &1807133279966500064
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2760328420347157606}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_139
 --- !u!1 &2763943955822741764
 GameObject:
   m_ObjectHideFlags: 0
@@ -8622,6 +9196,7 @@ GameObject:
   - component: {fileID: 3992439931459086331}
   - component: {fileID: 2686368984607777555}
   - component: {fileID: 5707368382544992428}
+  - component: {fileID: 6098021328694245859}
   m_Layer: 3
   m_Name: Tile_Grass_5_39
   m_TagString: Untagged
@@ -8752,6 +9327,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 5145504775441418157}
+--- !u!114 &6098021328694245859
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2763943955822741764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_012
 --- !u!1 &2772606252097544546
 GameObject:
   m_ObjectHideFlags: 0
@@ -8797,6 +9385,7 @@ GameObject:
   - component: {fileID: 2789609988470127092}
   - component: {fileID: 7407712908475391514}
   - component: {fileID: 7537121717995393978}
+  - component: {fileID: 7361239509873478277}
   m_Layer: 3
   m_Name: Tile_Grass_1_32
   m_TagString: Untagged
@@ -8927,6 +9516,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3490802217563993384}
+--- !u!114 &7361239509873478277
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2782907904991492349}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_057
 --- !u!1 &2810118834890724579
 GameObject:
   m_ObjectHideFlags: 0
@@ -8972,6 +9574,7 @@ GameObject:
   - component: {fileID: 545306014160505004}
   - component: {fileID: 1455003956662703586}
   - component: {fileID: 3616448608188183707}
+  - component: {fileID: 8596357904082774816}
   m_Layer: 3
   m_Name: Tile_Grass_5_38
   m_TagString: Untagged
@@ -9102,6 +9705,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 7411493526947179956}
+--- !u!114 &8596357904082774816
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2823658465179200095}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_009
 --- !u!1 &2842074538624652912
 GameObject:
   m_ObjectHideFlags: 0
@@ -9116,6 +9732,7 @@ GameObject:
   - component: {fileID: 1898385059012520635}
   - component: {fileID: 3630150961917075905}
   - component: {fileID: 6900767480272393799}
+  - component: {fileID: 5761155345948756728}
   m_Layer: 3
   m_Name: Tile_Grass_2_32 (5)
   m_TagString: Untagged
@@ -9246,6 +9863,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 950183623098241844}
+--- !u!114 &5761155345948756728
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2842074538624652912}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_014
 --- !u!1 &2848919939659900499
 GameObject:
   m_ObjectHideFlags: 0
@@ -9539,6 +10169,7 @@ GameObject:
   - component: {fileID: 4080124280848396526}
   - component: {fileID: 8395364464869567667}
   - component: {fileID: 6069929833125580332}
+  - component: {fileID: 2129065466372408460}
   m_Layer: 3
   m_Name: Tile_Grass_2_32
   m_TagString: Untagged
@@ -9669,6 +10300,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 6533678584876278041}
+--- !u!114 &2129065466372408460
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3032209841042772069}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_015
 --- !u!1 &3083677202353397022
 GameObject:
   m_ObjectHideFlags: 0
@@ -9683,6 +10327,7 @@ GameObject:
   - component: {fileID: 3163595697382196802}
   - component: {fileID: 7717666404257724393}
   - component: {fileID: 8756466697750968565}
+  - component: {fileID: 5893065114962625823}
   m_Layer: 3
   m_Name: Tile_Grass_0_34
   m_TagString: Untagged
@@ -9813,6 +10458,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 2530034062058390613}
+--- !u!114 &5893065114962625823
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3083677202353397022}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_101
 --- !u!1 &3085785408809365101
 GameObject:
   m_ObjectHideFlags: 0
@@ -9827,6 +10485,7 @@ GameObject:
   - component: {fileID: 7548833662460856411}
   - component: {fileID: 1315557772615481251}
   - component: {fileID: 595304474971900999}
+  - component: {fileID: 5037514103357303454}
   m_Layer: 3
   m_Name: Tile_Grass_2_32
   m_TagString: Untagged
@@ -9957,6 +10616,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 1808647556595103886}
+--- !u!114 &5037514103357303454
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3085785408809365101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_083
 --- !u!1 &3125702906089705622
 GameObject:
   m_ObjectHideFlags: 0
@@ -10002,6 +10674,7 @@ GameObject:
   - component: {fileID: 5715880523166968237}
   - component: {fileID: 3073732600517924902}
   - component: {fileID: 1511591190485630622}
+  - component: {fileID: 4150738905517528112}
   m_Layer: 3
   m_Name: Tile_Grass_2_38
   m_TagString: Untagged
@@ -10132,6 +10805,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 8566898505636862209}
+--- !u!114 &4150738905517528112
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3155940097166973740}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_158
 --- !u!1 &3169351933398332497
 GameObject:
   m_ObjectHideFlags: 0
@@ -10146,6 +10832,7 @@ GameObject:
   - component: {fileID: 6108087707513255368}
   - component: {fileID: 1830080799610094914}
   - component: {fileID: 8501761746303915905}
+  - component: {fileID: 932903483677141133}
   m_Layer: 3
   m_Name: Tile_Grass_0_32
   m_TagString: Untagged
@@ -10276,6 +10963,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 1753083718615365582}
+--- !u!114 &932903483677141133
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3169351933398332497}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_029
 --- !u!1 &3190611883004871047
 GameObject:
   m_ObjectHideFlags: 0
@@ -10290,6 +10990,7 @@ GameObject:
   - component: {fileID: 34097920359548534}
   - component: {fileID: 3401373624201487123}
   - component: {fileID: 8306574561386014309}
+  - component: {fileID: 8830359796696045082}
   m_Layer: 3
   m_Name: Tile_Grass_0_38
   m_TagString: Untagged
@@ -10420,6 +11121,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 1431037810740562910}
+--- !u!114 &8830359796696045082
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3190611883004871047}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_134
 --- !u!1 &3201389598086240876
 GameObject:
   m_ObjectHideFlags: 0
@@ -10609,6 +11323,7 @@ GameObject:
   - component: {fileID: 1703495874386719315}
   - component: {fileID: 4476043195623148032}
   - component: {fileID: 8483706366461866611}
+  - component: {fileID: 2473438246739393944}
   m_Layer: 3
   m_Name: Tile_Grass_3_39
   m_TagString: Untagged
@@ -10739,6 +11454,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 2839685507962029592}
+--- !u!114 &2473438246739393944
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3206264489896032880}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_155
 --- !u!1 &3232874558676590343
 GameObject:
   m_ObjectHideFlags: 0
@@ -10753,6 +11481,7 @@ GameObject:
   - component: {fileID: 4546237023592958917}
   - component: {fileID: 3710213365473994571}
   - component: {fileID: 9023989426444367891}
+  - component: {fileID: 2199928632873789987}
   m_Layer: 3
   m_Name: Tile_Grass_5_36
   m_TagString: Untagged
@@ -10883,6 +11612,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 2589333399739860236}
+--- !u!114 &2199928632873789987
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3232874558676590343}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_105
 --- !u!1 &3247040898641663465
 GameObject:
   m_ObjectHideFlags: 0
@@ -10928,6 +11670,7 @@ GameObject:
   - component: {fileID: 8196552008382855110}
   - component: {fileID: 525794739966535446}
   - component: {fileID: 5569911497030750230}
+  - component: {fileID: 4931327054320623925}
   m_Layer: 3
   m_Name: Tile_Grass_2_34
   m_TagString: Untagged
@@ -11058,6 +11801,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 8231649309471387230}
+--- !u!114 &4931327054320623925
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3276772204120484219}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_056
 --- !u!1 &3280808230851448252
 GameObject:
   m_ObjectHideFlags: 0
@@ -11072,6 +11828,7 @@ GameObject:
   - component: {fileID: 2294526804368569101}
   - component: {fileID: 7489691454976488965}
   - component: {fileID: 1877845541650997893}
+  - component: {fileID: 4736145870401931382}
   m_Layer: 3
   m_Name: Tile_Grass_2_38
   m_TagString: Untagged
@@ -11202,6 +11959,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3066838649700301534}
+--- !u!114 &4736145870401931382
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3280808230851448252}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_065
 --- !u!1 &3328023910615099420
 GameObject:
   m_ObjectHideFlags: 0
@@ -11391,6 +12161,7 @@ GameObject:
   - component: {fileID: 7969395825309286830}
   - component: {fileID: 3719346243529714036}
   - component: {fileID: 8335656828586675090}
+  - component: {fileID: 1657662441727740534}
   m_Layer: 3
   m_Name: Tile_Grass_3_34
   m_TagString: Untagged
@@ -11521,6 +12292,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 419655119515847272}
+--- !u!114 &1657662441727740534
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3409629055435604492}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_013
 --- !u!1 &3422916015926442740
 GameObject:
   m_ObjectHideFlags: 0
@@ -11885,6 +12669,7 @@ GameObject:
   - component: {fileID: 6032027293612597784}
   - component: {fileID: 642859856006691168}
   - component: {fileID: 7994154259857371797}
+  - component: {fileID: 4240455507684112568}
   m_Layer: 3
   m_Name: Tile_Grass_5_35
   m_TagString: Untagged
@@ -12015,6 +12800,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 6956377878198366092}
+--- !u!114 &4240455507684112568
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3475292183335671351}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_070
 --- !u!1 &3485098193011097290
 GameObject:
   m_ObjectHideFlags: 0
@@ -12029,6 +12827,7 @@ GameObject:
   - component: {fileID: 193307360127449583}
   - component: {fileID: 7957505655299433737}
   - component: {fileID: 7940572549025335937}
+  - component: {fileID: 159154382904361685}
   m_Layer: 3
   m_Name: Tile_Grass_0_37
   m_TagString: Untagged
@@ -12159,6 +12958,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3248194302885882659}
+--- !u!114 &159154382904361685
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3485098193011097290}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_164
 --- !u!1 &3492219447711730229
 GameObject:
   m_ObjectHideFlags: 0
@@ -12173,6 +12985,7 @@ GameObject:
   - component: {fileID: 6628643293120927796}
   - component: {fileID: 6219966359237083626}
   - component: {fileID: 6602406466909350091}
+  - component: {fileID: 8890639016789067663}
   m_Layer: 3
   m_Name: Tile_Grass_3_38
   m_TagString: Untagged
@@ -12303,6 +13116,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 1252265658148621292}
+--- !u!114 &8890639016789067663
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3492219447711730229}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_092
 --- !u!1 &3496494566683053523
 GameObject:
   m_ObjectHideFlags: 0
@@ -12461,6 +13287,7 @@ GameObject:
   - component: {fileID: 5646656567834334165}
   - component: {fileID: 8266230890176360633}
   - component: {fileID: 7603898769992607162}
+  - component: {fileID: 9113130491559366370}
   m_Layer: 3
   m_Name: Tile_Grass_5_35
   m_TagString: Untagged
@@ -12591,6 +13418,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 2626458090576867638}
+--- !u!114 &9113130491559366370
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3502642647908422030}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_037
 --- !u!1 &3504842204164967317
 GameObject:
   m_ObjectHideFlags: 0
@@ -12605,6 +13445,7 @@ GameObject:
   - component: {fileID: 7692766142306933588}
   - component: {fileID: 1532363297467703931}
   - component: {fileID: 2828746172598769647}
+  - component: {fileID: 6558352111158526586}
   m_Layer: 3
   m_Name: Tile_Grass_0_36
   m_TagString: Untagged
@@ -12735,6 +13576,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 2281629069966021689}
+--- !u!114 &6558352111158526586
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3504842204164967317}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_163
 --- !u!1 &3512270217483645757
 GameObject:
   m_ObjectHideFlags: 0
@@ -12749,6 +13603,7 @@ GameObject:
   - component: {fileID: 451503157428765270}
   - component: {fileID: 5445308614726523836}
   - component: {fileID: 1133192958292167598}
+  - component: {fileID: 2290000853902319148}
   m_Layer: 3
   m_Name: Tile_Grass_3_39
   m_TagString: Untagged
@@ -12879,6 +13734,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 4794681886673036737}
+--- !u!114 &2290000853902319148
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3512270217483645757}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_062
 --- !u!1 &3566364582122330522
 GameObject:
   m_ObjectHideFlags: 0
@@ -12893,6 +13761,7 @@ GameObject:
   - component: {fileID: 8618602973334062683}
   - component: {fileID: 1906682966516408635}
   - component: {fileID: 8837708215695657181}
+  - component: {fileID: 5848310310102691767}
   m_Layer: 3
   m_Name: Tile_Grass_4_39
   m_TagString: Untagged
@@ -13023,6 +13892,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 255952195565892134}
+--- !u!114 &5848310310102691767
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3566364582122330522}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_055
 --- !u!1 &3586647066628779081
 GameObject:
   m_ObjectHideFlags: 0
@@ -13099,6 +13981,7 @@ GameObject:
   - component: {fileID: 4740261726115826031}
   - component: {fileID: 98213662106478476}
   - component: {fileID: 3380611177757899703}
+  - component: {fileID: 2691566367472643856}
   m_Layer: 3
   m_Name: Tile_Grass_4_39
   m_TagString: Untagged
@@ -13229,6 +14112,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 6194894373799481943}
+--- !u!114 &2691566367472643856
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3617413222899618857}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_148
 --- !u!1 &3644911843502992320
 GameObject:
   m_ObjectHideFlags: 0
@@ -13243,6 +14139,7 @@ GameObject:
   - component: {fileID: 35860708589567609}
   - component: {fileID: 5871311181591222354}
   - component: {fileID: 8915667947611346426}
+  - component: {fileID: 8380748270649678319}
   m_Layer: 3
   m_Name: Tile_Grass_4_38
   m_TagString: Untagged
@@ -13373,6 +14270,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 5517329682514405488}
+--- !u!114 &8380748270649678319
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3644911843502992320}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_085
 --- !u!1 &3654402788222934779
 GameObject:
   m_ObjectHideFlags: 0
@@ -13768,6 +14678,7 @@ GameObject:
   - component: {fileID: 6569247007141831331}
   - component: {fileID: 5819410473030688635}
   - component: {fileID: 1274777773596093070}
+  - component: {fileID: 7430858967715365550}
   m_Layer: 3
   m_Name: Tile_Grass_2_39
   m_TagString: Untagged
@@ -13898,6 +14809,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3645590656977102821}
+--- !u!114 &7430858967715365550
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3884471615856021783}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_127
 --- !u!1 &3907742992738298465
 GameObject:
   m_ObjectHideFlags: 0
@@ -13943,6 +14867,7 @@ GameObject:
   - component: {fileID: 6504681241920302099}
   - component: {fileID: 6769471944903650062}
   - component: {fileID: 5829987187875387023}
+  - component: {fileID: 4491100011844055686}
   m_Layer: 3
   m_Name: Tile_Grass_2_35
   m_TagString: Untagged
@@ -14073,6 +14998,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3555455533682342707}
+--- !u!114 &4491100011844055686
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3909086761690002123}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_091
 --- !u!1 &3932484944026623697
 GameObject:
   m_ObjectHideFlags: 0
@@ -14118,6 +15056,7 @@ GameObject:
   - component: {fileID: 6913885203706393259}
   - component: {fileID: 9011666607309921295}
   - component: {fileID: 6173923930174776814}
+  - component: {fileID: 5027042204861960000}
   m_Layer: 3
   m_Name: Tile_Grass_3_35
   m_TagString: Untagged
@@ -14248,6 +15187,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 1544949875051934316}
+--- !u!114 &5027042204861960000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3945352543124484960}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_113
 --- !u!1 &3945944114213832447
 GameObject:
   m_ObjectHideFlags: 0
@@ -14262,6 +15214,7 @@ GameObject:
   - component: {fileID: 2667432685712019229}
   - component: {fileID: 5980474072396685718}
   - component: {fileID: 2366986782963270545}
+  - component: {fileID: 9209191029862753014}
   m_Layer: 3
   m_Name: Tile_Grass_0_36
   m_TagString: Untagged
@@ -14392,6 +15345,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 4929268705306892882}
+--- !u!114 &9209191029862753014
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3945944114213832447}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_104
 --- !u!1 &3962566495890584809
 GameObject:
   m_ObjectHideFlags: 0
@@ -14437,6 +15403,7 @@ GameObject:
   - component: {fileID: 3692688528254694006}
   - component: {fileID: 4102756443196161962}
   - component: {fileID: 2870878428035574390}
+  - component: {fileID: 1189323859871271290}
   m_Layer: 3
   m_Name: Tile_Grass_3_33
   m_TagString: Untagged
@@ -14567,6 +15534,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 4655316991912966044}
+--- !u!114 &1189323859871271290
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4021643843641791947}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_010
 --- !u!1 &4028172230140129896
 GameObject:
   m_ObjectHideFlags: 0
@@ -14756,6 +15736,7 @@ GameObject:
   - component: {fileID: 7267703704381424767}
   - component: {fileID: 6403757304402727088}
   - component: {fileID: 8715742009670056883}
+  - component: {fileID: 3265141166231029511}
   m_Layer: 3
   m_Name: Tile_Grass_3_38
   m_TagString: Untagged
@@ -14886,6 +15867,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 7196320765459255536}
+--- !u!114 &3265141166231029511
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4070844009965018951}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_119
 --- !u!1 &4088611398394737447
 GameObject:
   m_ObjectHideFlags: 0
@@ -14962,6 +15956,7 @@ GameObject:
   - component: {fileID: 6158808234526337073}
   - component: {fileID: 8804439045170881317}
   - component: {fileID: 8306906263498850692}
+  - component: {fileID: 3069622839547617052}
   m_Layer: 3
   m_Name: Tile_Grass_0_38 (1)
   m_TagString: Untagged
@@ -15092,6 +16087,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 2352153243673165400}
+--- !u!114 &3069622839547617052
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4144029346840123554}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_162
 --- !u!1 &4146418204750807591
 GameObject:
   m_ObjectHideFlags: 0
@@ -15106,6 +16114,7 @@ GameObject:
   - component: {fileID: 3675354215315258730}
   - component: {fileID: 6715996028751117016}
   - component: {fileID: 2180908940137642351}
+  - component: {fileID: 7829760825616730969}
   m_Layer: 3
   m_Name: Tile_Grass_3_35
   m_TagString: Untagged
@@ -15236,6 +16245,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 837352969161186251}
+--- !u!114 &7829760825616730969
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4146418204750807591}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_084
 --- !u!1 &4209031252134437025
 GameObject:
   m_ObjectHideFlags: 0
@@ -15312,6 +16334,7 @@ GameObject:
   - component: {fileID: 9125762946210977930}
   - component: {fileID: 1088828381225897452}
   - component: {fileID: 283554372317576268}
+  - component: {fileID: 3791110484762950941}
   m_Layer: 3
   m_Name: Tile_Grass_2_35
   m_TagString: Untagged
@@ -15442,6 +16465,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 8005504360651677566}
+--- !u!114 &3791110484762950941
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4300769607104678646}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_151
 --- !u!1 &4306096956796054623
 GameObject:
   m_ObjectHideFlags: 0
@@ -15631,6 +16667,7 @@ GameObject:
   - component: {fileID: 2566760892124510187}
   - component: {fileID: 615547097614438527}
   - component: {fileID: 4297963932068862620}
+  - component: {fileID: 1240260645846049194}
   m_Layer: 3
   m_Name: Tile_Grass_4_38
   m_TagString: Untagged
@@ -15761,6 +16798,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3676427794427724895}
+--- !u!114 &1240260645846049194
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4407081396310591862}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_016
 --- !u!1 &4409680745749999099
 GameObject:
   m_ObjectHideFlags: 0
@@ -15919,6 +16969,7 @@ GameObject:
   - component: {fileID: 4850466770550035042}
   - component: {fileID: 644969900727626298}
   - component: {fileID: 6786721132951446732}
+  - component: {fileID: 7981692597433196506}
   m_Layer: 3
   m_Name: Tile_Grass_0_34
   m_TagString: Untagged
@@ -16049,6 +17100,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 302152098213278389}
+--- !u!114 &7981692597433196506
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4422590242863187232}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_034
 --- !u!1 &4423766893522460956
 GameObject:
   m_ObjectHideFlags: 0
@@ -16063,6 +17127,7 @@ GameObject:
   - component: {fileID: 4588480077002305185}
   - component: {fileID: 4947572368640912710}
   - component: {fileID: 5687474298141458471}
+  - component: {fileID: 4415342877075439694}
   m_Layer: 3
   m_Name: Tile_Grass_0_38 (1)
   m_TagString: Untagged
@@ -16193,6 +17258,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 2512376564779441832}
+--- !u!114 &4415342877075439694
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4423766893522460956}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_036
 --- !u!1 &4477917813914617140
 GameObject:
   m_ObjectHideFlags: 0
@@ -16207,6 +17285,7 @@ GameObject:
   - component: {fileID: 8910245981190286428}
   - component: {fileID: 2421512990113430833}
   - component: {fileID: 6717163340622561167}
+  - component: {fileID: 7273235530606045339}
   m_Layer: 3
   m_Name: Tile_Grass_2_33
   m_TagString: Untagged
@@ -16337,6 +17416,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 8319087258327168302}
+--- !u!114 &7273235530606045339
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4477917813914617140}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_053
 --- !u!1 &4505822937546239302
 GameObject:
   m_ObjectHideFlags: 0
@@ -16495,6 +17587,7 @@ GameObject:
   - component: {fileID: 6050098526466562525}
   - component: {fileID: 8755484193159587094}
   - component: {fileID: 5791846370925451254}
+  - component: {fileID: 3574069791530145459}
   m_Layer: 3
   m_Name: Tile_Grass_4_39
   m_TagString: Untagged
@@ -16625,6 +17718,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 8559885139574845734}
+--- !u!114 &3574069791530145459
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4509703141364284788}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_088
 --- !u!1 &4576710791110065106
 GameObject:
   m_ObjectHideFlags: 0
@@ -16639,6 +17745,7 @@ GameObject:
   - component: {fileID: 6845111623918490916}
   - component: {fileID: 5316227268035753000}
   - component: {fileID: 799292491241011770}
+  - component: {fileID: 4425884511853395042}
   m_Layer: 3
   m_Name: Tile_Grass_3_33
   m_TagString: Untagged
@@ -16769,6 +17876,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 8267346376713910461}
+--- !u!114 &4425884511853395042
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4576710791110065106}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_046
 --- !u!1 &4586478244611098854
 GameObject:
   m_ObjectHideFlags: 0
@@ -16814,6 +17934,7 @@ GameObject:
   - component: {fileID: 307981603581567831}
   - component: {fileID: 6997634983377896083}
   - component: {fileID: 700351011761742067}
+  - component: {fileID: 6000889596632918201}
   m_Layer: 3
   m_Name: Tile_Grass_0_33
   m_TagString: Untagged
@@ -16944,6 +18065,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 1968142497092630477}
+--- !u!114 &6000889596632918201
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4590218131016750117}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_031
 --- !u!1 &4626474249209273789
 GameObject:
   m_ObjectHideFlags: 0
@@ -17226,6 +18360,7 @@ GameObject:
   - component: {fileID: 6276807031088083415}
   - component: {fileID: 3880655831006989013}
   - component: {fileID: 7222792924790257148}
+  - component: {fileID: 118765603471866635}
   m_Layer: 3
   m_Name: Tile_Grass_3_38
   m_TagString: Untagged
@@ -17356,6 +18491,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 7445839375388052085}
+--- !u!114 &118765603471866635
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4690835733782436903}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_059
 --- !u!1 &4707742702701294412
 GameObject:
   m_ObjectHideFlags: 0
@@ -17370,6 +18518,7 @@ GameObject:
   - component: {fileID: 1489219395270086950}
   - component: {fileID: 945267702568733542}
   - component: {fileID: 6846366563189080058}
+  - component: {fileID: 3108870910310622704}
   m_Layer: 3
   m_Name: Tile_Grass_0_39
   m_TagString: Untagged
@@ -17500,6 +18649,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3360266816831351324}
+--- !u!114 &3108870910310622704
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4707742702701294412}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_110
 --- !u!1 &4761601721514954700
 GameObject:
   m_ObjectHideFlags: 0
@@ -17658,6 +18820,7 @@ GameObject:
   - component: {fileID: 5032643452469780894}
   - component: {fileID: 7628622884391053551}
   - component: {fileID: 2625908826310011883}
+  - component: {fileID: 4402365251324364062}
   m_Layer: 3
   m_Name: Tile_Grass_3_39
   m_TagString: Untagged
@@ -17788,6 +18951,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 380155860137225421}
+--- !u!114 &4402365251324364062
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4779135600702606935}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_095
 --- !u!1 &4822146001911246919
 GameObject:
   m_ObjectHideFlags: 0
@@ -17833,6 +19009,7 @@ GameObject:
   - component: {fileID: 3003848815456607035}
   - component: {fileID: 7716356839194258601}
   - component: {fileID: 6856781348933708691}
+  - component: {fileID: 8825831642194725104}
   m_Layer: 3
   m_Name: Tile_Grass_1_33
   m_TagString: Untagged
@@ -17963,6 +19140,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3722777303804164334}
+--- !u!114 &8825831642194725104
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4877156107712273625}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_120
 --- !u!1 &4956362893148823136
 GameObject:
   m_ObjectHideFlags: 0
@@ -18101,6 +19291,7 @@ GameObject:
   - component: {fileID: 5032675546528092962}
   - component: {fileID: 2712584020842868695}
   - component: {fileID: 8191980692472646941}
+  - component: {fileID: 2066430024839922460}
   m_Layer: 3
   m_Name: Tile_Grass_2_34
   m_TagString: Untagged
@@ -18231,6 +19422,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 956830095060020086}
+--- !u!114 &2066430024839922460
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5051430572034884356}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_020
 --- !u!1 &5100480383827265054
 GameObject:
   m_ObjectHideFlags: 0
@@ -18245,6 +19449,7 @@ GameObject:
   - component: {fileID: 7483871137676498198}
   - component: {fileID: 5581406015665424358}
   - component: {fileID: 1857114874595922728}
+  - component: {fileID: 4942898218377769403}
   m_Layer: 3
   m_Name: Tile_Grass_5_39
   m_TagString: Untagged
@@ -18375,6 +19580,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 6923525383508441502}
+--- !u!114 &4942898218377769403
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5100480383827265054}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_048
 --- !u!1 &5103664957590097327
 GameObject:
   m_ObjectHideFlags: 0
@@ -18389,6 +19607,7 @@ GameObject:
   - component: {fileID: 1648086813753327782}
   - component: {fileID: 897717626142062067}
   - component: {fileID: 6452721438423421074}
+  - component: {fileID: 8064897619050604360}
   m_Layer: 3
   m_Name: Tile_Grass_4_36
   m_TagString: Untagged
@@ -18519,6 +19738,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 1218969084189734243}
+--- !u!114 &8064897619050604360
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5103664957590097327}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_047
 --- !u!1 &5124434069679437334
 GameObject:
   m_ObjectHideFlags: 0
@@ -18533,6 +19765,7 @@ GameObject:
   - component: {fileID: 2729693580129991070}
   - component: {fileID: 3513804587516489583}
   - component: {fileID: 7118643508923795008}
+  - component: {fileID: 3452935618403007289}
   m_Layer: 3
   m_Name: Tile_Grass_0_36
   m_TagString: Untagged
@@ -18663,6 +19896,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 325082758865208029}
+--- !u!114 &3452935618403007289
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5124434069679437334}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_071
 --- !u!1 &5147519508121250190
 GameObject:
   m_ObjectHideFlags: 0
@@ -18708,6 +19954,7 @@ GameObject:
   - component: {fileID: 4055013204791503077}
   - component: {fileID: 2412622280713440002}
   - component: {fileID: 664923171965797208}
+  - component: {fileID: 7286371913059850978}
   m_Layer: 3
   m_Name: Tile_Grass_1_34
   m_TagString: Untagged
@@ -18838,6 +20085,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 5206082961230273218}
+--- !u!114 &7286371913059850978
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5151999892655692461}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_063
 --- !u!1 &5162405172679290296
 GameObject:
   m_ObjectHideFlags: 0
@@ -18852,6 +20112,7 @@ GameObject:
   - component: {fileID: 4905249201992697156}
   - component: {fileID: 6422043717350876412}
   - component: {fileID: 2011521824930188141}
+  - component: {fileID: 4196094751150616478}
   m_Layer: 3
   m_Name: Tile_Grass_1_33
   m_TagString: Untagged
@@ -18982,6 +20243,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 5683612272512808493}
+--- !u!114 &4196094751150616478
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5162405172679290296}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_024
 --- !u!1 &5227317092478148918
 GameObject:
   m_ObjectHideFlags: 0
@@ -19027,6 +20301,7 @@ GameObject:
   - component: {fileID: 8289520590505531196}
   - component: {fileID: 8064067543716617903}
   - component: {fileID: 760865232534987583}
+  - component: {fileID: 1701145194991005400}
   m_Layer: 3
   m_Name: Tile_Grass_0_38 (1)
   m_TagString: Untagged
@@ -19157,6 +20432,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 5495309985832499581}
+--- !u!114 &1701145194991005400
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5253781167781243355}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_129
 --- !u!1 &5277195616918197130
 GameObject:
   m_ObjectHideFlags: 0
@@ -19171,6 +20459,7 @@ GameObject:
   - component: {fileID: 3135612685946998687}
   - component: {fileID: 6161624150398838149}
   - component: {fileID: 6283178930657792060}
+  - component: {fileID: 6107545824860059380}
   m_Layer: 3
   m_Name: Tile_Grass_4_36
   m_TagString: Untagged
@@ -19301,6 +20590,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 1383938529362726120}
+--- !u!114 &6107545824860059380
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5277195616918197130}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_080
 --- !u!1 &5278795922229421668
 GameObject:
   m_ObjectHideFlags: 0
@@ -19315,6 +20617,7 @@ GameObject:
   - component: {fileID: 518990315052007673}
   - component: {fileID: 129398930751699658}
   - component: {fileID: 5546410374895932279}
+  - component: {fileID: 8431912966744645972}
   m_Layer: 3
   m_Name: Tile_Grass_3_36
   m_TagString: Untagged
@@ -19445,6 +20748,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 2663770811631931314}
+--- !u!114 &8431912966744645972
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5278795922229421668}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_018
 --- !u!1 &5279465299716710551
 GameObject:
   m_ObjectHideFlags: 0
@@ -19459,6 +20775,7 @@ GameObject:
   - component: {fileID: 91088232286547373}
   - component: {fileID: 3490026381316401046}
   - component: {fileID: 2785218199680041294}
+  - component: {fileID: 999552470100956576}
   m_Layer: 3
   m_Name: Tile_Grass_2_36
   m_TagString: Untagged
@@ -19589,6 +20906,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 1231463589715857729}
+--- !u!114 &999552470100956576
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5279465299716710551}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_025
 --- !u!1 &5284357566358761254
 GameObject:
   m_ObjectHideFlags: 0
@@ -19603,6 +20933,7 @@ GameObject:
   - component: {fileID: 6405657860912625668}
   - component: {fileID: 3548579120470411090}
   - component: {fileID: 6820964932244725310}
+  - component: {fileID: 4403161261939775167}
   m_Layer: 3
   m_Name: Tile_Grass_2_35
   m_TagString: Untagged
@@ -19733,6 +21064,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 8132647361568039332}
+--- !u!114 &4403161261939775167
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5284357566358761254}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_118
 --- !u!1 &5301085428504470002
 GameObject:
   m_ObjectHideFlags: 0
@@ -19747,6 +21091,7 @@ GameObject:
   - component: {fileID: 3618814150035493559}
   - component: {fileID: 5014173309593588423}
   - component: {fileID: 7403370617586706512}
+  - component: {fileID: 8487857190434119919}
   m_Layer: 3
   m_Name: Tile_Grass_3_32 (1)
   m_TagString: Untagged
@@ -19877,6 +21222,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 7282503702434627858}
+--- !u!114 &8487857190434119919
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5301085428504470002}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_003
 --- !u!1 &5339815664664707569
 GameObject:
   m_ObjectHideFlags: 0
@@ -19953,6 +21311,7 @@ GameObject:
   - component: {fileID: 2104593687959357521}
   - component: {fileID: 3407410944090394139}
   - component: {fileID: 8894363421241013524}
+  - component: {fileID: 5180641185390323323}
   m_Layer: 3
   m_Name: Tile_Grass_2_32 (3)
   m_TagString: Untagged
@@ -20083,6 +21442,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 2829650872781358419}
+--- !u!114 &5180641185390323323
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5441128515780807693}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_028
 --- !u!1 &5444707217639211383
 GameObject:
   m_ObjectHideFlags: 0
@@ -20097,6 +21469,7 @@ GameObject:
   - component: {fileID: 5956200403788698731}
   - component: {fileID: 1646704694543447492}
   - component: {fileID: 7448991657519226041}
+  - component: {fileID: 3406306500243828930}
   m_Layer: 3
   m_Name: Tile_Grass_2_36
   m_TagString: Untagged
@@ -20227,6 +21600,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3808251207206948797}
+--- !u!114 &3406306500243828930
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5444707217639211383}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_121
 --- !u!1 &5455388120184220630
 GameObject:
   m_ObjectHideFlags: 0
@@ -20272,6 +21658,7 @@ GameObject:
   - component: {fileID: 5803952459084883809}
   - component: {fileID: 590953938058759741}
   - component: {fileID: 5393418395691129377}
+  - component: {fileID: 1988033874292787199}
   m_Layer: 3
   m_Name: Tile_Grass_2_34
   m_TagString: Untagged
@@ -20402,6 +21789,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 2686464494458355875}
+--- !u!114 &1988033874292787199
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5459637991223636617}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_089
 --- !u!1 &5535541188888478610
 GameObject:
   m_ObjectHideFlags: 0
@@ -20416,6 +21816,7 @@ GameObject:
   - component: {fileID: 1415132171200315423}
   - component: {fileID: 136647686020448551}
   - component: {fileID: 4608645020584907363}
+  - component: {fileID: 5121610412264893296}
   m_Layer: 3
   m_Name: Tile_Grass_3_33
   m_TagString: Untagged
@@ -20546,6 +21947,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 699849305367778147}
+--- !u!114 &5121610412264893296
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5535541188888478610}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_079
 --- !u!1 &5548904371068069170
 GameObject:
   m_ObjectHideFlags: 0
@@ -20715,6 +22129,7 @@ GameObject:
   - component: {fileID: 5797373653795436840}
   - component: {fileID: 7467605662124708970}
   - component: {fileID: 3341723498290443532}
+  - component: {fileID: 5580549153100820827}
   m_Layer: 3
   m_Name: Tile_Grass_0_39
   m_TagString: Untagged
@@ -20845,6 +22260,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 2203579092459011145}
+--- !u!114 &5580549153100820827
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5721237879942911232}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_078
 --- !u!1 &5729130231864508611
 GameObject:
   m_ObjectHideFlags: 0
@@ -20859,6 +22287,7 @@ GameObject:
   - component: {fileID: 70331749284934624}
   - component: {fileID: 2992601777579875240}
   - component: {fileID: 6637422564195148983}
+  - component: {fileID: 5617514334990760060}
   m_Layer: 3
   m_Name: Tile_Grass_3_32
   m_TagString: Untagged
@@ -20989,6 +22418,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 2509367153111285456}
+--- !u!114 &5617514334990760060
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5729130231864508611}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_075
 --- !u!1 &5751708510642284460
 GameObject:
   m_ObjectHideFlags: 0
@@ -21034,6 +22476,7 @@ GameObject:
   - component: {fileID: 1530065610989903642}
   - component: {fileID: 6612636261629421952}
   - component: {fileID: 4732347601473936114}
+  - component: {fileID: 3866326822472469538}
   m_Layer: 3
   m_Name: Tile_Grass_2_32 (6)
   m_TagString: Untagged
@@ -21164,6 +22607,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 1653887641761714986}
+--- !u!114 &3866326822472469538
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5802791859991885255}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_007
 --- !u!1 &5819000134072865049
 GameObject:
   m_ObjectHideFlags: 0
@@ -21178,6 +22634,7 @@ GameObject:
   - component: {fileID: 8431119899605203782}
   - component: {fileID: 6334247754365862441}
   - component: {fileID: 5287956425680892411}
+  - component: {fileID: 297901044289982291}
   m_Layer: 3
   m_Name: Tile_Grass_5_38
   m_TagString: Untagged
@@ -21308,6 +22765,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 7932527776404070443}
+--- !u!114 &297901044289982291
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5819000134072865049}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_044
 --- !u!1 &5862237192147525401
 GameObject:
   m_ObjectHideFlags: 0
@@ -21322,6 +22792,7 @@ GameObject:
   - component: {fileID: 5961637308077776367}
   - component: {fileID: 4450234422597513918}
   - component: {fileID: 862721167222647457}
+  - component: {fileID: 2683755846864874394}
   m_Layer: 3
   m_Name: Tile_Grass_0_38 (1)
   m_TagString: Untagged
@@ -21452,6 +22923,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 6645681432010349577}
+--- !u!114 &2683755846864874394
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5862237192147525401}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_069
 --- !u!1 &5869413913627495983
 GameObject:
   m_ObjectHideFlags: 0
@@ -21497,6 +22981,7 @@ GameObject:
   - component: {fileID: 3486238051820782877}
   - component: {fileID: 5638777212659897990}
   - component: {fileID: 7218257935781450860}
+  - component: {fileID: 4157397310043974734}
   m_Layer: 3
   m_Name: Tile_Grass_2_35
   m_TagString: Untagged
@@ -21627,6 +23112,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 7052391988310069190}
+--- !u!114 &4157397310043974734
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5872904396702489785}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_058
 --- !u!1 &5899890496521167622
 GameObject:
   m_ObjectHideFlags: 0
@@ -21641,6 +23139,7 @@ GameObject:
   - component: {fileID: 6245436624763204460}
   - component: {fileID: 3039431248542409309}
   - component: {fileID: 5183920098592789148}
+  - component: {fileID: 4606695189578720254}
   m_Layer: 3
   m_Name: Tile_Grass_1_34
   m_TagString: Untagged
@@ -21771,6 +23270,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 7108447296201362589}
+--- !u!114 &4606695189578720254
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5899890496521167622}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_156
 --- !u!1 &5904409891566264275
 GameObject:
   m_ObjectHideFlags: 0
@@ -21785,6 +23297,7 @@ GameObject:
   - component: {fileID: 3693390633739426872}
   - component: {fileID: 9049836288277639598}
   - component: {fileID: 5277489100239898531}
+  - component: {fileID: 3252326321131177986}
   m_Layer: 3
   m_Name: Tile_Grass_0_38
   m_TagString: Untagged
@@ -21915,6 +23428,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 6054286411765008086}
+--- !u!114 &3252326321131177986
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5904409891566264275}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_165
 --- !u!1 &5908309065551719504
 GameObject:
   m_ObjectHideFlags: 0
@@ -21929,6 +23455,7 @@ GameObject:
   - component: {fileID: 2762702303980729616}
   - component: {fileID: 3995814476744429057}
   - component: {fileID: 1460924962508332078}
+  - component: {fileID: 283488562751349476}
   m_Layer: 3
   m_Name: Tile_Grass_0_39
   m_TagString: Untagged
@@ -22059,6 +23586,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 7394526647150689311}
+--- !u!114 &283488562751349476
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5908309065551719504}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_045
 --- !u!1 &5916645935738608433
 GameObject:
   m_ObjectHideFlags: 0
@@ -22248,6 +23788,7 @@ GameObject:
   - component: {fileID: 2913703366079933793}
   - component: {fileID: 5480811931458643496}
   - component: {fileID: 7711585027848967005}
+  - component: {fileID: 8820615044014035186}
   m_Layer: 3
   m_Name: Tile_Grass_2_32 (1)
   m_TagString: Untagged
@@ -22378,6 +23919,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 7741167969878209290}
+--- !u!114 &8820615044014035186
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5919495007899338206}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_032
 --- !u!1 &5952722629063685267
 GameObject:
   m_ObjectHideFlags: 0
@@ -22567,6 +24121,7 @@ GameObject:
   - component: {fileID: 1975185308486526955}
   - component: {fileID: 355200385217605753}
   - component: {fileID: 136976200605354824}
+  - component: {fileID: 850069833490410229}
   m_Layer: 3
   m_Name: Tile_Grass_4_35
   m_TagString: Untagged
@@ -22697,6 +24252,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3283282248662812862}
+--- !u!114 &850069833490410229
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6060487697208153190}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_076
 --- !u!1 &6072665397218021033
 GameObject:
   m_ObjectHideFlags: 0
@@ -22742,6 +24310,7 @@ GameObject:
   - component: {fileID: 2177203217623459818}
   - component: {fileID: 654116300353097348}
   - component: {fileID: 1558108508156264896}
+  - component: {fileID: 2510903072885563401}
   m_Layer: 3
   m_Name: Tile_Grass_2_38
   m_TagString: Untagged
@@ -22872,6 +24441,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 2589890238303835084}
+--- !u!114 &2510903072885563401
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6102840153357893914}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_030
 --- !u!1 &6181297290902069053
 GameObject:
   m_ObjectHideFlags: 0
@@ -22948,6 +24530,7 @@ GameObject:
   - component: {fileID: 8943038666062321103}
   - component: {fileID: 7464668732549921377}
   - component: {fileID: 3884441903763677195}
+  - component: {fileID: 8659631372521214128}
   m_Layer: 3
   m_Name: Tile_Grass_5_35
   m_TagString: Untagged
@@ -23078,6 +24661,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 7224919352141864164}
+--- !u!114 &8659631372521214128
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6224224697082793403}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_130
 --- !u!1 &6228612016774634410
 GameObject:
   m_ObjectHideFlags: 0
@@ -23123,6 +24719,7 @@ GameObject:
   - component: {fileID: 8838776680841194508}
   - component: {fileID: 2159648311918257752}
   - component: {fileID: 3500044573467641388}
+  - component: {fileID: 6249586867162729249}
   m_Layer: 3
   m_Name: Tile_Grass_0_33
   m_TagString: Untagged
@@ -23253,6 +24850,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 7423289241639623446}
+--- !u!114 &6249586867162729249
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6236407324743478932}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_066
 --- !u!1 &6264896512979541255
 GameObject:
   m_ObjectHideFlags: 0
@@ -23298,6 +24908,7 @@ GameObject:
   - component: {fileID: 1021072080704760110}
   - component: {fileID: 3487970450492823994}
   - component: {fileID: 6542346737161381727}
+  - component: {fileID: 8179818935610351161}
   m_Layer: 3
   m_Name: Tile_Grass_1_33
   m_TagString: Untagged
@@ -23428,6 +25039,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3313096213920021452}
+--- !u!114 &8179818935610351161
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6282980969136626884}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_060
 --- !u!1 &6355627075615653416
 GameObject:
   m_ObjectHideFlags: 0
@@ -23473,6 +25097,7 @@ GameObject:
   - component: {fileID: 2829366733713836918}
   - component: {fileID: 2375878897202371194}
   - component: {fileID: 6418671612604979773}
+  - component: {fileID: 2857689284860933980}
   m_Layer: 3
   m_Name: Tile_Grass_2_36
   m_TagString: Untagged
@@ -23603,6 +25228,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 8359573791897101661}
+--- !u!114 &2857689284860933980
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6391006959571802661}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_094
 --- !u!1 &6435530611293543366
 GameObject:
   m_ObjectHideFlags: 0
@@ -23648,6 +25286,7 @@ GameObject:
   - component: {fileID: 743631837376217351}
   - component: {fileID: 5166762926910179861}
   - component: {fileID: 7223456418895202798}
+  - component: {fileID: 4312290635150729189}
   m_Layer: 3
   m_Name: Tile_Grass_0_32
   m_TagString: Untagged
@@ -23778,6 +25417,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 7130586404023605191}
+--- !u!114 &4312290635150729189
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6437760320595441627}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_097
 --- !u!1 &6441161450012335548
 GameObject:
   m_ObjectHideFlags: 0
@@ -23823,6 +25475,7 @@ GameObject:
   - component: {fileID: 5556878574370625509}
   - component: {fileID: 2882503252057241541}
   - component: {fileID: 2307040399748334303}
+  - component: {fileID: 5957207594622109090}
   m_Layer: 3
   m_Name: Tile_Grass_2_34
   m_TagString: Untagged
@@ -23953,6 +25606,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 2681741967307667231}
+--- !u!114 &5957207594622109090
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6465466583511205499}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_149
 --- !u!1 &6495970481228234537
 GameObject:
   m_ObjectHideFlags: 0
@@ -23967,6 +25633,7 @@ GameObject:
   - component: {fileID: 1425668318768001647}
   - component: {fileID: 8725390396583113663}
   - component: {fileID: 9115969081301060257}
+  - component: {fileID: 849400102660449085}
   m_Layer: 3
   m_Name: Tile_Grass_0_33
   m_TagString: Untagged
@@ -24097,6 +25764,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3854089032616221762}
+--- !u!114 &849400102660449085
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6495970481228234537}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_126
 --- !u!1 &6505861018530398406
 GameObject:
   m_ObjectHideFlags: 0
@@ -24111,6 +25791,7 @@ GameObject:
   - component: {fileID: 219933443110754630}
   - component: {fileID: 727192616247863001}
   - component: {fileID: 1097578099332418495}
+  - component: {fileID: 2303755717959136567}
   m_Layer: 3
   m_Name: Tile_Grass_4_35
   m_TagString: Untagged
@@ -24241,6 +25922,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 4232878274917529670}
+--- !u!114 &2303755717959136567
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6505861018530398406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_108
 --- !u!1 &6507499332961727606
 GameObject:
   m_ObjectHideFlags: 0
@@ -24935,6 +26629,7 @@ GameObject:
   - component: {fileID: 4101275128980648804}
   - component: {fileID: 5401399125008933258}
   - component: {fileID: 397581389614739437}
+  - component: {fileID: 7904656855726706135}
   m_Layer: 3
   m_Name: Tile_Grass_0_37
   m_TagString: Untagged
@@ -25065,6 +26760,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 7694763222644225362}
+--- !u!114 &7904656855726706135
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6721554038573603432}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_040
 --- !u!1 &6727280926694838676
 GameObject:
   m_ObjectHideFlags: 0
@@ -25657,6 +27365,7 @@ GameObject:
   - component: {fileID: 8740194972209242896}
   - component: {fileID: 4590076788538303728}
   - component: {fileID: 4230610296197379715}
+  - component: {fileID: 3689501299026867323}
   m_Layer: 3
   m_Name: Tile_Grass_5_36
   m_TagString: Untagged
@@ -25787,6 +27496,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 4735187767273382644}
+--- !u!114 &3689501299026867323
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6983636537072385806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_132
 --- !u!1 &6986756314489998148
 GameObject:
   m_ObjectHideFlags: 0
@@ -25801,6 +27523,7 @@ GameObject:
   - component: {fileID: 8501262732401856608}
   - component: {fileID: 4437522327100076616}
   - component: {fileID: 331703216887870962}
+  - component: {fileID: 7859494091861334518}
   m_Layer: 3
   m_Name: Tile_Grass_3_32 (2)
   m_TagString: Untagged
@@ -25931,6 +27654,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 5376759435213271484}
+--- !u!114 &7859494091861334518
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6986756314489998148}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_000
 --- !u!1 &7095106878123864088
 GameObject:
   m_ObjectHideFlags: 0
@@ -25945,6 +27681,7 @@ GameObject:
   - component: {fileID: 3737338700097899322}
   - component: {fileID: 1377367879179106776}
   - component: {fileID: 400533800768376526}
+  - component: {fileID: 4645404879034806496}
   m_Layer: 3
   m_Name: Tile_Grass_3_35
   m_TagString: Untagged
@@ -26075,6 +27812,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 8476124587511410275}
+--- !u!114 &4645404879034806496
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7095106878123864088}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_051
 --- !u!1 &7126755336526106324
 GameObject:
   m_ObjectHideFlags: 0
@@ -26120,6 +27870,7 @@ GameObject:
   - component: {fileID: 2775439707045664321}
   - component: {fileID: 6764737866208879012}
   - component: {fileID: 1026388255384908726}
+  - component: {fileID: 7211651147193429879}
   m_Layer: 3
   m_Name: Tile_Grass_2_36
   m_TagString: Untagged
@@ -26250,6 +28001,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 2119781836732280385}
+--- !u!114 &7211651147193429879
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7163969489278996533}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_154
 --- !u!1 &7182653364709216146
 GameObject:
   m_ObjectHideFlags: 0
@@ -26264,6 +28028,7 @@ GameObject:
   - component: {fileID: 2883998621317995609}
   - component: {fileID: 8850995946087168101}
   - component: {fileID: 164148228974538036}
+  - component: {fileID: 3213885178515559791}
   m_Layer: 3
   m_Name: Tile_Grass_0_38 (1)
   m_TagString: Untagged
@@ -26394,6 +28159,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 2917365036304935165}
+--- !u!114 &3213885178515559791
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7182653364709216146}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_102
 --- !u!1 &7185038157611561837
 GameObject:
   m_ObjectHideFlags: 0
@@ -26470,6 +28248,7 @@ GameObject:
   - component: {fileID: 2214383725026919491}
   - component: {fileID: 3432514385640407700}
   - component: {fileID: 354932856461768079}
+  - component: {fileID: 2358535319583041737}
   m_Layer: 3
   m_Name: Tile_Grass_3_36
   m_TagString: Untagged
@@ -26600,6 +28379,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 7600173243329729825}
+--- !u!114 &2358535319583041737
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7220126245613818383}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_147
 --- !u!1 &7298384301130116688
 GameObject:
   m_ObjectHideFlags: 0
@@ -26933,6 +28725,7 @@ GameObject:
   - component: {fileID: 8461431133703696379}
   - component: {fileID: 1502184176522298376}
   - component: {fileID: 2987411685255213307}
+  - component: {fileID: 4451865140846683584}
   m_Layer: 3
   m_Name: Tile_Grass_1_33
   m_TagString: Untagged
@@ -27063,6 +28856,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 8440332295905724662}
+--- !u!114 &4451865140846683584
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7339917305373842613}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_153
 --- !u!1 &7346130724195482563
 GameObject:
   m_ObjectHideFlags: 0
@@ -27072,6 +28878,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7805989967329158851}
+  - component: {fileID: 6521744114748706873}
   m_Layer: 0
   m_Name: StartMap
   m_TagString: Untagged
@@ -27299,6 +29106,19 @@ Transform:
   - {fileID: 9047944567075386780}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6521744114748706873
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7346130724195482563}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a764fe13f24af743b0baa7a72d10553, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileRegistry
+  idPrefix: StartTile_
 --- !u!1 &7367613353416579532
 GameObject:
   m_ObjectHideFlags: 0
@@ -27406,6 +29226,7 @@ GameObject:
   - component: {fileID: 4680109841765715524}
   - component: {fileID: 8017233914506344274}
   - component: {fileID: 8885302878011633063}
+  - component: {fileID: 7367588882989494562}
   m_Layer: 3
   m_Name: Tile_Grass_4_35
   m_TagString: Untagged
@@ -27536,6 +29357,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 1834563270657439119}
+--- !u!114 &7367588882989494562
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7475021564817662132}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_043
 --- !u!1 &7510253669422421339
 GameObject:
   m_ObjectHideFlags: 0
@@ -27581,6 +29415,7 @@ GameObject:
   - component: {fileID: 1259540408625082576}
   - component: {fileID: 4544169932703294815}
   - component: {fileID: 737805130000714748}
+  - component: {fileID: 7884335147088086254}
   m_Layer: 3
   m_Name: Tile_Grass_0_36
   m_TagString: Untagged
@@ -27711,6 +29546,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 870518245761311086}
+--- !u!114 &7884335147088086254
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7518191460895982488}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_038
 --- !u!1 &7521579799738562402
 GameObject:
   m_ObjectHideFlags: 0
@@ -28086,6 +29934,7 @@ GameObject:
   - component: {fileID: 6839175647556258607}
   - component: {fileID: 5165103250673434775}
   - component: {fileID: 8606791766811903216}
+  - component: {fileID: 8652220913173968764}
   m_Layer: 3
   m_Name: Tile_Grass_4_36
   m_TagString: Untagged
@@ -28216,6 +30065,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3030580965417511905}
+--- !u!114 &8652220913173968764
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7629531828954085399}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_111
 --- !u!1 &7640671002257295943
 GameObject:
   m_ObjectHideFlags: 0
@@ -28323,6 +30185,7 @@ GameObject:
   - component: {fileID: 6763451732625018958}
   - component: {fileID: 2094954530995436676}
   - component: {fileID: 6461077396981645298}
+  - component: {fileID: 1176428282324910298}
   m_Layer: 3
   m_Name: Tile_Grass_5_36
   m_TagString: Untagged
@@ -28453,6 +30316,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 8554590004007954818}
+--- !u!114 &1176428282324910298
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7694641272798208661}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_072
 --- !u!1 &7708624917199688347
 GameObject:
   m_ObjectHideFlags: 0
@@ -28467,6 +30343,7 @@ GameObject:
   - component: {fileID: 818162659407705552}
   - component: {fileID: 8293181669588069352}
   - component: {fileID: 5693470367141211047}
+  - component: {fileID: 1192516878404133511}
   m_Layer: 3
   m_Name: Tile_Grass_0_39
   m_TagString: Untagged
@@ -28597,6 +30474,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 2787527065069271417}
+--- !u!114 &1192516878404133511
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7708624917199688347}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_138
 --- !u!1 &7756227735879467128
 GameObject:
   m_ObjectHideFlags: 0
@@ -28611,6 +30501,7 @@ GameObject:
   - component: {fileID: 4014180150746635404}
   - component: {fileID: 4035296930205844078}
   - component: {fileID: 491775702384596495}
+  - component: {fileID: 2594219694586006538}
   m_Layer: 3
   m_Name: Tile_Grass_4_38
   m_TagString: Untagged
@@ -28741,6 +30632,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 5341318985879549748}
+--- !u!114 &2594219694586006538
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7756227735879467128}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_114
 --- !u!1 &7781793763914413201
 GameObject:
   m_ObjectHideFlags: 0
@@ -28786,6 +30690,7 @@ GameObject:
   - component: {fileID: 6475590470632042370}
   - component: {fileID: 4189150001910849909}
   - component: {fileID: 8686194330024640084}
+  - component: {fileID: 4712887356472000088}
   m_Layer: 3
   m_Name: Tile_Grass_2_39
   m_TagString: Untagged
@@ -28916,6 +30821,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 5477813553666596461}
+--- !u!114 &4712887356472000088
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7784813653565004390}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_160
 --- !u!1 &7798352085824137659
 GameObject:
   m_ObjectHideFlags: 0
@@ -28930,6 +30848,7 @@ GameObject:
   - component: {fileID: 7963201570277362644}
   - component: {fileID: 7526613555502372800}
   - component: {fileID: 5831436569094628555}
+  - component: {fileID: 2840919912434474198}
   m_Layer: 3
   m_Name: Tile_Grass_5_38
   m_TagString: Untagged
@@ -29060,6 +30979,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 8360845511353724678}
+--- !u!114 &2840919912434474198
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7798352085824137659}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_137
 --- !u!1 &7835537967958891693
 GameObject:
   m_ObjectHideFlags: 0
@@ -29074,6 +31006,7 @@ GameObject:
   - component: {fileID: 5134958493010838128}
   - component: {fileID: 5302497947998065768}
   - component: {fileID: 7780474299973458410}
+  - component: {fileID: 211054627350793238}
   m_Layer: 3
   m_Name: Tile_Grass_2_39
   m_TagString: Untagged
@@ -29204,6 +31137,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 1681368162200208998}
+--- !u!114 &211054627350793238
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7835537967958891693}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_100
 --- !u!1 &7839579274664920099
 GameObject:
   m_ObjectHideFlags: 0
@@ -29249,6 +31195,7 @@ GameObject:
   - component: {fileID: 792500028525708435}
   - component: {fileID: 2409574296844487467}
   - component: {fileID: 139066559878228862}
+  - component: {fileID: 1650051177512561905}
   m_Layer: 3
   m_Name: Tile_Grass_5_36
   m_TagString: Untagged
@@ -29379,6 +31326,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 1782959853665658488}
+--- !u!114 &1650051177512561905
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7842801213167886730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_039
 --- !u!1 &7859330692883805631
 GameObject:
   m_ObjectHideFlags: 0
@@ -29393,6 +31353,7 @@ GameObject:
   - component: {fileID: 3353801621645326472}
   - component: {fileID: 6623734252067094867}
   - component: {fileID: 4266929011187096194}
+  - component: {fileID: 51353308870998420}
   m_Layer: 3
   m_Name: Tile_Grass_2_32 (2)
   m_TagString: Untagged
@@ -29523,6 +31484,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 929559711632242485}
+--- !u!114 &51353308870998420
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7859330692883805631}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_035
 --- !u!1 &7869239629915596335
 GameObject:
   m_ObjectHideFlags: 0
@@ -29537,6 +31511,7 @@ GameObject:
   - component: {fileID: 3547525959975424080}
   - component: {fileID: 7936964221665196674}
   - component: {fileID: 596327966784788776}
+  - component: {fileID: 3235413329140833247}
   m_Layer: 3
   m_Name: Tile_Grass_2_33
   m_TagString: Untagged
@@ -29667,6 +31642,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 9197313266041070250}
+--- !u!114 &3235413329140833247
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7869239629915596335}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_086
 --- !u!1 &7897164633833098263
 GameObject:
   m_ObjectHideFlags: 0
@@ -30062,6 +32050,7 @@ GameObject:
   - component: {fileID: 1982187682046005634}
   - component: {fileID: 3254309382749572430}
   - component: {fileID: 3937074418122655429}
+  - component: {fileID: 7606568118021382464}
   m_Layer: 3
   m_Name: Tile_Grass_5_39
   m_TagString: Untagged
@@ -30192,6 +32181,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 4914929558328435}
+--- !u!114 &7606568118021382464
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8034909858269788573}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_141
 --- !u!1 &8035196316741258934
 GameObject:
   m_ObjectHideFlags: 0
@@ -30412,6 +32414,7 @@ GameObject:
   - component: {fileID: 974952362030729690}
   - component: {fileID: 3429827713994523379}
   - component: {fileID: 8433254106227848015}
+  - component: {fileID: 6718712746501845094}
   m_Layer: 3
   m_Name: Tile_Grass_2_38
   m_TagString: Untagged
@@ -30542,6 +32545,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 5710168704861831245}
+--- !u!114 &6718712746501845094
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8119505645146453808}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_098
 --- !u!1 &8127704667147097691
 GameObject:
   m_ObjectHideFlags: 0
@@ -30556,6 +32572,7 @@ GameObject:
   - component: {fileID: 8870011577435268324}
   - component: {fileID: 9111938285297077648}
   - component: {fileID: 6460749055682685020}
+  - component: {fileID: 3930605804422366874}
   m_Layer: 3
   m_Name: Tile_Grass_2_39
   m_TagString: Untagged
@@ -30686,6 +32703,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 7394880964568718153}
+--- !u!114 &3930605804422366874
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8127704667147097691}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_067
 --- !u!1 &8150023908614258801
 GameObject:
   m_ObjectHideFlags: 0
@@ -30793,6 +32823,7 @@ GameObject:
   - component: {fileID: 8976813121711930387}
   - component: {fileID: 6357649295195571891}
   - component: {fileID: 6499290598905984492}
+  - component: {fileID: 3760631509324003435}
   m_Layer: 3
   m_Name: Tile_Grass_4_38
   m_TagString: Untagged
@@ -30923,6 +32954,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 292959575221367957}
+--- !u!114 &3760631509324003435
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8177043513632628421}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_052
 --- !u!1 &8225985700424596409
 GameObject:
   m_ObjectHideFlags: 0
@@ -31205,6 +33249,7 @@ GameObject:
   - component: {fileID: 4884228023475979818}
   - component: {fileID: 3765404010782091787}
   - component: {fileID: 8298695496172540364}
+  - component: {fileID: 4498648693792229508}
   m_Layer: 3
   m_Name: Tile_Grass_2_32
   m_TagString: Untagged
@@ -31335,6 +33380,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 5657106009589750300}
+--- !u!114 &4498648693792229508
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8359349290949523255}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_050
 --- !u!1 &8360443725372561019
 GameObject:
   m_ObjectHideFlags: 0
@@ -31380,6 +33438,7 @@ GameObject:
   - component: {fileID: 523541559776704588}
   - component: {fileID: 2031313340614491462}
   - component: {fileID: 1621246477595131663}
+  - component: {fileID: 910753348956758127}
   m_Layer: 3
   m_Name: Tile_Grass_2_39
   m_TagString: Untagged
@@ -31510,6 +33569,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3219291817653828359}
+--- !u!114 &910753348956758127
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8361488488445857678}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_033
 --- !u!1 &8361870058287579509
 GameObject:
   m_ObjectHideFlags: 0
@@ -31524,6 +33596,7 @@ GameObject:
   - component: {fileID: 2460079630783216159}
   - component: {fileID: 5960334822321374501}
   - component: {fileID: 3417707584634811392}
+  - component: {fileID: 7971906031714623462}
   m_Layer: 3
   m_Name: Tile_Grass_3_33 (1)
   m_TagString: Untagged
@@ -31654,6 +33727,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 4536590692692141592}
+--- !u!114 &7971906031714623462
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8361870058287579509}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_004
 --- !u!1 &8378754710678441679
 GameObject:
   m_ObjectHideFlags: 0
@@ -31668,6 +33754,7 @@ GameObject:
   - component: {fileID: 3745865671555260224}
   - component: {fileID: 652693117352784105}
   - component: {fileID: 8347311761239150967}
+  - component: {fileID: 6041748092171218233}
   m_Layer: 3
   m_Name: Tile_Grass_5_39
   m_TagString: Untagged
@@ -31798,6 +33885,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 3786355715622534073}
+--- !u!114 &6041748092171218233
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8378754710678441679}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_112
 --- !u!1 &8399951803564073710
 GameObject:
   m_ObjectHideFlags: 0
@@ -31843,6 +33943,7 @@ GameObject:
   - component: {fileID: 407758953891438381}
   - component: {fileID: 6310613603050254689}
   - component: {fileID: 5535506773467474645}
+  - component: {fileID: 3834805986238518549}
   m_Layer: 3
   m_Name: Tile_Grass_3_34 (2)
   m_TagString: Untagged
@@ -31973,6 +34074,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 7645716279539830630}
+--- !u!114 &3834805986238518549
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8412010917527117849}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_002
 --- !u!1 &8432054397398124043
 GameObject:
   m_ObjectHideFlags: 0
@@ -32162,6 +34276,7 @@ GameObject:
   - component: {fileID: 4307645729101162200}
   - component: {fileID: 875665481004924479}
   - component: {fileID: 1457935441575587766}
+  - component: {fileID: 5927430997965294301}
   m_Layer: 3
   m_Name: Tile_Grass_1_34
   m_TagString: Untagged
@@ -32292,6 +34407,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 5933631713572066937}
+--- !u!114 &5927430997965294301
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8435290793979667135}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_027
 --- !u!1 &8439890268353697879
 GameObject:
   m_ObjectHideFlags: 0
@@ -32306,6 +34434,7 @@ GameObject:
   - component: {fileID: 6985947383276126757}
   - component: {fileID: 1522939910656064846}
   - component: {fileID: 6697153812922879801}
+  - component: {fileID: 5340786706166055808}
   m_Layer: 3
   m_Name: Tile_Grass_2_33
   m_TagString: Untagged
@@ -32436,6 +34565,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 4833184284921034275}
+--- !u!114 &5340786706166055808
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8439890268353697879}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_017
 --- !u!1 &8448517450185523656
 GameObject:
   m_ObjectHideFlags: 0
@@ -32481,6 +34623,7 @@ GameObject:
   - component: {fileID: 826646645602878259}
   - component: {fileID: 4307136061331357420}
   - component: {fileID: 4318630612780393468}
+  - component: {fileID: 5489366888769074103}
   m_Layer: 3
   m_Name: Tile_Grass_3_39
   m_TagString: Untagged
@@ -32611,6 +34754,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 567818917199112072}
+--- !u!114 &5489366888769074103
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8451702711558680535}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_122
 --- !u!1 &8466525874291506130
 GameObject:
   m_ObjectHideFlags: 0
@@ -32718,6 +34874,7 @@ GameObject:
   - component: {fileID: 5119107112505358708}
   - component: {fileID: 1617016681195056389}
   - component: {fileID: 4385684696397106952}
+  - component: {fileID: 1640656917594162958}
   m_Layer: 3
   m_Name: Tile_Grass_0_34
   m_TagString: Untagged
@@ -32848,6 +35005,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 5399731067976274198}
+--- !u!114 &1640656917594162958
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8551115937254766326}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_128
 --- !u!1 &8557738086502401034
 GameObject:
   m_ObjectHideFlags: 0
@@ -33017,6 +35187,7 @@ GameObject:
   - component: {fileID: 421939649011977876}
   - component: {fileID: 930153935358876399}
   - component: {fileID: 3082353198329588613}
+  - component: {fileID: 4099428281126193843}
   m_Layer: 3
   m_Name: Tile_Grass_2_34
   m_TagString: Untagged
@@ -33147,6 +35318,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 8667864448150984965}
+--- !u!114 &4099428281126193843
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8587496041322221928}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_117
 --- !u!1 &8607979505025627973
 GameObject:
   m_ObjectHideFlags: 0
@@ -33161,6 +35345,7 @@ GameObject:
   - component: {fileID: 6873621523801357989}
   - component: {fileID: 236034991316141433}
   - component: {fileID: 936669035137428778}
+  - component: {fileID: 182972050165880962}
   m_Layer: 3
   m_Name: Tile_Grass_2_38
   m_TagString: Untagged
@@ -33291,6 +35476,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 5953892372372541138}
+--- !u!114 &182972050165880962
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8607979505025627973}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_125
 --- !u!1 &8623673281440624700
 GameObject:
   m_ObjectHideFlags: 0
@@ -33398,6 +35596,7 @@ GameObject:
   - component: {fileID: 8117169848344041514}
   - component: {fileID: 8008290685492557828}
   - component: {fileID: 141629319108525185}
+  - component: {fileID: 1971595376917058451}
   m_Layer: 3
   m_Name: Tile_Grass_3_35
   m_TagString: Untagged
@@ -33528,6 +35727,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 4946243276291842156}
+--- !u!114 &1971595376917058451
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8675787244175332583}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_144
 --- !u!1 &8685238253681179089
 GameObject:
   m_ObjectHideFlags: 0
@@ -33604,6 +35816,7 @@ GameObject:
   - component: {fileID: 6619478514272658297}
   - component: {fileID: 2251058635333907140}
   - component: {fileID: 4948348333689157072}
+  - component: {fileID: 9015472282486169800}
   m_Layer: 3
   m_Name: Tile_Grass_2_33
   m_TagString: Untagged
@@ -33734,6 +35947,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 1235149182289135842}
+--- !u!114 &9015472282486169800
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8742101195956231443}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_146
 --- !u!1 &8743426130075930814
 GameObject:
   m_ObjectHideFlags: 0
@@ -33748,6 +35974,7 @@ GameObject:
   - component: {fileID: 8719801620834439271}
   - component: {fileID: 3555862982306275993}
   - component: {fileID: 294170493617653516}
+  - component: {fileID: 4720726906627964171}
   m_Layer: 3
   m_Name: Tile_Grass_0_32
   m_TagString: Untagged
@@ -33878,6 +36105,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 8267753811342953525}
+--- !u!114 &4720726906627964171
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8743426130075930814}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_064
 --- !u!1 &8748135588891771389
 GameObject:
   m_ObjectHideFlags: 0
@@ -34036,6 +36276,7 @@ GameObject:
   - component: {fileID: 503227839819289743}
   - component: {fileID: 8017889066911004569}
   - component: {fileID: 7605499060494362827}
+  - component: {fileID: 4352611068312448042}
   m_Layer: 3
   m_Name: Tile_Grass_0_37
   m_TagString: Untagged
@@ -34166,6 +36407,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 6017197972409374759}
+--- !u!114 &4352611068312448042
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8774657592555377024}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_073
 --- !u!1 &8819643769193320253
 GameObject:
   m_ObjectHideFlags: 0
@@ -34499,6 +36753,7 @@ GameObject:
   - component: {fileID: 5903773112115190066}
   - component: {fileID: 7694068887106743183}
   - component: {fileID: 8034383236337394024}
+  - component: {fileID: 3942602074337921222}
   m_Layer: 3
   m_Name: Tile_Grass_3_34
   m_TagString: Untagged
@@ -34629,6 +36884,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 5243861455799119204}
+--- !u!114 &3942602074337921222
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8897109942225719641}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_142
 --- !u!1 &8905216237373740681
 GameObject:
   m_ObjectHideFlags: 0
@@ -34787,6 +37055,7 @@ GameObject:
   - component: {fileID: 839590322584164136}
   - component: {fileID: 1820151643953083632}
   - component: {fileID: 8225497804268984983}
+  - component: {fileID: 5973883367367057455}
   m_Layer: 3
   m_Name: Tile_Grass_5_38
   m_TagString: Untagged
@@ -34917,6 +37186,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 8101706905455433465}
+--- !u!114 &5973883367367057455
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8925730880255227815}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_109
 --- !u!1 &8955546852817127526
 GameObject:
   m_ObjectHideFlags: 0
@@ -34931,6 +37213,7 @@ GameObject:
   - component: {fileID: 9111319544045313648}
   - component: {fileID: 1562854285334134913}
   - component: {fileID: 4670181519074541998}
+  - component: {fileID: 4055901673280554380}
   m_Layer: 3
   m_Name: Tile_Grass_4_36
   m_TagString: Untagged
@@ -35061,6 +37344,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 5141790321458115450}
+--- !u!114 &4055901673280554380
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8955546852817127526}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_011
 --- !u!1 &8964294558002877097
 GameObject:
   m_ObjectHideFlags: 0
@@ -35106,6 +37402,7 @@ GameObject:
   - component: {fileID: 1484414470261782345}
   - component: {fileID: 5800935212797064075}
   - component: {fileID: 4218339695913937149}
+  - component: {fileID: 8559683285591679705}
   m_Layer: 3
   m_Name: Tile_Grass_3_38
   m_TagString: Untagged
@@ -35236,6 +37533,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 5653197797069381250}
+--- !u!114 &8559683285591679705
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9017661209400951569}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_152
 --- !u!1 &9048365953427974165
 GameObject:
   m_ObjectHideFlags: 0
@@ -35312,6 +37622,7 @@ GameObject:
   - component: {fileID: 2915563854470602421}
   - component: {fileID: 294887081269233720}
   - component: {fileID: 8558955910638676118}
+  - component: {fileID: 7636340736336656581}
   m_Layer: 3
   m_Name: Tile_Grass_0_38
   m_TagString: Untagged
@@ -35442,6 +37753,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 943129916095835909}
+--- !u!114 &7636340736336656581
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9114992494138616100}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_074
 --- !u!1 &9143596841260576592
 GameObject:
   m_ObjectHideFlags: 0
@@ -35744,6 +38068,7 @@ GameObject:
   - component: {fileID: 4583911954341289822}
   - component: {fileID: 2706515702262211133}
   - component: {fileID: 5840712797188494087}
+  - component: {fileID: 5900085887161230422}
   m_Layer: 3
   m_Name: Tile_Grass_0_34
   m_TagString: Untagged
@@ -35874,6 +38199,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 6220166405669400069}
+--- !u!114 &5900085887161230422
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9155438192405244752}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_161
 --- !u!1 &9160872324071999496
 GameObject:
   m_ObjectHideFlags: 0
@@ -35950,6 +38288,7 @@ GameObject:
   - component: {fileID: 9155354413590519278}
   - component: {fileID: 6706111321306167289}
   - component: {fileID: 6304153282034240622}
+  - component: {fileID: 5087329209787755393}
   m_Layer: 3
   m_Name: Tile_Grass_3_32
   m_TagString: Untagged
@@ -36080,6 +38419,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleTile
   _kind: 0
   _anchor: {fileID: 510774861475573623}
+--- !u!114 &5087329209787755393
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9170437959364977312}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21c90637ee7c9bc4ab7339f45f7277c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileIdentity
+  tileId: StartTile_135
 --- !u!1 &9215908743507511977
 GameObject:
   m_ObjectHideFlags: 0

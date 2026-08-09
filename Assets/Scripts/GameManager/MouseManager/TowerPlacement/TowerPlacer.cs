@@ -417,6 +417,9 @@ public class TowerPlacer : MonoBehaviour
         NorthLand.Combat.TowerSpawnEffect.Play(placed.transform, footprintSize, tileSize);
     }
 
+
+    // StartMapTileRegistry의 등록 가능한 지형 조건과 동기화되어야 한다.
+    // 추후 BattleTile의 공통 건설 가능 지형 프로퍼티로 통합한다.
     private static bool IsBuildable(BattleTile tile)
         => tile != null && tile.Kind == TileKind.Grass && !tile.Occupied;
 

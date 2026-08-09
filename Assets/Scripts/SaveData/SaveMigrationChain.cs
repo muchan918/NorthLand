@@ -6,14 +6,17 @@ namespace NorthLand.Core
 {
     /// <summary>
     /// 세이브의 data 토큰을 v1→v2처럼 한 버전씩 순차 변환한다.
-    /// v1에는 실제 마이그레이션이 없으며, 다음 포맷 추가 시 인접 버전 변환만 등록한다.
+    /// 등록된 인접 버전 마이그레이션을 순서대로 적용한다.
     /// </summary>
     public sealed class SaveMigrationChain
     {
         private readonly IReadOnlyDictionary<int, Func<JToken, JToken>> migrations;
 
         public SaveMigrationChain()
-            : this(new Dictionary<int, Func<JToken, JToken>>())
+       : this(new Dictionary<int, Func<JToken, JToken>>
+       {
+        { 1, MigrateV1ToV2 }
+       })
         {
         }
 
@@ -70,7 +73,32 @@ namespace NorthLand.Core
                 }
             }
 
+
             return true;
+        }
+
+        private static JToken MigrateV1ToV2(JToken sourceData)
+        {
+            JToken migratedData = sourceData.DeepClone();
+
+            if (migratedData["Towers"] is not JArray towers)
+            {
+                return migratedData;
+            }
+
+            foreach (JToken tower in towers)
+            {
+                if (tower is not JObject towerObject)
+                {
+                    continue;
+                }
+
+                // v1의 모든 타워는 기존 자동 생성 배틀맵에 배치되어 있다.
+                towerObject["MapArea"] = (int)MapArea.CombatMap;
+                towerObject["StartTileId"] = null;
+            }
+
+            return migratedData;
         }
     }
 }

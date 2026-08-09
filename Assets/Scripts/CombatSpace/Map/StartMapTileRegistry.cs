@@ -15,16 +15,27 @@ namespace CombatSpace
 
         private readonly Dictionary<string, BattleTile> tilesById = new Dictionary<string, BattleTile>(StringComparer.Ordinal);
 
+        private bool isRegistryBuilt;
+
         public int RegisteredTileCount => tilesById.Count;
+
+        private readonly HashSet<string> duplicateIds = new HashSet<string>(StringComparer.Ordinal);
 
         private void Awake()
         {
             RebuildRegistry();
         }
 
-        public bool TryGetTile(string tileId,out BattleTile tile)
+        public bool TryGetTile(string tileId, out BattleTile tile)
         {
-            if (tilesById.Count == 0)
+            tile = null;
+
+            if (string.IsNullOrWhiteSpace(tileId))
+            {
+                return false;
+            }
+
+            if (!isRegistryBuilt)
             {
                 RebuildRegistry();
             }
@@ -35,7 +46,9 @@ namespace CombatSpace
         [ContextMenu("Validate Tile IDs")]
         public bool RebuildRegistry()
         {
+            isRegistryBuilt = false;
             tilesById.Clear();
+            duplicateIds.Clear();
 
             BattleTile[] tiles = GetComponentsInChildren<BattleTile>(true);
 
@@ -43,6 +56,10 @@ namespace CombatSpace
 
             foreach (BattleTile tile in tiles)
             {
+
+                // 타워 설치 가능 지형 기준은 TowerPlacer.IsBuildable과 동기화되어야 한다.
+                // Occupied는 런타임 상태이므로 레지스트리 등록 조건에는 포함하지 않는다.
+                // 건설 가능 지형이 확장되면 두 조건을 공통 프로퍼티로 통합한다.
                 if (tile == null || tile.Kind != TileKind.Grass)
                 {
                     continue;
@@ -52,21 +69,26 @@ namespace CombatSpace
 
                 if (identity == null || !identity.HasValidId)
                 {
-                    Debug.LogError($"[StartMapTileRegistry] {tile.name}에 유효한 타일 ID가 없습니다.",tile);
+                    Debug.LogWarning($"[StartMapTileRegistry] {tile.name}에 유효한 타일 ID가 없습니다.",tile);
 
                     isValid = false;
                     continue;
                 }
 
-                if (tilesById.ContainsKey(identity.TileId))
+                string tileId = identity.TileId;
+
+                if (duplicateIds.Contains(tileId) || !tilesById.TryAdd(tileId, tile))
                 {
-                    Debug.LogError($"[StartMapTileRegistry] 중복 타일 ID입니다:{identity.TileId}",tile);
+                    duplicateIds.Add(tileId);
+
+                    // 중복 ID는 어느 타일을 가리키는지 모호하므로 조회할 수 없게 한다.
+                    tilesById.Remove(tileId);
+
+                    Debug.LogWarning($"[StartMapTileRegistry] 중복 타일 ID입니다: {tileId}",tile);
 
                     isValid = false;
                     continue;
                 }
-
-                tilesById.Add(identity.TileId, tile);
             }
 
             if (isValid)
@@ -74,6 +96,7 @@ namespace CombatSpace
                 Debug.Log($"[StartMapTileRegistry] {tilesById.Count}개 타일 ID 검증 완료",this);
             }
 
+            isRegistryBuilt = true;
             return isValid;
         }
 
@@ -175,6 +198,34 @@ namespace CombatSpace
             Debug.Log($"[StartMapTileRegistry] {generatedCount}개의 누락된 타일 ID를 생성했습니다.",this);
 
             RebuildRegistry();
+        }
+
+        public bool TryGetTileId(BattleTile tile, out string tileId)
+        {
+            tileId = string.Empty;
+
+            if (tile == null)
+            {
+                return false;
+            }
+
+            if (!isRegistryBuilt)
+            {
+                RebuildRegistry();
+            }
+
+            foreach (KeyValuePair<string, BattleTile> pair in tilesById)
+            {
+                if (pair.Value != tile)
+                {
+                    continue;
+                }
+
+                tileId = pair.Key;
+                return true;
+            }
+
+            return false;
         }
 #endif
     }

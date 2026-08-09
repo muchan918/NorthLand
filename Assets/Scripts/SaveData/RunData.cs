@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace NorthLand.Core
 {
 
-    public enum TowerMapArea
+    public enum MapArea
     {
         CombatMap = 0,
         StartMap = 1
@@ -65,7 +65,7 @@ namespace NorthLand.Core
         public string TowerId;
 
         // 타워가 배치된 맵 영역
-        public TowerMapArea MapArea = TowerMapArea.CombatMap;
+        public MapArea MapArea = MapArea.CombatMap;
 
         // 자동 생성 배틀맵에서 사용
         public int CellX;
