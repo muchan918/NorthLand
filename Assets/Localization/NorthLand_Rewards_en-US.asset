@@ -50,6 +50,15 @@ MonoBehaviour:
     m_Localized: The projectile tower will have a burn effect.
     m_Metadata:
       m_Items: []
+  - m_Id: 10162397589505
+    m_Localized: Electric Field
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10162397589506
+    m_Localized: Leaves a zone at the impact point that deals continuous damage to
+      enemies inside it.
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

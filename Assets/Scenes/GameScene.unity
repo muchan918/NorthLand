@@ -4204,6 +4204,7 @@ GameObject:
   - component: {fileID: 1995850072}
   - component: {fileID: 1995850073}
   - component: {fileID: 1995850074}
+  - component: {fileID: 1995850075}
   m_Layer: 0
   m_Name: SkillEffectManager
   m_TagString: Untagged
@@ -4291,6 +4292,28 @@ MonoBehaviour:
   maxLevel: 3
   repeatInterval: 0.5
   debugLog: 0
+--- !u!114 &1995850075
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1995850069}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e70de2361ea3534baf59bfc6acea795, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FieldEffect
+  maxLevel: 3
+  fieldPrefab: {fileID: 4072122165077608187, guid: 4291a8d466a431a4393847e166466cad, type: 3}
+  tickDamagePerLevel: 5
+  tickInterval: 0.5
+  duration: 3
+  fieldRadius: 18
+  enemyLayerMask:
+    serializedVersion: 2
+    m_Bits: 128
+  debugLog: 1
 --- !u!1 &2054543367
 GameObject:
   m_ObjectHideFlags: 0
