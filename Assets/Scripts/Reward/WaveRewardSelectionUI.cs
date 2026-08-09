@@ -1,11 +1,10 @@
 using Cysharp.Threading.Tasks;
 using System.Collections.Generic;
 using System.Threading;
-using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.Localization;
+using UnityEngine.Localization.Settings;
 using UnityEngine.Serialization;
-using UnityEngine.Localization.Components;
 
 public class WaveRewardSelectionUI : MonoBehaviour
 {
@@ -13,28 +12,31 @@ public class WaveRewardSelectionUI : MonoBehaviour
     [SerializeField]
     private GameObject panel;
 
-    [Header("Reward Buttons")]
+    [Header("Cards")]
+    // 카드 한 장의 프리팹. 후보 수만큼 cardContainer 아래에 생성한다(#320).
+    // 도입 전에는 씬에 Reward1~3을 고정 배치하고 요소별 평행 배열 6개로 인덱싱했다 —
+    // 배열 순서가 어긋나면 조용히 엉뚱한 카드에 값이 들어갔고, 카드 개수도 씬에 박혀 있었다.
     [SerializeField]
-    private Button[] rewardButtons;
+    private RewardCardView cardPrefab;
 
-    // 카드 루트(Reward1~3). 후보가 3개 미만일 때(만렙 제외 등, #292) 남는 슬롯을 통째로 감춘다 —
-    // 버튼만 끄면 이름·설명·아이콘·수치가 이전 웨이브 값 그대로 남아 유령 카드가 보인다.
+    // 카드가 생성될 부모. HorizontalLayoutGroup을 붙여 두면 후보가 3장 미만일 때(#292 만렙 제외)
+    // 빈 슬롯 없이 가운데로 모인다.
     [SerializeField]
-    private GameObject[] rewardCards;
+    private Transform cardContainer;
 
+    [Header("등급 색 (인덱스 0 = Lv1)")]
+    // 카드면 틴트. 비워두면 아래 기본 팔레트를 쓰므로 인스펙터 배선 없이도 동작한다
+    // (필드 초기화자는 이미 씬에 직렬화된 컴포넌트엔 적용되지 않아서, 폴백을 코드에 둔다).
     [SerializeField]
-    private LocalizeStringEvent[] nameLocalizers;
+    private Color[] levelColors;
 
-    [SerializeField]
-    private LocalizeStringEvent[] descriptionLocalizers;
-
-    [SerializeField]
-    private Image[] iconImages;
-
-    // #287: 카드별 "Lv N / 수치" 줄. 라벨은 로컬라이즈되지만 조합 결과는 평문이라
-    // LocalizeStringEvent가 아니라 TextMeshProUGUI에 직접 넣는다(TowerInfoUI의 statsText와 같은 형태).
-    [SerializeField]
-    private TextMeshProUGUI[] levelStatTexts;
+    // 동 → 은 → 금. 픽셀아트 톤에 맞춰 채도를 낮게 잡았다.
+    private static readonly Color[] DefaultLevelColors =
+    {
+        new Color(0.69f, 0.55f, 0.34f), // Lv1
+        new Color(0.78f, 0.82f, 0.85f), // Lv2
+        new Color(0.95f, 0.76f, 0.31f), // Lv3
+    };
 
     [SerializeField]
     [FormerlySerializedAs("Openpanel")]
@@ -47,6 +49,10 @@ public class WaveRewardSelectionUI : MonoBehaviour
     [SerializeField]
     private GameSpeedController gameSpeedController;
 
+    private readonly List<RewardCardView> spawnedCards = new List<RewardCardView>();
+
+    // 현재 카드로 떠 있는 후보. 로케일이 바뀔 때 이 목록으로 카드를 다시 그린다.
+    private IReadOnlyList<WaveRewardData> boundCandidates;
 
     private void Awake()
     {
@@ -60,6 +66,27 @@ public class WaveRewardSelectionUI : MonoBehaviour
         {
             openPanel.SetActive(false);
         }
+
+        // 카드 텍스트는 LocalizationHelper.Get으로 한 번 당겨오는 방식이라 로케일 변경을 스스로
+        // 따라가지 못한다. 보상 모달은 플레이어가 고를 때까지 떠 있는 지속형이고 그 위에
+        // 설정 창이 열릴 수 있으므로, 컨테이너가 한 번만 구독해 카드를 일괄 재생성한다
+        // (카드마다 구독하면 해제 누락이 카드 수만큼 늘어난다).
+        LocalizationSettings.SelectedLocaleChanged += HandleLocaleChanged;
+    }
+
+    private void OnDestroy()
+    {
+        LocalizationSettings.SelectedLocaleChanged -= HandleLocaleChanged;
+    }
+
+    private void HandleLocaleChanged(Locale locale)
+    {
+        if (boundCandidates == null || spawnedCards.Count == 0)
+        {
+            return;
+        }
+
+        ShowCandidates(boundCandidates);
     }
 
 
@@ -100,8 +127,17 @@ public class WaveRewardSelectionUI : MonoBehaviour
 
         selectionSource = new UniTaskCompletionSource<WaveRewardData>();
 
-        ClearButtonListeners();
-        ShowCandidates(candidates);
+        // 카드가 한 장도 안 만들어졌으면 흐름을 그대로 흘려보낸다. selectionSource는 카드 클릭으로만
+        // 완료되므로, 여기서 막지 않으면 timeScale 0인 채로 빈 패널이 떠서 밤이 영원히 끝나지 않는다
+        // (WaveCompletionCoordinator의 EndNight가 이 await 뒤에 있다).
+        // pause와 패널 활성화보다 앞에서 나가야 화면에 흔적이 남지 않는다.
+        if (!ShowCandidates(candidates))
+        {
+            ClearCards();
+            selectionSource = null;
+
+            return null;
+        }
 
         if (gameSpeedController != null)
         {
@@ -132,7 +168,8 @@ public class WaveRewardSelectionUI : MonoBehaviour
         }
         finally
         {
-            ClearButtonListeners();
+            ClearCards();
+
             if (gameSpeedController != null)
             {
                 gameSpeedController.SetPaused(GamePauseReason.Reward,false);
@@ -152,95 +189,73 @@ public class WaveRewardSelectionUI : MonoBehaviour
         }
     }
 
-    private void ShowCandidates(IReadOnlyList<WaveRewardData> candidates)
+    // 카드를 한 장 이상 띄웠으면 true. 실패를 반환값으로 알리는 이유는 호출부 주석 참조.
+    private bool ShowCandidates(IReadOnlyList<WaveRewardData> candidates)
     {
-        for (int i = 0; i < rewardButtons.Length; i++)
+        ClearCards();
+
+        boundCandidates = candidates;
+
+        if (cardPrefab == null || cardContainer == null)
         {
-            bool hasCandidate = i < candidates.Count && candidates[i] != null;
+            Debug.LogError(
+                "[WaveRewardSelectionUI] 카드 프리팹 또는 컨테이너가 연결되지 않았습니다.",
+                this);
+            return false;
+        }
 
-            if (rewardCards != null && i < rewardCards.Length && rewardCards[i] != null)
-            {
-                rewardCards[i].SetActive(hasCandidate);
-            }
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            WaveRewardData reward = candidates[i];
 
-            rewardButtons[i].gameObject.SetActive(hasCandidate);
-
-            if (!hasCandidate)
+            if (reward == null)
             {
                 continue;
             }
 
-            WaveRewardData reward = candidates[i];
-            if (i < nameLocalizers.Length && nameLocalizers[i] != null)
-            {
-                nameLocalizers[i].StringReference.SetReference(LocalizationHelper.k_RewardsTable,reward.DisplayName);
-
-                nameLocalizers[i].RefreshString();
-            }
-
-            if (i < descriptionLocalizers.Length && descriptionLocalizers[i] != null)
-            {
-                descriptionLocalizers[i].StringReference.SetReference(LocalizationHelper.k_RewardsTable,reward.Description);
-
-                descriptionLocalizers[i].RefreshString();
-            }
-
-            if (i < iconImages.Length &&
-                iconImages[i] != null)
-            {
-                iconImages[i].sprite = reward.Icon;
-                iconImages[i].enabled = reward.Icon != null;
-            }
-
-            if (i < levelStatTexts.Length && levelStatTexts[i] != null)
-            {
-                // 실제 보유 레벨을 그대로 보여준다 — 미보유는 Lv 0, 한 번 고르면 Lv 1.
-                // 하한 클램프를 걸면 Lv0과 Lv1의 표시가 겹쳐서 첫 획득이 화면상 아무 변화가 없어 보인다.
-                // 다음 레벨은 UI가 +1로 계산하지 않고 효과에게 묻는다 — 상한(#292)이 여기 반영돼야 한다.
-                int level = 0;
-                int nextLevel = 0;
-                bool nextIsMax = false;
-                string stats = null;
-
-                if (SkillEffectManager.Instance != null)
-                {
-                    level = SkillEffectManager.Instance.GetLevel(reward.RewardType);
-                    nextLevel = SkillEffectManager.Instance.GetNextLevel(reward.RewardType);
-                    nextIsMax = SkillEffectManager.Instance.ReachesMaxLevel(reward.RewardType);
-                    stats = SkillEffectManager.Instance.GetStatSummary(reward.RewardType);
-                }
-
-                // 수치가 비었다 = 이 타입의 효과 컴포넌트가 없다 = 선택해도 SkillEffectManager가
-                // 경고만 내고 무시한다. 그때 레벨 줄만 남기면 "고르면 오른다"는 거짓 표시가 되므로
-                // 통째로 비워 씬 배선 사고가 화면에 드러나게 한다.
-                levelStatTexts[i].text = string.IsNullOrEmpty(stats)
-                    ? string.Empty
-                    : $"{SkillStatsFormatter.BuildLevelLine(level, nextLevel, nextIsMax)}\n{stats}";
-            }
-
-            rewardButtons[i].onClick.AddListener(() => SelectReward(reward)
-            );
+            RewardCardView card = Instantiate(cardPrefab, cardContainer);
+            card.Bind(reward, ResolveTint(reward), SelectReward);
+            spawnedCards.Add(card);
         }
+
+        return spawnedCards.Count > 0;
+    }
+
+    // 이 보상을 고르면 도달할 레벨에 대응하는 카드 색. 레벨 표시(별)와 같은 값을 쓰도록
+    // RewardCardView가 아니라 여기서 뽑아 넘긴다 — 매핑 소유자를 한 곳으로 모으기 위함.
+    private Color ResolveTint(WaveRewardData reward)
+    {
+        Color[] palette = levelColors != null && levelColors.Length > 0
+            ? levelColors
+            : DefaultLevelColors;
+
+        int nextLevel = 0;
+
+        if (SkillEffectManager.Instance != null)
+        {
+            nextLevel = SkillEffectManager.Instance.GetNextLevel(reward.RewardType);
+        }
+
+        // 매니저가 없으면 nextLevel이 0이라 -1이 되는데 Clamp가 0으로 받아낸다(배열 밖 접근 방지).
+        return palette[Mathf.Clamp(nextLevel - 1, 0, palette.Length - 1)];
+    }
+
+    private void ClearCards()
+    {
+        for (int i = 0; i < spawnedCards.Count; i++)
+        {
+            if (spawnedCards[i] != null)
+            {
+                Destroy(spawnedCards[i].gameObject);
+            }
+        }
+
+        spawnedCards.Clear();
+        boundCandidates = null;
     }
 
     private void SelectReward(WaveRewardData reward)
     {
         selectionSource?.TrySetResult(reward);
-    }
-
-    private void ClearButtonListeners()
-    {
-        if (rewardButtons == null)
-        {
-            return;
-        }
-
-        foreach (Button button in rewardButtons)
-        {
-            if (button != null)
-            {
-                button.onClick.RemoveAllListeners();
-            }
-        }
     }
 }
