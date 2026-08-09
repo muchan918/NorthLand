@@ -2,6 +2,8 @@ using Cysharp.Threading.Tasks;
 using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
+using UnityEngine.Localization;
+using UnityEngine.Localization.Settings;
 using UnityEngine.Serialization;
 
 public class WaveRewardSelectionUI : MonoBehaviour
@@ -49,6 +51,9 @@ public class WaveRewardSelectionUI : MonoBehaviour
 
     private readonly List<RewardCardView> spawnedCards = new List<RewardCardView>();
 
+    // 현재 카드로 떠 있는 후보. 로케일이 바뀔 때 이 목록으로 카드를 다시 그린다.
+    private IReadOnlyList<WaveRewardData> boundCandidates;
+
     private void Awake()
     {
 
@@ -61,6 +66,27 @@ public class WaveRewardSelectionUI : MonoBehaviour
         {
             openPanel.SetActive(false);
         }
+
+        // 카드 텍스트는 LocalizationHelper.Get으로 한 번 당겨오는 방식이라 로케일 변경을 스스로
+        // 따라가지 못한다. 보상 모달은 플레이어가 고를 때까지 떠 있는 지속형이고 그 위에
+        // 설정 창이 열릴 수 있으므로, 컨테이너가 한 번만 구독해 카드를 일괄 재생성한다
+        // (카드마다 구독하면 해제 누락이 카드 수만큼 늘어난다).
+        LocalizationSettings.SelectedLocaleChanged += HandleLocaleChanged;
+    }
+
+    private void OnDestroy()
+    {
+        LocalizationSettings.SelectedLocaleChanged -= HandleLocaleChanged;
+    }
+
+    private void HandleLocaleChanged(Locale locale)
+    {
+        if (boundCandidates == null || spawnedCards.Count == 0)
+        {
+            return;
+        }
+
+        ShowCandidates(boundCandidates);
     }
 
 
@@ -101,7 +127,17 @@ public class WaveRewardSelectionUI : MonoBehaviour
 
         selectionSource = new UniTaskCompletionSource<WaveRewardData>();
 
-        ShowCandidates(candidates);
+        // 카드가 한 장도 안 만들어졌으면 흐름을 그대로 흘려보낸다. selectionSource는 카드 클릭으로만
+        // 완료되므로, 여기서 막지 않으면 timeScale 0인 채로 빈 패널이 떠서 밤이 영원히 끝나지 않는다
+        // (WaveCompletionCoordinator의 EndNight가 이 await 뒤에 있다).
+        // pause와 패널 활성화보다 앞에서 나가야 화면에 흔적이 남지 않는다.
+        if (!ShowCandidates(candidates))
+        {
+            ClearCards();
+            selectionSource = null;
+
+            return null;
+        }
 
         if (gameSpeedController != null)
         {
@@ -153,16 +189,19 @@ public class WaveRewardSelectionUI : MonoBehaviour
         }
     }
 
-    private void ShowCandidates(IReadOnlyList<WaveRewardData> candidates)
+    // 카드를 한 장 이상 띄웠으면 true. 실패를 반환값으로 알리는 이유는 호출부 주석 참조.
+    private bool ShowCandidates(IReadOnlyList<WaveRewardData> candidates)
     {
         ClearCards();
+
+        boundCandidates = candidates;
 
         if (cardPrefab == null || cardContainer == null)
         {
             Debug.LogError(
                 "[WaveRewardSelectionUI] 카드 프리팹 또는 컨테이너가 연결되지 않았습니다.",
                 this);
-            return;
+            return false;
         }
 
         for (int i = 0; i < candidates.Count; i++)
@@ -178,6 +217,8 @@ public class WaveRewardSelectionUI : MonoBehaviour
             card.Bind(reward, ResolveTint(reward), SelectReward);
             spawnedCards.Add(card);
         }
+
+        return spawnedCards.Count > 0;
     }
 
     // 이 보상을 고르면 도달할 레벨에 대응하는 카드 색. 레벨 표시(별)와 같은 값을 쓰도록
@@ -210,6 +251,7 @@ public class WaveRewardSelectionUI : MonoBehaviour
         }
 
         spawnedCards.Clear();
+        boundCandidates = null;
     }
 
     private void SelectReward(WaveRewardData reward)

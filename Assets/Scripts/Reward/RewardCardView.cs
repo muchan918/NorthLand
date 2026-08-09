@@ -49,19 +49,21 @@ public class RewardCardView : MonoBehaviour
     private Action<WaveRewardData> onSelect;
     private WaveRewardData boundReward;
 
-    private void Awake()
-    {
-        if (button != null)
-        {
-            button.onClick.AddListener(HandleClick);
-        }
-    }
-
     /// 보상 하나를 이 카드에 표시한다. faceTint는 등급 색(RGB만 쓰고 알파는 프리팹 값을 유지).
     public void Bind(WaveRewardData reward, Color faceTint, Action<WaveRewardData> selectCallback)
     {
         boundReward = reward;
         onSelect = selectCallback;
+
+        // 리스너 등록을 Awake가 아니라 여기서 한다 — 카드가 비활성 계층(Rewardpanel) 아래에서
+        // Instantiate되므로 Awake는 Bind보다 늦게(패널이 켜질 때) 돈다. 초기화를 Awake에 두면
+        // 이 뷰의 불변식이 호출부의 활성화 순서에 의존하게 된다. 인스턴스당 Bind 1회지만
+        // 재바인딩(로케일 변경) 시 누적되지 않도록 Remove를 먼저 부른다.
+        if (button != null)
+        {
+            button.onClick.RemoveListener(HandleClick);
+            button.onClick.AddListener(HandleClick);
+        }
 
         if (reward == null)
         {
@@ -77,13 +79,6 @@ public class RewardCardView : MonoBehaviour
         {
             icon.sprite = reward.Icon;
             icon.enabled = reward.Icon != null;
-        }
-
-        // 알파는 프리팹이 정한 값을 그대로 둔다 — 카드면의 투명도는 등급이 아니라 디자인의 몫이고,
-        // 넘겨받은 색의 알파까지 적용하면 등급 색을 바꿀 때마다 투명도가 딸려 바뀐다.
-        if (cardFace != null)
-        {
-            cardFace.color = new Color(faceTint.r, faceTint.g, faceTint.b, cardFace.color.a);
         }
 
         // 실제 보유 레벨을 그대로 보여준다 — 미보유는 Lv 0, 한 번 고르면 Lv 1.
@@ -106,6 +101,16 @@ public class RewardCardView : MonoBehaviour
         // 경고만 내고 무시한다. 그때 레벨·별만 남기면 "고르면 오른다"는 거짓 표시가 되므로
         // 통째로 비워 씬 배선 사고가 화면에 드러나게 한다.
         bool hasStats = !string.IsNullOrEmpty(stats);
+
+        // 등급 색도 위 규약 안에 둔다 — 별이 0개인데 카드면만 Lv1 색으로 칠하면 표시 세 요소
+        // (별·레벨 줄·색) 중 하나가 규약을 벗어난다. 미표시일 땐 프리팹 기본색을 유지한다.
+        //
+        // 알파는 프리팹이 정한 값을 그대로 둔다 — 카드면의 투명도는 등급이 아니라 디자인의 몫이고,
+        // 넘겨받은 색의 알파까지 적용하면 등급 색을 바꿀 때마다 투명도가 딸려 바뀐다.
+        if (cardFace != null && hasStats)
+        {
+            cardFace.color = new Color(faceTint.r, faceTint.g, faceTint.b, cardFace.color.a);
+        }
 
         if (descriptionText != null)
         {
