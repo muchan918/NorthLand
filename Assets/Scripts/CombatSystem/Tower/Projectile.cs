@@ -44,6 +44,19 @@ namespace NorthLand.Combat
         // 구독한다. 순수 추가 훅으로 기존 공격 로직은 무수정. static이므로 구독자가 해제를 책임진다.
         public static event Action<IAttacker, IDamageable> DamageDealt;
 
+        /// 투사체를 만들지 않는 공격이 이 축에 **스스로** 들어오기 위한 발행 창구(#311).
+        ///
+        /// ⚠ **"`Projectile.cs` 무수정" 원칙의 예외다** — #298의 `EnemyMask` 읽기 창구와 같은 성격이라
+        /// 리뷰 포인트로 남긴다. C# 이벤트는 선언한 타입 밖에서 `Invoke`할 수 없으므로, 히트스캔 액션이
+        /// TowerAddGuide.md §6이 적어둔 탈출구("원하면 `Projectile.DamageDealt`를 직접 발행해야 한다")를
+        /// 실행하려면 이 한 줄이 필요하다.
+        ///
+        /// ⚠ **기본값은 여전히 "제외"다.** 히트스캔이 이 축에서 빠지는 것은 설계 의도이므로
+        /// (`BeamAction`은 발행하지 않는다), 새 액션이 자동으로 포함되지 않고 **의도적으로 부를 때만**
+        /// 들어온다. 부르는 쪽은 `TakeDamage` **직후**에 불러 순서를 투사체 경로(`Hit`)와 맞출 것.
+        internal static void RaiseDamageDealt(IAttacker source, IDamageable victim)
+            => DamageDealt?.Invoke(source, victim);
+
         // 프리팹에 남는 **유일한** 설정 — 모델 메시의 기수가 어느 축을 보는지 보정한다(화살 −90, 공 0).
         // 타워가 알 이유가 없는 값이라 여기 남는다. 비행·명중은 전부 타워 SO가 정한다(#274).
         [SerializeField] Vector3 rotationOffset;

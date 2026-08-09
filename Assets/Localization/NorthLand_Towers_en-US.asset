@@ -253,6 +253,19 @@ MonoBehaviour:
       range."
     m_Metadata:
       m_Items: []
+  - m_Id: 7425158103605248
+    m_Localized: Charging Cannon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7425158128771072
+    m_Localized: Charged Lance
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7425158128771073
+    m_Localized: The longer it holds fire, the wider and stronger the beam. Fires
+      a rectangular lance that strikes every enemy lined up along it at once.
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

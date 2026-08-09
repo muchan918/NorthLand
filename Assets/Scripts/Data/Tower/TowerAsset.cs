@@ -37,6 +37,12 @@ public class TowerAsset : ScriptableObject
     [Header("빔(다중 타겟 지속딜)")]
     public BeamFields Beam;
 
+    // 차징 캐논(#300 설계 → #311). 조준 방향으로 사각 레이저를 뿜는 히트스캔이라 투사체 개념
+    // (Flight/ProjectilePrefab/Impact)이 하나도 없다 — Beam이 Attack에서 분리된 것과 같은 이유로
+    // 자기 블록을 쓴다. Attack에 수치를 적으면 OnValidate가 "아무도 읽지 않는다"고 경고한다.
+    [Header("레이저(차징 사각 히트스캔)")]
+    public LaserFields Laser;
+
     // 전투 실적으로 이 타워가 스스로 강해지는 축(#300). 지금까지 타워 스탯을 바꾸는 소스는 전부
     // 외부(타일 버프·오라·스킬·보스 봉인)에서 왔는데, 이것이 **자기 실적이 원장에 얹히는 첫 소스**다.
     [Header("성장(램프업)")]
@@ -71,8 +77,10 @@ public class TowerAsset : ScriptableObject
             Attack != null ? Attack.AttackRange : 0f,
             Beam != null ? Beam.Range : 0f),
         Mathf.Max(
-            BuffAura != null ? BuffAura.Radius : 0f,
-            DebuffAura != null ? DebuffAura.Radius : 0f));
+            Laser != null ? Laser.Range : 0f,
+            Mathf.Max(
+                BuffAura != null ? BuffAura.Radius : 0f,
+                DebuffAura != null ? DebuffAura.Radius : 0f)));
 
 #if UNITY_EDITOR
     // 저작 실수를 **저장하는 순간** 드러낸다(WL-130 해소).
@@ -91,7 +99,8 @@ public class TowerAsset : ScriptableObject
             bool authored = (Attack != null && (Attack.AttackDamage > 0f || Attack.ProjectilePrefab != null))
                             || (BuffAura != null && BuffAura.Radius > 0f)
                             || (DebuffAura != null && DebuffAura.Radius > 0f)
-                            || (Beam != null && Beam.DamagePerTick > 0f);
+                            || (Beam != null && Beam.DamagePerTick > 0f)
+                            || (Laser != null && Laser.Damage > 0f);
 
             if (authored)
             {
@@ -109,7 +118,7 @@ public class TowerAsset : ScriptableObject
         }
 
         var actions = tower.Actions;
-        bool hasAttack = false, hasBuff = false, hasDebuff = false, hasBeam = false, hasRamp = false;
+        bool hasAttack = false, hasBuff = false, hasDebuff = false, hasBeam = false, hasRamp = false, hasLaser = false;
         var seen = new HashSet<System.Type>();
 
         for (int i = 0; i < actions.Count; i++)
@@ -133,6 +142,7 @@ public class TowerAsset : ScriptableObject
             hasDebuff |= a is NorthLand.Combat.DebuffAuraAction;
             hasBeam |= a is NorthLand.Combat.BeamAction;
             hasRamp |= a is NorthLand.Combat.RampAction;
+            hasLaser |= a is NorthLand.Combat.LaserAction;
         }
 
         // ── 액션 ↔ 수치 짝 검사 ────────────────────────────────────────────
@@ -239,6 +249,51 @@ public class TowerAsset : ScriptableObject
             Debug.LogWarning($"[TowerAsset] {name}: Ramp.Trigger=Hit인데 프리팹에 AttackAction이 없습니다 " +
                              "— 명중 통지는 투사체 공격에서만 발행되므로 스택이 영영 쌓이지 않습니다. " +
                              "빔 타워라면 대상별 램프를 쓰거나 Trigger=Kill로 바꾸세요.", this);
+
+        // ── 레이저(LaserAction) ↔ 수치 짝 검사(#311) ─────────────────────────
+        bool laserAuthored = Laser != null && Laser.Damage > 0f;
+        if (hasLaser && !laserAuthored)
+            Debug.LogWarning($"[TowerAsset] {name}: 프리팹에 LaserAction이 있는데 Laser 수치가 비었습니다 " +
+                             "(Damage 0) — 배치해도 피해가 안 나갑니다.", this);
+        if (!hasLaser && laserAuthored)
+            Debug.LogWarning($"[TowerAsset] {name}: Laser 수치를 적었는데 프리팹에 LaserAction이 없습니다 " +
+                             "— 이 수치는 아무도 읽지 않습니다.", this);
+
+        if (hasLaser && laserAuthored)
+        {
+            // 폭·높이·사거리 중 하나라도 0이면 판정 박스의 부피가 0이라 **아무도 안 맞는다.**
+            // LaserAction.canFire가 같은 조건으로 동작을 접으므로 예외도 로그도 없이 조용하다.
+            if (Laser.Range <= 0f || Laser.Width <= 0f || Laser.Height <= 0f)
+                Debug.LogWarning($"[TowerAsset] {name}: Laser의 Range({Laser.Range})/Width({Laser.Width})/" +
+                                 $"Height({Laser.Height}) 중 0이 있습니다 — 판정 박스의 부피가 0이라 " +
+                                 "쏘는 시늉만 하고 아무도 맞지 않습니다.", this);
+
+            // ⚠ 몬스터는 지면에서 부양해 있다(WL-063: 약 6f). 박스는 지면에서 위로 Height만큼 서므로
+            // 그보다 낮으면 콜라이더가 통째로 박스 위에 떠서 **예외 없이 아무도 안 맞는다** —
+            // 산탄·부메랑의 firePoint 높이 함정과 같은 유형의 무증상 실패다.
+            if (Laser.Height > 0f && Laser.Height < 8f)
+                Debug.LogWarning($"[TowerAsset] {name}: Laser.Height({Laser.Height})가 낮습니다 — 몬스터가 " +
+                                 "지면에서 부양해 있어(WL-063) 판정 박스 위로 빠져나갈 수 있습니다.", this);
+
+            if (Laser.Interval <= 0f)
+                Debug.LogWarning($"[TowerAsset] {name}: Laser.Interval이 0 이하입니다 — 매 프레임 발사·판정이 " +
+                                 "돌아 비용이 폭주하고 충전이 영원히 0에 머뭅니다.", this);
+
+            var charge = Laser.ChargeRamp;
+            bool chargeAuthored = charge != null && charge.IsAuthored;
+
+            if (chargeAuthored && charge.StackInterval <= 0f)
+                Debug.LogWarning($"[TowerAsset] {name}: Laser.ChargeRamp의 StackInterval이 0 이하입니다 — " +
+                                 "충전은 경과 시간으로 단계를 세므로 스택이 영원히 0에 머뭅니다.", this);
+
+            // ⚠ **핵심 저작 규칙**: StackInterval < Interval이면 정상 연사만 해도 매번 1스택 이상이
+            // 차서 "참으면 세진다"는 정체성이 사라진다(항상 두꺼운 레이저가 나간다).
+            if (chargeAuthored && charge.StackInterval > 0f && Laser.Interval > 0f
+                && charge.StackInterval < Laser.Interval)
+                Debug.LogWarning($"[TowerAsset] {name}: Laser.ChargeRamp.StackInterval({charge.StackInterval})이 " +
+                                 $"Laser.Interval({Laser.Interval})보다 짧습니다 — 정상 연사 중에도 스택이 쌓여 " +
+                                 "'참을 때만 두꺼워진다'가 성립하지 않습니다.", this);
+        }
     }
 #endif
 
@@ -317,6 +372,46 @@ public class TowerAsset : ScriptableObject
         [Tooltip("같은 대상을 계속 잠글수록 피해가 오르는 램프. StackInterval초마다 한 단계씩 오르고, " +
                  "대상이 죽거나 사거리를 벗어나면 0에서 다시 시작한다. 비워두면 균일 지속딜(기존 거동).")]
         public NorthLand.Combat.RampProfile LockRamp;
+    }
+
+    // 차징 캐논(#300 설계 → #311). 조준 방향으로 뿜는 사각 히트스캔 + 마지막 발사 이후 경과 시간 충전.
+    //
+    // ⚠ 충전이 `Ramp`(원장형)가 아니라 여기 사는 이유: 충전이 **폭**을 키우는데 `TowerStat`은
+    // AttackDamage/AttackRange/AttackSpeed 3축뿐이고 `CombatSpace.TileBuffStat`과 1:1 대응이라
+    // 축을 늘리면 타일 버프까지 번진다(같은 문제가 WL-127로 열려 있다). 원장이 표현 못 하는 값을
+    // 액션이 직접 굴리는 것은 `BeamFields.LockRamp`가 만든 선례 그대로다.
+    [System.Serializable]
+    public class LaserFields
+    {
+        [Tooltip("충전 0단계의 공격력. 범위 안 전원이 각자 이 값을 받는다(대상 간 감쇠 없음).")]
+        public float Damage;
+
+        [Tooltip("스택 1개당 더해지는 공격력(배율이 아니라 절댓값). 기본 공격력과 독립적으로 밸런싱하기 위해 flat이다.")]
+        public float DamagePerStack;
+
+        [Tooltip("레이저가 뻗는 거리 = 판정 박스의 길이. AttackRange 원장을 거친다.")]
+        public float Range;
+
+        [Tooltip("충전 0단계의 판정 폭. ChargeRamp의 배율이 여기 곱해진다.")]
+        public float Width;
+
+        [Tooltip("판정 박스의 높이(지면에서 위로). ⚠ 몬스터가 부양해 있어(WL-063) 너무 낮으면 " +
+                 "박스 위로 빠져나가 아무도 안 맞는다.")]
+        public float Height = 12f;
+
+        [Tooltip("발사 간격(초). AttackSpeed 원장을 거친다.")]
+        public float Interval = 2f;
+
+        [Tooltip("섬광이 보이는 시간(초). 판정은 발사 프레임 1회뿐이고 이건 표시 전용이다.")]
+        public float FlashSeconds = 0.12f;
+
+        // ⚠ **StackInterval ≥ Interval로 저작할 것**(OnValidate가 검사한다). 정상 연사 중에는 스택이
+        // 0~1에 머물러 얇은 레이저가 나가고, 참을 때만 두꺼워진다 — "쿨타임이 돈 뒤부터 충전"을
+        // 액션 간 결합 없이 수치로 표현하는 방법이다(`AttackAction.cooldownTimer`를 들여다보면 얽힌다).
+        [Tooltip("쏘지 않고 버틴 시간으로 차오르는 충전. PerStack은 **폭 배율** 증가분이고, " +
+                 "공격력은 DamagePerStack이 따로 맡는다(노브 2개가 같은 스택 수를 공유). " +
+                 "비워두면 충전 없는 즉발 사각 판정 타워가 된다.")]
+        public NorthLand.Combat.RampProfile ChargeRamp = new NorthLand.Combat.RampProfile();
     }
 
     // 성장(램프업) 저작 묶음(#300). 계기와 축은 여기서, 수치는 공용 부품 `RampProfile`이 소유한다 —
