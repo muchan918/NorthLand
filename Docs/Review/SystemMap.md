@@ -29,6 +29,8 @@
 | Resident (경영 앰비언트 군중 BT, #276) | n0wst4ndup | `Assets/Scripts/ManagementSpace/Resident`(상태·레지스트리 3종·세션·스포너), `.../Resident/Nodes`(리프 노드 11종), `.../Resident/Debug`, `Assets/Scripts/Editor/ResidentBehaviorGraphBuilder.cs`, `Assets/Behavior/ResidentBehavior.asset`(그래프), `Assets/Imported/@NorthLand/{Prefabs,Animations}/Resident` | 마을에 사람이 산다는 것을 보여주는 **연출 개체군**이다 — 자원을 생산하지 않고 일터로 가지 않는다. **군중 수는 고정 풀이고 배치 상한(`MaxVillagers`)과 무관하다**(GDD §5.1 · §3 접점 행). 동작하는 행위: R1 유휴 · R2 산책 · R15 휴식 · R3 인사 · R4 수다 · R12 웃음 · R7 놀람 · R5 춤 · R8 귀가 · R9 등장. **구조**: `Resident`(상태 정본 — 세션 참조·사교성·조우 쿨다운·등장/귀가 플래그)와 `ResidentAgent`(BT 파사드)가 **병존**한다 — `Enemy`/`EnemyAgent`와 같은 구성이고, 노드는 파사드만 보고 `NavMeshAgent`/`Animator`에 직접 닿지 않는다. **대화는 세션 객체(`ResidentConversation`)가 소유하고 참가자는 참조만 든다** — 티커가 없고 진행이 참가자의 행동 종료에 붙어 있어 한쪽이 사라져도 세션이 멎지 않으며, 사라진 것을 남은 쪽이 이탈로 읽어 R7을 띄운다. **근접 질의는 물리가 아니라 레지스트리 3종**(주민·웨이포인트·문)으로 푼다 — 레이어·태그를 하나도 점유하지 않는다(`ProjectSettings` 변경 0건). **BT는 Priority Abort 선점 3개**(밤 · 대화 합류 · 춤 목격)를 쓴다 — 이 프로젝트에서 처음이고 보스 그래프는 미사용. 도입 근거는 밤 전환의 동시성이다(선점이 없으면 주민 30명이 각자 이동 구간 4초가 끝나기를 기다려 어긋나게 반응한다). ⚠ **브랜치 우선순위가 노드 X좌표로 결정된다**(`GraphAssetProcessor.GetSortedConnections`) — 순서가 뒤집히면 조건도 등록도 정상인 채 선점만 죽으므로 빌더 자기검사가 자식 순서를 **타입으로** 대조한다. ⚠ **그래프는 `ResidentBehaviorGraphBuilder`(에디터)의 산출물이라 손 편집이 재빌드에 사라진다** — 튜닝 값 회수용으로 `NorthLand/Resident/Dump Behavior Graph Values` 메뉴가 있다. 밸런싱 수치가 그래프 Blackboard가 아니라 빌더 상수에 있어 BossAI 행의 방향(WL-094)과 반대다(WL-151). 애니메이터는 **전이 없는 고립 상태 8개** + `CrossFadeInFixedTime`이라 Animator를 열면 전이가 없는 것이 정상이다. **✅ 정본 `GameScene` 이식 완료(#277)** — NavMesh 베이크(계단·섬·건물 내부 `NavMeshModifierVolume` 4개), 웨이포인트·문 지점 심기, 주민 30명 배치, 낮→밤→낮 1주기 실측. **⚠ 초콜릿 다리는 `NavMeshLink`가 아니라 보이지 않는 베이크 프록시 메시로 건넌다(#305)** — 링크는 이동이 직선이라 주민이 아치를 뚫었고, 정점에서 꺾어 2개로 나누면 **링크끼리는 연결되지 않아** 아예 못 건넜다. **⚠ 경영 공간 NavMesh 배선이 두 저장소에 걸쳐 있다** — `NavMeshSurface`와 다리 프록시 오브젝트는 `CandyLand.prefab`(별도 private repo `Assets/Imported`), 베이크 데이터(`Assets/Scenes/GameScene/NavMesh-NavMesh.asset`)와 프록시 메시는 본 저장소다. 배선이 본 저장소 diff에 보이지 않고 머지 순서가 어긋나면 다리가 조용히 끊기며, 재베이크에는 Imported 체크아웃이 필요하다(WL-160, `Docs/Core/SceneWorkflow.md` §7). 전체가 **정적 베이크**라 GDD §5.3 영토 확장(런타임 섬 프리팹 `Instantiate`)과 아직 만나지 않았다(WL-161). **✅ N인 대화(#277)**: 세션이 `Slot[]`→`List<Slot>`이 되고 진행 중 합류를 받는다(`TryJoin`/`CanAccept`/`MarkEncounterWithAll`). 자리는 `R = 거리 / (2·sin(π/N))` 원주 배치 + 최근접 그리디 배정(N=2는 기존 중점 대칭과 정확히 동일). 합류 흐름은 ①합류자 인사 → ②기존 참가자가 합류자를 보며 인사 → ③원주 재배치 → ④턴 초기화 4단이다. **⚠ 대화 밀림 방지는 `ResidentAgent.SetStationaryHold` 하나로 푼다** — 서 있는 참가자를 자기 회피 계산에서 뺀다(정지한 `NavMeshAgent`도 지역 회피 해에는 밀린다). **무리 중심에 세우던 `NavMeshObstacle`(`ResidentConversationObstacle`)은 폐기했다** — `carving = false`라 경로 계획이 모르는데 반경이 1.96(3인)이라, 지나가던 주민이 설 수 있는 자리가 중심에서 2.56 밖뿐이고 **골목 폭이 그보다 좁으면 유효해가 없어 영구 공전한다**(실측). `Clearance` 튜닝으로 못 푼다(통로 조건 `inner ≤ R − 1.8`이 `MinRadius`에 걸린다). 에이전트끼리는 겹쳐서라도 빠져나오므로 막는 주체를 참가자의 몸으로 되돌렸다 — 자세한 근거는 `Resident.md` §7.1 「왜 회피물을 폐기했는가」. **✅ 선택/아웃라인(#277)**: `ResidentSelectable`(런타임 부착 마커) + `ResidentSelectionCoordinator`가 호버 노랑·선택 초록·드래그 다중 선택을 붙이고 **유휴 주민 수(`MaxVillagers − AssignedTotal`)로 상한**을 건다. **미착수**: 배치 반응(§3.2) · R6 앉기 · R13/R14 공연(§10). 정본 `Docs/ManagementArea/Resident.md`(§11이 실제로 도는 것) |
 | InteractionOutline (상호작용 아웃라인, #213) | n0wst4ndup | `Assets/Scripts/GameManager/MouseManager/Highlight`(`OutlineHighlight`/`OutlineInteractionDriver`/`IOutlineTargetProvider`/`IOutlineKindFilter`), `Assets/Scripts/Rendering`(`InteractionOutlineRegistry`/`InteractionOutlineFeature`), `Assets/Shaders/Outline`, `Assets/Settings/PC_Renderer.asset`·`Mobile_Renderer.asset` | **표시 방식 2회 전환**: 인버티드 헐(shell, 2026-07-27) → **스크린 스페이스 실루엣**(2026-08-03). 현재 방식은 대상 렌더러를 마스크 RT에 슬롯 값(호버/선택/합성프리뷰)으로 그리고 dilate 후 원본을 차감해 링을 뽑아 합성한다 — 자식 오브젝트·머티리얼·메시를 하나도 만들지 않고, **부품 수와 무관하게 오브젝트 전체 실루엣 하나**가 나온다. 셸의 렌더러 512개 상한·스무스 노멀 프리베이크·`OutlineShell` 레이어+세 마스크 의존이 전부 사라졌다. **공개 계약 무변경**: `OutlineHighlight.GetOrAdd(go).Set(kind, bool)`, 우선순위 MergePreview > (Selected\|GroupSelected) > Hover, `IOutlineTargetProvider`(대상 리다이렉트, 구현체 `TerritoryNodeView`). **`IOutlineKindFilter` 추가(#302)** — 대상이 아웃라인을 **종류별로** 거부한다(구현체 `ResidentSelectable`: 가용 인원 0이면 선택 초록만 막고 호버 노랑은 살린다). `IOutlineTargetProvider`로는 표현할 수 없었다 — `Resolve()`가 호버·선택 **공용**이라 `null`을 돌리면 두 종류가 함께 죽는다. 드라이버는 이 축이 붙어도 여전히 도메인을 모른다. 색·두께·슬롯별 투시(`ZTest`)·카메라 제외 목록은 **렌더러 피처 인스펙터**에 있다(코드 상수 아님). 렌더 이벤트 `AfterRenderingTransparents`(500) — 틸트-시프트보다 뒤, 픽셀레이션(550)보다 앞(`VisualLookPipeline.md` §3.8). `SetWidth(float)`는 **no-op**(두께가 스크린 픽셀 단위가 되어 줌 보정 불필요). **셸 잔재 정리 완료**(2026-08-03): 레이어 12 회수, FlatKit `ObjectOutline` 피처 제거, 렌더러 세 마스크 원복, 스무스 노멀 자산 16개 삭제. **잔여**: Mobile Forward 경로 미검증(T9). 정본 `Docs/Core/InteractionOutline.md` |
 | VisualLook (전역 비주얼 룩, #148) | n0wst4ndup | `Assets/Scripts/Editor/FlatKitMaterialConverter.cs`, `Assets/Scripts/Rendering/PixelationZoomBinder.cs`, `Assets/Settings/FlatKit`(룩 템플릿·변환 기록), `Assets/Settings/MiniatureLookProfile.asset`, `Assets/Settings/PC_Renderer.asset` | **정본 `GameScene` 이행 완료(2026-08-04)** — 툰 셰이딩·룩 볼륨·라이팅·픽셀레이션이 정본 씬에서 함께 돈다. 툰 셰이딩 이관 대상: 본진(CandyLand) + 주민 + 플랫폼·브릿지 33개 + **환경 오브젝트 142개**. 원본 무수정 규칙 때문에 "원본 1개 → 사본 1개 + 렌더러 슬롯 교체" 방식이고, 룩 수치 정본은 템플릿 머티리얼 1개(`FlatKitToon_Template.mat`)다. 사본 **118개**는 아트 저장소 `@NorthLand/Materials/FlatKit` **한 곳**(카테고리별로 쪼개지 않는다 — 툴이 그 폴더에 만들고, 사본은 원본 1개당 1개라 카테고리에 귀속되지 않는다), 템플릿·매핑은 프로젝트 저장소. **플랫폼·환경·본진은 프리팹 에셋 자체에** 적용돼 있다(Prefab Variant를 Regular로 언팩 후 적용 — 어느 씬에 놓아도 툰 룩). 반투명 `Glass`(젤리 6슬롯)는 유리 느낌이 죽어 **URP Lit 원본 유지** — 한 렌더러에 FlatKit/URP Lit 슬롯이 공존한다. **완전 하드 컷** 확정(`_ShadowEdgeSize` 0 · `_Flatness` 1 · `_UnityShadowSharpness` 10), 대비는 낮게(`_ColorDim` 0.72/0.70/0.80). **룩 볼륨** = `MiniatureLookProfile`에 Tonemapping(Neutral) + Vignette(0.2/0.3) 2개 오버라이드, 양쪽 씬에 `LookVolume` 배치 + `Main Camera.renderPostProcessing` on(`MinMapCamera`는 off — 미니맵에 비네트 금지). Tonemapping은 흰 알베도가 노출에 클리핑돼 셀 컷이 사라지는 문제를 잡는 **재질 판단의 선행 조건**이었다. ⚠️ **볼륨 오버라이드는 `AssetDatabase.AddObjectToAsset` 없이 추가하면 `{fileID: 0}`으로 저장돼 조용히 사라진다**(사고 2회 — `MiniatureLookProfile` 2026-08-03, `NightLookProfile` 2026-08-07. 문서가 이미 있는 상태에서 재발했다. **같은 세션에서는 인메모리 인스턴스가 살아 있어 스크린샷·수치 검증이 전부 통과하고, 도메인 리로드 후에야 사라진다** — 코드로 프로파일을 만들면 그 자리에서 `.asset`을 텍스트로 읽어 확인할 것. `VisualLookPipeline.md` §3.1.1). **라이팅**은 키 라이트 1.5/Hard + 앰비언트 Trilight 눌림이고 **씬이 단일 출처**다 — `DayNightLightingController.captureDayPresetFromScene`(기본 켜짐)이 `Awake`에서 씬 값을 낮 프리셋으로 흡수하고 덮지 않는다. 이 스위치를 끄면 종전대로 프리셋이 씬을 덮으므로 값이 이원화된다(`VisualLookPipeline.md` §7). `nightPreset`은 전환 목표값이라 프리셋에 남는다. **픽셀레이션은 채택 확정**(2026-08-04) — `PC_Renderer`에 등재·`m_Active: 1` + `PixelationZoomBinder`가 줌 범위(현재 **30~150**)를 정규화해 해상도를 몬다. ⚠️ **줌 범위와 강하게 결합**돼 있어 카메라 구도를 바꾸면 룩이 함께 변한다(경고 없음, WL-023·WL-024와 같은 축) — 20~100 → 30~150 조정만으로 기본 프레이밍이 무효에서 유효로 뒤집혔다. 월드 블록 고정 방식은 줌 인에서 픽셀화가 과해 기각했고, 현행은 줌 아웃 끝(ortho 132~150)에서 블록이 1px 미만이 되는 반대편 실패를 갖는다(§3.7.2). **컬러 그레이딩은 페이즈 무관 축에서는 미채택**(실물 보고 기각) — 다만 **밤 전용으로는 도입됐다**(`NightLookProfile`, ColorAdjustments+Bloom, priority 2, #136 · `VisualLookPipeline.md` §3.3.1). 밤 전환 셀 와이프(`Night Wipe` 피처 + `Assets/Shaders/DayNight/NightWipe.shader`, #101)가 렌더러 피처 목록에 추가됐고 **전환 중에만 활성**이다(순서는 §3.8이 단일 진실 원천). ⚠️ **`Night Wipe`만 PC/Mobile 양쪽 등재** — 룩 정제가 아니라 게임플레이 페이즈 연출이라 PC 전용 예외(§2 결정 5)를 적용하지 않았다. **미착수/미해결**: 틸트-시프트, 모바일 프리셋, **캐스트 그림자가 전혀 렌더되지 않음**(`PC_RPAsset.shadowDistance` 50 vs 카메라 591유닛 — 전역 에셋이라 팀 결정 대기), **미니맵이 함께 픽셀화됨**(렌더러가 `PC_Renderer` 1개뿐이라 모든 카메라가 공유하는데 벤더 피처가 SceneView/Preview/Overlay만 제외 → Base 카메라인 `MinMapCamera` 통과. 아웃라인은 `excludedCameraNames`로 이미 막혀 있어 **누출이 아니다**). 룩데브 씬 `Assets/Scenes/Branches/GameScene_600.unity`는 튜닝 완료로 **폐기 예정**(`Branches/`는 주간 정리에서 폴더째 비우는 위치 — 이후 튜닝은 정본 씬에서). 정본 `Docs/Rendering/VisualLookPipeline.md` |
+| Camera (쿼터뷰 카메라 · 줌) | sunjin1222 · n0wst4ndup | `Assets/Scripts/Camera/CameraController2.cs`, `Assets/Scripts/Camera/CameraVisibility.cs`, `Assets/Scripts/Camera/ZoomDrivenVisibility.cs` | 정본 씬은 `CameraController2` 단독(구 `CameraController.cs`는 미사용 잔존, WL-023). 이동(WASD·우드래그·미니맵)과 줌(휠 → `CinemachineCamera.Lens.OrthographicSize`, 씬 범위 30~150)을 소유하며 `Mouse`/`Keyboard.current`를 직접 폴링한다 — MouseManager의 '입력 단일 창구' 계약 **밖**이다(WL-023·WL-073). **#138에서 `OnZoomChanged` 발행이 추가돼 줌 소비 축이 둘이 됐다**: `PixelationZoomBinder`(매 `LateUpdate` 폴링, `[ExecuteAlways]`라 편집 모드에서도 돌아야 해 이벤트로 이관 불가 — **의도된 병존**)와 `ZoomDrivenVisibility`(push + 붙을 때 1회 pull). 발행이 `ZoomMouseWheel` 인라인이라 `ApplyZoom` 격리 seam은 아직 없다(WL-024). `CameraVisibility`(static)는 프러스텀 가시성 질의의 공용 창구로, 평면을 **프레임당 1회만** 계산해 캐시한다(질의 주체가 스포너 1 + 비행 중 N대) |
+| ManagementVfx (경영 연출: 업그레이드·줌 힌트·열기구, #138) | n0wst4ndup | `Assets/Scripts/ManagementSpace/Vfx` | 세 갈래 모두 **컨트롤러·카메라에 연출 지식을 넣지 않는다**. **행동 연출**(`BuildingFeedback`) — `ManagementController.OnBuildingAction`을 구독해 자기 건물(`BuildingAsset`)의 알림만 골라 파티클 1회 재생. **줌 힌트**(`BuildingZoomHint`) — `ZoomDrivenVisibility` 파생. 오쏘 사이즈 구간(씬 100~999)에서 상시 파티클로 상호작용 가능 건물을 안내한다. ⚠ **낮/밤을 보지 않는다**: 밤에는 `IsDay` 게이트로 상호작용이 잠기는데(WL-104) 힌트는 그대로 뜬다 — **밤에도 노출하는 것으로 결정(TBD)**, 이질감이 발현하면 `DayNightManager` 구독으로 합성한다(베이스가 `protected IsVisible`을 열어 둔 이유). **열기구**(`BalloonFlightSpawner`/`BalloonFlight`) — 스폰 지점이 화면 밖이면 타이머조차 흘리지 않고, 회수는 종료 지점 도달 또는 화면 밖 8초 유예 중 먼저다. 그래서 동시 생존 수가 플레이어 시선에 비례한다(안 따라가면 2~3대, 끝까지 따라가면 ~8대). 시간은 `Time.deltaTime` — 월드 배경이므로 배속을 따른다(WL-100). 파티클 프리팹은 `Imported/@NorthLand/Particles/Management`에 있어 미동기화 시 연출만 사라진다(WL-040) |
 
 ### Run/Seed (Run 단위 마스터 시드)
 
@@ -517,6 +519,30 @@
   ⚠ **BT 노드는 자기 GameObject를 끄지 않는다** — `Resident.MarkArrivedHome()`으로 표시만 남기고 스포너가 `LateUpdate`에서 거둔다(`BehaviorGraphAgent.Update` 스택 위에서 자기를 끄는 사고 회피).
   ⚠ **비활성화는 그래프를 끝내지 않는다** — 재사용 시 `BehaviorGraphAgent.Restart()`가 필요하다(안 하면 어젯밤 노드가 이어진다)
 
+**Camera / ManagementVfx (경영 연출, #138)** — 전부 전역 네임스페이스(경영 공간 세트를 맞췄다, WL-029)
+
+- `CameraController2.OnZoomChanged : Action<float>` — **페이로드는 변화량이 아니라 변경 후 오쏘 사이즈**다.
+  변화량만 실으면 소비처가 누적 상태를 따로 들어야 하고 **게임 도중 생성된 오브젝트가 초기값을 받을 방법이 없다**.
+  그래서 계약은 "붙을 때 `CurrentZoomSize`로 pull, 바뀌면 이벤트로 push"다(`ManagementController.OnChanged`와 같은 계보).
+  값이 실제로 바뀔 때만 발행한다 — 최대/최소에 붙은 채 휠을 굴리면 클램프에 걸려 값이 그대로다.
+  ⚠ **지금은 `ZoomMouseWheel`이 유일한 발행처다.** 부드러운 줌·대상 줌인·세이브 복원 등 `Lens`를 직접 쓰는 경로를 추가하면
+  그쪽에서도 발행해야 한다 — 안 하면 힌트가 조용히 옛 상태에 머문다(WL-024의 `ApplyZoom` seam이 이걸 구조로 막는다)
+- `CameraController2.CurrentZoomSize` / `MinZoomSize` / `MaxZoomSize` — 현재 값·범위 pull 창구
+- `CameraVisibility.IsVisible(Vector3 center, float radius) : bool`(static) — 프러스텀 가시성 질의.
+  평면은 **프레임당 1회만** 계산해 캐시한다(질의 주체가 여럿이라 각자 계산하면 같은 값을 개수만큼 만든다).
+  ⚠ **카메라를 못 찾으면 `true`를 반환한다** — "안 보인다"로 답하면 연출이 조용히 사라져 원인 추적이 어려워지기 때문
+- `ZoomDrivenVisibility`(abstract MonoBehaviour) — 줌 구간에 반응하는 표시물의 공통 뼈대.
+  파생은 `protected abstract void ApplyVisible(bool)` **하나만** 구현하고, 구독/해제·붙을 때 1회 pull·멱등·비활성화 시 내려놓기는 베이스가 담당한다.
+  `protected bool IsVisible`은 파생이 다른 조건(예: 낮/밤)과 합성할 때 읽으라고 열어 둔 것이다.
+  **공용 `enum ZoomLevel`(Near/Mid/Far)로 묶지 않은 이유**: 줌에 반응할 표시물(건물 힌트·머리 위 아이콘·주민 이모티콘)은
+  켜지는 구간이 서로 달라, 경계를 공유하면 하나를 조정할 때마다 나머지가 끌려온다. **머리 위 아이콘·주민 이모티콘이 파생할 자리다**
+  (연속값이 필요한 소비처 — 볼륨 페이드 등 — 는 이 뼈대가 아니라 `OnZoomChanged`를 직접 구독한다)
+- `FeedbackParticle.PlayFromStart(ParticleSystem, Object ctx)` / `StopGracefully(ParticleSystem)`(static) — 파티클 재생 규약의 단일 창구.
+  `PlayFromStart`는 `Stop(StopEmittingAndClear)` 후 `Play(true)`(잔상 겹침 방지), `StopGracefully`는 방출만 멈춰 이미 뜬 입자는 수명대로 사라지게 둔다.
+  ⚠ **비활성 오브젝트에 `ParticleSystem.Play`는 예외 없이 조용히 실패한다** — 그 상태를 경고 로그로 잡아 주는 것이 이 헬퍼의 존재 이유 중 하나다
+- `BalloonFlight.Launch(spawn, start, end, riseSpeed, cruiseSpeed, onReachedStart, onFinished)` — 풀에서 꺼낸 인스턴스도 이 진입점 하나로 상태가 완전히 초기화된다.
+  ⚠ **풀 재사용 시 `Awake`가 다시 돌지 않아 Play On Awake가 발화하지 않는다** → `Launch`가 파티클을 명시적으로 재시작한다
+
 ## 3. 접점 매트릭스 (왼쪽 시스템을 건드리는 PR은 오른쪽 항목을 실제 코드로 대조)
 
 | 접점                                     | 확인할 것                                                                                                                                                                                                                  |
@@ -593,6 +619,15 @@
   단 각 스크립트(Tower/Soldier/Enemy)의 LayerMask vs Tag 방식 최종 확정은 TODO(TBD)로 남음.
   `TagManager.asset` 변경은 반드시 리뷰 대상.
   ⚠ **`3 = Tile`(전투 배치면) / `10 = Ground`(경영 보행면 · NavMesh 베이크 대상)** — 레이어 3은 예전에 `Ground`였고 #277에서 경영 보행면용 `Ground`가 10에 새로 생겼다. 이름만 보고 배치 마스크(`Tile`)와 NavMesh 마스크(`Ground`)를 맞바꾸면 조용히 어긋난다(코드 주석은 `PlacementButton.cs`).
+  현재 등재: `0 Default` / `3 Tile` / `4 Water` / `5 UI` / `6 Selectable` / `7 Enemy` / `8 Soldier`(리젝 잔재) / `9 PlayerBase` / `10 Ground` / `11 MinimapOverlay` / `13 MinimapHidden`.
+  **`12`는 비어 있다** — #213에서 `OutlineShell`을 회수하며 이름을 비웠다. 재사용 시 URP 렌더러의 Opaque/Transparent/Prepass 마스크에 셸 시절 제외 설정이 남아 있지 않은지 먼저 확인할 것(2026-08-09 실측으로는 PC/Mobile 모두 `-1`이라 깨끗하다).
+  `13 = MinimapHidden`(#138)은 **미니맵에만 감출 월드 오브젝트**용이다 — 현재 소비처는 열기구 프리팹 2종이고, `MinMapCamera.cullingMask`에서만 제외된다.
+- **카메라 컬링 마스크**: `Main Camera` = `-2049`(Everything − `MinimapOverlay(11)`), `MinMapCamera` = `-8193`(Everything − `MinimapHidden(13)`).
+  두 카메라 모두 **"Everything에서 뺀다"** 형태를 유지한다 — 그래야 새 레이어가 자동으로 포함된다.
+  ⚠ **인스펙터에서 Everything 상태로 항목 하나를 체크 해제하면 마스크가 "이름 있는 레이어만" 남기는 허용목록으로 바뀐다.**
+  실제로 #138에서 `MinimapOverlay`만 끄려다 `10239`(비트 0~10 + 13)가 되어 **빈 슬롯 12·14~31이 전부 제외**된 적이 있다.
+  그 상태에서 누가 레이어 14 이후를 등재하고 오브젝트를 올리면 **메인 화면에만 아무것도 렌더되지 않고, 컴파일 에러도 콘솔 경고도 없다.**
+  마스크를 바꿀 때는 인스펙터 드롭다운이 아니라 **저장된 정수값을 확인**할 것.
 - **좌표계**: MapBuilder는 battlespace 로컬 정수 그리드(MapSize=7), MouseManager/Combat은 월드 좌표.
   변환 유틸 없음.
 - **네임스페이스**: `NorthLand.Combat`만 존재, 나머지 전역. asmdef 없음(전부 Assembly-CSharp).
@@ -611,6 +646,17 @@
 
 - MonoBehaviour는 얇게(진입점), 로직은 생성자 주입 순수 C# 클래스로
 - 실패 처리: `bool Try~(out/결과 객체)` + Debug.LogError 한국어 메시지 + null 반환(호출부 체크)
+- **연출 파티클 프리팹 규약(#138)**: 오브젝트는 **켜둔 채** `Play On Awake`를 끄고, 재생은 코드가 시킨다.
+  `Looping`은 구동원이 정한다 — 1회성(행동 연출)은 off, 상시 표시(줌 힌트·배경 장식)는 on.
+  `Culling Mode`는 상시 루프면 `Pause`(`PauseAndCatchup`은 화면 밖에 오래 있다가 들어올 때 밀린 시뮬레이션을 한꺼번에 따라잡아 스파이크가 난다).
+  `Max Particles`는 `rate × lifetime`의 2~3배로 조인다(기본 1000은 폭주 안전장치 역할을 못 한다).
+  ⚠ **비활성 GameObject에는 `ParticleSystem.Play`가 예외 없이 조용히 실패한다** — 그래서 "끄지 말고 Play On Awake만 끈다"가 규약이고,
+  `FeedbackParticle`이 그 상태를 경고로 잡는다. ⚠ **풀에서 꺼낸 오브젝트는 `Awake`가 다시 돌지 않아 Play On Awake가 발화하지 않는다** —
+  재사용 경로는 명시적으로 `Stop(Clear)` → `Play(true)`를 불러야 한다(안 하면 2회차부터 이펙트 없는 오브젝트가 돌아다닌다).
+- **연출의 시간축 판단 기준(#138에서 정리, 규칙 확정은 WL-100 대기)**: **월드의 일부인가**로 가른다.
+  월드 배경(열기구 비행·불꽃)은 `Time.deltaTime`·`Use Unscaled Time = off` — 배속에서 같이 빨라지고 일시정지에서 같이 멈추는 것이 자연스럽다.
+  플레이어에게 주는 안내·피드백(건물 업그레이드 연출, 줌 힌트 파티클, `TowerSpawnEffect`/`TowerDissolveEffect`)은 `unscaledDeltaTime`·`Use Unscaled Time = on` —
+  배속에서 소실되거나 일시정지 중 얼어붙으면 **정보가 전달되지 않는** 실패 모드가 된다.
 - `[SerializeField] private` 필드 기본, 프로퍼티는 expression-bodied (접두 `_camelCase` vs
   `camelCase` 혼재 — 통일 미결정)
 - CSV POCO는 PascalCase 프로퍼티(CsvHelper), SO는 CreateAssetMenu

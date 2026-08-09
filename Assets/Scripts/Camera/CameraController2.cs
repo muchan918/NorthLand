@@ -1,3 +1,4 @@
+using System;
 using NorthLand.Core;
 using Unity.Cinemachine;
 using UnityEngine;
@@ -36,6 +37,23 @@ public class CameraController2 : MonoBehaviour
 
     public float MaxZoomSize => maxZoomSize;
 
+    /// <summary>
+    /// 줌이 실제로 바뀌었을 때 발생(#138). 인자는 <b>변경 후 오쏘 사이즈</b>다 — 변화량이 아니다.<br/>
+    /// 소비처(건물 아웃라인·머리 위 아이콘·주민 이모티콘 등)는 전부 "지금 얼마나 축소돼 있는가"로
+    /// 판단하므로 절대값이 바로 쓰인다. 변화량만 실어 보내면 각 소비처가 자기 누적값을 따로 들어야 하고,
+    /// <b>게임 도중 생성된 오브젝트가 초기 상태를 영영 알 수 없다</b>.<br/>
+    /// 그래서 계약은 "붙을 때 <see cref="CurrentZoomSize"/>로 pull, 바뀌면 이 이벤트로 push"다
+    /// (<c>ManagementController.OnChanged</c>와 같은 계보).<br/>
+    /// <br/>
+    /// ⚠ 지금은 마우스 휠(<see cref="ZoomMouseWheel"/>)이 유일한 발행처다. 부드러운 줌·대상 줌인 같은
+    /// 경로를 추가하면 그쪽에서도 발행해야 소비처가 어긋나지 않는다.
+    /// </summary>
+    public event Action<float> OnZoomChanged;
+
+    /// <summary>현재 오쏘 사이즈. 구독 시점에 1회 읽어 초기 상태를 맞추는 용도다.</summary>
+    public float CurrentZoomSize =>
+        cinemachineCamera != null ? cinemachineCamera.Lens.OrthographicSize : minZoomSize;
+
     [Header("미니맵 이동")]
     [SerializeField] private float minimapMoveSmoothTime = 0.15f;
 
@@ -49,6 +67,7 @@ public class CameraController2 : MonoBehaviour
     private Vector2 _dragStartScreenPos;
     private Vector3 _dragStartTargetPos;
 
+    [Header("UI References")]
     [SerializeField]
     private WaveRewardSelectionUI waveRewardSelectionUI;
 
@@ -82,7 +101,7 @@ public class CameraController2 : MonoBehaviour
             hasMissingReference = true;
         }
 
-        
+
 
         if (hasMissingReference)
         {
@@ -97,8 +116,8 @@ public class CameraController2 : MonoBehaviour
             return;
         }
 
-        cameraTarget.position = Vector3.SmoothDamp(cameraTarget.position,minimapMoveTarget,ref minimapMoveVelocity,minimapMoveSmoothTime,
-       Mathf.Infinity,Time.unscaledDeltaTime);
+        cameraTarget.position = Vector3.SmoothDamp(cameraTarget.position, minimapMoveTarget, ref minimapMoveVelocity, minimapMoveSmoothTime,
+       Mathf.Infinity, Time.unscaledDeltaTime);
 
         if (Vector3.SqrMagnitude(cameraTarget.position - minimapMoveTarget) < 0.01f)
         {
@@ -181,9 +200,9 @@ public class CameraController2 : MonoBehaviour
             CancelMinimapMove();
 
             _isDragging = true;
-            _dragStartScreenPos =Mouse.current.position.ReadValue();
+            _dragStartScreenPos = Mouse.current.position.ReadValue();
 
-            _dragStartTargetPos =cameraTarget.position;
+            _dragStartTargetPos = cameraTarget.position;
         }
         else if (Mouse.current.rightButton.wasReleasedThisFrame)
         {
@@ -195,14 +214,14 @@ public class CameraController2 : MonoBehaviour
             return;
         }
 
-        Vector2 currentScreenPos =Mouse.current.position.ReadValue();
+        Vector2 currentScreenPos = Mouse.current.position.ReadValue();
 
         // 드래그 반대 방향으로 카메라 이동
-        Vector2 screenDelta =_dragStartScreenPos - currentScreenPos;
+        Vector2 screenDelta = _dragStartScreenPos - currentScreenPos;
 
-        Vector3 offset =(GroundRight() * screenDelta.x +GroundForward() * screenDelta.y) *dragSpeed;
+        Vector3 offset = (GroundRight() * screenDelta.x + GroundForward() * screenDelta.y) * dragSpeed;
 
-        cameraTarget.position =ClampPosition(_dragStartTargetPos + offset);
+        cameraTarget.position = ClampPosition(_dragStartTargetPos + offset);
     }
 
     private void ZoomMouseWheel()
@@ -221,9 +240,19 @@ public class CameraController2 : MonoBehaviour
 
         float before = cinemachineCamera.Lens.OrthographicSize;
         float nextSize = Mathf.Clamp(before - scrollValue * zoomSpeed, minZoomSize, maxZoomSize);
+
+        // 최대/최소에 붙은 채 휠을 계속 굴리면 클램프에 걸려 값이 그대로다 — 그때마다 발행하면
+        // 구독자가 같은 값으로 매 프레임 헛돈다. "실제로 바뀌었을 때만" 알린다.
+        if (Mathf.Approximately(before, nextSize))
+        {
+            return;
+        }
+
         var lens = cinemachineCamera.Lens;
         lens.OrthographicSize = nextSize;
         cinemachineCamera.Lens = lens;
+
+        OnZoomChanged?.Invoke(nextSize);
     }
 
     private Vector3 GroundForward()
