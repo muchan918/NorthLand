@@ -21163,6 +21163,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7941790840634705288}
+  - component: {fileID: 4963974573323370521}
   m_Layer: 0
   m_Name: FixedEnemyRoute
   m_TagString: Untagged
@@ -21195,6 +21196,30 @@ Transform:
   - {fileID: 3091912987581425124}
   m_Father: {fileID: 7805989967329158851}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4963974573323370521
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5497007678789307278}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69d192c1bf266e64c858cc3d744331e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.FixedEnemyRoute
+  waypoints:
+  - {fileID: 5762752649021201486}
+  - {fileID: 9220378695870235383}
+  - {fileID: 711581244172283569}
+  - {fileID: 1529216942829773223}
+  - {fileID: 2990807542549726251}
+  - {fileID: 6635272596991117138}
+  - {fileID: 1878312274750589782}
+  - {fileID: 6734560523564147857}
+  - {fileID: 1562921618077330383}
+  - {fileID: 3091912987581425124}
+  minimumWaypointDistance: 0.1
 --- !u!1 &5535541188888478610
 GameObject:
   m_ObjectHideFlags: 0
@@ -28280,7 +28305,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7346130724195482563}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 6.75784, y: 0.2, z: 2.98094}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
