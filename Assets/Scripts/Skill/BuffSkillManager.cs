@@ -49,6 +49,8 @@ public class BuffSkillManager : MonoBehaviour
 
     void Awake()
     {
+        if(WarnRetired()) return;
+
         if (Instance == null)
         {
             Instance = this;
@@ -57,6 +59,17 @@ public class BuffSkillManager : MonoBehaviour
         {
             Destroy(gameObject);
         }
+    }
+
+    // #315로 은퇴한 스킬(GDD §5.5)이 씬에 되살아났을 때 콘솔에 드러낸다.
+    // 씬 정본 확정은 스냅샷 덮어쓰기라 삭제가 병합으로 보존되지 않는데(SceneWorkflow.md §4),
+    // 스크립트를 남긴 결정 때문에 부활해도 경고가 0건이라 무증상이다 — 그 침묵을 깨는 것이 목적이다.
+    // 되살릴 때는 이 메서드와 Awake 첫 줄만 지운다.
+    bool WarnRetired()
+    {
+        Debug.LogError("[#315] 제거된 버프 스킬(BuffSkillManager)이 씬에 배선돼 있습니다 — 이 오브젝트를 삭제하세요.", this);
+        enabled = false;
+        return true;
     }
 
     void Start()
