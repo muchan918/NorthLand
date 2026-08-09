@@ -61,7 +61,7 @@
 | 2 | SO 스텁 생성 | `Tools > Table Importer` | SO가 안 생긴다 — 손으로 만들어도 되는 **선택 단계** | 부모 저장소 |
 | 3 | 타워 프리팹 | `Assets/Imported/@NorthLand/Prefabs/Tower/{이름}/` | `Actions`가 비면 배치는 되는데 **아무 동작도 안 한다** | ⚠ **중첩 저장소** |
 | 4 | 고스트 프리팹 | 같은 폴더 | 배치 진입 자체가 LogError로 막힌다 | ⚠ **중첩 저장소** |
-| 5 | SO 수치 기입 | `Assets/Resources/ScriptableObjects/Towers/{ID}.asset` | 저장 시 `OnValidate` 경고 | 부모 저장소 |
+| 5 | SO 수치 기입 | `Assets/Resources/ScriptableObjects/Towers/{ID}.asset` | 저장 시 `OnValidate` 경고 · ⚠ **밸런싱 규약을 벗어나면 아무 신호가 없다**([§3.5](#35-so-수치-기입)) | 부모 저장소 |
 | 6 | 씬 등록 | `GameScene`의 타워 선택 패널 | **게임에 영영 안 나온다** | ⚠ **씬** |
 | 7 | 로컬라이제이션 키 | `NorthLand_Towers` 테이블 | 이름이 `towers.xxx.name`으로 그대로 보인다 | 부모 저장소 |
 
@@ -139,6 +139,20 @@ archer_tower,towers.archer.name,1,1,towers.archer.role,towers.archer.desc
 ### 3.5 SO 수치 기입
 
 **어디서** `Assets/Resources/ScriptableObjects/Towers/{TowerID}.asset`
+
+> ### ⚠ 값을 적기 전에 — 밸런싱 규약부터 확인한다 (#326)
+> 수치를 감으로 적으면 **타워마다 자기 안에서만 말이 되는 값**이 된다. 그 상태를 정리한 것이
+> [CombatBalance.md](CombatBalance.md)이고, 아래 세 줄이 그 요약이다. **어겨도 `OnValidate`가 안 잡는다.**
+>
+> 1. **밴드에서 목표 킬 수를 고른다** — [§6.0 눈금표](CombatBalance.md). 티어(직접배치 1차 / 합성 2차 /
+>    합성 산물을 재료로 쓰면 3차…)를 정하고 그 밴드 안에서 눈금 하나를 고른다. 재료 자원 합이 클수록 높게
+> 2. **[§6.1 환산식](CombatBalance.md)으로 발당 피해를 계산한다** — 감으로 적지 않는다
+> 3. **규약 ① `공격 간격(초) ≤ 사거리(타일) ÷ 3`** — 1타일 = 6유닛. 어기면 적이 사거리를 지나는 동안
+>    발사 횟수가 1~2발에 그쳐 **쿨다운 위상에 따라 쏘거나 안 쏘거나** 한다(정수 오차 ±50% 이상)
+>
+> **규약 ②** — 합성 결과 타워는 **재료 타워 킬 수의 합보다 강해야 한다.** 아니면 합성이 순손실이라
+> 아무도 안 만든다. 상한은 재료 합 × 1.3.
+
 **무엇을** 인스펙터 위에서부터:
 
 - [ ] `TowerPrefab` / `GhostPrefab` — 3.3·3.4에서 만든 것
