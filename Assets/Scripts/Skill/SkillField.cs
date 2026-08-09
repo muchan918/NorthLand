@@ -27,7 +27,9 @@ public class SkillField : MonoBehaviour
     float lifeTimer;
     float tickTimer;
     bool initialized;
-    readonly Collider[] hitBuffer = new Collider[16];
+    // 반경이 커질수록 한 틱에 걸리는 적이 는다(씬 authoring 18 — 감전 6·폭탄 10보다 넓다).
+    // OverlapCapsuleNonAlloc은 버퍼가 차면 나머지를 조용히 버리므로 다른 판정보다 넉넉히 잡는다.
+    readonly Collider[] hitBuffer = new Collider[64];
 
     public void Init(float damagePerTick, float radius, float duration, float tickInterval,
                      LayerMask enemyLayerMask, bool debugLog)
@@ -108,6 +110,11 @@ public class SkillField : MonoBehaviour
             transform.position,
             transform.position + Vector3.up * verticalRange,
             radius, hitBuffer, enemyLayerMask);
+
+        // 포화 = 초과분이 조용히 누락된 상태. "가끔 안 맞는다"로만 보이고 재현이 안 되므로 로그로 드러낸다.
+        if (count == hitBuffer.Length)
+            Debug.LogWarning($"[SkillEffect] 전기장 판정 버퍼 포화({count}) — 초과분 누락. 반경={radius}", this);
+
         int hitTargets = 0;
         for (int i = 0; i < count; i++)
         {
