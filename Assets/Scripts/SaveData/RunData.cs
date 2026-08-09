@@ -3,6 +3,13 @@ using System.Collections.Generic;
 
 namespace NorthLand.Core
 {
+
+    public enum TowerMapArea
+    {
+        CombatMap = 0,
+        StartMap = 1
+    }
+
     /// <summary>
     /// 현재 진행 중인 한 판의 전체 저장 데이터.
     /// 저장 항목은 기능을 구현할 때 영역별로 추가한다.
@@ -56,8 +63,16 @@ namespace NorthLand.Core
     public sealed class TowerSaveData
     {
         public string TowerId;
+
+        // 타워가 배치된 맵 영역
+        public TowerMapArea MapArea = TowerMapArea.CombatMap;
+
+        // 자동 생성 배틀맵에서 사용
         public int CellX;
         public int CellZ;
+
+        // 스타트맵에서 사용
+        public string StartTileId;
     }
     public sealed class RewardEffectSaveData
     {

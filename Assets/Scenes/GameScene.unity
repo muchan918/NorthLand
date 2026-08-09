@@ -172,6 +172,7 @@ MonoBehaviour:
   management: {fileID: 544968473}
   territory: {fileID: 340814262}
   towerPlacer: {fileID: 6262796507066623699}
+  startMapTileRegistry: {fileID: 646743659}
   towerAssets:
   - {fileID: 11400000, guid: 7ecd80d44165e644591aafb428cf5efe, type: 2}
   - {fileID: 11400000, guid: a752545bbde5030438f8995ae4ee0849, type: 2}

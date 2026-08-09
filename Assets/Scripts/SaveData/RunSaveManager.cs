@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CombatSpace;
 using UnityEngine;
 
 namespace NorthLand.Core
@@ -19,6 +20,10 @@ namespace NorthLand.Core
         [Tooltip("저장된 셀 좌표에 타워를 다시 배치할 때 사용하는 배치 시스템")]
         [SerializeField]
         private TowerPlacer towerPlacer;
+
+        [Tooltip("저장된 스타트맵 타일 ID를 실제 타일로 변환하는 레지스트리")]
+        [SerializeField]
+        private StartMapTileRegistry startMapTileRegistry;
 
         [Tooltip("저장된 TowerID를 실제 TowerAsset으로 변환하는 목록")]
         [SerializeField]

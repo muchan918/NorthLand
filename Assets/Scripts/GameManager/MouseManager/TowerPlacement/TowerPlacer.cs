@@ -651,9 +651,49 @@ public class TowerPlacer : MonoBehaviour
             return false;
         }
 
+        return TryRestoreTower(asset, anchor, out restoredTower);
+    }
+
+    /// <summary>
+    /// 저장된 TowerAsset과 실제 기준 타일을 이용해 타워를 복원한다.
+    /// 스타트맵처럼 자동 생성 그리드 좌표로 조회할 수 없는 타일에서 사용한다.
+    /// </summary>
+    public bool TryRestoreTower(
+        TowerAsset asset,
+        BattleTile anchor,
+        out NorthLand.Combat.Tower restoredTower)
+    {
+        restoredTower = null;
+
+        if (asset == null)
+        {
+            Debug.LogError("[TowerPlacer] 복원할 TowerAsset이 없습니다.", this);
+            return false;
+        }
+
+        if (anchor == null)
+        {
+            Debug.LogError("[TowerPlacer] 복원할 기준 타일이 없습니다.", this);
+            return false;
+        }
+
+        CombatMapTileView tileView =
+            anchor.GetComponentInParent<CombatMapTileView>();
+
+        if (tileView == null)
+        {
+            Debug.LogError(
+                "[TowerPlacer] 기준 타일의 CombatMapTileView를 찾을 수 없습니다.",
+                anchor);
+
+            return false;
+        }
+
         if (!TryCreateTower(asset,anchor,tileView,out GameObject placed))
         {
-            Debug.LogError($"[TowerPlacer] 저장된 타워 생성에 실패했습니다: {asset.TowerID}, 셀={anchorCell}",this);
+            Debug.LogError(
+                $"[TowerPlacer] 저장된 타워 생성에 실패했습니다: {asset.TowerID}",
+                this);
 
             return false;
         }
@@ -736,6 +776,7 @@ public class TowerPlacer : MonoBehaviour
 
         var footprint = placed.AddComponent<TowerFootprint>();
 
+        footprint.SetAnchorTile(anchor);
         footprint.SetAnchorCell(anchorView.GridPosition);
 
         placed.AddComponent<TowerGroupSelectable>();
