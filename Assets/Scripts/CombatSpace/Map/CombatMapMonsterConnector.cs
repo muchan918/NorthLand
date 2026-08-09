@@ -293,10 +293,16 @@ namespace CombatSpace
             // 접합 지점의 XZ 위치가 같으면 자동 경로 첫 지점을 생략한다.
             int generatedStartIndex = connectionDistance <= duplicatePointDistance ? 1 : 0;
 
-            if (generatedStartIndex >= generatedRoute.Count)
+            // 0라운드는 실제 웨이브가 아니라 초기 공개 단계다.
+            // 이때는 자동 경로가 중복 접합점 하나뿐일 수 있으므로
+            // 고정 경로만으로 성문과 스폰 데이터를 초기화하도록 허용한다.
+            bool isInitialReveal = revealController.CurrentRound == 0;
+
+            if (generatedStartIndex >= generatedRoute.Count &&
+                !isInitialReveal)
             {
                 Debug.LogError("[CombatMapMonsterConnector] 접합 지점을 제외하면 " +
-                    "사용할 수 있는 자동 생성 경로가 없습니다.",this);
+                    "사용할 수 있는 자동 생성 경로가 없습니다.", this);
 
                 return false;
             }
