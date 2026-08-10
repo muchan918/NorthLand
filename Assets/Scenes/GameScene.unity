@@ -974,14 +974,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: CandyLand
       objectReference: {fileID: 0}
-    - target: {fileID: 6075225752261219507, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 128.2
-      objectReference: {fileID: 0}
-    - target: {fileID: 6075225752261219507, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 233.2
-      objectReference: {fileID: 0}
     - target: {fileID: 8923883104720120110, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: _zoomSource
       value: 
@@ -991,8 +983,7 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 522335599}
     m_RemovedComponents: []
-    m_RemovedGameObjects:
-    - {fileID: -6869611847579359705, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
+    m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
