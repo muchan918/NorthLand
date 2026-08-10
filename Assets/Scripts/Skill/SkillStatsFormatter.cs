@@ -14,6 +14,8 @@ public static class SkillStatsFormatter
     const string k_BombDamageKey = "skills.stat.bomb_damage";
     const string k_RadiusKey     = "skills.stat.bomb_radius";
     const string k_CastCountKey = "skills.stat.cast_count";
+    const string k_FieldTickDamageKey = "skills.stat.field_tick_damage";
+    const string k_FieldRadiusKey     = "skills.stat.field_radius";
     
     // 상한 도달 표기. 언어와 무관하게 통용되는 토큰이라 로컬라이제이션 테이블에 넣지 않는다(#292).
     const string k_MaxText = "Max";
@@ -40,4 +42,9 @@ public static class SkillStatsFormatter
     /// 추가시전 총 발동 횟수 한 줄.
     public static string BuildCastCountLine(int current, int next)
         => $"{Label(k_CastCountKey)}: {current}{k_Arrow}{next}";
+
+    /// 전기장 2줄: 틱 데미지 / 반경. 반경은 레벨과 무관한 고정값이라 화살표 없이 한 값만 보여준다(폭탄과 동일).
+    public static string BuildFieldLines(float currentDamage, float nextDamage, float radius)
+        => $"{Label(k_FieldTickDamageKey)}: {currentDamage:0.#}{k_Arrow}{nextDamage:0.#}\n" +
+           $"{Label(k_FieldRadiusKey)}: {radius:0.#}";
 }

@@ -52,6 +52,16 @@ MonoBehaviour:
       \uC0DD\uAE41\uB2C8\uB2E4."
     m_Metadata:
       m_Items: []
+  - m_Id: 10162397589505
+    m_Localized: "\uC804\uAE30\uC7A5"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10162397589506
+    m_Localized: "\uCC29\uD0C4 \uC9C0\uC810\uC5D0 \uC7A5\uD310\uC744 \uB0A8\uACA8,
+      \uBC94\uC704 \uC548\uC758 \uC801\uC5D0\uAC8C \uC9C0\uC18D \uD53C\uD574\uB97C
+      \uC90D\uB2C8\uB2E4."
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []
