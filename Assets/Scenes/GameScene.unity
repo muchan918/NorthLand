@@ -154,6 +154,7 @@ MonoBehaviour:
   management: {fileID: 544968473}
   territory: {fileID: 340814262}
   towerPlacer: {fileID: 6262796507066623699}
+  startMapTileRegistry: {fileID: 572341031524862309}
   towerAssets:
   - {fileID: 11400000, guid: 7ecd80d44165e644591aafb428cf5efe, type: 2}
   - {fileID: 11400000, guid: a752545bbde5030438f8995ae4ee0849, type: 2}
@@ -5747,6 +5748,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
+--- !u!114 &572341031524862309 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6521744114748706873, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
+  m_PrefabInstance: {fileID: 572341031524862308}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a764fe13f24af743b0baa7a72d10553, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileRegistry
 --- !u!224 &582369541074808118
 RectTransform:
   m_ObjectHideFlags: 0

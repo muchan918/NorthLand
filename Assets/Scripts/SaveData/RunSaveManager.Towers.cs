@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using NorthLand.Combat;
 using UnityEngine;
 
+
 namespace NorthLand.Core
 {
     public sealed partial class RunSaveManager
@@ -29,21 +30,21 @@ namespace NorthLand.Core
 
                 if (tower == null)
                 {
-                    Debug.LogError($"[Save] 활성 타워 {i}번 항목이 비어 있습니다.",this);
+                    Debug.LogError($"[Save] 활성 타워 {i}번 항목이 비어 있습니다.", this);
 
                     return false;
                 }
 
                 if (tower.Asset == null)
                 {
-                    Debug.LogError($"[Save] 타워 {tower.name}에 TowerAsset이 없습니다.",tower);
+                    Debug.LogError($"[Save] 타워 {tower.name}에 TowerAsset이 없습니다.", tower);
 
                     return false;
                 }
 
                 if (string.IsNullOrEmpty(tower.Asset.TowerID))
                 {
-                    Debug.LogError($"[Save] 타워 {tower.name}의 TowerID가 비어 있습니다.",tower);
+                    Debug.LogError($"[Save] 타워 {tower.name}의 TowerID가 비어 있습니다.", tower);
 
                     return false;
                 }
@@ -51,26 +52,53 @@ namespace NorthLand.Core
                 if (!tower.TryGetComponent(
                         out TowerFootprint footprint))
                 {
-                    Debug.LogError($"[Save] 타워 {tower.name}에 TowerFootprint가 없습니다.",tower);
+                    Debug.LogError($"[Save] 타워 {tower.name}에 TowerFootprint가 없습니다.", tower);
 
                     return false;
                 }
 
-                if (!footprint.HasAnchorCell)
+                if (!footprint.HasAnchorTile &&!footprint.HasAnchorCell)
                 {
-                    Debug.LogError($"[Save] 타워 {tower.name}의 기준 셀 좌표가 기록되지 않았습니다.",tower);
+                    Debug.LogError($"[Save] 타워 {tower.name}의 기준 위치가 기록되지 않았습니다.",tower);
 
                     return false;
                 }
 
-                Vector2Int cell = footprint.AnchorCell;
-
-                captured.Add(new TowerSaveData
+                if (!footprint.HasAnchorTile)
                 {
-                    TowerId = tower.Asset.TowerID,
-                    CellX = cell.x,
-                    CellZ = cell.y
-                });
+                    Debug.LogWarning($"[Save] 타워 {tower.name}의 기준 타일 참조가 없어 셀 좌표로 저장합니다.",tower);
+                }
+
+                BattleTile anchorTile = footprint.AnchorTile;
+
+                var savedTower = new TowerSaveData
+                {
+                    TowerId = tower.Asset.TowerID
+                };
+
+                if (startMapTileRegistry != null &&startMapTileRegistry.TryGetTileId(anchorTile,out string startTileId))
+                {
+                    savedTower.MapArea = MapArea.StartMap;
+                    savedTower.StartTileId = startTileId;
+                }
+                else
+                {
+                    if (!footprint.HasAnchorCell)
+                    {
+                        Debug.LogError($"[Save] 타워 {tower.name}의 기준 셀 좌표가 기록되지 않았습니다.", tower);
+
+                        return false;
+                    }
+
+                    Vector2Int cell = footprint.AnchorCell;
+
+                    savedTower.MapArea = MapArea.CombatMap;
+                    savedTower.CellX = cell.x;
+                    savedTower.CellZ = cell.y;
+                    savedTower.StartTileId = null;
+                }
+
+                captured.Add(savedTower);
             }
 
             data = captured;
@@ -92,7 +120,7 @@ namespace NorthLand.Core
 
             if (towerAssets == null)
             {
-                Debug.LogError("[Load] 타워 에셋 목록이 없습니다.",this);
+                Debug.LogError("[Load] 타워 에셋 목록이 없습니다.", this);
 
                 return false;
             }
@@ -105,26 +133,26 @@ namespace NorthLand.Core
 
                 if (asset == null)
                 {
-                    Debug.LogError($"[Load] 타워 에셋 목록의 {i}번 항목이 비어 있습니다.",this);
+                    Debug.LogError($"[Load] 타워 에셋 목록의 {i}번 항목이 비어 있습니다.", this);
 
                     return false;
                 }
 
                 if (string.IsNullOrEmpty(asset.TowerID))
                 {
-                    Debug.LogError($"[Load] 타워 에셋 {asset.name}의 TowerID가 비어 있습니다.",asset);
+                    Debug.LogError($"[Load] 타워 에셋 {asset.name}의 TowerID가 비어 있습니다.", asset);
 
                     return false;
                 }
 
                 if (result.ContainsKey(asset.TowerID))
                 {
-                    Debug.LogError($"[Load] 중복된 TowerID가 등록되어 있습니다: {asset.TowerID}",this);
+                    Debug.LogError($"[Load] 중복된 TowerID가 등록되어 있습니다: {asset.TowerID}", this);
 
                     return false;
                 }
 
-                result.Add(asset.TowerID,asset);
+                result.Add(asset.TowerID, asset);
             }
 
             lookup = result;
@@ -141,21 +169,21 @@ namespace NorthLand.Core
         {
             if (towerPlacer == null)
             {
-                Debug.LogError("[Load] TowerPlacer가 연결되지 않았습니다.",this);
+                Debug.LogError("[Load] TowerPlacer가 연결되지 않았습니다.", this);
 
                 return false;
             }
 
             if (data == null)
             {
-                Debug.LogError("[Load] 타워 세이브 데이터 목록이 없습니다.",this);
+                Debug.LogError("[Load] 타워 세이브 데이터 목록이 없습니다.", this);
 
                 return false;
             }
 
             if (Tower.Active.Count > 0)
             {
-                Debug.LogError($"[Load] 기존 활성 타워가 남아 있어 복원할 수 없습니다: {Tower.Active.Count}개",this);
+                Debug.LogError($"[Load] 기존 활성 타워가 남아 있어 복원할 수 없습니다: {Tower.Active.Count}개", this);
 
                 return false;
             }
@@ -170,6 +198,8 @@ namespace NorthLand.Core
             }
 
             var restoredAnchorCells = new HashSet<Vector2Int>();
+            var restoredStartTileIds = new HashSet<string>(StringComparer.Ordinal);
+            bool startMapRegistryValidated = false;
 
             // 실제 타워를 만들기 전에 저장 데이터 전체를 검증한다.
             for (int i = 0; i < data.Count; i++)
@@ -178,56 +208,124 @@ namespace NorthLand.Core
 
                 if (savedTower == null)
                 {
-                    Debug.LogError($"[Load] 타워 데이터 {i}번 항목이 비어 있습니다.",this);
+                    Debug.LogError($"[Load] 타워 데이터 {i}번 항목이 비어 있습니다.", this);
 
                     return false;
                 }
 
                 if (string.IsNullOrEmpty(savedTower.TowerId))
                 {
-                    Debug.LogError($"[Load] 타워 데이터 {i}번의 TowerID가 비어 있습니다.",this);
+                    Debug.LogError($"[Load] 타워 데이터 {i}번의 TowerID가 비어 있습니다.", this);
 
                     return false;
                 }
 
-                if (!lookup.TryGetValue(savedTower.TowerId,out TowerAsset asset))
+                if (!lookup.TryGetValue(savedTower.TowerId, out TowerAsset asset))
                 {
-                    Debug.LogError($"[Load] TowerAsset을 찾을 수 없습니다: {savedTower.TowerId}",this);
+                    Debug.LogError($"[Load] TowerAsset을 찾을 수 없습니다: {savedTower.TowerId}", this);
 
                     return false;
                 }
 
-                Vector2Int anchorCell =new Vector2Int(savedTower.CellX,savedTower.CellZ);
-
-                if (!restoredAnchorCells.Add(anchorCell))
+                switch (savedTower.MapArea)
                 {
-                    Debug.LogError($"[Load] 중복된 타워 기준 셀이 있습니다: {anchorCell}",this);
+                    case MapArea.CombatMap:
+                        {
+                            Vector2Int anchorCell =
+                                new Vector2Int(savedTower.CellX, savedTower.CellZ);
 
-                    return false;
+                            if (!restoredAnchorCells.Add(anchorCell))
+                            {
+                                Debug.LogError(
+                                    $"[Load] 중복된 자동맵 타워 기준 셀이 있습니다: {anchorCell}",
+                                    this);
+
+                                return false;
+                            }
+
+                            break;
+                        }
+
+                    case MapArea.StartMap:
+                        {
+                            if (startMapTileRegistry == null)
+                            {
+                                Debug.LogError(
+                                    "[Load] StartMapTileRegistry가 연결되지 않았습니다.",
+                                    this);
+
+                                return false;
+                            }
+                            if (!startMapRegistryValidated)
+                            {
+                                // 전체 타일의 ID 누락·중복은 경고만 남긴다.
+                                // 실제 저장 데이터가 참조하는 ID는 아래 TryGetTile에서 개별 검증한다.
+                                startMapTileRegistry.RebuildRegistry();
+                                startMapRegistryValidated = true;
+                            }
+
+                            if (string.IsNullOrWhiteSpace(savedTower.StartTileId))
+                            {
+                                Debug.LogError(
+                                    $"[Load] 스타트맵 타워 {i}번의 타일 ID가 비어 있습니다.",
+                                    this);
+
+                                return false;
+                            }
+
+                            if (!restoredStartTileIds.Add(savedTower.StartTileId))
+                            {
+                                Debug.LogError(
+                                    $"[Load] 중복된 스타트맵 타일 ID가 있습니다: {savedTower.StartTileId}",
+                                    this);
+
+                                return false;
+                            }
+
+                            if (!startMapTileRegistry.TryGetTile(
+                                    savedTower.StartTileId,
+                                    out _))
+                            {
+                                Debug.LogError(
+                                    $"[Load] 스타트맵 타일을 찾을 수 없습니다: {savedTower.StartTileId}",
+                                    this);
+
+                                return false;
+                            }
+
+                            break;
+                        }
+
+                    default:
+                        Debug.LogError(
+                            $"[Load] 알 수 없는 타워 맵 영역입니다: {(int)savedTower.MapArea}",
+                            this);
+
+                        return false;
                 }
 
                 if (asset.Data == null)
                 {
-                    asset.Data =DataTableManager.Get<TowerTable>("TowerTable")?.Get(asset.TowerID);
+                    asset.Data = DataTableManager.Get<TowerTable>("TowerTable")?.Get(asset.TowerID);
                 }
 
                 if (asset.Data == null)
                 {
-                    Debug.LogError($"[Load] TowerData를 찾을 수 없습니다: {asset.TowerID}",asset);
+                    Debug.LogError($"[Load] TowerData를 찾을 수 없습니다: {asset.TowerID}", asset);
 
                     return false;
                 }
 
                 if (asset.TowerPrefab == null)
                 {
-                    Debug.LogError($"[Load] TowerPrefab이 없습니다: {asset.TowerID}",asset);
+                    Debug.LogError($"[Load] TowerPrefab이 없습니다: {asset.TowerID}", asset);
 
                     return false;
                 }
 
                 if (!asset.TowerPrefab.TryGetComponent<Tower>(out _))
                 {
-                    Debug.LogError($"[Load] TowerPrefab에 Tower 컴포넌트가 없습니다: {asset.TowerID}",asset.TowerPrefab);
+                    Debug.LogError($"[Load] TowerPrefab에 Tower 컴포넌트가 없습니다: {asset.TowerID}", asset.TowerPrefab);
 
                     return false;
                 }
@@ -241,14 +339,44 @@ namespace NorthLand.Core
                 TowerSaveData savedTower = data[i];
                 TowerAsset asset = lookup[savedTower.TowerId];
 
-                Vector2Int anchorCell = new Vector2Int(savedTower.CellX,savedTower.CellZ);
+                Tower restoredTower = null;
+                bool restoreSucceeded;
+                string location;
 
-                if (!towerPlacer.TryRestoreTower(asset,anchorCell,out Tower restoredTower))
+                if (savedTower.MapArea == MapArea.StartMap)
                 {
-                    Debug.LogError($"[Load] 타워 복원에 실패했습니다: {savedTower.TowerId}, 셀={anchorCell}",this);
+                    restoreSucceeded =
+                        startMapTileRegistry.TryGetTile(
+                            savedTower.StartTileId,
+                            out BattleTile anchorTile) &&
+                        towerPlacer.TryRestoreTower(
+                            asset,
+                            anchorTile,
+                            out restoredTower);
+
+                    location = $"스타트 타일={savedTower.StartTileId}";
+                }
+                else
+                {
+                    Vector2Int anchorCell =
+                        new Vector2Int(savedTower.CellX, savedTower.CellZ);
+
+                    restoreSucceeded = towerPlacer.TryRestoreTower(
+                        asset,
+                        anchorCell,
+                        out restoredTower);
+
+                    location = $"셀={anchorCell}";
+                }
+
+                if (!restoreSucceeded)
+                {
+                    Debug.LogError(
+                        $"[Load] 타워 복원에 실패했습니다: {savedTower.TowerId}, {location}",
+                        this);
 
                     // 이번 로드에서 이미 생성한 타워만 되돌린다.
-                    for (int j = restoredTowers.Count - 1;j >= 0;j--)
+                    for (int j = restoredTowers.Count - 1; j >= 0; j--)
                     {
                         Tower tower = restoredTowers[j];
 

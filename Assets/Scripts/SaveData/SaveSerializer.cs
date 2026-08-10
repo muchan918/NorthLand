@@ -1,6 +1,6 @@
-using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System;
 
 namespace NorthLand.Core
 {
@@ -23,8 +23,10 @@ namespace NorthLand.Core
 
         internal SaveSerializer(SaveMigrationChain migrationChain)
         {
-            this.migrationChain = migrationChain ?? throw new ArgumentNullException(nameof(migrationChain));
+            this.migrationChain =
+                migrationChain ?? throw new ArgumentNullException(nameof(migrationChain));
         }
+
 
         public string Serialize(RunData data)
         {
