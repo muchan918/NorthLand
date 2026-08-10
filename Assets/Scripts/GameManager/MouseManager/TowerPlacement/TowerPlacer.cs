@@ -112,11 +112,18 @@ public class TowerPlacer : MonoBehaviour
     // OverlapSphere 재사용 버퍼(배치 중 매 프레임 힙 할당 방지). 셀 하나에 겹치는 콜라이더는 소수.
     private readonly Collider[] _overlap = new Collider[8];
 
+    private readonly List<CombatMapTileView> _visibleBuffIconTiles = new List<CombatMapTileView>();
+
     //Ksj
     //타워가 여러 버프 타일을 점유할 때 사용할 효과 중첩 규칙
     [Header("Tile Buff")]
     [SerializeField]
     private TileBuffRuleSettings tileBuffRules;
+
+    [SerializeField]
+    [Min(0)]
+    [Tooltip("고스트 주변에서 버프 아이콘을 표시할 타일 반경")]
+    private int buffIconPreviewRadius = 2;
 
     /// 셀 간격(월드). Awake에서 신맵 설정을 단일 출처로 해석해 둔 값이라, 합성 연출(#265)처럼
     /// "타일 한 칸"을 기준 길이로 써야 하는 쪽이 같은 해석을 다시 하지 않도록 노출한다.
@@ -304,6 +311,7 @@ public class TowerPlacer : MonoBehaviour
             lastPreviewAnchor = anchor;
             previewFootprintInitialized = true;
 
+            UpdateBuffTileIcons(anchor);
             UpdateRangeIndicator(CalculatePreviewRange());
         }
 
@@ -529,6 +537,7 @@ public class TowerPlacer : MonoBehaviour
         if (_rangeCircle != null) Destroy(_rangeCircle.gameObject);
         _rangeCircle = null;
         ClearCellHighlights();
+        HideBuffTileIcons();
         _footprint.Clear();
         _onConfirmed = null; // 취소로 끝났으면 확정 콜백은 실행하지 않는다(재료 보존).
         _historyOwner = PlacementOwner.Placer; // 콜백과 대칭으로 비운다(#281) — 세션 밖으로 새지 않게.
@@ -582,6 +591,63 @@ public class TowerPlacer : MonoBehaviour
 
         return tileView != null ? tileView.BuffDefinition : null;
     }
+
+    private void UpdateBuffTileIcons(BattleTile anchor)
+    {
+        HideBuffTileIcons();
+
+        if (anchor == null)
+        {
+            return;
+        }
+
+        Vector3 center = anchor.transform.position;
+
+        for (int x = -buffIconPreviewRadius;x <= buffIconPreviewRadius;x++)
+        {
+            for (int y = -buffIconPreviewRadius;y <= buffIconPreviewRadius;y++)
+            {
+                Vector3 worldPosition = GridStep(center, x, y);
+
+                BattleTile nearbyTile = TileAt(worldPosition);
+
+                if (nearbyTile == null)
+                {
+                    continue;
+                }
+
+                CombatMapTileView tileView = nearbyTile.GetComponentInParent<CombatMapTileView>();
+
+                if (tileView == null || tileView.BuffDefinition == null || tileView.BuffDefinition.Icon == null)
+                {
+                    continue;
+                }
+
+                // 같은 타일이 중복으로 검색되는 경우 방지
+                if (_visibleBuffIconTiles.Contains(tileView))
+                {
+                    continue;
+                }
+
+                tileView.SetBuffIconVisible(true);
+                _visibleBuffIconTiles.Add(tileView);
+            }
+        }
+    }
+
+    private void HideBuffTileIcons()
+    {
+        foreach (CombatMapTileView tileView in _visibleBuffIconTiles)
+        {
+            if (tileView != null)
+            {
+                tileView.SetBuffIconVisible(false);
+            }
+        }
+
+        _visibleBuffIconTiles.Clear();
+    }
+
 
     private TileBuffCalculationResult CalculateTileBuff(IReadOnlyList<BattleTile> tiles)
     {
