@@ -1448,7 +1448,7 @@ MonoBehaviour:
   mapGenerator: {fileID: 1175259922}
   tileSpawner: {fileID: 1175259920}
   generatedBattleMapRoot: {fileID: 739187464}
-  startMapEndConnector: {fileID: 572341031524862309}
+  fixedEnemyRoute: {fileID: 2086857486}
   battleMapStartConnector: {fileID: 758989922}
 --- !u!1 &739911946
 GameObject:
@@ -5724,11 +5724,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
---- !u!4 &572341031524862309 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 3091912987581425124, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
-  m_PrefabInstance: {fileID: 572341031524862308}
-  m_PrefabAsset: {fileID: 0}
 --- !u!224 &582369541074808118
 RectTransform:
   m_ObjectHideFlags: 0
@@ -11700,7 +11695,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 60.35
+  m_fontSize: 54.75
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -22165,7 +22160,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 40.2
+  m_fontSize: 42.95
   m_fontSizeBase: 24
   m_fontWeight: 400
   m_enableAutoSizing: 1
