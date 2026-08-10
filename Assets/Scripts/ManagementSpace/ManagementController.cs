@@ -100,6 +100,9 @@ public class ManagementController : MonoBehaviour
     // ResourceAsset.Data 채움용 지연 캐시(호출부 채움 규약, SystemMap §2).
     private ResourceTable _resourceTable;
 
+    // 해석 불가 비용을 이미 보고한 Cost 리스트(인스턴스 참조) — ReportUnresolvableCost 참고.
+    private readonly HashSet<IReadOnlyList<ResourceCost>> _reportedBadCosts = new();
+
     public int LineCount => _sources != null ? _sources.Length : 0;
     // 총 보유 주민 수 = 시작값 + 본진에서 늘린 증가분(#227). 소비처는 항상 이 프로퍼티를 읽는다.
     public int MaxVillagers => _maxVillagers + _bonusVillagers;
@@ -160,12 +163,14 @@ public class ManagementController : MonoBehaviour
     }
 
     // ── 비용 소비 게이트웨이 (소비처는 지갑에 직접 접근하지 않고 컨트롤러 경유 — WL-017) ──
-    /// <summary>Cost 리스트를 감당할 수 있는지 판정한다. null/빈 리스트는 무료(true).</summary>
+    /// <summary>Cost 리스트를 감당할 수 있는지 판정한다. null/빈 리스트는 무료(true).<br/>
+    /// 자원 해석에 실패하면(삭제·미배선 SO) 감당 불가로 본다 — 근거는 <see cref="TryAggregateCost"/>(WL-176).</summary>
     public bool CanAfford(IReadOnlyList<ResourceCost> costs)
     {
         if (costs == null || costs.Count == 0) return true; // 무료 — 매 프레임 조회 시 할당 회피
         if (_wallet == null) return false;
-        foreach (KeyValuePair<ResourceKind, int> need in AggregateCost(costs))
+        if (!TryAggregateCost(costs, true, out Dictionary<ResourceKind, int> needs)) return false;
+        foreach (KeyValuePair<ResourceKind, int> need in needs)
         {
             if (!_wallet.CanAfford(need.Key, need.Value)) return false;
         }
@@ -178,7 +183,7 @@ public class ManagementController : MonoBehaviour
     {
         if (_wallet == null) return false;
 
-        Dictionary<ResourceKind, int> needs = AggregateCost(costs);
+        if (!TryAggregateCost(costs, true, out Dictionary<ResourceKind, int> needs)) return false;
         foreach (KeyValuePair<ResourceKind, int> need in needs)
         {
             if (!_wallet.CanAfford(need.Key, need.Value)) return false;
@@ -203,7 +208,10 @@ public class ManagementController : MonoBehaviour
     {
         if (costs == null || costs.Count == 0 || _wallet == null) return;
 
-        foreach (KeyValuePair<ResourceKind, int> gain in AggregateCost(costs))
+        // 환원은 관대하게 해석한다(strict=false, WL-176) — 여기서 전체를 실패시키면 해석 가능한
+        // 자원까지 삼켜 플레이어가 이미 낸 값을 잃는다. 되돌리기는 덜 주는 쪽이 더 안 주는 쪽보다 낫다.
+        TryAggregateCost(costs, false, out Dictionary<ResourceKind, int> gains);
+        foreach (KeyValuePair<ResourceKind, int> gain in gains)
         {
             _wallet.Add(gain.Key, gain.Value);
         }
@@ -211,22 +219,57 @@ public class ManagementController : MonoBehaviour
         // TrySpend가 직접 부르지 않는 것과 같은 이유.
     }
 
-    // Cost 리스트를 (ResourceKind → 합산 수량)으로 해석한다. Resource 미지정·수량 0 항목은 스킵.
-    private Dictionary<ResourceKind, int> AggregateCost(IReadOnlyList<ResourceCost> costs)
+    /// <summary>
+    /// Cost 리스트를 (<see cref="ResourceKind"/> → 합산 수량)으로 해석한다. 수량 0 이하 항목은 "비용 없음"으로 건너뛴다.<br/>
+    /// <br/>
+    /// <b>strict=true(비용 판정·차감 경로)</b>: 자원 하나라도 해석되지 않으면 <b>전체를 실패</b>시킨다(WL-176).
+    /// 종전처럼 그 항목만 건너뛰면 비용에서 통째로 빠져 "구매 실패"가 아니라 <b>무료 구매</b>가 되고,
+    /// 비용 행이 전부 빠지면 <c>totals</c>가 비어 <see cref="CanAfford"/>가 true를 돌려준다 —
+    /// 콘솔에도 안 뜨는 조용한 고장이었다. 삭제·미배선된 <c>ResourceAsset</c>이 null로 해석되는 순간 발생하며,
+    /// #337에서 특수 자원 SO 4종을 지우면서 실제 트리거가 만들어졌다(그때 참조 SO를 함께 고쳐 현재 사례는 0건).<br/>
+    /// <br/>
+    /// <b>strict=false(환원 경로)</b>: 해석 실패 항목만 건너뛰고 나머지를 합산한다 — <see cref="Grant"/> 참고.
+    /// </summary>
+    private bool TryAggregateCost(IReadOnlyList<ResourceCost> costs, bool strict, out Dictionary<ResourceKind, int> totals)
     {
-        var totals = new Dictionary<ResourceKind, int>();
-        if (costs == null) return totals;
+        totals = new Dictionary<ResourceKind, int>();
+        if (costs == null) return true;
 
         for (int i = 0; i < costs.Count; i++)
         {
             ResourceCost cost = costs[i];
             if (cost == null || cost.Amount <= 0) continue;
-            if (!TryResolveKind(cost.Resource, out ResourceKind kind)) continue;
+
+            if (!TryResolveKind(cost.Resource, out ResourceKind kind))
+            {
+                ReportUnresolvableCost(costs, i, cost);
+                if (strict)
+                {
+                    totals = null;
+                    return false;
+                }
+                continue;
+            }
 
             totals.TryGetValue(kind, out int cur);
             totals[kind] = cur + cost.Amount;
         }
-        return totals;
+        return true;
+    }
+
+    // 해석 불가 비용을 Cost 리스트당 1회만 보고한다. CanAfford는 타워 버튼 갱신·고스트 배치에서
+    // 매 프레임 불릴 수 있어, 배선 실수 하나가 프레임마다 찍히면 콘솔이 통째로 묻힌다.
+    // 키는 리스트 인스턴스(SO가 들고 있는 그 객체)라 같은 배선은 계속 같은 항목으로 접힌다.
+    private void ReportUnresolvableCost(IReadOnlyList<ResourceCost> costs, int index, ResourceCost cost)
+    {
+        if (!_reportedBadCosts.Add(costs))
+        {
+            return;
+        }
+
+        string id = cost.Resource != null ? cost.Resource.ResourceID : "(Resource 미지정)";
+        Debug.LogError($"[경영] 비용 {index}번 항목의 자원을 해석하지 못했습니다: {id} — " +
+                       "이 비용이 걸린 구매는 전부 막힙니다. 건물/타워 SO의 Cost 배선을 확인하세요.");
     }
 
     // ResourceAsset → ResourceKind. ResourceAsset.Data는 호출부 채움 규약(SystemMap §2)이라
