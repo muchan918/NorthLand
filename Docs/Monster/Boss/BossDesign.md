@@ -6,7 +6,7 @@
 - 구현 위치: 노드 `Assets/Scripts/CombatSystem/Enemy/AI/Nodes/` · 보조 타입 `Assets/Scripts/CombatSystem/Enemy/AI/`
 - 그래프 `Assets/Behavior/TankBossBehavior.asset` · 프리팹 `Assets/Prefabs/Monster/Tank.prefab` · 스탯 `Assets/Resources/ScriptableObjects/Enemies/tank.asset`
 - 노드 레퍼런스: `Docs/Monster/Boss/BossNodeReference.md` · 그래프 배선·검증: `Docs/Monster/Boss/TankGraphSpec.md`
-- **패턴 4종이 Play에서 동작하는 것을 확인했다**(#235). 다만 두 가지가 남아 있다 — ① 보스 몸체가 **캡슐**이고 `AnimatorController`가 없어 P1 준비 모션이 그래프에서 빠져 있다 ② P1 충돌 후 보스 생존(경로 끝 파괴 회피)이 미검증이다. 수치는 전부 placeholder이며 밸런싱 전이다. 검증 상세는 `TankGraphSpec.md` 「검증 결과」.
+- **패턴 4종 + 애니메이션이 Play에서 동작한다.** 몸체는 `Boss_Alien_01`(Humanoid), 2레이어 `AnimatorController`(「애니메이션 계약」), P4는 게이트형으로 배선 완료. 남은 것 — ① 🔥 **`P1_MinSpeed`가 스케일 조정에서 빠져 돌진 파훼가 너무 싸다** ② 프리팹 스케일·콜라이더가 캡슐 시절 값 ③ P1 충돌 후 보스 생존(경로 끝 파괴 회피) 미검증 ④ 디버그 서클(`Dbg_Radius` 8) 미제거. 검증 상세는 `TankGraphSpec.md` 「검증 결과」.
 
 > `Assets/Scripts/CombatSystem/Enemy/MiniBoss/`의 중간보스 노드 4종(`BossHealSelfAction` / `BossHpBelowCondition` / `BossRampSpeedMultiplierAction` / `BossSetSpeedMultiplierAction`)과 `MidBossBehavior.asset`은 이 보스와 무관하다. **재사용하지 않고 참조하지도 않는다.** 이 보스의 리프 노드는 전부 신규 작성한다.
 
@@ -64,10 +64,18 @@
 
 뒤쪽에 잡몹이 충분히 모이면 속도를 크게 낮추고 받는 피해를 줄인다. 정지가 아니라 매우 느린 이동이다.
 
-- **발동 조건**: 보스 뒤쪽(진행 방향 반대) 반경 안에 아군 잡몹이 N체 이상
-- **진행**: 패턴 속도 배수를 최저치로, 받는 피해 배수를 감소치로 설정한다. 짧은 지속시간으로 반복 갱신하며, 조건이 풀리면 다음 사이클에 기본 진군으로 복귀한다
-- **파훼법**: 보스 뒤쪽 잡몹을 정리하면 조건이 풀린다. 보스는 다시 빨라지지만 방어력을 잃는다 — 속도와 방어력 중 무엇을 먼저 깰지가 플레이어의 판단이 된다
-- **사용 노드**: `EnemyUnitsInRangeCondition` · `EnemySetSpeedFactorAction` · `EnemySetDamageTakenFactorAction`
+- **발동 조건**: 보스 뒤쪽(진행 방향 반대)에 아군 잡몹이 N체 이상 **그리고** 앞쪽에 공격 타워가 M개 이상 **그리고** 쿨다운이 지났다
+- **진행**: 패턴 속도 배수를 최저치로, 받는 피해 배수를 감소치로 설정한다. 지속시간이 끝나면 원복하고, 쿨다운 동안은 조건이 여전히 참이어도 발동하지 않는다
+- **파훼법**: 보스 뒤쪽 잡몹을 정리하면 조건이 풀린다. 보스는 다시 빨라지지만 방어력을 잃는다 — 속도와 방어력 중 무엇을 먼저 깰지가 플레이어의 판단이 된다. 쿨다운 구간은 보스가 방어력 없이 정상 속도로 걷는 딜 타이밍이다
+- **사용 노드**: `EnemyPatternGateCondition` · `EnemyUnitsInRangeCondition` · `EnemyMarkPatternUsedAction` · `EnemySetSpeedFactorAction` · `EnemySetDamageTakenFactorAction` · `EnemySetAnimatorBoolAction`
+
+> **쿨다운이 없으면 방어 태세가 끊기지 않는다.** 원래 설계는 "짧은 지속시간으로 반복 갱신"이었는데, 조건(뒤쪽 아군 수)이 계속 참인 동안 Selector가 브랜치를 끝나는 즉시 다시 뽑기 때문에 **지속시간이 무의미해지고 크롤·피해감소·가드 자세가 영구히 유지된다.** 실제로 타워 밀집 구간(잡몹이 뒤에 쌓이는 구간)에서 가드가 풀리지 않는 증상으로 나타났다.
+>
+> 지속시간 원복은 정상 동작하고 있었다 — 문제는 원복 직후 같은 프레임에 다시 켜지는 것이다. **P3와 같은 쿨다운 게이트(`EnemyPatternGateCondition` + `EnemyMarkPatternUsedAction`)를 붙여 재발동 자체를 막는다.**
+>
+> 그 대가로 P2는 "지속 태세"가 아니라 **주기적 버스트**가 된다. 조건이 참이어도 쿨다운 동안은 방어력이 없으므로 플레이어에게 확실한 딜 구간이 생기고, 가드 자세가 들어왔다 나가므로 패턴이 눈에 보인다.
+>
+> **앞쪽 타워 조건은 실측 튜닝에서 추가됐다.** 뒤쪽 잡몹만 조건으로 두면 타워가 없는 구간에서도 방어 태세가 나와 "무엇을 방어하는지"가 보이지 않았다. 타워 밀집 구간 진입과 묶으면 P3 마력 봉인과 같은 상황을 공유하게 되는데, **Selector 순서(P3가 위)가 상호 배타를 만든다** — P3 쿨다운이 차 있으면 봉인, 쿨다운 중이면 방어 태세가 뽑혀 두 패턴이 번갈아 돈다. 트리거 반경도 P3가 더 넓어(50 vs 30) 접근하며 봉인 → 근접 후 방어 태세 순으로 이어진다.
 
 > **해소(#233)**: 하한 클램프가 들어갔다. `MonsterMove.minMoveSpeed`(직렬화 필드, 기본 0.15)가 합성 결과의 하한이고, `SetMoveSpeed`는 이제 기준 속도만 받는다 — 크롤 배수가 `fallbackMoveSpeed`(3)로 되돌아 오히려 빨라지던 경로는 사라졌다. 대신 **완전 정지가 속도 축으로 불가능**해졌다(의도) — 정지는 `EnemyAgent.MovementStopped`(이동 소유권 축)로만 표현한다. 감속 타워로 몬스터를 영구 정지시켜 웨이브를 소프트락하는 경로도 함께 막혔다.
 
@@ -83,6 +91,8 @@
 
 이 패턴은 **신규 런타임 훅이 필요 없다.** `Tower.ApplyBuff`가 접근 제어 없이 열려 있고 소스별 합산 구조라 배율 1 미만을 넘기면 그대로 디버프가 된다(`Assets/Scripts/CombatSystem/Tower/Tower.cs:226-268`).
 
+**봉인된 타워 목록은 `EnemyApplyTowerDebuffAction`의 `SealedTowers` 출력으로 나온다.** 반경·카테고리 필터를 통과한 집합은 이 노드만 알고 있으므로, 봉인 VFX를 각 타워에 걸 때 필터 로직을 두 곳에서 유지하지 않으려면 이 출력을 받아야 한다. 현재는 콘솔 로그 확인용으로 쓰고, VFX 노드가 생기면 그 노드의 입력으로 연결한다.
+
 알려진 제약 두 가지:
 
 - 공격 간격이 `Mathf.Max(finalSpeedMultiplier, 0.01f)`로 클램프되어 **완전 봉인은 불가능**하다. 최대 감속까지만 된다.
@@ -94,13 +104,41 @@
 
 ### P4. 지속 소환
 
-보스가 살아있는 동안 스폰 지점에서 잡몹이 계속 유입된다.
+**필드에서 보스만 남는 순간**부터 스폰 지점에서 잡몹이 무한정 유입된다.
 
-- **발동 조건**: 없음. 보스 생존 중 상시 (BT 병렬 브랜치)
-- **진행**: 일정 간격마다 스폰 지점에 잡몹을 추가 투입한다. 동시 생존 수 상한을 둔다
+**몬스터 게이트를 여는 연출**이다. 필드가 비면 보스가 한 번 멈춰 서서 소환 동작을 취하고, 그 뒤로는 게이트가 열린 채로 잡몹이 계속 흘러나온다.
+
+- **발동 조건**: 필드의 살아있는 몬스터가 보스 하나로 줄어든다(래치 — 한 번 열리면 닫히지 않는다)
+- **진행**:
+  1. 등장 직후에는 소환하지 않는다 — 게이트가 열릴 때까지
+  2. 게이트 통과 → **제자리에 멈춰 소환 모션을 1회** 재생한다(약 2.5초, VFX 여유분 포함)
+  3. 그 뒤로는 정지도 모션도 없이 일정 간격마다 잡몹이 투입된다. 동시 생존 수 상한을 둔다
 - **정지**: 보스 사망 시 `Enemy.Die`가 `behaviorAgent.enabled = false`로 그래프 틱을 멈추므로 **자동으로 멈춘다.** 별도 배선이 필요 없다
-- **파훼법**: 보스를 죽이는 것이 유입을 멈추는 유일한 방법이다
-- **사용 노드**: `EnemySpawnMinionsAction`
+- **파훼법**: 보스를 죽이는 것이 유입을 멈추는 유일한 방법이다. 게이트 개방 구간에는 보스가 멈춰 있어 화력 집중 기회가 한 번 생긴다
+- **사용 노드**: 개방 `EnemyFieldClearedCondition` · `EnemyPatternGateCondition` · `EnemyMarkPatternUsedAction` · `EnemyHoldPositionAction` · `EnemyPlayAnimationAction` / 유입 `EnemyWaitUntilFieldClearedAction` · `EnemySpawnMinionsAction`
+
+> **P4는 두 조각으로 나뉜다 — 멈추는 부분과 멈추지 않는 부분.**
+>
+> 정지는 `EnemyAgent.MovementOwned`(이동 소유권)로만 표현할 수 있고, 소유권은 **단일 플래그**다. 병렬 브랜치에서 잡으면 P1 돌진과 충돌한다 — P4가 소유권을 놓는 순간 진행 중이던 돌진이 `Enemy.Update`에 이동 제어를 빼앗긴다. **Selector의 비선점 성질이 상호 배타를 보장하는 유일한 수단이므로, 멈추는 조각은 패턴 Selector의 브랜치여야 한다.**
+>
+> 반대로 잡몹 투입은 소유권이 필요 없으므로 병렬 브랜치에 그대로 둔다. 그래야 소환이 P2·P3와 경쟁하지 않고 무한 유입이 유지된다.
+>
+> | 조각 | 위치 | 횟수 | 정지 |
+> |---|---|---|---|
+> | 게이트 개방(모션) | 패턴 Selector 브랜치 | **1회** (`EnemyPatternGateCondition`의 쿨다운 음수 = 1회 한정) | ⭕ |
+> | 잡몹 유입 | 병렬 브랜치 | 무한 반복 | ❌ |
+>
+> **Selector 브랜치 쪽은 조건 노드를 써야 한다.** 조건이 성립할 때까지 Running을 유지하는 `EnemyWaitUntilFieldClearedAction`을 Selector에 넣으면 그 브랜치가 트리를 붙잡아 다른 패턴이 전부 멎는다. 그래서 래치를 내장한 `EnemyFieldClearedCondition`을 쓴다. **래치가 필요한 이유**: Selector는 비선점이라 P2·P3가 진행 중이면 게이트 개방이 몇 초 밀리는데, 그 사이 소환된 잡몹으로 조건이 다시 거짓이 되면 개방 연출을 영구히 놓친다.
+>
+> 병렬 브랜치 쪽은 반대로 Running 유지형이 맞다 — 대기 노드 뒤에 `Repeat (Forever)`를 두면 시퀀스가 대기 노드로 되돌아오지 않으므로 구조가 래치를 보장한다.
+>
+> **게이트 판정은 `MonsterSpawn.AliveMonsterCount`(= `monsterParent.childCount`)를 본다.** 보스 자신과 사망 연출 중인 몬스터(`destroyDelay` 2초)가 포함되므로 임계값은 0이 아니라 **1**이고, 마지막 잡몹이 죽은 뒤 약 2초 지나 게이트가 열린다(WL-038과 같은 축).
+>
+> ⚠ **`P4_Interval`이 소환 모션보다 짧으면 개방 연출이 끝나기 전에 첫 잡몹이 나온다.** 두 조각이 독립적으로 게이트를 판정하기 때문이다. 모션이 약 2.5초라 `P4_Interval`은 그보다 커야 한다(현재 5).
+>
+> ⚠ **설계 검토 필요 두 가지.**
+> ① **현재 보스는 웨이브에 `Count: 1`로 혼자 편성돼 있어 게이트가 스폰 즉시 열린다** — 편성에 다른 몬스터가 함께 들어가기 전까지는 게이트 이전과 동작이 같다.
+> ② 게이트는 「보스의 목적」 절의 딜레마와 **인센티브 방향이 반대**다. 그 절은 "잡몹부터 정리한다"를 보스 패턴을 봉인하는 선택지로 두는데, 게이트는 잡몹을 다 치우는 행위가 무한 유입을 여는 방아쇠가 된다. 다만 타워가 자동 공격하고 잡몹은 성문에 닿으면 소멸하므로 플레이어가 잡몹을 의도적으로 살려두기는 어렵고, 결과적으로 게이트는 "플레이어의 선택"보다 **페이즈 전환 타이머**처럼 작동한다. 이것이 의도인지 확인이 필요하다.
 
 > 소환체는 반드시 `MonsterSpawn`의 `monsterParent` 자식으로 넣어야 한다. 웨이브 클리어 판정이 `monsterParent.childCount == 0`이라, 밖에 두면 보스 사망 즉시 웨이브가 종료되면서 잡몹이 남는다. 안에 두면 "보스를 죽여야 물결이 멎는다"가 성립해 최종 웨이브 승리 조건과 맞물린다. → 구현에서는 `MonsterSpawn.SpawnMonster`가 웨이브 스폰과 같은 경로를 타므로 자동으로 충족된다.
 >
@@ -109,6 +147,8 @@
 ## 패턴 간 상호작용
 
 소환된 잡몹이 스폰 지점에서 나오므로, 별도 배선 없이 패턴이 체인으로 이어진다.
+
+단 **P4 게이트가 열리기 전까지는 이 체인이 돌지 않는다.** P2·P3는 둘 다 주변 아군 잡몹 수를 발동 조건으로 삼으므로, 게이트 이전 구간에서 쓸 수 있는 잡몹은 웨이브 편성이 함께 투입한 것뿐이다. 그것들이 정리되면 게이트가 열리고, 그 뒤부터 아래 체인이 성립한다.
 
 ```text
 보스가 잡몹보다 앞서 진행
@@ -158,9 +198,80 @@ Root: Run In Parallel
 | BT 이동 소유권 플래그 | `Enemy` | P1 준비 동작 중 정지, 돌진 중 전진 유지 | 완료 — `Enemy.MovementOwnedByBehavior`. `IsStopped`뿐 아니라 `SetHasTarget`까지 차단한다(설계에 없던 보강, P1 절 참조) |
 | 받는 피해 배수 | `Enemy.TakeDamage` | P2 | 완료 — `Enemy.DamageTakenFactor` |
 | 공개 스폰 API | `MonsterSpawn` | P4 | 완료 — `SpawnMonster` / `AliveMonsterCount` + 스폰 시점 스포너 주입(정적 싱글톤 미사용) |
-| 보스 전용 AnimatorController | 보스 프리팹 | P1 준비 모션 | **미착수(#235)**. 노드 쪽 준비는 끝났다(`EnemyPlayAnimationAction`, `normalizedTime` 폴링) |
+| 보스 전용 AnimatorController | 보스 프리팹 | P1 준비 모션, P2·P3·P4 상체 모션 | 완료 — `Assets/Imported/@NorthLand/Animations/Boss/Boss_Alien_01.controller`(2레이어). 아래 「애니메이션 계약」 참조 |
 
-애니메이션은 `EnemyAgent`가 `Animator`를 직접 들면 되므로 `MonsterAnimation` 수정이 필요 없다. 현재 `MonsterAnimation`은 `IsMove` / `IsAttack` / `IsDie` Bool 3개만 노출하며 임의 클립을 재생할 수단이 없다.
+애니메이션은 `EnemyAgent`가 `Animator`를 직접 들면 되므로 `MonsterAnimation` 수정이 필요 없다. `MonsterAnimation`은 `IsMove` / `IsAttack` / `IsDie` Bool 3개만 노출하며 임의 클립을 재생할 수단이 없고, 그 3개는 `MonsterStateMachine`이 자동으로 구동한다 — BT는 건드리지 않는다.
+
+### 애니메이션 계약
+
+모델은 `Boss_Alien_01`(Humanoid, `Char_02_ModelAvatar`), 컨트롤러는 `Assets/Imported/@NorthLand/Animations/Boss/Boss_Alien_01.controller`, 클립은 Kevin Iglesias Human Animations(전부 Humanoid라 리타게팅으로 얹는다).
+
+**레이어 2개로 상체와 하체를 분리한다.** P2·P3·P4는 보스를 멈추지 않으므로(P2는 크롤, P3·P4는 정지 배선이 없다) 전신 클립을 재생하면 발이 멎은 채 경로를 미끄러진다. 상체 마스크 레이어에 얹으면 걸으면서 시전하는 모습이 된다.
+
+| 레이어 | 마스크 | 기본 weight | 상태 | 구동 |
+|---|---|---|---|---|
+| 0 `Base Layer` | 없음(전신) | 1 | `Idle` · `Attack` · `Die` | `IsMove` / `IsAttack` / `IsDie` |
+| | | | `Move` = **1D 블렌드 트리** | Float `MoveSpeed` · 재생속도 Float `MoveCadence` |
+| | | | `ChargeWindup` | Trigger `ChargeWindup` |
+| 1 `UpperBody` | `Human Body Upper Mask`(KI 팩 동봉) | **0** | `Empty`(기본) | — |
+| | | | `Guard` | Bool `IsGuarding` |
+| | | | `TowerSeal` · `Summon` | Trigger 동명. `Summon`은 state speed `0.55`(VFX 여유분, 약 2.5초) |
+
+#### 이동은 플래그가 아니라 속도로 고른다
+
+`Move` 상태는 실효 이동속도를 파라미터로 받는 1D 블렌드 트리다. 임계값은 월드 유닛/초이며 Animator 창에서 밸런싱한다.
+
+| 임계값 | 클립 | 해당 구간 |
+|---|---|---|
+| `4.8` | `HumanM@Walk01_Forward` | 기본 이동 = **걷기** |
+| `14` | `HumanM@Run01_Forward` | 중간 |
+| `30` | `HumanM@Sprint01_Forward` | P1 돌진(`MoveSpeed 4.8 × P1_MaxFactor 7 = 33.6`) |
+
+값을 흘리는 것은 `BossLocomotionBlend`(`Assets/Scripts/Monster/MonsterAnimation/`)다. `EnemyAgent.EffectiveMoveSpeed`를 읽으므로 **감속 타워로 돌진을 늦추면 모션도 함께 걷기 쪽으로 내려온다** — 배수를 읽었다면 늦어진 보스가 전력질주 모션으로 남는다.
+
+`MoveCadence`는 걷기 임계값 아래에서만 재생속도를 낮춘다(하한 0.35). P2 방어 태세 크롤(기본의 0.24배 = 1.15)에서 걷기 클립이 제 속도로 돌면 발이 심하게 미끄러지기 때문이다.
+
+> **돌진 전용 상태와 `IsCharging` Bool은 폐기했다.** 그래프가 플래그를 켜고 끄면 값을 반대로 넣거나 끄는 배선을 빠뜨렸을 때 보스가 내내 전력질주로 걸어 다닌다(실제로 발생했다 — 기본 진군 브랜치에 `IsCharging = true`가 들어가 있었다). 속도를 그대로 흘리면 돌진이 속도를 올리므로 모션이 저절로 따라오고, 그래프가 관여할 지점 자체가 없어진다.
+
+⚠ **P1 수치를 재조정하면 블렌드 트리 임계값도 같이 봐야 한다.** 임계값은 절대 속도라 `Boss.Stat.MoveSpeed`(현재 4.8)나 `P1_MaxFactor`(7)가 바뀌면 구간이 어긋난다 — 전력질주 임계값 30은 돌진 실효 속도 33.6에 맞춰둔 값이다.
+
+**상체 레이어의 기본 weight가 0인 것이 중요하다.** Override 레이어는 weight 1이면 클립이 없는 `Empty` 상태에서도 마스크 범위를 점유한다 — Write Defaults를 꺼도 기본 포즈를 쓰는 대신 그 자리에 얼어붙을 뿐이다(실측: 걷기 중 팔 스윙 변화 0.00도, weight 0 대비 38도 어긋남). 그래서 `BossUpperBodyLayer`(`Assets/Scripts/Monster/MonsterAnimation/`)가 레이어 상태를 보고 `Empty`가 아닐 때만 weight를 1로 페이드한다. **BT가 weight를 직접 켜고 끄지 않는다** — 배선을 한쪽만 빠뜨리면 상체가 영구히 고착되고 증상("패턴이 끝났는데 팔 든 채로 걷는다")이 원인을 가린다.
+
+Humanoid 마스크는 transform 경로가 아니라 body-part 비트로 동작하므로, KI 팩의 마스크를 외계인 리그에 그대로 쓸 수 있다.
+
+#### 1회성은 Trigger, 지속 상태는 Bool
+
+**Unity의 Animator Trigger는 전이가 소비하지 않으면 켜진 채로 남는다.** 그래서 "시작 트리거 / 해제 트리거" 쌍으로 지속 상태를 다루면 두 군데가 깨진다.
+
+- 해제 트리거를 상태 밖에서 쏘면 장전된 채 남아 **다음 진입을 즉시 취소**한다 — "어디서든 안전하게 해제"가 성립하지 않는다
+- 짧은 주기로 반복 갱신되는 패턴에서 매 사이클 자세가 풀렸다 다시 올라간다(P2는 `P2_Duration` 3초마다 재발동한다)
+
+그래서 파라미터를 성격에 따라 나눈다.
+
+| 성격 | 파라미터 | 노드 |
+|---|---|---|
+| 1회성 모션 | Trigger `ChargeWindup` · `TowerSeal` · `Summon` | `EnemyPlayAnimationAction` |
+| 지속 상태 | Bool `IsGuarding` | `EnemySetAnimatorBoolAction` |
+| 이동 | Float `MoveSpeed` · `MoveCadence` | `BossLocomotionBlend` (BT 관여 없음) |
+| 이동/공격/사망 상태 | Bool `IsMove` · `IsAttack` · `IsDie` | `MonsterStateMachine`이 자동 구동 (BT 관여 없음) |
+
+**지속 상태 Bool은 `Duration`으로 스스로 원복해야 한다.** P2 가드는 `Duration = P2_Duration`으로 켠다 — `OnEnd`가 정상 종료와 중단 모두를 지나므로 무슨 일이 있어도 풀린다.
+
+원복을 기본 진군 브랜치에만 맡기면 **다른 패턴이 계속 이기는 동안 영구히 고착된다.** 타워 밀집 구간에서 P3가 반복 발동하면 기본 진군이 한 번도 실행되지 않아 가드가 풀리지 않았다(실제 발생). 기본 진군의 `IsGuarding = false`는 그대로 두어도 되지만 — Bool은 멱등이라 무해하다 — 그것만으로는 부족하다.
+
+`Duration`으로 원복하면 사이클 경계에서 1프레임 동안 Bool이 false가 되는데, 실측상 레이어 weight가 0.917까지만 내려가고 `Guard` 상태를 벗어나지 않아 눈에 보이지 않는다.
+
+`EnemyPlayAnimationAction`에 넣을 값:
+
+| 패턴 | Trigger | Layer | WaitForEnd |
+|---|---|---|---|
+| P1 준비 모션 | `ChargeWindup` | 0 | **false** (뒤따르는 `Enemy Hold Position`이 정지 구간을 만든다) |
+| P3 타워 봉인 | `TowerSeal` | **1** | false (예고 서클과 동시에 시작) |
+| P4 게이트 개방 | `Summon` | **1** | true (약 2.5초, 보스는 그동안 정지. **판당 1회뿐**) |
+
+`Layer`를 0으로 두고 상체 클립을 기다리면 layer 0의 루프 중인 걷기를 읽어 즉시 성공으로 빠져나간다.
+
+상체 레이어의 1회성 모션(`TowerSeal` / `Summon`)이 가드 중에 끼어들면 끝난 뒤 `Empty`로 돌아가는데, `IsGuarding`이 아직 참이면 `Empty → Guard`가 즉시 다시 걸려 **가드가 자동 복구된다.**
 
 ### 이동속도 합성 계약
 
@@ -208,30 +319,24 @@ Play 검증으로 두 축이 서로를 지우지 않는 것을 확인했다: 기
 - [x] **HP 기반 에스컬레이션은 도입하지 않는다.** 4개 패턴을 전부 상황 트리거(본진까지 거리 / 주변 잡몹 수 / 타워 밀집)로 유지한다. 보스 HP 구간에 따라 압박이 강해지는 장치는 두지 않는다.
 - [x] **이동속도 합성 계약의 소유권 — 보스 쪽에서 골격을 먼저 넣었다**(#233). 감속 타워는 `IMovementAgent.AddSpeedDebuff` / `RemoveSpeedDebuff`를 얹으면 된다. 저장소에 감속 타워 코드가 아직 없어 충돌 대상이 없었다(`slow_tower.asset`은 전 필드가 비어 있음). **해제 책임은 타워 쪽** — 자동 만료가 없다.
 - [x] **이동속도 감소 타워는 `AuraTower` 계열이다** — P3 마력 봉인 대상에서 제외된다(설계 의도대로). 단 **`AuraTower`를 `Tower` 상속으로 바꾸는 대규모 리팩토링이 예정**돼 있어 상속 구조는 확정이 아니다. 그래서 P3의 대상 판정을 `Tower.Active` 등록 여부가 아니라 공격 스탯 보유 여부로 두어 **리팩토링 결과에 불변**으로 만들었다(P3 절 참조). 리팩토링 담당자가 확인할 것: `AuraTower`가 `Tower`를 상속해도 데이터가 Magic 타입(공격 스탯 없음)으로 남는지 — 남지 않으면 봉인 대상에 들어와 P1 파훼 수단이 사라진다.
-- [ ] **패턴 수치 일체 미정.** 밸런싱은 구현 후 플레이 검증으로 잡는다. 단 P3 예고 `Duration`은 밸런싱과 별개로 **짧게(0.5초 수준) 잡아야 한다** — 예고 원 드리프트를 덮는 프로토타입 대응이 이 값에 의존한다(P3 절).
+- [ ] **패턴 수치는 1차 플레이 실측을 거쳤지만 확정은 아니다.** 최신 값은 `TankGraphSpec.md`의 변수 표가 정본이다. P3 예고 `Duration`은 밸런싱과 별개로 **짧게(0.5초 수준) 유지해야 한다** — 예고 원 드리프트를 덮는 프로토타입 대응이 이 값에 의존한다(P3 절). `P4_Interval`(1초)은 소환 모션(약 2.5초)보다 짧아 개방 연출 중 첫 잡몹이 나온다 — 연출을 살리려면 3 이상.
 - [x] **패턴 런타임 동작 검증됨(#235).** P1~P4 + 기본 진군이 그래프로 동작한다. 상세는 `TankGraphSpec.md` 「검증 결과」.
-- [ ] **AnimatorController 미착수.** 보스 몸체가 캡슐이고 `Animator`가 없어 P1 준비 모션(`EnemyPlayAnimationAction`)이 그래프에서 빠져 있다 — 노드가 `Animator` 없으면 Failure를 반환해 P1 시퀀스가 끊기기 때문이다. #235 완료 기준 중 이 항목은 미충족이다. 모델·클립 선정은 별건으로 진행한다. 팩(`Assets/Imported/KSJ/Monsters Ultimate Pack 01`)이 **전부 Generic rig**라 외부 휴머노이드 리타게팅은 불가하고 같은 팩 클립만 쓸 수 있다.
+- [x] **AnimatorController 완료.** 몸체를 캡슐에서 `Boss_Alien_01`(Humanoid)로 교체하고 2레이어 컨트롤러를 붙였다 — 위 「애니메이션 계약」 참조. `Assets/Imported/KSJ/Monsters Ultimate Pack 01`이 전부 Generic rig라는 제약은 이 보스에 해당하지 않는다: `Nechvolod3D_StylizedAlienCharacters`의 Char_02/04/05를 Humanoid로 전환(Mixamo 표준 본이라 필수 본 15개 자동 매핑)해 Kevin Iglesias Human Animations를 리타게팅으로 쓴다.
+- [x] **애니메이션 노드와 P4 게이트 배선 완료.** 최신 그래프 구조·값은 `TankGraphSpec.md`를 정본으로 본다.
+- [ ] **보스 프리팹의 스케일·콜라이더가 맞지 않는다.** 모델 실측은 scale 1에서 키 1.96 / 폭 0.95 / 두께 0.64인데 `Tank.prefab`의 `CapsuleCollider`는 캡슐 몸체 시절 값(height 10 · center.y 5 · radius 2.5)이고 `HitPosition`(y 6) · `MonsterHealthBar`(y 11)도 그에 맞춰져 있다. 스케일을 정한 뒤 네 값을 함께 맞출 것.
 - [ ] **P1 충돌 후 보스 생존 미검증.** 돌진 중에는 이동 소유권이 `Enemy.Update`의 정지를 막으므로, `P1_ArriveDistance`가 작으면 보스가 경로 끝 웨이포인트를 지나쳐 `RouteCompleted → Destroy`로 충돌 피해도 없이 사라진다. 현재 5(`AttackRange` 3보다 크게)로 잡았으나 실제 통과 여부는 확인하지 못했다.
-- [ ] 🔥 **`TileSize`가 15 → 6으로 바뀌었다(2026-08-04) — 이 항목의 모든 값이 2.5배 과대 상태다.**
-      타일 아트가 스케일 1에서 6유닛이고 이전에는 2.5배 늘려 쓰고 있었다(`TowerPlacement.md` §3.1).
-      타워·적 스탯은 그 커밋에서 일괄 **×0.4** 했지만 **보스 임계값은 손대지 않았다** —
-      블랙보드 변수라 C# grep에 걸리지 않고, `TankBossBehavior.asset`에 **같은 변수가 여러 벌 직렬화**돼
-      있어 텍스트로 일괄 곱하면 조용히 어긋난다. **Behavior Graph 에디터에서 적용할 것.**
-
-      | 변수 | 현재 | ×0.4 목표 |
-      |---|---|---|
-      | `P1_TriggerDistance` | 100 (일부 30) | **40** (12) |
-      | `P1_ArriveDistance` | 5 | **2** |
-      | `P1_MinSpeed` | 15 / 25 | **6 / 10** |
-      | `P2_BackRadius` | 40 (일부 15) | **16** (6) |
-      | `P3_ForwardRadius` | 30 (일부 18) | **12** (7.2) |
-      | `P3_SealRadius` | 18 | **7.2** |
-      | `Dbg_Radius` | 8 | **3.2** |
-
-      배율·시간류(`P1_DamagePerSpeedUnit`·`P2_SpeedFactor`·`P3_AttackSpeedMul`·`March_SpeedFactor`·
-      `P1_HoldDuration`)는 **대상이 아니다.** ×0.4는 어디까지나 "이전과 같은 타일 비율" 출발점이고,
-      아래 시드 검증을 거쳐 확정할 것.
-- [ ] **패턴 임계값이 절대 월드 거리라 맵 시드에 노출된다.** 전투맵은 `TileSize 15`(→ 현재 6)에 변 70타일이고 경로 웨이포인트를 8~12개 새로 뽑는다. `P1_TriggerDistance`(100)는 본진까지의 **직선 거리**라, 경로가 감기는 시드에서는 스폰 직후에도 100 아래일 수 있어 보스가 출발점에서 바로 돌진을 시작한다 — `P1_Gate = -1`(1회 한정)이라 잘못 발동하면 그 판의 P1은 끝이다. `P2_BackRadius`(40) / `P3_ForwardRadius`(30)도 같은 이유로 "항상 발동" ↔ "한 번도 발동 안 함" 사이를 시드가 결정한다. 트리거를 **남은 경로 진행도**로 잡는 편이 이 맵 생성기와 궁합이 맞다. 최소한 서로 다른 시드 3개에서 P1 발동 지점을 눈으로 확인한 뒤 값을 확정할 것 — 프로토타입 밸런싱의 첫 항목.
+- [x] **`TileSize` 15 → 6 대응은 ×0.4 일괄 곱이 아니라 플레이 실측으로 잡았다.**
+      원래 계획은 거리류 전체에 ×0.4였지만, 실제로 돌려보니 반경은 오히려 **키우는** 쪽이 맞았다
+      (`P3_Radius` 50 · `P2_Radius` 30 · `P3_SealRadius` 36). 최신 값은 `TankGraphSpec.md`의 변수 표를 정본으로 본다.
+      `Boss.Stat.MoveSpeed`는 12 → 4.8(×0.4)로 조정됐다.
+- [ ] 🔥 **`P1_MinSpeed`만 스케일 조정에서 빠졌다 — 돌진 파훼가 너무 싸다.**
+      `MoveSpeed`가 12 → 4.8로 내려갔는데 `P1_MinSpeed`는 25로 남아, 돌진 실효 속도(33.6)가 파훼 문턱의
+      1.34배뿐이다. **감속 타워 2개로 충돌 피해가 0이 되고, 1개만으로도 여유가 8%다.**
+      "파훼 수단이 존재한다"는 불변식은 지켜졌지만 파훼 비용이 설계 의도보다 훨씬 낮다.
+      `MinSpeed`를 10~15로 내리는 안과 계수·중첩 조정안은 `TankGraphSpec.md` 「감속 파훼 불변식」 참조.
+      충돌 피해도 126 → 50.4(성문 HP의 12.6% → 5.0%)로 함께 떨어졌으므로
+      `P1_DamagePerSpeedUnit`을 같이 볼 것.
+- [ ] **패턴 임계값이 절대 월드 거리라 맵 시드에 노출된다.** 전투맵은 `TileSize 6`에 변 70타일이고 경로 웨이포인트를 8~12개 새로 뽑는다. `P1_TriggerDistance`(100)는 본진까지의 **직선 거리**라, 경로가 감기는 시드에서는 스폰 직후에도 100 아래일 수 있어 보스가 출발점에서 바로 돌진을 시작한다 — `P1_Gate = -1`(1회 한정)이라 잘못 발동하면 그 판의 P1은 끝이다. `P2_Radius`(30) / `P3_Radius`(50)도 같은 이유로 "항상 발동" ↔ "한 번도 발동 안 함" 사이를 시드가 결정한다. 트리거를 **남은 경로 진행도**로 잡는 편이 이 맵 생성기와 궁합이 맞다. 최소한 서로 다른 시드 3개에서 P1 발동 지점을 눈으로 확인한 뒤 값을 확정할 것 — 프로토타입 밸런싱의 첫 항목.
 - [ ] **보스 전용 HP UI 미도입.** 잡몹과 같은 `MonsterHealthBar`를 자식으로 붙여 최소한 체력이 보이게는 해뒀다(`Boss.Stat.MaxHp` 800이라 진행도 판단 수단이 없으면 밸런싱 피드백 자체가 안 돈다). 전용 UI·등장 연출 도입 여부는 여전히 미정이며, 오면 이 임시 체력바를 떼면 된다.
 - [ ] **그래프에 기본 진군 브랜치가 반드시 있어야 한다.** 없으면 P1 돌진 성공 후 속도 배수가 고착된다(`EnemyAccelerateAction`이 도달 성공 시 원복하지 않는 이유는 P1 절 참조).
 - [ ] **`EnemyAgent.unitLayerMask`가 비면 P2·P3가 조용히 발동하지 않는다.** 반경 질의가 항상 0을 반환한다. #235 프리팹 작성 시 확인.
