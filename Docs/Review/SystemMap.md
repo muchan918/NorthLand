@@ -512,6 +512,11 @@
 - `ResidentWaypointRegistry`(static) — `Waypoints` / `TryGetRandomWaypoint(out)`. 목적지의 출처
 - `ResidentDoorPointRegistry`(static) — `Points` / `TryGetNearest(from, out)` / `CollectUsable(buffer)`.
   `CollectUsable`이 **호출부 버퍼를 받는 이유**: 스포너가 이 목록을 섞어 소비하므로 내부 재사용 버퍼를 내주면 다음 질의가 그 순서에 오염된다
+- `ResidentNoStopZoneRegistry`(static, #332) — `Zones` / `Register` / `Unregister` / **`Contains(worldPoint)`**. 주민이 **멈춰 서면 안 되는 구역**(다리·좁은 골목)의 유일한 출처. 소비처는 `ResidentTryStartConversationAction`(신규 성립·합류)과 `ResidentDanceAction`.
+  `ResidentNoStopZone`은 **콜라이더가 아니라 로컬 OBB**다(`Center`/`Size`/`IsUsable`/`Contains`) — 트리거 콜라이더는 `Physics.queriesHitTriggers` 기본값 때문에 레이캐스트에 잡혀 `MouseManager`의 선택·배치 마스크와 스킬 타게팅에서 새 레이어를 빠짐없이 빼야 한다. 씬 뷰 면 핸들은 `ResidentNoStopZoneEditor`의 `BoxBoundsHandle`이 준다(에디터 어셈블리).
+  ⚠ **이 존만 Y를 센다.** 다른 근접 질의는 전부 높이를 무시하지만(계단·언덕), 다리는 지면 위로 떠 있어 Y를 무시하면 다리 밑 통로까지 함께 막힌다
+  ⚠ **존 거절은 `Encounters.Mark`보다 앞에서 반환해야 한다** — 조우 쿨다운은 확률 판정 실패의 기록이고, 여기에 섞으면 존을 벗어난 직후에도 그 상대와 대화가 성립하지 않는다
+  ⚠ **편집 모드에서는 레지스트리가 비어 있다**(`[ExecuteAlways]` 없음, `ResidentWaypoint`와 동일). 에디터 검증은 `ResidentNoStopZone.Contains`를 직접 부를 것
 - `Resident` — `Conversation` / `Sociability` / `Encounters` / `Agent` / `IsDancing` / `IsEmerging` / `HasArrivedHome` / **`IsBusy`** / `IsAvailableForConversation`.
   **`IsBusy` 한 줄이 "무언가 하는 중인 주민에게 말을 걸 수 없다"를 보장한다** — 행위가 늘면 여기에만 더한다.
   조건을 소비처마다 나열하면 행위가 늘 때마다 모든 소비처를 고쳐야 한다(공연·앉기·들려 있음이 전부 여기로 들어올 예정)
