@@ -73,6 +73,15 @@ public partial class ResidentTryStartConversationAction : Action
             return Status.Failure;
         }
 
+        // 다리·계단·좁은 골목에서는 대화가 통로를 막는다(#332). 참가자 원의 지름이 2인 4.0 / 3인 4.62라
+        // 통로가 그보다 좁으면 지나가는 주민이 몸을 비집고 통과하는 그림이 계속 나온다.
+        //
+        // **신규 성립보다 앞에 둔다** — 아래 합류(TryJoinNearby)까지 이 한 줄로 함께 막힌다.
+        if (ResidentNoStopZoneRegistry.Contains(self.transform.position))
+        {
+            return Status.Failure;
+        }
+
         float radius = Radius != null ? Radius.Value : 0f;
 
         // ── 진행 중인 대화에 끼어드는 쪽을 먼저 본다(§7.1 진행 중 합류) ──
@@ -85,6 +94,16 @@ public partial class ResidentTryStartConversationAction : Action
         }
 
         if (!ResidentRegistry.TryFindNearestCandidate(self, radius, out Resident other))
+        {
+            return Status.Failure;
+        }
+
+        // 내가 존 밖이어도 상대가 안이면 원이 통로를 가로지른다 — 자리는 두 사람의 중점에 잡히기 때문이다.
+        //
+        // ⚠ **아래 Encounters.Mark보다 앞에서 빠져나가야 한다.** 조우 쿨다운은 "확률을 굴려서 졌다"의
+        //   기록이지 "여긴 금지구역이다"의 기록이 아니다. 여기서 찍으면 둘 다 존을 벗어난 직후에도
+        //   쿨다운이 남아 그 상대와는 한동안 대화가 성립하지 않는다.
+        if (ResidentNoStopZoneRegistry.Contains(other.transform.position))
         {
             return Status.Failure;
         }
