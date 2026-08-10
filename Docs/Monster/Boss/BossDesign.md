@@ -6,7 +6,7 @@
 - 구현 위치: 노드 `Assets/Scripts/CombatSystem/Enemy/AI/Nodes/` · 보조 타입 `Assets/Scripts/CombatSystem/Enemy/AI/`
 - 그래프 `Assets/Behavior/TankBossBehavior.asset` · 프리팹 `Assets/Prefabs/Monster/Tank.prefab` · 스탯 `Assets/Resources/ScriptableObjects/Enemies/tank.asset`
 - 노드 레퍼런스: `Docs/Monster/Boss/BossNodeReference.md` · 그래프 배선·검증: `Docs/Monster/Boss/TankGraphSpec.md`
-- **패턴 4종 + 애니메이션이 Play에서 동작한다.** 몸체는 `Boss_Alien_01`(Humanoid), 2레이어 `AnimatorController`(「애니메이션 계약」), P4는 게이트형으로 배선 완료. 남은 것 — ① 🔥 **`P1_MinSpeed`가 스케일 조정에서 빠져 돌진 파훼가 너무 싸다** ② 프리팹 스케일·콜라이더가 캡슐 시절 값 ③ P1 충돌 후 보스 생존(경로 끝 파괴 회피) 미검증 ④ 디버그 서클(`Dbg_Radius` 8) 미제거. 검증 상세는 `TankGraphSpec.md` 「검증 결과」.
+- **패턴 4종 + 애니메이션이 Play에서 동작한다.** 몸체는 `Boss_Alien_01`(Humanoid), 2레이어 `AnimatorController`(「애니메이션 계약」), P4는 게이트형, 프리팹 스케일·콜라이더 확정, P1 충돌 후 생존 확인. 스케일 조정에서 빠졌던 `P1_MinSpeed`·`P1_DamagePerSpeedUnit`도 복원했다. 남은 것 — ① 감속 파훼 인게임 검증 ② 디버그 서클(`Dbg_Radius` 8) 미제거 ③ 웨이브 정본 편성. 검증 상세는 `TankGraphSpec.md` 「검증 결과」.
 
 > `Assets/Scripts/CombatSystem/Enemy/MiniBoss/`의 중간보스 노드 4종(`BossHealSelfAction` / `BossHpBelowCondition` / `BossRampSpeedMultiplierAction` / `BossSetSpeedMultiplierAction`)과 `MidBossBehavior.asset`은 이 보스와 무관하다. **재사용하지 않고 참조하지도 않는다.** 이 보스의 리프 노드는 전부 신규 작성한다.
 
@@ -134,7 +134,7 @@
 >
 > **게이트 판정은 `MonsterSpawn.AliveMonsterCount`(= `monsterParent.childCount`)를 본다.** 보스 자신과 사망 연출 중인 몬스터(`destroyDelay` 2초)가 포함되므로 임계값은 0이 아니라 **1**이고, 마지막 잡몹이 죽은 뒤 약 2초 지나 게이트가 열린다(WL-038과 같은 축).
 >
-> ⚠ **`P4_Interval`이 소환 모션보다 짧으면 개방 연출이 끝나기 전에 첫 잡몹이 나온다.** 두 조각이 독립적으로 게이트를 판정하기 때문이다. 모션이 약 2.5초라 `P4_Interval`은 그보다 커야 한다(현재 5).
+> **`P4_Interval`(1초)이 소환 모션(약 2.5초)보다 짧아 개방 연출 도중에 첫 잡몹이 나온다 — 이것이 의도다.** 보스가 손을 들어올리는 동안 게이트에서 잡몹이 쏟아지기 시작한다. 두 조각이 독립적으로 게이트를 판정하기 때문에 가능한 연출이며, 모션이 끝난 뒤에 유입을 시작하고 싶다면 `P4_Interval`을 모션 길이보다 크게 잡으면 된다.
 >
 > ⚠ **설계 검토 필요 두 가지.**
 > ① **현재 보스는 웨이브에 `Count: 1`로 혼자 편성돼 있어 게이트가 스폰 즉시 열린다** — 편성에 다른 몬스터가 함께 들어가기 전까지는 게이트 이전과 동작이 같다.
@@ -319,23 +319,24 @@ Play 검증으로 두 축이 서로를 지우지 않는 것을 확인했다: 기
 - [x] **HP 기반 에스컬레이션은 도입하지 않는다.** 4개 패턴을 전부 상황 트리거(본진까지 거리 / 주변 잡몹 수 / 타워 밀집)로 유지한다. 보스 HP 구간에 따라 압박이 강해지는 장치는 두지 않는다.
 - [x] **이동속도 합성 계약의 소유권 — 보스 쪽에서 골격을 먼저 넣었다**(#233). 감속 타워는 `IMovementAgent.AddSpeedDebuff` / `RemoveSpeedDebuff`를 얹으면 된다. 저장소에 감속 타워 코드가 아직 없어 충돌 대상이 없었다(`slow_tower.asset`은 전 필드가 비어 있음). **해제 책임은 타워 쪽** — 자동 만료가 없다.
 - [x] **이동속도 감소 타워는 `AuraTower` 계열이다** — P3 마력 봉인 대상에서 제외된다(설계 의도대로). 단 **`AuraTower`를 `Tower` 상속으로 바꾸는 대규모 리팩토링이 예정**돼 있어 상속 구조는 확정이 아니다. 그래서 P3의 대상 판정을 `Tower.Active` 등록 여부가 아니라 공격 스탯 보유 여부로 두어 **리팩토링 결과에 불변**으로 만들었다(P3 절 참조). 리팩토링 담당자가 확인할 것: `AuraTower`가 `Tower`를 상속해도 데이터가 Magic 타입(공격 스탯 없음)으로 남는지 — 남지 않으면 봉인 대상에 들어와 P1 파훼 수단이 사라진다.
-- [ ] **패턴 수치는 1차 플레이 실측을 거쳤지만 확정은 아니다.** 최신 값은 `TankGraphSpec.md`의 변수 표가 정본이다. P3 예고 `Duration`은 밸런싱과 별개로 **짧게(0.5초 수준) 유지해야 한다** — 예고 원 드리프트를 덮는 프로토타입 대응이 이 값에 의존한다(P3 절). `P4_Interval`(1초)은 소환 모션(약 2.5초)보다 짧아 개방 연출 중 첫 잡몹이 나온다 — 연출을 살리려면 3 이상.
+- [ ] **패턴 수치는 1차 플레이 실측을 거쳤지만 확정은 아니다.** 최신 값은 `TankGraphSpec.md`의 변수 표가 정본이다. P3 예고 `Duration`은 밸런싱과 별개로 **짧게(0.5초 수준) 유지해야 한다** — 예고 원 드리프트를 덮는 프로토타입 대응이 이 값에 의존한다(P3 절).
 - [x] **패턴 런타임 동작 검증됨(#235).** P1~P4 + 기본 진군이 그래프로 동작한다. 상세는 `TankGraphSpec.md` 「검증 결과」.
 - [x] **AnimatorController 완료.** 몸체를 캡슐에서 `Boss_Alien_01`(Humanoid)로 교체하고 2레이어 컨트롤러를 붙였다 — 위 「애니메이션 계약」 참조. `Assets/Imported/KSJ/Monsters Ultimate Pack 01`이 전부 Generic rig라는 제약은 이 보스에 해당하지 않는다: `Nechvolod3D_StylizedAlienCharacters`의 Char_02/04/05를 Humanoid로 전환(Mixamo 표준 본이라 필수 본 15개 자동 매핑)해 Kevin Iglesias Human Animations를 리타게팅으로 쓴다.
 - [x] **애니메이션 노드와 P4 게이트 배선 완료.** 최신 그래프 구조·값은 `TankGraphSpec.md`를 정본으로 본다.
-- [ ] **보스 프리팹의 스케일·콜라이더가 맞지 않는다.** 모델 실측은 scale 1에서 키 1.96 / 폭 0.95 / 두께 0.64인데 `Tank.prefab`의 `CapsuleCollider`는 캡슐 몸체 시절 값(height 10 · center.y 5 · radius 2.5)이고 `HitPosition`(y 6) · `MonsterHealthBar`(y 11)도 그에 맞춰져 있다. 스케일을 정한 뒤 네 값을 함께 맞출 것.
-- [ ] **P1 충돌 후 보스 생존 미검증.** 돌진 중에는 이동 소유권이 `Enemy.Update`의 정지를 막으므로, `P1_ArriveDistance`가 작으면 보스가 경로 끝 웨이포인트를 지나쳐 `RouteCompleted → Destroy`로 충돌 피해도 없이 사라진다. 현재 5(`AttackRange` 3보다 크게)로 잡았으나 실제 통과 여부는 확인하지 못했다.
+- [x] **보스 프리팹의 스케일·콜라이더 확정.** 모델 ×6(키 약 11.7) · `CapsuleCollider` height 10 / center.y 5 / radius 2.5 · `HitPosition` y 8 · `MonsterHealthBar` y 13. 모델이 콜라이더보다 약 1.7 높아 머리 끝은 피격 범위 밖이다(의도 여부는 미확인).
+- [x] **P1 충돌 후 보스 생존 확인됨.** `P1_ArriveDistance` 5에서 경로 끝 웨이포인트를 지나쳐 `RouteCompleted → Destroy`로 사라지지 않고, 충돌 피해를 준 뒤 근접 공격으로 전환한다.
 - [x] **`TileSize` 15 → 6 대응은 ×0.4 일괄 곱이 아니라 플레이 실측으로 잡았다.**
       원래 계획은 거리류 전체에 ×0.4였지만, 실제로 돌려보니 반경은 오히려 **키우는** 쪽이 맞았다
       (`P3_Radius` 50 · `P2_Radius` 30 · `P3_SealRadius` 36). 최신 값은 `TankGraphSpec.md`의 변수 표를 정본으로 본다.
       `Boss.Stat.MoveSpeed`는 12 → 4.8(×0.4)로 조정됐다.
-- [ ] 🔥 **`P1_MinSpeed`만 스케일 조정에서 빠졌다 — 돌진 파훼가 너무 싸다.**
-      `MoveSpeed`가 12 → 4.8로 내려갔는데 `P1_MinSpeed`는 25로 남아, 돌진 실효 속도(33.6)가 파훼 문턱의
-      1.34배뿐이다. **감속 타워 2개로 충돌 피해가 0이 되고, 1개만으로도 여유가 8%다.**
-      "파훼 수단이 존재한다"는 불변식은 지켜졌지만 파훼 비용이 설계 의도보다 훨씬 낮다.
-      `MinSpeed`를 10~15로 내리는 안과 계수·중첩 조정안은 `TankGraphSpec.md` 「감속 파훼 불변식」 참조.
-      충돌 피해도 126 → 50.4(성문 HP의 12.6% → 5.0%)로 함께 떨어졌으므로
-      `P1_DamagePerSpeedUnit`을 같이 볼 것.
+- [x] **스케일 조정에서 빠졌던 `P1_MinSpeed`·`P1_DamagePerSpeedUnit`을 복원했다(2026-08-11).**
+      `MinSpeed` 25 → **10**(×0.4, 속도 단위), `DamagePerSpeedUnit` 1.5 → **3.75**(×2.5, 속도 입력이
+      ×0.4로 줄어든 것을 상쇄). 파훼 문턱이 2중첩 → **6중첩**으로, 충돌 피해가 성문 HP의 5.0% →
+      **12.6%**로 돌아와 스케일 변경 이전과 같아졌다.
+      계수를 "배율류라 스케일 대상 아님"으로 분류한 것이 누락의 원인이었다 — `DamagePerSpeedUnit`은
+      **속도당 피해**라 속도 단위가 바뀌면 함께 움직인다.
+      ⚠ **블랙보드 값만 고치면 게임 동작이 바뀌지 않는다** — 컴파일된 그래프의 노드가 빌드 시점
+      복사본을 들고 있고 런타임 바인딩이 블랙보드를 다시 읽지 않는다(`TankGraphSpec.md` 「감속 파훼 불변식」).
 - [ ] **패턴 임계값이 절대 월드 거리라 맵 시드에 노출된다.** 전투맵은 `TileSize 6`에 변 70타일이고 경로 웨이포인트를 8~12개 새로 뽑는다. `P1_TriggerDistance`(100)는 본진까지의 **직선 거리**라, 경로가 감기는 시드에서는 스폰 직후에도 100 아래일 수 있어 보스가 출발점에서 바로 돌진을 시작한다 — `P1_Gate = -1`(1회 한정)이라 잘못 발동하면 그 판의 P1은 끝이다. `P2_Radius`(30) / `P3_Radius`(50)도 같은 이유로 "항상 발동" ↔ "한 번도 발동 안 함" 사이를 시드가 결정한다. 트리거를 **남은 경로 진행도**로 잡는 편이 이 맵 생성기와 궁합이 맞다. 최소한 서로 다른 시드 3개에서 P1 발동 지점을 눈으로 확인한 뒤 값을 확정할 것 — 프로토타입 밸런싱의 첫 항목.
 - [ ] **보스 전용 HP UI 미도입.** 잡몹과 같은 `MonsterHealthBar`를 자식으로 붙여 최소한 체력이 보이게는 해뒀다(`Boss.Stat.MaxHp` 800이라 진행도 판단 수단이 없으면 밸런싱 피드백 자체가 안 돈다). 전용 UI·등장 연출 도입 여부는 여전히 미정이며, 오면 이 임시 체력바를 떼면 된다.
 - [ ] **그래프에 기본 진군 브랜치가 반드시 있어야 한다.** 없으면 P1 돌진 성공 후 속도 배수가 고착된다(`EnemyAccelerateAction`이 도달 성공 시 원복하지 않는 이유는 P1 절 참조).
