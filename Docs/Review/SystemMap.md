@@ -668,6 +668,17 @@
 - `[SerializeField] private` 필드 기본, 프로퍼티는 expression-bodied (접두 `_camelCase` vs
   `camelCase` 혼재 — 통일 미결정)
 - CSV POCO는 PascalCase 프로퍼티(CsvHelper), SO는 CreateAssetMenu
+- **타워 밸런싱 규약(#326)**: 정본은 [CombatBalance.md](../Core/CombatBalance.md), 저작 절차는
+  [TowerAddGuide.md §3.5](../Core/TowerAddGuide.md).
+  ① **`공격 간격(초) ≤ 사거리(타일) ÷ 3`** (1타일 = 6유닛) — 어기면 적이 사거리를 지나는 동안 발사가
+  1~2발에 그쳐 쿨다운 위상에 따라 화력이 ±50% 이상 튄다.
+  ② **합성 결과 타워의 1회 통과 킬 수 > 재료 타워 킬 수의 합** (상한 재료 합 × 1.3) — 아니면 합성이
+  순손실이라 아무도 안 만든다. #326 이전에 2차 `Sniper`가 3차 `killstack`(재료가 스나이퍼)보다 강했다.
+  ③ 화력 단위는 DPS가 아니라 **1회 통과 킬 수**이고, 티어별 밴드(0.1킬 = 1눈금)에서 고른다.
+  ✅ **①은 `TowerAsset.OnValidate`가 강제한다**(`TowerAsset.cs:158-177` — `AttackInterval > AttackRange / 18`이면
+  저장 시 경고. 18 = 타일 6유닛 × 계수 3).
+  ⚠ **②·③은 코드가 잡지 못한다**(WL-169) — 재료 타워들의 킬 수 합을 알아야 해서 단일 SO 검사로는
+  불가능하다. **신규 타워 PR에서 눈으로 확인할 것.**
 - 테스트: XxxTest.cs MonoBehaviour + 개인 테스트 씬 Play 확인 (유닛 테스트 없음)
 - 커밋: `Feat|Fix: 한국어 요약 #이슈번호`
 - **적 프리팹 mover 탐색 규약**: `MonsterMove`(`IMovementAgent` 구현)는 `Enemy` 루트 또는 그 자식

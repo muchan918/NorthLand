@@ -155,6 +155,27 @@ public class TowerAsset : ScriptableObject
         if (hasDebuff && (DebuffAura == null || DebuffAura.Radius <= 0f))
             Debug.LogWarning($"[TowerAsset] {name}: DebuffAuraAction이 있는데 DebuffAura.Radius가 0입니다.", this);
 
+        // ── 밸런싱 규약 ①(#326) — 간격 ≤ 사거리(타일) ÷ 3 ────────────────────
+        //
+        // 정본은 Docs/Core/CombatBalance.md §2, 저작 절차는 TowerAddGuide.md §3.5.
+        // 어기면 **적이 사거리를 지나는 동안 발사 횟수가 1~2발에 그친다.** 발사 수는 정수이므로
+        // 사거리 진입 시점의 쿨다운 위상에 따라 "쏘거나 안 쏘거나"가 갈리고, 실제 화력이 설계값의
+        // 70~140% 사이에서 튄다 — 예외도 로그도 없이 "가끔 안 잡힌다"로만 드러나는 유형이다.
+        // (#326 이전 cannon_tower가 정확히 이 상태였다: 사거리 2.33타일 / 간격 2.0초 → 1.4발)
+        //
+        // ⚠ 18 = 타일 6유닛 × 규약 계수 3. 타일 크기가 바뀌면 이 상수도 함께 바뀐다 —
+        //   `OnValidate`는 씬 없이도 돌아 CombatMapGenerator.Settings를 참조할 수 없으므로
+        //   단일 출처(WL-034)를 쓰지 못하고 여기 상수로 둔다.
+        if (hasAttack && attackAuthored && Attack.AttackRange > 0f && Attack.AttackInterval > 0f)
+        {
+            float intervalLimit = Attack.AttackRange / 18f;
+            if (Attack.AttackInterval > intervalLimit + 0.0001f)
+                Debug.LogWarning($"[TowerAsset] {name}: AttackInterval({Attack.AttackInterval})이 밸런싱 규약 " +
+                                 $"상한({intervalLimit:0.###})을 넘습니다 — 사거리 {Attack.AttackRange / 6f:0.##}타일에서 " +
+                                 "적이 지나가는 동안 발사가 5발 미만이라 쿨다운 위상에 따라 화력이 튑니다. " +
+                                 "간격을 줄이고 발당 피해를 그만큼 올리세요(Docs/Core/CombatBalance.md §2).", this);
+        }
+
         // ── 명중 방식 ↔ 그 방식이 요구하는 수치 ─────────────────────────────
         if (hasAttack && Impact == NorthLand.Combat.ImpactKind.Area && SplashRadius <= 0f)
             Debug.LogWarning($"[TowerAsset] {name}: Impact=Area인데 SplashRadius가 0입니다 — 단일 명중과 같아집니다.", this);

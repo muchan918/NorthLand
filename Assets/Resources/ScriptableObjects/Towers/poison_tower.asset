@@ -59,6 +59,6 @@ MonoBehaviour:
     - rid: 3470829504553025632
       type: {class: PoisonStatus, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
-        DamagePerTick: 5
+        DamagePerTick: 3
         TickInterval: 1
         Duration: 4

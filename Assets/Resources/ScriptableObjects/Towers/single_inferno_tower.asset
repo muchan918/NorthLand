@@ -44,7 +44,7 @@ MonoBehaviour:
     Range: 20
     MaxTargets: 1
     TickInterval: 0.5
-    DamagePerTick: 4
+    DamagePerTick: 3.5
     LockRamp:
       PerStack: 1.5
       MaxStacks: 8

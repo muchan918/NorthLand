@@ -17,16 +17,16 @@ MonoBehaviour:
   GhostPrefab: {fileID: 3104185744962560807, guid: 7d78ffcc46993dd46a03b462daf40438, type: 3}
   Cost: []
   Attack:
-    AttackDamage: 16
+    AttackDamage: 9
     AttackRange: 14
-    AttackInterval: 2.2
+    AttackInterval: 0.75
     ProjectilePrefab: {fileID: 4221183324172678294, guid: 58184368b64351d4094976b3524ed9a1, type: 3}
     Flight:
       rid: 1498367259597078618
     PelletCount: 1
     SpreadAngle: 0
   Impact: 1
-  SplashRadius: 2
+  SplashRadius: 5
   ChainRadius: 0
   MaxChainTargets: 0
   ChainDamageFalloff: 0
@@ -58,6 +58,6 @@ MonoBehaviour:
     - rid: 1498367259597078619
       type: {class: BurnStatus, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
-        DamagePerTick: 3
+        DamagePerTick: 2
         TickInterval: 0.5
         Duration: 3
