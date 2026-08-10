@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NorthLand.Combat;
 using Unity.Behavior;
 using Unity.Properties;
@@ -39,6 +40,17 @@ public partial class EnemyApplyTowerDebuffAction : Action
     [SerializeReference] public BlackboardVariable<float> AttackSpeedMultiplier;
 
     [SerializeReference] public BlackboardVariable<float> Duration;
+
+    // 실제로 봉인된 타워 목록(출력). 비워두면 기록하지 않는다 — 로그만 볼 때는 연결이 필요 없다.
+    //
+    // 봉인 VFX를 각 타워에 걸려면 "누가 걸렸는지"가 필요하고, 그 판정은 반경·카테고리 필터를
+    // 이미 통과한 이 노드만 알고 있다. 뒤에 오는 VFX 노드가 이 변수를 입력으로 받으면
+    // 필터 로직을 두 곳에서 유지하지 않아도 된다.
+    //
+    // 매번 새 List를 할당해 대입한다. 내부 리스트를 재사용하면 소비 노드가 들고 있는 것과 같은
+    // 인스턴스라, 다음 발동에서 Clear할 때 소비 측 데이터가 조용히 비워진다.
+    // P3는 쿨다운(15초)이 있어 할당 빈도가 문제되지 않는다.
+    [SerializeReference] public BlackboardVariable<List<GameObject>> SealedTowers;
 
     protected override Status OnStart()
     {
@@ -83,6 +95,8 @@ public partial class EnemyApplyTowerDebuffAction : Action
         float sqrRadius = radius * radius;
         Vector3 origin = agent.transform.position;
 
+        List<GameObject> sealed_ = new List<GameObject>();
+
         // Tower.Active를 순회한다 — 물리 질의가 필요 없다.
         for (int i = 0; i < Tower.Active.Count; i++)
         {
@@ -102,10 +116,51 @@ public partial class EnemyApplyTowerDebuffAction : Action
             }
 
             tower.ApplyBuff(sourceId, damageMul, speedMul, duration);
+            sealed_.Add(tower.gameObject);
         }
+
+        if (SealedTowers != null)
+        {
+            SealedTowers.Value = sealed_;
+        }
+
+        LogSealed(agent, sealed_, radius, damageMul, speedMul, duration);
 
         // 범위에 타워가 없는 것은 실패가 아니다 — 분산 배치라는 파훼법이 통했다는 뜻이다.
         return Status.Success;
+    }
+
+    // 프로토타입 스캐폴딩. 쿨다운(15초)마다 한 줄이라 콘솔을 잠그지 않는다.
+    // 정식 빌드 전에는 걷어내거나 조건부로 바꿀 것(디버그 서클과 같은 취급).
+    private static void LogSealed(EnemyAgent agent, List<GameObject> towers,
+        float radius, float damageMul, float speedMul, float duration)
+    {
+        if (towers.Count == 0)
+        {
+            // 0건도 남긴다 — "발동했는데 아무것도 안 걸렸다"가 분산 배치 파훼가 통한 것인지
+            // 반경·카테고리 필터가 잘못된 것인지는 로그가 없으면 구분할 수 없다.
+            Debug.Log($"[보스 패턴] {Time.time:0.00}s · 마력 봉인: 반경 {radius:0.#} 안에 공격 타워 없음", agent);
+            return;
+        }
+
+        System.Text.StringBuilder sb = new System.Text.StringBuilder();
+
+        for (int i = 0; i < towers.Count; i++)
+        {
+            if (i > 0)
+            {
+                sb.Append(", ");
+            }
+
+            Tower tower = towers[i].GetComponent<Tower>();
+            string kind = tower != null && tower.Asset != null ? tower.Asset.name : "?";
+            float distance = Vector3.Distance(towers[i].transform.position, agent.transform.position);
+
+            sb.Append($"{towers[i].name}({kind}, {distance:0.#})");
+        }
+
+        Debug.Log($"[보스 패턴] {Time.time:0.00}s · 마력 봉인 {towers.Count}기 " +
+            $"— 공격력 x{damageMul:0.##} / 공격속도 x{speedMul:0.##} / {duration:0.#}초\n  {sb}", agent);
     }
 
     // "마력 봉인" 효과 종류를 식별하는 고정 해시. 다른 소스(버프 타워·플레이어 스킬)와 겹치지 않게

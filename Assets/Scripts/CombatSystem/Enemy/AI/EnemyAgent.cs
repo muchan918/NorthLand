@@ -188,12 +188,67 @@ public class EnemyAgent : MonoBehaviour
 
     // 현재 상태의 재생 진행도(1=1회 재생 완료). 루프 클립이면 1을 넘어 계속 증가한다.
     // Animator가 없으면 1을 반환한다 — 대기 노드가 무한 Running으로 패턴을 붙잡지 않게.
-    public float AnimationNormalizedTime =>
-        animator != null ? animator.GetCurrentAnimatorStateInfo(0).normalizedTime : 1f;
+    public float AnimationNormalizedTime => GetAnimationNormalizedTime(0);
 
     // 전이 중이면 참. 트리거 직후 몇 프레임은 아직 이전 상태가 읽히므로
     // 종료 판정에서 이 구간을 배제해야 준비 모션이 시작 전에 끝난 것으로 오판되지 않는다.
-    public bool IsAnimatorInTransition => animator != null && animator.IsInTransition(0);
+    public bool IsAnimatorInTransition => GetIsAnimatorInTransition(0);
+
+    // 지속 상태(돌진 중 / 가드 중)는 Trigger가 아니라 Bool로 표현한다.
+    //
+    // Trigger는 전이가 소비하지 않으면 켜진 채로 남는다. 그래서 "해제 트리거"를 상태 밖에서
+    // 쏘면 장전된 채 남아 있다가 다음번 진입을 즉시 취소한다 — 어디서든 안전하게 해제할 수
+    // 없다는 뜻이고, 지속 상태에는 쓸 수 없다는 뜻이다. Bool은 멱등이라 기본 진군 브랜치가
+    // 매 사이클 false로 덮어써도 무해하다(패턴 속도 배수 복귀와 같은 구조).
+    //
+    // 파라미터가 없으면 거짓을 반환한다. Animator.SetBool은 없는 이름에 대해 매 호출 경고를
+    // 남기므로, 여기서 걸러 노드가 경고를 1회만 남기게 한다.
+    public bool TrySetAnimatorBool(string parameterName, bool value)
+    {
+        if (!HasAnimatorBool(parameterName))
+        {
+            return false;
+        }
+
+        animator.SetBool(parameterName, value);
+        return true;
+    }
+
+    public bool GetAnimatorBool(string parameterName) =>
+        HasAnimatorBool(parameterName) && animator.GetBool(parameterName);
+
+    private bool HasAnimatorBool(string parameterName)
+    {
+        if (animator == null || string.IsNullOrEmpty(parameterName))
+        {
+            return false;
+        }
+
+        foreach (AnimatorControllerParameter parameter in animator.parameters)
+        {
+            if (parameter.type == AnimatorControllerParameterType.Bool && parameter.name == parameterName)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // 레이어를 지정하는 형태. 상체 마스크 레이어(가드 / 봉인 / 소환)에서 재생되는 클립은
+    // layer 0을 보면 안 된다 — 0번에서는 걷기가 루프 중이라 normalizedTime이 이미 1을 넘어 있고,
+    // 재생 종료 대기가 시작하자마자 성공으로 빠져나간다.
+    //
+    // 범위를 벗어난 레이어는 "이미 끝났다"로 답한다. 대기 노드가 영구 Running으로
+    // 패턴 전체를 붙잡는 것보다 한 번 어색하게 지나가는 편이 낫다.
+    public float GetAnimationNormalizedTime(int layer) =>
+        HasLayer(layer) ? animator.GetCurrentAnimatorStateInfo(layer).normalizedTime : 1f;
+
+    public bool GetIsAnimatorInTransition(int layer) =>
+        HasLayer(layer) && animator.IsInTransition(layer);
+
+    private bool HasLayer(int layer) =>
+        animator != null && layer >= 0 && layer < animator.layerCount;
 
     // ── 패턴 게이트(무상태 원칙의 유일한 예외) ─────────────────────────────
 

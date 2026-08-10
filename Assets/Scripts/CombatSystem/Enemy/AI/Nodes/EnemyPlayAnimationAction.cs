@@ -34,6 +34,12 @@ public partial class EnemyPlayAnimationAction : Action
     // 참이면 재생이 끝날 때까지 Running을 유지한다.
     [SerializeReference] public BlackboardVariable<bool> WaitForEnd;
 
+    // 재생 종료를 어느 레이어에서 판정할지. 기본 0(전신).
+    // 상체 마스크 레이어에서 도는 클립(가드 / 봉인 / 소환)은 그 레이어 번호를 넣어야 한다 —
+    // 0을 보면 루프 중인 걷기의 normalizedTime을 읽어 즉시 성공으로 빠져나간다.
+    // WaitForEnd가 거짓이면 쓰이지 않는다.
+    [SerializeReference] public BlackboardVariable<int> Layer;
+
     // 대기 상한(초). 0 이하면 상한 없음. 트리거 이름 오타로 패턴이 영구 정지하는 것을 막는다.
     [SerializeReference] public BlackboardVariable<float> MaxWaitSeconds;
 
@@ -93,8 +99,10 @@ public partial class EnemyPlayAnimationAction : Action
             return Status.Success;
         }
 
+        int layer = Layer != null ? Layer.Value : 0;
+
         // 전이가 시작됐다가 끝나는 것을 본 뒤부터 진행도를 신뢰한다.
-        if (agent.IsAnimatorInTransition)
+        if (agent.GetIsAnimatorInTransition(layer))
         {
             transitionSeen = true;
             return Status.Running;
@@ -105,7 +113,7 @@ public partial class EnemyPlayAnimationAction : Action
             return Status.Running;
         }
 
-        return agent.AnimationNormalizedTime >= 1f ? Status.Success : Status.Running;
+        return agent.GetAnimationNormalizedTime(layer) >= 1f ? Status.Success : Status.Running;
     }
 
     protected override void OnEnd()
