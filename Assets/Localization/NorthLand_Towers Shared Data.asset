@@ -251,6 +251,30 @@ MonoBehaviour:
     m_Key: towers.charging_cannon.desc
     m_Metadata:
       m_Items: []
+  - m_Id: 7701478553329664
+    m_Key: towers.missile.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7701478578495488
+    m_Key: towers.missile.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7701478578495489
+    m_Key: towers.missile.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7701478578495490
+    m_Key: towers.twin_missile.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7701478578495491
+    m_Key: towers.twin_missile.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7701478578495492
+    m_Key: towers.twin_missile.desc
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

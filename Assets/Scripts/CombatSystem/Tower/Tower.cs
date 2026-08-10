@@ -24,6 +24,14 @@ namespace NorthLand.Combat
         // 투사체 생성 위치(포신/머즐). 미할당 시 기존처럼 타워 루트(바닥)에서 생성(하위 호환).
         [SerializeField] Transform firePoint;
 
+        // 포신이 둘 이상인 타워(양날개 미사일 터렛 등)의 발사 위치 목록(#336). 비워두면 위의 단일
+        // `firePoint`가 쓰이므로 **기존 프리팹은 전부 무변경**이다.
+        //
+        // 단일 필드를 배열로 바꾸지 않고 나란히 두는 이유: 기존 프리팹 18종의 인스펙터 배선이
+        // 그 자리에 남아 있어야 하고(배열로 옮기면 전부 다시 물려야 한다), 빔·레이저처럼 "포구가
+        // 하나뿐인 개념"은 여전히 단일 값을 읽기 때문이다(BeamAction·LaserAction의 `Owner.FirePoint`).
+        [SerializeField] Transform[] firePoints;
+
         // ★ 이 타워가 "무엇을 하는 물건인지"를 담는 액션들 — **프리팹이 정본이다**(#274).
         //
         // 인스펙터에서 `+ Attack Action` / `+ Buff Aura Action`을 골라 담는다. 예전에는 SO의 TowerType을
@@ -84,6 +92,25 @@ namespace NorthLand.Combat
         // 다루기 까다롭고, 이렇게 두면 프리팹의 기존 배선 값이 제자리에 남는다.
         internal Transform FirePoint => firePoint;
         internal LayerMask EnemyLayerMask => enemyLayerMask;
+
+        // 다음 발사에 쓸 포구. 커서를 여기서 굴리는 이유는 배선의 소유자가 호스트이기 때문이다
+        // (액션 규칙 ②) — 액션이 인덱스를 관리하면 포구 개수를 알아야 하고, 그 값이 프리팹 배선이라
+        // 액션이 씬 구조를 아는 셈이 된다. 커서는 직렬화되지 않는 런타임 값이다.
+        //
+        // 배열이 비면 단일 `firePoint`(그것도 없으면 null → 호출부가 타워 루트로 폴백)를 그대로 반환하므로
+        // **기존 타워는 이 경로를 타도 거동이 바뀌지 않는다.**
+        internal Transform NextFirePoint()
+        {
+            if (firePoints == null || firePoints.Length == 0) return firePoint;
+
+            Transform result = firePoints[firePointCursor];
+            firePointCursor = (firePointCursor + 1) % firePoints.Length;
+
+            // 배열에 빈 슬롯이 섞여 있어도 발사가 멈추지 않게 단일 값으로 떨어진다(저작 실수 방어).
+            return result != null ? result : firePoint;
+        }
+
+        int firePointCursor;
 
         // 저작 검증(TowerAsset.OnValidate)이 프리팹의 액션 구성을 들여다보는 창구.
         // 런타임 소비처는 능력 질의(Has/Get)를 쓴다 — 리스트를 통째로 노출하는 것은 검증·툴링용이다.
