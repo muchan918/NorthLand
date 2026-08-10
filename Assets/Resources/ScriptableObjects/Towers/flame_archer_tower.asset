@@ -17,9 +17,9 @@ MonoBehaviour:
   GhostPrefab: {fileID: 6801833135963741600, guid: 5f7b3ba163abd21499207565fa06a6a3, type: 3}
   Cost: []
   Attack:
-    AttackDamage: 10
+    AttackDamage: 13
     AttackRange: 18
-    AttackInterval: 1.2
+    AttackInterval: 1
     ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
     Flight:
       rid: 1498367259597078617
@@ -53,7 +53,7 @@ MonoBehaviour:
     - rid: 1498367259597078616
       type: {class: BurnStatus, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
-        DamagePerTick: 5
+        DamagePerTick: 3
         TickInterval: 0.5
         Duration: 2
     - rid: 1498367259597078617

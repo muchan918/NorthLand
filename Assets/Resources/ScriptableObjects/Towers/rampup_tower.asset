@@ -17,7 +17,7 @@ MonoBehaviour:
   GhostPrefab: {fileID: 6801833135963741600, guid: 17f7b303891c39a48b5a798c7cf7bb6e, type: 3}
   Cost: []
   Attack:
-    AttackDamage: 6
+    AttackDamage: 13
     AttackRange: 18
     AttackInterval: 0.8
     ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
