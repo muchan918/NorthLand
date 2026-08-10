@@ -47,6 +47,15 @@ namespace NorthLand.Combat
         // 처형 표식(#318). 감전 보상 「처형」이 걸고, 지속 동안 어떤 피해원으로든 체력이 임계 이하로
         // 떨어지면 그 순간 집행된다. 표식을 Enemy가 소유하는 이유는 damageTakenFactor와 같다 —
         // 피해 적용 지점이 TakeDamage 하나뿐이라 다른 데서 판정하면 동기화가 깨진다.
+        //
+        // StatusEffectHandler에 얹지 않은 이유는 "핸들러가 도트 전용이라서"가 아니다 —
+        // ApplySlow(감속·스턴)가 이미 피해가 아닌 시간제한 전투 판정을 소유·갱신·만료시킨다.
+        // 실제 이유는 조회 비용이다: 핸들러는 필요할 때 AddComponent로 붙는 컴포넌트라
+        // TakeDamage가 매 피해마다 GetComponent + null 가드를 하게 된다. 표식은 모든 피해가
+        // 통과하는 이 경로에서 읽혀야 하므로 필드로 직접 든다.
+        //
+        // ⚠ 판정 수정자가 늘어나면(최소 피해 보장·마지막 일격 무효 등) 이 방식은 한계가 온다.
+        // damageTakenFactor 하나였던 것이 #318로 4개가 됐다 — 축이 더 늘면 상태 컨테이너로 승격할 것.
         float executeThreshold;       // MaxHp 대비 비율. 0 = 표식 없음
         float executeMarkRemaining;   // 남은 표식 시간(초)
         bool  executeDebugLog;        // 집행 순간 로그(검증용). 부여한 ExecuteEffect의 플래그를 그대로 받는다
@@ -114,7 +123,7 @@ namespace NorthLand.Combat
             // 보스 데이터 주도 AI: EnemyAsset.Boss.BehaviorTree에 그래프가 지정돼 있으면
             // BehaviorGraphAgent를 확보(없으면 부착)해 그래프를 주입한다. 그래프 실행 주체는 에이전트지만,
             // "어떤 보스가 어떤 그래프를 쓰는지"는 프리팹 배선이 아니라 SO(tracked)가 단일 출처로 소유한다.
-            if (data != null && data.EnemyType == EnemyType.Boss && data.Boss != null && data.Boss.BehaviorTree != null)
+            if (IsBoss && data.Boss != null && data.Boss.BehaviorTree != null)
             {
                 behaviorAgent = GetComponent<Unity.Behavior.BehaviorGraphAgent>();
                 if (behaviorAgent == null)
@@ -239,8 +248,10 @@ namespace NorthLand.Combat
             }
 
             if (executeDebugLog)
+                // P0 서식을 쓰지 않는다 — SkillStatsFormatter가 금지한 것과 같은 이유
+                // (ko-KR PercentPositivePattern이 "10 %"로 공백을 넣고 CurrentCulture 의존).
                 Debug.Log($"[처형] {name}#{GetInstanceID()}: HP {currentHp:F1}/{MaxHp:F1} " +
-                          $"(임계 {executeThreshold:P0}) → 집행", this);
+                          $"(임계 {executeThreshold * 100f:0.#}%) → 집행", this);
 
             currentHp = 0f;
             executeMarkRemaining = 0f;

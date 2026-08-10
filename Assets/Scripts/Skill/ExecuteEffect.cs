@@ -5,15 +5,22 @@ using NorthLand.Combat;
 // 체력이 임계 이하로 떨어지면 그 순간 처형된다. 레벨업 = 임계 상승.
 //
 // 화상(BurnEffect)과 같은 "대상 결속" 축이지만 상태 소유자가 다르다 — 화상은 대상의
-// StatusEffectHandler에 DoT를 얹고, 처형은 Enemy 자체 필드에 실린다.
-// 피해 판정 자체를 바꾸는 상태라 TakeDamage 안에서 읽혀야 하기 때문이다.
+// StatusEffectHandler에 얹히고, 처형은 Enemy 자체 필드에 실린다.
+// 표식은 매 피해마다 읽혀야 하는데 핸들러는 필요할 때 AddComponent로 붙는 컴포넌트라,
+// TakeDamage가 피해마다 조회+null 가드를 하게 된다(근거 상세: Enemy.cs의 표식 필드 주석).
 public class ExecuteEffect : SkillEffect
 {
     [Header("처형 수치")]
-    // 레벨별 처형 임계(MaxHp 대비 비율). 인덱스 0 = Lv1.
-    // 다른 효과의 "레벨당 증가분 × 레벨" 선형식을 쓰지 않는 이유: 8→16→25가 비선형이다.
-    [SerializeField] float[] thresholdByLevel = { 0.1f, 0.2f, 0.3f };
-    [SerializeField] float markDuration = 2f;
+    // 레벨별 처형 임계(MaxHp 대비 **비율**). 인덱스 0 = Lv1.
+    // 다른 효과처럼 "레벨당 증가분 × 레벨" 곱셈식으로 두지 않고 배열인 이유: 현재 값(0.1/0.2/0.3)은
+    // 선형이지만, 레벨 곡선을 비선형으로 바꿀 여지를 코드 변경 없이 남겨두기 위함이다.
+    //
+    // Range는 오authoring 방지용이다(WL-169) — 비율 자리에 백분율(30)이 들어가면
+    // TryExecute의 `HpRatio > executeThreshold`가 영원히 false라 표식이 걸린 모든 비보스 적이
+    // 즉사하는데, 컴파일 에러도 콘솔 경고도 없이 씬 diff 한 줄로 지나간다.
+    // Unity의 Range는 배열 원소마다 적용되므로 인스펙터에서 오입력 자체가 막힌다.
+    [SerializeField, Range(0f, 1f)] float[] thresholdByLevel = { 0.1f, 0.2f, 0.3f };
+    [SerializeField, Min(0f)] float markDuration = 2f;
 
     [Header("디버그")]
     [SerializeField] bool debugLog;   // 표식 부여 + 집행 순간을 Console에 출력 (검증용)
@@ -57,7 +64,7 @@ public class ExecuteEffect : SkillEffect
             enemy.MarkForExecute(threshold, markDuration, debugLog);
 
             if (debugLog)
-                Debug.Log($"[SkillEffect] 처형 표식: 대상={enemy.name}, Lv{Level}, 임계 {threshold:P0}, 지속 {markDuration}s");
+                Debug.Log($"[SkillEffect] 처형 표식: 대상={enemy.name}, Lv{Level}, 임계 {threshold * 100f:0.#}%, 지속 {markDuration}s");
         }
     }
 }
