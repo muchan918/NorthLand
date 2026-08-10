@@ -57,6 +57,20 @@ namespace NorthLand.Combat
         internal static void RaiseDamageDealt(IAttacker source, IDamageable victim)
             => DamageDealt?.Invoke(source, victim);
 
+        /// 착탄 **위치** 통지(#336). 착탄 지점에 남는 지속물(화상 구역 등)을 만들기 위한 창구다.
+        ///
+        /// ⚠ **"`Projectile.cs` 무수정" 원칙의 세 번째 예외다** — 위의 `RaiseDamageDealt`(#311)·
+        /// `EnemyMask`(#298)와 같은 성격이라 같은 자리에 리뷰 포인트로 남긴다. 착탄 위치를 아는 지점이
+        /// `OnHit` 하나뿐이라 우회가 없다(비행 부품은 `source`·`effects`·원장을 모르고, `Init` 시그니처에
+        /// 지속물 저작을 실어 보내는 것은 이 클래스가 "무엇을 남기는지"까지 알게 되는 일이다).
+        ///
+        /// ⚠ `DamageDealt`(static, 피격자 통지)와 달리 **인스턴스 이벤트**다 — 구독자가 이 탄 한 발에만
+        /// 붙고 탄이 파괴되면 함께 사라지므로 해제 책임이 없다.
+        ///
+        /// ⚠ 관통·부메랑처럼 **여러 번 때리는 탄은 명중마다 발행된다.** 한 번만 반응해야 하는 구독자는
+        /// 스스로 걸러야 한다(`AttackAction`이 그렇게 한다).
+        public event Action<Vector3> Impacted;
+
         // 프리팹에 남는 **유일한** 설정 — 모델 메시의 기수가 어느 축을 보는지 보정한다(화살 −90, 공 0).
         // 타워가 알 이유가 없는 값이라 여기 남는다. 비행·명중은 전부 타워 SO가 정한다(#274).
         [SerializeField] Vector3 rotationOffset;
@@ -131,6 +145,14 @@ namespace NorthLand.Combat
         }
 
         void OnHit(Vector3 impactPos)
+        {
+            // 피해 처리보다 **뒤**에 통지한다 — 구역이 거는 효과가 명중 효과(Effects)보다 먼저 들어가면
+            // 같은 종류의 상태이상에서 어느 쪽이 슬롯을 먼저 잡는지가 프레임마다 흔들린다.
+            ApplyImpact(impactPos);
+            Impacted?.Invoke(impactPos);
+        }
+
+        void ApplyImpact(Vector3 impactPos)
         {
             switch (impact.Kind)
             {

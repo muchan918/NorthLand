@@ -23,6 +23,12 @@ namespace NorthLand.Combat
         [NonSerialized] float cooldownTimer;
         [NonSerialized] Collider[] hitBuffer;
 
+        // 착탄 지점에 남길 구역(#336). 미저작이면 null 취급이라 기존 타워는 이 축을 타지 않는다.
+        [NonSerialized] TowerAsset.GroundZoneFields zone;
+
+        // 이번 공격 사이클에서 아직 남은 연발 수(#336). 0 = 사이클 종료(다음 발이 새 사이클의 첫 발).
+        [NonSerialized] int burstRemaining;
+
         // 이 타워가 애초에 쏠 수 있는가(저작이 갖춰졌는가). 조립 시 1회 판정한다 —
         // 판정 재료(수치·탄환 프리팹·비행 부품)가 전부 SO 값이라 Initialize 사이에 바뀌지 않는다.
         [NonSerialized] bool canFire;
@@ -52,7 +58,9 @@ namespace NorthLand.Combat
             enemyLayerMask = Owner.EnemyLayerMask;
             flight = fields?.Flight;   // SO의 부품을 그대로 쓴다 — 무상태라 공유해도 안전하다
             impact = BuildImpact(asset, enemyLayerMask);
+            zone = asset.GroundZone;
             cooldownTimer = 0f;
+            burstRemaining = 0;
 
             // TryAttack이 실패하는 조건과 **같은 것**을 미리 판정해 둔다(아래 Tick 주석 참조).
             canFire = fields != null && fields.ProjectilePrefab != null && flight != null;
@@ -74,7 +82,14 @@ namespace NorthLand.Combat
             if (fields == null) return null;
 
             string text = TowerStatsFormatter.BuildAttackLines(Damage, Range, Interval);
-            return TowerStatsFormatter.Join(text, DescribeEffects(effects, Owner));
+
+            return TowerStatsFormatter.Join(
+                text,
+                TowerStatsFormatter.BuildBurstLine(fields.BurstCount),
+                zone != null && zone.IsAuthored
+                    ? TowerStatsFormatter.BuildGroundZoneLine(zone.Radius, zone.Duration)
+                    : null,
+                DescribeEffects(effects, Owner));
         }
 
         /// 효과 목록을 설명 줄로 잇는다. 공격 액션과 디버프 오라가 같은 표기를 공유한다.
@@ -117,7 +132,26 @@ namespace NorthLand.Combat
             if (cooldownTimer > 0f) return;
 
             IDamageable target = FindTarget();
-            if (target != null && TryAttack(target)) cooldownTimer = Interval;
+
+            if (target == null)
+            {
+                // 연발 도중 대상이 사라지면 사이클을 접는다. 남겨두면 다음 적이 사거리에 들어온 순간
+                // 남은 발이 간격 없이 몰아서 나간다 — 연발 리듬이 적의 등장 타이밍에 좌우된다.
+                burstRemaining = 0;
+                return;
+            }
+
+            if (!TryAttack(target)) return;
+
+            // 사이클의 첫 발이면 남은 발수를 채우고, 이어지는 발이면 하나 줄인다.
+            // BurstCount 기본 1이면 첫 발에서 0이 되어 곧바로 Interval로 떨어진다 = 기존 거동.
+            if (burstRemaining <= 0) burstRemaining = Mathf.Max(1, fields.BurstCount) - 1;
+            else burstRemaining--;
+
+            // 연발이 남았으면 짧은 간격, 사이클이 끝났으면 정규 공격 간격(원장 경유).
+            cooldownTimer = burstRemaining > 0
+                ? Mathf.Max(fields.BurstInterval, 0.02f)   // 0 이하 폭주 방지 하한
+                : Interval;
         }
 
         public bool TryAttack(IDamageable target)
@@ -126,8 +160,9 @@ namespace NorthLand.Combat
             if (fields == null || fields.ProjectilePrefab == null) return false;
             if (flight == null) return false;   // 비행 부품 미저작 — TowerAsset.OnValidate가 저장 시점에 경고한다
 
+            // 포구가 여럿이면(양날개 터렛 등) 발사마다 번갈아 쓴다 — 커서는 호스트가 굴린다(#336).
             // firePoint 미할당이면 타워 루트(바닥)에서 생성 — 하위 호환(ArcherTower.prefab이 그렇다).
-            Transform firePoint = Owner.FirePoint;
+            Transform firePoint = Owner.NextFirePoint();
             Vector3 spawnPos = firePoint != null ? firePoint.position : Origin.position;
 
             // 대상을 향한 회전을 항상 만든다 — Homing/Ballistic은 스폰 회전을 안 쓰므로(첫 Update에서
@@ -172,11 +207,35 @@ namespace NorthLand.Combat
                 return false;
             }
 
+            // 착탄 구역(#336) — 저작돼 있으면 이 탄 한 발의 착탄 통지에 붙는다. 구독자는 탄과 함께
+            // 사라지므로 해제 책임이 없다. `Init`보다 **먼저** 붙는 이유는 비행 부품이 Begin 시점에
+            // 곧바로 접촉을 보고할 수 있어서다(근접 발사).
+            if (zone != null && zone.IsAuthored) SubscribeGroundZone(projectile);
+
             // 데미지 소스는 Owner다 — IAttacker 계약을 가진 쪽이 타워이므로 DamageInfo가 타워를 가리킨다.
             // Range(원장 합성값, 사거리 버프 반영)도 함께 넘긴다 — StraightFlight/BoomerangFlight가
             // 이 값을 실제 비행 거리로 쓴다(#298).
             projectile.Init(target, Damage, Owner, flight, impact, effects, Range);
             return true;
+        }
+
+        /// 펠릿 1발에 착탄 구역 스폰을 걸어 둔다.
+        ///
+        /// ⚠ **탄 1발당 구역 1개로 제한한다.** `Projectile.Impacted`는 관통·부메랑처럼 여러 번 때리는 탄에서
+        /// 명중마다 발행되므로, 걸러내지 않으면 왕복 한 번에 구역이 여러 개 쌓인다. 그 조합은 지금
+        /// 저작되어 있지 않지만, 나중에 저작되는 순간 조용히 화력이 몇 배가 되는 자리다.
+        void SubscribeGroundZone(Projectile projectile)
+        {
+            // 펠릿마다 별도 지역 변수라 산탄에서도 발마다 하나씩 생긴다.
+            bool spawned = false;
+
+            projectile.Impacted += impactPos =>
+            {
+                if (spawned) return;
+                spawned = true;
+
+                GroundZone.Spawn(zone, impactPos, Owner, effects);
+            };
         }
 
         // "어떻게 날아갈지". 전부 SO가 정한다 — 예전에는 Speed만 SO였고 Mode/ArcHeight는 탄환 프리팹에
