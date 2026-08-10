@@ -44,6 +44,13 @@ namespace NorthLand.Combat
         // EnemyAgent가 같은 값을 들면 동기화가 깨진다(EnemyAgent는 전달만 한다).
         float damageTakenFactor = 1f;
 
+        // 처형 표식(#318). 감전 보상 「처형」이 걸고, 지속 동안 어떤 피해원으로든 체력이 임계 이하로
+        // 떨어지면 그 순간 집행된다. 표식을 Enemy가 소유하는 이유는 damageTakenFactor와 같다 —
+        // 피해 적용 지점이 TakeDamage 하나뿐이라 다른 데서 판정하면 동기화가 깨진다.
+        float executeThreshold;       // MaxHp 대비 비율. 0 = 표식 없음
+        float executeMarkRemaining;   // 남은 표식 시간(초)
+        bool  executeDebugLog;        // 집행 순간 로그(검증용). 부여한 ExecuteEffect의 플래그를 그대로 받는다
+
         // 이동 액추에이터(선택적). 대상이 사거리에 들면 멈추도록 이 컴포넌트가 구동한다.
         // 구체 타입이 아니라 계약(IMovementAgent)에 의존 — 이동 구현에 결합하지 않는다.
         IMovementAgent movement;
@@ -139,6 +146,9 @@ namespace NorthLand.Combat
         // 현재 체력 비율(0~1). "HP 30% 이하" 같은 조건 노드가 참조한다. MaxHp==0이면 0.
         public float HpRatio => MaxHp > 0f ? currentHp / MaxHp : 0f;
 
+        // 보스 판정(#318). EnemyType.Boss는 최종보스(ogre_king)와 중간보스(tank)를 모두 포함한다.
+        public bool IsBoss => data != null && data.EnemyType == EnemyType.Boss;
+
         // 체력 회복. MaxHp를 넘지 않도록 클램프하고, 이미 죽었으면 무시. HP UI에 변경을 통지한다.
         public void Heal(float amount)
         {
@@ -194,11 +204,63 @@ namespace NorthLand.Combat
             set => damageTakenFactor = Mathf.Max(0f, value);
         }
 
+        // 처형 표식 부여(#318). 재적용은 갱신이다(임계·지속 모두 덮어쓴다) —
+        // StatusEffectHandler.ApplyOrRefresh와 같은 semantics.
+        // 보스 제외 가드는 여기가 아니라 호출부(ExecuteEffect)에 둔다: TakeDamage 경로에
+        // 처형과 무관한 조건을 심지 않기 위함이다.
+        public void MarkForExecute(float thresholdRatio, float duration, bool debugLog = false)
+        {
+            if (duration <= 0f) return;
+
+            executeThreshold = thresholdRatio;
+            executeMarkRemaining = duration;
+            executeDebugLog = debugLog;
+
+            // 표식을 건 타격 자체도 집행 대상이다. SkillManager.CastAt이 데미지를 먼저 적용하고
+            // 표식을 나중에 걸기 때문에(SkillManager.cs:195-196), 여기서 한 번 검사하지 않으면
+            // "감전으로 임계 아래까지 깎았는데 처형이 안 되는" 구멍이 생긴다.
+            // TakeDamage 밖이라 사망 처리를 여기서 직접 이어줘야 한다.
+            if (TryExecute())
+            {
+                OnHpChanged?.Invoke(currentHp, MaxHp);
+                Die();
+            }
+        }
+
+        // 처형 판정 1회(#318). 표식이 살아 있고 체력 비율이 임계 이하면 HP를 0으로 확정한다.
+        // 사망 처리(Die)는 호출부가 이어서 한다 — TakeDamage는 기존 `if (IsDead) Die();`가,
+        // MarkForExecute는 직접 호출한다. 신규 사망 경로를 만들지 않아 isDying 이중 킬 방어가
+        // 그대로 작동한다.
+        bool TryExecute()
+        {
+            if (IsDead || executeMarkRemaining <= 0f || HpRatio > executeThreshold)
+            {
+                return false;
+            }
+
+            if (executeDebugLog)
+                Debug.Log($"[처형] {name}#{GetInstanceID()}: HP {currentHp:F1}/{MaxHp:F1} " +
+                          $"(임계 {executeThreshold:P0}) → 집행", this);
+
+            currentHp = 0f;
+            executeMarkRemaining = 0f;
+            executeThreshold = 0f;
+            return true;
+        }
+
         void Update()
         {
             if (Stat == null || isDying)
             {
                 return;
+            }
+
+            // 표식 소진(#318). 스턴·BT 소유권 분기보다 앞에 두는 이유: 그 분기들은 return으로 빠져나가고,
+            // 표식은 적의 행동 상태와 무관하게 실시간으로 만료돼야 한다.
+            if (executeMarkRemaining > 0f)
+            {
+                executeMarkRemaining -= Time.deltaTime;
+                if (executeMarkRemaining <= 0f) executeThreshold = 0f;
             }
 
             GameManager gameManager = GameManager.Instance;
@@ -283,6 +345,7 @@ namespace NorthLand.Combat
 
             // 받는 피해 배수를 여기 한 곳에서만 적용한다(#233) — 방어 태세 패턴의 감쇠 지점.
             currentHp -= info.Amount * damageTakenFactor;
+
             // 피격 로그(검증용) — 필요할 때 아래 주석을 풀어 쓴다.
             // 적·소스 양쪽에 InstanceID를 붙이는 이유: 같은 프리팹에서 나온 개체는 이름이 전부 같아
             // (Yellow_Grummy(Clone) 2마리, FlameRollyShooter(Clone) 2기) 로그가 뒤섞이면 못 가른다.
@@ -291,6 +354,9 @@ namespace NorthLand.Combat
             // Debug.Log($"[HP] {name}#{GetInstanceID()}: -{info.Amount * damageTakenFactor:F1} " +
             //           $"(from {(src != null ? $"{src.name}#{src.GetInstanceID()}" : "?")}) " +
             //           $"→ {currentHp:F1}/{MaxHp:F1}");
+
+            TryExecute();   // 처형 판정(#318). 아래 `if (IsDead) Die();`가 사망 처리를 이어받는다.
+
             OnHpChanged?.Invoke(currentHp, MaxHp);
 
             if (IsDead)

@@ -16,6 +16,7 @@ public static class SkillStatsFormatter
     const string k_CastCountKey = "skills.stat.cast_count";
     const string k_FieldTickDamageKey = "skills.stat.field_tick_damage";
     const string k_FieldRadiusKey     = "skills.stat.field_radius";
+    const string k_ExecuteThresholdKey = "skills.stat.execute_threshold";
     
     // 상한 도달 표기. 언어와 무관하게 통용되는 토큰이라 로컬라이제이션 테이블에 넣지 않는다(#292).
     const string k_MaxText = "Max";
@@ -47,4 +48,11 @@ public static class SkillStatsFormatter
     public static string BuildFieldLines(float currentDamage, float nextDamage, float radius)
         => $"{Label(k_FieldTickDamageKey)}: {currentDamage:0.#}{k_Arrow}{nextDamage:0.#}\n" +
            $"{Label(k_FieldRadiusKey)}: {radius:0.#}";
+
+    /// 처형 임계 한 줄. 값이 MaxHp 대비 비율(0~1)이라 백분율로 표기한다("8% → 16%").
+    /// P0 서식을 쓰지 않는 이유: ko-KR PercentPositivePattern이 "8 %"처럼 공백을 넣고,
+    /// 그 거동이 CultureInfo.CurrentCulture(= OS 로케일) 의존이라 표기가 기기마다 갈린다.
+    /// 여기서 직접 ×100 하므로 호출부는 비율(0.08f)을 그대로 넘긴다.
+    public static string BuildExecuteThresholdLine(float current, float next)
+        => $"{Label(k_ExecuteThresholdKey)}: {current * 100f:0.#}%{k_Arrow}{next * 100f:0.#}%";
 }

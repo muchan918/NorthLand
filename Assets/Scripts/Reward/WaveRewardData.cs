@@ -8,7 +8,8 @@ public enum WaveRewardType
     Bomb,
     ExtraCast,
     BuffBurn,
-    Field
+    Field,
+    Execute
 }
 
 [CreateAssetMenu(fileName = "WaveReward",menuName = "Scriptable Objects/Wave Reward"

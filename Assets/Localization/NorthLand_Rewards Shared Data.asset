@@ -55,6 +55,14 @@ MonoBehaviour:
     m_Key: rewards.field.desc
     m_Metadata:
       m_Items: []
+  - m_Id: 7064852205309952
+    m_Key: rewards.execute.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7064852226281472
+    m_Key: rewards.execute.desc
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
