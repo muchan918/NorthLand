@@ -5,11 +5,12 @@ using UnityEngine.UI;
 
 /// <summary>
 /// 낮 종료(낮→밤) 확인 팝업(#219). 강제 게이팅을 해제한 대신, [다음(낮 종료)] 클릭 시
-/// 낮 프로세스 조건(① 오늘 영토 미확장, ② 유휴 주민 존재)이 하나라도 미충족이면 이 팝업으로 안내한다.
+/// 낮 프로세스 조건(유휴 주민 존재)이 미충족이면 이 팝업으로 안내한다.<br/>
+/// 영토 확장 조건은 영토 시스템 제거와 함께 사라졌고, 지금 경고는 주민 미배치 하나뿐이다(#337).
 /// <list type="bullet">
 /// <item>[계속] → 조건 미충족이어도 밤으로 진행(<see cref="ManagementController.EndDay"/>).</item>
 /// <item>[취소] → 팝업만 닫고 낮 유지.</item>
-/// <item>두 조건 모두 충족이면 팝업 없이 바로 밤으로 진행.</item>
+/// <item>조건 충족이면 팝업 없이 바로 밤으로 진행.</item>
 /// </list>
 /// 표시 전용 컴포넌트(비-싱글톤) — 이 팝업은 뷰(경영 패널·NightAction 패널)가 각자
 /// <c>[SerializeField]</c>로 직접 들고 호출한다. "언제 넘어갈지"의 판정 데이터는 컨트롤러가
@@ -28,7 +29,6 @@ public class ManagementEndDayConfirmPopup : MonoBehaviour
     // 로컬라이제이션 키(#219) — 값은 NorthLand_default String Table(ko/ja/en)에 있다.
     private const string k_KeyProceed = "game.btn.proceed";
     private const string k_KeyCancel = "game.btn.cancel";
-    private const string k_KeyNoTerritory = "game.management.confirm_end_day.no_territory";
     private const string k_KeyIdleVillagers = "game.management.confirm_end_day.idle_villagers"; // 스마트 스트링 {0}=유휴 수
     private const string k_KeyQuestion = "game.management.confirm_end_day.question";
 
@@ -88,8 +88,8 @@ public class ManagementEndDayConfirmPopup : MonoBehaviour
 
     /// <summary>
     /// 낮 종료 요청 진입점(#219) — 뷰가 인스펙터로 연결한 이 팝업 인스턴스에 직접 호출한다.
-    /// 두 조건이 모두 충족이면 팝업 없이 바로 <see cref="ManagementController.EndDay"/>,
-    /// 하나라도 미충족이면 미충족 항목을 담아 팝업을 띄운다.
+    /// 조건이 충족이면 팝업 없이 바로 <see cref="ManagementController.EndDay"/>,
+    /// 미충족이면 미충족 항목을 담아 팝업을 띄운다.
     /// </summary>
     public void Request(ManagementController controller)
     {
@@ -116,16 +116,13 @@ public class ManagementEndDayConfirmPopup : MonoBehaviour
         SetActiveSafe(true);
     }
 
-    // 미충족 조건을 줄바꿈으로 이어 붙인다(#219). 둘 다 충족이면 빈 문자열(=팝업 없이 진행).
+    // 미충족 조건을 줄바꿈으로 이어 붙인다(#219). 충족이면 빈 문자열(=팝업 없이 진행).
     // 문구는 NorthLand_default String Table에서 현재 로케일로 pull한다(하드코딩 없음).
+    // 조건은 현재 주민 미배치 하나뿐이지만, 조건이 늘어날 자리를 남겨 StringBuilder 형태를 유지한다(#337).
     private static string BuildWarnings(ManagementController controller)
     {
         var sb = new StringBuilder();
 
-        if (!controller.HasExpandedTerritory)
-        {
-            sb.AppendLine(LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, k_KeyNoTerritory));
-        }
         if (controller.HasIdleVillagers)
         {
             int idle = controller.MaxVillagers - controller.AssignedTotal;

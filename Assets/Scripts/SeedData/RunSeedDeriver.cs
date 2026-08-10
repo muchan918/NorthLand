@@ -13,8 +13,6 @@ namespace NorthLand.Core
 
         public const string CombatMapTag = "CombatMap";
 
-        public const string TerritoryTag = "Territory";
-
         public static int Derive(int masterSeed,string systemTag)
         {
             if (string.IsNullOrWhiteSpace(systemTag))

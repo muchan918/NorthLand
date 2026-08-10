@@ -14,9 +14,6 @@ namespace NorthLand.Core
         [SerializeField]
         private ManagementController management;
 
-        [SerializeField]
-        private TerritoryController territory;
-
         [Tooltip("저장된 셀 좌표에 타워를 다시 배치할 때 사용하는 배치 시스템")]
         [SerializeField]
         private TowerPlacer towerPlacer;

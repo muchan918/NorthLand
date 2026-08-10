@@ -2,8 +2,10 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 자원 종류별 <b>생산량 배율</b> 레지스트리(순수 C#). 영토 패시브 효과(생산량 +X%)가 여기에 등록되고,
+/// 자원 종류별 <b>생산량 배율</b> 레지스트리(순수 C#). 패시브 생산 효과(생산량 +X%)가 여기에 등록되고,
 /// <see cref="ManagementController"/>가 정산(<see cref="ResourceProductionSource.Produce"/>)·예상치 표시 시 조회한다.<br/>
+/// 영토 패시브 효과가 유일한 등록처였으나 영토 시스템 제거(#337)로 현재 등록처는 없다 —
+/// 생산 규칙 확장 심으로 그대로 남겨 둔다(기본 배율 1.0이라 동작에는 영향 없음).<br/>
 /// <br/>
 /// 스택 규칙: <b>곱셈 누적</b>. 같은 자원에 +10%가 두 번 등록되면 1.1 × 1.1 = 1.21배가 된다(순서 무관).
 /// 기본 배율은 1.0(효과 없음). 런(run)마다 <see cref="ManagementController"/>가 새로 만들어 초기화한다.<br/>

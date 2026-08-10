@@ -127,22 +127,6 @@ MonoBehaviour:
     m_Localized: Attack Speed
     m_Metadata:
       m_Items: []
-  - m_Id: 4731930922856448
-    m_Localized: Gold
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4731930989965312
-    m_Localized: Ruby
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4731930989965313
-    m_Localized: Sapphire
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4731930989965314
-    m_Localized: Diamond
-    m_Metadata:
-      m_Items: []
   - m_Id: 4747409699778560
     m_Localized: Gain {1} {0} daily.
     m_Metadata:
@@ -205,10 +189,6 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 6528712261148672
     m_Localized: Cancel
-    m_Metadata:
-      m_Items: []
-  - m_Id: 6528762240475136
-    m_Localized: "\xB7 You haven't expanded territory today."
     m_Metadata:
       m_Items: []
   - m_Id: 6529158073720832

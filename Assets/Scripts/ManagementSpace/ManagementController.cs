@@ -35,7 +35,7 @@ public class ManagementController : MonoBehaviour
     [Tooltip("웨이브 클리어(밤→낮 정산) 시 지급되는 마나석 고정량 (GDD §4.3)")]
     [SerializeField] int _manaPerWaveClear = 10;
 
-    [Tooltip("게임 시작(런당 1회) 시 지급되는 초기 나무/철/식량. 마나석은 영토 확장·전투 보상 전용이라 제외(팀 계약 #3, 이슈 #130)")]
+    [Tooltip("게임 시작(런당 1회) 시 지급되는 초기 나무/철/식량. 마나석은 전투 보상 전용이라 제외(팀 계약 #3, 이슈 #130)")]
     [SerializeField] int _initialWood = 110;
     [SerializeField] int _initialIron = 40;
     [SerializeField] int _initialFood = 0;
@@ -96,7 +96,6 @@ public class ManagementController : MonoBehaviour
     private int _bonusVillagers;
 
     private DayNightManager _dayNight;
-    private TerritoryController _territory;
 
     // ResourceAsset.Data 채움용 지연 캐시(호출부 채움 규약, SystemMap §2).
     private ResourceTable _resourceTable;
@@ -127,17 +126,14 @@ public class ManagementController : MonoBehaviour
     // 지금 준비/진행 중인 웨이브 번호(1부터) — 패널 표시용. DayNightManager가 없으면 1일차로 간주.
     public int CurrentWave => _dayNight != null ? _dayNight.CurrentWave : 1;
 
-    // 오늘 영토를 확장했는가 — 낮 종료 확인 팝업의 경고 판정용(#219). 영토가 씬에 없으면(null) permissive(true).
-    public bool HasExpandedTerritory => _territory == null || _territory.HasExpandedToday;
-
-    // 아직 배치되지 않은(유휴) 주민이 있는가 — 낮 종료 확인 팝업의 경고 판정용(#219).
+    // 아직 배치되지 않은(유휴) 주민이 있는가 — 낮 종료 확인 팝업의 유일한 경고 판정용(#337).
     // 기준은 시작값(_maxVillagers)이 아니라 본진 증가분을 더한 MaxVillagers다(#227) —
     // 팝업이 표시하는 유휴 인원수(MaxVillagers - AssignedTotal)와 판정 기준이 어긋나면
     // "2/5인데 경고가 안 뜬다" 같은 조용한 누락이 생긴다.
     public bool HasIdleVillagers => AssignedTotal < MaxVillagers;
 
     // 페이즈 전환 버튼 활성 조건(#219): DayNight가 있으면 항상 활성. 강제 게이팅을 해제했고,
-    // 낮 종료 조건 미충족(영토 미확장·유휴 주민)은 버튼 비활성이 아니라 확인 팝업으로 안내한다.
+    // 낮 종료 조건 미충족(유휴 주민)은 버튼 비활성이 아니라 확인 팝업으로 안내한다.
     public bool CanAdvancePhase => _dayNight != null;
 
     public int ResourceCount(ResourceKind kind) => _wallet != null ? _wallet.Get(kind) : 0;
@@ -258,7 +254,7 @@ public class ManagementController : MonoBehaviour
     public string LineDisplayName(int index) => IsValidLine(index) ? LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, _lineAssets[index].Data.NameKey) : "-";
     public ResourceKind LineKind(int index) => IsValidLine(index) ? _lineAssets[index].Data.Kind : default;
     public int LineVillagers(int index) => IsValidLine(index) ? _villagerCounts[index] : 0;
-    // 패시브 생산 배율(영토 효과 등)을 반영한 예상 생산량. 정산부(HandleNightToDay)와 같은 식이어야 UI가 실제와 일치한다.
+    // 패시브 생산 배율(보상 효과 등)을 반영한 예상 생산량. 정산부(HandleNightToDay)와 같은 식이어야 UI가 실제와 일치한다.
     public int LineExpectedProduction(int index) =>
         IsValidLine(index) ? Mathf.RoundToInt(_amountPerVillager[index] * LineVillagers(index) * ProductionMultiplier(index)) : 0;
 
@@ -621,7 +617,6 @@ public class ManagementController : MonoBehaviour
     private void Start()
     {
         SubscribeDayNight();
-        SubscribeTerritory();
         OnChanged?.Invoke();
     }
 
@@ -631,10 +626,6 @@ public class ManagementController : MonoBehaviour
         {
             _dayNight.OnNightToDay -= HandleNightToDay;
             _dayNight.OnDayToNight -= HandleDayToNight;
-        }
-        if (_territory != null)
-        {
-            _territory.OnChanged -= HandleTerritoryChanged;
         }
     }
 
@@ -651,7 +642,7 @@ public class ManagementController : MonoBehaviour
         _wallet.Add(ResourceKind.Food, _initialFood);
         Debug.Log($"[경영] 초기 자원 지급: Wood +{_initialWood}, Iron +{_initialIron}, Food +{_initialFood}");
 
-        // 생산 배율 레지스트리는 지갑과 함께 런마다 새로 만든다(영토 패시브 효과가 여기에 누적).
+        // 생산 배율 레지스트리는 지갑과 함께 런마다 새로 만든다(패시브 생산 효과가 여기에 누적).
         _productionModifiers = new ProductionModifiers();
 
         ResourceTable table = DataTableManager.Get<ResourceTable>("ResourceTable");
@@ -795,23 +786,6 @@ public class ManagementController : MonoBehaviour
         _dayNight.OnDayToNight += HandleDayToNight;
     }
 
-    private void SubscribeTerritory()
-    {
-        _territory = TerritoryController.Instance;
-        if (_territory == null)
-        {
-            Debug.LogWarning("[경영] TerritoryController가 씬에 없습니다. 영토 확장 없이도 주민을 배치할 수 있습니다.");
-            return;
-        }
-
-        // 확보/낮 시작 등 영토 상태가 바뀌면 패널을 갱신한다 — 수급 row의 일일량·활성(회색) 상태 반영(#166).
-        // ⚠ 확보 시 즉시 지급은 없다. 자원은 매일 정산(HandleNightToDay → SettleTerritorySupply)에서
-        //   확보(Owned) 노드로부터 자동 수급된다(GDD §3.2 미개척 영지 = 매일 자동 수급).
-        _territory.OnChanged += HandleTerritoryChanged;
-    }
-
-    private void HandleTerritoryChanged() => OnChanged?.Invoke();
-
     // ── 뷰(또는 후속 패널 버튼)가 호출하는 진입점 ─────────────────────────
     public void AssignVillager(int index)
     {
@@ -888,7 +862,7 @@ public class ManagementController : MonoBehaviour
         return true;
     }
 
-    // 낮→밤 전환을 수행한다(#219): 강제 조건 없음 — 영토 미확장·유휴 주민이어도 넘어간다.
+    // 낮→밤 전환을 수행한다(#219): 강제 조건 없음 — 유휴 주민이 남아 있어도 넘어간다.
     // 조건 미충족 시의 확인은 UI(ManagementEndDayConfirmPopup)가 담당한다. 밤→낮(EndNight)은
     // 웨이브 성공 버튼이 전담(WL-018)하므로, 이 메서드는 밤에는 아무 동작도 하지 않는다.
     public void EndDay()
@@ -927,62 +901,11 @@ public class ManagementController : MonoBehaviour
 
         // 주민 배치는 초기화하지 않고 전날 배치를 그대로 유지한다(#219) — 매일 재배치 강제를 없앤다.
 
-        // 미개척 영지 일일 자동 수급(#166): 확보(Owned)한 영지가 매일 자기 자원을 DailyYield만큼 지급한다.
-        // 주민 배치와 무관한 패시브 수입 — 확보한 영지 수·종류가 늘수록 총 수급이 늘어난다(GDD §3.2).
-        SettleTerritorySupply();
-
         _wallet.Add(ResourceKind.Mana, _manaPerWaveClear);
         Debug.Log($"[정산] 웨이브 클리어 보상: 마나석 +{_manaPerWaveClear}");
 
         Debug.Log($"[경영] 밤 → 낮 (Wave {WaveCount}): 자원 정산 (주민 배치 유지, #219)");
         OnChanged?.Invoke();
-    }
-
-    // 확보(Owned)한 미개척 영지들이 매일 지급하는 자원을 지갑에 정산한다(#166). 주민 배치와 무관.
-    // 본진(Definition == null)·미확보 노드는 건너뛴다.
-    private void SettleTerritorySupply()
-    {
-        if (_territory == null || _territory.Graph == null)
-        {
-            return;
-        }
-
-        IReadOnlyList<TerritoryNode> nodes = _territory.Graph.Nodes;
-        for (int i = 0; i < nodes.Count; i++)
-        {
-            TerritoryNode node = nodes[i];
-            if (node.State != TerritoryState.Owned || node.Definition == null || node.DailyYield <= 0)
-            {
-                continue;
-            }
-
-            _wallet.Add(node.Definition.Kind, node.DailyYield);
-            Debug.Log($"[정산] 영지 수급: {node.Definition.Kind} +{node.DailyYield} (노드 {node.Id})");
-        }
-    }
-
-    /// <summary>
-    /// 지정 자원의 일일 자동 수급량 합 — 확보(Owned)한 그 종류 미개척 영지들의 <c>DailyYield</c> 총합(#166).<br/>
-    /// 그 종류 영지를 아직 확보하지 않았으면 0. 패널의 특수 자원 row가 "+n"·활성(회색) 판정에 쓴다.
-    /// </summary>
-    public int SupplyDaily(ResourceKind kind)
-    {
-        if (_territory == null || _territory.Graph == null)
-        {
-            return 0;
-        }
-
-        int sum = 0;
-        IReadOnlyList<TerritoryNode> nodes = _territory.Graph.Nodes;
-        for (int i = 0; i < nodes.Count; i++)
-        {
-            TerritoryNode node = nodes[i];
-            if (node.State == TerritoryState.Owned && node.Definition != null && node.Definition.Kind == kind)
-            {
-                sum += node.DailyYield;
-            }
-        }
-        return sum;
     }
 
     /// <summary>웨이브 클리어(밤→낮) 시 지급되는 마나석 고정량 — 마나 row의 "+n" 미리보기용(#166).</summary>
@@ -995,7 +918,6 @@ public class ManagementController : MonoBehaviour
             Debug.Log("[경영] 밤에는 배치를 변경할 수 없습니다.");
             return false;
         }
-        // 영토 확장 선행 조건 제거(#219) — 영토를 확장하지 않아도 주민을 배치할 수 있다(밤 게이팅만 유지).
         return IsValidLine(index);
     }
 
