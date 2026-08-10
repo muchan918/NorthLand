@@ -12,7 +12,7 @@ public class ExecuteEffect : SkillEffect
     [Header("처형 수치")]
     // 레벨별 처형 임계(MaxHp 대비 비율). 인덱스 0 = Lv1.
     // 다른 효과의 "레벨당 증가분 × 레벨" 선형식을 쓰지 않는 이유: 8→16→25가 비선형이다.
-    [SerializeField] float[] thresholdByLevel = { 0.08f, 0.16f, 0.25f };
+    [SerializeField] float[] thresholdByLevel = { 0.1f, 0.2f, 0.3f };
     [SerializeField] float markDuration = 2f;
 
     [Header("디버그")]

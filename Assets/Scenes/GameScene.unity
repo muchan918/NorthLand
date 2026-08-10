@@ -4449,7 +4449,7 @@ MonoBehaviour:
   - 0.2
   - 0.3
   markDuration: 2
-  debugLog: 1
+  debugLog: 0
 --- !u!1 &2054543367
 GameObject:
   m_ObjectHideFlags: 0
