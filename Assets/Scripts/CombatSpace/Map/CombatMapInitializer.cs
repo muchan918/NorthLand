@@ -26,6 +26,9 @@ namespace CombatSpace
 
         public bool IsInitialized => isInitialized;
 
+        [SerializeField]
+        private BattleMapConnectorAligner connectorAligner;
+
         [ContextMenu("Initialize Combat Map")]
         public void InitializeCombatMap()
         {
@@ -80,6 +83,20 @@ namespace CombatSpace
             if (tileSpawner.SpawnedTileCount == 0)
             {
                 Debug.LogError("타일 GameObject 생성에 실패했습니다.",this);
+
+                return false;
+            }
+
+            if (connectorAligner == null)
+            {
+                Debug.LogError("BattleMapConnectorAligner가 연결되지 않았습니다.",this);
+
+                return false;
+            }
+
+            if (!connectorAligner.TryAlign())
+            {
+                Debug.LogError("스타트맵과 자동 배틀맵 정렬에 실패했습니다.",this);
 
                 return false;
             }
