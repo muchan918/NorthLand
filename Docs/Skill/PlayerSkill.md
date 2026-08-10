@@ -41,20 +41,23 @@
   유일한 사례였던 `BurnBuff`(`BuffResolved` 구독)가 버프 스킬과 함께 제거됐다(#315).
 - 이슈 #169 원문의 "enum + 중앙 컨트롤러" 방침은 이 구조로 **변경 확정**됐다(팀 결정, 2026-07-23).
 
-## 3. 특수효과 3종 (`WaveRewardType`)
+## 3. 특수효과 4종 (`WaveRewardType`)
 
 | 타입 | 클래스 | 동작 | 레벨업 효과 |
 | --- | --- | --- | --- |
 | `Burn` | `BurnEffect` | 감전 착탄에 맞은 적에게 도트(대상의 `StatusEffectHandler` 재사용) | 틱 데미지 = 레벨 × 수치 |
 | `Bomb` | `BombEffect`+`SkillBomb` | 착탄 지점에 구 프리팹(`Assets/Prefabs/Skill/SkillBomb.prefab`) 설치 → 지연 후 반경 폭발 | 폭발 데미지 = 레벨 × 수치 |
 | `Count` | `CountEffect` | 감전이 1클릭에 총 (1+레벨)회 발동, 반복분은 0.5초 간격(UniTask). `ImpactIndex==0`에서만 가산(무한 반복 가드) | 발동 횟수 +1 |
+| `Field` | `FieldEffect`+`SkillField` | 착탄 지점에 장판 프리팹(`Assets/Prefabs/Skill/SkillField.prefab`) 설치 → `duration` 동안 `tickInterval`마다 **그 순간** 범위 안의 적에게 즉시 데미지 (#316) | 틱 데미지 = 레벨 × 수치 |
 | ~~`BuffBurn`~~ | ~~`BurnBuff`~~ | **미사용 (#315)** — 버프 스킬 전용 효과였다. enum 값·`BuffBurnReward.asset`·클래스는 남아있으나 `WaveRewardPool`에서 빠져 뽑히지 않고, 컴포넌트도 씬에 없다 | — |
 
-> **종류 3 = 카드 3**이라 현재는 매 웨이브에 3종이 전부 제시된다. 3택1의 "무엇이 나올까" 축이 사라진 상태이며, 보상 종류 확장으로 해소할 계획이다(GDD §5.6).
+> **화상과 전기장은 축이 다르다.** 화상은 맞은 **대상**에 DoT를 붙여 따라다니고(`StatusEffectHandler`), 전기장은 **위치**에 결속된다 — 적이 장판을 벗어나면 그 즉시 데미지가 끊기고 재진입하면 다음 틱부터 다시 들어간다. 그래서 `FieldEffect.HandleImpact`는 `context.HitTargets`를 읽지 않고 `context.Position`만 쓰며, 대상에 상태를 붙이지 않는다(붙이면 장판을 벗어나도 계속 틱뎀이 들어가 정체성이 무너진다).
+
+> **종류 4 = 카드 3**이라 첫 웨이브부터 후보가 섞이기 시작했다(#316). 다만 GDD §5.6의 조항(종류 ≥ 상한 + 3 = **6종**)에는 여전히 미달이라 **완화지 해소가 아니다** — 한 효과가 Lv3에 닿는 순간 남은 3종이 매번 전부 제시된다.
 
 - 수치는 전부 각 효과 컴포넌트의 **인스펙터 직접 입력**(CSV 미사용 — 스킬 수치 정책과 동일, WL-015 축).
-- 반복 임팩트(Count)에서도 Burn/Bomb이 정상 발동한다 — 조합 시너지 의도.
-- **웨이브 종료 시** 진행 중이던 추가시전 반복분·미폭발 폭탄은 취소된다(§5 규약, #200).
+- 반복 임팩트(Count)에서도 Burn/Bomb/Field가 정상 발동한다 — 조합 시너지 의도. 전기장은 대상에 붙는 디버프가 아니라 독립 오브젝트라 **장판이 여러 장 생겨 겹치는 자리에서 데미지가 합산**된다(각자 독립 타이머라 "갱신"으로 죽지 않는다). 중첩 상한은 두지 않았다 — 의도된 동작이며, `CountEffect`를 충전형으로 교체할 계획이라 이 상호작용은 유지되지 않을 수 있다(#316).
+- **웨이브 종료 시** 진행 중이던 추가시전 반복분·미폭발 폭탄·활성 장판은 취소된다(§5 규약, #200).
 
 ### 3.1 마법 연구소 강화 (#205, 보상 축과 독립) — 기본 스탯 배율
 
@@ -104,10 +107,12 @@
 - **`StatusEffectHandler` effectId 분리 규약**: 다른 id는 공존(각자 틱), 같은 id는 갱신. 현재 사용: 타워 오라=TowerID 해시, 감전 화상=`"skill_burn"` 해시. (`"buff_burn"`은 제거된 버프 화상이 쓰던 id — #315, 재사용 금지) 새 도트 효과는 고유 문자열 해시로 분리할 것.
 - **`DamageInfo` source=null 규약**: 플레이어 스킬 계열은 `IAttacker` 개체가 아니므로 source를 null로 넘긴다(`SkillManager` 주석 참고).
 - **`Projectile.DamageDealt`는 static 이벤트** — 구독 해제는 구독자 책임. 파괴 경로(`OnDestroy`→`Unsubscribe`)에서 반드시 해제. `BurnBuff`는 #315로 미사용이 됐고 현재 구독자는 `RampAction`(`Trigger=Hit`)뿐이다. ⚠ **빔 타워(`BeamAction`)는 이 이벤트를 발행하지 않으므로**, 여기 붙는 새 효과는 빔 타워에서 조용히 빠진다(WL-155).
-- **웨이브/런 종료 시 진행 중 효과 취소(#200)**: 시전 후 **지연 발동하는 효과 2종 한정** — 추가시전 반복 착탄(`SkillManager.RepeatImpactsAsync`)·지연 폭탄(`SkillBomb`) — 을 취소한다. 신호는 `DayNightManager.OnNightToDay`(밤→낮=웨이브 종료)와 `GameManager.OnResultDecided`(승리/게임오버 — `EndNight()`를 안 타는 종료 경로) 둘 다 구독(적이 사라졌거나 결과 화면 뒤에서 잔존 발동 방지). 추가 착탄은 파괴 토큰과 링크한 `CancellationTokenSource`로, 폭탄은 `initialized`를 내리고 자기 파괴. **취소 대상 아님**: 적 DoT는 자체 타이머로 만료된다(낮엔 타워가 밤 게이팅돼 실害 0). 조준(타겟팅) 모드 취소는 별개로 `PhasePanelSwitcher`가 `OnDayStart`에서 담당.
-- 관련 WatchList: **WL-068**(스킬 시전 Y와 몬스터 부양 높이 불일치 시 적중 0 — #200에서 "지면까지 닿는 길쭉한 트리거 콜라이더" 계약으로 해소 방향 확정), **WL-050**(배율 덮어쓰기 비스택).
+- **웨이브/런 종료 시 진행 중 효과 취소(#200)**: 시전 후 **지연·지속 발동하는 효과 3종 한정** — 추가시전 반복 착탄(`SkillManager.RepeatImpactsAsync`)·지연 폭탄(`SkillBomb`)·지속 장판(`SkillField`, #316) — 을 취소한다. 신호는 `DayNightManager.OnNightToDay`(밤→낮=웨이브 종료)와 `GameManager.OnResultDecided`(승리/게임오버 — `EndNight()`를 안 타는 종료 경로) 둘 다 구독(적이 사라졌거나 결과 화면 뒤에서 잔존 발동 방지). 추가 착탄은 파괴 토큰과 링크한 `CancellationTokenSource`로, 폭탄·장판은 `initialized`를 내리고 자기 파괴(장판은 잔류 딜 없이 즉시 사라진다). **취소 대상 아님**: 적 DoT는 자체 타이머로 만료된다(낮엔 타워가 밤 게이팅돼 실害 0). 조준(타겟팅) 모드 취소는 별개로 `PhasePanelSwitcher`가 `OnDayStart`에서 담당.
+- **범위 판정의 수직 축은 반경으로 풀지 말 것(#316)** — 착탄점(`context.Position`)은 전투 타일 표면이지만 몬스터는 그 위 **6f에 떠 있다**(`CombatMapTileSpawner`의 `monsterWaypointYOffset`, WL-063). 감전(반경 6)이 맞는 건 반경이 우연히 부양 높이와 같아서고, 그보다 작은 반경을 쓰는 효과는 지면에서 친 구체가 적에게 닿지 않아 **적중 0**이 된다. 수평 반경을 키워 억지로 닿게 하면 밸런싱 범위가 같이 커지므로, `SkillField`처럼 **수직 축 캡슐**(`Physics.OverlapCapsuleNonAlloc`, 바닥→`verticalRange`)로 축을 나눈다 — 수평 단면이 정확히 반경 `radius`의 원이라 장판 비주얼과도 1:1로 맞는다.
+- ⚠ **트리거 콜라이더 방식은 이 프로젝트에서 성립하지 않는다** — WL-068이 한때 "지면까지 닿는 길쭉한 트리거 콜라이더"를 해소 방향으로 적었으나, 적 프리팹(`Tank.prefab`)에 **Rigidbody가 없어** `OnTrigger*`가 아예 발동하지 않는다(Unity는 양쪽 중 하나에 Rigidbody를 요구). `Assets/Scripts` 전체에 `OnTrigger*` 사용처가 0건이며 전 범위 판정이 `Physics.Overlap*NonAlloc`이다. 트리거로 가려면 장판 쪽에 Kinematic Rigidbody 추가 + Layer Collision Matrix 확인 + `OnTriggerExit`가 안 불리는 사망 케이스 처리가 따라붙는다 — #316은 캡슐 판정으로 해결했고, 그게 이 프로젝트의 방향이다.
+- 관련 WatchList: **WL-068**(스킬 시전 Y와 몬스터 부양 높이 불일치 시 적중 0 — 해소 방향은 위 두 항목으로 정정됐다), **WL-050**(배율 덮어쓰기 비스택).
 
 ## 6. 잔여 작업 (#169)
 
-- 보상 에셋 3종 표시명·설명을 신규 효과에 맞게 재작성 + `NorthLand_Rewards`(ko/en/ja) 로컬라이즈 키 정리 — 현재는 구 키(`rewards.fire.*`)가 그대로 보인다. `rewards.buff.burn.*` 키는 미사용 상태로 남아있다(#315).
-- **보상 종류 확장** — 3종/상한 3이라 3택1이 성립하지 않는다(§3 표 아래, GDD §5.6). 버프 화상 제거로 우선순위가 올라갔다.
+- 보상 에셋 표시명·설명을 신규 효과에 맞게 재작성 + `NorthLand_Rewards`(ko/en/ja) 로컬라이즈 키 정리 — 기존 3종은 구 키(`rewards.fire.*`)가 그대로 보인다. `rewards.buff.burn.*` 키는 미사용 상태로 남아있다(#315). **전기장은 처음부터 `rewards.field.*` / `skills.stat.field_*`로 ko/en/ja 3개 로케일 모두 정상 authoring됐다(#316)** — 나머지를 정리할 때의 기준으로 쓸 것.
+- **보상 종류 확장** — 4종/상한 3이라 3택1이 아직 성립하지 않는다(§3 표 아래, GDD §5.6의 종류 ≥ 6 조항). 전기장 추가(#316)로 첫 웨이브부터 후보가 섞이기 시작해 완화됐으나, 한 효과가 만렙에 닿으면 다시 무너진다.

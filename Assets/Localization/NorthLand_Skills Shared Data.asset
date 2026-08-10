@@ -35,6 +35,14 @@ MonoBehaviour:
     m_Key: skills.stat.cast_count
     m_Metadata:
       m_Items: []
+  - m_Id: 429297668
+    m_Key: skills.stat.field_tick_damage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 429297669
+    m_Key: skills.stat.field_radius
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
