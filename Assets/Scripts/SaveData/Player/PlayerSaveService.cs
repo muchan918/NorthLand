@@ -1,0 +1,92 @@
+using System;
+using UnityEngine;
+
+namespace NorthLand.Core
+{
+    /// <summary>
+    /// 플레이어 슬롯 선택 상태를 씬 전환 이후에도 유지한다.
+    /// </summary>
+    public sealed class PlayerSaveService : MonoBehaviour
+    {
+        public static PlayerSaveService Instance
+        {
+            get;
+            private set;
+        }
+
+        private PlayerSlotManager slotManager;
+
+        public PlayerData CurrentPlayerData
+        {
+            get;
+            private set;
+        }
+
+        public bool HasSelectedSlot => slotManager != null && slotManager.HasSelectedSlot;
+
+        public int CurrentSlotIndex => slotManager != null? slotManager.CurrentSlotIndex : -1;
+
+        public string CurrentSlotPath => slotManager.CurrentSlotPath;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void Bootstrap()
+        {
+            if (Instance != null)
+            {
+                return;
+            }
+
+            var gameObject = new GameObject(nameof(PlayerSaveService));
+
+            gameObject.AddComponent<PlayerSaveService>();
+        }
+
+        private void Awake()
+        {
+            if (Instance != null && Instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            Instance = this;
+
+            DontDestroyOnLoad(gameObject);
+
+            slotManager = new PlayerSlotManager(Application.persistentDataPath);
+        }
+
+        public bool SlotExists(int slotIndex)
+        {
+            return slotManager.SlotExists(slotIndex);
+        }
+
+        public bool TryCreateAndSelectSlot(int slotIndex,string playerName,out string error)
+        {
+            if (!slotManager.TryCreateAndSelectSlot(
+                    slotIndex,
+                    playerName,
+                    out PlayerData data,
+                    out error))
+            {
+                return false;
+            }
+
+            CurrentPlayerData = data;
+
+            return true;
+        }
+
+        public bool TrySelectSlot(int slotIndex,out string error)
+        {
+            if (!slotManager.TrySelectSlot(slotIndex,out PlayerData data,out error))
+            {
+                return false;
+            }
+
+            CurrentPlayerData = data;
+
+            return true;
+        }
+    }
+}
