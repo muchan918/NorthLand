@@ -619,6 +619,9 @@
    설계 검증이 아님 — 갱신 포함 여부만 확인)
 8. **저장소 배치** (CLAUDE.md): 스크립트 정본은 `Assets/Scripts/`(공간/시스템 폴더), 씬 등 비-스크립트 WIP는 `Assets/Personal/<이름>/`, `Assets/Imported/` 수정 금지.
    - **리뷰어 주석(Imported 사각지대)**: 씬/프리팹이 참조하는 유료·벤더 에셋(건물 프리팹, BaseGate 등)은 `Assets/Imported/`(중첩 git repo)에 상주할 수 있고 자동 리뷰 봇은 이를 읽지 못한다. 메인 repo diff에 `.prefab`이 없다고 해서 "프리팹 미생성/이슈 미충족"으로 단정하지 말 것 — 유료 에셋을 팀 공용 Imported 공간에만 두는 것이 정상 배치이며, 필요 시 작성자에게 확인한다(WL-040 참고, #92 건물 프리팹이 이 사각지대의 실제 오탐 사례).
+   - **StartMap 정본 예외(#335)**: 팀 합의에 따라 `StartMap.prefab`의 정본은 메인 저장소의 구 경로 `Assets/Prefabs/Map/StartMap.prefab`이 아니라 `Assets/Imported/NorthLand-Imported/@NorthLand/Prefabs/Tile/Map/StartMap.prefab`에서 관리한다. StartMap은 Imported 타일 프리팹과 자식 계층을 직접 구성하므로 관련 타일 프리팹과 같은 저장소에서 함께 변경한다. 메인 `GameScene.unity`는 이 프리팹의 GUID를 참조하며, 동일 GUID의 StartMap을 메인·Imported 양쪽에 동시에 두지 않는다.
+   - **StartMap 동기화 계약**: NorthLand 실행·리뷰·빌드 전에 `NorthLand-Imported`를 동기화해야 하며 sparse checkout을 사용하면 `@NorthLand/Prefabs/Tile/Map/**`와 `@NorthLand/Prefabs/Tile/GrassTile*.prefab`을 반드시 포함한다. StartMap 또는 버프 타일 프리팹 변경은 Imported 저장소에 먼저 커밋·Push한 다음 메인 저장소의 Scene/SO 배선을 커밋한다. 미동기 환경에서는 StartMap이 Missing Prefab이 되거나 버프 타일이 일반 잔디로 폴백하고 아이콘이 누락될 수 있다(WL-082).
+   - **StartMap 저장/복원 계약**: StartMap 루트에는 `StartMapTileRegistry`, 건설 가능한 자식 타일에는 고유한 `StartMapTileIdentity`가 있어야 한다. `GameScene`의 `RunSaveManager.startMapTileRegistry`는 배치된 StartMap 인스턴스의 Registry를 참조해야 하며, null이면 스타트맵 타워의 앵커 셀을 캡처할 수 없어 Run 저장/복원이 실패한다(WL-175, #328).
    - **리뷰어 주석(죽은 사본)**: `Assets/Personal/SUNGSOO/Font/`는 폰트가 TMP 정본으로 이관되며 더 이상 참조되지 않는 죽은 사본이다 — 이 경로의 폰트 아틀라스 churn을 WL-041 재발로 보고하지 말 것(WL-041 참고, 삭제 대기 중).
 
 ## 5. 미합의 전역 계약 (합의 없는 변경·점유 = 최소 🟠)
