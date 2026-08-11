@@ -12,7 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 08366b238e4880d4898b6b244413a4a1, type: 3}
   m_Name: MonsterWave 7
   m_EditorClassIdentifier: Assembly-CSharp::MonsterWaveAsset
-  waveNumber: 7
   spawnInterval: 1
   groups:
   - monsterPrefab: {fileID: 6835345894790427127, guid: 7dadd487d864fd748a54d06dfdef16f3, type: 3}
@@ -25,6 +24,6 @@ MonoBehaviour:
     count: 12
   - monsterPrefab: {fileID: 8912611930598447601, guid: d1b48e1d0872d6545bc0a639fc98755f, type: 3}
     count: 7
-  - monsterPrefab: {fileID: 222073164787883339, guid: 40938d6beae3f5e4dbafe7e0a9c714f3, type: 3}
+  - monsterPrefab: {fileID: 7984123443639308007, guid: 70c1fbefa025da447a8b0a70dd7c0c2a, type: 3}
     count: 1
   rewardPool: {fileID: 0}
