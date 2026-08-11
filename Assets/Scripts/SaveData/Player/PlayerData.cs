@@ -13,11 +13,11 @@ namespace NorthLand.Core
 
         public string playerId;
 
-        public string playerName;
-
         public long createdAt;
 
         public long lastPlayedAt;
+
+        public string playerName;
 
         public static PlayerData Create(string playerName)
         {

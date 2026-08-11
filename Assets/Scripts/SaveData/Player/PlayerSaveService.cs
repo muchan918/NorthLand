@@ -88,5 +88,17 @@ namespace NorthLand.Core
 
             return true;
         }
+
+        /// <summary>
+        /// 슬롯을 선택하지 않고 플레이어 데이터만 읽는다.
+        /// 슬롯 카드의 정보를 표시할 때 사용한다.
+        /// </summary>
+        public bool TryGetSlotData(int slotIndex,out PlayerData data,out string error)
+        {
+            return slotManager.TryLoadSlot(slotIndex,out data,out error);
+        }
+
+
+
     }
 }

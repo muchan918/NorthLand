@@ -81,12 +81,6 @@ namespace NorthLand.Core
                 return false;
             }
 
-            if (data == null)
-            {
-                error = "플레이어 데이터가 비어 있습니다.";
-                return false;
-            }
-
             if (string.IsNullOrWhiteSpace(data.playerId))
             {
                 error = "플레이어 ID가 비어 있습니다.";

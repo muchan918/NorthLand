@@ -89,6 +89,7 @@ namespace NorthLand.Core
                 data = null;
                 return false;
             }
+
             CurrentSlotIndex = slotIndex;
 
             return true;
@@ -117,7 +118,15 @@ namespace NorthLand.Core
             data = null;
             error = null;
 
-            if (!TryLoadSlot(slotIndex,out data,out error))
+            if (!IsValidSlotIndex(slotIndex))
+            {
+                error = "올바르지 않은 슬롯 번호입니다.";
+                return false;
+            }
+
+            var store = new PlayerDataStore(GetSlotPath(slotIndex));
+
+            if (!store.TryLoad(out data, out error))
             {
                 return false;
             }
