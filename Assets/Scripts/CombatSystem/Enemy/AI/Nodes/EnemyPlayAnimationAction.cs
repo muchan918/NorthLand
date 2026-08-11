@@ -34,6 +34,12 @@ public partial class EnemyPlayAnimationAction : Action
     // 참이면 재생이 끝날 때까지 Running을 유지한다.
     [SerializeReference] public BlackboardVariable<bool> WaitForEnd;
 
+    // 재생 종료를 어느 레이어에서 판정할지. 기본 0(전신).
+    // 상체 마스크 레이어에서 도는 클립(가드 / 봉인 / 소환)은 그 레이어 번호를 넣어야 한다 —
+    // 0을 보면 루프 중인 걷기의 normalizedTime을 읽어 즉시 성공으로 빠져나간다.
+    // WaitForEnd가 거짓이면 쓰이지 않는다.
+    [SerializeReference] public BlackboardVariable<int> Layer;
+
     // 대기 상한(초). 0 이하면 상한 없음. 트리거 이름 오타로 패턴이 영구 정지하는 것을 막는다.
     [SerializeReference] public BlackboardVariable<float> MaxWaitSeconds;
 
@@ -67,7 +73,24 @@ public partial class EnemyPlayAnimationAction : Action
             return Status.Success;
         }
 
-        // Animator가 없으면 애초에 TryPlayAnimation이 실패하므로 여기 도달하지 않는다.
+        int layer = Layer != null ? Layer.Value : 0;
+
+        // 없는 레이어를 기다리면 영구 Running이 된다. `GetAnimationNormalizedTime`이 범위 밖
+        // 레이어에 1을 돌려주긴 하지만, 그 폴백은 "전이를 한 번 본 뒤"에야 읽히고 없는
+        // 레이어에서는 전이가 영영 관측되지 않아 도달하지 못한다. 대기 전에 여기서 거른다.
+        //
+        // 실패가 아니라 성공이다 — 모션 하나 때문에 패턴 시퀀스를 끊을 이유가 없다.
+        // 대신 원인을 남긴다: 레이어 오타는 "이펙트도 모션도 안 나오는데 로그도 없는" 형태로
+        // 나타나 원인이 애니메이터 쪽에 있는 것처럼 보인다.
+        if (!agent.HasAnimatorLayer(layer))
+        {
+            Debug.LogWarning($"[{agent.name}] Enemy Play Animation: 레이어 {layer}가 " +
+                "AnimatorController에 없어 재생 종료를 기다리지 않고 넘어갑니다. " +
+                "Layer 입력이 맞는지 확인하세요.", agent);
+
+            return Status.Success;
+        }
+
         transitionSeen = false;
         elapsed = 0f;
 
@@ -93,8 +116,10 @@ public partial class EnemyPlayAnimationAction : Action
             return Status.Success;
         }
 
+        int layer = Layer != null ? Layer.Value : 0;
+
         // 전이가 시작됐다가 끝나는 것을 본 뒤부터 진행도를 신뢰한다.
-        if (agent.IsAnimatorInTransition)
+        if (agent.GetIsAnimatorInTransition(layer))
         {
             transitionSeen = true;
             return Status.Running;
@@ -105,7 +130,7 @@ public partial class EnemyPlayAnimationAction : Action
             return Status.Running;
         }
 
-        return agent.AnimationNormalizedTime >= 1f ? Status.Success : Status.Running;
+        return agent.GetAnimationNormalizedTime(layer) >= 1f ? Status.Success : Status.Running;
     }
 
     protected override void OnEnd()

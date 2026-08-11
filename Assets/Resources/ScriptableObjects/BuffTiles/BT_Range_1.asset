@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.BuffTileDefinition
   id: range_plus_1
   prefab: {fileID: 3733212974178513189, guid: 45e75e66e75bb4f44b5ad7eeda6cfadb, type: 3}
+  icon: {fileID: 21300000, guid: 32dbacac0bdef454c99e60e9f2e7c1ec, type: 3}
   modifiers:
   - Stat: 0
     ModifierMode: 0

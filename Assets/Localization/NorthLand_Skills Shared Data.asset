@@ -32,7 +32,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 429297667
-    m_Key: skills.stat.cast_count
+    m_Key: skills.stat.charge_count
     m_Metadata:
       m_Items: []
   - m_Id: 429297668

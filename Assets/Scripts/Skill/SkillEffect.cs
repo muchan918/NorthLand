@@ -33,6 +33,8 @@ public abstract class SkillEffect : MonoBehaviour
         if (!subscribed && TrySubscribe())
             subscribed = true;
 
+        OnLevelChanged();
+
         Debug.Log($"[SkillEffect] {Type} Lv{previousLevel} → Lv{Level}", this);
     }
 
@@ -75,6 +77,7 @@ public abstract class SkillEffect : MonoBehaviour
         }
 
         Level = level;
+        OnLevelChanged();
         return true;
     }
 
@@ -111,4 +114,9 @@ public abstract class SkillEffect : MonoBehaviour
     // 감전 임팩트마다 호출된다(기본 구독 대상일 때). 감전 계열 효과는 이걸 override,
     // 다른 스킬에 붙는 효과(예: BurnBuff)는 TrySubscribe/Unsubscribe를 override하고 이건 무시.
     protected virtual void HandleImpact(SkillCastContext context) { }
+
+    // 레벨이 바뀔 때(보상 획득 · 세이브 복원) 호출된다. 레벨을 다른 시스템에 밀어넣어야 하는
+    // 효과가 override 한다 — 기본은 아무것도 하지 않는다. 획득 경로와 복원 경로가 갈라져 있어
+    // 파생이 두 곳을 각각 챙기지 않도록 여기로 모았다.
+    protected virtual void OnLevelChanged() { }
 }
