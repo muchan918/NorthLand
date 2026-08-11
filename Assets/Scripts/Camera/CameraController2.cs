@@ -5,7 +5,8 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
-// 영토 확장 구조(#67) 확인용 쿼터뷰 카메라. 기존 CameraController(다른 공간 정본)는 건드리지 않고
+// 경영 공간 쿼터뷰 카메라(#67에서 영토 확장 구조 확인용으로 출발했고, 영토 시스템이 빠진 지금은
+// GameScene의 실제 카메라 컨트롤러다, #337). 기존 CameraController(다른 공간 정본)는 건드리지 않고
 // 별도 Cinemachine 가상 카메라를 새로 만들어 이걸로 제어한다. 카메라 구도가 정식으로 정해지면
 // 교체될 수 있는 임시 성격의 컨트롤러.
 

@@ -208,6 +208,15 @@ public partial class ResidentDanceAction : Action
             return false;
         }
 
+        // 좁은 통로에서는 춤도 길을 막는다(#332). 대화와 같은 존을 본다 — 막고 싶은 것은 행위가 아니라
+        // **좁은 곳에서 멈춰 서는 것**이라서다.
+        //
+        // 확률 뒤·반경 질의 앞에 둔다. 존 목록은 주민 목록보다 훨씬 짧고 하나도 없으면 즉시 빠진다.
+        if (ResidentNoStopZoneRegistry.Contains(self.transform.position))
+        {
+            return false;
+        }
+
         float radius = SoloRadius != null ? SoloRadius.Value : 0f;
         int maxNeighbors = MaxNeighbors != null ? MaxNeighbors.Value : 0;
 

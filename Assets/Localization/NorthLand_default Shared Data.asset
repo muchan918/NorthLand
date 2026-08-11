@@ -123,22 +123,6 @@ MonoBehaviour:
     m_Key: game.tower.attack_speed
     m_Metadata:
       m_Items: []
-  - m_Id: 4731930922856448
-    m_Key: game.resources.gold
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4731930989965312
-    m_Key: game.resources.ruby
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4731930989965313
-    m_Key: game.resources.sapphire
-    m_Metadata:
-      m_Items: []
-  - m_Id: 4731930989965314
-    m_Key: game.resources.diamond
-    m_Metadata:
-      m_Items: []
   - m_Id: 4747409699778560
     m_Key: game.territory.daily_supply
     m_Metadata:
@@ -203,10 +187,6 @@ MonoBehaviour:
     m_Key: game.btn.cancel
     m_Metadata:
       m_Items: []
-  - m_Id: 6528762240475136
-    m_Key: game.management.confirm_end_day.no_territory
-    m_Metadata:
-      m_Items: []
   - m_Id: 6529158073720832
     m_Key: game.management.confirm_end_day.idle_villagers
     m_Metadata:
@@ -221,6 +201,10 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 8850533168615424
     m_Key: game.btn.undo
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11583934444511232
+    m_Key: game.management.confirm_end_day.no_tower_today
     m_Metadata:
       m_Items: []
   m_Metadata:

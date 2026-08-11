@@ -5,9 +5,9 @@ using UnityEngine;
 /// [테스트 전용] 밸런스 반복 검증용 헬퍼 패널. 씬의 빈 GameObject에 붙이고, uGUI Button의 onClick에
 /// 아래 public 메서드를 연결해서 PlayMode에서 클릭으로 쓴다(키보드 단축키 불필요).
 /// - <see cref="ForceWaveClear"/>: 남은 웨이브를 즉시 클리어(대기 스폰 중단 + 현재 몬스터 제거 + 정상 완료 경로).
-/// - <see cref="GrantWood"/>/<see cref="GrantIron"/>/<see cref="GrantFood"/>/<see cref="GrantMana"/>/<see cref="GrantGold"/>/
-///   <see cref="GrantRuby"/>/<see cref="GrantSapphire"/>/<see cref="GrantDiamond"/>: 해당 자원을 <see cref="_grantAmount"/>(기본 20)만큼 지급.
-/// - <see cref="SkipDay"/>: 주민 배치·영토 확장·몬스터 스폰 없이 웨이브 수만 올리고 다음 날로 넘어간다(<see cref="DayNightManager.SkipDay"/>).
+/// - <see cref="GrantWood"/>/<see cref="GrantIron"/>/<see cref="GrantFood"/>/<see cref="GrantMana"/>:
+///   해당 자원을 <see cref="_grantAmount"/>(기본 20)만큼 지급. 자원은 이 4종뿐이다(#337).
+/// - <see cref="SkipDay"/>: 주민 배치·몬스터 스폰 없이 웨이브 수만 올리고 다음 날로 넘어간다(<see cref="DayNightManager.SkipDay"/>).
 ///
 /// 지갑에 자원을 넣는 public API가 없어(<see cref="ManagementController"/>는 소비 게이트웨이만 노출)
 /// <see cref="BuildingsUpgradeHelper"/>와 동일하게 테스트 한정 리플렉션으로 <see cref="ResourceWallet"/>에 접근한다.
@@ -69,10 +69,6 @@ public class BalanceTestPanel : MonoBehaviour
     public void GrantIron() => Grant(ResourceKind.Iron, "철");
     public void GrantFood() => Grant(ResourceKind.Food, "식량");
     public void GrantMana() => Grant(ResourceKind.Mana, "마나");
-    public void GrantGold() => Grant(ResourceKind.Gold, "금");
-    public void GrantRuby() => Grant(ResourceKind.Ruby, "루비");
-    public void GrantSapphire() => Grant(ResourceKind.Sapphire, "사파이어");
-    public void GrantDiamond() => Grant(ResourceKind.Diamond, "다이아");
 
     void Grant(ResourceKind kind, string label)
     {
