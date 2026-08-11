@@ -52,19 +52,6 @@ MonoBehaviour:
       MaxStacks: 0
       StackInterval: 0
       DecaySeconds: 0
-  Laser:
-    Damage: 0
-    DamagePerStack: 0
-    Range: 0
-    Width: 0
-    Height: 12
-    Interval: 2
-    FlashSeconds: 0.12
-    ChargeRamp:
-      PerStack: 0
-      MaxStacks: 0
-      StackInterval: 0
-      DecaySeconds: 0
   GroundZone:
     ZonePrefab: {fileID: 109944, guid: 2ff0199b19f96fd489a4e259a670d9b5, type: 3}
     Radius: 3

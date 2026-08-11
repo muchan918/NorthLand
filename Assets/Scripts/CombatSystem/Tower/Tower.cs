@@ -29,7 +29,7 @@ namespace NorthLand.Combat
         //
         // 단일 필드를 배열로 바꾸지 않고 나란히 두는 이유: 기존 프리팹 18종의 인스펙터 배선이
         // 그 자리에 남아 있어야 하고(배열로 옮기면 전부 다시 물려야 한다), 빔·레이저처럼 "포구가
-        // 하나뿐인 개념"은 여전히 단일 값을 읽기 때문이다(BeamAction·LaserAction의 `Owner.FirePoint`).
+        // 하나뿐인 개념"은 여전히 단일 값을 읽기 때문이다(BeamAction의 `Owner.FirePoint`).
         [SerializeField] Transform[] firePoints;
 
         // ★ 이 타워가 "무엇을 하는 물건인지"를 담는 액션들 — **프리팹이 정본이다**(#274).

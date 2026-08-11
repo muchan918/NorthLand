@@ -11295,10 +11295,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 8166054680972df4db8dd6b8363da200, type: 2}
   - {fileID: 11400000, guid: 1db8be08c0d07284096b9cccc667755c, type: 2}
   - {fileID: 11400000, guid: 687d6b6aa3d4f0b4995518b39af7ce44, type: 2}
-  - {fileID: 11400000, guid: f63c79d5e3376a448b015179bc88fd39, type: 2}
-  - {fileID: 11400000, guid: 002a462e5bacfd04d840558aebdd3389, type: 2}
-  - {fileID: 11400000, guid: 117732de99ab0ef4b816fd3a9e9ddf4c, type: 2}
-  - {fileID: 11400000, guid: 9966e867e70d89547820df21dd04bd98, type: 2}
 --- !u!222 &3761995433296046098
 CanvasRenderer:
   m_ObjectHideFlags: 0

@@ -239,18 +239,6 @@ MonoBehaviour:
     m_Key: towers.single_inferno.desc
     m_Metadata:
       m_Items: []
-  - m_Id: 7425158103605248
-    m_Key: towers.charging_cannon.name
-    m_Metadata:
-      m_Items: []
-  - m_Id: 7425158128771072
-    m_Key: towers.charging_cannon.role
-    m_Metadata:
-      m_Items: []
-  - m_Id: 7425158128771073
-    m_Key: towers.charging_cannon.desc
-    m_Metadata:
-      m_Items: []
   - m_Id: 7701478553329664
     m_Key: towers.missile.name
     m_Metadata:

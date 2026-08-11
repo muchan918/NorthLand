@@ -44,23 +44,10 @@ namespace NorthLand.Combat
         // 구독한다. 순수 추가 훅으로 기존 공격 로직은 무수정. static이므로 구독자가 해제를 책임진다.
         public static event Action<IAttacker, IDamageable> DamageDealt;
 
-        /// 투사체를 만들지 않는 공격이 이 축에 **스스로** 들어오기 위한 발행 창구(#311).
-        ///
-        /// ⚠ **"`Projectile.cs` 무수정" 원칙의 예외다** — #298의 `EnemyMask` 읽기 창구와 같은 성격이라
-        /// 리뷰 포인트로 남긴다. C# 이벤트는 선언한 타입 밖에서 `Invoke`할 수 없으므로, 히트스캔 액션이
-        /// TowerAddGuide.md §6이 적어둔 탈출구("원하면 `Projectile.DamageDealt`를 직접 발행해야 한다")를
-        /// 실행하려면 이 한 줄이 필요하다.
-        ///
-        /// ⚠ **기본값은 여전히 "제외"다.** 히트스캔이 이 축에서 빠지는 것은 설계 의도이므로
-        /// (`BeamAction`은 발행하지 않는다), 새 액션이 자동으로 포함되지 않고 **의도적으로 부를 때만**
-        /// 들어온다. 부르는 쪽은 `TakeDamage` **직후**에 불러 순서를 투사체 경로(`Hit`)와 맞출 것.
-        internal static void RaiseDamageDealt(IAttacker source, IDamageable victim)
-            => DamageDealt?.Invoke(source, victim);
-
         /// 착탄 **위치** 통지(#336). 착탄 지점에 남는 지속물(화상 구역 등)을 만들기 위한 창구다.
         ///
-        /// ⚠ **"`Projectile.cs` 무수정" 원칙의 세 번째 예외다** — 위의 `RaiseDamageDealt`(#311)·
-        /// `EnemyMask`(#298)와 같은 성격이라 같은 자리에 리뷰 포인트로 남긴다. 착탄 위치를 아는 지점이
+        /// ⚠ **"`Projectile.cs` 무수정" 원칙의 두 번째 예외다** — `EnemyMask`(#298) 읽기 창구와
+        /// 같은 성격이라 같은 자리에 리뷰 포인트로 남긴다. 착탄 위치를 아는 지점이
         /// `OnHit` 하나뿐이라 우회가 없다(비행 부품은 `source`·`effects`·원장을 모르고, `Init` 시그니처에
         /// 지속물 저작을 실어 보내는 것은 이 클래스가 "무엇을 남기는지"까지 알게 되는 일이다).
         ///
