@@ -19,6 +19,13 @@ public class SkillButtonView : MonoBehaviour
     [Tooltip("보유 충전 수 표시(#319). 비워두면 표시하지 않는다.")]
     [SerializeField] TMP_Text _chargeText;
 
+    // 마지막으로 찍은 값. 매 프레임 문자열을 새로 만들지 않으려고 캐싱한다 — TMP의 text 세터가
+    // 같은 값을 걸러내더라도 보간 문자열은 이미 할당된 뒤라, 조립 자체를 건너뛰어야 의미가 있다.
+    // -1은 "아직 한 번도 안 찍음"이라 첫 프레임에 반드시 갱신된다.
+    int _shownCharges = -1;
+    int _shownMaxCharges = -1;
+    int _shownRechargeSeconds = -1;
+
     private void Awake()
     {
         if (_button == null) _button = GetComponent<Button>();
@@ -46,8 +53,14 @@ public class SkillButtonView : MonoBehaviour
         if (_rechargeText.gameObject.activeSelf != show)
             _rechargeText.gameObject.SetActive(show);
 
-        if (show)
-            _rechargeText.text = Mathf.CeilToInt(remaining).ToString();
+        if (!show) return;
+
+        // 초 단위로 올림하므로 실제로 바뀌는 건 초당 1회뿐이다.
+        int seconds = Mathf.CeilToInt(remaining);
+        if (seconds == _shownRechargeSeconds) return;
+
+        _shownRechargeSeconds = seconds;
+        _rechargeText.text = seconds.ToString();
     }
 
     // "2/2" 형태로 보유/최대를 함께 보여준다 — 보유만 찍으면 몇 발까지 차는지 알 수 없다.
@@ -56,7 +69,13 @@ public class SkillButtonView : MonoBehaviour
     {
         if (_chargeText == null) return;
 
-        _chargeText.text = $"{SkillManager.Instance.Charges}/{SkillManager.Instance.MaxCharges}";
+        int charges = SkillManager.Instance.Charges;
+        int maxCharges = SkillManager.Instance.MaxCharges;
+        if (charges == _shownCharges && maxCharges == _shownMaxCharges) return;
+
+        _shownCharges = charges;
+        _shownMaxCharges = maxCharges;
+        _chargeText.text = $"{charges}/{maxCharges}";
     }
 
     private void HandleClick()

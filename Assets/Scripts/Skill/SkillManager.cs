@@ -64,8 +64,18 @@ public class SkillManager : MonoBehaviour
 
     public float Radius => effectiveRadius;
 
+    // 보상이 없어도 들고 있는 기본 충전. 보상 카드가 "충전 횟수 N → N+1"을 계산할 때도 이 값을
+    // 써야 버튼 표기("2/2")와 갈리지 않는다 — 두 화면이 각자 `1 +`을 들고 있으면 기본값을 바꾸는
+    // 순간 조용히 어긋난다.
+    public const int BaseCharges = 1;
+
     public int Charges => charges;
-    public int MaxCharges => 1 + bonusCharges;   // 보상이 없어도 기본 1발은 들고 있다
+    public int MaxCharges => MaxChargesWith(bonusCharges);
+
+    /// 보너스 충전이 <paramref name="bonus"/>일 때의 최대 충전. 아직 획득하지 않은 레벨의 값을
+    /// 미리 보여줘야 하는 보상 카드가 쓴다.
+    public static int MaxChargesWith(int bonus) => BaseCharges + Mathf.Max(0, bonus);
+
     public bool IsReady => charges > 0;
 
     // 다음 1발이 찰 때까지 남은 시간(초). 만충이면 0 — 버튼이 카운트다운을 숨기는 신호로 쓴다.
@@ -152,7 +162,7 @@ public class SkillManager : MonoBehaviour
 
         if (level != lastMagicLabLevel)
         {
-            Debug.Log($"[Skill] 마법 연구소 Lv{level} 적용 — 감전 데미지={effectiveDamage}(x{effectiveDamage / damage:F2}), 사거리={effectiveRadius}(x{effectiveRadius / radius:F2}), 쿨다운={effectiveCooldown}(x{effectiveCooldown / cooldown:F2})");
+            Debug.Log($"[Skill] 마법 연구소 Lv{level} 적용 — 감전 데미지={effectiveDamage}(x{effectiveDamage / damage:F2}), 사거리={effectiveRadius}(x{effectiveRadius / radius:F2}), 재충전 간격={effectiveCooldown}(x{effectiveCooldown / cooldown:F2})");
             lastMagicLabLevel = level;
         }
     }

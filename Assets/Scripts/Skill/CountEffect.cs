@@ -8,10 +8,10 @@ public class CountEffect : SkillEffect
 {
     public override WaveRewardType Type => WaveRewardType.ExtraCast;
 
-    // 보상 패널(#287) 표시용. 기본 1발 + 보너스 Level개 = 총 1 + Level발.
-    // 스킬 버튼의 "2/2" 표기와 같은 셈법이라 두 화면이 어긋나지 않는다.
+    // 보상 패널(#287) 표시용. 이 레벨을 적용했을 때의 최대 충전을 SkillManager에게 물어본다 —
+    // 기본 충전 값을 여기서 다시 쓰지 않으므로, 그 값이 바뀌어도 카드와 버튼 표기가 함께 따라온다.
     public int GetCurrentCount() => GetCountAt(Level);
-    public int GetCountAt(int level) => 1 + level;
+    public int GetCountAt(int level) => SkillManager.MaxChargesWith(level);
 
     public override string GetStatSummary()
         => SkillStatsFormatter.BuildChargeCountLine(GetCurrentCount(), GetCountAt(NextLevel));
