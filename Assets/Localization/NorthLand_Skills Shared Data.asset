@@ -43,6 +43,10 @@ MonoBehaviour:
     m_Key: skills.stat.field_radius
     m_Metadata:
       m_Items: []
+  - m_Id: 2176852891701248
+    m_Key: skills.stat.execute_threshold
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

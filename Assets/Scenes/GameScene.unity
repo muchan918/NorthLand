@@ -154,7 +154,7 @@ MonoBehaviour:
   management: {fileID: 544968473}
   territory: {fileID: 340814262}
   towerPlacer: {fileID: 6262796507066623699}
-  startMapTileRegistry: {fileID: 572341031524862309}
+  startMapTileRegistry: {fileID: 0}
   towerAssets:
   - {fileID: 11400000, guid: 7ecd80d44165e644591aafb428cf5efe, type: 2}
   - {fileID: 11400000, guid: a752545bbde5030438f8995ae4ee0849, type: 2}
@@ -2909,7 +2909,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 38dab39f31dcfb04eaeda8894b6fd747, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TowerFusionController
-  _placer: {fileID: 0}
+  _placer: {fileID: 6262796507066623699}
   _management: {fileID: 544968473}
 --- !u!1 &1381029145 stripped
 GameObject:
@@ -4321,6 +4321,7 @@ GameObject:
   - component: {fileID: 1995850073}
   - component: {fileID: 1995850074}
   - component: {fileID: 1995850075}
+  - component: {fileID: 1995850076}
   m_Layer: 0
   m_Name: SkillEffectManager
   m_TagString: Untagged
@@ -4429,6 +4430,25 @@ MonoBehaviour:
   enemyLayerMask:
     serializedVersion: 2
     m_Bits: 128
+  debugLog: 0
+--- !u!114 &1995850076
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1995850069}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1e317a03cae71a45a965ce4b82d9a58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ExecuteEffect
+  maxLevel: 3
+  thresholdByLevel:
+  - 0.1
+  - 0.2
+  - 0.3
+  markDuration: 2
   debugLog: 0
 --- !u!1 &2054543367
 GameObject:
@@ -5739,17 +5759,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
---- !u!114 &572341031524862309 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 6521744114748706873, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
-  m_PrefabInstance: {fileID: 572341031524862308}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3a764fe13f24af743b0baa7a72d10553, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileRegistry
 --- !u!224 &582369541074808118
 RectTransform:
   m_ObjectHideFlags: 0
@@ -11721,7 +11730,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 54.75
+  m_fontSize: 60.35
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -22186,7 +22195,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 42.95
+  m_fontSize: 40.2
   m_fontSizeBase: 24
   m_fontWeight: 400
   m_enableAutoSizing: 1

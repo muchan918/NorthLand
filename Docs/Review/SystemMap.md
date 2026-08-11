@@ -153,6 +153,18 @@
   부수 효과로 소유권 중에는 근접 평타가 나가지 않는다. **켠 쪽이 반드시 반납할 책임을 진다**
 - `Enemy.DamageTakenFactor` (float, #233) — 받는 피해 배수. `TakeDamage` 한 곳에서만 적용된다.
   0 미만은 클램프(0=무적), 상한 없음(1 초과=취약)
+- `Enemy.IsBoss` (bool, #318) — 보스 술어. `data.EnemyType == EnemyType.Boss` 파생이며
+  **최종보스와 중간보스를 모두 포함**한다(프리팹 전수 확인: `Tank`·`MidBoss`·`Candy_King_01` 3종).
+  보스 여부가 필요한 곳은 자체 비교를 쓰지 말고 이걸 쓸 것 — `Enemy.Awake`의 BT 배선이 같은 비교를
+  중복하던 것을 #318에서 이쪽으로 통일했다. ⚠ **파생이라 데이터 축이 갈리면 조용히 틀린다** —
+  `EnemyType`은 스탯 블록 선택·근접/원거리 공격 경로 선택까지 겸하는 필드라, 원거리 보스가 들어오면
+  `EnemyType.Ranged`가 되어 `IsBoss`가 false가 된다(WL-176). authored 플래그로 분리하는 것이 해법
+- `Enemy.MarkForExecute(float thresholdRatio, float duration, bool debugLog = false)` (#318) —
+  처형 표식 부여. `thresholdRatio`는 MaxHp 대비 **비율**(0~1). 재적용은 **갱신**이다(임계·지속 모두
+  덮어쓴다 — `StatusEffectHandler.ApplyOrRefresh`와 같은 semantics). 표식이 사는 동안 `TakeDamage`가
+  임계 이하를 감지하면 그 자리에서 처형된다(판정 주체는 `Enemy.TryExecute()` 하나).
+  **보스 제외 가드는 이 메서드가 아니라 호출부가 소유한다** — `TakeDamage` 경로에 처형과 무관한
+  조건을 심지 않기 위함. 부여 직후 1회 판정하므로 **이미 임계 이하인 대상은 부여 시점에 즉시 처형**된다
 - `Enemy.SetSpeedMultiplier(float)` / `Enemy.SpeedMultiplier` — #233 이후 `movement`의 **패턴 축 위임**.
  값 소유자는 현재 이동 구현체가 위임하는 `MoveSpeedComposer`이며 `Enemy`는 로컬 필드를 들지 않는다. 중간보스 그래프
   (`MidBossBehavior.asset`)가 쓰는 진입점이라 시그니처를 유지했다. 신규 노드는 `EnemyAgent`를 경유할 것
