@@ -18,9 +18,5 @@ namespace NorthLand.Core
         // 전투맵 파생 요청 시드와 실제 성공 시드.
         public int CombatMapRequestedSeed;
         public int CombatMapUsedSeed;
-
-        // 영토 파생 요청 시드와 실제 사용 시드.
-        public int TerritoryRequestedSeed;
-        public int TerritoryUsedSeed;
     }
 }
