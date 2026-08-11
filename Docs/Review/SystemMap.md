@@ -10,7 +10,7 @@
 | 시스템                                      | 소유자     | 경로                                                                 | 상태                                                                                                                                                                    |
 | ------------------------------------------- | ---------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | DataTable (CSV→static 레지스트리→SO)        | muchan     | `Assets/Scripts/Data`                                             | Resource, Building, Tower, Enemy 4종 구현. Tower/Enemy는 Combat(`Tower.cs`/`Enemy.cs`)이 `TowerAsset`/`EnemyAsset`을 직접 소비하도록 이관 완료(PR#80) — 잔여 종류 값 채움 + Soldier 이관은 진행 중(WL-001, 부분 착수). Reward 확장 예정(Territory는 #337에서 삭제). **Skill(#103)은 CSV 파이프라인을 쓰지 않기로 확정** — 밸런싱 수치 미정 + 스킬 1~2개뿐이라 과설계로 판단, `PlayerSkill` 시스템 행 참고                                |
-| Combat (타워/몬스터 공격·데미지)            | SUNGSOO    | `Assets/Scripts/CombatSystem` | 공격/데미지 코어만. 이동·사망처리·투사체 없음. HP 조회 공개 API(`CurrentHp`/`MaxHp`/`OnHpChanged`) + `PlayerBase` 씬 싱글톤(`Instance`/`OnBaseSpawned`) 추가(#100, HP UI 연동용). `Tower.cs`에 PlayerSkill(#103, muchan)이 버프 배율과 자가 등록 정적 리스트 `Tower.Active`를 추가함. **#164 리팩토링으로 Tower.cs가 재구성됨(n0wst4ndup)**: 구 `AuraTower`를 폐기하고 **타워를 단일 `Tower` 타입 + 행동 조립(`ITowerBehaviour`)** 구조로 통합. 공격 로직은 `AttackBehaviour`로, 오라는 `BuffAuraBehaviour`/`DebuffAuraBehaviour`로 이관. 버프 배율 필드(`damageMultiplier`/`attackSpeedMultiplier`)와 `activeBuffs`는 스탯 원장 `TowerStats`로 통합(타일 버프까지 흡수). `Tower`가 소유하는 것은 정체성(SO/진영)·원장·선택 표현·레지스트리·게이팅뿐이며 "무엇을 하는 물건인지"는 전부 행동이 가진다. 공개 API 상세는 2절 참고. `Projectile.cs`에 PlayerSkill(#169, muchan)이 static 명중 이벤트 `Projectile.DamageDealt(IAttacker, IDamageable)` 추가(단일/스플래시/체인 데미지 4지점 직후 발행, 순수 추가 — 기존 로직 무수정. static이라 구독 해제는 구독자 책임, 현재 구독자는 `BurnBuff`). **`Tower.cs`에 TowerFusion(#195, muchan)이 읽기 접근자 `Asset`(=data) 추가 — 순수 읽기(배치된 타워의 원본 SO 조회, 합성 재료 TowerID 매칭용), 기존 로직·필드 무수정**. **#300에서 성장(램프업) 축이 추가됨(SUNGSOO)**: 전투 실적이 원장에 얹히는 첫 소스 — `RampAction`(신규 액션)·`RampProfile`(수치 부품)·`Enemy.Killed`(처치 귀속 통지)·`TowerAction.OnWaveEnd`(웨이브 종료 훅) 4종이 공개 계약에 추가됐다(2절 참고). `BeamAction`에 대상별 램프(`Beam.LockRamp`)가 붙었고, 낮에도 빔이 켜진 채 남던 #298 버그를 `OnWaveEnd`로 해소했다. 기존 액션·원장 규칙은 무수정 |
+| Combat (타워/몬스터 공격·데미지)            | SUNGSOO    | `Assets/Scripts/CombatSystem` | 공격/데미지 코어만. 이동·사망처리·투사체 없음. HP 조회 공개 API(`CurrentHp`/`MaxHp`/`OnHpChanged`) + `PlayerBase` 씬 싱글톤(`Instance`/`OnBaseSpawned`) 추가(#100, HP UI 연동용). `Tower.cs`에 PlayerSkill(#103, muchan)이 버프 배율과 자가 등록 정적 리스트 `Tower.Active`를 추가함. **#164 리팩토링으로 Tower.cs가 재구성됨(n0wst4ndup)**: 구 `AuraTower`를 폐기하고 **타워를 단일 `Tower` 타입 + 행동 조립(`ITowerBehaviour`)** 구조로 통합. 공격 로직은 `AttackBehaviour`로, 오라는 `BuffAuraBehaviour`/`DebuffAuraBehaviour`로 이관. 버프 배율 필드(`damageMultiplier`/`attackSpeedMultiplier`)와 `activeBuffs`는 스탯 원장 `TowerStats`로 통합(타일 버프까지 흡수). `Tower`가 소유하는 것은 정체성(SO/진영)·원장·선택 표현·레지스트리·게이팅뿐이며 "무엇을 하는 물건인지"는 전부 행동이 가진다. 공개 API 상세는 2절 참고. `Projectile.cs`에 PlayerSkill(#169, muchan)이 static 명중 이벤트 `Projectile.DamageDealt(IAttacker, IDamageable)` 추가(단일/스플래시/체인 데미지 4지점 직후 발행, 순수 추가 — 기존 로직 무수정. static이라 구독 해제는 구독자 책임, 현재 구독자는 `BurnBuff`). **`Tower.cs`에 TowerFusion(#195, muchan)이 읽기 접근자 `Asset`(=data) 추가 — 순수 읽기(배치된 타워의 원본 SO 조회, 합성 재료 TowerID 매칭용), 기존 로직·필드 무수정**. **#300에서 성장(램프업) 축이 추가됨(SUNGSOO)**: 전투 실적이 원장에 얹히는 첫 소스 — `RampAction`(신규 액션)·`RampProfile`(수치 부품)·`Enemy.Killed`(처치 귀속 통지)·`TowerAction.OnWaveEnd`(웨이브 종료 훅) 4종이 공개 계약에 추가됐다(2절 참고). `BeamAction`에 대상별 램프(`Beam.LockRamp`)가 붙었고, 낮에도 빔이 켜진 채 남던 #298 버그를 `OnWaveEnd`로 해소했다. 기존 액션·원장 규칙은 무수정. **#336에서 착탄 지속 구역·연발·포탑 조준 축이 추가됨(SUNGSOO)**: `GroundZone`(신규 컴포넌트 — 착탄점에 남아 반경 안의 적에게 `Effects`를 재적용, 신규 런타임 인프라 0) · `Projectile.Impacted`(착탄 위치 통지, **인스턴스** 이벤트라 해제 책임 없음) · `Attack.BurstCount`/`BurstInterval`(한 조준으로 시간차 연발 — 산탄과 다른 축) · `TowerTurretAim`(연출 전용) 4종이 공개 계약에 추가됐다(2절 참고). **대상 탐색이 `Tower.AcquireTarget`으로 이관됐다** — `AttackAction.FindTarget`이 삭제되고 호스트가 프레임당 1회 캐시로 소유한다(액션과 연출이 원점·반경·마스크가 같은 쿼리를 두 벌 돌리던 것을 합침). 밤/낮 신호는 `Tower.IsCombatPhase`로 읽기 전용 공개(연출이 `DayNightManager`를 각자 폴링하지 않게 함, WL-044). ⚠ **`AcquireTarget`은 `AttackRange`에 고정돼 공격 액션 없는 타워엔 항상 null이고 `BeamAction`의 자체 탐색이 남아 있다**(WL-177). 밸런싱 수치는 이동속도 기준 확정 대기로 미룸 |
 | BattleMapBuilder (절차적 전투 맵)           | SUNJIN     | `Assets/Scripts/CombatSpace/MapBuilder`                          | 7×7 블록 경로 생성 구현. 싸이클 버그 해결이 다음 빌드 목표      
 | MonsterMovement (지상/공중 경로 이동)       | SUNJIN     | `Assets/Scripts/Monster/MonsterMoveMent`, `Assets/Scripts/CombatSystem/IMovementAgent.cs` | `IMovementAgent`에서 경로 추종 계약을 `IRouteMovementAgent`로 분리. 지상은 `MonsterMove`, 공중은 `FlyingMonsterMove`가 구현한다. 공중 이동은 기존 경로를 일정 간격으로 샘플링하고 고도 오프셋을 적용해 선택된 지점 사이를 직선 비행한다. 이동속도 다축 합성은 순수 C# `MoveSpeedComposer` 한 곳에서 계산하며 두 이동 컴포넌트가 위임한다. `Enemy`·`MonsterSpawn`·`MonsterStateMachine`은 구체 이동 타입이 아니라 인터페이스를 소비한다(#209). |
 | MouseManager (입력/선택/배치)               | n0wst4ndup | `Assets/Scripts/GameManager/MouseManager`                            | 4상태 머신 구현(Idle/BoxSelect/Placement/SkillTargeting — #103 SkillTargeting, #261 BoxSelect 추가). Snap 항등·CanPlaceAt 항상 true (TODO). 스킬 타겟팅은 전투 타일 전체 허용(`CombatMapTileView` 유무 질의, 도로 전용 제한 제거). 단일 선택 확정은 press가 아니라 **release** 시점(#261)                                                                                                                  |
@@ -353,6 +353,34 @@
   `Kill`=`Enemy.Killed` 구독(둘 다 `source == Owner`만 센다). `ActivePhase = Always`(낮에도 감쇠가 돌아야
   다음 밤이 0에서 시작한다). 공개 읽기: `Stacks` / `Multiplier`.
   ⚠ **타워당 1개까지** — `TowerAction.SourceId`가 `호스트 ID ^ 액션 타입명`이라 둘이면 원장 슬롯이 충돌한다
+- **`Tower.AcquireTarget()`**(`IDamageable`, `NorthLand.Combat`, #336) — 사거리 안에서 가장 가까운 적.
+  **"이 타워가 지금 누구를 겨누는가"의 단일 출처**다. 예전에는 공격 액션과 포탑 조준 연출이 각자
+  `OverlapSphere`를 돌렸는데, `TowerAction.Origin`이 `Owner.transform`이라 원점·반경·마스크·판정 기준이
+  **완전히 같은 쿼리 두 벌**이었다 — 비용보다 "대상이 누구인가"의 정의가 둘로 갈리는 것이 문제다
+  (조준 정책을 바꾸면 한쪽만 고쳐져 포탑이 겨눈 적과 실제로 맞는 적이 달라진다).
+  **프레임당 실제 조회는 1회**고 같은 프레임의 이후 호출은 캐시를 돌려주므로, 소비처들이 서로의 호출
+  주기를 몰라도 된다(발사 프레임에는 액션이 `Update`에서 계산하고 연출이 `LateUpdate`에서 받는다).
+  ⚠ **사거리를 `AttackRange`(= `AttackAction.Range`)에 고정하므로 공격 액션이 없는 타워에서는 항상 null이다** —
+  `BeamAction`의 자체 탐색은 그대로 남아 있어 조회가 아직 두 벌이다(WL-177)
+- **`Tower.IsCombatPhase`**(`bool`, 읽기 전용, `NorthLand.Combat`, #336) — 지금이 전투 시간(밤)인가.
+  호스트가 `Update`에서 이미 계산해 둔 값을 그대로 공개한다. 연출 컴포넌트가 각자 `DayNightManager`를
+  폴링하면 페이즈 규칙이 갈라지므로(WL-044) **신호원을 하나로 유지하려고** 새로 만들지 않고 있는 것을 열었다
+- **`Projectile.Impacted`**(`event Action<Vector3>`, `NorthLand.Combat`, #336) — 착탄 **위치** 통지.
+  착탄 지점에 남는 지속물(화상 구역 등)을 만들기 위한 창구다. `"Projectile.cs` 무수정" 원칙의 예외로,
+  착탄 위치를 아는 지점이 `OnHit` 하나뿐이라 우회가 없다. ⚠ static인 `DamageDealt`와 달리 **인스턴스
+  이벤트**라 구독자가 탄 한 발에만 붙고 탄이 파괴되면 함께 사라진다 — **해제 책임이 없다**.
+  ⚠ 관통·부메랑처럼 여러 번 때리는 탄은 **명중마다 발행**되므로 한 번만 반응할 구독자는 스스로 걸러야 한다
+- **`GroundZone`**(`MonoBehaviour`, `NorthLand.Combat`, #336) — 착탄 지점에 남아 반경 안의 적에게 효과를
+  재적용하는 지속 구역. **신규 런타임 인프라가 0이다** — 루프는 `DebuffAuraAction.ApplyDebuff`와 같고,
+  효과 소유·지속시간 소진은 여전히 대상의 `StatusEffectHandler`가, 수치는 `TowerAsset.Effects`가 맡는다.
+  `DebuffAura`(타워 중심 고정)와 **다른 축**이다 — 중심이 착탄점이고 수명이 있다.
+  ⚠ **소스 키를 장판 인스턴스별로 채번한다** — 타워 인스턴스로 채번하면 구역 2개가 겹쳐도 대상의 DoT 슬롯
+  하나를 공유해 중첩이 사라진다(2연발의 "두 개 겹치면 두 배"가 여기 걸려 있다).
+  이펙트 프리팹에 이 컴포넌트가 없어도 된다 — **런타임에 붙이므로** 벤더 파티클 팩 프리팹을 무수정으로 지정할 수 있다
+- **`TowerTurretAim`**(`MonoBehaviour`, `NorthLand.Combat`, #336) — 포탑 마디를 조준 대상 쪽으로 돌리는
+  **연출 전용** 컴포넌트. `TowerReloadVisual`과 같은 축이라 붙이지 않아도 전투 결과가 달라지지 않는다.
+  ⚠ **사격은 이 회전을 기다리지 않는다** — 얽으면 선회 속도가 곧 DPS 노브가 되어 연출값이 밸런싱 표 밖에서
+  화력을 흔든다
 - **`RampProfile`**(`[Serializable]`, `NorthLand.Combat`, #300) — 램프 **수치 규약**(`PerStack`/`MaxStacks`/
   `StackInterval`/`DecaySeconds`)과 스택→배율 환산(`Multiplier`/`StacksFromTime`). 소비처가 둘이고 **적용 지점이
   다르다**: `RampAction`(원장, 타워 전역) / `BeamAction.Beam.LockRamp`(대상별, 원장 미경유 — 원장은 타워 단위라
