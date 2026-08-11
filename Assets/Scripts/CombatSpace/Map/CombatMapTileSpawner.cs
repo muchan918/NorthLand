@@ -21,6 +21,9 @@ namespace CombatSpace
 
         private bool skipNextRevealAnimation;
 
+        [SerializeField]
+        private BuffTileIconPreview buffTileIconPreview;
+
         /// <summary>
         /// 셀 좌표계의 기준 Transform. 타일을 이 아래에 `localPosition` + `localRotation = identity`로
         /// 붙이므로 **이 Transform의 회전이 그리드 축의 단일 출처**다(내부 `coordinateRoot`와 같은 값).
@@ -236,9 +239,9 @@ namespace CombatSpace
 
             tileView.Initialize(tileData);
 
-            spawnedTiles.Add(
-                tileData.Position,
-                tileView);
+            spawnedTiles.Add(tileData.Position,tileView);
+
+            buffTileIconPreview?.Register(tileView);
         }
 
         private GameObject GetPrefab(CombatTileData tileData)
@@ -326,6 +329,7 @@ namespace CombatSpace
         public void RebuildSpawnedTileCache()
         {
             spawnedTiles.Clear();
+            buffTileIconPreview?.Clear();
 
             Transform parent =
                 tileRoot != null
@@ -338,32 +342,30 @@ namespace CombatSpace
 
             int duplicateCount = 0;
 
-            foreach (CombatMapTileView tileView
-                     in tileViews)
+            foreach (CombatMapTileView tileView in tileViews)
             {
                 if (tileView == null)
                 {
                     continue;
                 }
 
-                Vector2Int position =
-                    tileView.GridPosition;
+                // 아이콘 목록은 좌표 딕셔너리와 별도로 모든 버프 타일을 등록
+                buffTileIconPreview?.Register(tileView);
+
+                Vector2Int position = tileView.GridPosition;
 
                 if (spawnedTiles.ContainsKey(position))
                 {
                     duplicateCount++;
 
                     Debug.LogWarning(
-                        $"중복 타일 좌표 발견: " +
-                        $"{position}",
+                        $"중복 타일 좌표 발견: {position}",
                         tileView);
 
                     continue;
                 }
 
-                spawnedTiles.Add(
-                    position,
-                    tileView);
+                spawnedTiles.Add(position, tileView);
             }
 
             Debug.Log(
@@ -500,6 +502,8 @@ namespace CombatSpace
         [ContextMenu("Clear Map Tiles")]
         public void ClearTiles()
         {
+            buffTileIconPreview?.Clear();
+
             Transform parent =tileRoot != null? tileRoot: transform;
 
             for (int i = parent.childCount - 1;i >= 0;i--)
