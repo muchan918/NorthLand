@@ -57,7 +57,15 @@ public class BalanceTestPanel : MonoBehaviour
     // 레거시 UnityEngine.Input은 쓰지 않는다 — Active Input Handling이 Input System 단독이다(팀 규약).
     private void Update()
     {
-        if (Keyboard.current.f4Key.wasPressedThisFrame)
+        // Keyboard.current는 키보드가 없는 환경(모바일 빌드)에서 null이라 매 프레임 NRE가 된다.
+        // 같은 폴더의 BuildingsUpgradeHelper.cs:27-31과 동일한 가드.
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard == null || Panel == null)
+        {
+            return;
+        }
+
+        if (keyboard.f4Key.wasPressedThisFrame)
         {
             Panel.SetActive(!Panel.activeSelf);
         }
