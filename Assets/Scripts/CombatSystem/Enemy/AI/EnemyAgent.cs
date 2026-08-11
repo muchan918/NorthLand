@@ -241,13 +241,17 @@ public class EnemyAgent : MonoBehaviour
     //
     // 범위를 벗어난 레이어는 "이미 끝났다"로 답한다. 대기 노드가 영구 Running으로
     // 패턴 전체를 붙잡는 것보다 한 번 어색하게 지나가는 편이 낫다.
+    //
+    // ⚠ 이 폴백만으로는 부족하다. 대기 노드는 "전이를 한 번 본 뒤"부터 진행도를 신뢰하는데,
+    // 없는 레이어에서는 전이가 영영 관측되지 않아 폴백에 도달하지 못한다. 그래서 대기를
+    // 시작하기 전에 HasAnimatorLayer로 걸러야 한다.
     public float GetAnimationNormalizedTime(int layer) =>
-        HasLayer(layer) ? animator.GetCurrentAnimatorStateInfo(layer).normalizedTime : 1f;
+        HasAnimatorLayer(layer) ? animator.GetCurrentAnimatorStateInfo(layer).normalizedTime : 1f;
 
     public bool GetIsAnimatorInTransition(int layer) =>
-        HasLayer(layer) && animator.IsInTransition(layer);
+        HasAnimatorLayer(layer) && animator.IsInTransition(layer);
 
-    private bool HasLayer(int layer) =>
+    public bool HasAnimatorLayer(int layer) =>
         animator != null && layer >= 0 && layer < animator.layerCount;
 
     // ── 패턴 게이트(무상태 원칙의 유일한 예외) ─────────────────────────────

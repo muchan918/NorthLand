@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NorthLand.Combat;
 using UnityEngine;
 
@@ -28,6 +29,11 @@ public class BossAttackCadence : MonoBehaviour
 
     private int attackStateHash;
     private float cadence = 1f;
+
+    // 배열 반환 오버로드는 호출마다 새로 할당한다. 공격 상태에 있는 동안 매 프레임 도는
+    // 자리라 List를 재사용하는 오버로드를 쓴다 — 보스 1체면 체감 없지만 잡몹까지 번지면
+    // 프레임마다 쓰레기가 쌓인다.
+    private readonly List<AnimatorClipInfo> clipBuffer = new List<AnimatorClipInfo>();
 
     private void Awake()
     {
@@ -67,14 +73,14 @@ public class BossAttackCadence : MonoBehaviour
             return;
         }
 
-        AnimatorClipInfo[] clips = animator.GetCurrentAnimatorClipInfo(0);
+        animator.GetCurrentAnimatorClipInfo(0, clipBuffer);
 
-        if (clips.Length == 0)
+        if (clipBuffer.Count == 0)
         {
             return;
         }
 
-        float clipLength = clips[0].clip.length;
+        float clipLength = clipBuffer[0].clip.length;
         float interval = enemy.AttackInterval;
 
         // 간격이 0이면(스탯 미설정) 보정할 기준이 없다. 원래 속도로 둔다.
