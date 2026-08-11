@@ -59,21 +59,20 @@ namespace NorthLand.UI
 
         private void RefreshSelectedSlot()
         {
+            if (selectedSlotText == null)
+            {
+                return;
+            }
+
             PlayerSaveService service = PlayerSaveService.Instance;
 
-            if (selectedSlotText == null ||service == null ||!service.HasSelectedSlot)
+            if (service == null || !service.HasSelectedSlot || service.CurrentPlayerData == null)
             {
+                selectedSlotText.text = string.Empty;
                 return;
             }
 
-            PlayerData playerData = service.CurrentPlayerData;
-
-            if (playerData == null)
-            {
-                return;
-            }
-
-            selectedSlotText.text = playerData.playerName;
+            selectedSlotText.text = service.CurrentPlayerData.playerName;
         }
 
         private void ClearError()
@@ -130,7 +129,7 @@ namespace NorthLand.UI
                     continue;
                 }
 
-                if (service.TryGetSlotData(slotIndex,out PlayerData data,out string error))
+                if (service.TryGetSlotData(slotIndex, out PlayerData data, out string error))
                 {
                     slotView.ShowData(data, isSelected);
                 }
@@ -140,6 +139,41 @@ namespace NorthLand.UI
                     ShowError(error);
                 }
             }
+
+
+        }
+
+        /// <summary>
+        /// 지정한 플레이어 슬롯을 삭제하고 카드 화면을 갱신한다.
+        /// </summary>
+        public void OnClickDeleteSlot(int slotIndex)
+        {
+            ClearError();
+
+            PlayerSaveService service = PlayerSaveService.Instance;
+
+            if (service == null)
+            {
+                ShowError("플레이어 저장 시스템이 준비되지 않았습니다.");
+
+                return;
+            }
+
+            if (!service.SlotExists(slotIndex))
+            {
+                RefreshAllSlots();
+                RefreshSelectedSlot();
+                return;
+            }
+
+            if (!service.TryDeleteSlot(slotIndex,out string error))
+            {
+                ShowError(error);
+                return;
+            }
+
+            RefreshAllSlots();
+            RefreshSelectedSlot();
         }
     }
 }

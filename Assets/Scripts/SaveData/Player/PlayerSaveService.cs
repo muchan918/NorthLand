@@ -55,8 +55,6 @@ namespace NorthLand.Core
 
             DontDestroyOnLoad(gameObject);
 
-            slotManager = new PlayerSlotManager(Application.persistentDataPath);
-
             slotManager =new PlayerSlotManager(Application.persistentDataPath);
 
             RestoreSelectedSlot();
@@ -106,6 +104,33 @@ namespace NorthLand.Core
             return slotManager.TryLoadSlot(slotIndex,out data,out error);
         }
 
+        /// <summary>
+        /// 슬롯 폴더 전체를 삭제하고 선택 상태를 정리한다.
+        /// </summary>
+        public bool TryDeleteSlot(int slotIndex, out string error)
+        {
+            bool wasSelected = HasSelectedSlot && CurrentSlotIndex == slotIndex;
+
+            if (!slotManager.TryDeleteSlot(slotIndex, out error))
+            {
+                return false;
+            }
+
+            if (wasSelected)
+            {
+                CurrentPlayerData = null;
+            }
+
+            if (PlayerPrefs.HasKey(SelectedSlotKey) && PlayerPrefs.GetInt(SelectedSlotKey, -1) == slotIndex)
+            {
+                PlayerPrefs.DeleteKey(SelectedSlotKey);
+                PlayerPrefs.Save();
+            }
+
+            return true;
+        }
+
+
         private static void SaveSelectedSlot(int slotIndex)
         {
             PlayerPrefs.SetInt(SelectedSlotKey,slotIndex);
@@ -132,6 +157,8 @@ namespace NorthLand.Core
             PlayerPrefs.DeleteKey(SelectedSlotKey);
             PlayerPrefs.Save();
         }
+
+    
 
 
     }

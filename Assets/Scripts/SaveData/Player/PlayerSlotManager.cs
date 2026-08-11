@@ -136,6 +136,49 @@ namespace NorthLand.Core
             return true;
         }
 
+        /// <summary>
+        /// 플레이어 슬롯 폴더와 내부 저장 데이터를 모두 삭제한다.
+        /// </summary>
+        public bool TryDeleteSlot(int slotIndex,out string error)
+        {
+            error = null;
+
+            if (!IsValidSlotIndex(slotIndex))
+            {
+                error = "올바르지 않은 슬롯 번호입니다.";
+                return false;
+            }
+
+            string slotPath = GetSlotPath(slotIndex);
+
+            try
+            {
+                if (Directory.Exists(slotPath))
+                {
+                    Directory.Delete(slotPath,recursive: true);
+                }
+            }
+            catch (IOException exception)
+            {
+                error = $"슬롯 파일 삭제에 실패했습니다: " + exception.Message;
+
+                return false;
+            }
+            catch (UnauthorizedAccessException exception)
+            {
+                error = $"슬롯 파일에 접근할 수 없습니다: " + exception.Message;
+
+                return false;
+            }
+
+            if (CurrentSlotIndex == slotIndex)
+            {
+                CurrentSlotIndex = -1;
+            }
+
+            return true;
+        }
+
 
         public string GetSlotPath(int slotIndex)
         {
