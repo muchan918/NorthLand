@@ -24,6 +24,14 @@ namespace NorthLand.Combat
         // 투사체 생성 위치(포신/머즐). 미할당 시 기존처럼 타워 루트(바닥)에서 생성(하위 호환).
         [SerializeField] Transform firePoint;
 
+        // 포신이 둘 이상인 타워(양날개 미사일 터렛 등)의 발사 위치 목록(#336). 비워두면 위의 단일
+        // `firePoint`가 쓰이므로 **기존 프리팹은 전부 무변경**이다.
+        //
+        // 단일 필드를 배열로 바꾸지 않고 나란히 두는 이유: 기존 프리팹 18종의 인스펙터 배선이
+        // 그 자리에 남아 있어야 하고(배열로 옮기면 전부 다시 물려야 한다), 빔·레이저처럼 "포구가
+        // 하나뿐인 개념"은 여전히 단일 값을 읽기 때문이다(BeamAction의 `Owner.FirePoint`).
+        [SerializeField] Transform[] firePoints;
+
         // ★ 이 타워가 "무엇을 하는 물건인지"를 담는 액션들 — **프리팹이 정본이다**(#274).
         //
         // 인스펙터에서 `+ Attack Action` / `+ Buff Aura Action`을 골라 담는다. 예전에는 SO의 TowerType을
@@ -84,6 +92,25 @@ namespace NorthLand.Combat
         // 다루기 까다롭고, 이렇게 두면 프리팹의 기존 배선 값이 제자리에 남는다.
         internal Transform FirePoint => firePoint;
         internal LayerMask EnemyLayerMask => enemyLayerMask;
+
+        // 다음 발사에 쓸 포구. 커서를 여기서 굴리는 이유는 배선의 소유자가 호스트이기 때문이다
+        // (액션 규칙 ②) — 액션이 인덱스를 관리하면 포구 개수를 알아야 하고, 그 값이 프리팹 배선이라
+        // 액션이 씬 구조를 아는 셈이 된다. 커서는 직렬화되지 않는 런타임 값이다.
+        //
+        // 배열이 비면 단일 `firePoint`(그것도 없으면 null → 호출부가 타워 루트로 폴백)를 그대로 반환하므로
+        // **기존 타워는 이 경로를 타도 거동이 바뀌지 않는다.**
+        internal Transform NextFirePoint()
+        {
+            if (firePoints == null || firePoints.Length == 0) return firePoint;
+
+            Transform result = firePoints[firePointCursor];
+            firePointCursor = (firePointCursor + 1) % firePoints.Length;
+
+            // 배열에 빈 슬롯이 섞여 있어도 발사가 멈추지 않게 단일 값으로 떨어진다(저작 실수 방어).
+            return result != null ? result : firePoint;
+        }
+
+        int firePointCursor;
 
         // 저작 검증(TowerAsset.OnValidate)이 프리팹의 액션 구성을 들여다보는 창구.
         // 런타임 소비처는 능력 질의(Has/Get)를 쓴다 — 리스트를 통째로 노출하는 것은 검증·툴링용이다.
@@ -167,6 +194,77 @@ namespace NorthLand.Combat
         // 발사 통지 발행 창구. 액션(AttackAction)이 실제 발사 주체지만, 구독자(TowerReloadVisual)는
         // 타워를 보고 붙으므로 이벤트 소유는 호스트에 남긴다.
         internal void RaiseFired() => OnFired?.Invoke();
+
+        // ── 대상 탐색 (#336) ────────────────────────────────────────────────
+        // "이 타워가 지금 누구를 겨누는가"의 **단일 출처**. 예전에는 공격 액션과 포탑 조준 연출이
+        // 각자 OverlapSphere를 돌렸는데, `TowerAction.Origin`이 `Owner.transform`이라 원점·반경·마스크·
+        // 판정 기준이 **완전히 같은 쿼리 두 벌**이었다. 비용도 비용이지만 진짜 문제는 "대상이 누구인가"의
+        // 정의가 둘로 갈린다는 것이다 — 조준 정책을 최근접에서 다른 것으로 바꾸면 한쪽만 고쳐져
+        // **포탑이 겨눈 적과 실제로 맞는 적이 달라진다**(예외도 로그도 없이 그림만 어긋난다).
+        [NonSerialized] IDamageable acquired;
+        [NonSerialized] int acquiredFrame = -1;
+        [NonSerialized] Collider[] acquireBuffer;
+
+        /// 사거리 안에서 가장 가까운 적. **프레임당 실제 조회는 1회**고 같은 프레임의 이후 호출은
+        /// 캐시를 돌려준다 — 소비처들이 서로의 호출 주기를 몰라도 되게 하는 장치다.
+        /// (발사 프레임에는 액션이 Update에서 먼저 계산하고, 포탑 연출이 LateUpdate에서 그 값을 받는다.)
+        ///
+        /// 사거리는 원장 합성값(`AttackRange`)이라 사거리 버프가 조준 범위에도 그대로 반영된다.
+        /// 공격 액션이 없으면 0이 되어 조회 없이 곧바로 null이다.
+        public IDamageable AcquireTarget()
+        {
+            if (acquiredFrame == Time.frameCount) return acquired;
+
+            acquiredFrame = Time.frameCount;
+            acquired = FindNearestEnemy(AttackRange);
+            return acquired;
+        }
+
+        IDamageable FindNearestEnemy(float range)
+        {
+            if (range <= 0f) return null;
+
+            acquireBuffer ??= new Collider[16];
+
+            Vector3 origin = transform.position;
+            int count = Physics.OverlapSphereNonAlloc(origin, range, acquireBuffer, enemyLayerMask);
+
+#if UNITY_EDITOR
+            // ⚠ 포화의 대가가 여기서는 특히 크다. `Physics.Overlap*NonAlloc`은 버퍼가 차면 나머지를
+            // 말없이 버리는데, 이 함수는 그 결과에서 **최근접 1기**를 고른다 — 실제 최근접이 버려지면
+            // 포탑 조준과 실제 사격이 **함께** 엉뚱한 적으로 간다. "이 타워가 겨누는 대상"의 단일 출처가
+            // 되면서 오차의 파급 범위가 넓어진 자리다(밀집 웨이브는 47마리까지 간다).
+            // 크기 산정 근거 합의는 WL-170 본안이고, 여기서는 조용한 누락을 드러내는 것까지만 한다.
+            if (count == acquireBuffer.Length)
+                Debug.LogWarning($"[Tower] {name}: 대상 탐색 버퍼 포화({count}) — 초과분이 누락되어 " +
+                                 $"실제 최근접이 아닌 적을 겨눌 수 있습니다. 사거리={range:0.#}", this);
+#endif
+
+            IDamageable closest = null;
+            float closestSqrDistance = float.MaxValue;
+
+            for (int i = 0; i < count; i++)
+            {
+                Collider hit = acquireBuffer[i];
+                IDamageable damageable = hit.GetComponentInParent<IDamageable>();
+                if (damageable == null || damageable.IsDead) continue;
+                if (damageable.Faction == Faction) continue;
+
+                float sqrDistance = (hit.transform.position - origin).sqrMagnitude;
+                if (sqrDistance < closestSqrDistance)
+                {
+                    closestSqrDistance = sqrDistance;
+                    closest = damageable;
+                }
+            }
+
+            return closest;
+        }
+
+        /// 지금이 전투 시간(밤)인가. **호스트가 이미 계산해 둔 값을 그대로 공개한다** — 연출 컴포넌트가
+        /// 각자 `DayNightManager`를 폴링하면 페이즈 규칙이 갈라지고(WL-044가 지적한 축), "게이팅은 밤인데
+        /// 연출은 낮"처럼 어긋난 상태가 생긴다. 신호원을 하나로 유지하려고 읽기 전용으로 열어 둔다.
+        public bool IsCombatPhase => wasNight;
 
         void OnDisable()
         {
