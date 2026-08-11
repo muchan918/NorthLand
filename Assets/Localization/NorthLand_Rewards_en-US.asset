@@ -59,6 +59,15 @@ MonoBehaviour:
       enemies inside it.
     m_Metadata:
       m_Items: []
+  - m_Id: 7064852205309952
+    m_Localized: Execute
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7064852226281472
+    m_Localized: For a short time, enemies hit by the skill die instantly when their
+      health drops below a threshold.
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

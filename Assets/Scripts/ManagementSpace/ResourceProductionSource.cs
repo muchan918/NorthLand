@@ -37,7 +37,7 @@ public class ResourceProductionSource
     /// <summary>
     /// 생산량을 계산한다. 부작용 없음. (주민 0명 or 주민당량 0 → 0)<br/>
     /// <paramref name="amountPerVillager"/>는 (업그레이드가 반영된) 주민당 생산량, <paramref name="multiplier"/>는
-    /// 패시브 생산 배율(영토 효과 등, 기본 1.0 = 무보정)이다. 곱한 뒤 반올림해 정수로 만든다.
+    /// 패시브 생산 배율(기본 1.0 = 무보정)이다. 곱한 뒤 반올림해 정수로 만든다.
     /// </summary>
     public int CalculateAmount(int villagerCount, int amountPerVillager, float multiplier = 1f)
     {

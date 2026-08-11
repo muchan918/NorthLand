@@ -32,14 +32,11 @@ namespace NorthLand.Core
         [SerializeField]
         private CombatMapInitializer combatMapInitializer;
 
-        [SerializeField]
-        private TerritoryController territoryController;
-
         public int MasterSeed => seedContext.MasterSeed;
 
         /// <summary>
         /// 이어하기에서 읽은 RunData를 월드 생성 전에 주입한다.
-        /// 이후 Start가 저장된 최종 사용 시드로 영토와 전투 맵을 생성한다.
+        /// 이후 Start가 저장된 최종 사용 시드로 전투 맵을 생성한다.
         /// </summary>
         public bool TryPrepareRestore(RunData savedRunData)
         {
@@ -68,7 +65,6 @@ namespace NorthLand.Core
             if (!seedContext.IsInitialized)
                 InitializeRunSeed();
 
-            InitializeTerritory();
             InitializeCombatMap();
         }
 
@@ -102,7 +98,6 @@ namespace NorthLand.Core
 
             Debug.Log($"[RunSeed] Run 시드 초기화 완료 Master: {seedData.MasterSeed}\n" +
                 $"CombatMap Requested: {seedData.CombatMapRequestedSeed}\n" +
-                $"Territory Requested: {seedData.TerritoryRequestedSeed}\n" +
                 $"Version: {seedData.SeedVersion}",this);
         }
 
@@ -135,33 +130,5 @@ namespace NorthLand.Core
             Debug.Log($"[RunSeed] 전투맵 시드 기록 완료 요청: {seedData.CombatMapRequestedSeed} " +
                 $"생성 입력: {generationSeed} 최종 사용: {seedData.CombatMapUsedSeed}",this);
         }
-        private void InitializeTerritory()
-        {
-            if (territoryController == null)
-            {
-                Debug.LogError("[RunSeed] TerritoryController가 연결되지 않았습니다.",this);
-
-                return;
-            }
-
-            RunSeedData seedData = seedContext.Data;
-
-            // 신규 게임은 UsedSeed가 0이므로 RequestedSeed를 사용하고,
-            // 이어하기는 저장된 최종 UsedSeed를 사용한다.
-            int territorySeed = seedData.TerritoryUsedSeed != 0? seedData.TerritoryUsedSeed: seedData.TerritoryRequestedSeed;
-
-            bool initialized =territoryController.Initialize(territorySeed);
-
-            if (!initialized)
-            {
-                Debug.LogError("[RunSeed] 영토 초기화에 실패했습니다.",this);
-
-                return;
-            }
-
-            seedContext.RecordTerritoryUsedSeed(territoryController.UsedSeed);
-
-            Debug.Log($"[RunSeed] 영토 시드 기록 완료 요청:{seedData.TerritoryRequestedSeed} 사용: {seedData.TerritoryUsedSeed}",this);
-        }
-    } 
+    }
 }

@@ -41,9 +41,7 @@ namespace NorthLand.Core
 
                 MasterSeed = masterSeed,
 
-                CombatMapRequestedSeed =RunSeedDeriver.Derive(masterSeed,RunSeedDeriver.CombatMapTag),
-
-                TerritoryRequestedSeed =RunSeedDeriver.Derive(masterSeed,RunSeedDeriver.TerritoryTag)
+                CombatMapRequestedSeed =RunSeedDeriver.Derive(masterSeed,RunSeedDeriver.CombatMapTag)
             };
 
             runData = new RunData
@@ -93,13 +91,6 @@ namespace NorthLand.Core
             EnsureInitialized();
 
             runData.SeedData.CombatMapUsedSeed = usedSeed;
-        }
-
-        public void RecordTerritoryUsedSeed(int usedSeed)
-        {
-            EnsureInitialized();
-
-            runData.SeedData.TerritoryUsedSeed = usedSeed;
         }
 
         private void EnsureInitialized()
