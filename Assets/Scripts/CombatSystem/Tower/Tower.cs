@@ -195,6 +195,66 @@ namespace NorthLand.Combat
         // 타워를 보고 붙으므로 이벤트 소유는 호스트에 남긴다.
         internal void RaiseFired() => OnFired?.Invoke();
 
+        // ── 대상 탐색 (#336) ────────────────────────────────────────────────
+        // "이 타워가 지금 누구를 겨누는가"의 **단일 출처**. 예전에는 공격 액션과 포탑 조준 연출이
+        // 각자 OverlapSphere를 돌렸는데, `TowerAction.Origin`이 `Owner.transform`이라 원점·반경·마스크·
+        // 판정 기준이 **완전히 같은 쿼리 두 벌**이었다. 비용도 비용이지만 진짜 문제는 "대상이 누구인가"의
+        // 정의가 둘로 갈린다는 것이다 — 조준 정책을 최근접에서 다른 것으로 바꾸면 한쪽만 고쳐져
+        // **포탑이 겨눈 적과 실제로 맞는 적이 달라진다**(예외도 로그도 없이 그림만 어긋난다).
+        [NonSerialized] IDamageable acquired;
+        [NonSerialized] int acquiredFrame = -1;
+        [NonSerialized] Collider[] acquireBuffer;
+
+        /// 사거리 안에서 가장 가까운 적. **프레임당 실제 조회는 1회**고 같은 프레임의 이후 호출은
+        /// 캐시를 돌려준다 — 소비처들이 서로의 호출 주기를 몰라도 되게 하는 장치다.
+        /// (발사 프레임에는 액션이 Update에서 먼저 계산하고, 포탑 연출이 LateUpdate에서 그 값을 받는다.)
+        ///
+        /// 사거리는 원장 합성값(`AttackRange`)이라 사거리 버프가 조준 범위에도 그대로 반영된다.
+        /// 공격 액션이 없으면 0이 되어 조회 없이 곧바로 null이다.
+        public IDamageable AcquireTarget()
+        {
+            if (acquiredFrame == Time.frameCount) return acquired;
+
+            acquiredFrame = Time.frameCount;
+            acquired = FindNearestEnemy(AttackRange);
+            return acquired;
+        }
+
+        IDamageable FindNearestEnemy(float range)
+        {
+            if (range <= 0f) return null;
+
+            acquireBuffer ??= new Collider[16];
+
+            Vector3 origin = transform.position;
+            int count = Physics.OverlapSphereNonAlloc(origin, range, acquireBuffer, enemyLayerMask);
+
+            IDamageable closest = null;
+            float closestSqrDistance = float.MaxValue;
+
+            for (int i = 0; i < count; i++)
+            {
+                Collider hit = acquireBuffer[i];
+                IDamageable damageable = hit.GetComponentInParent<IDamageable>();
+                if (damageable == null || damageable.IsDead) continue;
+                if (damageable.Faction == Faction) continue;
+
+                float sqrDistance = (hit.transform.position - origin).sqrMagnitude;
+                if (sqrDistance < closestSqrDistance)
+                {
+                    closestSqrDistance = sqrDistance;
+                    closest = damageable;
+                }
+            }
+
+            return closest;
+        }
+
+        /// 지금이 전투 시간(밤)인가. **호스트가 이미 계산해 둔 값을 그대로 공개한다** — 연출 컴포넌트가
+        /// 각자 `DayNightManager`를 폴링하면 페이즈 규칙이 갈라지고(WL-044가 지적한 축), "게이팅은 밤인데
+        /// 연출은 낮"처럼 어긋난 상태가 생긴다. 신호원을 하나로 유지하려고 읽기 전용으로 열어 둔다.
+        public bool IsCombatPhase => wasNight;
+
         void OnDisable()
         {
             // 액션이 외부에 남긴 상태(버프 오라가 다른 타워에 부여한 modifier, static 이벤트 구독 등)를

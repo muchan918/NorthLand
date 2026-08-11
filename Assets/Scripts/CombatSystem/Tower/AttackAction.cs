@@ -21,7 +21,6 @@ namespace NorthLand.Combat
         [NonSerialized] LayerMask enemyLayerMask;
 
         [NonSerialized] float cooldownTimer;
-        [NonSerialized] Collider[] hitBuffer;
 
         // 착탄 지점에 남길 구역(#336). 미저작이면 null 취급이라 기존 타워는 이 축을 타지 않는다.
         [NonSerialized] TowerAsset.GroundZoneFields zone;
@@ -64,9 +63,6 @@ namespace NorthLand.Combat
 
             // TryAttack이 실패하는 조건과 **같은 것**을 미리 판정해 둔다(아래 Tick 주석 참조).
             canFire = fields != null && fields.ProjectilePrefab != null && flight != null;
-
-            // 매 프레임 경로라 NonAlloc 버퍼를 쓴다. 직렬화되지 않으므로 여기서 만든다.
-            hitBuffer ??= new Collider[16];
         }
 
         public override void Dispose()
@@ -121,8 +117,8 @@ namespace NorthLand.Combat
             // ⚠ **저작이 비어 있으면 Tick 자체에 들어가지 않는다.**
             //
             // 쿨다운은 `TryAttack`이 성공했을 때만 리셋된다. 그래서 쏠 수 없는 타워는 매 프레임
-            // `cooldownTimer <= 0`인 채로 FindTarget()을 부르고, 그 안의 OverlapSphereNonAlloc이
-            // 초당 60번 돈다 — 아무것도 못 하면서 물리 예산만 태우는 것이다.
+            // `cooldownTimer <= 0`인 채로 `Owner.AcquireTarget()`을 부르고, 그 안의
+            // OverlapSphereNonAlloc이 초당 60번 돈다 — 아무것도 못 하면서 물리 예산만 태우는 것이다.
             // (`lightning_tower`류의 전 필드 0 SO가 배치되면 정확히 이 상태가 된다, WL-001.)
             //
             // 타워 수가 계속 늘어나는 장르라 "무동작이면 비용도 0"이어야 한다.
@@ -131,7 +127,9 @@ namespace NorthLand.Combat
             cooldownTimer -= deltaTime;
             if (cooldownTimer > 0f) return;
 
-            IDamageable target = FindTarget();
+            // 대상 선정은 호스트가 소유한다(`Tower.AcquireTarget`) — 포탑 조준 연출과 **같은 정의**를
+            // 쓰기 위해서다. 예전에 여기 있던 탐색은 원점·반경·마스크가 그쪽과 완전히 같은 중복이었다.
+            IDamageable target = Owner.AcquireTarget();
 
             if (target == null)
             {
@@ -254,31 +252,6 @@ namespace NorthLand.Combat
 
             // 명중 효과(스턴 등)는 여기 섞지 않는다 — Projectile이 세 경로 공통 지점에서 Effects를 적용한다.
             return result;
-        }
-
-        // 사거리 내 가장 가까운 적을 타겟으로 선정 (매 프레임 경로라 NonAlloc 유지)
-        IDamageable FindTarget()
-        {
-            Vector3 origin = Origin.position;
-            int count = Physics.OverlapSphereNonAlloc(origin, Range, hitBuffer, enemyLayerMask);
-
-            IDamageable closest = null;
-            float closestSqrDistance = float.MaxValue;
-            for (int i = 0; i < count; i++)
-            {
-                Collider hit = hitBuffer[i];
-                IDamageable damageable = hit.GetComponentInParent<IDamageable>();
-                if (damageable != null && damageable.Faction != Owner.Faction && !damageable.IsDead)
-                {
-                    float sqrDistance = (hit.transform.position - origin).sqrMagnitude;
-                    if (sqrDistance < closestSqrDistance)
-                    {
-                        closestSqrDistance = sqrDistance;
-                        closest = damageable;
-                    }
-                }
-            }
-            return closest;
         }
 
 #if UNITY_EDITOR
