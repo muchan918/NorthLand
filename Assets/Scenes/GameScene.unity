@@ -10796,6 +10796,7 @@ GameObject:
   - component: {fileID: 6053482751232186323}
   - component: {fileID: 2856934565975618207}
   - component: {fileID: 6262796507066623699}
+  - component: {fileID: 9140323519560391690}
   m_Layer: 0
   m_Name: TowerPanel
   m_TagString: Untagged
@@ -15644,8 +15645,8 @@ MonoBehaviour:
   rangeFillColor: {r: 0.2, g: 0.8, b: 1, a: 0.15}
   validCellColor: {r: 0.2, g: 1, b: 0.3, a: 0.78431374}
   invalidCellColor: {r: 1, g: 0.25, b: 0.2, a: 0.78431374}
+  buffTileIconPreview: {fileID: 9140323519560391690}
   tileBuffRules: {fileID: 11400000, guid: 4e66e06684a153f4b80a97f47b2debfc, type: 2}
-  buffIconPreviewRadius: 10
 --- !u!222 &6273250446217922390
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -20900,6 +20901,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3541417598832098768}
   m_CullTransparentMesh: 1
+--- !u!114 &9140323519560391690
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3541417598832098768}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36cb766809e8efb4dad1693768e399db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuffTileIconPreview
 --- !u!114 &9144133786247706868
 MonoBehaviour:
   m_ObjectHideFlags: 0
