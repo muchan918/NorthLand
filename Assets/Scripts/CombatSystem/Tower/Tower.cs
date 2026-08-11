@@ -229,6 +229,17 @@ namespace NorthLand.Combat
             Vector3 origin = transform.position;
             int count = Physics.OverlapSphereNonAlloc(origin, range, acquireBuffer, enemyLayerMask);
 
+#if UNITY_EDITOR
+            // ⚠ 포화의 대가가 여기서는 특히 크다. `Physics.Overlap*NonAlloc`은 버퍼가 차면 나머지를
+            // 말없이 버리는데, 이 함수는 그 결과에서 **최근접 1기**를 고른다 — 실제 최근접이 버려지면
+            // 포탑 조준과 실제 사격이 **함께** 엉뚱한 적으로 간다. "이 타워가 겨누는 대상"의 단일 출처가
+            // 되면서 오차의 파급 범위가 넓어진 자리다(밀집 웨이브는 47마리까지 간다).
+            // 크기 산정 근거 합의는 WL-170 본안이고, 여기서는 조용한 누락을 드러내는 것까지만 한다.
+            if (count == acquireBuffer.Length)
+                Debug.LogWarning($"[Tower] {name}: 대상 탐색 버퍼 포화({count}) — 초과분이 누락되어 " +
+                                 $"실제 최근접이 아닌 적을 겨눌 수 있습니다. 사거리={range:0.#}", this);
+#endif
+
             IDamageable closest = null;
             float closestSqrDistance = float.MaxValue;
 

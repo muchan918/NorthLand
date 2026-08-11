@@ -36,7 +36,13 @@ namespace NorthLand.Combat
         const float k_GroundProbeUp = 4f;         // 착탄점보다 이만큼 위에서 아래로 쏜다
         const float k_GroundProbeDistance = 60f;  // 맵 높이 폭(0.8~6.2) + 부양·몸통을 넉넉히 덮는다
 
-        static int groundMask;   // 이름 조회 1회 캐시(0 = 아직 미조회)
+        // 이름 조회 캐시. 미조회 표식이 **0이 아니라 -1**인 것이 중요하다 — 0을 쓰면 조회 실패값이
+        // 재조회 가드를 통과한다(`ResolveGroundY` 주석 참조). `1 << layer`는 layer 0~31에서 -1이 될 수 없다.
+        static int groundMask = -1;
+
+        // 레이어 부재 경고를 1회로 제한하는 표식. **마스크와 따로 두는 이유**: 실패는 캐시하지 않으면서
+        // (레이어가 나중에 생기면 그때부터 정상 동작해야 한다) 로그만 억제해야 하기 때문이다.
+        static bool groundLayerWarned;
 
         Tower owner;
         IReadOnlyList<HitEffect> effects;
@@ -89,8 +95,32 @@ namespace NorthLand.Combat
         /// 높이차 지형이 들어와도 따라간다.
         static float ResolveGroundY(Vector3 position, Tower owner)
         {
-            // 레이어 번호를 상수로 박으면 TagManager 순서가 바뀔 때 조용히 깨진다 — 이름으로 1회 조회한다.
-            if (groundMask == 0) groundMask = 1 << LayerMask.NameToLayer(k_GroundLayer);
+            // 레이어 번호를 상수로 박으면 TagManager 순서가 바뀔 때 조용히 깨진다 — 이름으로 조회한다.
+            //
+            // ⚠ **조회 실패를 캐시하면 안 된다.** `NameToLayer`는 실패 시 `-1`을 돌려주고 C#의 `<<`는
+            // 시프트 수를 31로 마스킹하므로 `1 << -1` == `1 << 31` == `int.MinValue`가 된다. 이 값은
+            // 0이 아니어서 "이미 조회했다" 가드를 통과해 **잘못된 마스크가 영구 캐시**되고, 그 뒤로 모든
+            // 레이캐스트가 실패해 전부 타워 Y 폴백을 탄다 — 도로(0.80)와 잔디(3.80)가 3만큼 갈리는 맵에서
+            // 장판이 다시 적의 허리에 걸리는데 예외도 로그도 없다. 레이어는 합의 없이 바뀌지 않는 전역
+            // 자원이지만 실제로 회수된 이력이 있다(#213이 슬롯 12를 회수했다, SystemMap §5).
+            if (groundMask == -1)
+            {
+                int layer = LayerMask.NameToLayer(k_GroundLayer);
+                if (layer < 0)
+                {
+                    // 캐시하지 않고 매번 다시 조회한다 — 레이어가 복구되면 그 시점부터 정상 동작한다.
+                    // 로그만 1회로 죈다(장판마다 찍으면 콘솔이 잠긴다).
+                    if (!groundLayerWarned)
+                    {
+                        groundLayerWarned = true;
+                        Debug.LogError($"[GroundZone] '{k_GroundLayer}' 레이어가 없습니다 — 착탄 구역이 지면을 " +
+                                       "찾지 못해 타워 높이로 폴백합니다(도로가 파인 맵에서는 장판이 떠 보입니다). " +
+                                       "TagManager의 레이어 이름을 확인하세요.");
+                    }
+                    return owner.transform.position.y;
+                }
+                groundMask = 1 << layer;
+            }
 
             // 착탄점보다 위에서 시작한다 — 착탄점이 이미 지면에 파고든 각도라도 타일 윗면을 잡는다.
             Vector3 from = position + Vector3.up * k_GroundProbeUp;
@@ -158,6 +188,14 @@ namespace NorthLand.Combat
                 transform.position + Vector3.up * VerticalRange,
                 radius, hitBuffer, enemyMask);
             if (count == 0) return;
+
+#if UNITY_EDITOR
+            // 포화 = 초과분이 **말없이 버려진** 상태. `Physics.Overlap*NonAlloc`은 버퍼가 차면 나머지를
+            // 그냥 반환하지 않으므로, 증상이 "밀집 웨이브에서만 가끔 안 타는 적이 있다"로 나타나 재현이
+            // 안 된다. 버퍼 크기 산정 근거 합의는 WL-170 본안이고, 여기서는 드러내는 것까지만 한다.
+            if (count == hitBuffer.Length)
+                Debug.LogWarning($"[GroundZone] 판정 버퍼 포화({count}) — 초과분이 누락됩니다. 반경={radius}", this);
+#endif
 
             // 소스 키의 baseId만 오라·명중 경로와 다르다(위 ⚠ 참조) — 채번 함수는 같은 것을 쓴다.
             int baseId = GetInstanceID();
