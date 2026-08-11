@@ -17,9 +17,9 @@ MonoBehaviour:
   GhostPrefab: {fileID: 3221768034370273521, guid: acfc2c92126da434ea4b350da2ca7e61, type: 3}
   Cost: []
   Attack:
-    AttackDamage: 14
-    AttackRange: 15
-    AttackInterval: 3
+    AttackDamage: 25
+    AttackRange: 30
+    AttackInterval: 1.5
     ProjectilePrefab: {fileID: 8129974786565786213, guid: f4b2fbb323243d64494c288ca5db4a30, type: 3}
     Flight:
       rid: 1498367398119473370
@@ -67,8 +67,8 @@ MonoBehaviour:
       DecaySeconds: 0
   GroundZone:
     ZonePrefab: {fileID: 109944, guid: 2ff0199b19f96fd489a4e259a670d9b5, type: 3}
-    Radius: 4
-    Duration: 4
+    Radius: 3
+    Duration: 2
     Interval: 0.5
   Ramp:
     Stat: 2
