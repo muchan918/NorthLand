@@ -53,7 +53,7 @@ public class SkillManagerTest : MonoBehaviour
 
         // 검증 과정에서 소모한 쿨다운을 리셋 — 안 그러면 Play 시작 직후 스킬 버튼이
         // 실제 쿨다운(기본 5초)만큼 비활성 상태로 보여 인터랙티브 테스트를 방해한다.
-        SkillManager.Instance.DebugResetCooldown();
+        SkillManager.Instance.RefillChargesNow();
 
         Destroy(dummy.gameObject);
     }

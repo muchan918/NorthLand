@@ -43,7 +43,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 10160417878016
-    m_Localized: The skill is triggered once more.
+    m_Localized: Stores one more skill charge.
     m_Metadata:
       m_Items: []
   - m_Id: 10162397589504

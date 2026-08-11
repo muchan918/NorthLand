@@ -1,9 +1,11 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 /// 스킬 버튼 1개(#103). 클릭 시 MouseManager에 스킬 타겟팅을 요청하고,
 /// 확정되면 SkillManager.CastAt이 실행되도록 연결한다. TowerSelectPanelView.cs의 배선 방식 참고.
-/// 쿨다운/낮 게이팅 중엔 별도 오버레이 없이 Button의 Disabled Color(인스펙터에서 설정)로만 표시한다.
+/// 충전 소진/낮 게이팅 중엔 Button의 Disabled Color(인스펙터에서 설정)로 막고,
+/// 보유 충전 수와 다음 충전까지 남은 초를 TMP 텍스트로 함께 보여준다(#319).
 [RequireComponent(typeof(Button))]
 public class SkillButtonView : MonoBehaviour
 {
@@ -12,6 +14,10 @@ public class SkillButtonView : MonoBehaviour
 
     [Tooltip("스킬 인디케이터·시전 지점의 고정 y. 전투맵에서 가장 낮은 도로 타일 윗면 높이에 맞춘다.")]
     [SerializeField] float _castHeight = 20f;
+    [Tooltip("다음 충전까지 남은 시간(초) 표시. 비워두면 표시하지 않는다.")]
+    [SerializeField] TMP_Text _rechargeText;
+    [Tooltip("보유 충전 수 표시(#319). 비워두면 표시하지 않는다.")]
+    [SerializeField] TMP_Text _chargeText;
 
     private void Awake()
     {
@@ -24,6 +30,33 @@ public class SkillButtonView : MonoBehaviour
         if (SkillManager.Instance == null) return;
 
         _button.interactable = SkillManager.Instance.CanCast();
+        RefreshRechargeText();
+        RefreshChargeText();
+    }
+
+    // 다음 1발이 찰 때까지 남은 시간을 올림한 정수 초로 보여주고, 만충이면 숨긴다 —
+    // "0"이 남아 있으면 아직 기다리는 중인 것처럼 읽힌다.
+    private void RefreshRechargeText()
+    {
+        if (_rechargeText == null) return;
+
+        float remaining = SkillManager.Instance.RechargeRemaining;
+        bool show = remaining > 0f;
+
+        if (_rechargeText.gameObject.activeSelf != show)
+            _rechargeText.gameObject.SetActive(show);
+
+        if (show)
+            _rechargeText.text = Mathf.CeilToInt(remaining).ToString();
+    }
+
+    // "2/2" 형태로 보유/최대를 함께 보여준다 — 보유만 찍으면 몇 발까지 차는지 알 수 없다.
+    // 보상이 없어도 기본 1발이 있으므로 항상 표시한다.
+    private void RefreshChargeText()
+    {
+        if (_chargeText == null) return;
+
+        _chargeText.text = $"{SkillManager.Instance.Charges}/{SkillManager.Instance.MaxCharges}";
     }
 
     private void HandleClick()

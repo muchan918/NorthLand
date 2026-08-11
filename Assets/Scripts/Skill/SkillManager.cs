@@ -1,7 +1,5 @@
-using Cysharp.Threading.Tasks;
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using UnityEngine;
 using NorthLand.Combat;
 using NorthLand.Core;
@@ -19,7 +17,7 @@ public class SkillManager : MonoBehaviour
     [Header("감전 스킬 스탯 (타격감 튜닝용)")]
     [SerializeField] float damage = 30f;
     [SerializeField] float radius = 3f;
-    [SerializeField] float cooldown = 5f;
+    [SerializeField] float cooldown = 10f;
 
     // TODO(TBD): Tower/Enemy와 동일하게 임시 LayerMask 방식. 팀 컨벤션 확정 후 정리(Tower.cs 참고).
     [SerializeField] LayerMask enemyLayerMask;
@@ -44,13 +42,15 @@ public class SkillManager : MonoBehaviour
     // 컨텍스트의 HitTargets는 임팩트마다 재사용되는 버퍼라 이벤트 처리 중에만 유효.
     public event Action<SkillCastContext> ImpactResolved;
 
-    float cooldownTimer;
+    // 충전(탄약) 방식(#319). 시계는 이 하나뿐이며, 만충이 아닐 때 effectiveCooldown 간격으로
+    // 1발씩 채운다 — 롤 티모 버섯과 같은 규칙이다. 쿨다운 타이머를 따로 두지 않는 이유:
+    // 시계가 둘이면 최대 충전과 무관하게 회복 속도가 두 배가 되어 "간격당 1발"이 깨진다.
+    int charges;
+    float rechargeTimer;
+    int bonusCharges;   // 추가시전(#319) 보상이 올려주는 추가 최대 충전
+
     readonly Collider[] hitBuffer = new Collider[16];
     readonly List<IDamageable> hitTargets = new List<IDamageable>(16);
-
-    // 예약된 추가 착탄(RepeatImpactsAsync) 취소용. 파괴 토큰과 링크해 기존 파괴-취소 동작을 유지하며,
-    // 웨이브 종료(밤→낮) 시 Cancel해 낮으로 넘어간 반복 착탄이 뒤늦게 발동하지 않게 한다(#200 ②).
-    CancellationTokenSource repeatCts;
 
     // 마법 연구소 레벨로 계산한 유효 스탯(레벨 0/미배선이면 기본값과 동일).
     float effectiveDamage;
@@ -63,8 +63,22 @@ public class SkillManager : MonoBehaviour
     SkillVisualSet.LevelVisual _currentVisual;
 
     public float Radius => effectiveRadius;
-    public bool IsReady => cooldownTimer <= 0f;
-    public float CooldownRemaining01 => effectiveCooldown <= 0f ? 0f : Mathf.Clamp01(cooldownTimer / effectiveCooldown);
+
+    public int Charges => charges;
+    public int MaxCharges => 1 + bonusCharges;   // 보상이 없어도 기본 1발은 들고 있다
+    public bool IsReady => charges > 0;
+
+    // 다음 1발이 찰 때까지 남은 시간(초). 만충이면 0 — 버튼이 카운트다운을 숨기는 신호로 쓴다.
+    public float RechargeRemaining =>
+        charges >= MaxCharges ? 0f : Mathf.Max(effectiveCooldown - rechargeTimer, 0f);
+
+    // 추가시전(#319) 보상이 레벨을 밀어넣는다. 최대가 줄어드는 경우(0레벨 복원 등) 보유분도
+    // 같이 깎아 최대를 넘는 상태가 남지 않게 한다.
+    public void SetBonusCharges(int value)
+    {
+        bonusCharges = Mathf.Max(0, value);
+        charges = Mathf.Min(charges, MaxCharges);
+    }
 
     void Awake()
     {
@@ -80,17 +94,11 @@ public class SkillManager : MonoBehaviour
 
     void Start()
     {
-        // 웨이브 종료(밤→낮) 시 예약된 추가 착탄을 취소한다. DayNightManager가 없으면 취소만 못 할 뿐
-        // 스킬 자체는 동작하므로 경고만 남긴다(PhasePanelSwitcher.Start 패턴).
+        // 밤 시작마다 만충으로 되돌린다 — 낮 길이와 무관하게 매 웨이브 같은 조건에서 출발시킨다.
         if (DayNightManager.Instance != null)
-            DayNightManager.Instance.OnNightToDay += HandleWaveEnd;
+            DayNightManager.Instance.OnDayToNight += RefillCharges;
         else
-            Debug.LogWarning("[Skill] DayNightManager를 찾을 수 없어 웨이브 종료 시 추가 착탄 취소가 배선되지 않았습니다.");
-
-        // 승리/게임오버는 EndNight()(→OnNightToDay)를 타지 않으므로 결과 확정 신호로도 취소한다(#200 리뷰).
-        // 그러지 않으면 예약된 추가 착탄이 결과 화면 뒤에서 계속 발동한다.
-        if (GameManager.Instance != null)
-            GameManager.Instance.OnResultDecided += HandleResultDecided;
+            Debug.LogWarning("[Skill] DayNightManager를 찾을 수 없어 밤 시작 시 충전이 리셋되지 않습니다.");
 
         // 마법 연구소(#205) — 비워두면 씬에서 자동 탐색(BuildingInfoUI와 동일 관례).
         if (_managementController == null)
@@ -98,20 +106,22 @@ public class SkillManager : MonoBehaviour
         if (_managementController != null)
             _managementController.OnChanged += RefreshUpgrade;
         RefreshUpgrade();
+
+        RefillCharges();
     }
 
     void OnDestroy()
     {
         if (DayNightManager.Instance != null)
-            DayNightManager.Instance.OnNightToDay -= HandleWaveEnd;
-        if (GameManager.Instance != null)
-            GameManager.Instance.OnResultDecided -= HandleResultDecided;
+            DayNightManager.Instance.OnDayToNight -= RefillCharges;
         if (_managementController != null)
             _managementController.OnChanged -= RefreshUpgrade;
+    }
 
-        repeatCts?.Cancel();
-        repeatCts?.Dispose();
-        repeatCts = null;
+    void RefillCharges()
+    {
+        charges = MaxCharges;
+        rechargeTimer = 0f;
     }
 
     // 마법 연구소 레벨(미배선·미보유 시 0)로 유효 스탯을 다시 계산한다. 레벨 0/범위 밖 = 배율 1.0(기본값 그대로).
@@ -152,21 +162,22 @@ public class SkillManager : MonoBehaviour
     // 연발, 사거리 0=미적중 같은 조용한 파괴적 결과를 막는다.
     static float PositiveOr1(float multiplier) => multiplier > 0f ? multiplier : 1f;
 
-    // 웨이브 종료: 예약된 추가 착탄을 취소한다. 다음 시전에서 CastAt이 새 링크 소스를 만든다.
-    void HandleWaveEnd()
-    {
-        repeatCts?.Cancel();
-        repeatCts?.Dispose();
-        repeatCts = null;
-    }
-
-    // 승리/게임오버(런 종료)도 웨이브 종료와 동일하게 진행 중 효과를 취소한다.
-    void HandleResultDecided(GameResult _) => HandleWaveEnd();
-
+    // 만충이 아닐 때만 시계가 돌고, 간격마다 1발씩 채운다. 만충에서 타이머를 0으로 되돌리므로
+    // 다음 시전 직후의 재충전은 항상 온전한 간격에서 출발한다.
     void Update()
     {
-        if (cooldownTimer > 0f)
-            cooldownTimer -= Time.deltaTime;
+        if (charges >= MaxCharges)
+        {
+            rechargeTimer = 0f;
+            return;
+        }
+
+        rechargeTimer += Time.deltaTime;
+        if (rechargeTimer >= effectiveCooldown)
+        {
+            rechargeTimer -= effectiveCooldown;
+            charges = Mathf.Min(charges + 1, MaxCharges);
+        }
     }
 
     public bool CanCast()
@@ -178,12 +189,13 @@ public class SkillManager : MonoBehaviour
         return true;
     }
 
-    // 클릭한 위치를 중심으로 감전 임팩트를 발동한다. 특수효과가 ExtraImpacts를 가산하면
-    // (추가시전) ExtraImpactInterval 간격으로 임팩트가 반복되고, 반복분에서도 나머지 효과는
-    // 정상 발동한다(화상/폭탄 조합 시너지).
+    // 클릭한 위치를 중심으로 감전 임팩트를 발동한다. 충전 1발을 소모하며, 남은 충전이 있으면
+    // 대기 없이 곧바로 다시 시전할 수 있다(#319).
     public bool CastAt(Vector3 position)
     {
         if (!CanCast()) return false;
+
+        charges--;
 
         var context = new SkillCastContext
         {
@@ -191,34 +203,10 @@ public class SkillManager : MonoBehaviour
             HitTargets = hitTargets,
         };
 
-        context.ImpactIndex = 0;
         ResolveImpactDamage(position);
         ImpactResolved?.Invoke(context);
 
-        // 반복분은 간격을 두고 발동 — "한 번 누르면 잠시 뒤 한 번 더" 느낌.
-        // 파괴 토큰과 링크한 소스로 예약해, 파괴뿐 아니라 웨이브 종료(HandleWaveEnd)에서도 취소된다(#200 ②).
-        if (context.ExtraImpacts > 0)
-        {
-            repeatCts ??= CancellationTokenSource.CreateLinkedTokenSource(this.GetCancellationTokenOnDestroy());
-            RepeatImpactsAsync(context, repeatCts.Token).Forget();
-        }
-
-        cooldownTimer = effectiveCooldown;
         return true;
-    }
-
-    async UniTaskVoid RepeatImpactsAsync(SkillCastContext context, CancellationToken cancellationToken)
-    {
-        for (int impact = 1; impact <= context.ExtraImpacts; impact++)
-        {
-            await UniTask.Delay(
-                TimeSpan.FromSeconds(Mathf.Max(context.ExtraImpactInterval, 0f)),
-                cancellationToken: cancellationToken);
-
-            context.ImpactIndex = impact;
-            ResolveImpactDamage(context.Position);
-            ImpactResolved?.Invoke(context);
-        }
     }
 
     // 임팩트 1회: 반경 내 적 전체에게 데미지 적용 + 맞은 적을 hitTargets에 수집 + 연출.
@@ -248,9 +236,8 @@ public class SkillManager : MonoBehaviour
         ApplyImpact(position);
     }
 
-    // 테스트 하네스 전용: 검증용으로 소모한 쿨다운을 즉시 리셋해 인터랙티브 테스트를 바로 이어갈 수 있게 한다.
-    public void DebugResetCooldown() => cooldownTimer = 0f;
-
+    // 테스트 하네스가 검증으로 소모한 충전을 되돌려 인터랙티브 테스트를 바로 이어갈 때 쓴다.
+    public void RefillChargesNow() => RefillCharges();
 
     // 착탄 이펙트: 마법 연구소 레벨에 맞는 프리팹(_currentVisual)을 쓰고, 세트가 없거나
     // 해당 레벨 엔트리가 없으면 기존 impactEffectPrefab으로 폴백한다.
