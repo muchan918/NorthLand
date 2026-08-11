@@ -5435,7 +5435,7 @@ MonoBehaviour:
         Name: P1_DamagePerSpeedUnit
         IsExposed: 1
         m_IsShared: 0
-        m_Value: 1.5
+        m_Value: 3.75
     - rid: 853242565550932204
       type: {class: 'TypedVariableModel`1[[System.Single, mscorlib]]', ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
       data:
@@ -5445,7 +5445,7 @@ MonoBehaviour:
         Name: P1_MinSpeed
         IsExposed: 1
         m_IsShared: 0
-        m_Value: 15
+        m_Value: 10
     - rid: 853242565550932205
       type: {class: 'TypedVariableModel`1[[System.String, mscorlib]]', ns: Unity.Behavior.GraphFramework, asm: Unity.Behavior.GraphFramework}
       data:
