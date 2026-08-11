@@ -48,21 +48,12 @@ namespace NorthLand.Core
                 return false;
             }
 
-            if (current.TerritoryUsedSeed == 0)
-            {
-                Debug.LogError("[Save] 영토의 최종 사용 시드가 기록되지 않았습니다.",this);
-
-                return false;
-            }
-
             data = new RunSeedData
             {
                 SeedVersion = current.SeedVersion,
                 MasterSeed = current.MasterSeed,
                 CombatMapRequestedSeed = current.CombatMapRequestedSeed,
-                CombatMapUsedSeed = current.CombatMapUsedSeed,
-                TerritoryRequestedSeed = current.TerritoryRequestedSeed,
-                TerritoryUsedSeed = current.TerritoryUsedSeed
+                CombatMapUsedSeed = current.CombatMapUsedSeed
             };
 
             return true;
@@ -80,9 +71,6 @@ namespace NorthLand.Core
                 return false;
 
             if (!TryCaptureManagement(out ManagementSaveData managementData))
-                return false;
-
-            if (!TryCaptureTerritory(out TerritorySaveData territoryData))
                 return false;
 
             if (!TryCaptureTowers(out List<TowerSaveData> towers))
@@ -105,7 +93,6 @@ namespace NorthLand.Core
                 SeedData = seedData,
                 Progress = progress,
                 Management = managementData,
-                Territory = territoryData,
                 Towers = towers,
                 RewardEffects = rewardEffects,
                 PlayerBase = playerBaseData
@@ -141,11 +128,7 @@ namespace NorthLand.Core
                 return false;
             }
 
-            // 저장 시드로 생성된 영토 그래프에 확보 상태를 적용한다.
-            if (!TryRestoreTerritory(data.Territory))
-                return false;
-
-            // 경영 상태는 영토와 맵이 준비된 뒤 복원한다.
+            // 경영 상태는 맵이 준비된 뒤 복원한다.
             if (!TryRestoreManagement(data.Management))
                 return false;
 

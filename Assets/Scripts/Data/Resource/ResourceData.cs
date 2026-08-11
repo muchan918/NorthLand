@@ -1,16 +1,11 @@
+// 게임에 존재하는 자원은 이 4종뿐이다(#337 — 영토 시스템과 함께 특수 자원 금/루비/사파이어/다이아 제거).
+// 직렬화된 enum 인덱스가 밀리지 않도록 기존 값(0~3)의 순서는 바꾸지 말고, 추가는 항상 뒤에 append 한다.
 public enum ResourceKind
 {
     Wood,
     Iron,
     Food,
     Mana,
-
-    // 미개척 영지(영토 확장) 해금 자원 — 주민 배치 없이 매일 정산 시 자동 수급(#166, GDD §3.2).
-    // 기존 값(0~3) 뒤에 append — 직렬화된 enum 인덱스가 밀리지 않도록 순서 변경 금지.
-    Gold,
-    Ruby,
-    Sapphire,
-    Diamond,
 }
 
 public class ResourceData

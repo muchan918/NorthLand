@@ -50,20 +50,20 @@ MonoBehaviour:
       - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
         Amount: 30
     - Cost:
-      - Resource: {fileID: 11400000, guid: 89825fd4ccdc8c0479da28304786292e, type: 2}
-        Amount: 3
-      - Resource: {fileID: 11400000, guid: 4a2d92e532482ff4dbafa7b361759b00, type: 2}
-        Amount: 3
+      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
+        Amount: 65
+      - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+        Amount: 40
     - Cost:
-      - Resource: {fileID: 11400000, guid: 89825fd4ccdc8c0479da28304786292e, type: 2}
-        Amount: 6
-      - Resource: {fileID: 11400000, guid: 4a2d92e532482ff4dbafa7b361759b00, type: 2}
-        Amount: 6
+      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
+        Amount: 75
+      - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+        Amount: 50
     - Cost:
-      - Resource: {fileID: 11400000, guid: 090c2a0d275ad8f4493045612eb0e1da, type: 2}
-        Amount: 3
-      - Resource: {fileID: 11400000, guid: 4a2d92e532482ff4dbafa7b361759b00, type: 2}
-        Amount: 5
+      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
+        Amount: 85
+      - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+        Amount: 60
   Castle:
     UpgradeLevels:
     - Cost:
