@@ -99,6 +99,11 @@ public class ManagementEndDayConfirmPopup : MonoBehaviour
         }
 
         Tower.ActiveChanged += HandleTowerActiveChanged;
+
+        // ⚠ 이 스냅샷 시점은 RunSaveManager.Start()(타워 복원)와 순서가 보장되지 않는다 —
+        // 이 저장소엔 ScriptExecutionOrder가 없고 [DefaultExecutionOrder]도 RunBootstrapper뿐이다.
+        // 이어하기 직후 하루치 경고가 뜨거나 안 뜨거나 갈리지만, 타워가 실제로 있는 상태라 피해는 없어
+        // 순서를 고정하지 않는다(Resources.md §7).
         _towerCountAtLastChange = Tower.Active.Count;
     }
 
