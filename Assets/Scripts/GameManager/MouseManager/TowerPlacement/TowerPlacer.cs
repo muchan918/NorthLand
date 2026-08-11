@@ -123,7 +123,7 @@ public class TowerPlacer : MonoBehaviour
     [SerializeField]
     [Min(0)]
     [Tooltip("고스트 주변에서 버프 아이콘을 표시할 타일 반경")]
-    private int buffIconPreviewRadius = 2;
+    private int buffIconPreviewRadius = 10;
 
     /// 셀 간격(월드). Awake에서 신맵 설정을 단일 출처로 해석해 둔 값이라, 합성 연출(#265)처럼
     /// "타일 한 칸"을 기준 길이로 써야 하는 쪽이 같은 해석을 다시 하지 않도록 노출한다.

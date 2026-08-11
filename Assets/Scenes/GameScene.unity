@@ -154,7 +154,7 @@ MonoBehaviour:
   management: {fileID: 544968473}
   territory: {fileID: 340814262}
   towerPlacer: {fileID: 6262796507066623699}
-  startMapTileRegistry: {fileID: 572341031524862309}
+  startMapTileRegistry: {fileID: 0}
   towerAssets:
   - {fileID: 11400000, guid: 7ecd80d44165e644591aafb428cf5efe, type: 2}
   - {fileID: 11400000, guid: a752545bbde5030438f8995ae4ee0849, type: 2}
@@ -5748,17 +5748,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
---- !u!114 &572341031524862309 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 6521744114748706873, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
-  m_PrefabInstance: {fileID: 572341031524862308}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3a764fe13f24af743b0baa7a72d10553, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileRegistry
 --- !u!224 &582369541074808118
 RectTransform:
   m_ObjectHideFlags: 0
@@ -11730,7 +11719,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 54.75
+  m_fontSize: 60.35
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -16551,6 +16540,7 @@ MonoBehaviour:
   validCellColor: {r: 0.2, g: 1, b: 0.3, a: 0.78431374}
   invalidCellColor: {r: 1, g: 0.25, b: 0.2, a: 0.78431374}
   tileBuffRules: {fileID: 11400000, guid: 4e66e06684a153f4b80a97f47b2debfc, type: 2}
+  buffIconPreviewRadius: 10
 --- !u!222 &6273250446217922390
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -22195,7 +22185,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 42.95
+  m_fontSize: 40.2
   m_fontSizeBase: 24
   m_fontWeight: 400
   m_enableAutoSizing: 1
