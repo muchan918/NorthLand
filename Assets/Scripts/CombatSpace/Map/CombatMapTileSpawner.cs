@@ -21,6 +21,9 @@ namespace CombatSpace
 
         private bool skipNextRevealAnimation;
 
+        [SerializeField]
+        private BuffTileIconPreview buffTileIconPreview;
+
         /// <summary>
         /// 셀 좌표계의 기준 Transform. 타일을 이 아래에 `localPosition` + `localRotation = identity`로
         /// 붙이므로 **이 Transform의 회전이 그리드 축의 단일 출처**다(내부 `coordinateRoot`와 같은 값).
@@ -236,9 +239,9 @@ namespace CombatSpace
 
             tileView.Initialize(tileData);
 
-            spawnedTiles.Add(
-                tileData.Position,
-                tileView);
+            spawnedTiles.Add(tileData.Position,tileView);
+
+            buffTileIconPreview?.Register(tileView);
         }
 
         private GameObject GetPrefab(CombatTileData tileData)
@@ -326,6 +329,7 @@ namespace CombatSpace
         public void RebuildSpawnedTileCache()
         {
             spawnedTiles.Clear();
+            buffTileIconPreview?.Clear();
 
             Transform parent =
                 tileRoot != null
@@ -360,10 +364,12 @@ namespace CombatSpace
 
                     continue;
                 }
-
+                
                 spawnedTiles.Add(
                     position,
                     tileView);
+
+                buffTileIconPreview?.Register(tileView);
             }
 
             Debug.Log(
@@ -500,6 +506,8 @@ namespace CombatSpace
         [ContextMenu("Clear Map Tiles")]
         public void ClearTiles()
         {
+            buffTileIconPreview?.Clear();
+
             Transform parent =tileRoot != null? tileRoot: transform;
 
             for (int i = parent.childCount - 1;i >= 0;i--)

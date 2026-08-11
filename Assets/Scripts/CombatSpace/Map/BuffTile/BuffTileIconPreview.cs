@@ -1,50 +1,62 @@
 using System.Collections.Generic;
-using CombatSpace;
 using UnityEngine;
 
-public sealed class BuffTileIconPreview : MonoBehaviour
+namespace CombatSpace
 {
-    private readonly List<CombatMapTileView> visibleTiles = new List<CombatMapTileView>();
-
-    public void ShowAll()
+    public sealed class BuffTileIconPreview : MonoBehaviour
     {
-        HideAll();
+        private readonly List<CombatMapTileView> buffTileViews = new();
 
-        CombatMapTileView[] tileViews = FindObjectsByType<CombatMapTileView>(FindObjectsSortMode.None);
-
-        foreach (CombatMapTileView tileView in tileViews)
+        public void Register(CombatMapTileView tileView)
         {
-            if (!CanShowIcon(tileView))
+            if (tileView == null ||tileView.BuffDefinition == null ||tileView.BuffDefinition.Icon == null ||buffTileViews.Contains(tileView))
             {
-                continue;
+                return;
             }
 
-            tileView.SetBuffIconVisible(true);
-            visibleTiles.Add(tileView);
+            buffTileViews.Add(tileView);
+            tileView.SetBuffIconVisible(false);
         }
-    }
 
-    public void HideAll()
-    {
-        foreach (CombatMapTileView tileView in visibleTiles)
+        public void Unregister(CombatMapTileView tileView)
         {
-            if (tileView != null)
+            if (tileView == null)
+            {
+                return;
+            }
+
+            buffTileViews.Remove(tileView);
+        }
+
+        public void ShowAll()
+        {
+            RemoveDestroyedTiles();
+
+            foreach (CombatMapTileView tileView in buffTileViews)
+            {
+                tileView.SetBuffIconVisible(true);
+            }
+        }
+
+        public void HideAll()
+        {
+            RemoveDestroyedTiles();
+
+            foreach (CombatMapTileView tileView in buffTileViews)
             {
                 tileView.SetBuffIconVisible(false);
             }
         }
 
-        visibleTiles.Clear();
-    }
+        public void Clear()
+        {
+            HideAll();
+            buffTileViews.Clear();
+        }
 
-    private static bool CanShowIcon(
-        CombatMapTileView tileView)
-    {
-        return tileView != null && tileView.BuffDefinition != null && tileView.BuffDefinition.Icon != null;
-    }
-
-    private void OnDisable()
-    {
-        HideAll();
+        private void RemoveDestroyedTiles()
+        {
+            buffTileViews.RemoveAll(tileView => tileView == null);
+        }
     }
 }

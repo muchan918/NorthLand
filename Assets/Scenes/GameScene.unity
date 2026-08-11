@@ -2325,6 +2325,7 @@ MonoBehaviour:
   mapGenerator: {fileID: 1175259922}
   revealController: {fileID: 1175259919}
   tileRoot: {fileID: 1175259923}
+  buffTileIconPreview: {fileID: 9140323519560391690}
   roadTilePrefab: {fileID: 376632769588615151, guid: bcc97aac1203837468bb300b99cb732e, type: 3}
   grassTilePrefab: {fileID: 4056655319366159548, guid: 01a0e59758422c6469a1f537bb0d4bcd, type: 3}
   waterTilePrefab: {fileID: 7429171252680331435, guid: a16cd64f59ec9054ea4a8aa9652cdd76, type: 3}
