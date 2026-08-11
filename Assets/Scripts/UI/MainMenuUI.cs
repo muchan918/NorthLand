@@ -2,6 +2,7 @@ using TMPro;
 using UnityEngine;
 using NorthLand.Core;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 namespace NorthLand.UI
 {
@@ -24,8 +25,18 @@ namespace NorthLand.UI
         [SerializeField]
         private Button continueButton;
 
+
+        [SerializeField]
+        private GameObject savePanel;
+
+        private InputAction toggleSavePanelAction;
+
         private void Awake()
         {
+            toggleSavePanelAction =new InputAction(name: "ToggleSavePanel",type: InputActionType.Button,binding: "<Keyboard>/escape");
+
+            toggleSavePanelAction.performed += OnToggleSavePanelPerformed;
+
             RefreshContinueButton();
         }
 
@@ -204,6 +215,69 @@ namespace NorthLand.UI
             }
 
             sceneManager.LoadContinue();
+        }
+
+        private void OnEnable()
+        {
+            toggleSavePanelAction?.Enable();
+        }
+
+        private void OnDisable()
+        {
+            toggleSavePanelAction?.Disable();
+        }
+
+        private void OnDestroy()
+        {
+            if (toggleSavePanelAction == null)
+            {
+                return;
+            }
+
+            toggleSavePanelAction.performed -= OnToggleSavePanelPerformed;
+
+            toggleSavePanelAction.Dispose();
+        }
+
+        private void OnToggleSavePanelPerformed(InputAction.CallbackContext context)
+        {
+            ToggleSavePanel();
+        }
+
+        private void ToggleSavePanel()
+        {
+            if (savePanel == null)
+            {
+                Debug.LogError("[MainMenuUI] SavePanelUI를 찾을 수 없습니다.",this);
+
+                return;
+            }
+
+            savePanel.SetActive(!savePanel.activeSelf);
+        }
+
+        public void OnClickOpenSavePanel()
+        {
+            if (savePanel == null)
+            {
+                Debug.LogError("[MainMenuUI] SavePanelUI를 찾을 수 없습니다.",this);
+
+                return;
+            }
+
+            savePanel.SetActive(true);
+        }
+
+        public void OnClickCloseSavePanel()
+        {
+            if (savePanel == null)
+            {
+                Debug.LogError("[MainMenuUI] SavePanelUI를 찾을 수 없습니다.",this);
+
+                return;
+            }
+
+            savePanel.SetActive(false);
         }
     }
 }
