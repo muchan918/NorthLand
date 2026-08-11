@@ -6,7 +6,7 @@
 - 구현 위치: 노드 `Assets/Scripts/CombatSystem/Enemy/AI/Nodes/` · 보조 타입 `Assets/Scripts/CombatSystem/Enemy/AI/`
 - 그래프 `Assets/Behavior/TankBossBehavior.asset` · 프리팹 `Assets/Prefabs/Monster/Tank.prefab` · 스탯 `Assets/Resources/ScriptableObjects/Enemies/tank.asset`
 - 노드 레퍼런스: `Docs/Monster/Boss/BossNodeReference.md` · 그래프 배선·검증: `Docs/Monster/Boss/TankGraphSpec.md`
-- **패턴 4종 + 애니메이션이 Play에서 동작한다.** 몸체는 `Boss_Alien_01`(Humanoid), 2레이어 `AnimatorController`(「애니메이션 계약」), P4는 게이트형, 프리팹 스케일·콜라이더 확정, P1 충돌 후 생존 확인. 스케일 조정에서 빠졌던 `P1_MinSpeed`·`P1_DamagePerSpeedUnit`도 복원했다. 남은 것 — ① 감속 파훼 인게임 검증 ② 디버그 서클(`Dbg_Radius` 8) 미제거 ③ 웨이브 정본 편성. 검증 상세는 `TankGraphSpec.md` 「검증 결과」.
+- **패턴 4종 + 애니메이션이 Play에서 동작한다.** 몸체는 `Boss_Alien_01`(Humanoid), 2레이어 `AnimatorController`(「애니메이션 계약」), P4는 게이트형, 프리팹 스케일·콜라이더 확정, P1 충돌 후 생존 확인. 스케일 조정에서 빠졌던 `P1_MinSpeed`·`P1_DamagePerSpeedUnit`도 복원했다. 패턴 파티클까지 붙었고 디버그 서클은 전부 걷어냈다(「패턴 VFX 계약」). 보스는 웨이브 7에 편성돼 있다. 남은 것 — 감속 파훼 인게임 검증. **수치는 실측 관측으로 조정한 값이며 밸런싱 전까지 이대로 간다.** 검증 상세는 `TankGraphSpec.md` 「검증 결과」.
 
 > `Assets/Scripts/CombatSystem/Enemy/MiniBoss/`의 중간보스 노드 4종(`BossHealSelfAction` / `BossHpBelowCondition` / `BossRampSpeedMultiplierAction` / `BossSetSpeedMultiplierAction`)과 `MidBossBehavior.asset`은 이 보스와 무관하다. **재사용하지 않고 참조하지도 않는다.** 이 보스의 리프 노드는 전부 신규 작성한다.
 
@@ -91,7 +91,7 @@
 
 이 패턴은 **신규 런타임 훅이 필요 없다.** `Tower.ApplyBuff`가 접근 제어 없이 열려 있고 소스별 합산 구조라 배율 1 미만을 넘기면 그대로 디버프가 된다(`Assets/Scripts/CombatSystem/Tower/Tower.cs:226-268`).
 
-**봉인된 타워 목록은 `EnemyApplyTowerDebuffAction`의 `SealedTowers` 출력으로 나온다.** 반경·카테고리 필터를 통과한 집합은 이 노드만 알고 있으므로, 봉인 VFX를 각 타워에 걸 때 필터 로직을 두 곳에서 유지하지 않으려면 이 출력을 받아야 한다. 현재는 콘솔 로그 확인용으로 쓰고, VFX 노드가 생기면 그 노드의 입력으로 연결한다.
+**봉인된 타워 목록은 `EnemyApplyTowerDebuffAction`의 `SealedTowers` 출력으로 나온다.** 반경·카테고리 필터를 통과한 집합은 이 노드만 알고 있으므로, 봉인 VFX를 각 타워에 걸 때 필터 로직을 두 곳에서 유지하지 않으려면 이 출력을 받아야 한다. 그래프에서 `P3_SealedTowers`에 연결해뒀다 — 봉인 VFX 노드가 생기면 그 노드의 입력으로 받는다.
 
 알려진 제약 두 가지:
 
@@ -198,13 +198,13 @@ Root: Run In Parallel
 | BT 이동 소유권 플래그 | `Enemy` | P1 준비 동작 중 정지, 돌진 중 전진 유지 | 완료 — `Enemy.MovementOwnedByBehavior`. `IsStopped`뿐 아니라 `SetHasTarget`까지 차단한다(설계에 없던 보강, P1 절 참조) |
 | 받는 피해 배수 | `Enemy.TakeDamage` | P2 | 완료 — `Enemy.DamageTakenFactor` |
 | 공개 스폰 API | `MonsterSpawn` | P4 | 완료 — `SpawnMonster` / `AliveMonsterCount` + 스폰 시점 스포너 주입(정적 싱글톤 미사용) |
-| 보스 전용 AnimatorController | 보스 프리팹 | P1 준비 모션, P2·P3·P4 상체 모션 | 완료 — `Assets/Imported/@NorthLand/Animations/Boss/Boss_Alien_01.controller`(2레이어). 아래 「애니메이션 계약」 참조 |
+| 보스 전용 AnimatorController | 보스 프리팹 | P1 준비 모션, P2·P3·P4 상체 모션 | 완료 — `Assets/Imported/@NorthLand/Animations/Boss/Tank.controller`(2레이어). 아래 「애니메이션 계약」 참조 |
 
 애니메이션은 `EnemyAgent`가 `Animator`를 직접 들면 되므로 `MonsterAnimation` 수정이 필요 없다. `MonsterAnimation`은 `IsMove` / `IsAttack` / `IsDie` Bool 3개만 노출하며 임의 클립을 재생할 수단이 없고, 그 3개는 `MonsterStateMachine`이 자동으로 구동한다 — BT는 건드리지 않는다.
 
 ### 애니메이션 계약
 
-모델은 `Boss_Alien_01`(Humanoid, `Char_02_ModelAvatar`), 컨트롤러는 `Assets/Imported/@NorthLand/Animations/Boss/Boss_Alien_01.controller`, 클립은 Kevin Iglesias Human Animations(전부 Humanoid라 리타게팅으로 얹는다).
+모델은 `Boss_Alien_01`(Humanoid, `Char_02_ModelAvatar`), 컨트롤러는 `Assets/Imported/@NorthLand/Animations/Boss/Tank.controller`, 클립은 Kevin Iglesias Human Animations(전부 Humanoid라 리타게팅으로 얹는다).
 
 **레이어 2개로 상체와 하체를 분리한다.** P2·P3·P4는 보스를 멈추지 않으므로(P2는 크롤, P3·P4는 정지 배선이 없다) 전신 클립을 재생하면 발이 멎은 채 경로를 미끄러진다. 상체 마스크 레이어에 얹으면 걸으면서 시전하는 모습이 된다.
 
@@ -273,6 +273,29 @@ Humanoid 마스크는 transform 경로가 아니라 body-part 비트로 동작�
 
 상체 레이어의 1회성 모션(`TowerSeal` / `Summon`)이 가드 중에 끼어들면 끝난 뒤 `Empty`로 돌아가는데, `IsGuarding`이 아직 참이면 `Empty → Guard`가 즉시 다시 걸려 **가드가 자동 복구된다.**
 
+### 패턴 VFX 계약
+
+파티클은 **BT가 아니라 애니메이터 상태를 따라간다**(`BossPatternVfx`, `Assets/Scripts/Monster/MonsterAnimation/`). BT에서 쏘면 상태 전이(0.15~0.25초)보다 먼저 터져 팔이 올라가기 전에 이펙트가 보인다. 상태를 보고 재생하면 전이가 시작되는 프레임에 같이 올라오고, 지속 이펙트는 **상태를 벗어나는 것이 곧 정지**라 켜고 끄는 배선을 빠뜨릴 수가 없다. **그래프는 파티클의 존재를 모른다 — VFX를 추가해도 그래프 배선은 바뀌지 않는다.**
+
+파티클 에셋: `Assets/Imported/@NorthLand/Particles/Boss/Tank/`
+
+| 레이어 | 상태 | 파티클 | 부착 위치 |
+|---|---|---|---|
+| 0 Base | `ChargeWindup` | `WaterFlame`(루프) | `Tank/Particles` |
+| 1 UpperBody | `Guard` | `WaterCharge`(루프) | **왼손 본** `Char_02:LeftHand` |
+| 1 UpperBody | `TowerSeal` | `NovaWater`(1회) | `Tank/Particles` |
+| 1 UpperBody | `Summon` | `WaterEnchant`(1회) | `Tank/Particles` |
+
+**항목마다 레이어를 지정한다.** 컴포넌트 전체가 한 레이어만 보면 `ChargeWindup`(전신 레이어)처럼 다른 레이어의 상태는 이름이 맞아도 영영 매칭되지 않는다 — 실제로 그렇게 조용히 안 뜬 적이 있고, 증상이 "파티클이 안 나온다"라 원인이 파티클 쪽에 있는 것처럼 보인다. 레이어별로 독립 감시하므로 전신 준비 모션과 상체 가드가 동시에 각자의 이펙트를 돌린다.
+
+**정지 규칙은 루프 여부로 갈린다.** 루프 이펙트는 상태를 벗어날 때 `StopEmitting`으로 멈춰 남은 입자가 수명대로 사라지고, **1회성 이펙트는 상태를 벗어나도 멈추지 않는다** — `TowerSeal` 상태는 약 1.2초인데 `NovaWater`는 약 5.6초라, 여기서 멈추면 물결이 퍼지다 잘린다.
+
+**조명은 파티클이 살아 있는 동안만 켠다.** `Light`에는 "재생"이 없어 오브젝트가 살아 있는 한 계속 켜져 있으므로, 가드 이펙트의 점광원이 보스 손에 영구히 붙는다. 판정은 `ParticleSystem.IsAlive(true)` 하나로 하며 — 방출이 멎은 뒤 남은 입자가 사라질 때까지 참이라 루프의 페이드아웃과 1회성의 잔여 재생을 함께 덮는다.
+
+보스에 조명은 **왼손 `WaterCharge/Point light` 하나뿐**이고, `TowerSeal`·`Summon`이 `extraLights`로 이 조명을 빌려 쓴다. 여러 이펙트가 한 조명을 공유하므로 항목마다 따로 `enabled`를 쓰면 같은 프레임에 켜기/끄기가 충돌해 순서에 의존하는 깜빡임이 된다. 조명 기준으로 뒤집어 모아 **하나라도 살아 있으면 켠다**는 논리합으로 판정한다.
+
+⚠ 파티클 프리팹은 **`playOnAwake`를 꺼야 한다.** 켜져 있으면 보스가 스폰되는 순간 전부 터진다(컴포넌트가 `Awake`에서 경고를 남긴다).
+
 ### 이동속도 합성 계약
 
 이동속도 감소 타워와 보스 돌진 가속은 **같은 속도 값을 놓고 경쟁해야** 파훼가 성립한다. 현재 `Enemy.SetSpeedMultiplier`는 소스 구분 없는 단일 필드 덮어쓰기라, 어느 한쪽이 다른 쪽을 지운다(`Enemy.cs:131-135`).
@@ -323,7 +346,7 @@ Play 검증으로 두 축이 서로를 지우지 않는 것을 확인했다: 기
 - [x] **패턴 런타임 동작 검증됨(#235).** P1~P4 + 기본 진군이 그래프로 동작한다. 상세는 `TankGraphSpec.md` 「검증 결과」.
 - [x] **AnimatorController 완료.** 몸체를 캡슐에서 `Boss_Alien_01`(Humanoid)로 교체하고 2레이어 컨트롤러를 붙였다 — 위 「애니메이션 계약」 참조. `Assets/Imported/KSJ/Monsters Ultimate Pack 01`이 전부 Generic rig라는 제약은 이 보스에 해당하지 않는다: `Nechvolod3D_StylizedAlienCharacters`의 Char_02/04/05를 Humanoid로 전환(Mixamo 표준 본이라 필수 본 15개 자동 매핑)해 Kevin Iglesias Human Animations를 리타게팅으로 쓴다.
 - [x] **애니메이션 노드와 P4 게이트 배선 완료.** 최신 그래프 구조·값은 `TankGraphSpec.md`를 정본으로 본다.
-- [x] **보스 프리팹의 스케일·콜라이더 확정.** 모델 ×6(키 약 11.7) · `CapsuleCollider` height 10 / center.y 5 / radius 2.5 · `HitPosition` y 8 · `MonsterHealthBar` y 13. 모델이 콜라이더보다 약 1.7 높아 머리 끝은 피격 범위 밖이다(의도 여부는 미확인).
+- [x] **보스 프리팹의 스케일·콜라이더 확정.** 모델 ×6(키 약 11.7) · `CapsuleCollider` height 10 / center.y 5 / radius 2.5 · `HitPosition` y 8 · `MonsterHealthBar` y 13. 모델이 콜라이더보다 약 1.7 높아 머리 끝은 피격 범위 밖이다(의도 여부는 미확인). **파티클 배치와 크기도 실측으로 확정** — `WaterCharge` 왼손 본 ×1(월드 6) · `NovaWater` (0,2,0) ×4 · `WaterEnchant` (0,0,0) ×4 · `WaterFlame` (0,6,0) ×10. **이 값들은 밸런싱 전까지 유지한다.**
 - [x] **P1 충돌 후 보스 생존 확인됨.** `P1_ArriveDistance` 5에서 경로 끝 웨이포인트를 지나쳐 `RouteCompleted → Destroy`로 사라지지 않고, 충돌 피해를 준 뒤 근접 공격으로 전환한다.
 - [x] **`TileSize` 15 → 6 대응은 ×0.4 일괄 곱이 아니라 플레이 실측으로 잡았다.**
       원래 계획은 거리류 전체에 ×0.4였지만, 실제로 돌려보니 반경은 오히려 **키우는** 쪽이 맞았다

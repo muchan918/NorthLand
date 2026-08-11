@@ -40,14 +40,12 @@
    │        │  ├─ Conditional Guard            [Requires All ✔]
    │        │  │     · Enemy Pattern Gate      (P1_Gate -1 = 1회 한정)
    │        │  │     · Enemy Distance To Target Below
-   │        │  └─ Run In Parallel             [Mode: Until Any Complete]
-   │        │     ├─ Enemy Show Telegraph Circle                (디버그: 빨강)
-   │        │     └─ Sequence
-   │        │        ├─ Enemy Mark Pattern Used
-   │        │        ├─ Enemy Play Animation                    ChargeWindup · Layer 0
-   │        │        ├─ Enemy Hold Position                     (예고 — 제자리 정지)
-   │        │        ├─ Enemy Accelerate                        (경로 위 가속 → 모션은 블렌드 트리가 자동)
-   │        │        └─ Enemy Impact Target                     (충돌 피해)
+   │        │  └─ Sequence
+   │        │     ├─ Enemy Mark Pattern Used
+   │        │     ├─ Enemy Play Animation                       ChargeWindup · Layer 0
+   │        │     ├─ Enemy Hold Position                        (예고 — 제자리 정지)
+   │        │     ├─ Enemy Accelerate                           (경로 위 가속 → 모션은 블렌드 트리가 자동)
+   │        │     └─ Enemy Impact Target                        (충돌 피해)
    │        │
    │        ├─ Sequence                                         ── P4a 게이트 개방 (1회 · 정지)
    │        │  ├─ Conditional Guard            [Requires All ✔]
@@ -64,35 +62,28 @@
    │        │  │     · Enemy Pattern Gate      (P3_Cooldown)
    │        │  │     · Enemy Units In Range   (Tower / Forward / P3_Radius)
    │        │  │     · Enemy Units In Range   (Ally  / Forward / P3_Radius)
-   │        │  └─ Run In Parallel             [Mode: Until Any Complete]
-   │        │     ├─ Enemy Show Telegraph Circle                (디버그: 보라)
-   │        │     └─ Sequence
-   │        │        ├─ Enemy Log                               ("타워 봉인 시작")
-   │        │        ├─ Enemy Mark Pattern Used
-   │        │        ├─ Enemy Play Animation                    TowerSeal · Layer 1
-   │        │        ├─ Enemy Show Telegraph Circle             (실제 예고: 노랑)
-   │        │        └─ Enemy Apply Tower Debuff                (봉인 목록을 콘솔에 남긴다)
+   │        │  └─ Sequence
+   │        │     ├─ Enemy Log                                  ("타워 봉인 시작")
+   │        │     ├─ Enemy Mark Pattern Used
+   │        │     ├─ Enemy Play Animation                       TowerSeal · Layer 1
+   │        │     ├─ Enemy Show Telegraph Circle                (예고: 노랑)
+   │        │     └─ Enemy Apply Tower Debuff                   (봉인 목록 → P3_SealedTowers + 콘솔)
    │        │
    │        ├─ Sequence                                         ── P2 방어 태세
    │        │  ├─ Conditional Guard            [Requires All ✔]
    │        │  │     · Enemy Units In Range   (Ally  / Backward / P2_Radius)
    │        │  │     · Enemy Units In Range   (Tower / Forward  / P2_Radius)
    │        │  │     · Enemy Pattern Gate      (P2_Cooldown — 없으면 영구 유지)
-   │        │  └─ Run In Parallel             [Mode: Until Any Complete]
-   │        │     ├─ Enemy Show Telegraph Circle                (디버그: 파랑)
-   │        │     └─ Run In Parallel          [Mode: Default]
-   │        │        ├─ Enemy Mark Pattern Used                 (쿨다운 기록)
-   │        │        ├─ Enemy Set Speed Factor                  (크롤)
-   │        │        ├─ Enemy Set Animator Bool                 IsGuarding = true · Duration = P2_Duration
-   │        │        ├─ Enemy Log                               ("가드 올림")
-   │        │        └─ Enemy Set Damage Taken Factor           (피해 감소)
+   │        │  └─ Run In Parallel             [Mode: Default]
+   │        │     ├─ Enemy Mark Pattern Used                    (쿨다운 기록)
+   │        │     ├─ Enemy Set Speed Factor                     (크롤)
+   │        │     ├─ Enemy Set Animator Bool                    IsGuarding = true · Duration = P2_Duration
+   │        │     └─ Enemy Set Damage Taken Factor              (피해 감소)
    │        │
-   │        └─ Run In Parallel               [Mode: Until Any Complete]   ── 기본 진군
-   │           ├─ Enemy Show Telegraph Circle                   (디버그: 초록)
-   │           └─ Sequence
-   │              ├─ Enemy Set Animator Bool                    IsGuarding = false (보험 — 멱등)
-   │              ├─ Enemy Set Speed Factor                     (배수 1 복귀)
-   │              └─ Wait (Seconds)
+   │        └─ Sequence                                         ── 기본 진군
+   │           ├─ Enemy Set Animator Bool                       IsGuarding = false (보험 — 멱등)
+   │           ├─ Enemy Set Speed Factor                        (배수 1 복귀)
+   │           └─ Wait (Seconds)
    │
    │
    └─ Sequence                                                  ── P4b 잡몹 유입 (무한 · 정지 없음)
@@ -112,7 +103,7 @@
 
 ### P2와 P3의 트리거 중첩
 
-**두 패턴 모두 「앞쪽 타워 수」를 조건으로 삼는다**(P2: `P2_MinTowers` 4 / P3: `P3_MinTowers` 3). 실측 튜닝 중 추가된 조건이며, 의도는 "타워 밀집 구간에 진입할 때 방어 태세를 갖춘다"다.
+**두 패턴 모두 「앞쪽 타워 수」를 조건으로 삼는다**(둘 다 `MinTowers` 2). 실측 튜닝 중 추가된 조건이며, 의도는 "타워 밀집 구간에 진입할 때 방어 태세를 갖춘다"다.
 
 겹치는 구간에서는 **Selector 순서가 승자를 정한다** — P3가 위에 있으므로 P3 쿨다운이 차 있으면 봉인이 먼저 나가고, 쿨다운 중이면 P2가 뽑힌다. 두 패턴이 번갈아 도는 형태가 되며, 이는 Selector의 비선점 성질상 자동으로 상호 배타다.
 
@@ -177,7 +168,7 @@ Boss.Stat.MoveSpeed × P1_MaxFactor × slowFactor^n  <  P1_MinSpeed
 
 ### 구조상 반드시 지켜야 하는 것
 
-- **`Conditional Guard`는 `Run In Parallel` 밖에 둔다.** 안에 넣으면 조건이 실패할 때마다 디버그 서클이 1프레임 깜빡인다(매 틱 반복 → 서클이 번쩍인다).
+- **`Conditional Guard`는 `Run In Parallel` 밖에 둔다.** 조건 실패가 매 틱 반복되므로 안에 넣으면 자식 노드가 1프레임씩 깜빡 실행된다(디버그 서클 시절 서클이 번쩍이는 증상으로 드러났다).
 - **기본 진군 브랜치는 필수다.** `Enemy Accelerate`가 도달 성공 시 속도 배수를 원복하지 않으므로(뒤이은 충돌 피해가 실효 속도를 읽어야 한다), 배수 1 복귀는 이 브랜치가 담당한다. 없으면 돌진 배수가 고착된다.
 - **기본 진군은 조건 없이 항상 성공해야 한다.** `Try In Order`의 마지막 자식이므로, 실패하면 Selector 전체가 실패한다.
 - **모든 노드의 `Agent` 입력은 Blackboard의 `Self`에 연결한다.** `Self`는 그래프 기본 제공 `GameObject` 변수이며, 패키지가 `GameObject` → `Component` 자동 캐스팅을 해준다.
@@ -215,8 +206,8 @@ Boss.Stat.MoveSpeed × P1_MaxFactor × slowFactor^n  <  P1_MinSpeed
 | `P2_Key` | String | `guard` | 쿨다운 식별자. `Enemy Mark Pattern Used`와 짝 |
 | `P2_Cooldown` | Float | `6` | **재발동 금지 구간. 없으면 방어 태세가 영구히 유지된다** — 조건이 참인 동안 Selector가 브랜치를 끝나는 즉시 다시 뽑는다. `0`이면 제한 없음(경고 1회) |
 | `P2_Radius` | Float | `30` | 판정 반경. **뒤쪽 아군 질의와 앞쪽 타워 질의가 이 값을 공유한다** |
-| `P2_MinAllies` | Int | `3` | 뒤쪽(진행 방향 반대) 아군 잡몹 수 |
-| `P2_MinTowers` | Int | `4` | 앞쪽 공격 타워 수. 실측 튜닝에서 추가된 조건 — "타워 밀집 구간에 진입할 때 방어 태세를 갖춘다" |
+| `P2_MinAllies` | Int | `2` | 뒤쪽(진행 방향 반대) 아군 잡몹 수 |
+| `P2_MinTowers` | Int | `2` | 앞쪽 공격 타워 수. 실측 튜닝에서 추가된 조건 — "타워 밀집 구간에 진입할 때 방어 태세를 갖춘다" |
 | `P2_SpeedFactor` | Float | `0.24` | 크롤. 하한 클램프(0.15) 때문에 완전 정지는 안 된다 |
 | `P2_DamageTakenFactor` | Float | `0.4` | 받는 피해 40% |
 | `P2_Duration` | Float | `3` | 유지 시간. **가드 Bool의 `Duration`과 같은 값으로 둘 것** — 어긋나면 자세와 효과의 구간이 다르다 |
@@ -230,8 +221,8 @@ Boss.Stat.MoveSpeed × P1_MaxFactor × slowFactor^n  <  P1_MinSpeed
 | `P3_Key` | String | `seal` | |
 | `P3_Cooldown` | Float | `10` | **0이면 무제한 발동 + 경고** |
 | `P3_Radius` | Float | `50` | 앞쪽 판정 반경. **타워 질의와 아군 질의가 이 값을 공유한다.** `P2_Radius`(30)보다 커서 P3가 더 먼 거리에서 먼저 발동한다 |
-| `P3_MinTowers` | Int | `3` | 공격 타워만 집계(오라 타워 제외) |
-| `P3_MinAllies` | Int | `2` | 앞쪽 아군 잡몹 수 |
+| `P3_MinTowers` | Int | `2` | 공격 타워만 집계(오라 타워 제외) |
+| `P3_MinAllies` | Int | `1` | 앞쪽 아군 잡몹 수 |
 | `P3_TelegraphDuration` | Float | `0.5` | **짧게.** 예고 원이 보스를 따라 움직여 길면 범위가 어긋난다 |
 | `P3_SealRadius` | Float | `36` | 예고 원과 봉인 반경을 같은 값으로. **트리거 반경(`P3_Radius` 50)보다 작다** — 조건을 만족시킨 타워 일부가 봉인 범위 밖일 수 있다 |
 | `P3_DamageMul` | Float | `0.5` | 1 미만이면 디버프 |
@@ -239,7 +230,7 @@ Boss.Stat.MoveSpeed × P1_MaxFactor × slowFactor^n  <  P1_MinSpeed
 | `P3_SealDuration` | Float | `4` | **0이면 해제 불가 영구 디버프 → 노드가 실패로 막는다** |
 | `P3_TelegraphFill` | Color | 노랑 α≈0.15 | |
 | `P3_TelegraphLine` | Color | 노랑 α≈0.9 | |
-| `P3_SealedTowers` | GameObject List | (비움) | **출력.** 실제로 봉인된 타워가 기록된다. 연결하지 않아도 봉인은 동작하고 로그도 찍힌다 — 봉인 VFX 노드가 생기면 이 변수를 입력으로 받는다 |
+| `P3_SealedTowers` | GameObject List | (런타임 기록) | **출력.** 실제로 봉인된 타워가 기록된다. 봉인 VFX 노드가 생기면 이 변수를 입력으로 받는다 — 반경·카테고리 필터를 통과한 집합은 이 노드만 알고 있다 |
 
 ### P4 지속 소환
 
@@ -263,7 +254,7 @@ Boss.Stat.MoveSpeed × P1_MaxFactor × slowFactor^n  <  P1_MinSpeed
 
 `P4_GateAliveCount`는 두 조각이 **같은 값을 공유한다** — 어긋나면 한쪽만 열린다.
 
-폐기된 변수: `P4_SummonTrigger` / `P4_SummonLayer` / `P4_SummonMaxWait`(애니메이터 값은 노드 입력에 인라인) · `Anim_*`(같은 이유) · `P3_SealedTowers`(출력을 연결하지 않았다 — VFX 노드가 생길 때 만든다).
+폐기된 변수: `P4_SummonTrigger` / `P4_SummonLayer` / `P4_SummonMaxWait`(애니메이터 값은 노드 입력에 인라인) · `Anim_*`(같은 이유). `Dbg_Radius` / `Dbg_Duration`은 남아 있으나 참조하는 노드가 없다.
 
 ### 기본 진군
 
@@ -292,40 +283,25 @@ Boss.Stat.MoveSpeed × P1_MaxFactor × slowFactor^n  <  P1_MinSpeed
 
 ### 패턴 발동 로그 (디버그)
 
-`Enemy Log`가 **P2·P3 두 곳**에 있다. `Message`는 인라인 문자열이다.
+`Enemy Log`는 **P3 한 곳**에만 남아 있다(`Message` = `타워 봉인 시작`, 인라인 문자열).
 
-| 위치 | Message | 출력 |
-|---|---|---|
-| P2 본체(`Run In Parallel`의 자식) | `가드 올림` | `[보스 패턴] 42.18s · 가드 올림` |
-| P3 본체(시퀀스 첫 노드) | `타워 봉인 시작` | `[보스 패턴] 42.18s · 타워 봉인 시작` |
+```
+[보스 패턴] 42.18s · 타워 봉인 시작
+```
 
-P3는 뒤이은 `Enemy Apply Tower Debuff`가 **봉인된 타워 목록까지 따로 남긴다**(0건도 남긴다).
+뒤이은 `Enemy Apply Tower Debuff`가 **봉인된 타워 목록까지 따로 남긴다**(0건도 남긴다 — 분산 배치 파훼가 통한 것인지 필터가 잘못된 것인지 구분해야 하므로).
 
-P1·P4a에는 로그가 없다 — 둘 다 1회성이고 모션·정지로 발동이 눈에 보인다. 필요하면 같은 방식으로 추가한다.
+나머지 패턴에는 로그가 없다. 모션·파티클로 발동이 눈에 보이게 된 뒤 걷어냈다 — 가드는 자세가, 돌진·개방은 정지와 이펙트가 곧 표시다. 필요하면 같은 방식으로 다시 넣는다.
 
 기본 진군 브랜치에는 넣지 않는다 — `March_Wait`(0.5초)마다 돌아 콘솔이 잠긴다.
 
-`Message`를 Blackboard 변수로 올리면 **변수를 비우는 것만으로 로그가 꺼진다**(`Dbg_Radius = 0`과 같은 관례). 현재는 인라인이라 소등하려면 노드를 지워야 한다.
+### 디버그 서클 — 제거됨
 
-### 디버그 서클 (Step 1 전용 — 애니메이터 붙이면 제거)
+패턴마다 있던 디버그 서클 4개(빨강/보라/파랑/초록)와 그것을 감싸던 `Run In Parallel [Until Any Complete]` 4개를 **모두 걷어냈다.** 모션과 파티클이 붙어 발동이 눈에 보이게 되면서 역할이 끝났고, 보스를 정본 웨이브에 편성하기 전에 지워야 하는 스캐폴딩이었다(노드 60개 → 51개).
 
-| 변수 | 타입 | 값 |
-|---|---|---|
-| `Dbg_Radius` | Float | `8` |
-| `Dbg_Duration` | Float | `999` |
+**남아 있는 서클은 P3의 실제 예고 원 하나뿐이다** — 이건 디버그가 아니라 플레이어에게 봉인 범위를 알리는 게임 요소다.
 
-**서클을 한 번에 끄는 방법: `Dbg_Radius`를 0으로 둔다.** `EnemyShowTelegraphCircleAction`이 `Radius` 또는 `Duration`이 0 이하면 원을 만들지 않고 즉시 성공을 반환하므로(노드 코드 참조), 그래프 구조를 건드리지 않고 값 하나로 스캐폴딩을 무력화할 수 있다. 제거를 잊어도 사고가 나지 않는다 — 다만 **보스를 정본 웨이브에 편성하기 전에는 반드시 0으로 내리거나 서클 노드를 지울 것.** 현재는 보스가 정본 웨이브에 미편성이라 새어나갈 경로가 없다.
-
-**디버그 서클의 색은 Blackboard로 올리지 않고 노드 입력에 직접 넣는다.** 임시 스캐폴딩이라 Blackboard 변수를 10개 늘릴 값이 아니다. `Until Any Complete` 부모가 형제(패턴 본체)의 완료와 함께 서클 노드를 중단시키고, 서클의 `OnEnd`가 원을 파괴한다 — `Duration`은 패턴보다 길기만 하면 된다.
-
-| 패턴 | Fill (α≈0.15) | Outline (α≈0.9) |
-|---|---|---|
-| P1 돌진 | 빨강 | 빨강 |
-| P3 봉인 | 보라 | 보라 |
-| P2 방어 | 파랑 | 파랑 |
-| 기본 진군 | 초록 | 초록 |
-
-P3는 서클이 **두 개** 겹친다(디버그 보라 + 실제 예고 노랑). 색을 확실히 다르게 둔 이유다.
+`Dbg_Radius`(8) / `Dbg_Duration`(999) 변수는 블랙보드에 남아 있으나 **더 이상 아무 노드도 참조하지 않는다.** 서클을 다시 붙일 일이 없으면 지워도 된다.
 
 ## 노드별 입력 배선
 
@@ -345,7 +321,7 @@ P3는 서클이 **두 개** 겹친다(디버그 보라 + 실제 예고 노랑). 
 | P3 `Enemy Units In Range` (잡몹) | `Filter` = `Ally` · `Direction` = `Forward` · `Radius` = `P3_Radius` · `MinCount` = `P3_MinAllies` |
 | P3 `Enemy Mark Pattern Used` | `Key` = `P3_Key` |
 | P3 `Enemy Show Telegraph Circle` (예고) | `Radius` = `P3_SealRadius` · `Duration` = `P3_TelegraphDuration` · `FillColor` = `P3_TelegraphFill` · `OutlineColor` = `P3_TelegraphLine` |
-| P3 `Enemy Apply Tower Debuff` | `Radius` = `P3_SealRadius` · `DamageMultiplier` = `P3_DamageMul` · `AttackSpeedMultiplier` = `P3_AttackSpeedMul` · `Duration` = `P3_SealDuration` · `SealedTowers` = (미연결 — VFX 노드가 생길 때 연결) |
+| P3 `Enemy Apply Tower Debuff` | `Radius` = `P3_SealRadius` · `DamageMultiplier` = `P3_DamageMul` · `AttackSpeedMultiplier` = `P3_AttackSpeedMul` · `Duration` = `P3_SealDuration` · `SealedTowers` → `P3_SealedTowers` |
 | P2 `Enemy Pattern Gate` | `Key` = `P2_Key` · `CooldownSeconds` = `P2_Cooldown` |
 | P2 `Enemy Units In Range` (잡몹) | `Filter` = `Ally` · `Direction` = `Backward` · `Radius` = `P2_Radius` · `MinCount` = `P2_MinAllies` |
 | P2 `Enemy Units In Range` (타워) | `Filter` = `Tower` · `Direction` = `Forward` · `Radius` = `P2_Radius` · `MinCount` = `P2_MinTowers` |
@@ -369,7 +345,6 @@ P3는 서클이 **두 개** 겹친다(디버그 보라 + 실제 예고 노랑). 
 | P4b `Wait (Seconds)` | `Duration` = `P4_Interval` |
 | P4b `Enemy Spawn Minions` | `Prefab` = `P4_Prefab` · `Count` = `P4_Count` · `MaxAlive` = `P4_MaxAlive` |
 
-| 디버그 서클 4개 | `Radius` = `Dbg_Radius` · `Duration` = `Dbg_Duration` · 색은 인라인 |
 
 ⚠ **가드가 풀리려면 두 장치가 모두 필요하다.**
 ① P2 `Enemy Set Animator Bool`의 `Duration`(= `P2_Duration`) — `OnEnd`가 정상 종료와 중단 모두를 지나므로 무슨 일이 있어도 자세가 내려간다.
@@ -391,8 +366,12 @@ P3는 서클이 **두 개** 겹친다(디버그 보라 + 실제 예고 노랑). 
 | 상체/하체 분리 | ✅ 걸으면서 가드·봉인·소환. 상체 레이어 weight 자동 페이드 |
 | **P1 충돌 후 보스 생존** | ✅ `P1_ArriveDistance` 5에서 경로 끝 `RouteCompleted → Destroy`를 회피하고 근접 공격으로 전환한다 |
 | 프리팹 스케일·콜라이더 | ✅ 모델 ×6(키 약 11.7) · `CapsuleCollider` height 10 / center.y 5 · `HitPosition` y 8 · `MonsterHealthBar` y 13 |
+| 패턴 VFX | ✅ 레이어별로 파티클이 모션과 함께 재생된다(`BossDesign.md` 「패턴 VFX 계약」) |
+| 디버그 서클 제거 | ✅ 4개 모두 제거(노드 60 → 51). 남은 서클은 P3 예고 원 하나뿐이며 그건 게임 요소다 |
+| 웨이브 편성 | ✅ 웨이브 7에 보스 1체 |
 | **감속 파훼(인게임)** | ❌ **미검증** — 수치상으로는 6중첩 파훼가 복원됐다(「감속 파훼 불변식」) |
-| 디버그 서클 제거 | ❌ `Dbg_Radius`가 8이다 — 정본 웨이브 편성 전 0으로 내릴 것 |
+
+**수치는 실측 관측으로 조정한 값이며 밸런싱 전까지 이대로 간다.**
 
 ### 1차 (#235, 캡슐 몸체 · AnimatorController 없음)
 
