@@ -253,6 +253,36 @@ MonoBehaviour:
       range."
     m_Metadata:
       m_Items: []
+  - m_Id: 7701478553329664
+    m_Localized: Missile Turret
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7701478578495488
+    m_Localized: Impact Fire Zone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7701478578495489
+    m_Localized: 'Fires a homing missile at the nearest enemy
+
+      Leaves a burning
+      zone at the impact point'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7701478578495490
+    m_Localized: Twin Missile Turret
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7701478578495491
+    m_Localized: Twin Fire Zones
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7701478578495492
+    m_Localized: 'Fires two missiles in succession from alternating barrels
+
+      Creates
+      two burning zones; where they overlap, the burn stacks'
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

@@ -140,6 +140,17 @@ namespace NorthLand.Combat
                 if (r.GetComponentInParent<RangeCircle>() != null) continue;
                 if (!r.enabled) continue;
 
+                // ⚠ **입자·트레일 계열은 몸체 실루엣이 아니다.** 이들의 `bounds`는 메시처럼 트랜스폼에서
+                // 파생되지 않고 "지금 살아 있는 입자가 차지한 월드 영역"이라, 입자가 하나도 없으면
+                // **원점 `(0,0,0)`을 보고한다.** 그걸 Encapsulate하면 시각 중심이 원점 쪽으로 끌려간다 —
+                // 포구에 FireFx를 단 미사일 터렛에서 합성 수렴 목적지가 타워와 원점의 **정확히 중간**으로
+                // 나오던 실제 증상이 이것이었다(#336). 월드 시뮬레이션이면 입자가 흩어진 곳을 보고하므로
+                // 입자가 있어도 틀린다.
+                //
+                // 위의 `RangeCircle` 제외와 같은 축이다 — "몸체가 차지한 공간"을 재는 자리에 다른 성격의
+                // 렌더러가 섞이면 그 값이 통째로 흔들린다.
+                if (r is ParticleSystemRenderer || r is TrailRenderer || r is LineRenderer) continue;
+
                 if (!found)
                 {
                     bounds = r.bounds;

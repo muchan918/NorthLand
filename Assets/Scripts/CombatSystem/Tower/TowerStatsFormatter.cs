@@ -48,6 +48,17 @@ namespace NorthLand.Combat
                 ? $"Ramp({stat}): {stacks}/{maxStacks} ×{multiplier:0.##}"
                 : null;
 
+        /// 연발 한 줄(#336). 1발이면 null — 대부분의 타워에서 줄이 늘지 않는다.
+        public static string BuildBurstLine(int burstCount)
+            => burstCount > 1 ? $"Burst: ×{burstCount}" : null;
+
+        /// 착탄 지속 구역 한 줄(#336) — 반경과 남는 시간. 구역이 없으면 null.
+        /// 구역이 **거는 효과**는 DoT 줄이 따로 낸다(같은 `Effects`를 쓰므로 중복 표기하지 않는다).
+        public static string BuildGroundZoneLine(float radius, float duration)
+            => radius > 0f && duration > 0f
+                ? $"Zone: {radius:0.#} / {duration:0.#}s"
+                : null;
+
         /// 감속 한 줄. 감속이 없으면(배율 1) null.
         public static string BuildSlowLine(float slowMultiplier)
             => slowMultiplier < 1f

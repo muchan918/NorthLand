@@ -1,0 +1,83 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
+  m_Name: twin_missile_tower
+  m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
+  TowerID: twin_missile_tower
+  TowerPrefab: {fileID: 8779696363942934093, guid: 11635e84c4458d04691979c2fd5a0c74, type: 3}
+  GhostPrefab: {fileID: 3221768034370273521, guid: acfc2c92126da434ea4b350da2ca7e61, type: 3}
+  Cost: []
+  Attack:
+    AttackDamage: 25
+    AttackRange: 30
+    AttackInterval: 1.5
+    ProjectilePrefab: {fileID: 8129974786565786213, guid: f4b2fbb323243d64494c288ca5db4a30, type: 3}
+    Flight:
+      rid: 1498367398119473370
+    PelletCount: 1
+    SpreadAngle: 0
+    BurstCount: 2
+    BurstInterval: 0.35
+  Impact: 1
+  SplashRadius: 2
+  ChainRadius: 0
+  MaxChainTargets: 0
+  ChainDamageFalloff: 0
+  BuffAura:
+    Radius: 0
+    Modifiers: []
+    Damage:
+      HasDamage: 0
+      DamageAmount: 0
+      TickInterval: 0
+  DebuffAura:
+    Radius: 0
+    Interval: 0
+  Beam:
+    Range: 0
+    MaxTargets: 1
+    TickInterval: 1
+    DamagePerTick: 0
+    LockRamp:
+      PerStack: 0
+      MaxStacks: 0
+      StackInterval: 0
+      DecaySeconds: 0
+  GroundZone:
+    ZonePrefab: {fileID: 109944, guid: 2ff0199b19f96fd489a4e259a670d9b5, type: 3}
+    Radius: 3
+    Duration: 2
+    Interval: 0.5
+  Ramp:
+    Stat: 2
+    Trigger: 0
+    Profile:
+      PerStack: 0
+      MaxStacks: 0
+      StackInterval: 0
+      DecaySeconds: 0
+  Effects:
+  - rid: 1498367398119473371
+  references:
+    version: 2
+    RefIds:
+    - rid: 1498367398119473370
+      type: {class: HomingFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
+      data:
+        Speed: 140
+        ArcHeight: 5
+    - rid: 1498367398119473371
+      type: {class: BurnStatus, ns: NorthLand.Combat, asm: Assembly-CSharp}
+      data:
+        DamagePerTick: 4
+        TickInterval: 0.5
+        Duration: 2
