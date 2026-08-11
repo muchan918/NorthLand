@@ -58,5 +58,12 @@ namespace CombatSpace
         {
             buffTileViews.RemoveAll(tileView => tileView == null);
         }
+
+        private void OnDisable()
+        {
+            HideAll();
+        }
+
+
     }
 }

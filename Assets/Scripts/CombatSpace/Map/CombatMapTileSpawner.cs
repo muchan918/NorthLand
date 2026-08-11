@@ -342,34 +342,30 @@ namespace CombatSpace
 
             int duplicateCount = 0;
 
-            foreach (CombatMapTileView tileView
-                     in tileViews)
+            foreach (CombatMapTileView tileView in tileViews)
             {
                 if (tileView == null)
                 {
                     continue;
                 }
 
-                Vector2Int position =
-                    tileView.GridPosition;
+                // 아이콘 목록은 좌표 딕셔너리와 별도로 모든 버프 타일을 등록
+                buffTileIconPreview?.Register(tileView);
+
+                Vector2Int position = tileView.GridPosition;
 
                 if (spawnedTiles.ContainsKey(position))
                 {
                     duplicateCount++;
 
                     Debug.LogWarning(
-                        $"중복 타일 좌표 발견: " +
-                        $"{position}",
+                        $"중복 타일 좌표 발견: {position}",
                         tileView);
 
                     continue;
                 }
-                
-                spawnedTiles.Add(
-                    position,
-                    tileView);
 
-                buffTileIconPreview?.Register(tileView);
+                spawnedTiles.Add(position, tileView);
             }
 
             Debug.Log(
