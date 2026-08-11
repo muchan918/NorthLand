@@ -2818,7 +2818,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 38dab39f31dcfb04eaeda8894b6fd747, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TowerFusionController
-  _placer: {fileID: 0}
+  _placer: {fileID: 6262796507066623699}
   _management: {fileID: 544968473}
 --- !u!1 &1381029145 stripped
 GameObject:

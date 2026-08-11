@@ -208,6 +208,10 @@ MonoBehaviour:
     m_Localized: Undo
     m_Metadata:
       m_Items: []
+  - m_Id: 11583934444511232
+    m_Localized: "\xB7 You haven't placed any tower today."
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:
