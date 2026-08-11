@@ -153,7 +153,7 @@ MonoBehaviour:
   runBootstrapper: {fileID: 1384901249}
   management: {fileID: 544968473}
   towerPlacer: {fileID: 6262796507066623699}
-  startMapTileRegistry: {fileID: 0}
+  startMapTileRegistry: {fileID: 572341031524862309}
   towerAssets:
   - {fileID: 11400000, guid: 7ecd80d44165e644591aafb428cf5efe, type: 2}
   - {fileID: 11400000, guid: a752545bbde5030438f8995ae4ee0849, type: 2}
@@ -2464,6 +2464,7 @@ MonoBehaviour:
   mapGenerator: {fileID: 1175259922}
   revealController: {fileID: 1175259919}
   tileRoot: {fileID: 1175259923}
+  buffTileIconPreview: {fileID: 9140323519560391690}
   roadTilePrefab: {fileID: 376632769588615151, guid: bcc97aac1203837468bb300b99cb732e, type: 3}
   grassTilePrefab: {fileID: 4056655319366159548, guid: 01a0e59758422c6469a1f537bb0d4bcd, type: 3}
   waterTilePrefab: {fileID: 7429171252680331435, guid: a16cd64f59ec9054ea4a8aa9652cdd76, type: 3}
@@ -5893,6 +5894,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
+--- !u!114 &572341031524862309 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4719009487615798932, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
+  m_PrefabInstance: {fileID: 572341031524862308}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a764fe13f24af743b0baa7a72d10553, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.StartMapTileRegistry
 --- !u!224 &582369541074808118
 RectTransform:
   m_ObjectHideFlags: 0
@@ -11061,6 +11073,7 @@ GameObject:
   - component: {fileID: 6053482751232186323}
   - component: {fileID: 2856934565975618207}
   - component: {fileID: 6262796507066623699}
+  - component: {fileID: 9140323519560391690}
   m_Layer: 0
   m_Name: TowerPanel
   m_TagString: Untagged
@@ -15913,6 +15926,7 @@ MonoBehaviour:
   rangeFillColor: {r: 0.2, g: 0.8, b: 1, a: 0.15}
   validCellColor: {r: 0.2, g: 1, b: 0.3, a: 0.78431374}
   invalidCellColor: {r: 1, g: 0.25, b: 0.2, a: 0.78431374}
+  buffTileIconPreview: {fileID: 9140323519560391690}
   tileBuffRules: {fileID: 11400000, guid: 4e66e06684a153f4b80a97f47b2debfc, type: 2}
 --- !u!222 &6273250446217922390
 CanvasRenderer:
@@ -21168,6 +21182,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3541417598832098768}
   m_CullTransparentMesh: 1
+--- !u!114 &9140323519560391690
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3541417598832098768}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36cb766809e8efb4dad1693768e399db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuffTileIconPreview
 --- !u!114 &9144133786247706868
 MonoBehaviour:
   m_ObjectHideFlags: 0

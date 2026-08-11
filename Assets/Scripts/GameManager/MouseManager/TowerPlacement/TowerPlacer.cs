@@ -112,6 +112,10 @@ public class TowerPlacer : MonoBehaviour
     // OverlapSphere 재사용 버퍼(배치 중 매 프레임 힙 할당 방지). 셀 하나에 겹치는 콜라이더는 소수.
     private readonly Collider[] _overlap = new Collider[8];
 
+    [Header("버프 타일 아이콘")]
+    [SerializeField]
+    private BuffTileIconPreview buffTileIconPreview;
+
     //Ksj
     //타워가 여러 버프 타일을 점유할 때 사용할 효과 중첩 규칙
     [Header("Tile Buff")]
@@ -266,6 +270,10 @@ public class TowerPlacer : MonoBehaviour
         //  방금 만든 프리뷰를 지우는 순서 문제를 피하기 위함)
         lastPreviewAnchor = null;
         previewFootprintInitialized = false;
+        if (buffTileIconPreview != null)
+        {
+            buffTileIconPreview.ShowAll();
+        }
         CreateRangeIndicator(_activeData.AttackRange);
         CreateCellHighlights(_activeData.GridWidth * _activeData.GridHeight);
         return true;
@@ -529,6 +537,10 @@ public class TowerPlacer : MonoBehaviour
         if (_rangeCircle != null) Destroy(_rangeCircle.gameObject);
         _rangeCircle = null;
         ClearCellHighlights();
+        if (buffTileIconPreview != null)
+        {
+            buffTileIconPreview.HideAll();
+        }
         _footprint.Clear();
         _onConfirmed = null; // 취소로 끝났으면 확정 콜백은 실행하지 않는다(재료 보존).
         _historyOwner = PlacementOwner.Placer; // 콜백과 대칭으로 비운다(#281) — 세션 밖으로 새지 않게.
@@ -582,6 +594,7 @@ public class TowerPlacer : MonoBehaviour
 
         return tileView != null ? tileView.BuffDefinition : null;
     }
+
 
     private TileBuffCalculationResult CalculateTileBuff(IReadOnlyList<BattleTile> tiles)
     {
