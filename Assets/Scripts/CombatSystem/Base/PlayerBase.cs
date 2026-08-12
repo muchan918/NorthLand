@@ -6,7 +6,7 @@ namespace NorthLand.Combat
 {
     public class PlayerBase : MonoBehaviour, IDamageable
     {
-        [SerializeField] float maxHp = 100f;
+        [SerializeField] float maxHp = 200f;
 
         float currentHp;
 

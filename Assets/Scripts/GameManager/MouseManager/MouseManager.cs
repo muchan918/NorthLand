@@ -179,6 +179,13 @@ public class MouseManager : MonoBehaviour
         _request = request;
         // 회전은 요청이 주는 그리드 기준축을 따른다 — 회전된 맵에서 고스트가 타일과 각이 맞아야 한다.
         _ghost = Instantiate(request.GhostPrefab, Vector3.zero, request.GhostRotation);
+
+        // ⚠ **비활성으로 생성한다.** 배치 버튼은 UI 위에 있어서 클릭한 프레임의 커서는 타일 위가 아니고,
+        //   UpdatePlacement는 레이가 빗나가면 위치를 갱신하지 않는다 — 활성으로 두면 커서가 타일에 닿기
+        //   전까지 고스트가 **월드 원점에 그대로 보인다**(1프레임이 아니라 그 사이 내내).
+        //   첫 유효 위치를 잡은 뒤에 UpdatePlacement가 켠다.
+        _ghost.SetActive(false);
+
         SetMode(Mode.Placement);
     }
 
@@ -496,10 +503,18 @@ public class MouseManager : MonoBehaviour
             return;
         }
 
-        if (!RaycastMask(screenPos, _placementMask, out var hit)) return;
+        // 배치 표면을 못 맞히면(UI 위·타일 밖·하늘) 고스트를 숨긴다 — 위치를 갱신하지 않은 채 켜 두면
+        // 마지막 유효 위치나 생성 시점의 원점에 남는다. 숨김 판정을 위치 갱신과 같은 자리에 두어
+        // "갱신 없이 보이는" 상태가 만들어질 수 없게 한다.
+        if (!RaycastMask(screenPos, _placementMask, out var hit))
+        {
+            if (_ghost.activeSelf) _ghost.SetActive(false);
+            return;
+        }
 
         Vector3 pos = _request.Snap != null ? _request.Snap(hit) : hit.point; // 스냅은 요청이 결정(그리드 스냅)
         _ghost.transform.position = pos;
+        if (!_ghost.activeSelf) _ghost.SetActive(true);   // 위치를 잡은 뒤에 켠다(원점 노출 방지)
 
         bool valid = _request.CanPlaceAt(hit);
         // TODO(하이라이트/연출 미확정): 고스트를 유효=초록/무효=빨강 등으로 표시
