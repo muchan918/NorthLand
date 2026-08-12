@@ -24,9 +24,9 @@ public class MouseManager : MonoBehaviour
     // 소유하고, MouseManager는 마커 유무만 알 뿐 대상 타입(타워)은 모른다(입력 단일 창구·제네릭 유지).
     // 이 경로에서는 단일 _selected를 건드리지 않는다.
     public event Action<IGroupSelectable> OnGroupSelectToggled;
-    // 평클릭(추가키 없음)·Esc·빈 곳 클릭 시 해석된 대상(ISelectable 또는 null)을 **중복 제거 없이 항상** 발행한다.
+    // 평클릭(추가키 없음)·빈 곳 클릭 시 해석된 대상(ISelectable 또는 null)을 **중복 제거 없이 항상** 발행한다.
     // OnSelectionChanged는 _selected 변화만(deduped) 통지하므로, Shift로만 선택한 상태(_selected==null)에서
-    // Esc·빈 곳 클릭의 해제 신호가 `Select(null)`의 조기 반환에 삼켜지는 문제가 있었다(WL-085). 그룹 선택
+    // 빈 곳 클릭의 해제 신호가 `Select(null)`의 조기 반환에 삼켜지는 문제가 있었다(WL-085). 그룹 선택
     // 코디네이터는 이 이벤트로 집합을 리셋(타워면 단일화)/해제한다. 단일 선택(_selected) 상태는 안 바꾼다.
     public event Action<ISelectable> OnPrimarySelect;
     // 커서 밑 호버 대상이 바뀔 때만 통지(없으면 null). 툴팁 UI가 구독해 표시/숨김을 결정한다.
@@ -435,7 +435,7 @@ public class MouseManager : MonoBehaviour
 
     private void ClearHover() => SetHover(null);
 
-    /// 단일 선택 + 그룹 선택을 함께 비우는 **선택 해제의 유일한 창구**. Esc·배치 시작·페이즈 전환이 공유한다.
+    /// 단일 선택 + 그룹 선택을 함께 비우는 **선택 해제의 유일한 창구**. 배치 시작·페이즈 전환이 공유한다.
     /// 두 신호를 함께 보내는 이유는 선택에 딸린 표시가 정보 패널 하나가 아니라 사거리 원·아웃라인·합성 패널까지
     /// 퍼져 있고, 그 소유자도 대상 자신(ISelectable 훅)과 코디네이터(그룹)로 나뉘어 있기 때문이다.
     /// OnPrimarySelect는 중복 제거를 타지 않으므로 Shift로만 선택한 상태(_selected==null)에서도 그룹이 풀린다(WL-085).
