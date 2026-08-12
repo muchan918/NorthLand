@@ -58,6 +58,10 @@ public class AudioManager : MonoBehaviour
     private float fadeDuration;
     private float fadeProgress = 1f;
 
+    // 스왑 시점에 나가는 소스가 실제로 갖고 있던 가중치. 페이드가 끝난 뒤의 교체라면 1이다.
+    // 이걸 기억하지 않으면 페이드 도중 트랙을 다시 요청했을 때 나가는 쪽이 최대 볼륨으로 튄다.
+    private float outgoingWeight = 1f;
+
     // PlayerPrefs.SetFloat은 메모리 캐시라 슬라이더 드래그마다 불러도 싸지만
     // Save()는 디스크 쓰기다. flush는 종료·포커스 상실 시점으로 미룬다.
     private bool prefsDirty;
@@ -301,6 +305,10 @@ public class AudioManager : MonoBehaviour
 
     private void SwapSources()
     {
+        // 지금 페이드인 중이던 소스가 그대로 페이드아웃 대상이 된다. 그 시점의 가중치를 붙잡아두지
+        // 않으면 fadeProgress가 0으로 리셋되면서 (1 - 0) = 1, 즉 최대 볼륨으로 점프한 뒤 내려온다.
+        outgoingWeight = fadeProgress;
+
         activeIsA = !activeIsA;
 
         // 페이드 도중 재요청이면 새 active가 옛 트랙을 물고 있다 — 재사용 전에 버린다.
@@ -327,7 +335,7 @@ public class AudioManager : MonoBehaviour
         float bgm = GetEffectiveVolume(AudioChannel.Bgm);
 
         ActiveSource.volume = fadeProgress * bgm;
-        InactiveSource.volume = (1f - fadeProgress) * bgm;
+        InactiveSource.volume = outgoingWeight * (1f - fadeProgress) * bgm;
 
         if (fadeProgress >= 1f && InactiveSource.isPlaying)
         {
