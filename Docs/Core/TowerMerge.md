@@ -19,7 +19,7 @@
 > - `Assets/Scripts/GameManager/MouseManager/TowerPlacement/TowerMergeGroup.cs` — 선택 재료 집합(순수 C#, 코디네이터 소유) — 구 `TowerWallet` 대체
 > - `Assets/Scripts/GameManager/MouseManager/TowerPlacement/TowerMergeCoordinator.cs` — 선택 두뇌·게이팅·패널 권위·실행 오케스트레이션
 > - `Assets/Scripts/UI/TowerPanel/TowerMergePanelView.cs` — 합성 패널(선택 리스트 + 후보 버튼)
-> - `Assets/Scripts/GameManager/MouseManager/MouseManager.cs` — Shift 추가선택·`OnGroupSelectToggled`·Idle Esc(수정)
+> - `Assets/Scripts/GameManager/MouseManager/MouseManager.cs` — Shift 추가선택·`OnGroupSelectToggled`(수정)
 > **관련**: GDD §5.8, `Docs/Build2/2팀 빌드 2 다음 빌드 계획.md` §1, WL-076·WL-077, 이슈 #183/#194/#195
 > **참조**: `Docs/Core/TowerPlacement.md`, `Docs/Core/MouseManager.md`, `Docs/Review/SystemMap.md`(§1 TowerFusion 행·§2 API·§3 접점)
 > **문서 계약**: 코드가 이 명세와 어긋나면 문서를 갱신한다(팀 계약 #7). 공개 API·계약이 바뀌는 PR은 SystemMap을 같은 PR에서 갱신한다.
@@ -101,7 +101,7 @@
 [플레이어 클릭/수정키]
         │  (입력 단일 창구 — 계약 #1)
         ▼
-   MouseManager ── 수정키 없음 ──▶ 평클릭/Esc (OnPrimarySelect·항상 발행) ─┐
+   MouseManager ── 수정키 없음 ──▶ 평클릭 (OnPrimarySelect·항상 발행) ────┐
         │                                                          │
         └─ 수정키 + 마커(IGroupSelectable) ─▶ 그룹 토글 이벤트 ──┐  │
                                                                 │  │
@@ -157,14 +157,14 @@
 - 마커는 그룹 하이라이트 훅 `OnGroupSelected()`/`OnGroupDeselected()`를 **단일 선택 훅(`ISelectable.OnSelected/OnDeselected`)과 분리**해 노출한다 — 코디네이터가 집합 가감 시 호출(§8.4).
 
 ### 7.2 MouseManager 계약 확장 (입력 단일 창구)
-현재 `MouseManager`는 완전 단일 선택(`_selected` 단일 참조)이고 Idle에는 우클릭/Esc 처리가 없다. #183은 다음을 **추가**한다(기존 `OnSelectionChanged(ISelectable)` 시그니처는 무변경 — 기존 구독자 보호):
+현재 `MouseManager`는 완전 단일 선택(`_selected` 단일 참조)이다. #183은 다음을 **추가**한다(기존 `OnSelectionChanged(ISelectable)` 시그니처는 무변경 — 기존 구독자 보호):
 
 - **추가 선택 키 = Shift**(확정, 필요 시 재조정). 키 판정은 MouseManager가 소유(게임플레이 코드의 `Keyboard.current` 직접 폴링 금지, 계약 #1). *WL-073 유의: 우클릭이 카메라 드래그와 이미 이중 점유 → 추가 선택 키를 우클릭이 아닌 Shift로 두어 충돌을 피한다.*
 - **그룹 토글 이벤트**(예: `OnGroupSelectToggled(IGroupSelectable)`) 신설: **Shift + 마커 대상** 클릭 시 발행. 발행 직전에 **`Select(null)`로 단일 `_selected`를 비운다**(WL-087 수정, 원안은 "건드리지 않음"이었다). 이후 무엇을 보일지는 §8.1 스위처가 집합 크기로 결정하므로, 단일 선택 상태를 남겨두면 그 부수 표시(사거리 원·인포)를 아무도 못 내린다. **마커 없는 대상(건물·빈 곳)에는 적용하지 않는다** — 집합이 안 바뀌는데 `_selected`만 비면 "집합엔 있는데 화면엔 아무것도 없는" 어긋난 상태가 된다. 순서도 계약이다: 토글 **뒤**에 비우면 `count==1` 복귀에서 스위처가 켠 인포·원을 도로 끈다.
   - 부수 효과: 건물처럼 그룹에 못 들어가는 대상을 선택해 둔 채 Shift로 타워를 담기 시작해도 그쪽 사거리 원·패널이 함께 정리된다. 스위처는 `Tower`만 알기 때문에 이 경로가 아니면 못 잡는다.
   - **#164 리팩토링 반영**: 마법 타워(오라)도 이제 단일 `Tower` 타입이라 그룹 선택에 정상적으로 담긴다 — 예전에는 별개 `AuraTower` 클래스라 `sel is Tower`/`TowerGroupSelectable.Tower`에 걸리지 않아 조용히 제외됐고, 평클릭 시 담아둔 그룹이 해제되는 부작용도 있었다(구 WL-131). 실제로 **레시피 재료가 되는지는 `TowerRecipe` 저작 문제**로 분리됐다(코드가 막지 않는다).
   - 밤에는 코디네이터가 토글을 무시하므로(§10 게이팅) Shift+타워 클릭이 "단일 선택 해제"로만 끝난다 — 밤에 합성이 잠긴 상태에서의 무의미한 입력이라 의도된 동작으로 둔다.
-- **평클릭·Esc·빈 곳 해제 = `OnPrimarySelect` 신설**(F3 + WL-085): 평클릭(해석된 `ISelectable`)·Esc·빈 곳 클릭 시 `OnPrimarySelect(ISelectable|null)`를 **중복 제거 없이 항상** 발행한다. 코디네이터가 이걸로 그룹을 리셋(타워면 `SetSingle`)/해제(그 외·null)한다. → 기존엔 이 신호를 `Select(null)`의 `OnSelectionChanged`로 받으려 했으나 `if (_selected == next) return;` 중복 제거에 삼켜졌다(**Shift로만 선택 시 `_selected==null` → Esc·빈 곳 해제 불발**, 이미 선택된 타워 재평클릭 시 단일화 불발 — WL-085). `OnSelectionChanged`는 기존 단일 선택 구독자용으로 그대로 두고, 그룹 경로만 이 새 이벤트로 분리. **우클릭은 해제에 쓰지 않는다**(카메라 드래그 이중 점유 WL-073, 이슈 AC에서 의도적 이탈 — F3).
+- **평클릭·빈 곳 해제 = `OnPrimarySelect` 신설**(F3 + WL-085): 평클릭(해석된 `ISelectable`)·빈 곳 클릭 시 `OnPrimarySelect(ISelectable|null)`를 **중복 제거 없이 항상** 발행한다. 코디네이터가 이걸로 그룹을 리셋(타워면 `SetSingle`)/해제(그 외·null)한다. → 기존엔 이 신호를 `Select(null)`의 `OnSelectionChanged`로 받으려 했으나 `if (_selected == next) return;` 중복 제거에 삼켜졌다(**Shift로만 선택 시 `_selected==null` → 빈 곳 해제 불발**, 이미 선택된 타워 재평클릭 시 단일화 불발 — WL-085). `OnSelectionChanged`는 기존 단일 선택 구독자용으로 그대로 두고, 그룹 경로만 이 새 이벤트로 분리. **우클릭은 해제에 쓰지 않는다**(카메라 드래그 이중 점유 WL-073, 이슈 AC에서 의도적 이탈 — F3).
 
 ### 7.3 입력 규칙 (이슈 §상세)
 | 입력 | 동작 |
@@ -173,9 +173,9 @@
 | Shift + 미선택 타워 | 단일 선택 해제 후 집합 **끝에 추가**(순서 보존) |
 | Shift + 이미 선택된 타워 | 단일 선택 해제 후 집합에서 **토글 제거**(나머지 순서 유지) |
 | Shift + 건물/영지 노드 등 비-타워 | **무시**(집합·단일 선택 둘 다 불변 — 마커 없음) |
-| 빈 곳 클릭 / Esc | **전체 해제** |
+| 빈 곳 클릭 | **전체 해제** |
 | 우클릭 | 해제 아님 — 카메라 드래그·배치/조준 취소 전용(WL-073, F3) |
-| (입력 아님) 배치 시작 | **전체 해제** — `MouseManager.BeginPlacement`가 Esc와 같은 `ClearSelection()`을 호출(WL-086). 자원 배치·합성 배치 모두 해당하며, 고스트를 든 화면에 이전 선택의 사거리 원·초록·인포/합성 패널이 남지 않는다 |
+| (입력 아님) 배치 시작 | **전체 해제** — `MouseManager.BeginPlacement`가 `ClearSelection()`을 호출한다(WL-086). 자원 배치·합성 배치 모두 해당하며, 고스트를 든 화면에 이전 선택의 사거리 원·초록·인포/합성 패널이 남지 않는다 |
 
 ### 7.4 집합 = `TowerMergeGroup` (이음매, 단일 리스트)
 - 코디네이터는 **순수 C# `TowerMergeGroup` 하나를 유일한 백킹 스토어로 직접 조작**한다(`Add`/`Remove`/`Clear`/`Prune`)(F4). 별도 동기화 리스트가 없어 어긋날 표면이 없다. 그룹의 `OnChanged`(Add/Remove/Clear/Prune 성공 시 발행) 하나로 하이라이트·패널·실행부 소모까지 모든 변경이 단일 통지된다 — 코디네이터가 구독해 `RefreshHighlight`/`RefreshPanel`/`OnGroupChanged` 발행.
@@ -260,7 +260,7 @@
 
 | 상황 | 원복 경로 |
 | --- | --- |
-| Esc·우클릭 취소 | `MouseManager.UpdatePlacement` → `CancelPlacement` → `onEnded` → `Undo` |
+| 우클릭 취소 | `MouseManager.UpdatePlacement` → `CancelPlacement` → `onEnded` → `Undo` |
 | 밤 전환 | `PhasePanelSwitcher.ShowNight` → `CancelPlacement` → 〃 |
 | 새 배치 시작 | `BeginPlacement`가 먼저 `CancelPlacement` → 〃 (이전 커맨드가 원복된 뒤 새 커맨드가 걸린다) |
 | **확정 클릭했지만 배치 실패** | `PlaceTower`가 앵커 없음·건설 불가·`TrySpend` 실패로 조기 반환 → `onConfirmed`(=`Confirm`+등록) **미발화** → 그래도 `MouseManager`가 뒤이어 `CancelPlacement` → `Undo`. 재료가 정확히 복구된다 |
@@ -387,11 +387,11 @@
 **선택/패널 UI (#183) — 코드 구현·컴파일 완료 / 아래는 정본 씬 배선 후 E2E로 확정할 인수 항목**
 - [ ] 타워 1개 선택 → 인포 패널(기존 동작 회귀 없음).
 - [ ] Shift로 타워 2개 이상 선택 → 인포 숨김 + 합성 패널 표시.
-- [ ] 위 전환에서 **직전 단일 선택의 초록 사거리 원도 함께 사라진다**(WL-087 회귀 감시 — 원이 남으면 합성 패널 시인성을 해친다). 1개로 축소하면 다시 뜨고, 0·빈 곳·Esc·밤 전환에서도 남지 않는다. 건물을 선택해 둔 채 Shift로 타워를 담기 시작한 경우도 동일(마법 타워는 #164 리팩토링 후 그룹에 담기므로 이 경로가 아니다).
+- [ ] 위 전환에서 **직전 단일 선택의 초록 사거리 원도 함께 사라진다**(WL-087 회귀 감시 — 원이 남으면 합성 패널 시인성을 해친다). 1개로 축소하면 다시 뜨고, 0·빈 곳·밤 전환에서도 남지 않는다. 건물을 선택해 둔 채 Shift로 타워를 담기 시작한 경우도 동일(마법 타워는 #164 리팩토링 후 그룹에 담기므로 이 경로가 아니다).
 - [ ] 합성 패널 상단 리스트가 **선택 순서대로** 채워지고 집합 변경 시 즉시 갱신.
 - [ ] Shift+이미 선택된 타워 → 리스트에서 토글 제거(순서 유지).
 - [ ] 선택 1개로 축소 시 인포 복귀, 0이면 숨김.
-- [ ] 키 없이 타워 클릭 = 집합 해제 후 단일 선택, 빈 곳 클릭/Esc = 전체 해제(**우클릭은 해제 아님** — F3, 이슈 AC에서 의도적 이탈).
+- [ ] 키 없이 타워 클릭 = 집합 해제 후 단일 선택, 빈 곳 클릭 = 전체 해제(**우클릭은 선택 해제 아님** — F3, 이슈 AC에서 의도적 이탈).
 - [ ] Shift+건물/영지 노드 → 무시(합성 리스트 불변).
 - [ ] (더미 레시피로) 집합이 레시피 재료를 **모두 포함**하면 해당 후보 버튼 `SetActive(true)`, 여분 허용, 미충족 시 비활성.
 - [ ] 여러 레시피 동시 충족 시 여러 후보 버튼 동시 활성.
@@ -404,7 +404,7 @@
 
 ## 13. 열린 결정 / TBD / 의존
 
-- **[구현 PR] SystemMap 갱신 필수**: #183은 MouseManager 공개 선택 계약(그룹 토글 이벤트·Idle Esc/빈곳 클리어 신호)과 신규 코디네이터/마커를 추가하므로, 구현 PR에서 `SystemMap.md`(§1 TowerFusion 행·§2 API·§3 접점 — MouseManager·TowerFusion 인근)를 같이 갱신한다.
+- **[구현 PR] SystemMap 갱신 필수**: #183은 MouseManager 공개 선택 계약(그룹 토글 이벤트·빈 곳 클리어 신호)과 신규 코디네이터/마커를 추가하므로, 구현 PR에서 `SystemMap.md`(§1 TowerFusion 행·§2 API·§3 접점 — MouseManager·TowerFusion 인근)를 같이 갱신한다.
 - **추가 선택 키 = Shift**(§7.2): WL-073(우클릭 이중 점유) 회피 겸. 재조정 시 이 문서·구현 동시 수정.
 - **레시피 카탈로그 출처 = 패널 인스펙터 배열 `TowerRecipe[] _recipes`**(§5, WL-076(a)): 후보 레시피 SO를 인스펙터에 등록. 순서 = 배열 순서(결정적). 예시 SO 2종은 `Assets/Resources/ScriptableObjects/TowerRecipes/`.
 - **stale 버튼 방어**(§10, WL-076(b) 해소): `TowerMergeGroup.Prune(predicate)` + 코디네이터가 `Tower.ActiveChanged` 구독해 **`Tower.Active` 멤버십 기준**으로 호출(OnDisable 시점 가짜-null 미형성 문제 회피).
@@ -456,4 +456,4 @@
 - 레시피는 패널 `TowerMergePanelView`의 인스펙터 배열 `_recipes`에 **등록해야 후보로 뜬다**. 예시 SO 2종 `Recipe_Example_Gatling`(archer×2+cannon×1→gatling)·`Recipe_Example_Sniper`(archer×1+cannon×1→Sniper)는 `Assets/Resources/ScriptableObjects/TowerRecipes/`. **`Recipe_Example_Sniper`는 새로 추가된 SO라 `_recipes`에 손수 넣어야** "다중 후보 동시 활성"이 검증된다(archer×2+cannon×1 선택 시 두 버튼 동시 활성).
 - **레이어**: 타워 콜라이더가 `MouseManager._selectableMask`에 포함돼야 Shift 클릭이 마커를 잡는다(기존 타워 단일 선택이 동작 중이면 이미 충족).
 
-**검증 체크리스트(Play)**: 타워 1개=인포 / Shift 2개=인포 숨김+합성 패널(리스트 순서대로) / archer 2개 → `Recipe_Example_ArcherToGatling` 버튼 활성 → 클릭 → 고스트 배치·확정 → archer 2개 소멸+gatling 생성 / Shift로 1개로 축소=인포 복귀, 빈곳·Esc=해제 / Shift+건물=무시 / 밤 전환=선택·패널 리셋.
+**검증 체크리스트(Play)**: 타워 1개=인포 / Shift 2개=인포 숨김+합성 패널(리스트 순서대로) / archer 2개 → `Recipe_Example_ArcherToGatling` 버튼 활성 → 클릭 → 고스트 배치·확정 → archer 2개 소멸+gatling 생성 / Shift로 1개로 축소=인포 복귀, 빈 곳 클릭=해제 / Shift+건물=무시 / 밤 전환=선택·패널 리셋.
