@@ -1,28 +1,23 @@
 using UnityEngine;
 
 /// <summary>
-/// 이 씬의 페이즈 오디오 큐 — 어떤 BGM을 틀지와 낮/밤 전환 스팅어를 정한다. (#361)
+/// 게임 씬의 사운드 큐 — 낮/밤 BGM 교체와 페이즈 전환 스팅어를 정한다. (#361)
 ///
-/// <see cref="AudioManager"/>는 DontDestroyOnLoad라 인스펙터 배선을 가질 수 없어
-/// 크로스페이드 엔진만 맡는다. 클립 배선과 낮/밤 구독은 씬 쪽인 이 컴포넌트 몫이다.
-/// 이렇게 나누면 매니저가 씬마다 죽는 <see cref="DayNightManager"/>를 재구독할 일이 없다.
+/// 낮/밤 구독이 씬 쪽에 있으므로 <see cref="AudioManager"/>(DontDestroyOnLoad)가 씬마다 죽는
+/// <see cref="DayNightManager"/>를 재구독할 일이 없다.
 ///
-/// 씬당 하나 배치한다. 타이틀 씬처럼 페이즈가 없는 곳은 <see cref="dayClip"/>만 배선하면 된다.
+/// 씬당 하나 배치한다 — `SoundCue` 오브젝트의 자식으로 둔다(<see cref="TitleCue"/>와 같은 자리).
 /// </summary>
-public class BgmCue : MonoBehaviour
+public class InGameCue : SoundCue
 {
     [Header("Tracks")]
     [SerializeField]
-    [Tooltip("낮 트랙. 페이즈가 없는 씬(타이틀 등)에서는 이 클립만 쓴다.")]
+    [Tooltip("낮 트랙.")]
     private AudioClip dayClip;
 
     [SerializeField]
-    [Tooltip("밤 트랙. 비워두면 페이즈 전환을 구독하지 않고 낮 트랙만 유지한다.")]
+    [Tooltip("밤 트랙. 비워두면 밤에도 낮 트랙을 유지한다.")]
     private AudioClip nightClip;
-
-    [SerializeField]
-    [Tooltip("트랙 교체 크로스페이드 길이(초).")]
-    private float fadeSeconds = 1f;
 
     [Header("Phase Stingers")]
     [SerializeField]
@@ -58,7 +53,9 @@ public class BgmCue : MonoBehaviour
             subscribed.OnNightToDay += HandleNightToDay;
         }
 
-        // 초기 1회. 페이즈가 없는 씬은 항상 낮 트랙으로 시작한다.
+        // 초기 1회. ⚠ 세이브 복원(RunSaveManager도 Start에서 돈다)과 순서가 보장되지 않는다 —
+        // 지금은 v1이 밤 페이즈 복원을 거부해서 드러나지 않지만, 밤 세이브를 여는 순간
+        // "밤에서 이어했는데 낮 BGM"이 확률적으로 난다(Docs/Core/AudioManager.md §5).
         if (dayNight != null && dayNight.CurrentPhase == DayNightManager.Phase.Night)
         {
             PlayNight();
@@ -85,48 +82,26 @@ public class BgmCue : MonoBehaviour
     // 전환 스팅어는 **전환 순간에만** 울린다 — Start의 초기 1회는 PlayDay/PlayNight를 직접 부른다.
     private void HandleDayToNight()
     {
-        PlayStinger(dayToNightClip);
+        PlaySfx(dayToNightClip, stingerVolume);
 
         PlayNight();
     }
 
     private void HandleNightToDay()
     {
-        PlayStinger(nightToDayClip);
+        PlaySfx(nightToDayClip, stingerVolume);
 
         PlayDay();
     }
 
-    private void PlayStinger(AudioClip clip)
-    {
-        // `?.`는 Unity의 == 오버로드를 우회해 파괴된 객체를 살아 있는 것처럼 다룬다(UNT0008).
-        if (AudioManager.Instance == null)
-        {
-            return;
-        }
-
-        AudioManager.Instance.PlaySfx(clip, stingerVolume);
-    }
-
     private void PlayDay()
     {
-        Play(dayClip);
+        PlayBgm(dayClip);
     }
 
     // 밤 트랙이 없으면 낮 트랙을 그대로 유지한다(같은 클립 재요청은 매니저가 무시한다).
     private void PlayNight()
     {
-        Play(nightClip != null ? nightClip : dayClip);
-    }
-
-    private void Play(AudioClip clip)
-    {
-        if (AudioManager.Instance == null)
-        {
-            return;
-        }
-
-        // 클립 미배선은 매니저가 조용히 무시한다 — BGM 에셋 확보 전에도 씬이 깨지지 않는다.
-        AudioManager.Instance.PlayBgm(clip, fadeSeconds);
+        PlayBgm(nightClip != null ? nightClip : dayClip);
     }
 }
