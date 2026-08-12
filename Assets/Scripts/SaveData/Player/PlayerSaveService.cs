@@ -14,6 +14,8 @@ namespace NorthLand.Core
             private set;
         }
 
+        private LegacyRunSaveLocationMigrator legacyRunSaveLocationMigrator;
+
         private PlayerSlotManager slotManager;
 
         private const string SelectedSlotKey = "NorthLand.SelectedPlayerSlot";
@@ -59,6 +61,8 @@ namespace NorthLand.Core
 
             slotManager =new PlayerSlotManager(Application.persistentDataPath);
 
+            legacyRunSaveLocationMigrator =new LegacyRunSaveLocationMigrator(Application.persistentDataPath);
+
             RestoreSelectedSlot();
         }
 
@@ -75,6 +79,7 @@ namespace NorthLand.Core
             }
 
             CurrentPlayerData = data;
+            TryMigrateLegacyRunSave();
             SaveSelectedSlot(slotIndex);
             SelectedSlotChanged?.Invoke();
 
@@ -89,6 +94,7 @@ namespace NorthLand.Core
             }
 
             CurrentPlayerData = data;
+            TryMigrateLegacyRunSave();
             SaveSelectedSlot(slotIndex);
             SelectedSlotChanged?.Invoke();
 
@@ -155,6 +161,9 @@ namespace NorthLand.Core
             if (slotManager.TrySelectSlot(slotIndex,out PlayerData data,out _))
             {
                 CurrentPlayerData = data;
+
+                TryMigrateLegacyRunSave();
+
                 return;
             }
 
@@ -188,6 +197,33 @@ namespace NorthLand.Core
             }
 
             return true;
+        }
+
+        private void TryMigrateLegacyRunSave()
+        {
+            if (!HasSelectedSlot)
+            {
+                return;
+            }
+
+            if (legacyRunSaveLocationMigrator == null)
+            {
+                Debug.LogWarning("[PlayerSaveService] 구버전 Run 세이브 이전 시스템이 준비되지 않았습니다.",this);
+
+                return;
+            }
+
+            if (!legacyRunSaveLocationMigrator.TryMigrate(CurrentSlotPath,out bool migrated,out string error))
+            {
+                Debug.LogWarning($"[PlayerSaveService] 구버전 Run 세이브 이전 실패: {error}",this);
+
+                return;
+            }
+
+            if (migrated)
+            {
+                Debug.Log($"[PlayerSaveService] 구버전 Run 세이브를 슬롯 {CurrentSlotIndex + 1}로 이전했습니다.",this);
+            }
         }
 
     }
