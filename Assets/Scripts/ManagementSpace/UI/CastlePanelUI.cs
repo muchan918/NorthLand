@@ -254,11 +254,11 @@ public class CastlePanelUI : MonoBehaviour
                 continue;
             }
 
-            string rname = LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, data.NameKey);
+            // 자원 종류는 아이콘으로만 표기한다 — Data는 지갑 대조(Kind)에만 쓰인다.
             bool affordable = _controller.ResourceCount(data.Kind) >= c.Amount;
 
             BuildingCostRow row = Instantiate(_costRowPrefab, content, false);
-            row.Set(rname, c.Amount, affordable);
+            row.Set(c.Resource.Icon, c.Amount, affordable);
         }
     }
 

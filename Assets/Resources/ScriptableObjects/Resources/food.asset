@@ -13,3 +13,4 @@ MonoBehaviour:
   m_Name: food
   m_EditorClassIdentifier: Assembly-CSharp::ResourceAsset
   ResourceID: food
+  Icon: {fileID: 21300000, guid: de8e18c2a0fa844bb9a673122d877950, type: 3}

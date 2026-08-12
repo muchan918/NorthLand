@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 148c622b179d47f4fb6b31f4c8de1d43, type: 3}
+  m_Name: ResourceIconTable
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceIconTable
+  _wood: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
+  _iron: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+  _food: {fileID: 11400000, guid: 746ba3ce36acad54fa80a53a079fd605, type: 2}
+  _mana: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}

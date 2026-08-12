@@ -16,7 +16,10 @@ public class ProductionLineView : MonoBehaviour
 {
     private enum RowMode { Villager, Mana }
 
-    [SerializeField] TMP_Text _nameText;
+    [Tooltip("자원 아이콘 — 이름 텍스트를 대체한다(로케일 무관·폭 일정).")]
+    [SerializeField] Image _nameIcon;
+    [Tooltip("ResourceKind → 아이콘 매핑 SO. 프리팹에 직접 물려둔다(씬 배선 불필요).")]
+    [SerializeField] ResourceIconTable _iconTable;
     [Tooltip("지갑(현재 보유량) — 모든 행 공통. 탑 바에서 이관됨(#166).")]
     [SerializeField] TMP_Text _balanceText;
     [Tooltip("배치 주민 수 — 기본 자원(Villager) 행에서만 보인다.")]
@@ -30,7 +33,6 @@ public class ProductionLineView : MonoBehaviour
     private RowMode _mode;
     private int _lineIndex;      // Villager 모드
     private ResourceKind _kind;  // Mana 모드
-    private string _nameKey;     // Mana 모드 표시명 키
 
     /// <summary>기본 자원 생산 라인(주민 배치)으로 바인딩한다(#166 Villager 모드).</summary>
     public void BindVillager(ManagementController controller, int lineIndex)
@@ -47,8 +49,7 @@ public class ProductionLineView : MonoBehaviour
         _controller = controller;
         _mode = RowMode.Mana;
         _kind = kind;
-        _nameKey = nameKey;
-        ConfigureVillagerUI(false);
+        ConfigureVillagerUI(false); // nameKey는 표시명이 아이콘으로 대체되며 쓰이지 않는다(시그니처는 호출부 호환 위해 유지)
     }
 
     // 주민수 칸·+/- 버튼은 Villager 행에서만 보인다(#166 — 마나/특수 자원은 주민 배치 대상이 아님).
@@ -99,7 +100,7 @@ public class ProductionLineView : MonoBehaviour
 
     private void RefreshVillager()
     {
-        if (_nameText != null) _nameText.text = _controller.LineDisplayName(_lineIndex);
+        SetIcon(_controller.LineKind(_lineIndex));
         if (_balanceText != null) _balanceText.text = _controller.ResourceCount(_controller.LineKind(_lineIndex)).ToString();
         if (_villagerText != null) _villagerText.text = _controller.LineVillagers(_lineIndex).ToString();
         if (_expectedText != null) _expectedText.text = $"+{_controller.LineExpectedProduction(_lineIndex)}";
@@ -112,8 +113,20 @@ public class ProductionLineView : MonoBehaviour
     // 표시 전용 자원 행: 이름 + 지갑(보유량) + "+n"(다음 정산 시 수급량).
     private void RefreshResource(ResourceKind kind, int perDay)
     {
-        if (_nameText != null) _nameText.text = LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, _nameKey);
+        SetIcon(kind);
         if (_balanceText != null) _balanceText.text = _controller.ResourceCount(kind).ToString();
         if (_expectedText != null) _expectedText.text = $"+{perDay}";
+    }
+
+    // 아이콘 미할당(SO에 Icon 미설정)이면 흰 사각형 대신 숨긴다 — BuildingCostRow와 같은 규약.
+    private void SetIcon(ResourceKind kind)
+    {
+        if (_nameIcon == null)
+        {
+            return;
+        }
+        Sprite icon = _iconTable != null ? _iconTable.Get(kind) : null;
+        _nameIcon.enabled = icon != null;
+        _nameIcon.sprite = icon;
     }
 }
