@@ -163,8 +163,32 @@ namespace NorthLand.Core
             PlayerPrefs.Save();
         }
 
-    
+        public bool TryUpdateLastPlayedAt(out string error)
+        {
+            error = null;
 
+            if (!HasSelectedSlot ||CurrentPlayerData == null)
+            {
+                error = "선택된 플레이어 세이브 슬롯이 없습니다.";
+
+                return false;
+            }
+
+            long previousTime = CurrentPlayerData.lastPlayedAt;
+
+            CurrentPlayerData.UpdateLastPlayedAt();
+
+            var store = new PlayerDataStore(CurrentSlotPath);
+
+            if (!store.TrySave(CurrentPlayerData,out error))
+            {
+                CurrentPlayerData.lastPlayedAt = previousTime;
+
+                return false;
+            }
+
+            return true;
+        }
 
     }
 }

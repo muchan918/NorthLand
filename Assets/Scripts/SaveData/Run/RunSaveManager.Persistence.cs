@@ -25,8 +25,7 @@ namespace NorthLand.Core
         private void Awake()
         {
             serializer = new SaveSerializer();
-            PlayerSaveService playerSaveService =
-                PlayerSaveService.Instance;
+            PlayerSaveService playerSaveService = PlayerSaveService.Instance;
 
             if (playerSaveService == null || !playerSaveService.HasSelectedSlot)
             {
@@ -164,9 +163,19 @@ namespace NorthLand.Core
 
             if (!fileStore.TryWrite(json, out string error))
             {
-                Debug.LogError($"[Save] {error}",this);
-
+                Debug.LogError($"[Save] {error}", this);
                 return false;
+            }
+
+            PlayerSaveService playerSaveService = PlayerSaveService.Instance;
+
+            if (playerSaveService == null)
+            {
+                Debug.LogWarning("[Save] 플레이어 저장 시스템이 없어 업데이트 시간을 기록하지 못했습니다.",this);
+            }
+            else if (!playerSaveService.TryUpdateLastPlayedAt(out string playerSaveError))
+            {
+                Debug.LogWarning($"[Save] 플레이어 업데이트 시간 기록 실패: {playerSaveError}",this);
             }
 
             Debug.Log($"[Save] 저장 완료: {fileStore.SavePath}",this);
