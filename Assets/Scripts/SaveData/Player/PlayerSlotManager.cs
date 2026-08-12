@@ -55,7 +55,7 @@ namespace NorthLand.Core
             return store.Exists;
         }
 
-        public bool TryCreateAndSelectSlot(int slotIndex,string playerName,out PlayerData data,out string error)
+        public bool TryCreateAndSelectSlot(int slotIndex,out PlayerData data,out string error)
         {
             data = null;
             error = null;
@@ -66,7 +66,7 @@ namespace NorthLand.Core
                 return false;
             }
 
-            var store = new PlayerDataStore(GetSlotPath(slotIndex));
+            PlayerDataStore store = new PlayerDataStore(GetSlotPath(slotIndex));
 
             if (store.Exists)
             {
@@ -74,15 +74,7 @@ namespace NorthLand.Core
                 return false;
             }
 
-            try
-            {
-                data = PlayerData.Create(playerName);
-            }
-            catch (ArgumentException exception)
-            {
-                error = exception.Message;
-                return false;
-            }
+            data = PlayerData.Create();
 
             if (!store.TrySave(data, out error))
             {

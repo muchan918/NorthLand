@@ -158,13 +158,6 @@ namespace NorthLand.Core
                 return false;
             }
 
-            if (string.IsNullOrWhiteSpace(data.playerName))
-            {
-                error = "플레이어 이름이 비어 있습니다.";
-                data = null;
-                return false;
-            }
-
             // 정상적인 구버전 평면 JSON을 새 봉투 형식으로 다시 저장
             if (needsRewrite &&
                 !TrySave(data, out error))

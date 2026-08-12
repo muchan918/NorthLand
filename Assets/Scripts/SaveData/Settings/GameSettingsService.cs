@@ -61,14 +61,14 @@ namespace NorthLand.Core
         {
             if (store.Exists)
             {
-                if (store.TryLoad(out GameSettingsData data,out string error))
+                if (store.TryLoad(out GameSettingsData data, out string error))
                 {
                     CurrentSettings = data;
                     canSaveSettings = true;
                     return;
                 }
 
-                Debug.LogWarning($"게임 설정을 불러오지 못했습니다: {error}",this);
+                Debug.LogWarning($"게임 설정을 불러오지 못했습니다: {error}", this);
 
                 // 기존 파일은 보존하고 이번 실행에서만 기본값을 사용한다.
                 CurrentSettings = GameSettingsData.CreateDefault();
@@ -79,11 +79,11 @@ namespace NorthLand.Core
 
             CurrentSettings = GameSettingsData.CreateDefault();
 
-            if (!store.TrySave(CurrentSettings,out string saveError))
+            if (!store.TrySave(CurrentSettings, out string saveError))
             {
                 canSaveSettings = false;
 
-                Debug.LogWarning($"기본 게임 설정을 저장하지 못했습니다: {saveError}",this);
+                Debug.LogWarning($"기본 게임 설정을 저장하지 못했습니다: {saveError}", this);
 
                 return;
             }
@@ -91,7 +91,7 @@ namespace NorthLand.Core
             canSaveSettings = true;
         }
 
-        public bool TrySetLocale(string localeCode,out string error)
+        public bool TrySetLocale(string localeCode, out string error)
         {
             error = null;
 
@@ -107,37 +107,34 @@ namespace NorthLand.Core
                 return false;
             }
 
-            if (!canSaveSettings)
-            {
-                error ="기존 설정 파일을 불러올 수 없어 설정을 저장하지 않았습니다.";
-
-                return false;
-            }
-
             string previousLocale = CurrentSettings.localeCode;
 
             CurrentSettings.localeCode = localeCode.Trim();
 
+            // 손상 파일은 보존하되 현재 실행에는 설정을 적용한다.
+            if (!canSaveSettings)
+            {
+                SettingsChanged?.Invoke();
+                return true;
+            }
+
             if (!store.TrySave(CurrentSettings, out error))
             {
                 CurrentSettings.localeCode = previousLocale;
-
                 return false;
             }
 
             SettingsChanged?.Invoke();
-
             return true;
         }
 
-        public bool TrySetLastSelectedSlotIndex(int slotIndex,out string error)
+        public bool TrySetLastSelectedSlotIndex(int slotIndex, out string error)
         {
             error = null;
 
-            // -1은 선택 해제, 0~2는 정상 슬롯
-            if (slotIndex < -1 ||slotIndex >= PlayerSlotManager.SlotCount)
+            if (slotIndex < -1 || slotIndex >= PlayerSlotManager.SlotCount)
             {
-                error = $"슬롯 번호는 -1부터 {PlayerSlotManager.SlotCount - 1}까지 사용할 수 있습니다.";
+                error =$"슬롯 번호는 -1부터 " +$"{PlayerSlotManager.SlotCount - 1}까지 사용할 수 있습니다.";
 
                 return false;
             }
@@ -148,16 +145,16 @@ namespace NorthLand.Core
                 return false;
             }
 
-            if (!canSaveSettings)
-            {
-                error = "기존 설정 파일을 불러올 수 없어 선택 슬롯을 저장하지 않았습니다.";
-
-                return false;
-            }
-
             int previousSlotIndex = CurrentSettings.lastSelectedSlotIndex;
 
             CurrentSettings.lastSelectedSlotIndex = slotIndex;
+
+            // 손상 파일은 보존하되 현재 실행의 선택 상태는 갱신한다.
+            if (!canSaveSettings)
+            {
+                SettingsChanged?.Invoke();
+                return true;
+            }
 
             if (!store.TrySave(CurrentSettings, out error))
             {
@@ -167,7 +164,6 @@ namespace NorthLand.Core
             }
 
             SettingsChanged?.Invoke();
-
             return true;
         }
     }

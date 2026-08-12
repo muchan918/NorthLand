@@ -16,21 +16,13 @@ namespace NorthLand.Core
 
         public long lastPlayedAt;
 
-        public string playerName;
-
-        public static PlayerData Create(string playerName)
+        public static PlayerData Create()
         {
-            if (string.IsNullOrWhiteSpace(playerName))
-            {
-                throw new ArgumentException("플레이어 이름이 비어 있습니다.",nameof(playerName));
-            }
-
             long currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
             return new PlayerData
             {
                 playerId = Guid.NewGuid().ToString("N"),
-                playerName = playerName.Trim(),
                 createdAt = currentTime,
                 lastPlayedAt = currentTime
             };

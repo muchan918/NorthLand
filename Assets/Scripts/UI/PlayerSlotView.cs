@@ -4,6 +4,7 @@ using NorthLand.Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Localization.Settings;
 
 namespace NorthLand.UI
 {
@@ -34,6 +35,11 @@ namespace NorthLand.UI
         [SerializeField]
         private Button deleteButton;
 
+        private const string SlotNameKey = "save.slot.name";
+        private const string EmptyKey = "save.slot.empty";
+        private const string CorruptedKey = "save.slot.corrupted";
+        private const string UpdatedKey = "save.slot.updated";
+
         public int SlotIndex => slotIndex;
 
         /// <summary>
@@ -43,7 +49,7 @@ namespace NorthLand.UI
         {
             if (playerNameText != null)
             {
-                playerNameText.text = $"세이브데이터{slotIndex + 1}";
+                playerNameText.text = GetSlotName();
             }
 
             if (updatedAtText != null)
@@ -54,7 +60,7 @@ namespace NorthLand.UI
             if (emptyText != null)
             {
                 emptyText.gameObject.SetActive(true);
-                emptyText.text = "비어있음";
+                emptyText.text = LocalizationHelper.Get(LocalizationHelper.k_DefaultTable,EmptyKey);
             }
 
             if (selectedMarker != null)
@@ -77,7 +83,7 @@ namespace NorthLand.UI
         {
             if (playerNameText != null)
             {
-                playerNameText.text = $"세이브데이터{slotIndex + 1}";
+                playerNameText.text = GetSlotName();
             }
 
             if (updatedAtText != null)
@@ -88,7 +94,7 @@ namespace NorthLand.UI
             if (emptyText != null)
             {
                 emptyText.gameObject.SetActive(true);
-                emptyText.text = "손상된 세이브 데이터\n삭제 후 다시 생성해주세요.";
+                emptyText.text = LocalizationHelper.Get(LocalizationHelper.k_DefaultTable,CorruptedKey);
             }
 
             if (selectedMarker != null)
@@ -105,7 +111,7 @@ namespace NorthLand.UI
         /// <summary>
         /// 저장된 플레이어 데이터로 슬롯을 표시한다.
         /// </summary>
-        public void ShowData(PlayerData data,bool isSelected)
+        public void ShowData(PlayerData data, bool isSelected)
         {
             if (data == null)
             {
@@ -115,7 +121,7 @@ namespace NorthLand.UI
 
             if (playerNameText != null)
             {
-                playerNameText.text = data.playerName;
+                playerNameText.text = GetSlotName();
             }
 
             if (emptyText != null)
@@ -144,9 +150,26 @@ namespace NorthLand.UI
         {
             DateTimeOffset dateTime =DateTimeOffset.FromUnixTimeSeconds(unixTimeSeconds).ToLocalTime();
 
-            CultureInfo koreanCulture = CultureInfo.GetCultureInfo("ko-KR");
+            string localeCode =LocalizationSettings.SelectedLocale?.Identifier.Code;
 
-            return "업데이트됨\n" + dateTime.ToString("yyyy년 M월 d일, tt h:mm",koreanCulture);
+            CultureInfo culture;
+
+            try
+            {
+                culture = string.IsNullOrWhiteSpace(localeCode) ? CultureInfo.CurrentCulture : CultureInfo.GetCultureInfo(localeCode);
+            }
+            catch (CultureNotFoundException)
+            {
+                culture = CultureInfo.CurrentCulture;
+            }
+
+            string formattedDate = dateTime.ToString("g", culture);
+
+            return LocalizationHelper.Get(LocalizationHelper.k_DefaultTable,UpdatedKey,formattedDate);
+        }
+        private string GetSlotName()
+        {
+            return LocalizationHelper.Get(LocalizationHelper.k_DefaultTable,SlotNameKey,slotIndex + 1);
         }
     }
 }

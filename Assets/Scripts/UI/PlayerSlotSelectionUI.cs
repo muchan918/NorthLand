@@ -1,6 +1,8 @@
 using NorthLand.Core;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Localization;
+using UnityEngine.Localization.Settings;
 
 namespace NorthLand.UI
 {
@@ -14,6 +16,8 @@ namespace NorthLand.UI
 
         [SerializeField]
         private PlayerSlotView[] slotViews;
+
+        private const string SlotNameKey = "save.slot.name";
 
         /// <summary>
         /// 슬롯 버튼에서 0, 1, 2를 전달한다.
@@ -44,9 +48,7 @@ namespace NorthLand.UI
             else
             {
                 // 빈 슬롯 생성
-                string playerName = $"세이브데이터{slotIndex + 1}";
-
-                success =service.TryCreateAndSelectSlot(slotIndex,playerName,out error);
+                success = service.TryCreateAndSelectSlot(slotIndex,out error);
             }
 
             if (!success)
@@ -84,7 +86,7 @@ namespace NorthLand.UI
                 return;
             }
 
-            selectedSlotText.text = service.CurrentPlayerData.playerName;
+            selectedSlotText.text =LocalizationHelper.Get(LocalizationHelper.k_DefaultTable,SlotNameKey,service.CurrentSlotIndex + 1);
         }
 
         private void ClearError()
@@ -111,6 +113,20 @@ namespace NorthLand.UI
         }
 
         private void OnEnable()
+        {
+            LocalizationSettings.SelectedLocaleChanged += HandleSelectedLocaleChanged;
+
+            RefreshAllSlots();
+            RefreshSelectedSlot();
+        }
+
+       private void OnDisable()
+        {
+            LocalizationSettings.SelectedLocaleChanged -=
+                HandleSelectedLocaleChanged;
+        }
+
+        private void HandleSelectedLocaleChanged(Locale locale)
         {
             RefreshAllSlots();
             RefreshSelectedSlot();

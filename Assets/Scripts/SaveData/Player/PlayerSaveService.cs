@@ -72,9 +72,9 @@ namespace NorthLand.Core
             return slotManager.SlotExists(slotIndex);
         }
 
-        public bool TryCreateAndSelectSlot(int slotIndex,string playerName,out string error)
+        public bool TryCreateAndSelectSlot(int slotIndex,out string error)
         {
-            if (!slotManager.TryCreateAndSelectSlot(slotIndex,playerName,out PlayerData data,out error))
+            if (!slotManager.TryCreateAndSelectSlot(slotIndex,out PlayerData data,out error))
             {
                 return false;
             }
