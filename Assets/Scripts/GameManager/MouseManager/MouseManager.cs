@@ -39,7 +39,7 @@ public class MouseManager : MonoBehaviour
     public event Action<bool> OnBoxSelectBegin;
     /// 사각형 내용이 바뀔 때마다 발행. **사각형에 들어온 순서**가 그대로 보존된 목록이다.
     public event Action<IReadOnlyList<IGroupSelectable>> OnBoxSelectUpdate;
-    /// 드래그 종료(버튼 뗌 또는 Esc). 구독자가 유예했던 갱신을 여기서 한 번 처리한다.
+    /// 드래그 종료(버튼 뗌). 구독자가 유예했던 갱신을 여기서 한 번 처리한다.
     public event Action OnBoxSelectEnd;
 
     /// 드래그 중인 사각형의 스크린 좌표 영역. 사각형 UI가 매 프레임 읽어 간다(IsBoxSelecting이 true일 때만 유효).
