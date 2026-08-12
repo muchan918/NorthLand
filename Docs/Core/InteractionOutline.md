@@ -377,7 +377,7 @@ Opaque / Transparent / **Prepass** 레이어 마스크 세 곳을 정확히 맞�
 |---|---|
 | 배치 모드·스킬 조준 진입 | `MouseManager.BeginPlacement`/`BeginSkillTargeting`이 `ClearHover()`를 호출 → `OnHoverChanged(null)` → 드라이버가 노랑 해제. **모드 전환 순간 노란 아웃라인이 남지 않는지 확인 필요** |
 | 배치·조준 취소 | `CancelPlacement`/`CancelSkillTargeting`은 `_mode = Idle`만 되돌린다 → 다음 `UpdateHover`에서 자연 복구 |
-| Esc / 빈 곳 클릭 | `MouseManager.ClearSelection()`(= `Select(null)` + `OnPrimarySelect(null)`) → 단일 초록·그룹 초록 동시 해제 |
+| 빈 곳 클릭 | `MouseManager.ClearSelection()`(= `Select(null)` + `OnPrimarySelect(null)`) → 단일 초록·그룹 초록 동시 해제 |
 | **배치 시작** | `BeginPlacement`가 같은 `ClearSelection()`을 부른다 → 고스트를 드는 순간 초록(단일·그룹)·사거리 원·인포/합성 패널이 전부 내려간다(WL-086). 합성 경로도 남는 아웃라인이 없다 — 재료는 이 시점에 이미 소모돼 씬에 없다(#263, §5.3) |
 | Shift로 그룹에서 제거 | 코디네이터 `RefreshHighlight` diff가 `OnGroupDeselected` → 즉시 해제(WL-087 표면 재발 없음) |
 | 밤 전환 | 코디네이터 `HandleDayToNight`가 집합 리셋 → 그룹 초록·핑크 해제 **+ `PhasePanelSwitcher.ShowNight`가 `MouseManager.ClearSelection()`** → 단일 초록·사거리 원·인포도 함께 해제. 코디네이터만 내리면 `_selected`가 남아 **초록만 잔존하고 그 타워는 밤에 재클릭해도 안 뜬다**(중복 제거에 삼킴) — §4-4 불변식 위반이라 두 신호를 짝지어 보낸다(WL-086) |
