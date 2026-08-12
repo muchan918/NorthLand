@@ -211,10 +211,6 @@ MonoBehaviour:
     m_Key: save.slot.name
     m_Metadata:
       m_Items: []
-  - m_Id: 12023404305133568
-    m_Key: New Entry
-    m_Metadata:
-      m_Items: []
   - m_Id: 12023408398774272
     m_Key: save.slot.empty
     m_Metadata:
