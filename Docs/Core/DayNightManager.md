@@ -109,6 +109,7 @@ private void OnDestroy()
 | `NightActionPanelView.cs` | (#66, 임시) 밤에만 좌측 하단에 노출되는 "웨이브 성공/실패/보스 처치" + "낮 종료" 버튼 4개. "웨이브 성공"이 `EndNight()`를 직접 호출(WL-018 임시 트리거) |
 | `StageBuilder.cs`(`OnDayToNight` 구독) | (#17) 밤 진입 시 다음 스테이지 생성(전투영역 확장) + `MonsterSpawn.StartRound`로 몬스터 스폰(`currentMapCount > 1`). `Start()`에서 구독, `OnDestroy()`에서 해제 |
 | `MonsterSpawn.cs` | (#17) 밤에 스테이지 몬스터 스폰(`StartRound`). 스폰 완료 후 생존 0이 되면 `EndNight()` 호출(웨이브 클리어; 도달-디스폰 기준, 처치는 Enemy 병합 후 WL-038). 낮엔 스폰 스킵(경고 로그) |
+| `InGameCue.cs` | (#361) `OnDayToNight`/`OnNightToDay` 양쪽 구독 — 낮/밤 BGM 크로스페이드 요청 + 전환 스팅어 1회 재생. **전환 순간에만** 울리므로 `Start`의 초기 트랙 지정에는 스팅어가 딸려 나오지 않는다. `Start`에서 구독, `OnDestroy`에서 해제. 실제 재생은 `AudioManager`(`DontDestroyOnLoad`)가 하고 이 컴포넌트는 씬의 클립 배선만 소유한다(`SoundCue` 계층). ⚠ 초기 트랙이 `CurrentPhase` 스냅샷이라 세이브 복원과 `Start` 순서가 보장되지 않는다 — 밤 페이즈 복원이 열리면 드러난다(WL-182) — 정본 `Docs/Core/AudioManager.md` |
 
 - **생명주기**: 씬 싱글톤. 경영/전투 공간이 한 씬에 공존해 씬 전환에 걸쳐 상태를 유지할 이유가 없다는 판단(WL-002 참고 사례로 SystemMap §5에 기록).
 - **씬**: `Assets/Scenes/GameScene.unity` (정본, `Docs/Core/SceneWorkflow.md`). 낮/밤 전환 버튼은 `NightActionPanelView`(밤 전용 3개) + `ManagementPanelView`의 낮 종료 버튼(낮 전용 1개)로 구성
