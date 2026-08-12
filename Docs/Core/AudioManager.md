@@ -7,8 +7,9 @@
 - 구현 위치: `Assets/Scripts/GameManager/AudioManager.cs`, `Assets/Scripts/GameManager/BgmCue.cs`
 - 이 문서는 **현재 구현된 구조**를 정리한 것이다. 코드를 바꾼 사람은 이 문서도 함께 갱신해 어긋나지 않게 유지한다. 미구현 항목은 [7. 미확정/TODO](#7-미확정--todo)에 모아둔다.
 
-> ⚠️ **지금 SFX 볼륨은 아무 소리에도 걸리지 않는다.** 믹서를 쓰지 않으므로 볼륨은 `AudioManager`가 소유한
-> `AudioSource`에만 적용된다. SFX 재생 경로가 아직 없어서 `Sfx` 채널은 값만 보관·노출되는 상태다(§2).
+> ⚠️ **SFX는 2D 원샷 경로만 있다.** 믹서를 쓰지 않으므로 볼륨은 `AudioManager`가 소유한 `AudioSource`에만
+> 적용된다. `PlaySfx`(§6)를 거치는 소리 — 현재는 낮/밤 전환 스팅어 — 만 SFX 볼륨을 따르고,
+> `SkillManager`의 `PlayClipAtPoint`는 아직 통제 밖이다(§2).
 
 ## 1. 목적 · 핵심 원칙
 
@@ -30,11 +31,11 @@
 | | 상태 |
 |---|---|
 | BGM | ✅ 매니저가 소스를 직접 소유 → 볼륨·음소거가 즉시 걸린다 |
-| SFX | ❌ **재생 경로 없음.** 값만 저장·노출된다. 설정 패널의 SFX 슬라이더는 그때까지 무음 동작 |
+| SFX (`PlaySfx` 경유) | ✅ 2D 원샷만. 현재 소비처는 낮/밤 전환 스팅어 2개 |
+| SFX (그 밖) | ❌ `SkillManager`의 `AudioSource.PlayClipAtPoint`(스킬 착탄음)는 **통제 밖** — 볼륨·음소거가 걸리지 않는다 |
 
-유일한 기존 재생 지점은 `SkillManager`의 `AudioSource.PlayClipAtPoint`(스킬 착탄음)이고 아직 이관되지
-않았다. 새 재생 경로를 만드는 쪽은 **반드시 `GetEffectiveVolume(channel)`을 곱해야** 볼륨 제어를 받는다 —
-믹서가 없는 이상 이것이 유일한 연결 고리다.
+새 재생 경로를 만드는 쪽은 `PlaySfx`를 쓰거나, 직접 소스를 굴린다면 **반드시
+`GetEffectiveVolume(channel)`을 곱해야** 볼륨 제어를 받는다 — 믹서가 없는 이상 이것이 유일한 연결 고리다.
 
 더킹·스냅샷·저역 필터가 실제로 필요해지면 그때 AudioMixer 도입을 재검토한다.
 
@@ -106,6 +107,35 @@ source.volume = fadeWeight(0~1) × 실효 볼륨(Bgm)
 두 씬 모두에서 필요하고, 씬에 두면 씬 파일 병합 충돌만 늘어나기 때문이다(`SceneWorkflow.md`).
 씬에 수동 배치되는 경우를 대비한 중복 파괴 가드는 `Awake`에 있다.
 
+## 4.5 오디오 에셋 · 임포트 설정
+
+에셋은 아트 저장소에 있다: `Assets/Imported/@NorthLand/Sound/Bgm`(낮·밤 BGM),
+`.../Sound/Effect`(낮↔밤 전환 스팅어).
+
+⚠️ **`Assets/Imported`는 별도 저장소다** — 클립 추가나 `.meta`(임포트 설정) 변경은 **본 저장소 diff에
+보이지 않는다.** 미동기화 상태에서는 에러 없이 **소리만 조용히 사라진다**(WL-040과 같은 축).
+
+임포트 설정은 기본값(`DecompressOnLoad` + Vorbis)에서 아래처럼 바꿨다. 플랫폼 오버라이드는 두지 않았으므로
+`defaultSettings`가 PC·Mobile 양쪽에 그대로 적용된다.
+
+| | 클립 | Load Type | Preload | Load In Background | 근거 |
+|---|---|---|---|---|---|
+| BGM | 89.8s / 87.7s 2ch | **Streaming** | off | **on** | `DecompressOnLoad`면 두 트랙이 각각 30.2MB·32.1MB로 풀린다. 크로스페이드는 둘을 동시에 물므로 **62MB가 상주**한다 |
+| 전환 스팅어 | 1.4s / 1.5s 2ch | DecompressOnLoad | **on** | off | 0.5MB짜리 짧은 소리라 압축 해제가 맞다. preload를 켜야 첫 재생이 늦지 않는다 |
+
+- 스트리밍 + `preload=off` 조합에서 `Play()`는 `loadState=Loading`인 채로 받아들여지고, 로드가 끝나면
+  이어서 재생된다(실측 확인). 그래서 첫 재생에 메인 스레드가 멈추지 않는다.
+- **Vorbis quality는 100% 그대로**다. 90초 스테레오를 100%로 재인코딩하면 빌드 용량이 원본 mp3보다
+  커질 수 있으나, 낮추는 것은 청감 tradeoff라 임의로 정하지 않았다(§7 TODO).
+
+⚠️ **임포트 설정에는 클립별 게인(볼륨)이 없다.** `AudioImporter`가 가진 것은 로드 타입·압축·품질·
+샘플레이트·강제 모노뿐이다(`.meta`의 `normalize`는 게인이 아니라 **모노 다운믹스 시 정규화** 플래그이고,
+`forceToMono`가 꺼져 있으면 아무 효과도 없다). 특정 클립이 너무 크면 방법은 둘뿐이다 —
+**파일을 낮은 게인으로 다시 내보내거나, 재생 시 배율을 곱하거나.** 전환 스팅어는 후자를 쓴다(§5).
+
+측정값(2026-08-12): `DayToNight` peak **-0.8 dBFS** / RMS -17.4 dBFS, `NightToDay` peak -1.0 dBFS /
+RMS -17.8 dBFS. 둘 다 피크가 0 dBFS 코앞까지 마스터링돼 있어 SFX 볼륨을 그대로 곱하면 BGM 위에서 과하다.
+
 ## 5. 씬 배선 — `BgmCue`
 
 `AudioManager`는 `DontDestroyOnLoad`라 **인스펙터 배선을 가질 수 없다.** 그래서 클립 배선과 낮/밤 구독은
@@ -115,12 +145,17 @@ source.volume = fadeWeight(0~1) × 실효 볼륨(Bgm)
 | 필드 | 의미 |
 |---|---|
 | `dayClip` | 낮 트랙. 페이즈가 없는 씬(타이틀)에서는 이 클립만 쓴다 |
-| `nightClip` | 밤 트랙. **비워두면 페이즈 전환을 구독하지 않는다** |
+| `nightClip` | 밤 트랙. 비워두면 밤에도 낮 트랙을 유지한다 |
 | `fadeSeconds` | 트랙 교체 크로스페이드 길이(초). 기본 1 |
+| `dayToNightClip` / `nightToDayClip` | 전환 **순간에만** 1회 울리는 스팅어. SFX 채널 볼륨을 따른다 |
+| `stingerVolume` | 스팅어 재생 배율(0~1). 임포트 설정에 클립별 게인이 없어(§4.5) 여기서 줄인다. 코드 기본값 0.35(≈ -9dB), **정본 씬 현재 값 0.4**(청감 조정). 두 클립의 레벨 차가 0.4dB뿐이라 공용 배율 하나로 충분하다 |
 
-- 씬당 **1개** 배치한다.
+- 씬당 **1개** 배치한다. 현재 `GameScene`에만 있다 — 타이틀 트랙 에셋이 아직 없어 `TitleScene`은 비어 있다.
 - `Start`에서 `DayNightManager.Instance`의 `OnDayToNight`/`OnNightToDay`를 구독하고 `OnDestroy`에서
-  해제한다. `DayNightManager`가 없는 씬(타이틀)에서는 구독하지 않고 `dayClip`만 1회 재생한다.
+  해제한다. 밤 트랙이 없어도 스팅어만 쓸 수 있으므로 **페이즈가 있는 씬이면 항상 구독**한다.
+  `DayNightManager`가 없는 씬(타이틀)에서는 구독하지 않고 `dayClip`만 1회 재생한다.
+- 스팅어는 전환 이벤트에서만 울린다 — `Start`의 초기 트랙 지정은 `PlayDay`/`PlayNight`를 직접 부르므로
+  게임 시작이나 씬 로드에 전환음이 딸려 나오지 않는다.
 - 초기 1회는 `CurrentPhase`를 읽어 결정한다. 세이브 복원은 v1에서 **낮 페이즈만** 지원하므로
   (`RunSaveManager.Progress.cs`) 복원 타이밍과 어긋날 여지가 없다 — 밤 복원이 지원되면 재검토한다.
 - 밤 트랙이 비어 있으면 밤에도 낮 트랙을 유지한다(같은 클립 재요청은 매니저가 무시한다).
@@ -143,7 +178,16 @@ float GetEffectiveVolume(AudioChannel channel);        // AudioSource.volume에 
 
 void PlayBgm(AudioClip clip, float fadeSeconds = 1f);  // 같은 클립·null은 무시
 void StopBgm(float fadeSeconds = 1f);
+
+void PlaySfx(AudioClip clip, float volumeScale = 1f);  // 2D 원샷. 볼륨 0·음소거면 재생 생략
 ```
+
+`PlaySfx`는 소스 1개 + `PlayOneShot`이다(풀 아님). 그래서 두 가지 제약이 따라온다:
+
+- **볼륨이 호출 시점에 구워진다** — 재생 중 슬라이더를 움직여도 이미 울리는 소리에는 반영되지 않는다.
+  1~2초짜리 짧은 소리 전제다.
+- **동시재생 상한이 없다** — `PlayOneShot`은 겹쳐 쌓인다. 프레임마다 부를 만한 소리(타워 발사음 등)는
+  이 API가 아니라 풀 기반 경로를 기다린다(§7).
 
 - 설정 패널(#346)은 `Get*`으로 슬라이더 초기값을 읽고, `Set*`으로 밀고, `OnAudioSettingsChanged`로
   코드 쪽 변경을 따라온다.
@@ -151,17 +195,18 @@ void StopBgm(float fadeSeconds = 1f);
 
 ## 7. 미확정 / TODO
 
-- [ ] **SFX 재생 API·풀링** — `PlaySfx(clip, position)`, `AudioSource` 풀, 동시재생 상한,
+- [ ] **SFX 풀링·3D** — `PlaySfx(clip, position)`, `AudioSource` 풀, 동시재생 상한,
       `SkillManager.cs:269`의 `PlayClipAtPoint` 이관. 구조는 **중앙 풀 + `AudioClip` 직접 전달**로
-      방향을 잡아뒀다(사운드 뱅크 SO·`SoundId` enum은 도입하지 않는다). **이게 끝나야 SFX 볼륨이
-      실제 소리에 걸린다**
-- [ ] **BGM 클립 에셋** — 현재 프로젝트에 BGM으로 쓸 클립이 하나도 없다(`Assets/Imported` 안의 SFX뿐).
-      확보 전까지 `BgmCue` 필드는 비워둔다
-- [ ] **`BgmCue` 씬 배치** — `TitleScene`/`GameScene`에 각 1개. 정본 씬 편집이라 `SceneWorkflow.md` §4
-      병합 절차(개인 복사본 → `Branches/` 스냅샷 → 정본 확정)를 거쳐야 한다
+      방향을 잡아뒀다(사운드 뱅크 SO·`SoundId` enum은 도입하지 않는다). 현재의 2D 원샷 `PlaySfx`는
+      전환 스팅어처럼 **드물게 한 번 울리는 소리** 전용이다
+- [x] **BGM·전환음 클립 에셋** — `Assets/Imported/@NorthLand/Sound`에 낮·밤 BGM 2개 + 전환 스팅어 2개(§4.5)
+- [x] **`BgmCue` 씬 배치** — `GameScene`에 1개 배치·배선 완료
+- [ ] **타이틀 BGM** — 트랙 에셋이 없어 `TitleScene`에는 `BgmCue`를 두지 않았다
+- [ ] **Vorbis quality 조정** — 현재 100%. BGM 90초 스테레오라 빌드 용량 관점에서 낮출 여지가 있으나
+      청감 tradeoff라 미결(§4.5)
 - [ ] **설정 패널 슬라이더·토글 UI** → #346
-- [ ] **UI 클릭·호버 공용 사운드** — SFX 재생 경로 이후
-- [ ] **3D 사운드(거리 감쇠)·더킹·스냅샷** — 필요해지면 AudioMixer 도입을 재검토(§2)
+- [ ] **UI 클릭·호버 공용 사운드** — 풀 기반 경로 이후
+- [ ] **더킹·스냅샷** — 필요해지면 AudioMixer 도입을 재검토(§2)
 - [ ] **`settings.json` 이관** — #342의 슬롯 무관 공통 설정이 실제로 생기면 `PlayerPrefs`에서 옮긴다
 
 ## 8. 참고
