@@ -213,8 +213,15 @@ public class WaveRewardSelectionUI : MonoBehaviour
                 continue;
             }
 
+            // 레벨·수치를 카드당 한 번만 뜬다(#353) — 카드면 색과 카드 안 표시가 같은 값을 보게
+            // 하려면 조회가 한 곳이어야 한다. 매니저가 없으면 default가 그대로 "효과 없음"이라
+            // 별도 분기 없이 빈 카드 경로로 흐른다.
+            SkillEffectSnapshot snapshot = SkillEffectManager.Instance != null
+                ? SkillEffectManager.Instance.GetSnapshot(reward.RewardType)
+                : default;
+
             RewardCardView card = Instantiate(cardPrefab, cardContainer);
-            card.Bind(reward, ResolveTint(reward), SelectReward);
+            card.Bind(reward, snapshot, ResolveTint(snapshot), SelectReward);
             spawnedCards.Add(card);
         }
 
@@ -228,24 +235,17 @@ public class WaveRewardSelectionUI : MonoBehaviour
     // 도달"은 미리보기 별과 이 색과 레벨 줄 오른쪽이 맡는다. 즉 이 색은 채워진 별이 아니라
     // 미리보기 별과 같은 편에 선다.
     //
-    // 채워진 별에 맞춰 GetLevel로 내리지 말 것: 만렙 효과는 후보에서 빠지므로(#292) 카드에
+    // 채워진 별에 맞춰 Level로 내리지 말 것: 만렙 효과는 후보에서 빠지므로(#292) 카드에
     // 뜨는 현재 레벨은 0~2뿐이고, palette[level-1]은 Lv0과 Lv1이 같은 동색이 되며 금색은 한 번도
     // 나오지 않는다. 도달 레벨 기준이라야 동(Lv0 카드) → 은(Lv1) → 금(Lv2, 고르면 만렙)이 다 쓰인다.
-    private Color ResolveTint(WaveRewardData reward)
+    private Color ResolveTint(SkillEffectSnapshot snapshot)
     {
         Color[] palette = levelColors != null && levelColors.Length > 0
             ? levelColors
             : DefaultLevelColors;
 
-        int nextLevel = 0;
-
-        if (SkillEffectManager.Instance != null)
-        {
-            nextLevel = SkillEffectManager.Instance.GetNextLevel(reward.RewardType);
-        }
-
-        // 매니저가 없으면 nextLevel이 0이라 -1이 되는데 Clamp가 0으로 받아낸다(배열 밖 접근 방지).
-        return palette[Mathf.Clamp(nextLevel - 1, 0, palette.Length - 1)];
+        // 효과가 없으면 NextLevel이 0이라 -1이 되는데 Clamp가 0으로 받아낸다(배열 밖 접근 방지).
+        return palette[Mathf.Clamp(snapshot.NextLevel - 1, 0, palette.Length - 1)];
     }
 
     private void ClearCards()
