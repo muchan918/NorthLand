@@ -12,13 +12,13 @@ public enum AudioChannel
 }
 
 /// <summary>
-/// 게임 전체 사운드의 볼륨을 소유하고 BGM 재생·전환을 담당한다. (#361)
+/// 게임 전체 사운드의 볼륨을 소유하고 BGM 재생·전환과 2D 원샷 효과음을 담당한다. (#361)
 ///
 /// AudioMixer를 쓰지 않는다 — 채널이 3개뿐이고 더킹·스냅샷 요구가 없어
 /// 믹서 에셋 + 그룹 배선 + dB 변환 비용이 이득보다 크다고 판단했다.
 /// 대신 이 매니저가 볼륨 값을 소유하고 **자기가 소유한** AudioSource.volume에 곱해 넣는다.
 /// 따라서 이 매니저를 거치지 않는 재생은 볼륨 제어를 받지 못한다 —
-/// SFX 재생 경로 통합 전까지 Sfx 채널은 값만 보관·노출되고 실제로 걸리는 소리가 없다.
+/// <c>SkillManager</c>의 <c>AudioSource.PlayClipAtPoint</c>가 아직 그런 상태다.
 ///
 /// "지금 어떤 곡을 틀지"는 여기서 정하지 않는다. 이 오브젝트는 DontDestroyOnLoad라
 /// 인스펙터 배선을 가질 수 없으므로, 클립 선택과 페이즈 구독은 씬 쪽 <see cref="BgmCue"/>가 맡는다.
@@ -51,6 +51,9 @@ public class AudioManager : MonoBehaviour
     private AudioSource bgmA;
     private AudioSource bgmB;
     private bool activeIsA = true;
+
+    // 2D 원샷 전용. 풀이 아니라 소스 1개 + PlayOneShot이라 동시재생 상한이 없다(§PlaySfx 주석).
+    private AudioSource sfxSource;
 
     private float fadeDuration;
     private float fadeProgress = 1f;
@@ -98,7 +101,7 @@ public class AudioManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
 
         LoadPrefs();
-        CreateBgmSources();
+        CreateSources();
 
         // 이 시점엔 보통 구독자가 없다(설정 패널은 열 때 GetVolume으로 현재 값을 읽는다).
         // 계약상 "값이 확정되면 알린다"를 로드에도 동일하게 적용해둔다.
@@ -223,6 +226,33 @@ public class AudioManager : MonoBehaviour
         return master * volumes[(int)channel];
     }
 
+    // ── SFX ────────────────────────────────────────────────
+
+    /// <summary>
+    /// 2D 원샷 효과음을 재생한다. 위치도 감쇠도 없는 화면 전역 소리(페이즈 전환 스팅어·UI 등)용이다.
+    ///
+    /// ⚠️ <c>PlayOneShot</c>은 **호출 시점의 볼륨을 굽는다** — 재생 중 슬라이더를 움직여도 이미 울리고
+    /// 있는 소리에는 반영되지 않는다. 1~2초짜리 짧은 소리에만 쓰는 전제이며, 길게 끄는 소리나
+    /// 위치가 필요한 3D 효과음은 이 API로 처리하지 않는다(SFX 풀 도입 시 재검토).
+    /// </summary>
+    public void PlaySfx(AudioClip clip, float volumeScale = 1f)
+    {
+        if (clip == null || sfxSource == null)
+        {
+            return;
+        }
+
+        float volume = GetEffectiveVolume(AudioChannel.Sfx) * Mathf.Max(volumeScale, 0f);
+
+        // 음소거·볼륨 0이면 재생 자체를 생략한다(들리지 않는 소리에 보이스를 쓰지 않는다).
+        if (volume <= 0f)
+        {
+            return;
+        }
+
+        sfxSource.PlayOneShot(clip, volume);
+    }
+
     // ── BGM ────────────────────────────────────────────────
 
     /// <summary>
@@ -306,18 +336,22 @@ public class AudioManager : MonoBehaviour
         }
     }
 
-    private void CreateBgmSources()
+    private void CreateSources()
     {
-        bgmA = CreateBgmSource();
-        bgmB = CreateBgmSource();
+        bgmA = CreateSource(loop: true);
+        bgmB = CreateSource(loop: true);
+
+        // 원샷은 PlayOneShot이 볼륨을 인자로 받으므로 소스 자체는 1.0으로 둔다.
+        sfxSource = CreateSource(loop: false);
+        sfxSource.volume = 1f;
     }
 
-    private AudioSource CreateBgmSource()
+    private AudioSource CreateSource(bool loop)
     {
         var source = gameObject.AddComponent<AudioSource>();
 
         source.playOnAwake = false;
-        source.loop = true;
+        source.loop = loop;
         source.spatialBlend = 0f;   // 2D — 씬 카메라의 AudioListener 위치와 무관해진다
         source.volume = 0f;
 
