@@ -12,7 +12,7 @@
 | --- | --- |
 | `SkillManager` | 감전 스킬(#103). 클릭 위치 AoE 즉시 데미지, 밤 게이팅 + **충전(탄약) 소모**(#319). 임팩트마다 `ImpactResolved(SkillCastContext)` 이벤트 발행 |
 | ~~`BuffSkillManager`~~ | **미사용 (#315)** — 버프 스킬(#103). 즉시 발동, `Tower.Active` 전체에 공격력/공속 배율. 씬 미배선이라 `Instance`가 항상 null |
-| `SkillEffectManager` | 보상 라우터(씬 싱글톤). `WaveRewardController.GrantReward` → `ApplyReward(reward)` → 타입 매칭 효과에 레벨 가산 위임. `GetLevel(type)` / `GetStatSummary(type)`(#287) / 상한 조회 `IsMaxLevel`·`GetNextLevel`·`ReachesMaxLevel`(#292) 제공 |
+| `SkillEffectManager` | 보상 라우터(씬 싱글톤). `WaveRewardController.GrantReward` → `ApplyReward(reward)` → 타입 매칭 효과에 레벨 가산 위임. `GetLevel(type)`(세이브용) / 보상 후보 필터용 `IsMaxLevel(type)`(#292) / 카드 표시용 `GetSnapshot(type)` 제공 — 표시에 필요한 `Level`·`NextLevel`·`NextIsMax`·`Stats`(#287·#292)를 한 벌로 넘긴다. **값마다 따로 조회하지 말 것**(#353) |
 | `SkillEffect` (추상) | 특수효과 공통 베이스(MonoBehaviour, `SkillEffectManager` 오브젝트에 부착). 레벨·상한 소유 + 스킬 이벤트 구독 관리 + 표시 수치 제공(`GetStatSummary`) |
 | `SkillStatsFormatter` | 보상 카드 표시 문자열의 단일 출처(#287). 라벨 조회(`NorthLand_Skills`)와 숫자 서식이 여기 한 곳에만 있다 — `TowerStatsFormatter` 대응 |
 | `SkillCastContext` | 시전 1회의 정보 묶음(착탄 위치/맞은 적). 효과가 써넣는 필드는 없다 — 읽기 전용(#319). 짝인 `BuffCastContext`는 버프 스킬과 함께 **미사용 (#315)** |
