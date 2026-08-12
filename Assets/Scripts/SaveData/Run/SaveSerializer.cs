@@ -30,7 +30,7 @@ namespace NorthLand.Core
 
         public string Serialize(RunData data)
         {
-            var envelope = new SaveEnvelope(SaveFormat.CurrentVersion, data);
+            var envelope =new SaveEnvelope<RunData>(SaveFormat.CurrentVersion,data);
             return JsonConvert.SerializeObject(envelope, Settings);
         }
 
