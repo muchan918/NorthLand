@@ -17,7 +17,8 @@
 소유하지 않고 `SetVolume`/`SetMuted`로 밀어 넣고 `OnAudioSettingsChanged`로 되받는다.
 
 **"어떤 곡을 틀지"는 매니저가 모른다**: `AudioManager`는 크로스페이드 엔진이고, 트랙 선택은 씬 쪽
-`BgmCue`가 한다(§4). 매니저에 씬·페이즈 지식을 넣지 않는다.
+`SoundCue` 계층이 한다(§5). 매니저에 씬·페이즈 지식을 넣지 않는다. 대신 **씬마다 큐가 하나씩 있어야
+한다**는 계약이 따라온다 — 큐가 없는 씬은 직전 씬의 BGM을 그대로 끌고 간다(§5.1).
 
 ## 2. 왜 AudioMixer를 쓰지 않는가
 
@@ -65,6 +66,11 @@
 | `MasterVolume` / `BgmVolume` / `SfxVolume` | float (0~1) | 1.0 / 0.5 / 0.8 |
 | `MasterMuted` / `BgmMuted` / `SfxMuted` | int (0·1) | 0 |
 
+키에 접두어가 없다 — 선례인 `SelectedLocale`과 일관적이고 지금 충돌하는 키도 없다(저장소의
+`PlayerPrefs` 사용처는 `LocalizationManager`와 여기 둘뿐). 다만 `settings.json` 이관 시 "어떤 키가 오디오
+소유인가"를 문자열로 재수집해야 하므로, 그 시점에 키 6개를 배열로 노출해 마이그레이션이 그것만 읽게
+하는 편이 낫다(§7).
+
 **쓰기는 즉시, 디스크 flush는 지연한다.** `PlayerPrefs.SetFloat`은 메모리 캐시라 슬라이더 드래그마다
 불러도 싸지만 `PlayerPrefs.Save()`는 디스크 쓰기다. `Save()`는 `OnApplicationQuit` /
 `OnApplicationPause(true)` / `OnDestroy`에서만 호출한다(dirty 플래그로 불필요한 쓰기 차단).
@@ -96,6 +102,10 @@ source.volume = fadeWeight(0~1) × 실효 볼륨(Bgm)
 - **`null` 클립도 조용히 무시한다.** BGM 에셋 확보 전까지 `BgmCue` 필드가 비어 있어도 씬이 깨지지 않는다.
 - **페이드 도중 재요청**이면 재사용할 소스가 옛 트랙을 물고 있으므로 `Stop()` 후 재생한다(트랙 3개가
   동시에 겹치지는 않는다 — 소스가 2개뿐이라 가장 오래된 것이 즉시 버려진다).
+- **나가는 소스는 스왑 시점의 가중치를 기억한다**(`outgoingWeight`). 페이드인 중이던 소스가 그대로
+  페이드아웃 대상이 되는데, `fadeProgress`가 0으로 리셋되므로 `(1 - fadeProgress)`만 곱하면 **최대
+  볼륨으로 점프한 뒤 내려온다.** 가중치 0.9에서 끊으면 0.45여야 할 볼륨이 0.5로 튄다(실측 확인).
+  정착 후 교체라면 `outgoingWeight`가 1이라 식이 동일하다.
 - **배속에서 피치를 건드리지 않는다.** `Time.timeScale`은 `AudioSource.pitch`에 영향을 주지 않으며,
   여기에 배속을 곱하는 코드를 넣지 않는다. 음악이 반음 올라가는 건 배속의 의도가 아니다.
 - **일시정지 중에도 BGM은 흐른다.** 프로젝트는 `AudioListener.pause`를 어디서도 쓰지 않는다.
@@ -136,26 +146,62 @@ source.volume = fadeWeight(0~1) × 실효 볼륨(Bgm)
 측정값(2026-08-12): `DayToNight` peak **-0.8 dBFS** / RMS -17.4 dBFS, `NightToDay` peak -1.0 dBFS /
 RMS -17.8 dBFS. 둘 다 피크가 0 dBFS 코앞까지 마스터링돼 있어 SFX 볼륨을 그대로 곱하면 BGM 위에서 과하다.
 
-## 5. 씬 배선 — `BgmCue`
+## 5. 씬 배선 — `SoundCue` 계층
 
-`AudioManager`는 `DontDestroyOnLoad`라 **인스펙터 배선을 가질 수 없다.** 그래서 클립 배선과 낮/밤 구독은
+`AudioManager`는 `DontDestroyOnLoad`라 **인스펙터 배선을 가질 수 없다.** 그래서 클립 배선과 이벤트 구독은
 씬 컴포넌트가 맡는다. 부수 효과로, 매니저가 씬마다 죽는 `DayNightManager.Instance`를 재구독·해제하는
 수명 문제가 아예 생기지 않는다.
 
-| 필드 | 의미 |
-|---|---|
-| `dayClip` | 낮 트랙. 페이즈가 없는 씬(타이틀)에서는 이 클립만 쓴다 |
-| `nightClip` | 밤 트랙. 비워두면 밤에도 낮 트랙을 유지한다 |
-| `fadeSeconds` | 트랙 교체 크로스페이드 길이(초). 기본 1 |
-| `dayToNightClip` / `nightToDayClip` | 전환 **순간에만** 1회 울리는 스팅어. SFX 채널 볼륨을 따른다 |
-| `stingerVolume` | 스팅어 재생 배율(0~1). 임포트 설정에 클립별 게인이 없어(§4.5) 여기서 줄인다. 코드 기본값 0.35(≈ -9dB), **정본 씬 현재 값 0.4**(청감 조정). 두 클립의 레벨 차가 0.4dB뿐이라 공용 배율 하나로 충분하다 |
+```
+SoundCue        (씬 오브젝트 — 큐를 모아두는 자리)
+└── TitleCue    (TitleScene)   또는   InGameCue  (GameScene)
+```
 
-- 씬당 **1개** 배치한다. 현재 `GameScene`에만 있다 — 타이틀 트랙 에셋이 아직 없어 `TitleScene`은 비어 있다.
+- `SoundCue`(abstract) — 공통 베이스. `fadeSeconds`를 소유하고 `PlayBgm`/`StopBgm`/`PlaySfx` 진입점을
+  `AudioManager` null 가드와 함께 제공한다. 파생 큐는 "언제 무엇을"만 정한다.
+- `TitleCue` — 타이틀 트랙 1개. **클립이 없어도 배치한다**(아래 계약).
+- `InGameCue` — 낮/밤 트랙 + 페이즈 전환 스팅어.
+
+### 5.1 계약 — 씬마다 정확히 하나의 큐가 답을 갖는다
+
+매니저가 씬을 넘어 살아남으므로 **답을 갖지 않는 씬은 직전 씬의 BGM을 그대로 끌고 간다.** 실제로
+타이틀이 그 사고였다(WL-180): 밤에 게임오버 → "메인으로" → 밤 BGM이 타이틀 화면에서 계속 루프했다.
+
+타이틀 복귀 경로가 넷(`ResultUIManager`의 게임오버·클리어, `RunSaveManager`의 복원 실패 2곳,
+`SettingUI`의 "메인으로")이라 **어느 하나를 고쳐서는 닫히지 않는다.** 정지 주체를 씬에 두면 경로 수와
+무관해진다 — 그래서 `TitleCue`는 트랙 에셋이 없는 지금도 배치돼 있고, `titleClip`이 비면 `StopBgm()`을
+부른다.
+
+> ⚠️ 빈 클립을 `PlayBgm`에 넘기는 것으로는 안 된다 — 매니저가 조용히 무시해 **직전 트랙이 살아남는다.**
+> "아무것도 틀지 않는다"는 `StopBgm`으로만 표현된다.
+
+새 씬을 추가한다면 `SoundCue` 자식 큐를 함께 두거나, 그 씬이 직전 BGM을 이어받는 것이 의도임을
+명시해야 한다.
+
+### 5.2 필드
+
+| 컴포넌트 | 필드 | 의미 |
+|---|---|---|
+| `SoundCue` | `fadeSeconds` | 트랙 교체 크로스페이드 길이(초). 기본 1 |
+| `TitleCue` | `titleClip` | 타이틀 트랙. **비우면 직전 BGM을 페이드아웃하고 무음**(§5.1) |
+| `InGameCue` | `dayClip` / `nightClip` | 낮·밤 트랙. 밤 트랙이 비면 밤에도 낮 트랙을 유지한다 |
+| `InGameCue` | `dayToNightClip` / `nightToDayClip` | 전환 **순간에만** 1회 울리는 스팅어. SFX 채널 볼륨을 따른다 |
+| `InGameCue` | `stingerVolume` | 스팅어 재생 배율(0~1). 임포트 설정에 클립별 게인이 없어(§4.5) 여기서 줄인다. 코드 기본값 0.35(≈ -9dB), **정본 씬 현재 값 0.4**(청감 조정). 두 클립의 레벨 차가 0.4dB뿐이라 공용 배율 하나로 충분하다 |
+
+### 5.3 `InGameCue`의 페이즈 구독
+
 - `Start`에서 `DayNightManager.Instance`의 `OnDayToNight`/`OnNightToDay`를 구독하고 `OnDestroy`에서
-  해제한다. 밤 트랙이 없어도 스팅어만 쓸 수 있으므로 **페이즈가 있는 씬이면 항상 구독**한다.
-  `DayNightManager`가 없는 씬(타이틀)에서는 구독하지 않고 `dayClip`만 1회 재생한다.
+  해제한다. 구독 대상을 필드로 붙잡아 두므로 씬 파괴 순서로 `Instance`가 이미 바뀌었어도 자기가 건
+  핸들러만 정확히 뗀다. 밤 트랙이 없어도 스팅어만 쓸 수 있으므로 **페이즈가 있는 씬이면 항상 구독**한다.
 - 스팅어는 전환 이벤트에서만 울린다 — `Start`의 초기 트랙 지정은 `PlayDay`/`PlayNight`를 직접 부르므로
   게임 시작이나 씬 로드에 전환음이 딸려 나오지 않는다.
+
+> ⚠️ **초기 트랙과 세이브 복원의 순서가 보장되지 않는다.** `InGameCue.Start`가 `CurrentPhase`를 읽어
+> 초기 트랙을 고르는데, 그 값을 복원하는 `RunSaveManager`도 `Start`에서 돈다. 씬 오브젝트 사이의 `Start`
+> 순서는 Unity가 보장하지 않는다. **지금은 드러나지 않는다** — 세이브 v1이 `Phase != Day` 복원을 아예
+> 거부하기 때문이다(`RunSaveManager.Progress.cs`). 밤 세이브를 여는 순간 "밤에서 이어했는데 낮 BGM"이
+> 확률적으로 난다. 그때는 `DayNightManager.OnDayStart`(한 프레임 지연 발행이라 복원 이후가 보장된다)를
+> 함께 구독하거나 복원 완료 이벤트를 기다리게 한다. (WL-182)
 - 초기 1회는 `CurrentPhase`를 읽어 결정한다. 세이브 복원은 v1에서 **낮 페이즈만** 지원하므로
   (`RunSaveManager.Progress.cs`) 복원 타이밍과 어긋날 여지가 없다 — 밤 복원이 지원되면 재검토한다.
 - 밤 트랙이 비어 있으면 밤에도 낮 트랙을 유지한다(같은 클립 재요청은 매니저가 무시한다).
@@ -200,11 +246,16 @@ void PlaySfx(AudioClip clip, float volumeScale = 1f);  // 2D 원샷. 볼륨 0·�
       방향을 잡아뒀다(사운드 뱅크 SO·`SoundId` enum은 도입하지 않는다). 현재의 2D 원샷 `PlaySfx`는
       전환 스팅어처럼 **드물게 한 번 울리는 소리** 전용이다
 - [x] **BGM·전환음 클립 에셋** — `Assets/Imported/@NorthLand/Sound`에 낮·밤 BGM 2개 + 전환 스팅어 2개(§4.5)
-- [x] **`BgmCue` 씬 배치** — `GameScene`에 1개 배치·배선 완료
-- [ ] **타이틀 BGM** — 트랙 에셋이 없어 `TitleScene`에는 `BgmCue`를 두지 않았다
+- [x] **씬 배치** — `GameScene`에 `SoundCue/InGameCue`, `TitleScene`에 `SoundCue/TitleCue`
+- [ ] **타이틀 BGM 클립** — 트랙 에셋이 없어 `TitleCue.titleClip`이 비어 있다(정지만 한다, §5.1).
+      클립이 생기면 그 필드에 꽂으면 끝이고 코드 변경은 없다
 - [ ] **Vorbis quality 조정** — 현재 100%. BGM 90초 스테레오라 빌드 용량 관점에서 낮출 여지가 있으나
       청감 tradeoff라 미결(§4.5)
-- [ ] **설정 패널 슬라이더·토글 UI** → #346
+- [ ] **밤 세이브와 초기 트랙 순서**(WL-182) — 밤 페이즈 복원을 여는 PR에서 §5.3의 순서 문제를 함께 닫는다
+- [ ] **`PlayerPrefs` 키 노출** — `settings.json` 이관 시 키 6개를 배열로 내보내 마이그레이션이 그것만
+      읽게 한다(§3.1)
+- [ ] **설정 패널 슬라이더·토글 UI** → #346. 패널 초기값은 `OnAudioSettingsChanged`가 아니라 `GetVolume`
+      **pull**로 읽어야 한다 — 매니저의 초기 발행 시점(`Awake`)엔 구독자가 없다
 - [ ] **UI 클릭·호버 공용 사운드** — 풀 기반 경로 이후
 - [ ] **더킹·스냅샷** — 필요해지면 AudioMixer 도입을 재검토(§2)
 - [ ] **`settings.json` 이관** — #342의 슬롯 무관 공통 설정이 실제로 생기면 `PlayerPrefs`에서 옮긴다
