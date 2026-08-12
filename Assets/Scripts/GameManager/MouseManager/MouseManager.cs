@@ -218,15 +218,6 @@ public class MouseManager : MonoBehaviour
     {
         UpdateHover(screenPos, overUI);
 
-        // Esc → 전체 해제(그룹 포함). 코디네이터가 OnSelectionChanged(null)을 받아 집합을 비운다.
-        // (우클릭은 카메라 드래그·조준 취소와 이미 이중 점유라 해제에 쓰지 않는다 — WL-073)
-        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
-        {
-            ResetGesture(); // Esc = 진행 중 제스처 폐기. 안 버리면 버튼을 뗄 때 클릭이 한 번 더 확정된다(WL-144)
-            ClearSelection();
-            return;
-        }
-
         var left = Mouse.current.leftButton;
 
         // 누를 때: 시작점만 기록하고 확정은 미룬다. 이 시점엔 클릭인지 드래그인지 알 수 없다(#261).
@@ -336,14 +327,6 @@ public class MouseManager : MonoBehaviour
 
     private void UpdateBoxSelect(Vector2 screenPos)
     {
-        // Esc → 드래그 중단 + 전체 해제. 드래그 이전 상태로 되돌리는 취소는 제공하지 않는다(명세 §5.1).
-        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
-        {
-            EndBoxSelect();
-            ClearSelection();
-            return;
-        }
-
         // 커서가 UI 위를 지나가도 드래그는 계속된다 — 채택 여부는 누른 시점에 이미 결정됐다.
         BoxSelectScreenRect = MakeRect(_boxAnchor, screenPos);
 
@@ -488,9 +471,8 @@ public class MouseManager : MonoBehaviour
     // ── Placement: 배치 (요구사항 ①) ──────────────────────────────
     private void UpdatePlacement(Vector2 screenPos, bool overUI)
     {
-        // 우클릭/Esc 로 취소
-        if (Mouse.current.rightButton.wasPressedThisFrame ||
-            (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame))
+        // 우클릭로 취소
+        if (Mouse.current.rightButton.wasPressedThisFrame)
         {
             CancelPlacement();
             return;
@@ -517,9 +499,8 @@ public class MouseManager : MonoBehaviour
     // 도로처럼 낮게 모델링된 타일 위에서도 표면에 자연스럽게 앉는다.
     private void UpdateSkillTargeting(Vector2 screenPos, bool overUI)
     {
-        // 우클릭/Esc 로 취소
-        if (Mouse.current.rightButton.wasPressedThisFrame ||
-            (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame))
+        // 우클릭 로 취소
+        if (Mouse.current.rightButton.wasPressedThisFrame)
         {
             CancelSkillTargeting();
             return;
