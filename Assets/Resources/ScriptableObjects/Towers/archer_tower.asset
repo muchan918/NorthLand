@@ -15,6 +15,7 @@ MonoBehaviour:
   TowerID: archer_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: af8de5afe47137043ad4ec48d2323017, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: 5d9bff6eeac419349bde17bbdae0e99c, type: 3}
+  PlacementYaw: 45
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
     Amount: 20

@@ -12,12 +12,17 @@ public readonly struct TowerPlacementData
     public readonly int GridWidth;    // 풋프린트 가로(셀 수)
     public readonly int GridHeight;   // 풋프린트 세로(셀 수)
     public readonly float AttackRange; // 사거리(월드 반경) — 미리보기 원 반경
+    // 모델을 그리드 축에서 Y축으로 돌릴 각도(도). 출처는 `TowerAsset.PlacementYaw` 하나고, 고스트와
+    // 본체가 **같은 값**을 읽어야 미리보기와 실제 배치가 어긋나지 않아서 여기까지 실어 온다.
+    public readonly float PlacementYaw;
 
-    public TowerPlacementData(int gridWidth, int gridHeight, float attackRange)
+    // yaw 기본값 0 = 축 정렬. 값을 안 넘기는 호출부는 기존과 동일하게 동작한다.
+    public TowerPlacementData(int gridWidth, int gridHeight, float attackRange, float placementYaw = 0f)
     {
         GridWidth = Mathf.Max(1, gridWidth);
         GridHeight = Mathf.Max(1, gridHeight);
         AttackRange = attackRange;
+        PlacementYaw = placementYaw;
     }
 }
 
@@ -217,7 +222,8 @@ public class TowerPlacer : MonoBehaviour
         // 곧 `TowerType`을 아는 4번째 지점이었다. SO가 최댓값 하나로 답하면 호출부는 종류를 몰라도 된다(#274).
         float previewRange = so.PreviewRadius;
 
-        return StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, previewRange), onConfirmed, onEnded, historyOwner);
+        return StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, previewRange, so.PlacementYaw),
+            onConfirmed, onEnded, historyOwner);
     }
 
     // 게이트웨이(예정): tower/ghost 프리팹 + footprint/range를 담은 SO가 생기면 아래 오버로드를 추가한다.
@@ -249,7 +255,9 @@ public class TowerPlacer : MonoBehaviour
         MouseManager.Instance.BeginPlacement(new PlacementRequest
         {
             GhostPrefab = ghostPrefab,
-            GhostRotation = GridBasis * Quaternion.Euler(0f, 45f, 0f), // 회전된 맵에서 고스트가 타일과 각이 맞게(배치 세션 동안 상수)
+            // 회전된 맵에서 고스트가 타일과 각이 맞게(배치 세션 동안 상수) + SO가 지정한 모델 yaw.
+            // 아래 PlaceTower의 본체 회전과 **같은 출처**를 써야 미리보기와 실제 배치가 어긋나지 않는다.
+            GhostRotation = GridBasis * Quaternion.Euler(0f, data.PlacementYaw, 0f),
             Snap = SnapToFootprintCenter,
             CanPlaceAt = CanPlaceFootprint,
             OnConfirmed = PlaceTower,
@@ -762,7 +770,8 @@ public class TowerPlacer : MonoBehaviour
             return false;
         }
 
-        _activeData = new TowerPlacementData(asset.Data.GridWidth,asset.Data.GridHeight,asset.PreviewRadius);
+        _activeData = new TowerPlacementData(asset.Data.GridWidth,asset.Data.GridHeight,asset.PreviewRadius,
+            asset.PlacementYaw);
 
         Vector3 position =CalculateFootprintCenter(anchor,_activeData);
 
@@ -787,8 +796,10 @@ public class TowerPlacer : MonoBehaviour
             }
         }
 
-        // 회전된 맵에서도 타워가 그리드 축과 동일한 방향을 바라보게 한다.
-        placed = Instantiate(prefab,position, GridBasis*Quaternion.Euler(0f, 45f, 0f));
+        // 회전된 맵에서도 타워가 그리드 축과 동일한 방향을 바라보게 한다. 여기에 SO가 지정한 모델 yaw를
+        // 얹는다 — 각도의 사유는 특정 에셋의 실루엣이므로 배치기가 상수로 들지 않는다(WL-180).
+        // 세이브 복원·합성 결과 배치도 이 한 줄을 지나므로 경로마다 각도가 갈릴 수 없다.
+        placed = Instantiate(prefab,position, GridBasis * Quaternion.Euler(0f, asset.PlacementYaw, 0f));
 
         var footprint = placed.AddComponent<TowerFootprint>();
 

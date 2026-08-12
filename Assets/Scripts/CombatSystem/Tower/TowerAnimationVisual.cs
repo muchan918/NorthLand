@@ -1,3 +1,6 @@
+using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 namespace NorthLand.Combat
@@ -43,6 +46,17 @@ namespace NorthLand.Combat
     // 정확히 이것이다 — #265의 합성 입자도 같은 시간 축을 공유하려고 공개돼 있다.
     // 등장 연출을 타지 않는 경로(씬 선배치·테스트 씬)는 그만큼 늦게 시작할 뿐이라 무해하다.
     //
+    // ★ 두 가지가 이 지연의 함정이고 둘 다 닫아 뒀다(WL-179).
+    //  ① **시간축** — 대기를 `Invoke`(스케일드)로 재면 배속에서 어긋난다. 안 보이는 구간은 unscaled라
+    //     실시간 0.45초로 고정인데 대기만 짧아지고, Animator가 `updateMode = Normal`이라 클립까지
+    //     빨라진다. 실측: x2에서 약 73%, x4에서는 **100%**가 안 보이는 동안 지나갔다. 일시정지 중
+    //     배치하면 타워는 (unscaled라) 다 서는데 대기만 멈춰 있다가, 해제 후 뜬금없이 모션이 났다.
+    //     → `UniTask.Delay(..., DelayType.UnscaledDeltaTime)`로 연출과 같은 축에서 기다린다.
+    //  ② **기본값을 상수로 적으면 단일 출처가 아니다** — 직렬화 필드의 초기화자는 컴포넌트를 처음 붙일
+    //     때만 적용되고 그 뒤로는 프리팹 YAML에 숫자로 굳는다. 수렴 시간을 나중에 튜닝하면 코드 참조는
+    //     전부 따라가는데 프리팹만 옛 값에 남고, `ConvergeDuration`을 grep해도 안 걸린다.
+    //     → **음수를 "연출을 따른다"는 센티넬로** 쓰고 해석을 `OnEnable`로 옮겼다.
+    //
     // ## 해제는 왜 자동으로 걸리지 않나
     // **현재 타워 철거 경로 자체가 없다**(`Docs/Core/Tower.md` §6 #1). 유일한 파괴 경로인 합성 소모는
     // `TowerDissolveEffect`가 시각 사본을 뜬 뒤 **같은 프레임에** 원본을 `Destroy`하므로, 원본에서
@@ -87,9 +101,10 @@ namespace NorthLand.Combat
                  "씬에 미리 놓인 타워도 씬 시작 시 한 번 설치 모션을 탄다.")]
         [SerializeField] bool playInstallOnEnable = true;
 
-        [Tooltip("활성화 후 설치 모션까지의 지연(초). 기본값은 등장 연출의 입자 수렴 시간과 같다 — " +
-                 "이유는 클래스 주석 참고. 0이면 즉시 재생한다.")]
-        [SerializeField] float installDelay = TowerSpawnEffect.ConvergeDuration;
+        [Tooltip("활성화 후 설치 모션까지의 지연(초). **음수 = 등장 연출의 수렴 시간을 따른다**(기본). " +
+                 "숫자를 적어 굳혀두면 그 연출을 튜닝할 때 프리팹만 옛 값에 남는다 — 이유는 클래스 주석 참고. " +
+                 "0이면 즉시 재생한다.")]
+        [SerializeField] float installDelay = -1f;
 
         Tower _tower;
         TowerTurretAim _turretAim;
@@ -98,6 +113,9 @@ namespace NorthLand.Combat
         int _reloadHash;
         int _installHash;
         int _removeHash;
+        // 설치 지연 대기를 활성화 주기에 묶는다. `destroyCancellationToken`이 아니라 자체 CTS인 이유는
+        // 파괴뿐 아니라 **비활성화**에서도 끊겨야 하기 때문이다(기존 `CancelInvoke`가 하던 역할).
+        CancellationTokenSource _installCts;
 
         void Awake()
         {
@@ -134,16 +152,46 @@ namespace NorthLand.Combat
 
             if (!playInstallOnEnable) return;
 
-            if (installDelay > 0f) Invoke(nameof(PlayInstall), installDelay);
-            else PlayInstall();
+            // 음수 = "등장 연출을 따른다". 값을 굳히지 않고 여기서 해석하므로 `ConvergeDuration`이
+            // 진짜 단일 출처로 남는다 — 그 연출을 튜닝하면 이미 저장된 프리팹도 함께 따라온다.
+            float delay = installDelay < 0f ? TowerSpawnEffect.ConvergeDuration : installDelay;
+
+            if (delay <= 0f)
+            {
+                PlayInstall();
+                return;
+            }
+
+            _installCts = new CancellationTokenSource();
+            DelayedInstallAsync(delay, _installCts.Token).Forget();
         }
 
         void OnDisable()
         {
             _tower.OnFired -= HandleFired;
             if (playReloadOnTargetLost && _turretAim != null) _turretAim.TargetLost -= PlayReload;
-            CancelInvoke(nameof(PlayInstall));   // 수렴 중에 꺼진 타워가 되살아나며 두 번 설치되지 않게
+
+            // 수렴 중에 꺼진 타워가 되살아나며 두 번 설치되지 않게
+            _installCts?.Cancel();
+            _installCts?.Dispose();
+            _installCts = null;
+
             CancelInvoke(nameof(PlayReload));
+        }
+
+        /// 설치 모션을 지연 후 재생한다. **반드시 unscaled로 기다린다** — 이 지연이 겨냥하는
+        /// `TowerSpawnEffect`의 수렴과 팝이 `Time.unscaledDeltaTime` 축이기 때문이다(SystemMap §6).
+        ///
+        /// 스케일드로 재면 배속에서 축이 갈린다: 안 보이는 구간은 실시간 0.45초로 고정인데 대기는
+        /// 그만큼 짧아지고, 게다가 Animator가 `updateMode = Normal`이라 클립까지 빨라진다 —
+        /// 실측으로 x2에서 약 73%, x4에서는 **100%가 안 보이는 동안 지나갔다**(WL-179).
+        async UniTaskVoid DelayedInstallAsync(float delay, CancellationToken ct)
+        {
+            bool canceled = await UniTask
+                .Delay(TimeSpan.FromSeconds(delay), DelayType.UnscaledDeltaTime, PlayerLoopTiming.Update, ct)
+                .SuppressCancellationThrow();
+
+            if (!canceled) PlayInstall();
         }
 
         void HandleFired()
@@ -155,6 +203,11 @@ namespace NorthLand.Combat
             // 직전 발사가 예약해 둔 장전을 취소하고 다시 잡는다. 공격 속도 버프로 간격이 `reloadDelay`보다
             // 짧아지면 장전 예약이 매번 밀려나 **아예 재생되지 않는다** — 연사 중에 장전 모션이 사격보다
             // 뒤처져 쌓이는 것을 이 한 줄이 구조적으로 막는다(트리거를 미리 켜두는 방식으로는 못 막는다).
+            //
+            // ⚠ 위 설치 지연과 **의도적으로 다른 시간축이다.** 이 값은 공격 간격에서 역산한 것이고 공격
+            //    쿨다운이 `Time.deltaTime`(스케일드)으로 도니, 배속에서 사격과 함께 줄어야 맞다. Animator도
+            //    스케일드라 셋이 같은 축에 있다. 그래서 여기는 `Invoke`(스케일드)가 정답이고, 설치는
+            //    unscaled 연출을 겨냥하므로 아니다 — 두 지연이 같은 API를 쓰지 않는 것이 요점이다(WL-179).
             CancelInvoke(nameof(PlayReload));
             Invoke(nameof(PlayReload), reloadDelay);
         }

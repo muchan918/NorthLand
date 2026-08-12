@@ -39,22 +39,34 @@ namespace NorthLand.Combat
                  "'적이 사라졌으니 정리하고 제자리로'라는 마무리 연출용이다.")]
         [SerializeField] bool returnToRest;
 
+        [Tooltip("적을 잃은 뒤 TargetLost를 발행하기까지의 유예(초). **0 = 즉시**(기본). " +
+                 "유예 안에 적을 다시 잡으면 발행이 취소된다 — 사거리 경계 채터를 여기서 흡수한다.")]
+        [SerializeField] float targetLostGrace;
+
         [Tooltip("탐색 주기마다 조준 상태를 콘솔에 찍는다(진단용). 평소엔 꺼둘 것.")]
         [SerializeField] bool debugLog;
 
-        /// 겨누던 적이 사라져 **대기 상태로 돌아가는 순간**. 사거리 이탈·사망·밤 종료가 전부 여기로 모인다.
-        /// 잡을 적이 없는 동안 매 프레임 나지 않고 **전이에서 한 번만** 난다.
+        /// 겨누던 적이 사라져 **대기 상태로 정착한 순간**. 사거리 이탈·사망·밤 종료가 전부 여기로 모인다.
+        /// 잡을 적이 없는 동안 매 프레임 나지 않고 한 번만 난다.
         ///
         /// 이 신호를 여기서 내는 이유: 대상 탐색 주기를 이미 이 컴포넌트가 자기 몫으로 들고 있다
         /// (클래스 주석의 ★ 항목). 마무리 연출이 각자 적을 탐색하면 물리 조회가 한 벌 더 늘어나는 것도
         /// 문제지만, 진짜 문제는 **"적이 없다"의 판정 시점이 둘로 갈리는 것**이다 — 포탑은 제자리로
         /// 돌아가는데 장전 모션은 아직 안 나오는 식의 어긋남이 생긴다.
+        ///
+        /// ★ **"전이"가 아니라 "정착"이다.** 사거리 경계에 적이 걸치면 `scanInterval` 주기로 잃음·재획득이
+        ///   반복되어 단순 전이 감지로는 초당 최대 `1/scanInterval`회 발행된다. 그 채터를 **소비처가 아니라
+        ///   발행 측에서** `targetLostGrace`로 흡수한다 — 소비처마다 유예를 복붙하면 같은 의미가 여러 구현으로
+        ///   갈라지고, 이 이벤트는 앞으로 소비처가 늘어날 자리다(사운드·파티클·UI).
         public event System.Action TargetLost;
 
         Tower _tower;
         Transform _target;
         float _scanTimer;
         bool _hadTarget;
+        // 발행 대기 중인 "잃음"과 그 시작 시각. 유예 안에 적을 다시 잡으면 대기가 취소된다.
+        bool _lostPending;
+        float _lostAt;
         Quaternion _restLocalRotation;
 
         void Awake()
@@ -71,6 +83,7 @@ namespace NorthLand.Combat
         {
             _target = null;
             _hadTarget = false;   // 재활성화 직후 "잃었다" 통지가 헛돌지 않게
+            _lostPending = false;
             _scanTimer = 0f;      // 활성화 즉시 1회 탐색 — 배치하자마자 적을 바라보게 한다
         }
 
@@ -121,6 +134,7 @@ namespace NorthLand.Combat
             }
 
             _hadTarget = true;
+            _lostPending = false;   // 유예 안에 다시 잡았다 → 마무리 통지 취소(경계 채터 흡수)
 
             // 수평 성분만 쓴다 — 앙각은 모델이 저작한 값(`MissileG_Barrel`의 -30°)이 정본이다.
             // 대상을 향해 포신을 내리면 하늘로 쏘아 올리는 미사일 런처의 실루엣이 깨지고, 발사 자체도
@@ -136,13 +150,23 @@ namespace NorthLand.Combat
             turret.rotation = Quaternion.RotateTowards(turret.rotation, desired, turnSpeed * Time.deltaTime);
         }
 
-        /// 조준할 적이 없을 때의 거동. 겨누던 적을 막 잃은 순간이면 **한 번만** 통지하고,
-        /// 그 뒤로는 설정에 따라 제자리로 돌아가거나(`returnToRest`) 대기 회전을 돈다.
+        /// 조준할 적이 없을 때의 거동. 유예가 지나면 **한 번만** 통지하고, 그 뒤로는 설정에 따라
+        /// 제자리로 돌아가거나(`returnToRest`) 대기 회전을 돈다.
         void Rest()
         {
             if (_hadTarget)
             {
                 _hadTarget = false;
+                _lostPending = true;
+                _lostAt = Time.time;
+            }
+
+            // 유예 0이면 같은 프레임에 통과해 기존 거동과 동일하다(기본값 무변경).
+            // `Time.time`(스케일드)을 쓰는 것은 `scanInterval`이 `Time.deltaTime`으로 도는 것과 같은 축이라,
+            // 배속에서 탐색 주기와 유예가 함께 줄어 채터 흡수 비율이 유지되기 때문이다.
+            if (_lostPending && Time.time - _lostAt >= targetLostGrace)
+            {
+                _lostPending = false;
                 TargetLost?.Invoke();
             }
 
