@@ -10,6 +10,20 @@ using UnityEngine.AI;
 /// <see cref="ManagementController"/>이고, 이 스포너는 그 숫자를 **구독만** 해서
 /// 군중의 크기로 번역한다 — `화면의 주민 수 = N − AssignedTotal`(§3.1).
 ///
+/// ── 배치 조작에 대한 반응 (§3.2, #341) ─────────────────────────
+///
+/// 아침에 한 번 세는 것이 아니라 **낮 동안 실시간으로** 따라간다. 두 방향이 비대칭인 것은 의도다:
+///
+/// | 조작 | 반응 | 경로 |
+/// |---|---|---|
+/// | **패널 +1** | 화면의 주민 중 무작위 1명이 **그 자리에서 즉시 소멸(뿅)** | <see cref="TrimCrowd"/> |
+/// | **패널 −1** | **그 건물** 자리에서 1명이 **걸어 나온다** | <see cref="HandleBuildingAction"/> |
+///
+/// 줄이는 쪽만 <see cref="ManagementController.OnChanged"/>(상태 통지)를 타고, 늘리는 쪽은
+/// <see cref="ManagementController.OnBuildingAction"/>(대상 통지)를 탄다. **늘리려면 "어디서 나오는가"가
+/// 필요하지만 줄이는 데는 필요 없기** 때문이다 — 그리고 줄이기를 일반 재조정으로 두면 배치 외의 경로
+/// (세이브 복원 등)로 배치 수가 바뀌어도 군중이 저절로 맞는다.
+///
 /// ── 아침에 한 문에서 여럿이 나오는 문제 ─────────────────────────
 ///
 /// 같은 지점에서 나온 주민은 서로의 코앞에 서게 되어 **나오자마자 대화가 성립한다.** 다섯 가지로 나눠 막는다.
@@ -55,6 +69,20 @@ public class ResidentSpawner : MonoBehaviour
     [Min(0.01f)]
     [SerializeField] private float spawnSnapDistance = 2f;
 
+    [Header("배치 조작 반응 (§3.2)")]
+    [Tooltip("패널 +1로 주민이 소멸할 때 그 자리에 띄울 연출(뿅). 비워 두면 소리 없이 사라진다. " +
+             "Play On Awake를 켠 1회성 프리팹을 넣는다 — 여기서 Instantiate 직후 재생을 기대한다.")]
+    [SerializeField] private GameObject despawnEffectPrefab;
+
+    [Tooltip("소멸 연출 오브젝트를 지우기까지의 시간(초). 파티클 수명보다 넉넉히 잡는다.")]
+    [Min(0f)]
+    [SerializeField] private float despawnEffectLifetime = 3f;
+
+    [Tooltip("패널 −1 퇴장 시, 그 건물에 ResidentDoorPoint가 심어져 있지 않을 때 쓰는 폴백 거리. " +
+             "건물 정면(+Z)으로 이만큼 밀어낸 자리에서 나온다. 정본은 건물 프리팹에 문을 심는 것이다(§4).")]
+    [Min(0f)]
+    [SerializeField] private float exitFallbackDistance = 3f;
+
     /// 이 스포너가 만든 주민 전부(활성·비활성 모두). 밤에는 비활성으로 두었다가 아침에 다시 쓴다 —
     /// 매 아침 Instantiate/Destroy를 반복하면 30명 규모에서 GC가 눈에 띈다.
     private readonly List<Resident> pool = new List<Resident>();
@@ -68,6 +96,12 @@ public class ResidentSpawner : MonoBehaviour
 
     /// 같은 문에서 나온 무리를 모으는 버퍼(⑤의 O(k²) 표시용). k는 보통 1~2다.
     private readonly List<Resident> cohortBuffer = new List<Resident>();
+
+    /// 소멸 후보를 모으는 버퍼(§3.2 패널 +1). 무작위로 뽑으려면 후보를 한 번 늘어놓아야 한다.
+    private readonly List<Resident> despawnBuffer = new List<Resident>();
+
+    /// 퇴장할 문이 없다고 이미 경고한 건물. 패널 −1을 누를 때마다 콘솔이 덮이지 않도록 건물당 1회만 남긴다.
+    private readonly HashSet<BuildingAsset> warnedNoExitDoor = new HashSet<BuildingAsset>();
 
     private float emergeTimer;
 
@@ -84,6 +118,13 @@ public class ResidentSpawner : MonoBehaviour
             dayNight.OnNightToDay += HandleNightToDay;
         }
 
+        // 배치 조작에 대한 반응(§3.2). 컨트롤러가 비면(주민 테스트 씬) 배치 개념 자체가 없으므로 그냥 넘어간다.
+        if (management != null)
+        {
+            management.OnChanged += HandleManagementChanged;
+            management.OnBuildingAction += HandleBuildingAction;
+        }
+
         // 첫 낮은 문에서 나오는 것이 아니라 마을에 이미 살고 있던 것으로 친다 — 웨이포인트 근처에 흩뿌린다.
         // 문에서 내보내면 게임 시작이 "아침에 다 같이 출근하는" 그림이 되어, 이미 돌아가던 마을처럼 보이지 않는다.
         SpawnInitialCrowd();
@@ -97,6 +138,12 @@ public class ResidentSpawner : MonoBehaviour
         {
             dayNight.OnDayToNight -= HandleDayToNight;
             dayNight.OnNightToDay -= HandleNightToDay;
+        }
+
+        if (management != null)
+        {
+            management.OnChanged -= HandleManagementChanged;
+            management.OnBuildingAction -= HandleBuildingAction;
         }
     }
 
@@ -124,6 +171,210 @@ public class ResidentSpawner : MonoBehaviour
     private void HandleNightToDay()
     {
         RefillEmergeQueue();
+    }
+
+    // ── 배치 조작 (§3.2, #341) ─────────────────────────
+
+    /// 경영 상태가 바뀌었다. **줄이는 쪽만** 본다 — 근거는 클래스 주석의 표.
+    ///
+    /// 자원 변동에서도 발행되는 상태 통지라 자주 불리지만, <see cref="TrimCrowd"/>는 목표를 넘지 않으면
+    /// 풀을 한 번 훑고 끝난다(30명 규모).
+    private void HandleManagementChanged() => TrimCrowd();
+
+    /// 화면 인원이 목표보다 많으면 그만큼 거둔다(§3.1 불변식 유지).
+    ///
+    /// **아직 안 나온 대기열을 먼저 지운다.** 문 앞에 세워 놓고 곧바로 없애면 나오자마자 사라지는 그림이 된다.
+    private void TrimCrowd()
+    {
+        int over = ActiveCount + pendingResidents.Count - TargetCount;
+
+        for (int i = 0; i < over; i++)
+        {
+            if (pendingResidents.Count > 0)
+            {
+                int last = pendingResidents.Count - 1;
+
+                pendingResidents.RemoveAt(last);
+                pendingDoors.RemoveAt(last);
+
+                continue;
+            }
+
+            // 거둘 사람이 더 없으면(전원 귀가 중 등) 멈춘다. 다음 통지에서 다시 맞춘다.
+            if (!TryDespawnOne())
+            {
+                break;
+            }
+        }
+    }
+
+    /// 활성 주민 하나를 무작위로 거둔다. 거둘 대상이 없으면 false.
+    ///
+    /// **등장 중인 주민은 뒤로 미룬다** — 문에서 나오다 사라지는 그림을 피한다. 전원이 등장 중이면
+    /// 그때는 그중에서 고른다(불변식이 연출보다 우선한다).
+    private bool TryDespawnOne()
+    {
+        if (!CollectDespawnCandidates(false) && !CollectDespawnCandidates(true))
+        {
+            return false;
+        }
+
+        Resident target = despawnBuffer[Random.Range(0, despawnBuffer.Count)];
+
+        PlayDespawnEffect(target.transform.position);
+
+        // ⚠ 대화 세션을 여기서 해산시키지 않는다. Resident.OnDisable이 자기 참조만 놓고, 남은 참가자가
+        //   다음 틱에 ResidentConversation.HasLostParticipant로 이탈을 읽어 R7 놀람을 재생한다(§3.2).
+        target.gameObject.SetActive(false);
+
+        return true;
+    }
+
+    /// <paramref name="includeEmerging"/>가 거짓이면 등장 중인 주민을 후보에서 뺀다.
+    private bool CollectDespawnCandidates(bool includeEmerging)
+    {
+        despawnBuffer.Clear();
+
+        for (int i = 0; i < pool.Count; i++)
+        {
+            Resident resident = pool[i];
+
+            if (resident == null || !resident.gameObject.activeSelf)
+            {
+                continue;
+            }
+
+            // 이미 이번 프레임 끝에 거둬질 주민이다(CollectArrivedHome). 여기서 또 세면 두 번 줄어든다.
+            if (resident.HasArrivedHome)
+            {
+                continue;
+            }
+
+            if (!includeEmerging && resident.IsEmerging)
+            {
+                continue;
+            }
+
+            despawnBuffer.Add(resident);
+        }
+
+        return despawnBuffer.Count > 0;
+    }
+
+    private void PlayDespawnEffect(Vector3 position)
+    {
+        if (despawnEffectPrefab == null)
+        {
+            return;
+        }
+
+        GameObject effect = Instantiate(despawnEffectPrefab, position, Quaternion.identity);
+
+        Destroy(effect, despawnEffectLifetime);
+    }
+
+    /// 특정 건물에 배치 변화가 생겼다. **−1만 받는다** — +1의 소멸은 <see cref="TrimCrowd"/>가 이미 처리했다.
+    private void HandleBuildingAction(BuildingAsset building, ManagementController.BuildingAction action)
+    {
+        if (action != ManagementController.BuildingAction.VillagerUnassigned)
+        {
+            return;
+        }
+
+        ExitFromBuilding(building);
+    }
+
+    /// 그 건물의 출입 포인트에서 1명을 내보낸다(§3.2 배치 −1).
+    ///
+    /// 아침 등장과 **같은 경로를 그대로 탄다** — 퇴장 유예(문 전방으로 D유닛 직진)와 목적지 선지정이
+    /// `ResidentExitDoorAction`에 이미 있어서, 여기서 할 일은 "어디서 나오는가"를 정하는 것뿐이다.
+    ///
+    /// 대기열에 넣지 않고 즉시 내보낸다. 대기열(순차 등장)은 아침에 수십 명이 한꺼번에 나오는 것을 나누기
+    /// 위한 장치이고, 배치 −1은 클릭 한 번에 한 명이라 나눌 것이 없다.
+    private void ExitFromBuilding(BuildingAsset building)
+    {
+        // 밤에는 주민이 존재하지 않는다(§3.3). 컨트롤러가 이미 밤 배치 변경을 막지만, 여기서도 막아
+        // 다른 경로가 생겼을 때 밤에 주민 하나가 튀어나오지 않게 한다.
+        DayNightManager dayNight = DayNightManager.Instance;
+
+        if (dayNight != null && dayNight.CurrentPhase != DayNightManager.Phase.Day)
+        {
+            return;
+        }
+
+        if (!TryResolveExit(building, out Vector3 origin, out Vector3 forward))
+        {
+            return;
+        }
+
+        Resident resident = TakeFromPool();
+
+        if (resident == null)
+        {
+            return;
+        }
+
+        Emerge(resident, origin, forward);
+    }
+
+    /// 이 건물에서 주민이 나올 자리와 방향을 정한다.
+    ///
+    /// 1순위는 **그 건물이 들고 있는 문**이다(§4 — "배치 −1의 퇴장은 레지스트리를 뒤지지 않고 그 건물이
+    /// 들고 있는 포인트를 직접 쓴다"). 가장 가까운 문을 레지스트리에서 찾지 않는 이유가 여기 있다 —
+    /// 옆집 문에서 나오면 "이 건물에서 사람이 빠졌다"로 읽히지 않는다.
+    ///
+    /// 문이 없으면 건물 정면으로 밀어낸 자리를 쓴다. **폴백이지 설계가 아니다** — 문을 심으면
+    /// 그 순간부터 위 경로를 탄다.
+    private bool TryResolveExit(BuildingAsset building, out Vector3 origin, out Vector3 forward)
+    {
+        origin = Vector3.zero;
+        forward = Vector3.forward;
+
+        if (building == null)
+        {
+            return false;
+        }
+
+        if (!BuildingInstanceRegistry.TryGet(building, out Transform root))
+        {
+            Debug.LogWarning($"[주민] '{building.BuildingID}'의 씬 인스턴스를 찾지 못해 퇴장을 건너뜁니다. " +
+                "건물 루트에 BuildingInfo가 붙어 있어야 합니다.", this);
+
+            return false;
+        }
+
+        // 비활성 자식도 본다 — 문 앞 앵커를 껐다 켜는 authoring이 있어도 위치는 유효하다.
+        ResidentDoorPoint door = root.GetComponentInChildren<ResidentDoorPoint>(true);
+
+        if (door != null)
+        {
+            origin = door.Position;
+            forward = door.Forward;
+
+            return true;
+        }
+
+        WarnMissingExitDoor(building, root);
+
+        Vector3 flat = new Vector3(root.forward.x, 0f, root.forward.z);
+
+        forward = flat.sqrMagnitude < 0.0001f ? Vector3.forward : flat.normalized;
+
+        // 건물 중심은 대개 NavMesh가 파여 있다. 정면으로 밀어내 스냅이 걸릴 자리까지 내보낸다.
+        origin = root.position + forward * exitFallbackDistance;
+
+        return true;
+    }
+
+    private void WarnMissingExitDoor(BuildingAsset building, Transform root)
+    {
+        if (!warnedNoExitDoor.Add(building))
+        {
+            return;
+        }
+
+        Debug.LogWarning($"[주민] '{building.BuildingID}'에 ResidentDoorPoint가 없어 건물 정면에서 내보냅니다. " +
+            "건물 프리팹의 문 앞에 ResidentDoorPoint를 심으면 그 자리에서 나옵니다(Resident.md §4).", root);
     }
 
     // ── 인원 ─────────────────────────────
@@ -234,16 +485,19 @@ public class ResidentSpawner : MonoBehaviour
             return;
         }
 
-        Emerge(resident, door);
+        Emerge(resident, door.Position, door.Forward);
     }
 
-    /// 문 위치에 세우고 등장 상태로 표시한다. 직진(③)과 목적지 선지정(④)은 BT의 등장 브랜치가 한다.
-    private void Emerge(Resident resident, ResidentDoorPoint door)
+    /// 지정한 자리에 세우고 등장 상태로 표시한다. 직진(③)과 목적지 선지정(④)은 BT의 등장 브랜치가 한다.
+    ///
+    /// 문이 아니라 **좌표+방향**을 받는다 — 아침 등장(문)과 배치 −1 퇴장(건물, §3.2)이 같은 경로를 쓰는데
+    /// 후자는 문이 심어져 있지 않을 수 있기 때문이다.
+    private void Emerge(Resident resident, Vector3 origin, Vector3 forward)
     {
         // ⚠ 활성화 **전에** 위치를 잡는다. 켜고 나서 옮기면 한 프레임 동안 이전 자리(대개 원점)에 보인다.
-        PlaceOnNavMesh(resident, door.Position, door.Forward);
+        PlaceOnNavMesh(resident, origin, forward);
 
-        resident.BeginEmerge(door);
+        resident.BeginEmerge(origin, forward);
         resident.gameObject.SetActive(true);
 
         // ⚠ 그래프를 처음부터 다시 돌린다.

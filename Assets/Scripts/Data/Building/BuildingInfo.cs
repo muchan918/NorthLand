@@ -24,6 +24,12 @@ public class BuildingInfo : MonoBehaviour, ISelectable
         _buildingAsset.Data = DataTableManager.Get<BuildingTable>("BuildingTable").Get(_buildingAsset.BuildingID);
     }
 
+    // 월드 좌표가 필요한 소비처(주민 퇴장 등)를 위해 자기 자리를 알린다 — 근거는 BuildingInstanceRegistry 참고.
+    // Start가 아니라 OnEnable/OnDisable 짝으로 두는 이유: 등록/해제가 대칭이어야 건물이 꺼졌다 켜져도 어긋나지 않는다.
+    private void OnEnable() => BuildingInstanceRegistry.Register(_buildingAsset, transform);
+
+    private void OnDisable() => BuildingInstanceRegistry.Unregister(_buildingAsset, transform);
+
     public void OnSelected()
     {
         if (_buildingAsset.Data == null)
