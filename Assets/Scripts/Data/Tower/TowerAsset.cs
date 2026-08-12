@@ -37,6 +37,13 @@ public class TowerAsset : ScriptableObject
     [Header("빔(다중 타겟 지속딜)")]
     public BeamFields Beam;
 
+    // 착탄 지점에 남는 지속 구역(#336). 화상 구역이 첫 소비처다.
+    //
+    // ⚠ `DebuffAura`(타워 중심 고정 장판)와 **다른 축이다** — 이쪽은 중심이 착탄점이고 수명이 있다.
+    // 무엇을 거는지는 두 축 모두 아래 `Effects`가 정하므로, 같은 "화상"이 장판도 되고 착탄 구역도 된다.
+    [Header("착탄 지속 구역")]
+    public GroundZoneFields GroundZone;
+
     // 전투 실적으로 이 타워가 스스로 강해지는 축(#300). 지금까지 타워 스탯을 바꾸는 소스는 전부
     // 외부(타일 버프·오라·스킬·보스 봉인)에서 왔는데, 이것이 **자기 실적이 원장에 얹히는 첫 소스**다.
     [Header("성장(램프업)")]
@@ -202,6 +209,34 @@ public class TowerAsset : ScriptableObject
                                  $"부채꼴이 사라지고, 한 대상에 피해가 {Attack.PelletCount}배로 집중됩니다.", this);
         }
 
+        // ── 연발(버스트) 저작 규칙(#336) ────────────────────────────────────
+        if (hasAttack && attackAuthored && Attack.BurstCount > 1 && Attack.BurstInterval <= 0f)
+            Debug.LogWarning($"[TowerAsset] {name}: BurstCount({Attack.BurstCount})>1인데 BurstInterval이 " +
+                             $"{Attack.BurstInterval}입니다 — 연발이 시간차 없이 한 프레임에 몰려 나가 " +
+                             "산탄과 같아지고, 착탄 구역도 한 점에 겹칩니다.", this);
+        if (!hasAttack && Attack != null && Attack.BurstCount > 1)
+            Debug.LogWarning($"[TowerAsset] {name}: BurstCount를 적었는데 프리팹에 AttackAction이 없습니다 " +
+                             "— 이 수치는 아무도 읽지 않습니다.", this);
+
+        // ── 착탄 지속 구역(#336) ─────────────────────────────────────────────
+        // 저작 판정은 ZonePrefab 하나로 한다(GroundZoneFields 주석 참조). 아래는 전부 "스폰은 되는데
+        // 아무 일도 안 나는" 또는 "영영 안 생기는" 조합이다.
+        bool zonePrefabSet = GroundZone != null && GroundZone.ZonePrefab != null;
+
+        if (zonePrefabSet && !GroundZone.IsAuthored)
+            Debug.LogWarning($"[TowerAsset] {name}: GroundZone.ZonePrefab은 지정됐는데 " +
+                             $"Radius({GroundZone.Radius})/Duration({GroundZone.Duration})/" +
+                             $"Interval({GroundZone.Interval}) 중 0이 있습니다 — 구역이 생기지 않거나 " +
+                             "생겨도 아무도 맞지 않습니다.", this);
+
+        if (zonePrefabSet && !hasAttack)
+            Debug.LogWarning($"[TowerAsset] {name}: 착탄 구역을 저작했는데 프리팹에 AttackAction이 없습니다 " +
+                             "— 착탄이 발생하지 않으므로 구역이 영영 생기지 않습니다.", this);
+
+        if (zonePrefabSet && (Effects == null || Effects.Count == 0))
+            Debug.LogWarning($"[TowerAsset] {name}: 착탄 구역을 저작했는데 Effects가 비어 있습니다 " +
+                             "— 구역이 생기기만 하고 아무 효과도 걸지 않습니다(화상 수치는 Effects가 소유).", this);
+
         // 부메랑도 산탄과 같은 이유로 Area가 필요하다(#298) — Single은 위치 무관 판정이라
         // 왕복 경로의 재타격 게이트와 무관하게 항상 원래 타겟만 맞아버린다.
         if (hasAttack && attackAuthored && Attack.Flight is NorthLand.Combat.BoomerangFlight boomerang)
@@ -292,6 +327,41 @@ public class TowerAsset : ScriptableObject
 
         [Tooltip("PelletCount>1일 때 펠릿들이 균등 분할되는 부채꼴 총 각도(도).")]
         public float SpreadAngle;
+
+        // ── 연발(버스트, #336) ───────────────────────────────────────────────
+        // 산탄(`PelletCount`)과 **다른 축이다**: 산탄은 한 순간에 부채꼴로 여러 발, 버스트는 같은 조준으로
+        // **시간을 두고** 여러 발이다. 그래서 착탄 지점이 갈리고(그 사이 적이 움직인다) 착탄 구역이
+        // 발수만큼 생긴다 — 산탄은 유도·곡사와 조합하면 펠릿이 한 점으로 수렴해 그것이 성립하지 않는다.
+        // 기본값 1 = 발사당 1발, 기존 전 타워 거동 무변경.
+        [Tooltip("한 번의 공격 사이클에 연달아 쏘는 발수. 1이면 기존 거동과 동일.")]
+        public int BurstCount = 1;
+
+        [Tooltip("BurstCount>1일 때 연발 사이 간격(초). 이 값은 공속 원장을 거치지 않는다 — " +
+                 "연발 리듬은 버프로 흔들리지 않는 편이 예측 가능하다.")]
+        public float BurstInterval;
+    }
+
+    // 착탄 지점에 남는 지속 구역의 저작 묶음(#336).
+    //
+    // ⚠ **수치 기본값이 전부 0이다.** 이 블록은 기존 SO 18종에도 생기므로(직렬화 필드 추가),
+    // 기본값이 0이 아니면 "수치는 있는데 프리팹이 없다"는 경고가 전 타워에서 뜬다.
+    // 저작 여부의 유일한 판정 기준은 `ZonePrefab`이다.
+    [System.Serializable]
+    public class GroundZoneFields
+    {
+        [Tooltip("착탄 지점에 띄울 이펙트 프리팹. 우리 스크립트가 없어도 된다 — 런타임에 붙는다.")]
+        public GameObject ZonePrefab;
+
+        [Tooltip("효과를 적용할 반경. ⚠ 이펙트 프리팹의 보이는 크기와 맞춰 저작할 것 — 자동으로 맞지 않는다.")]
+        public float Radius;
+
+        [Tooltip("구역이 남아 있는 시간(초).")]
+        public float Duration;
+
+        [Tooltip("반경 안 적에게 효과를 재적용하는 주기(초). 화상 수치 자체는 Effects가 소유한다.")]
+        public float Interval;
+
+        public bool IsAuthored => ZonePrefab != null && Radius > 0f && Duration > 0f && Interval > 0f;
     }
 
     [System.Serializable]

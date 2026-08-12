@@ -36,6 +36,12 @@ public class MonsterSpawn : MonoBehaviour
     private CancellationTokenSource spawnCancellationTokenSource;
     private int currentRound;
 
+    // 강제 클리어로 건너뛴 라운드(0 = 없음). CombatMapMonsterConnector는 OnDayToNight에서 맵 공개를
+    // 기다린 뒤에야 StartRound를 부르는데, 그 대기 중에 ForceClearWave가 들어오면 보상 UI가 await로
+    // 떠 있는 동안 페이즈가 Night 그대로라 뒤늦게 도착한 StartRound가 게이트를 통과해 버린다.
+    // 그 1회를 삼켜 보상 패널 위로 유령 스폰이 뜨는 것을 막는다.
+    private int suppressedRound;
+
 
     private void Awake()
     {
@@ -115,6 +121,16 @@ public class MonsterSpawn : MonoBehaviour
             return;
         }
 
+        // 이미 강제 클리어된 라운드의 지연 스폰 요청 — 1회만 삼키고 플래그를 소비한다.
+        if (round == suppressedRound)
+        {
+            suppressedRound = 0;
+
+            Debug.Log($"[몬스터 스포너] 웨이브 {round}는 강제 클리어됨 - 지연 스폰 요청을 무시합니다.");
+
+            return;
+        }
+
         // 승패가 확정된 뒤(승리/게임오버)에는 어떤 경로로도 새 웨이브를 시작하지 않는다.
         // 임시 치트 패널로 페이즈를 강제 전환해도 유령 스폰이 생기지 않게 하는 방어선.
         if (GameManager.Instance != null &&
@@ -161,12 +177,27 @@ public class MonsterSpawn : MonoBehaviour
     // 스폰 취소 시 도달하지 못하기 때문(스폰 도중엔 아직 시작조차 안 함).
     public void ForceClearWave()
     {
+        // 통보할 웨이브 번호의 정본은 DayNightManager다. currentRound는 StartRound가 검증을 전부
+        // 통과한 뒤에만 대입되므로, 몬스터 스폰 전에 클리어하면 0이거나 직전 웨이브 값(낡음)으로 남아
+        // 보상 풀 조회(MonsterSpawnWaveProvider.TryGetRewardPool)가 어긋난다.
+        // 밤 진행 중에는 두 값이 항상 일치한다 — CombatMapMonsterConnector가 CurrentWave를 그대로
+        // StartRound에 넘기기 때문.
+        DayNightManager dayNight = DayNightManager.Instance;
+        int wave = dayNight != null ? dayNight.CurrentWave : currentRound;
+
+        // 이 밤의 StartRound가 아직 도착하지 않았을 때만 억제한다.
+        // 이미 스폰 중이었다면 지연 호출 자체가 없으므로 억제할 대상도 없다.
+        if (currentRound != wave)
+        {
+            suppressedRound = wave;
+        }
+
         CancelSpawnTasks();
         ClearSpawnedMonsters();
 
         if (WaveCleared != null)
         {
-            WaveCleared.Invoke(currentRound);
+            WaveCleared.Invoke(wave);
         }
         else
         {

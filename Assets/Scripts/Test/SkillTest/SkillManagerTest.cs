@@ -43,17 +43,25 @@ public class SkillManagerTest : MonoBehaviour
         else
             Debug.LogError($"[SkillTest] FAIL: 밤 시전 실패 또는 데미지 없음 (성공={firstCast}, 데미지={dummy.DamageTaken})");
 
-        // 3. 쿨다운 중 재시전은 막혀야 한다.
-        float damageAfterFirstCast = dummy.DamageTaken;
-        bool secondCast = SkillManager.Instance.CastAt(dummy.transform.position);
-        if (!secondCast && dummy.DamageTaken == damageAfterFirstCast)
-            Debug.Log("[SkillTest] PASS: 쿨다운 중 재시전 차단됨");
-        else
-            Debug.LogError("[SkillTest] FAIL: 쿨다운 중인데 재시전이 성공했다");
+        // 3. 충전이 남아 있는 동안은 연달아 시전되고, 소진되면 막혀야 한다(#319).
+        // 최대 충전은 추가시전 보상 레벨에 따라 달라지므로(세이브 복원 시 2 이상일 수 있다)
+        // 상수로 두지 않고 MaxCharges에서 읽는다 — 여기서 1을 가정하면 정상 동작이 FAIL로 찍힌다.
+        int maxCharges = SkillManager.Instance.MaxCharges;
+        bool burstSucceeded = true;
+        for (int i = 1; i < maxCharges; i++)   // 1발은 위 2번에서 이미 썼다
+            burstSucceeded &= SkillManager.Instance.CastAt(dummy.transform.position);
 
-        // 검증 과정에서 소모한 쿨다운을 리셋 — 안 그러면 Play 시작 직후 스킬 버튼이
-        // 실제 쿨다운(기본 5초)만큼 비활성 상태로 보여 인터랙티브 테스트를 방해한다.
-        SkillManager.Instance.DebugResetCooldown();
+        float damageAfterBurst = dummy.DamageTaken;
+        bool overCast = SkillManager.Instance.CastAt(dummy.transform.position);
+
+        if (burstSucceeded && !overCast && dummy.DamageTaken == damageAfterBurst)
+            Debug.Log($"[SkillTest] PASS: 충전 {maxCharges}발 연속 시전 후 차단됨");
+        else
+            Debug.LogError($"[SkillTest] FAIL: 충전 소진 판정 이상 (연속 성공={burstSucceeded}, 초과 시전={overCast})");
+
+        // 검증 과정에서 소모한 충전을 되돌린다 — 안 그러면 Play 시작 직후 스킬 버튼이
+        // 재충전 간격(씬 값 10초)만큼 비활성 상태로 보여 인터랙티브 테스트를 방해한다.
+        SkillManager.Instance.RefillChargesNow();
 
         Destroy(dummy.gameObject);
     }

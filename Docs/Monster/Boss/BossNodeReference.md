@@ -4,9 +4,9 @@
 - 구현 위치: 노드 `Assets/Scripts/CombatSystem/Enemy/AI/Nodes/` · 보조 타입 `Assets/Scripts/CombatSystem/Enemy/AI/`
 - 설계 문서: `Docs/Monster/Boss/BossDesign.md`
 - 이 문서는 Unity Behavior 커스텀 리프 노드의 **정의 대장**이다. 노드는 보스가 늘어날수록 재사용되며 계속 추가된다. 노드를 새로 만들거나 파라미터를 바꾼 사람은 같은 PR에서 이 표의 행을 갱신한다.
-- Condition 3종 / Action 11종 / 보조 타입 4종 **구현 완료**(#234). 그래프 조립과 Play 검증은 #235에서 한다 — 현재 이 노드들을 쓰는 그래프 에셋이 없어 **런타임 동작은 미검증**이다. 검증된 것은 컴파일·GUID 유일성·에디터 노드 목록 등재·입력 타입 유효성이다.
+- **Condition 4종 / Action 14종 / 보조 타입 4종.** `TankBossBehavior.asset` 그래프로 **Play 검증까지 완료**됐다(검증 상세는 `TankGraphSpec.md` 「검증 결과」). 컴파일·GUID 유일성·에디터 노드 목록 등재·입력 타입 유효성도 확인했다.
 
-> `Assets/Scripts/CombatSystem/Enemy/MiniBoss/`의 기존 노드 4종은 이 대장에 포함되지 않는다. 중간보스 전용이며 재사용하지도, 참조하지도 않는다. GUID 충돌은 없다(프로젝트 전체 18개 노드 전부 고유).
+> `Assets/Scripts/CombatSystem/Enemy/MiniBoss/`의 기존 노드 4종은 이 대장에 포함되지 않는다. 중간보스 전용이며 재사용하지도, 참조하지도 않는다. GUID 충돌은 없다(프로젝트 전체 확인).
 
 ## 설계 원칙
 
@@ -45,7 +45,9 @@
 | `MovementOwned` (읽기/쓰기) | 준비 동작 중 정지, 돌진 중 전진 유지 | `Enemy.MovementOwnedByBehavior`에 위임. 켜면 `Enemy.Update`가 `IsStopped`와 `SetHasTarget` 둘 다 건드리지 않는다 |
 | `MovementStopped` (읽기/쓰기) | 소유권 중 정지·재개 지시 | 속도 배수에 하한 클램프가 있어 **완전 정지는 이 축으로만** 가능하다 |
 | `DamageTakenFactor` (읽기/쓰기) | 방어 태세 | `Enemy`에 위임. 0=무적, 1 초과=취약 |
-| `TryPlayAnimation(trigger)` / `AnimationNormalizedTime` / `IsAnimatorInTransition` / `HasAnimator` | 준비 모션 + 재생 종료 판정 | `EnemyAgent`가 `Animator`를 직접 들어 `MonsterAnimation` 수정이 불필요하다 |
+| `TryPlayAnimation(trigger)` / `AnimationNormalizedTime` / `IsAnimatorInTransition` / `HasAnimator` | 1회성 모션 + 재생 종료 판정 | `EnemyAgent`가 `Animator`를 직접 들어 `MonsterAnimation` 수정이 불필요하다 |
+| `GetAnimationNormalizedTime(layer)` / `GetIsAnimatorInTransition(layer)` | 상체 마스크 레이어의 재생 종료 판정 | 위 두 프로퍼티는 layer 0 위임이다. 범위 밖 레이어는 "이미 끝났다"로 답해 영구 Running을 막는다 |
+| `TrySetAnimatorBool(name, value)` / `GetAnimatorBool(name)` | 지속 상태 모션(돌진 스프린트 / 가드 자세) | **Trigger는 소비되지 않으면 켜진 채로 남아** 지속 상태에 쓸 수 없다. Bool은 멱등이라 기본 진군이 매 사이클 꺼도 무해하다. 파라미터가 없으면 거짓을 반환한다 — `Animator.SetBool`의 매 호출 경고를 노드가 1회 경고로 대체할 수 있게 |
 | `Forward` (읽기) | 앞뒤 판정 | `MonsterMove`가 붙은 transform 기준(루트가 아님) |
 | `HpRatio` (읽기) | 조건 분기, HP 연동 파라미터 | |
 | `Faction` (읽기) | 반경 질의의 아군/적군 판정 | 진영을 상수로 박지 않아 노드를 플레이어 측 유닛에 붙여도 Ally/Hostile이 뒤집히지 않는다 |
@@ -62,7 +64,8 @@
 따라서:
 
 - **패턴 간 상호 배타는 우선순위가 아니라 이 잔류 성질이 보장한다.** 어느 순간에도 한 브랜치만 돈다. 우선순위는 "이전 브랜치가 끝나고 다시 평가하는 시점에 누가 뽑히는지"만 정한다.
-- **조건이 풀렸는데도 패턴이 계속되는 구간이 생긴다.** P2 방어 태세를 짧은 지속시간으로 반복 갱신하는 설계가 바로 이 성질에 대한 대응이다 — 길게 잡으면 잡몹을 다 정리한 뒤에도 크롤이 유지된다.
+- **조건이 풀렸는데도 패턴이 계속되는 구간이 생긴다.** 지속시간을 길게 잡으면 잡몹을 다 정리한 뒤에도 크롤이 유지된다.
+- **반대로, 조건이 계속 참이면 브랜치가 끝나는 즉시 같은 브랜치가 다시 뽑힌다.** 지속시간만으로는 패턴이 끊기지 않는다는 뜻이다 — P2 방어 태세가 이것 때문에 영구 유지됐고, **쿨다운 게이트(`EnemyPatternGateCondition`)를 붙여 해소했다.** 지속시간 = "한 번의 길이", 쿨다운 = "재발동 간격"이며 **둘 다 필요하다.**
 - **Running이 끝나지 않는 노드는 패턴 Selector 전체를 영구 봉인한다.** 이때 P4 지속 소환은 별도 병렬 브랜치라 계속 돌기 때문에 겉보기로는 보스가 정상 동작하는 것처럼 보여 원인을 찾기 어렵다. **시간이 걸리는 노드에는 반드시 상한이 있어야 한다** — 이 세트에서는 `EnemyAccelerateAction.MaxDuration`, `EnemyPlayAnimationAction.MaxWaitSeconds`, 나머지는 `Duration`이 그 역할을 한다. 내장 `Time Out`(`Flow`) 데코레이터로 감싸는 방법도 있다.
 
 **선점이 필요하면 `Priority Abort`를 쓴다.** `Flow/Abort` 카테고리의 `ObserverAbortModifier`가 조건 목록을 감시하다가 성립하면 낮은 우선순위 형제를 중단시키고 부모 컴포지트를 처음부터 재평가시킨다(`AbortTarget` = `LowerPriority` / `Self` / `Both`). 예: "돌진 준비 중에 본진이 파괴되면 즉시 중단" 같은 요구가 생기면 이걸 얹는다. 현재 설계는 선점 없이 성립하므로 기본 그래프에는 쓰지 않는다.
@@ -83,6 +86,7 @@ Unity Behavior `com.unity.behavior` 1.0.16 기준이다.
 - enum은 `[BlackboardEnum]`을 붙이면 그래프 Blackboard의 변수 타입 목록에도 노출된다. 노드 입력으로만 쓸 거면 없어도 동작하지만, 수치를 Blackboard로 올리는 원칙상 붙인다.
 - 즉시 끝나는 동작은 `OnStart`에서 처리하고 성공을 반환한다. 시간이 걸리는 동작은 `OnUpdate`에서 Running을 유지하다가 완료 시 성공을 반환한다.
 - **상태를 바꾸는 노드는 `OnEnd`에서 원복한다.** `OnEnd`는 정상 종료와 상위 컴포지트에 의한 중단 모두 지나가는 유일한 경로다. 원복 대상은 상수(1 등)가 아니라 **진입 시점에 읽어둔 값**이어야 한다 — 상위에서 걸어둔 배수를 지우지 않도록.
+  - **예외: `EnemySetAnimatorBoolAction`은 `!Value`로 원복한다.** 패키지가 노드 종료를 지연 처리하므로(`BehaviorGraphModule.m_NodesToEnd`) 패턴이 연속 재발동하면 새 사이클의 `OnStart`가 이전 사이클의 `OnEnd`보다 먼저 돌 수 있고, 그러면 `OnStart`가 **자기가 켜둔 값**을 "진입 시점 값"으로 저장해 플래그가 영구히 서 버린다. 포즈 플래그는 소유자가 하나뿐이라 중첩 스코프가 없으므로 진입 시점 값을 볼 이유도 없다.
 - 실패는 한국어 메시지를 `LogFailure`로 남기고 실패를 반환한다 (SystemMap §6 컨벤션).
 - `Agent`가 null이면 실패를 반환한다. 다만 `Target`이 null인 경우는 조건 노드에서 조용히 거짓으로 처리한다 — 본진은 밤에 런타임 스폰되므로 초반에 null인 것이 정상이다.
 - **"조건이 안 맞아 아무것도 안 한 것"은 실패가 아니라 성공이다.** 실패로 두면 상위 시퀀스가 매 틱 재시도한다(소환 상한 도달, 봉인 범위에 타워 없음, 실효 속도가 하한 미만 등).
@@ -96,6 +100,10 @@ Unity Behavior `com.unity.behavior` 1.0.16 기준이다.
   | `EnemySpawnMinionsAction` | `MaxAlive` | 상한 없음 → 잡몹 무한 유입 | 경고 1회(래치) |
   | `EnemyAccelerateAction` | `MaxDuration` | 상한 없음 → 영구 Running 가능(「실행 모델」) | 그래프에서 설정 필요 |
   | `EnemyPlayAnimationAction` | `MaxWaitSeconds` | 상한 없음 → 영구 Running 가능 | 그래프에서 설정 필요 |
+  | `EnemyPlayAnimationAction` | `Layer` | 0 = 전신 레이어. 상체 클립을 기다릴 때 0을 그대로 두면 layer 0의 **루프 중인 걷기**를 읽어 `normalizedTime`이 이미 1을 넘어 있고, 대기가 시작하자마자 성공으로 빠져나간다 | 기본값이 맞는 자리(전신)가 다수라 그래프에서 설정 필요 |
+  | `EnemyWaitUntilFieldClearedAction` | `MaxAliveCount` | 스폰된 보스는 자신도 집계에 들어가므로 **게이트가 영구히 닫혀 지속 소환이 한 번도 돌지 않는다** | 경고 1회(래치) |
+  | `EnemySetAnimatorBoolAction` | `Parameter` | 빈 문자열 → 아무 파라미터도 못 찾음 | 경고 1회(래치) 후 성공 |
+  | `EnemySetAnimatorBoolAction` | `Duration` | 원복하지 않음 → 다른 패턴이 계속 이기는 동안 **포즈가 고착된다**(기본 진군이 굶으면 끄는 사람이 없다). 켜는 자리에는 반드시 지속시간을 준다. 끄는 자리(기본 진군의 `false`)에서는 0이 맞다 | 그래프에서 설정 필요 |
 
 ## Condition 노드
 
@@ -105,7 +113,8 @@ Unity Behavior `com.unity.behavior` 1.0.16 기준이다.
 |---|---|---|---|---|
 | `EnemyDistanceToTargetBelowCondition` | `Target`(GameObject), `Distance`(float) | `Target`까지 거리가 `Distance` 미만이면 참. `Target`이 null이거나 `Distance` 0 이하면 거짓 | P1 | 구현 |
 | `EnemyUnitsInRangeCondition` | `Filter`(`EnemyUnitFilter`), `Direction`(`EnemyRelativeDirection`), `Radius`(float), `MinCount`(int) | 지정 방향 반경 안의 대상 수가 `MinCount` 이상이면 참. 방향은 `Agent.Forward`와의 내적 부호로 판정한다. `MinCount` 0 이하면 항상 참 | P2, P3 | 구현 |
-| `EnemyPatternGateCondition` | `Key`(string), `CooldownSeconds`(float) | 해당 `Key`가 한 번도 사용되지 않았거나 마지막 사용 후 `CooldownSeconds`가 지났으면 참. `CooldownSeconds < 0`이면 1회 한정, `== 0`이면 제한 없음(경고 1회). `Key`가 비면 거짓 | P1, P3 | 구현 |
+| `EnemyPatternGateCondition` | `Key`(string), `CooldownSeconds`(float) | 해당 `Key`가 한 번도 사용되지 않았거나 마지막 사용 후 `CooldownSeconds`가 지났으면 참. `CooldownSeconds < 0`이면 1회 한정, `== 0`이면 제한 없음(경고 1회). `Key`가 비면 거짓 | P1, P2, P3, P4a | 구현 |
+| `EnemyFieldClearedCondition` | `MaxAliveCount`(int) | 필드의 살아있는 몬스터 수가 **한 번이라도** `MaxAliveCount` 이하가 되었으면 참. **래치 — 참이 되면 다시 거짓으로 돌아가지 않는다.** Selector는 비선점이라 게이트 개방이 몇 초 밀릴 수 있는데, 그 사이 소환된 잡몹으로 조건이 거짓이 되면 개방 연출을 영구히 놓친다. 스포너가 없으면 거짓 + 경고 1회. 집계에 보스 자신과 사망 연출 중인 몬스터가 포함되므로 "보스만 남았다"는 **1** | P4a | 구현 |
 
 `LayerMask`는 노드 파라미터에서 빠졌다 — Blackboard 변수 지원 타입이 아니다. 대신 `EnemyAgent.UnitLayerMask`(프리팹 인스펙터 authoring)를 읽는다.
 
@@ -122,16 +131,19 @@ Unity Behavior `com.unity.behavior` 1.0.16 기준이다.
 | 노드 | 파라미터 | 동작 | 사용처 | 상태 |
 |---|---|---|---|---|
 | `EnemyResolveTargetAction` | `TargetKind`(`EnemyTargetKind`), `SearchRadius`(float), out `Target`(GameObject) | `TargetKind`에 해당하는 GameObject를 찾아 Blackboard 변수에 기록한다. 못 찾으면 실패(로그 없음 — 본진 미스폰이 정상 경로) | P1 | 구현 |
-| `EnemyMarkPatternUsedAction` | `Key`(string) | 패턴 사용 시각을 기록한다. `EnemyPatternGateCondition`과 짝을 이룬다. 중단 시 되돌리지 않는다 | P1, P3 | 구현 |
+| `EnemyMarkPatternUsedAction` | `Key`(string) | 패턴 사용 시각을 기록한다. `EnemyPatternGateCondition`과 짝을 이룬다. 중단 시 되돌리지 않는다 | P1, P2, P3, P4a | 구현 |
+| `EnemyLogAction` | `Message`(string) | 콘솔에 `[보스 패턴] <시각>s · <메시지>`를 남기고 즉시 성공한다. **`Message`가 비면 아무것도 찍지 않는다** — Blackboard 변수 하나로 일괄 소등하는 스위치(디버그 서클의 `Dbg_Radius = 0`과 같은 관례). `Agent`는 선택 — 비어도 실패하지 않는다(로그 노드가 시퀀스를 끊으면 디버깅 대상 패턴이 안 돈다) | P2, P3 (디버그) | 구현 |
 | `EnemyHoldPositionAction` | `Duration`(float) | 이동 소유권을 잡고 `Duration` 동안 제자리에 멈춘다. 종료 시 정지를 풀고 소유권을 반납한다 | P1 | 구현 |
-| `EnemyPlayAnimationAction` | `Trigger`(string), `WaitForEnd`(bool), `MaxWaitSeconds`(float) | 애니메이션 트리거를 발동한다. `WaitForEnd`면 재생이 끝날 때까지 Running을 유지한다 | P1 | 구현 |
+| `EnemyPlayAnimationAction` | `Trigger`(string), `WaitForEnd`(bool), `MaxWaitSeconds`(float), `Layer`(int) | 애니메이션 트리거를 발동한다. `WaitForEnd`면 재생이 끝날 때까지 Running을 유지한다. `Layer`는 종료 판정을 어느 애니메이터 레이어에서 볼지 정한다(기본 0=전신) — **상체 마스크 레이어의 클립은 반드시 그 레이어 번호를 넣어야 한다** | P1, P2, P3, P4 | 구현 |
 | `EnemyAccelerateAction` | `Target`(GameObject), `MaxFactor`(float), `AccelPerSecond`(float), `ArriveDistance`(float), `MaxDuration`(float) | 이동 소유권을 잡고, 매 프레임 패턴 속도 배수를 `AccelPerSecond`만큼 올리되 `MaxFactor`로 클램프한다. `Target`까지 거리가 `ArriveDistance` 이하가 되면 성공. `MaxDuration` 초과 시 경고 로그 + 실패 | P1 | 구현 |
 | `EnemyImpactTargetAction` | `Target`(GameObject), `DamagePerSpeedUnit`(float), `MinSpeed`(float) | `Target`의 `IDamageable`에 `실효 이동속도 × DamagePerSpeedUnit` 피해를 준다. 실효 속도가 `MinSpeed` 미만이면 피해 없이 성공 | P1 | 구현 |
 | `EnemySetSpeedFactorAction` | `Factor`(float), `Duration`(float) | 패턴 속도 배수를 설정한다. `Duration > 0`이면 그 시간 유지 후 원복, **0 이하면 즉시 성공하며 원복하지 않는다**(기본 진군용) | P1, P2 | 구현 |
 | `EnemySetDamageTakenFactorAction` | `Factor`(float), `Duration`(float) | 받는 피해 배수를 설정한다. 원복 규칙은 위와 같다 | P2 | 구현 |
-| `EnemyApplyTowerDebuffAction` | `Radius`(float), `DamageMultiplier`(float), `AttackSpeedMultiplier`(float), `Duration`(float) | 반경 안의 **공격 타워**(`IsAttackTower`) 각각에 고유 sourceId로 `ApplyBuff`를 건다. 배율 1 미만이면 디버프가 된다. 범위에 타워가 없어도 성공. `Radius` 또는 `Duration`이 0 이하면 실패 | P3 | 구현 |
+| `EnemySetAnimatorBoolAction` | `Parameter`(string), `Value`(bool), `Duration`(float) | AnimatorController의 Bool 파라미터를 설정한다. `Duration > 0`이면 그 시간 뒤 **`!Value`로** 원복한다(진입 시점 값이 아니다 — 「작성 규약」의 예외 항목 참조). **지속 상태 모션 전용** — 1회성은 `EnemyPlayAnimationAction`을 쓴다. 파라미터가 없으면 경고 1회 후 **성공**(기본 진군에 놓이므로 실패는 트리 전체를 막는다) | P2, 기본 진군 | 구현 |
+| `EnemyApplyTowerDebuffAction` | `Radius`(float), `DamageMultiplier`(float), `AttackSpeedMultiplier`(float), `Duration`(float), out `SealedTowers`(List\<GameObject\>) | 반경 안의 **공격 타워**(`IsAttackTower`) 각각에 고유 sourceId로 `ApplyBuff`를 건다. 배율 1 미만이면 디버프가 된다. 범위에 타워가 없어도 성공. `Radius` 또는 `Duration`이 0 이하면 실패. **봉인된 타워를 `SealedTowers`에 기록하고 콘솔에 목록을 남긴다**(0건도 남긴다 — 분산 배치 파훼가 통한 것인지 필터가 잘못된 것인지 구분하려면 필요하다) | P3 | 구현 |
 | `EnemyShowTelegraphCircleAction` | `Radius`(float), `Duration`(float), `FillColor`(Color), `OutlineColor`(Color) | `RangeCircle`을 `Agent`의 자식으로 만들어 예고 범위를 표시하고 `Duration` 뒤 파괴한다. 종료 시 정리한다 | P3 | 구현 |
 | `EnemySpawnMinionsAction` | `Prefab`(GameObject), `Count`(int), `MaxAlive`(int) | 스폰 지점에 잡몹을 투입한다. `monsterParent` 자식으로 넣고 경로를 부여한다. 상한은 마리마다 재확인하며, 상한에 걸려 한 마리도 못 넣어도 성공. `MaxAlive`가 0 이하면 상한 없이 투입(경고 1회) | P4 | 구현 |
+| `EnemyWaitUntilFieldClearedAction` | `MaxAliveCount`(int) | 필드의 살아있는 몬스터 수가 `MaxAliveCount` 이하가 될 때까지 Running을 유지한다. **병렬 브랜치 전용** — Selector 브랜치에 넣으면 트리를 붙잡아 다른 패턴이 전부 멎는다(그 자리에는 `EnemyFieldClearedCondition`을 쓴다). 스포너가 없으면 실패(집계가 항상 0이라 게이트가 즉시 열려 버린다). **집계에 보스 자신과 사망 연출 중인 몬스터가 포함된다** — "보스만 남았다"는 0이 아니라 1이다 | P4 | 구현 |
 
 표에서 벗어난 곳 3군데는 구현 중 필요해서 조정한 것이다.
 

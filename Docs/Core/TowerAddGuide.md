@@ -181,8 +181,17 @@ archer_tower,towers.archer.name,1,1,towers.archer.role,towers.archer.desc
 - [ ] `Ramp` — 타워 전체가 성장할 거면 `Stat`(무엇이 오르는가) · `Trigger`(`Hit`/`Kill`) ·
       `Profile`(`PerStack`·`MaxStacks`·`DecaySeconds`). ⚠ `DecaySeconds = 0`은 "영구"가 아니라
       "웨이브 동안 유지"다 — 성장은 웨이브 종료에 일괄 초기화된다
+- [ ] `Attack.BurstCount` / `BurstInterval` — 한 사이클에 **시간차로** 여러 발을 쏠 거면(#336).
+      산탄(`PelletCount`)과 **다른 축이다** — 산탄은 한 순간에 부채꼴로, 연발은 같은 조준으로 시간을 두고
+      나간다. 그래서 착탄 지점이 갈리고 착탄 구역이 발수만큼 생긴다. 기본값 1 = 기존 거동
+- [ ] `GroundZone` — 착탄 지점에 지속 구역을 남길 거면 `ZonePrefab` / `Radius` / `Duration` / `Interval`.
+      **저작 여부의 판정 기준은 `ZonePrefab` 하나**다(수치 기본값이 0이라 그렇지 않으면 전 타워에서 경고가 뜬다).
+      ⚠ **판정 반경과 이펙트의 보이는 크기는 자동으로 맞지 않는다** — 반경은 여기, 보이는 크기는 프리팹
+      스케일이 정한다. ⚠ **회전은 프리팹이 저작한 것을 그대로 쓴다** — 씬에 그냥 놨을 때 바닥에 눕는
+      상태로 저작돼 있어야 한다(파티클 팩은 루트 회전을 자식이 상쇄하는 형태가 흔해, 덮으면 판이 90° 선다)
 - [ ] `Effects` — `+`로 `Burn`/`Poison`/`Slow`/`Stun`을 담고 **그 자리에서 수치 입력**.
-      **공격 액션과 디버프 오라가 이 리스트를 공유**한다 — 같은 "화상"이 명중 효과도 되고 장판도 된다
+      **공격 액션·디버프 오라·착탄 구역이 이 리스트를 공유**한다 — 같은 "화상"이 명중 효과도 되고
+      타워 중심 장판도 되고 착탄 구역도 된다
 
 탄환 프리팹에는 수치를 넣지 않는다(모델 축 보정 하나뿐). 근거는 [Tower.md](Tower.md) §3.7·§3.8.
 **확인** 저장(Ctrl+S) 시 Console에 `[TowerAsset]` 경고가 없으면 통과 → [§4](#4-검증--3개의-관문).
@@ -248,6 +257,11 @@ SO를 저장하면 아래 조합을 경고한다. **전부 "예외도 없이 조
 | `RampAction이 있는데 Ramp 수치가 비었습니다` (역방향 경고도 동일) | [3.5](#35-so-수치-기입) `Ramp` |
 | `Ramp.Trigger=Hit인데 프리팹에 AttackAction이 없습니다` | 명중 통지(`Projectile.DamageDealt`)는 **투사체 공격만** 발행한다 — 빔 타워면 `Trigger=Kill` 또는 `Beam.LockRamp`를 쓴다 |
 | `Beam.LockRamp를 적었는데 BeamAction이 없습니다` / `StackInterval이 0 이하입니다` | [3.5](#35-so-수치-기입) `Beam.LockRamp` |
+| `BurstCount(n)>1인데 BurstInterval이 0입니다` | [3.5](#35-so-수치-기입) `Attack.BurstInterval` — 시간차가 없으면 산탄과 같아지고 착탄 구역도 한 점에 겹친다(#336) |
+| `BurstCount를 적었는데 프리팹에 AttackAction이 없습니다` | [3.3](#33-타워-프리팹) `Actions` |
+| `GroundZone.ZonePrefab은 지정됐는데 Radius/Duration/Interval 중 0이 있습니다` | [3.5](#35-so-수치-기입) `GroundZone` — 저작 판정은 `ZonePrefab` 하나로 하므로 수치가 0이면 구역이 생기지 않거나 생겨도 아무도 안 맞는다(#336) |
+| `착탄 구역을 저작했는데 프리팹에 AttackAction이 없습니다` | [3.3](#33-타워-프리팹) — 착탄이 발생하지 않으므로 구역이 **영영** 생기지 않는다 |
+| `착탄 구역을 저작했는데 Effects가 비어 있습니다` | [3.5](#35-so-수치-기입) `Effects` — 구역은 "어디에·얼마나 오래·얼마나 자주"만 알고 **무엇을 거는지는 `Effects`가 소유한다**(화상 수치 포함) |
 
 > `TowerPrefab`이 비어 있으면 검증을 **건너뛴다**(저작 도중 경고 폭탄 방지). 즉 프리팹을 안 물린 SO는
 > 경고도 안 난다 — `lightning_tower`가 전 필드 0인 채 조용한 이유다. 근거는 [Tower.md](Tower.md) §4.3.

@@ -15,16 +15,18 @@
 | `choco_tower` | 초코(슬로우) | 직접배치 | — | 최초 9종 |
 | `soda_tower` | 소다(스턴) | 직접배치 | — | 최초 9종 |
 | `flame_field_tower` | 화염지대 | 직접배치 | — | #282 확정 — 장판형만 기본 배치 유지 |
-| `flame_archer_tower` | 화염궁수 | 합성 전용 | 아처×1 + 화염지대×1 (`Recipe_FlameArcherTower`) | #282 "획득 경로 결정" 표로 확정 |
-| `incendiary_cannon_tower` | 소이캐논 | 합성 전용 | 캐논×1 + 화염지대×1 (`Recipe_IncendiaryCannonTower`) | #282 "획득 경로 결정" 표로 확정 |
+| `flame_archer_tower` | 화염궁수 | 합성 전용 | 아처×1 + 화염지대×1 (`Recipe_FlameArcherTower`) | #282 "획득 경로 결정" 표로 확정. #336에서 `_towers`에서 제거돼 **코드가 이 표와 일치**하게 됐다(그전까지 코드는 직접배치를 유지) |
+| `incendiary_cannon_tower` | 소이캐논 | 합성 전용 | 캐논×1 + 화염지대×1 (`Recipe_IncendiaryCannonTower`) | 위와 동일 — #282 확정, #336에서 `_towers` 제거 실행 |
 | `triple_shoot_tower` | 산탄 | 합성 전용 | 아처×3 (`Recipe_tripleshootTower`) | #298 신규 — 아처 개수 = 펠릿 수(총알 3발 동시 발사). 아래 "아처 계열 재료 개수 규약" 참조 |
 | `boomerang_tower` | 부메랑 | 합성 전용 | 아처×1 + 캐논×2 (`Recipe_BoomerangTower`) | #298 신규 — 원안(아처×2+캐논×1)이 기존 `Recipe_Example_Sniper`와 겹쳐 비율을 뒤집음 |
 | `multi_inferno_tower` | 멀티인페르노 | 합성 전용 | 개틀링×2 + 포이즌×1 (`Recipe_multiinfernoTower`) | #298 신규 |
 | `rampup_tower` | 램프업 | 합성 전용 | 개틀링×1 + 헤이스트×1 (`Recipe_RampUpTower`) | #300 신규 — 명중할수록 공속이 오르는 성장형. 공속을 올리는 재료(개틀링=동시 사격, 헤이스트=공속 버프)끼리 묶었다. 획득 경로는 이슈 제안대로 **사인오프 완료**(2026-08-06) |
 | `killstack_tower` | 사냥꾼(킬스택) | 합성 전용 | 캐논×1 + 스나이퍼×1 (`Recipe_KillStackTower`) | #300 신규 — 처치할수록 공격력이 오르는 성장형(**웨이브 종료 시 초기화**). 처치 확정력이 있는 재료끼리 묶었고 기존 레시피와 조합이 겹치지 않는다 |
 | `single_inferno_tower` | 단일 인페르노 | 합성 전용 | 멀티인페르노×1 + 스나이퍼×1 (`Recipe_SingleInfernoTower`) | #300 신규 — 한 대상만 지지되 조준 유지 시간만큼 피해가 커진다(**8 → 104 DPS / 6초**, 상향 이력은 아래 미해결 항목 참조). **합성 산물을 재료로 쓰는 첫 사례**(다단 합성) |
-| `gatling_tower` | 개틀링 | 합성 전용 ⚠ | 아처×2 (`Recipe_Example_Gatling`) | 아처 개수 = 동시 사격 문수(2기가 함께 쏘는 개념 → 공속 상승). **획득 경로**는 #298(커밋 1b69373)에서 직접배치 제외로 전환 — #282 표엔 없는 신규 판단, 팀 사인오프 미완료(WL-156) |
-| `Sniper_tower` | 스나이퍼 | 합성 전용 ⚠ | 아처×1 + 캐논×1 (`Recipe_Example_Sniper`) | 위와 동일(WL-156) |
+| `missile_tower` | 미사일 터렛 | 합성 전용 | 아처×1 + 캐논×1 + 화염지대×1 (`Recipe_MissileTower`) | #336 신규 — 착탄 지점에 화염 구역을 남기는 첫 타워. 재료 3종은 각각 유도 사격(아처)·포격(캐논)·지속 장판(화염지대)을 뜻한다 |
+| `twin_missile_tower` | 2연발 미사일 터렛 | 합성 전용 | 미사일 터렛×2 (`Recipe_TwinMissileTower`) | #336 신규 — 한 사이클에 2발을 시간차로 쏘는 연발(`Attack.BurstCount`). 착탄 구역이 발수만큼 생기고 겹치면 중첩된다. **단일 인페르노에 이어 두 번째 다단 합성** |
+| `gatling_tower` | 개틀링 | 합성 전용 ⚠ | 아처×2 (`Recipe_Example_Gatling`) | 아처 개수 = 동시 사격 문수(2기가 함께 쏘는 개념 → 공속 상승). **획득 경로**는 #298(커밋 1b69373)에서 직접배치 제외로 전환 — #282 표엔 없는 신규 판단, 팀 사인오프 미완료(WL-156). ⚠ **#336에서 `GameScene`의 `TowerSelectPanelView._towers`에서 실제로 제거됐다** — 그전까지 이 표만 "합성 전용"이었고 코드는 직접배치를 유지하고 있었다(문서 선행 · 코드 후행). **사인오프 상태는 여전히 미완료다** — 코드가 표를 따라간 것이지 팀이 승인한 것이 아니다 |
+| `Sniper_tower` | 스나이퍼 | 합성 전용 ⚠ | 아처×1 + 캐논×1 (`Recipe_Example_Sniper`) | 위와 동일(WL-156, #336에서 `_towers` 제거 실행) |
 | `lightning_tower` | 번개사슬 | **없음(획득 불가)** | — | #282 후보#3 — SO만 존재, 레시피·프리팹 미배선. 별도 착수 필요 |
 
 ## 아처 계열 재료 개수 규약 — 부분집합 관계는 의도된 것

@@ -10,12 +10,12 @@
 
 | 클래스 | 역할 |
 | --- | --- |
-| `SkillManager` | 감전 스킬(#103). 클릭 위치 AoE 즉시 데미지, 밤 게이팅+쿨다운. 임팩트마다 `ImpactResolved(SkillCastContext)` 이벤트 발행 |
+| `SkillManager` | 감전 스킬(#103). 클릭 위치 AoE 즉시 데미지, 밤 게이팅 + **충전(탄약) 소모**(#319). 임팩트마다 `ImpactResolved(SkillCastContext)` 이벤트 발행 |
 | ~~`BuffSkillManager`~~ | **미사용 (#315)** — 버프 스킬(#103). 즉시 발동, `Tower.Active` 전체에 공격력/공속 배율. 씬 미배선이라 `Instance`가 항상 null |
-| `SkillEffectManager` | 보상 라우터(씬 싱글톤). `WaveRewardController.GrantReward` → `ApplyReward(reward)` → 타입 매칭 효과에 레벨 가산 위임. `GetLevel(type)` / `GetStatSummary(type)`(#287) / 상한 조회 `IsMaxLevel`·`GetNextLevel`·`ReachesMaxLevel`(#292) 제공 |
+| `SkillEffectManager` | 보상 라우터(씬 싱글톤). `WaveRewardController.GrantReward` → `ApplyReward(reward)` → 타입 매칭 효과에 레벨 가산 위임. `GetLevel(type)`(세이브용) / 보상 후보 필터용 `IsMaxLevel(type)`(#292) / 카드 표시용 `GetSnapshot(type)` 제공 — 표시에 필요한 `Level`·`NextLevel`·`NextIsMax`·`Stats`(#287·#292)를 한 벌로 넘긴다. **값마다 따로 조회하지 말 것**(#353) |
 | `SkillEffect` (추상) | 특수효과 공통 베이스(MonoBehaviour, `SkillEffectManager` 오브젝트에 부착). 레벨·상한 소유 + 스킬 이벤트 구독 관리 + 표시 수치 제공(`GetStatSummary`) |
 | `SkillStatsFormatter` | 보상 카드 표시 문자열의 단일 출처(#287). 라벨 조회(`NorthLand_Skills`)와 숫자 서식이 여기 한 곳에만 있다 — `TowerStatsFormatter` 대응 |
-| `SkillCastContext` | 시전 1회의 정보 묶음. 효과들이 읽고(착탄 위치/맞은 적), 일부 필드는 효과가 써넣는다(`ExtraImpacts`). 짝인 `BuffCastContext`는 버프 스킬과 함께 **미사용 (#315)** |
+| `SkillCastContext` | 시전 1회의 정보 묶음(착탄 위치/맞은 적). 효과가 써넣는 필드는 없다 — 읽기 전용(#319). 짝인 `BuffCastContext`는 버프 스킬과 함께 **미사용 (#315)** |
 | `SkillVisualSet` | 마법 연구소 레벨 → 감전 착탄 이펙트 프리팹 매핑 SO(`Assets/Resources/ScriptableObjects/Skill/`). `Resolve(level)`로 구간 조회, `SkillManager`가 레벨 변경 시에만 캐싱 |
 
 ## 2. 핵심 구조 — 이벤트 구독 (#169 확정)
@@ -47,7 +47,7 @@
 | --- | --- | --- | --- |
 | `Burn` | `BurnEffect` | 감전 착탄에 맞은 적에게 도트(대상의 `StatusEffectHandler` 재사용) | 틱 데미지 = 레벨 × 수치 |
 | `Bomb` | `BombEffect`+`SkillBomb` | 착탄 지점에 구 프리팹(`Assets/Prefabs/Skill/SkillBomb.prefab`) 설치 → 지연 후 반경 폭발 | 폭발 데미지 = 레벨 × 수치 |
-| `Count` | `CountEffect` | 감전이 1클릭에 총 (1+레벨)회 발동, 반복분은 0.5초 간격(UniTask). `ImpactIndex==0`에서만 가산(무한 반복 가드) | 발동 횟수 +1 |
+| `Count` | `CountEffect` | 감전의 **최대 충전**을 레벨만큼 올린다(총 1+레벨발). 충전 보유·소모·재적립은 `SkillManager`가 소유하고, 이 효과는 `OnLevelChanged`로 레벨을 밀어넣기만 한다(#319) | 최대 충전 +1 |
 | `Field` | `FieldEffect`+`SkillField` | 착탄 지점에 장판 프리팹(`Assets/Prefabs/Skill/SkillField.prefab`) 설치 → `duration` 동안 `tickInterval`마다 **그 순간** 범위 안의 적에게 즉시 데미지 (#316) | 틱 데미지 = 레벨 × 수치 |
 | ~~`BuffBurn`~~ | ~~`BurnBuff`~~ | **미사용 (#315)** — 버프 스킬 전용 효과였다. enum 값·`BuffBurnReward.asset`·클래스는 남아있으나 `WaveRewardPool`에서 빠져 뽑히지 않고, 컴포넌트도 씬에 없다 | — |
 
@@ -56,8 +56,8 @@
 > **종류 4 = 카드 3**이라 첫 웨이브부터 후보가 섞이기 시작했다(#316). 다만 GDD §5.6의 조항(종류 ≥ 상한 + 3 = **6종**)에는 여전히 미달이라 **완화지 해소가 아니다** — 한 효과가 Lv3에 닿는 순간 남은 3종이 매번 전부 제시된다.
 
 - 수치는 전부 각 효과 컴포넌트의 **인스펙터 직접 입력**(CSV 미사용 — 스킬 수치 정책과 동일, WL-015 축).
-- 반복 임팩트(Count)에서도 Burn/Bomb/Field가 정상 발동한다 — 조합 시너지 의도. 전기장은 대상에 붙는 디버프가 아니라 독립 오브젝트라 **장판이 여러 장 생겨 겹치는 자리에서 데미지가 합산**된다(각자 독립 타이머라 "갱신"으로 죽지 않는다). 중첩 상한은 두지 않았다 — 의도된 동작이며, `CountEffect`를 충전형으로 교체할 계획이라 이 상호작용은 유지되지 않을 수 있다(#316).
-- **웨이브 종료 시** 진행 중이던 추가시전 반복분·미폭발 폭탄·활성 장판은 취소된다(§5 규약, #200).
+- 충전을 연달아 쓰면 시전마다 Burn/Bomb/Field가 각각 발동한다 — 조합 시너지 의도. 전기장은 대상에 붙는 디버프가 아니라 독립 오브젝트라 **장판이 여러 장 생겨 겹치는 자리에서 데미지가 합산**된다(각자 독립 타이머라 "갱신"으로 죽지 않는다). 중첩 상한은 두지 않았다 — 다만 자동 반복이 사라진 뒤로는 플레이어가 같은 자리에 다시 조준해야만 겹친다(#319).
+- **웨이브 종료 시** 미폭발 폭탄·활성 장판은 취소된다(§5 규약, #200). 감전 자체에는 예약된 지연 발동이 없어 `SkillManager`는 취소 대상이 없다(#319).
 
 ### 3.1 마법 연구소 강화 (#205, 보상 축과 독립) — 기본 스탯 배율
 
@@ -78,7 +78,7 @@
 - `ApplyImpact`이 그 프리팹을 스폰한다. 세트 미배선이거나 해당 레벨 엔트리가 없으면 기존 `impactEffectPrefab`으로 **폴백**하므로, 세트를 비워두면 이 기능 도입 전과 동일하게 동작한다.
 - 엔트리별 `ScaleWithRadius`(기본 켬)를 켜면 이펙트 크기를 `effectiveRadius / radius` 비율로 보정한다 — 연구소가 `RadiusMultiplier`도 올리므로, 보정하지 않으면 조준 인디케이터 반경과 눈에 띄게 어긋난다.
 
-**축 경계 — 낙하·메테오 연출은 이 축이 아니다.** 이 축이 바꾸는 건 "착탄 지점에 무엇을 스폰하느냐"뿐이고, 스킬은 **즉발형 그대로**다(데미지는 `CastAt` 시점에 확정, 시전 흐름 `CastAt`/`RepeatImpactsAsync`/`ImpactResolved` 무수정). 하늘에서 떨어지는 메테오처럼 **이동 + 지연 데미지**가 필요한 연출은 보상 특수효과 축(§3, §4 절차)에 `SkillEffect` 파생으로 넣는다 — `BombEffect`+`SkillBomb`이 이미 "착탄 지점에 프리팹 소환 → 자체 타이머 → 자기 반경 데미지 → 웨이브 종료 시 발동 없이 소멸" 패턴을 확립해 뒀다. 그렇게 나누면 기본 감전 데미지는 즉발로 이미 들어간 뒤라 "적이 먼저 죽고 나중에 메테오가 떨어지는" 어색함도 생기지 않는다.
+**축 경계 — 낙하·메테오 연출은 이 축이 아니다.** 이 축이 바꾸는 건 "착탄 지점에 무엇을 스폰하느냐"뿐이고, 스킬은 **즉발형 그대로**다(데미지는 `CastAt` 시점에 확정, 시전 흐름 `CastAt`/`ImpactResolved` 무수정). 하늘에서 떨어지는 메테오처럼 **이동 + 지연 데미지**가 필요한 연출은 보상 특수효과 축(§3, §4 절차)에 `SkillEffect` 파생으로 넣는다 — `BombEffect`+`SkillBomb`이 이미 "착탄 지점에 프리팹 소환 → 자체 타이머 → 자기 반경 데미지 → 웨이브 종료 시 발동 없이 소멸" 패턴을 확립해 뒀다. 그렇게 나누면 기본 감전 데미지는 즉발로 이미 들어간 뒤라 "적이 먼저 죽고 나중에 메테오가 떨어지는" 어색함도 생기지 않는다.
 
 ## 4. 새 특수효과 추가 절차
 
@@ -107,7 +107,7 @@
 - **`StatusEffectHandler` effectId 분리 규약**: 다른 id는 공존(각자 틱), 같은 id는 갱신. 현재 사용: 타워 오라=TowerID 해시, 감전 화상=`"skill_burn"` 해시. (`"buff_burn"`은 제거된 버프 화상이 쓰던 id — #315, 재사용 금지) 새 도트 효과는 고유 문자열 해시로 분리할 것.
 - **`DamageInfo` source=null 규약**: 플레이어 스킬 계열은 `IAttacker` 개체가 아니므로 source를 null로 넘긴다(`SkillManager` 주석 참고).
 - **`Projectile.DamageDealt`는 static 이벤트** — 구독 해제는 구독자 책임. 파괴 경로(`OnDestroy`→`Unsubscribe`)에서 반드시 해제. `BurnBuff`는 #315로 미사용이 됐고 현재 구독자는 `RampAction`(`Trigger=Hit`)뿐이다. ⚠ **빔 타워(`BeamAction`)는 이 이벤트를 발행하지 않으므로**, 여기 붙는 새 효과는 빔 타워에서 조용히 빠진다(WL-155).
-- **웨이브/런 종료 시 진행 중 효과 취소(#200)**: 시전 후 **지연·지속 발동하는 효과 3종 한정** — 추가시전 반복 착탄(`SkillManager.RepeatImpactsAsync`)·지연 폭탄(`SkillBomb`)·지속 장판(`SkillField`, #316) — 을 취소한다. 신호는 `DayNightManager.OnNightToDay`(밤→낮=웨이브 종료)와 `GameManager.OnResultDecided`(승리/게임오버 — `EndNight()`를 안 타는 종료 경로) 둘 다 구독(적이 사라졌거나 결과 화면 뒤에서 잔존 발동 방지). 추가 착탄은 파괴 토큰과 링크한 `CancellationTokenSource`로, 폭탄·장판은 `initialized`를 내리고 자기 파괴(장판은 잔류 딜 없이 즉시 사라진다). **취소 대상 아님**: 적 DoT는 자체 타이머로 만료된다(낮엔 타워가 밤 게이팅돼 실害 0). 조준(타겟팅) 모드 취소는 별개로 `PhasePanelSwitcher`가 `OnDayStart`에서 담당.
+- **웨이브/런 종료 시 진행 중 효과 취소(#200)**: 시전 후 **지연·지속 발동하는 효과 2종 한정** — 지연 폭탄(`SkillBomb`)·지속 장판(`SkillField`, #316) — 을 취소한다(추가시전이 충전형이 되며 반복 착탄이 사라져 `SkillManager`는 취소 대상이 없다, #319). 신호는 `DayNightManager.OnNightToDay`(밤→낮=웨이브 종료)와 `GameManager.OnResultDecided`(승리/게임오버 — `EndNight()`를 안 타는 종료 경로) 둘 다 구독(적이 사라졌거나 결과 화면 뒤에서 잔존 발동 방지). 폭탄·장판은 `initialized`를 내리고 자기 파괴(장판은 잔류 딜 없이 즉시 사라진다). **취소 대상 아님**: 적 DoT는 자체 타이머로 만료된다(낮엔 타워가 밤 게이팅돼 실害 0). 조준(타겟팅) 모드 취소는 별개로 `PhasePanelSwitcher`가 `OnDayStart`에서 담당.
 - **범위 판정의 수직 축은 반경으로 풀지 말 것(#316)** — 착탄점(`context.Position`)은 전투 타일 표면이지만 몬스터는 그 위 **6f에 떠 있다**(`CombatMapTileSpawner`의 `monsterWaypointYOffset`, WL-063). 감전(반경 6)이 맞는 건 반경이 우연히 부양 높이와 같아서고, 그보다 작은 반경을 쓰는 효과는 지면에서 친 구체가 적에게 닿지 않아 **적중 0**이 된다. 수평 반경을 키워 억지로 닿게 하면 밸런싱 범위가 같이 커지므로, `SkillField`처럼 **수직 축 캡슐**(`Physics.OverlapCapsuleNonAlloc`, 바닥→`verticalRange`)로 축을 나눈다 — 수평 단면이 정확히 반경 `radius`의 원이라 장판 비주얼과도 1:1로 맞는다.
 - ⚠ **트리거 콜라이더 방식은 이 프로젝트에서 성립하지 않는다** — WL-068이 한때 "지면까지 닿는 길쭉한 트리거 콜라이더"를 해소 방향으로 적었으나, 적 프리팹(`Tank.prefab`)에 **Rigidbody가 없어** `OnTrigger*`가 아예 발동하지 않는다(Unity는 양쪽 중 하나에 Rigidbody를 요구). `Assets/Scripts` 전체에 `OnTrigger*` 사용처가 0건이며 전 범위 판정이 `Physics.Overlap*NonAlloc`이다. 트리거로 가려면 장판 쪽에 Kinematic Rigidbody 추가 + Layer Collision Matrix 확인 + `OnTriggerExit`가 안 불리는 사망 케이스 처리가 따라붙는다 — #316은 캡슐 판정으로 해결했고, 그게 이 프로젝트의 방향이다.
 - 관련 WatchList: **WL-068**(스킬 시전 Y와 몬스터 부양 높이 불일치 시 적중 0 — 해소 방향은 위 두 항목으로 정정됐다), **WL-050**(배율 덮어쓰기 비스택).
