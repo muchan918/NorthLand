@@ -18,8 +18,6 @@ namespace NorthLand.Core
 
         private PlayerSlotManager slotManager;
 
-        private const string SelectedSlotKey = "NorthLand.SelectedPlayerSlot";
-
         public PlayerData CurrentPlayerData
         {
             get;
@@ -62,7 +60,10 @@ namespace NorthLand.Core
             slotManager =new PlayerSlotManager(Application.persistentDataPath);
 
             legacyRunSaveLocationMigrator =new LegacyRunSaveLocationMigrator(Application.persistentDataPath);
+        }
 
+        private void Start()
+        {
             RestoreSelectedSlot();
         }
 
@@ -127,10 +128,14 @@ namespace NorthLand.Core
                 CurrentPlayerData = null;
             }
 
-            if (PlayerPrefs.HasKey(SelectedSlotKey) && PlayerPrefs.GetInt(SelectedSlotKey, -1) == slotIndex)
+            GameSettingsService settingsService =GameSettingsService.Instance;
+
+            if (settingsService != null &&settingsService.CurrentSettings != null &&settingsService.CurrentSettings.lastSelectedSlotIndex == slotIndex)
             {
-                PlayerPrefs.DeleteKey(SelectedSlotKey);
-                PlayerPrefs.Save();
+                if (!settingsService.TrySetLastSelectedSlotIndex(-1,out string settingsError))
+                {
+                    Debug.LogWarning($"[PlayerSaveService] 선택 슬롯 초기화 실패: {settingsError}",this);
+                }
             }
 
             if (wasSelected)
@@ -142,34 +147,58 @@ namespace NorthLand.Core
         }
 
 
-        private static void SaveSelectedSlot(int slotIndex)
+        private void SaveSelectedSlot(int slotIndex)
         {
-            PlayerPrefs.SetInt(SelectedSlotKey,slotIndex);
+            GameSettingsService settingsService = GameSettingsService.Instance;
 
-            PlayerPrefs.Save();
+            if (settingsService == null)
+            {
+                Debug.LogWarning("[PlayerSaveService] 게임 설정 시스템이 준비되지 않았습니다.",this);
+
+                return;
+            }
+
+            if (!settingsService.TrySetLastSelectedSlotIndex(slotIndex,out string error))
+            {
+                Debug.LogWarning($"[PlayerSaveService] 선택 슬롯 저장 실패: {error}",this);
+            }
         }
 
         private void RestoreSelectedSlot()
         {
-            if (!PlayerPrefs.HasKey(SelectedSlotKey))
+            GameSettingsService settingsService = GameSettingsService.Instance;
+
+            if (settingsService == null ||settingsService.CurrentSettings == null)
+            {
+                Debug.LogWarning("[PlayerSaveService] 게임 설정을 불러오지 못해 마지막 슬롯을 복원하지 않았습니다.",this);
+
+                return;
+            }
+
+            int slotIndex = settingsService.CurrentSettings.lastSelectedSlotIndex;
+
+            if (slotIndex < 0)
             {
                 return;
             }
 
-            int slotIndex = PlayerPrefs.GetInt(SelectedSlotKey);
-
-            if (slotManager.TrySelectSlot(slotIndex,out PlayerData data,out _))
+            if (slotManager.TrySelectSlot(slotIndex, out PlayerData data, out _))
             {
                 CurrentPlayerData = data;
 
                 TryMigrateLegacyRunSave();
 
+                SelectedSlotChanged?.Invoke();
+
                 return;
             }
 
             // 저장된 슬롯이 삭제됐거나 잘못된 경우
-            PlayerPrefs.DeleteKey(SelectedSlotKey);
-            PlayerPrefs.Save();
+            if (!settingsService.TrySetLastSelectedSlotIndex(-1,out string error))
+            {
+                Debug.LogWarning($"[PlayerSaveService] 잘못된 선택 슬롯 초기화 실패: {error}",this);
+            }
+
         }
 
         public bool TryUpdateLastPlayedAt(out string error)

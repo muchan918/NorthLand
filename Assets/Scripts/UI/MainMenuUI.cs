@@ -29,14 +29,8 @@ namespace NorthLand.UI
         [SerializeField]
         private GameObject savePanel;
 
-        private InputAction toggleSavePanelAction;
-
         private void Awake()
         {
-            toggleSavePanelAction =new InputAction(name: "ToggleSavePanel",type: InputActionType.Button,binding: "<Keyboard>/escape");
-
-            toggleSavePanelAction.performed += OnToggleSavePanelPerformed;
-
             RefreshContinueButton();
         }
 
@@ -122,6 +116,21 @@ namespace NorthLand.UI
             {
                 seedErrorText.text = string.Empty;
             }
+        }
+        private void Update()
+        {
+            // 타이틀 씬 전용 입력이다.
+            if (Keyboard.current == null)
+            {
+                return;
+            }
+
+            if (!Keyboard.current.escapeKey.wasPressedThisFrame)
+            {
+                return;
+            }
+
+            ToggleSavePanel();
         }
 
         public void OnClickOpenseedGamePanle()
@@ -239,8 +248,6 @@ namespace NorthLand.UI
 
         private void OnEnable()
         {
-            toggleSavePanelAction?.Enable();
-
             PlayerSaveService playerSaveService = PlayerSaveService.Instance;
 
             if (playerSaveService != null)
@@ -251,8 +258,6 @@ namespace NorthLand.UI
 
         private void OnDisable()
         {
-            toggleSavePanelAction?.Disable();
-
             PlayerSaveService playerSaveService = PlayerSaveService.Instance;
 
             if (playerSaveService != null)
@@ -264,23 +269,6 @@ namespace NorthLand.UI
         private void HandleSelectedSlotChanged()
         {
             RefreshContinueButton();
-        }
-
-        private void OnDestroy()
-        {
-            if (toggleSavePanelAction == null)
-            {
-                return;
-            }
-
-            toggleSavePanelAction.performed -= OnToggleSavePanelPerformed;
-
-            toggleSavePanelAction.Dispose();
-        }
-
-        private void OnToggleSavePanelPerformed(InputAction.CallbackContext context)
-        {
-            ToggleSavePanel();
         }
 
         private void ToggleSavePanel()

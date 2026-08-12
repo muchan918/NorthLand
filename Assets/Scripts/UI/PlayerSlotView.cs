@@ -68,6 +68,40 @@ namespace NorthLand.UI
             }
         }
 
+
+        /// <summary>
+        /// 파일은 존재하지만 불러올 수 없는 슬롯으로 표시한다.
+        /// 삭제 후 다시 생성할 수 있도록 삭제 버튼은 유지한다.
+        /// </summary>
+        public void ShowCorrupted(bool isSelected)
+        {
+            if (playerNameText != null)
+            {
+                playerNameText.text = $"세이브데이터{slotIndex + 1}";
+            }
+
+            if (updatedAtText != null)
+            {
+                updatedAtText.gameObject.SetActive(false);
+            }
+
+            if (emptyText != null)
+            {
+                emptyText.gameObject.SetActive(true);
+                emptyText.text = "손상된 세이브 데이터\n삭제 후 다시 생성해주세요.";
+            }
+
+            if (selectedMarker != null)
+            {
+                selectedMarker.SetActive(isSelected);
+            }
+
+            if (deleteButton != null)
+            {
+                deleteButton.gameObject.SetActive(true);
+            }
+        }
+
         /// <summary>
         /// 저장된 플레이어 데이터로 슬롯을 표시한다.
         /// </summary>

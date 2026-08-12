@@ -31,25 +31,37 @@ namespace NorthLand.UI
                 return;
             }
 
+            bool slotExists = service.SlotExists(slotIndex);
+
             bool success;
             string error;
 
-            if (service.SlotExists(slotIndex))
+            if (slotExists)
             {
                 // 기존 슬롯 선택
-                success = service.TrySelectSlot(slotIndex,out error);
+                success = service.TrySelectSlot(slotIndex, out error);
             }
             else
             {
                 // 빈 슬롯 생성
                 string playerName = $"세이브데이터{slotIndex + 1}";
 
-                success = service.TryCreateAndSelectSlot(slotIndex,playerName,out error);
+                success =service.TryCreateAndSelectSlot(slotIndex,playerName,out error);
             }
 
             if (!success)
             {
-                ShowError(error);
+                if (slotExists)
+                {
+                    ShowError($"슬롯 {slotIndex + 1}을 불러올 수 없습니다.\n삭제 후 다시 생성해주세요. ({error})");
+
+                    RefreshAllSlots();
+                }
+                else
+                {
+                    ShowError(error);
+                }
+
                 return;
             }
 
@@ -101,6 +113,7 @@ namespace NorthLand.UI
         private void OnEnable()
         {
             RefreshAllSlots();
+            RefreshSelectedSlot();
         }
 
         private void RefreshAllSlots()
@@ -128,15 +141,13 @@ namespace NorthLand.UI
                     slotView.ShowEmpty(isSelected);
                     continue;
                 }
-
-                if (service.TryGetSlotData(slotIndex, out PlayerData data, out string error))
+                if (service.TryGetSlotData(slotIndex,out PlayerData data,out _))
                 {
                     slotView.ShowData(data, isSelected);
                 }
                 else
                 {
-                    slotView.ShowEmpty(false);
-                    ShowError(error);
+                    slotView.ShowCorrupted(isSelected);
                 }
             }
 

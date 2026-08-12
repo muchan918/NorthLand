@@ -9,7 +9,7 @@ namespace NorthLand.Core
     [Serializable]
     public sealed class GameSettingsData
     {
-        public int version = 1;
+        public int lastSelectedSlotIndex = -1;
 
         public string localeCode = "ko-KR";
 
@@ -17,7 +17,7 @@ namespace NorthLand.Core
         {
             return new GameSettingsData
             {
-                version = 1,
+                lastSelectedSlotIndex = -1,
                 localeCode = "ko-KR"
             };
         }
