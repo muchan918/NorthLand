@@ -24,6 +24,8 @@ namespace NorthLand.Core
             private set;
         }
 
+        public event Action SelectedSlotChanged;
+
         public bool HasSelectedSlot => slotManager != null && slotManager.HasSelectedSlot;
 
         public int CurrentSlotIndex => slotManager != null? slotManager.CurrentSlotIndex : -1;
@@ -67,17 +69,14 @@ namespace NorthLand.Core
 
         public bool TryCreateAndSelectSlot(int slotIndex,string playerName,out string error)
         {
-            if (!slotManager.TryCreateAndSelectSlot(
-                    slotIndex,
-                    playerName,
-                    out PlayerData data,
-                    out error))
+            if (!slotManager.TryCreateAndSelectSlot(slotIndex,playerName,out PlayerData data,out error))
             {
                 return false;
             }
 
             CurrentPlayerData = data;
             SaveSelectedSlot(slotIndex);
+            SelectedSlotChanged?.Invoke();
 
             return true;
         }
@@ -91,6 +90,7 @@ namespace NorthLand.Core
 
             CurrentPlayerData = data;
             SaveSelectedSlot(slotIndex);
+            SelectedSlotChanged?.Invoke();
 
             return true;
         }
@@ -125,6 +125,11 @@ namespace NorthLand.Core
             {
                 PlayerPrefs.DeleteKey(SelectedSlotKey);
                 PlayerPrefs.Save();
+            }
+
+            if (wasSelected)
+            {
+                SelectedSlotChanged?.Invoke();
             }
 
             return true;

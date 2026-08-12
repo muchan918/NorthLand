@@ -43,6 +43,11 @@ namespace NorthLand.UI
         // 랜덤 시드로 시작
         public void OnClickStart()
         {
+            if (!EnsurePlayerSlotSelected())
+            {
+                return;
+            }
+
             if (!TryGetSceneManager(out GameSceneManager sceneManager))
             {
                 return;
@@ -55,6 +60,11 @@ namespace NorthLand.UI
         public void OnClickStartWithSeed()
         {
             ClearSeedError();
+
+            if (!EnsurePlayerSlotSelected())
+            {
+                return;
+            }
 
             if (!TryGetSceneManager(out GameSceneManager sceneManager))
             {
@@ -143,30 +153,40 @@ namespace NorthLand.UI
         {
             if (continueButton == null)
             {
-                Debug.LogError(
-                    "[MainMenuUI] 이어하기 버튼이 연결되지 않았습니다.",
-                    this);
+                Debug.LogError("[MainMenuUI] 이어하기 버튼이 연결되지 않았습니다.",this);
 
                 return;
             }
 
-            bool canContinue =
-                HasLoadableSave(out string error);
+            bool canContinue = HasLoadableSave(out string error);
 
             continueButton.gameObject.SetActive(canContinue);
 
-            if (!canContinue &&
-                !string.IsNullOrEmpty(error))
+            if (!canContinue &&!string.IsNullOrEmpty(error))
             {
-                Debug.LogWarning(
-                    $"[MainMenuUI] 이어하기 숨김: {error}",
-                    this);
+                Debug.LogWarning($"[MainMenuUI] 이어하기 숨김: {error}",this);
             }
         }
 
         private bool HasLoadableSave(out string error)
         {
-            var fileStore = new SaveFileStore(Application.persistentDataPath);
+            PlayerSaveService playerSaveService = PlayerSaveService.Instance;
+
+            if (playerSaveService == null)
+            {
+                error = "플레이어 저장 시스템이 준비되지 않았습니다.";
+
+                return false;
+            }
+
+            if (!playerSaveService.HasSelectedSlot)
+            {
+                error = "선택된 플레이어 세이브 슬롯이 없습니다.";
+
+                return false;
+            }
+
+            var fileStore = new SaveFileStore(playerSaveService.CurrentSlotPath);
 
             if (!fileStore.Exists)
             {
@@ -220,11 +240,30 @@ namespace NorthLand.UI
         private void OnEnable()
         {
             toggleSavePanelAction?.Enable();
+
+            PlayerSaveService playerSaveService = PlayerSaveService.Instance;
+
+            if (playerSaveService != null)
+            {
+                playerSaveService.SelectedSlotChanged += HandleSelectedSlotChanged;
+            }
         }
 
         private void OnDisable()
         {
             toggleSavePanelAction?.Disable();
+
+            PlayerSaveService playerSaveService = PlayerSaveService.Instance;
+
+            if (playerSaveService != null)
+            {
+                playerSaveService.SelectedSlotChanged -= HandleSelectedSlotChanged;
+            }
+        }
+
+        private void HandleSelectedSlotChanged()
+        {
+            RefreshContinueButton();
         }
 
         private void OnDestroy()
@@ -278,6 +317,25 @@ namespace NorthLand.UI
             }
 
             savePanel.SetActive(false);
+        }
+
+        private bool EnsurePlayerSlotSelected()
+        {
+            PlayerSaveService playerSaveService = PlayerSaveService.Instance;
+
+            if (playerSaveService != null && playerSaveService.HasSelectedSlot)
+            {
+                return true;
+            }
+
+            Debug.LogWarning("[MainMenuUI] 플레이어 세이브 슬롯을 먼저 선택해야 합니다.",this);
+
+            if (savePanel != null)
+            {
+                savePanel.SetActive(true);
+            }
+
+            return false;
         }
     }
 }

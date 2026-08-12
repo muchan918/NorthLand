@@ -156,14 +156,22 @@ MonoBehaviour:
   startMapTileRegistry: {fileID: 572341031524862309}
   towerAssets:
   - {fileID: 11400000, guid: 7ecd80d44165e644591aafb428cf5efe, type: 2}
+  - {fileID: 11400000, guid: b30a40a4c1a25f64db317c9de161695a, type: 2}
   - {fileID: 11400000, guid: a752545bbde5030438f8995ae4ee0849, type: 2}
   - {fileID: 11400000, guid: 56f2e9daf4ee38a4697c62a594e9a7bd, type: 2}
+  - {fileID: 11400000, guid: 7514f594c88a6604ea7b199df58585cd, type: 2}
+  - {fileID: 11400000, guid: cfaa47a527e3e4844a94440f9d357f0f, type: 2}
   - {fileID: 11400000, guid: a644f4da55393c0449049fe2ae101343, type: 2}
   - {fileID: 11400000, guid: 76dc473896fb1b642ba2c5e5eb22104f, type: 2}
-  - {fileID: 11400000, guid: ff152a9cabaa0ca4cacd2eb9ae3f4805, type: 2}
+  - {fileID: 11400000, guid: d451c0408b7905a4fa9142e763eac2f5, type: 2}
+  - {fileID: 11400000, guid: 0e3d45c8b208b00479eb76f74367a6be, type: 2}
+  - {fileID: 11400000, guid: a7ec24d680663fc4d8de42bb83aff720, type: 2}
   - {fileID: 11400000, guid: fbb3a339d8f737043ade73b0cad2374c, type: 2}
+  - {fileID: 11400000, guid: 49aae7b567166f14bab1593065a8b096, type: 2}
+  - {fileID: 11400000, guid: 1c80864d90eaac840857e2328f4be5b6, type: 2}
   - {fileID: 11400000, guid: 12559c63206463b478dc0e4fbd7ea193, type: 2}
   - {fileID: 11400000, guid: b5c8fdb0241cbcb4aa7bce1b65fdd03e, type: 2}
+  - {fileID: 11400000, guid: 50cf441b3ca70324d8ecb63b04188751, type: 2}
 --- !u!4 &27708748
 Transform:
   m_ObjectHideFlags: 0

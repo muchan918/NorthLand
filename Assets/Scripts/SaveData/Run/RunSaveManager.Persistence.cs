@@ -25,9 +25,18 @@ namespace NorthLand.Core
         private void Awake()
         {
             serializer = new SaveSerializer();
+            PlayerSaveService playerSaveService =
+                PlayerSaveService.Instance;
 
-            fileStore = new SaveFileStore(
-                Application.persistentDataPath);
+            if (playerSaveService == null || !playerSaveService.HasSelectedSlot)
+            {
+                Debug.LogError("[Save] 선택된 플레이어 세이브 슬롯이 없습니다.",this);
+
+                enabled = false;
+                return;
+            }
+
+            fileStore = new SaveFileStore(playerSaveService.CurrentSlotPath);
 
             GameSceneManager sceneManager = GameSceneManager.Instance;
 
