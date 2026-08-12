@@ -249,7 +249,7 @@ public class TowerPlacer : MonoBehaviour
         MouseManager.Instance.BeginPlacement(new PlacementRequest
         {
             GhostPrefab = ghostPrefab,
-            GhostRotation = GridBasis, // 회전된 맵에서 고스트가 타일과 각이 맞게(배치 세션 동안 상수)
+            GhostRotation = GridBasis * Quaternion.Euler(0f, 45f, 0f), // 회전된 맵에서 고스트가 타일과 각이 맞게(배치 세션 동안 상수)
             Snap = SnapToFootprintCenter,
             CanPlaceAt = CanPlaceFootprint,
             OnConfirmed = PlaceTower,
@@ -788,7 +788,7 @@ public class TowerPlacer : MonoBehaviour
         }
 
         // 회전된 맵에서도 타워가 그리드 축과 동일한 방향을 바라보게 한다.
-        placed = Instantiate(prefab,position,GridBasis);
+        placed = Instantiate(prefab,position, GridBasis*Quaternion.Euler(0f, 45f, 0f));
 
         var footprint = placed.AddComponent<TowerFootprint>();
 

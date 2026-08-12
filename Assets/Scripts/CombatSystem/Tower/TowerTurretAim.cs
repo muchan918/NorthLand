@@ -32,22 +32,46 @@ namespace NorthLand.Combat
         [SerializeField] float scanInterval = 0.2f;
 
         [Tooltip("조준할 적이 없을 때 한 방향으로 계속 도는 대기 회전 속도(도/초). " +
-                 "음수면 반대 방향, 0이면 마지막 방향에서 멈춘다.")]
+                 "음수면 반대 방향, 0이면 마지막 방향에서 멈춘다. `returnToRest`가 켜져 있으면 무시된다.")]
         [SerializeField] float idleTurnSpeed = 30f;
+
+        [Tooltip("조준할 적이 없으면 설치 당시 방향으로 되돌아간다. 켜면 위의 대기 회전 대신 이 거동을 쓴다 — " +
+                 "'적이 사라졌으니 정리하고 제자리로'라는 마무리 연출용이다.")]
+        [SerializeField] bool returnToRest;
 
         [Tooltip("탐색 주기마다 조준 상태를 콘솔에 찍는다(진단용). 평소엔 꺼둘 것.")]
         [SerializeField] bool debugLog;
 
+        /// 겨누던 적이 사라져 **대기 상태로 돌아가는 순간**. 사거리 이탈·사망·밤 종료가 전부 여기로 모인다.
+        /// 잡을 적이 없는 동안 매 프레임 나지 않고 **전이에서 한 번만** 난다.
+        ///
+        /// 이 신호를 여기서 내는 이유: 대상 탐색 주기를 이미 이 컴포넌트가 자기 몫으로 들고 있다
+        /// (클래스 주석의 ★ 항목). 마무리 연출이 각자 적을 탐색하면 물리 조회가 한 벌 더 늘어나는 것도
+        /// 문제지만, 진짜 문제는 **"적이 없다"의 판정 시점이 둘로 갈리는 것**이다 — 포탑은 제자리로
+        /// 돌아가는데 장전 모션은 아직 안 나오는 식의 어긋남이 생긴다.
+        public event System.Action TargetLost;
+
         Tower _tower;
         Transform _target;
         float _scanTimer;
+        bool _hadTarget;
+        Quaternion _restLocalRotation;
 
-        void Awake() => _tower = GetComponent<Tower>();
+        void Awake()
+        {
+            _tower = GetComponent<Tower>();
+
+            // 설치 당시 방향 = **프리팹에 저작된 각도**. OnEnable이 아니라 Awake에서 한 번만 잡는다 —
+            // 재활성화(풀 재사용) 시점에는 포탑이 이미 적을 향해 돌아가 있을 수 있어서, 그때 잡으면
+            // "제자리"가 매번 달라진다.
+            if (turret != null) _restLocalRotation = turret.localRotation;
+        }
 
         void OnEnable()
         {
             _target = null;
-            _scanTimer = 0f;   // 활성화 즉시 1회 탐색 — 배치하자마자 적을 바라보게 한다
+            _hadTarget = false;   // 재활성화 직후 "잃었다" 통지가 헛돌지 않게
+            _scanTimer = 0f;      // 활성화 즉시 1회 탐색 — 배치하자마자 적을 바라보게 한다
         }
 
         // Update가 아니라 LateUpdate인 이유: 적의 위치는 몬스터 쪽 Update가 옮긴다. 같은 프레임의
@@ -67,8 +91,8 @@ namespace NorthLand.Combat
                 // 밤에 마지막으로 잡았던 대상을 남겨두지 않는다 — 다음 밤 첫 탐색 전까지 이미
                 // 사라진 적을 향해 굳어 있게 된다.
                 _target = null;
-                IdleTurn();
-                if (debugLog) LogThrottled("낮 — 탐색 없이 대기 회전");
+                Rest();
+                if (debugLog) LogThrottled("낮 — 탐색 없이 대기");
                 return;
             }
 
@@ -89,12 +113,14 @@ namespace NorthLand.Combat
                               $" 포탑각={turret.eulerAngles.y:0}도", this);
             }
 
-            // 대상이 없거나(사거리 밖) 죽어 파괴됐으면 대기 회전으로 돌아간다.
+            // 대상이 없거나(사거리 밖) 죽어 파괴됐으면 대기 거동으로 돌아간다.
             if (_target == null)
             {
-                IdleTurn();
+                Rest();
                 return;
             }
+
+            _hadTarget = true;
 
             // 수평 성분만 쓴다 — 앙각은 모델이 저작한 값(`MissileG_Barrel`의 -30°)이 정본이다.
             // 대상을 향해 포신을 내리면 하늘로 쏘아 올리는 미사일 런처의 실루엣이 깨지고, 발사 자체도
@@ -109,6 +135,27 @@ namespace NorthLand.Combat
             Quaternion desired = Quaternion.LookRotation(direction.normalized, Vector3.up);
             turret.rotation = Quaternion.RotateTowards(turret.rotation, desired, turnSpeed * Time.deltaTime);
         }
+
+        /// 조준할 적이 없을 때의 거동. 겨누던 적을 막 잃은 순간이면 **한 번만** 통지하고,
+        /// 그 뒤로는 설정에 따라 제자리로 돌아가거나(`returnToRest`) 대기 회전을 돈다.
+        void Rest()
+        {
+            if (_hadTarget)
+            {
+                _hadTarget = false;
+                TargetLost?.Invoke();
+            }
+
+            if (returnToRest) ReturnToRest();
+            else IdleTurn();
+        }
+
+        /// 설치 당시 각도로 되돌아간다. 월드가 아니라 **로컬** 회전을 보간하는 이유는 "제자리"가
+        /// 타워 몸체 기준이기 때문이다 — 배치할 때 타워가 어느 방향으로 놓였든 포탑은 몸체에 대해
+        /// 저작된 각도로 돌아간다. 도착하면 `RotateTowards`가 그 값에서 더 움직이지 않으므로 멈춘다.
+        void ReturnToRest()
+            => turret.localRotation = Quaternion.RotateTowards(
+                turret.localRotation, _restLocalRotation, turnSpeed * Time.deltaTime);
 
         /// 조준할 적이 없을 때의 대기 회전. **한 방향으로 계속 돈다** — 좌우로 훑는 스윕이 아니다.
         ///

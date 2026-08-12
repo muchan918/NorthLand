@@ -18,4 +18,4 @@ rampup_tower,towers.rampup.name,1,1,towers.rampup.role,towers.rampup.desc
 killstack_tower,towers.killstack.name,1,1,towers.killstack.role,towers.killstack.desc
 single_inferno_tower,towers.single_inferno.name,1,1,towers.single_inferno.role,towers.single_inferno.desc
 missile_tower,towers.missile.name,1,1,towers.missile.role,towers.missile.desc
-twin_missile_tower,towers.twin_missile.name,1,1,towers.twin_missile.role,towers.twin_missile.desc
+twin_missile_tower,towers.twin_missile.name,2,2,towers.twin_missile.role,towers.twin_missile.desc
