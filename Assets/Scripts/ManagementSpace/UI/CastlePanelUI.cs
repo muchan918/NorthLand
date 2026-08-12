@@ -24,6 +24,11 @@ public class CastlePanelUI : MonoBehaviour
     private const string k_UpgradeKey = "game.btn.upgrade";
     // 비용 박스 헤더 — 목록이 둘이라 어느 쪽 비용인지 표시가 필요하다. 기존 키를 재사용한다(중복 키 금지).
     private const string k_CostKey = "building.upgrade.cost";
+    // 주민 증가 1회의 효과 안내(증가량은 항상 1로 고정이라 레벨과 무관한 단일 문구).
+    private const string k_VillagerEffectKey = "castle.villager_effect";
+    // 본진 다음 레벨의 효과 설명. 레벨마다 무엇이 열리는지가 달라 키를 레벨로 나눈다 — "castle.effect.lv2" 형태.
+    // 문구 authoring은 NorthLand_default 스트링 테이블에서 한다(코드는 키만 조립).
+    private const string k_UpgradeEffectKeyPrefix = "castle.effect.lv";
 
     [Tooltip("주민·자원 상태 소스. 비우면 씬에서 자동 탐색.")]
     [SerializeField] ManagementController _controller;
@@ -33,6 +38,10 @@ public class CastlePanelUI : MonoBehaviour
     [SerializeField] TextMeshProUGUI _titleText;
     [Tooltip("주민 현황 (배치/총 보유)")]
     [SerializeField] TextMeshProUGUI _villagerText;
+    [Tooltip("주민 증가 효과 안내 (예: 주민 수가 +1 증가합니다). 비워도 동작한다.")]
+    [SerializeField] TextMeshProUGUI _villagerEffectText;
+    [Tooltip("본진 다음 레벨의 효과 설명(레벨별 스트링 키). 비워도 동작한다.")]
+    [SerializeField] TextMeshProUGUI _upgradeEffectText;
 
     [Header("주민 증가 비용 (ScrollView)")]
     [Tooltip("주민 증가 비용 Row들이 생성될 ScrollView의 Content Transform")]
@@ -206,6 +215,8 @@ public class CastlePanelUI : MonoBehaviour
             _addVillagerButton.interactable = !villagerMax && _controller.CanIncreaseVillagers(_building);
         }
         SetText(_addVillagerButtonText, villagerMax ? L(k_MaxKey) : L(k_AddVillagerKey));
+        // 최대 도달 시엔 안내할 다음 효과가 없다 — 빈 줄로 두면 박스가 CSF로 자연히 줄어든다.
+        SetText(_villagerEffectText, villagerMax ? string.Empty : L(k_VillagerEffectKey));
 
         // 본진 업그레이드(#229): 미등록(-1)이면 비용이 null이라 자동으로 MAX 표시 + 비활성이 된다.
         // 본진은 자기 요구치로 잠기지 않으므로 여기서 null은 언제나 '진짜 최대'다(잠금 안내가 필요 없다).
@@ -218,6 +229,8 @@ public class CastlePanelUI : MonoBehaviour
             _upgradeButton.interactable = _controller.CanUpgradeBuilding(_upgradeIndex);
         }
         SetText(_upgradeButtonText, upgradeMax ? L(k_MaxKey) : L(k_UpgradeKey));
+        // 지금 누르면 도달할 레벨(level은 이미 표시용 1-based)의 효과를 보여준다.
+        SetText(_upgradeEffectText, upgradeMax ? string.Empty : L(k_UpgradeEffectKeyPrefix + (level + 1)));
     }
 
     private string BuildingName()

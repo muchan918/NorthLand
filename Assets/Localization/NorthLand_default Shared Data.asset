@@ -223,6 +223,18 @@ MonoBehaviour:
     m_Key: save.slot.updated
     m_Metadata:
       m_Items: []
+  - m_Id: 12180213619658752
+    m_Key: castle.villager_effect
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12180213649018880
+    m_Key: castle.effect.lv2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12180213649018881
+    m_Key: castle.effect.lv3
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

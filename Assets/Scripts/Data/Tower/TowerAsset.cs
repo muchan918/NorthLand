@@ -9,6 +9,9 @@ public class TowerAsset : ScriptableObject
     public GameObject TowerPrefab;
     public GameObject GhostPrefab; // 배치 전 미리보기용 투명 타워 프리팹. TowerPrefab과 동일한 구조를 가져야 한다.
 
+    // 타워 선택 패널 버튼에 표시할 아이콘(ResourceAsset.Icon과 같은 규약 — 표기 소스를 SO 한 곳에 둔다).
+    public Sprite Icon;
+
     [HideInInspector]
     public TowerData Data;
 

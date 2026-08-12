@@ -24,7 +24,11 @@ public class StorePanelUI : MonoBehaviour
     [Header("StorePanel 연결")]
     [Tooltip("패널 제목 (건물명 — 교환소)")]
     [SerializeField] TextMeshProUGUI _titleText;
-    [Tooltip("지불 자원 보유량 (예: 보유 마나석 30)")]
+    [Tooltip("건물 설명 (BuildingTable.DescriptionKey)")]
+    [SerializeField] TextMeshProUGUI _descriptionText;
+    [Tooltip("지불 자원 아이콘 (마나석) — 보유량 줄 앞")]
+    [SerializeField] Image _balanceIcon;
+    [Tooltip("지불 자원 보유량 (예: 보유 30)")]
     [SerializeField] TextMeshProUGUI _balanceText;
 
     [Header("교환 목록 (ScrollView)")]
@@ -41,19 +45,16 @@ public class StorePanelUI : MonoBehaviour
     private ResourceTable _resourceTable; // 자원 표시명 해석용 Data 채움(호출부 채움 규약, SystemMap §2)
 
     // 생성된 행과 그 행이 대표하는 교환 항목. Refresh가 행을 다시 만들지 않고 이 쌍만 훑는다.
-    // GainName(로컬라이즈된 획득 자원명)을 함께 캐시하는 이유: 획득량이 본진 레벨에 따라 바뀌어(#229)
-    // 매 Refresh마다 다시 써야 하는데, 그때마다 자원명을 재조회할 필요는 없기 때문이다.
+    // 획득량은 본진 레벨에 따라 바뀌므로(#229) 매 Refresh마다 다시 쓴다 — 자원명은 아이콘으로 대체돼 캐시할 게 없다.
     private readonly struct RowBinding
     {
         public readonly StoreOfferRow Row;
         public readonly BuildingAsset.ExchangeOffer Offer;
-        public readonly string GainName;
 
-        public RowBinding(StoreOfferRow row, BuildingAsset.ExchangeOffer offer, string gainName)
+        public RowBinding(StoreOfferRow row, BuildingAsset.ExchangeOffer offer)
         {
             Row = row;
             Offer = offer;
-            GainName = gainName;
         }
     }
 
@@ -140,7 +141,7 @@ public class StorePanelUI : MonoBehaviour
             return;
         }
 
-        string payName = ResolveName(_building.Exchange.PayResource);
+        Sprite payIcon = _building.Exchange.PayResource != null ? _building.Exchange.PayResource.Icon : null;
         string buttonText = L(k_ExchangeKey);
 
         foreach (BuildingAsset.ExchangeOffer offer in _building.Exchange.Offers)
@@ -152,11 +153,11 @@ public class StorePanelUI : MonoBehaviour
 
             StoreOfferRow row = Instantiate(_rowPrefab, _offerContent, false);
             BuildingAsset.ExchangeOffer captured = offer; // 클로저 캡처(루프 변수 캡처 함정 회피)
-            string gainName = ResolveName(offer.GainResource);
+            ResolveData(offer.GainResource); // 표시명은 안 쓰지만 Data 채움 규약은 유지(다른 소비처가 참조)
             // 원본 GainAmount가 아니라 본진 레벨 배율이 반영된 실지급량을 표시한다 — 표시와 실제가 어긋나면 안 된다(#229).
-            row.Bind(payName, offer.PayAmount, gainName, _controller.ExchangeGainAmount(_building, offer),
+            row.Bind(payIcon, offer.PayAmount, offer.GainResource.Icon, _controller.ExchangeGainAmount(_building, offer),
                 buttonText, () => HandleExchangeClicked(captured));
-            _rows.Add(new RowBinding(row, offer, gainName));
+            _rows.Add(new RowBinding(row, offer));
         }
     }
 
@@ -193,8 +194,18 @@ public class StorePanelUI : MonoBehaviour
             return;
         }
 
-        SetText(_titleText, $"{BuildingName()} — {L(k_TitleKey)}");
+        // 제목은 건물 이름만 — BuildingInfoPanel과 같은 규약(무슨 건물인지는 이름으로 충분하다).
+        SetText(_titleText, BuildingName());
+        SetText(_descriptionText, BuildingDescription());
         SetText(_balanceText, BalanceLine());
+        if (_balanceIcon != null)
+        {
+            Sprite icon = _building.Exchange != null && _building.Exchange.PayResource != null
+                ? _building.Exchange.PayResource.Icon
+                : null;
+            _balanceIcon.enabled = icon != null;
+            _balanceIcon.sprite = icon;
+        }
 
         for (int i = 0; i < _rows.Count; i++)
         {
@@ -203,7 +214,7 @@ public class StorePanelUI : MonoBehaviour
             {
                 continue;
             }
-            binding.Row.SetGain(binding.GainName, _controller.ExchangeGainAmount(_building, binding.Offer));
+            binding.Row.SetGain(_controller.ExchangeGainAmount(_building, binding.Offer));
             binding.Row.SetInteractable(_controller.CanExchange(_building, binding.Offer));
         }
     }
@@ -216,8 +227,17 @@ public class StorePanelUI : MonoBehaviour
         {
             return string.Empty;
         }
-        string name = LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, data.NameKey);
-        return $"{L(k_OwnedKey)} {name} {_controller.ResourceCount(data.Kind)}";
+        // 자원 종류는 앞의 아이콘(_balanceIcon)이 말하므로 이름은 넣지 않는다.
+        return $"{L(k_OwnedKey)} {_controller.ResourceCount(data.Kind)}";
+    }
+
+    private string BuildingDescription()
+    {
+        if (_building == null || _building.Data == null)
+        {
+            return string.Empty;
+        }
+        return LocalizationHelper.Get(LocalizationHelper.k_BuildingsTable, _building.Data.DescriptionKey);
     }
 
     private string BuildingName()
@@ -227,12 +247,6 @@ public class StorePanelUI : MonoBehaviour
             return "-";
         }
         return LocalizationHelper.Get(LocalizationHelper.k_BuildingsTable, _building.Data.NameKey);
-    }
-
-    private string ResolveName(ResourceAsset resource)
-    {
-        ResourceData data = ResolveData(resource);
-        return data != null ? LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, data.NameKey) : "?";
     }
 
     // ResourceAsset.Data 채움(호출부 채움 규약, SystemMap §2) — 자원 표시명 해석에 필요.
