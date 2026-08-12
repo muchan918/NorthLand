@@ -36,7 +36,12 @@ public class RewardCardView : MonoBehaviour
     private TextMeshProUGUI descriptionText;
 
     [Header("Level Stars")]
-    // 왼쪽부터 순서대로. 채워지는 개수 = 이 카드를 고르면 도달할 레벨(GetNextLevel).
+    // 왼쪽부터 순서대로. 채워지는 개수 = 지금 보유한 레벨(GetLevel)이고, 그 다음 한 칸은
+    // 이번 선택으로 켜질 자리라 반투명 미리보기로 보여준다.
+    //
+    // 도입 전에는 GetNextLevel 개수만큼 켰다(#320) — "고르면 몇 레벨이 되는가"를 보여주려던
+    // 규약이지만, 같은 카드의 레벨 줄이 "Lv 0 → Lv 1"로 현재값을 함께 보여주면서 미보유 카드에
+    // 별이 1개 켜진 채로 떴다. 한 장의 카드가 두 개의 레벨을 동시에 주장하던 셈(#353).
     [SerializeField]
     private Image[] starImages;
 
@@ -45,6 +50,11 @@ public class RewardCardView : MonoBehaviour
 
     [SerializeField]
     private Sprite starOff;
+
+    // 미리보기 칸의 알파. 인스펙터 필드가 아니라 코드 상수로 두는 근거는
+    // WaveRewardSelectionUI.DefaultLevelColors와 같다 — 이미 직렬화된 컴포넌트엔 필드
+    // 초기화자가 안 먹으므로, 값이 실행 경로에 있어야 씬 배선 없이도 동작한다.
+    private const float k_PreviewAlpha = 0.45f;
 
     private Action<WaveRewardData> onSelect;
     private WaveRewardData boundReward;
@@ -121,17 +131,23 @@ public class RewardCardView : MonoBehaviour
                 : description;
         }
 
-        ApplyStars(hasStats ? nextLevel : 0);
+        // hasStats가 false면 (0, 0)이라 미리보기 칸도 그려지지 않는다 — 위 규약대로 통째로 빈다.
+        ApplyStars(hasStats ? level : 0, hasStats ? nextLevel : 0);
     }
 
-    // 왼쪽부터 filled개를 켜고 나머지는 끈다. 스프라이트가 미배선이면 그 상태를 유지한다
-    // (별 자리가 사라지면 레이아웃이 흔들리므로 오브젝트를 끄지는 않는다).
-    private void ApplyStars(int filled)
+    // 왼쪽부터 current개를 켜고, 그 다음 한 칸을 반투명 미리보기로, 나머지는 끈다.
+    // 스프라이트가 미배선이면 그 상태를 유지한다(별 자리가 사라지면 레이아웃이 흔들리므로
+    // 오브젝트를 끄지는 않는다).
+    private void ApplyStars(int current, int next)
     {
         if (starImages == null)
         {
             return;
         }
+
+        // next > current여야 미리보기 칸이 있다. 만렙 효과는 후보에서 빠지므로(#292) 실전에선
+        // 항상 참이지만, 디버그 패널로 상한까지 올린 뒤 보상 창을 띄우면 없는 칸을 그리려 든다.
+        bool hasPreview = next > current;
 
         for (int i = 0; i < starImages.Length; i++)
         {
@@ -140,12 +156,25 @@ public class RewardCardView : MonoBehaviour
                 continue;
             }
 
-            Sprite target = i < filled ? starOn : starOff;
+            bool isPreview = hasPreview && i == current;
+
+            // 미리보기는 starOff가 아니라 starOn을 흐리게 쓴다 — 꺼진 별을 반투명하게 만들면
+            // "곧 켜질 자리"가 아니라 그냥 더 흐린 빈 칸으로 읽힌다.
+            Sprite target = i < current || isPreview ? starOn : starOff;
 
             if (target != null)
             {
                 starImages[i].sprite = target;
             }
+
+            // RGB는 프리팹 값을 유지하고 알파만 교체한다 — 카드면(cardFace)이 알파를 유지하고
+            // RGB만 바꾸는 것의 정확한 반대다. 별의 켜짐/꺼짐은 상태 표현이라 코드가 소유하고,
+            // 색조는 디자인의 몫이기 때문.
+            //
+            // 스프라이트 널 가드 밖에 두는 이유: 알파는 스프라이트 배선과 별개 축이고, 안에 넣으면
+            // 로케일 변경으로 카드를 다시 그릴 때 이전 칸의 알파가 남는다.
+            Color color = starImages[i].color;
+            starImages[i].color = new Color(color.r, color.g, color.b, isPreview ? k_PreviewAlpha : 1f);
         }
     }
 

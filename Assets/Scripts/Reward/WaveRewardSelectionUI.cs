@@ -221,8 +221,16 @@ public class WaveRewardSelectionUI : MonoBehaviour
         return spawnedCards.Count > 0;
     }
 
-    // 이 보상을 고르면 도달할 레벨에 대응하는 카드 색. 레벨 표시(별)와 같은 값을 쓰도록
-    // RewardCardView가 아니라 여기서 뽑아 넘긴다 — 매핑 소유자를 한 곳으로 모으기 위함.
+    // 이 보상을 고르면 도달할 레벨에 대응하는 카드 색. 레벨→색 매핑 소유자를 한 곳에 모으려고
+    // RewardCardView가 아니라 여기서 뽑아 넘긴다.
+    //
+    // 카드는 두 가지를 동시에 말한다(#353) — "지금 보유"는 채워진 별과 레벨 줄 왼쪽이, "고르면
+    // 도달"은 미리보기 별과 이 색과 레벨 줄 오른쪽이 맡는다. 즉 이 색은 채워진 별이 아니라
+    // 미리보기 별과 같은 편에 선다.
+    //
+    // 채워진 별에 맞춰 GetLevel로 내리지 말 것: 만렙 효과는 후보에서 빠지므로(#292) 카드에
+    // 뜨는 현재 레벨은 0~2뿐이고, palette[level-1]은 Lv0과 Lv1이 같은 동색이 되며 금색은 한 번도
+    // 나오지 않는다. 도달 레벨 기준이라야 동(Lv0 카드) → 은(Lv1) → 금(Lv2, 고르면 만렙)이 다 쓰인다.
     private Color ResolveTint(WaveRewardData reward)
     {
         Color[] palette = levelColors != null && levelColors.Length > 0
