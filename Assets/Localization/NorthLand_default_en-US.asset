@@ -212,6 +212,28 @@ MonoBehaviour:
     m_Localized: "\xB7 You haven't placed any tower today."
     m_Metadata:
       m_Items: []
+  - m_Id: 12023173794574336
+    m_Localized: Save Data {0}
+    m_Metadata:
+      m_Items:
+      - rid: 5763336045537525835
+  - m_Id: 12023408398774272
+    m_Localized: Empty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12023483460038656
+    m_Localized: 'Corrupted save data
+
+      Delete and recreate this slot.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12023646333251584
+    m_Localized: 'Updated
+
+      {0}'
+    m_Metadata:
+      m_Items:
+      - rid: 5763336045537525835
   references:
     version: 2
     RefIds:
@@ -221,3 +243,5 @@ MonoBehaviour:
         m_Entries: 
         m_SharedEntries:
         - id: 6894325276794880
+        - id: 12023646333251584
+        - id: 12023173794574336

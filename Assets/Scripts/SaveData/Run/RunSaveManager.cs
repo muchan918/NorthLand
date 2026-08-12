@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using CombatSpace;
 using UnityEngine;
 
@@ -21,10 +20,6 @@ namespace NorthLand.Core
         [Tooltip("저장된 스타트맵 타일 ID를 실제 타일로 변환하는 레지스트리")]
         [SerializeField]
         private StartMapTileRegistry startMapTileRegistry;
-
-        [Tooltip("저장된 TowerID를 실제 TowerAsset으로 변환하는 목록")]
-        [SerializeField]
-        private List<TowerAsset> towerAssets = new();
     }
 }
 

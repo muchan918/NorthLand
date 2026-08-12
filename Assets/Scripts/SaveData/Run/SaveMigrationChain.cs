@@ -12,22 +12,43 @@ namespace NorthLand.Core
     {
         private readonly IReadOnlyDictionary<int, Func<JToken, JToken>> migrations;
 
+        private readonly int oldestSupportedVersion;
+
+        private readonly int currentVersion;
+
         // #337에서 ResourceKind가 잘리며 사라진 첫 값(Gold). 남는 값은 0~3(Wood/Iron/Food/Mana)이다.
         // enum 상수가 이미 없으므로 리터럴로 둔다 — 이름으로 참조할 대상이 존재하지 않는다.
         private const int FirstRemovedResourceKind = 4;
 
         public SaveMigrationChain()
-       : this(new Dictionary<int, Func<JToken, JToken>>
-       {
-        { 1, MigrateV1ToV2 },
-        { 2, MigrateV2ToV3 }
-       })
+       : this(
+           SaveFormat.OldestSupportedVersion,
+           SaveFormat.CurrentVersion,
+           new Dictionary<int, Func<JToken, JToken>>
+           {
+            { 1, MigrateV1ToV2 },
+            { 2, MigrateV2ToV3 }
+           })
         {
         }
 
-        internal SaveMigrationChain(IReadOnlyDictionary<int, Func<JToken, JToken>> migrations)
+        internal SaveMigrationChain(int oldestSupportedVersion,int currentVersion,IReadOnlyDictionary<int, Func<JToken, JToken>> migrations)
         {
-            this.migrations = migrations ?? throw new ArgumentNullException(nameof(migrations));
+            if (oldestSupportedVersion < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(oldestSupportedVersion));
+            }
+
+            if (currentVersion < oldestSupportedVersion)
+            {
+                throw new ArgumentOutOfRangeException(nameof(currentVersion));
+            }
+
+            this.oldestSupportedVersion = oldestSupportedVersion;
+
+            this.currentVersion = currentVersion;
+
+            this.migrations =migrations ?? throw new ArgumentNullException(nameof(migrations));
         }
 
         public bool TryMigrate(int sourceVersion, JToken sourceData, out JToken migratedData, out string error)
@@ -35,15 +56,15 @@ namespace NorthLand.Core
             migratedData = sourceData;
             error = null;
 
-            if (sourceVersion < SaveFormat.OldestSupportedVersion)
+            if (sourceVersion < oldestSupportedVersion)
             {
-                error = $"지원하지 않는 과거 세이브 버전입니다. 저장 버전: {sourceVersion}, 최소 지원 버전: {SaveFormat.OldestSupportedVersion}";
+                error = $"지원하지 않는 과거 세이브 버전입니다. 저장 버전: {sourceVersion}, 최소 지원 버전: {oldestSupportedVersion}";
                 return false;
             }
 
-            if (sourceVersion > SaveFormat.CurrentVersion)
+            if (sourceVersion > currentVersion)
             {
-                error = $"현재 빌드보다 새로운 세이브 버전입니다. 저장 버전: {sourceVersion}, 현재 버전: {SaveFormat.CurrentVersion}";
+                error = $"현재 빌드보다 새로운 세이브 버전입니다. 저장 버전: {sourceVersion}, 현재 버전: {currentVersion}";
                 return false;
             }
 
@@ -53,7 +74,7 @@ namespace NorthLand.Core
                 return false;
             }
 
-            for (int version = sourceVersion; version < SaveFormat.CurrentVersion; version++)
+            for (int version = sourceVersion;version < currentVersion;version++)
             {
                 if (!migrations.TryGetValue(version, out Func<JToken, JToken> migrate))
                 {
