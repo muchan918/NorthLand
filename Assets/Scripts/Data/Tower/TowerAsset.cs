@@ -2,6 +2,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using NorthLand.Combat;   // ImpactKind / FlightMode — 투사체가 "어떻게 날아가서 어떻게 터지는가"
 
+public enum TowerRarity
+{
+    Normal = 0,
+    Rare = 1,
+    Legendary = 2
+}
+
 [CreateAssetMenu(fileName = "TowerAsset", menuName = "Scriptable Objects/TowerAsset")]
 public class TowerAsset : ScriptableObject
 {
@@ -28,6 +35,10 @@ public class TowerAsset : ScriptableObject
     public TowerData Data;
 
     public List<ResourceCost> Cost;
+
+    [Header("도감")]
+    [Tooltip("타워 등급: 일반 0, 희귀 1, 전설 2")]
+    public TowerRarity Rarity;
 
     // ── 평탄 스키마 (#274 Phase 1) ──────────────────────────────────────────────
     // 타입별 래퍼(Single/Area/Chain/Magic)를 풀어 한 층으로 편다. 타입별 필드가 7개뿐이라

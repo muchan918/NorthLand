@@ -15,8 +15,10 @@ MonoBehaviour:
   TowerID: single_inferno_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: 1eb442e5b5aa7d845968f5e64dc42fd5, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: a99b7685e434fed48ad917a81a4382ec, type: 3}
+  Icon: {fileID: 0}
   PlacementYaw: 0
   Cost: []
+  Rarity: 2
   Attack:
     AttackDamage: 0
     AttackRange: 0
