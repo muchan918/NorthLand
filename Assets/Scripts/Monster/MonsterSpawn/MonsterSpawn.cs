@@ -20,6 +20,28 @@ public class MonsterSpawn : MonoBehaviour
     [SerializeField] private bool playOnStart;
     [SerializeField] private int startRound = 1;
 
+    [Header("Wave HP Scale (Docs/Core/CombatBalance.md §4.7)")]
+    // 웨이브 진행에 따른 몬스터 최대 HP 배율. index 0 = 웨이브 1.
+    //
+    // **왜 웨이브 SO가 아니라 여기 배열인가**: 곡선이 15개 에셋으로 흩어지면 "W7만 안 올렸다" 같은
+    // 누락이 조용히 생기고, 전체 재산정(실제로 §4.7에서 두 번 있었다)마다 15개를 다시 열어야 한다.
+    // 몬스터별로 다른 배율을 줄 이유도 없다 — 난이도 곡선은 웨이브 단위 성질이다.
+    //
+    // ⚠ **수식이 아니라 테이블인 이유**: 경제가 감당하는 화력이 계단형(W1~5 평평 → W6~11 급상승)이라
+    // "웨이브당 +N%" 같은 균일 증가율을 걸면 W5에서 난이도가 튀고 W11에서 헐거워지는 톱니가 된다.
+    // 감당 곡선에 맞춰 역산한 값이므로 손으로 조정할 때도 §4.7의 여유 배율 표를 함께 볼 것.
+    //
+    // ⚠ **보스는 이 배율을 타지 않는다**(§4.7 파생 ③) — 등장 웨이브를 알고 정한 절대값이므로
+    //   배율을 또 곱하면 이중이 된다. 제외 판정은 SpawnPrefab의 `enemy.IsBoss` 검사가 담당한다.
+    [Tooltip("웨이브별 몬스터 최대 HP 배율. index 0 = 웨이브 1. 배열보다 큰 웨이브는 마지막 값을 쓴다.")]
+    [SerializeField]
+    private float[] waveHpScales =
+    {
+        1.00f, 1.00f, 1.10f, 1.15f, 1.20f,   // W1~5  — 경제 감당이 평평한 구간(배우는 구간)
+        1.60f, 2.05f, 2.40f, 3.10f, 3.85f,   // W6~10 — 주민·업그레이드 투자가 결실을 보며 급상승
+        4.85f, 5.05f, 5.25f, 5.35f, 5.45f,   // W11~15
+    };
+
     [Header("Gate (성문)")]
     // 통합 계약(팀 규칙 #8): 성문 프리팹(현재 BaseGate)은 Assets/Imported(중첩 git repo) 소재다.
     //  · 팀원은 Imported repo를 함께 동기화해야 이 참조(GUID)가 살아있다 — 안 하면 성문 미생성 → GameOver 미동작.
@@ -362,6 +384,31 @@ public class MonsterSpawn : MonoBehaviour
         return false;
     }
 
+    /// 해당 웨이브의 몬스터 최대 HP 배율(§4.7). 표 밖의 웨이브는 **마지막 값으로 고정**한다 —
+    /// 0이나 1로 떨어뜨리면 15웨이브를 넘겨 플레이했을 때 난이도가 갑자기 무너진다.
+    /// 배열이 비어 있으면 무보정(1)이라 배선을 잊어도 게임이 성립한다.
+    private float WaveHpScale(int wave)
+    {
+        if (waveHpScales == null || waveHpScales.Length == 0)
+        {
+            return 1f;
+        }
+
+        int index = Mathf.Clamp(wave - 1, 0, waveHpScales.Length - 1);
+        float scale = waveHpScales[index];
+
+        // 0 이하는 저작 실수다(빈 칸으로 남긴 슬롯 등). 무보정으로 폴백하되 조용히 넘기지 않는다 —
+        // HP가 0이 되면 몬스터가 스폰 즉시 죽어 "웨이브가 그냥 지나간다"로만 보인다.
+        if (scale <= 0f)
+        {
+            Debug.LogError($"[몬스터 스포너] 웨이브 {wave}의 HP 배율이 {scale}입니다 — 무보정(1)으로 처리합니다. " +
+                           "waveHpScales 배열을 확인하세요.", this);
+            return 1f;
+        }
+
+        return scale;
+    }
+
     // ── 런타임 소환 창구(#233) ─────────────────────────────
     // 보스 BT의 지속 소환 패턴이 EnemyAgent를 경유해 호출한다. 웨이브 스폰과 같은 경로를 쓰므로
     // 소환체도 monsterParent 자식으로 들어가고 경로를 받는다 — 웨이브 클리어 판정이
@@ -437,6 +484,20 @@ public class MonsterSpawn : MonoBehaviour
         if (agent != null)
         {
             agent.BindSpawner(this);
+        }
+
+        // 웨이브 HP 배율 주입(§4.7). **경로 설정 전에** 부른다 — 배율은 현재 HP를 새 최대치로
+        // 다시 채우므로, 이동이 시작되기 전에 끝내야 HP UI가 중간값을 한 프레임 보여주지 않는다.
+        //
+        // ⚠ **보스는 배율을 타지 않는다**(§4.7 파생 ③). 보스 HP는 등장 웨이브를 알고 손으로 정한
+        // 절대값이라 배율을 또 곱하면 이중 계산이 된다 — 최종보스(W15, 배율 ×5.45)라면 5배가 넘어간다.
+        // 그리고 중간보스는 가속 패턴이 실효 내구력을 배로 만들어(§11) HP 축으로 올리면 못 잡는다.
+        //
+        // 보스 BT 소환체(잡몹)는 IsBoss가 아니므로 정상적으로 배율을 받는다 — 소환체는 그 웨이브의
+        // 잡몹과 같은 취급이 맞다.
+        if (!enemy.IsBoss)
+        {
+            enemy.ApplyWaveHpScale(WaveHpScale(currentRound));
         }
 
         // Enemy가 IRouteMovementAgent.RouteCompleted를 구독하여
