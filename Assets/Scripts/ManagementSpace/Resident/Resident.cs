@@ -48,10 +48,17 @@ public class Resident : MonoBehaviour
     public bool IsDancing { get; private set; }
 
     /// 문에서 막 나와 아직 대열을 벗어나지 못한 상태(R9 등장 · §3.2 퇴장 유예).
-    /// 어느 문에서 나왔는지를 들고 있어야 그 문의 +Z로 직진할 수 있다.
-    public ResidentDoorPoint EmergingFrom { get; private set; }
+    ///
+    /// **문 컴포넌트가 아니라 좌표+방향으로 든다.** 나오는 자리가 늘 `ResidentDoorPoint`인 것은 아니기
+    /// 때문이다 — 패널 −1 퇴장(§3.2)은 문이 심어지지 않은 생산 건물에서도 나와야 한다(#341).
+    /// 등장 브랜치가 쓰는 것은 어차피 위치와 전방 둘뿐이라, 그 둘만 들면 출처를 가리지 않는다.
+    public bool IsEmerging { get; private set; }
 
-    public bool IsEmerging => EmergingFrom != null;
+    /// 나온 자리. <see cref="IsEmerging"/>이 참일 때만 의미가 있다.
+    public Vector3 EmergeOrigin { get; private set; }
+
+    /// 나온 자리에서 직진할 방향(문의 +Z에 해당). 수평 단위 벡터다.
+    public Vector3 EmergeForward { get; private set; } = Vector3.forward;
 
     /// 밤에 문 앞에 도착했다(R8 귀가). **스스로 사라지지 않고 표시만 남긴다** —
     /// BT 노드가 도는 도중에 자기 GameObject를 비활성화하면 그래프가 자기 Update 위에서 꺼진다.
@@ -106,14 +113,21 @@ public class Resident : MonoBehaviour
 
     // ── 등장 · 귀가 ─────────────────────────────
 
-    /// 스포너가 아침에 문에서 꺼내며 부른다. 등장 브랜치가 이 문의 +Z로 직진한 뒤 스스로 푼다.
-    public void BeginEmerge(ResidentDoorPoint from)
+    /// 스포너가 문·건물에서 꺼내며 부른다. 등장 브랜치가 <paramref name="forward"/>로 직진한 뒤 스스로 푼다.
+    public void BeginEmerge(Vector3 origin, Vector3 forward)
     {
-        EmergingFrom = from;
+        IsEmerging = true;
+        EmergeOrigin = origin;
+
+        Vector3 flat = new Vector3(forward.x, 0f, forward.z);
+
+        // 방향을 못 정하면 등장이 제자리걸음이 된다(ResidentDoorPoint.Forward와 같은 방어).
+        EmergeForward = flat.sqrMagnitude < 0.0001f ? Vector3.forward : flat.normalized;
+
         HasArrivedHome = false;
     }
 
-    public void EndEmerge() => EmergingFrom = null;
+    public void EndEmerge() => IsEmerging = false;
 
     /// 밤에 문 앞에 도착했다. 스포너가 다음 프레임에 거둬 간다.
     public void MarkArrivedHome() => HasArrivedHome = true;
@@ -146,7 +160,7 @@ public class Resident : MonoBehaviour
 
         // 밤에 거둬들일 때 여기를 지난다. 남겨 두면 아침에 다시 켜자마자 "이미 귀가함"으로 읽혀
         // 그 자리에서 다시 사라진다.
-        EmergingFrom = null;
+        IsEmerging = false;
         HasArrivedHome = false;
     }
 }

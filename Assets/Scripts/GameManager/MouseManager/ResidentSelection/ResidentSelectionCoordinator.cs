@@ -135,6 +135,36 @@ public class ResidentSelectionCoordinator : MonoBehaviour
 
         EnsureManagement();
         EnsureMarkers();
+        PruneDead();
+    }
+
+    /// 선택 중이던 주민이 사라졌으면 집합에서 덜어낸다.
+    ///
+    /// **낮에도 주민이 사라지게 된 뒤로 필요해졌다**(#341 — 패널 +1이 화면의 주민 하나를 그 자리에서
+    /// 거둔다). 종전에 주민이 사라지는 시점은 밤 귀가뿐이었고 그건 <see cref="HandleDayToNight"/>가
+    /// 통째로 처리한다.
+    ///
+    /// 이벤트를 기다리면 늦는다 — 배치 통지(<see cref="HandleManagementChanged"/>)가 스포너의 소멸보다
+    /// **먼저** 도착할 수 있어, 그 프레임에는 이미 꺼진 주민이 집합에 남는다. 그 상태로 스포너가 그 주민을
+    /// 재사용하면 `OutlineHighlight.OnEnable`이 초록을 그대로 복원한다(<see cref="HandleDayToNight"/> 주석과 같은 뿌리).
+    ///
+    /// 선택은 최대 10명이라 매 프레임 훑어도 무시할 수 있다.
+    private void PruneDead()
+    {
+        // 단일 클릭 초록은 이 코디네이터가 아니라 OutlineInteractionDriver가 들고 있다 → 따로 푼다.
+        if (_lastSingle != null && !IsAlive(_lastSingle))
+        {
+            _lastSingle = null;
+            MouseManager.Instance?.ClearSelection();
+        }
+
+        for (int i = 0; i < _selected.Count; i++)
+        {
+            if (IsAlive(_selected[i])) continue;
+
+            SetAll(_selected); // 죽은 항목을 걸러 원자 교체 — Commit이 아웃라인까지 정리한다
+            return;
+        }
     }
 
     private void TrySubscribe()

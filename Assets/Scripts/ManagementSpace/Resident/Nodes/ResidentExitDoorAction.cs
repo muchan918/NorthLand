@@ -64,18 +64,18 @@ public partial class ResidentExitDoorAction : Action
             return Failed();
         }
 
-        ResidentDoorPoint door = self.EmergingFrom;
+        Vector3 origin = self.EmergeOrigin;
         float distance = ExitDistance != null ? ExitDistance.Value : 0f;
 
-        // 문 앞에서 +Z로 D유닛. NavMesh 밖이면 문 위치 자체를 쓴다 — 도달하지 못할 지점을 잡으면
+        // 나온 자리에서 전방으로 D유닛. NavMesh 밖이면 나온 자리 자체를 쓴다 — 도달하지 못할 지점을 잡으면
         // 상한까지 그 자리에 서 있게 된다.
-        Vector3 target = door.Position + door.Forward * distance;
+        Vector3 target = origin + self.EmergeForward * distance;
 
         agent.ResumeMovement();
 
         if (!agent.TrySetDestination(target))
         {
-            agent.TrySetDestination(door.Position);
+            agent.TrySetDestination(origin);
         }
 
         agent.SetMoving(true);
