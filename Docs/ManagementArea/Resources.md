@@ -156,6 +156,71 @@ GDD의 경영 공간(§4.1)·자원 흐름(§4.2)·하루 루프(§5)를 런타�
 - **구현**: `ProductionLineView`에 `Villager`/`Mana` 모드(공유 프리팹 `@NorthLand/Prefabs/UI/ProdRow.prefab`, 지갑=`_balanceText`→Wallet). `ManagementPanelView`가 `LineCount`(기본 라인)+마나로 고정 행을 만든다. 미개방 회색(`_inactiveColor`)은 특수 자원 전용이었으므로 함께 삭제됐다.
 - **탑 바(top bar)**: 자원 4종 지갑 HUD는 **비활성화(행으로 이관 완료)**. 주민 풀·페이즈 표시는 탑 바에 유지. HUD 오브젝트 완전 삭제는 후속 정리로 남김.
 
+## 5.6 표시 이름 — **임시** (#374)
+
+> ⚠️ **아래 이름은 빌드용 잠정안이며 확정이 아니다.** 확정 전까지 이 표가 표시 이름의 유일한 정본이고,
+> 다른 문서 본문(`Docs/Core/EconomyBalance.md` 등)의 "나무/철/식량/마나석" 표기는 **코드 식별자 기준**의
+> 옛 표기다 — 그쪽을 이름에 맞춰 고치지 않는다(이름이 또 바뀌면 두 번 훑게 된다).
+
+월드 아트가 과자 테마(`Assets/Imported/Sweet_Land`, `@NorthLand/Prefabs/Management/CandyLand.prefab` —
+건물 프리팹이 Waffle·Cookie·Chocolate 메시로 조립돼 있다)인데 표시 문자열만 옛 이름이 남아 있어 맞춘 것이다.
+
+### 무엇이 바뀌었나 — 4층 중 맨 끝 하나
+
+| 층 | 예 | 이번에 바뀜? |
+|---|---|---|
+| C# enum `ResourceKind` | `Wood` | ❌ |
+| CSV `ResourceID` / `BuildingID` | `wood` / `woodcutter_house` | ❌ |
+| 로컬라이제이션 키 | `game.resources.wood` | ❌ |
+| **String Table 값** | 나무 → **비스켓** | ✅ **여기만** |
+
+### 자원
+
+| `ResourceKind` | `ResourceID` | 키 | ko | en | ja |
+|---|---|---|---|---|---|
+| `Wood` | `wood` | `game.resources.wood` | 비스켓 | Biscuit | ビスケット |
+| `Iron` | `iron` | `game.resources.iron` | 초코 | Chocolate | チョコ |
+| `Food` | `food` | `game.resources.food` | 설탕 | Sugar | 砂糖 |
+| `Mana` | `mana` | `game.resources.mana` | 별사탕 | Star Candy | こんぺいとう |
+
+### 건물
+
+| `BuildingID` | 키 접두 | ko | en | ja |
+|---|---|---|---|---|
+| `woodcutter_house` | `buildings.woodcutter.*` | 비스켓 하우스 | Biscuit House | ビスケットハウス |
+| `mine` | `buildings.mine.*` | 초코나무 | Chocolate Tree | チョコの木 |
+| `farm` | `buildings.farm.*` | 슈가 팜 | Sugar Farm | シュガーファーム |
+| `castle` | `buildings.castle.*` | 캐슬 *(미변경)* | Castle | キャッスル |
+| `alchemist_house` | `buildings.alchemist.*` | 연금술사의 집 *(미변경)* | Alchemist's House | 錬金術師館 |
+| `magic_lab` | `buildings.lab.*` | 마법 연구소 *(미변경)* | Magic Lab | マジックラボ |
+
+이름을 안 바꾼 3종도 **설명문(`.desc`)에 자원명이 박혀 있어** 함께 갱신했다.
+
+### ⚠️ 식별자·키를 바꾸지 않은 이유
+
+다음 사람이 "이름 바꿨는데 ID는 왜 옛날 거냐"며 손대기 쉬운 자리다. 근거를 남긴다:
+
+- **세이브가 깨진다** — `RunData.BuildingId`는 `woodcutter_house` 같은 **문자열을 그대로 저장**한다
+  (`Assets/Scripts/SaveData/Run/RunData.cs`). ID를 바꾸면 기존 이어하기가 복원에 실패한다.
+  (`ResourceKind`는 enum→int라 **선언 순서만 유지하면** 안전하다)
+- **참조가 조용히 어긋난다** — `TableImporter`가 `{ID}.asset`으로 파일 경로를 만든다
+  (`Assets/Scripts/Editor/TableImporter.cs`). ID를 바꾸고 임포터를 돌리면 **새 GUID의 빈 SO가 생기고**,
+  기존 참조(`ResourceAsset.Icon`·`ProductionFields.OutputResource`·씬의 `_productionBuildings`)는
+  옛 파일을 계속 가리킨다. **에러가 안 난다** — 아이콘이나 생산 자원이 소리 없이 틀어진다.
+- `Docs/Tools/StringTable.md` §4: 배포된 키는 리네임하지 않고 값만 수정한다(번역 매핑이 키 기준).
+
+### 이름을 다시 바꿀 때
+
+`Window > Asset Management > Localization Tables`에서 **값만** 수정하고 이 표를 갱신한다. 그게 전부다.
+`.asset`을 텍스트로 직접 고치지 말 것(한글·일본어가 `\uXXXX` 이스케이프라 깨진다).
+에디터가 켜져 있으면 메모리 값이 덮어쓰므로 에디터에서 편집하거나 `unity-cli exec`를 쓴다.
+
+**문장 안에 이름이 박힌 엔트리** — 값 치환 시 같이 봐야 하는 곳:
+`buildings.*.role` · `buildings.*.desc` · `buildings.alchemist.desc` · `buildings.lab.desc` ·
+`castle.effect.lv2` · `castle.effect.lv3`.
+치환 스크립트를 쓸 거면 **긴 이름부터** 적용할 것 — "광산→초코나무" 뒤에 "나무→비스켓"이 걸려
+"초코비스켓"이 되는 사고가 실제로 났다.
+
 ## 6. 통합 계약 / 미결 사항
 
 - **muchan 의존**: `ResourceKind`(지갑 키)·`BuildingAsset.ProductionFields`(생산처 입력)·`ResourceAsset.Data`
