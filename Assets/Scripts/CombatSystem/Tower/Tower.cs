@@ -420,7 +420,7 @@ namespace NorthLand.Combat
                 return;
             }
 
-            TowerInfoUI.Instance.ShowInfo(data.Data.DescriptionKey, BuildStatsText());
+            TowerInfoUI.Instance.ShowInfo(data.Data, BuildStatsText());
             ShowRangeCircle();
         }
 

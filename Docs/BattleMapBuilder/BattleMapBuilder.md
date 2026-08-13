@@ -72,3 +72,20 @@
 - 최종 성공값은 `UsedSeed`와 `CombatMapData.Seed`에 기록한다. 세이브 복원 시에는 저장된 `CombatMapUsedSeed`를 우선 사용한다.
 - Inspector의 `debugSeed`와 자동 시작 옵션은 ContextMenu/단독 테스트 전용이며 운영 주입 시드를 덮어쓰지 않는다.
 - Play 검증(2026-08-04): 동일 마스터 시드에서 경로·지형·버프 타일이 동일하고, 일반 새 게임에서는 매 Run 결과가 달라진다.
+
+## 9. Water 생성 설정
+
+현재 정본 전투맵의 Water 생성 설정은 다음과 같다.
+
+| 설정 | 값 | 의미 |
+| --- | ---: | --- |
+| `WaterNoiseScale` | 20 | Water 분포에 사용하는 노이즈 크기 |
+| `WaterThreshold` | 0.25 | Water 후보 생성 기준 |
+| `WaterRoadClearance` | 0 | Water와 Road의 직접 인접 허용 |
+| `MinWaterArea` | 3 | 3칸 미만의 작은 Water 영역 제거 |
+| `MaxWaterRatio` | 0.3 | 플레이 가능 영역의 최대 30% |
+| `WaterSmoothingIterations` | 0 | Water 후처리 스무딩 미사용 |
+
+`WaterRoadClearance = 0`은 의도된 기획 결정이다. 따라서 Water가 Road에 바로 인접할 수 있으며, 맵에 따라 경로 주변의 타워 건설 가능 면적이 달라질 수 있다.
+
+현재 설정의 안정성 테스트와 재검증 절차는 `Docs/Core/CombatMapGeneration.md`를 정본으로 삼는다.

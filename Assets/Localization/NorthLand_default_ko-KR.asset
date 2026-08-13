@@ -232,6 +232,24 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 5763336045537525836
+  - m_Id: 12180213619658752
+    m_Localized: "\uCD5C\uB300 \uC8FC\uBBFC \uC218\uAC00 1 \uC99D\uAC00\uD569\uB2C8\uB2E4"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12180213649018880
+    m_Localized: "\uB098\uBB34\uAFBC\uC758 \uC9D1 \xB7 \uAD11\uC0B0 \xB7 \uB18D\uC7A5\uC758
+      \uCD5C\uB300 \uB808\uBCA8\uC774 2 \uC624\uB985\uB2C8\uB2E4\n\uB9C8\uBC95 \uC5F0\uAD6C\uC18C\uC758
+      \uCD5C\uB300 \uB808\uBCA8\uC774 1 \uC624\uB985\uB2C8\uB2E4\n\uC5F0\uAE08\uC220\uC0AC\uC758
+      \uC9D1 \uAD50\uD658 \uD6A8\uC728\uC774 \uC0C1\uC2B9\uD569\uB2C8\uB2E4"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12180213649018881
+    m_Localized: "\uB098\uBB34\uAFBC\uC758 \uC9D1 \xB7 \uAD11\uC0B0 \xB7 \uB18D\uC7A5\uC758
+      \uCD5C\uB300 \uB808\uBCA8\uC774 2 \uB354 \uC624\uB985\uB2C8\uB2E4\n\uB9C8\uBC95
+      \uC5F0\uAD6C\uC18C\uC758 \uCD5C\uB300 \uB808\uBCA8\uC774 1 \uB354 \uC624\uB985\uB2C8\uB2E4\n\uC5F0\uAE08\uC220\uC0AC\uC758
+      \uC9D1 \uAD50\uD658 \uD6A8\uC728\uC774 \uD55C \uB2E8\uACC4 \uB354 \uC0C1\uC2B9\uD569\uB2C8\uB2E4"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

@@ -29,8 +29,18 @@ public class BuildingInfoUI : MonoBehaviour
     [Header("BuildingInfoPanel 연결")]
     [Tooltip("건물명 (Lv 현재/최대)")]
     [SerializeField] TextMeshProUGUI _nameLevelText;
-    [Tooltip("주민당 자원: 현재 → 업그레이드 후")]
+    [Tooltip("업그레이드 시 증감: 현재 → 업그레이드 후")]
     [SerializeField] TextMeshProUGUI _amountText;
+    [Tooltip("건물 설명 (BuildingTable.DescriptionKey)")]
+    [SerializeField] TextMeshProUGUI _descriptionText;
+
+    [Header("주민당 생산 (ProduceRow — 생산 건물에서만 표시)")]
+    [Tooltip("생산 줄 전체. 생산 건물이 아니면 통째로 숨긴다.")]
+    [SerializeField] GameObject _produceRow;
+    [Tooltip("산출 자원 아이콘 (ResourceAsset.Icon)")]
+    [SerializeField] Image _produceIcon;
+    [Tooltip("주민당 현재 생산량")]
+    [SerializeField] TextMeshProUGUI _produceAmountText;
 
     [Header("업그레이드 비용 (ScrollView)")]
     [Tooltip("비용 Row들이 생성될 ScrollView의 Content Transform")]
@@ -122,6 +132,9 @@ public class BuildingInfoUI : MonoBehaviour
 
     private void Refresh()
     {
+        // 설명은 건물 종류와 무관하게 같은 소스라 분기 이전에 한 번만 채운다.
+        SetText(_descriptionText, BuildingDescription());
+
         // 표시 대상 분기: 생산 라인(주민당량) → 업그레이드 전용 건물(마법 연구소 등) → 그 외(본진 등, 이름만).
         if (_lineIndex >= 0)
         {
@@ -142,6 +155,7 @@ public class BuildingInfoUI : MonoBehaviour
     {
         SetText(_nameLevelText, BuildingName());
         SetText(_amountText, string.Empty);
+        HideProduceRow();
         ClearCostRows();
         if (_upgradeButton != null) _upgradeButton.gameObject.SetActive(false);
     }
@@ -159,6 +173,7 @@ public class BuildingInfoUI : MonoBehaviour
         // 본진 레벨로 잠긴 상태면 강화 안내 대신 잠금 사유를 보여준다 — 지금 필요한 정보는 그쪽이다(#229).
         string lockNotice = LockNotice(_controller.UpgradeBuildingRequiredCastleLevel(_upgradeIndex));
         SetText(_amountText, lockNotice ?? L(k_SkillPendingKey));
+        HideProduceRow(); // 주민당 산출이 없는 건물
         if (isMax)
         {
             ClearCostRows();
@@ -183,11 +198,15 @@ public class BuildingInfoUI : MonoBehaviour
         bool isMax = level >= max;
 
         SetText(_nameLevelText, $"{BuildingName()} ({L(k_LevelKey)} {level}/{max})");
-        // 잠긴 경우 괄호 안이 "MAX"가 아니라 "본진 Lv n 필요"가 된다 — 더 올릴 수 있다는 사실이 드러나야 한다(#229).
+        // 현재 산출은 ProduceRow(아이콘 + 주민당 현재량), 업그레이드 증감은 _amountText로 나눠 표시한다.
+        // 자원 종류는 아이콘이 말하므로 여기 텍스트에는 자원명을 넣지 않는다.
+        ShowProduceRow(_building != null && _building.Production != null ? _building.Production.OutputResource : null,
+            $"{L(k_PerVillagerKey)} {cur}");
+        // 잠긴 경우 "MAX"가 아니라 "본진 Lv n 필요"가 된다 — 더 올릴 수 있다는 사실이 드러나야 한다(#229).
         string lockNotice = LockNotice(_controller.LineRequiredCastleLevel(_lineIndex));
         SetText(_amountText, isMax
-            ? $"{L(k_PerVillagerKey)} {cur} ({lockNotice ?? L(k_MaxKey)})"
-            : $"{L(k_PerVillagerKey)} {cur} → {_controller.LineNextAmountPerVillager(_lineIndex)}");
+            ? (lockNotice ?? L(k_MaxKey))
+            : $"{cur} → {_controller.LineNextAmountPerVillager(_lineIndex)}");
         if (isMax)
         {
             ClearCostRows();
@@ -224,6 +243,15 @@ public class BuildingInfoUI : MonoBehaviour
         return LocalizationHelper.Get(LocalizationHelper.k_BuildingsTable, _building.Data.NameKey);
     }
 
+    private string BuildingDescription()
+    {
+        if (_building == null || _building.Data == null)
+        {
+            return string.Empty;
+        }
+        return LocalizationHelper.Get(LocalizationHelper.k_BuildingsTable, _building.Data.DescriptionKey);
+    }
+
     // 비용 자원마다 Row 프리팹을 하나씩 생성해 ScrollView Content에 채운다.
     // 각 Row는 지갑 보유량 대비 감당 여부(자원별)로 초록/회색이 갈린다.
     private void RebuildCostRows(IReadOnlyList<ResourceCost> costs)
@@ -246,11 +274,11 @@ public class BuildingInfoUI : MonoBehaviour
                 continue;
             }
 
-            string rname = LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, data.NameKey);
+            // 자원 종류는 아이콘으로만 표기한다 — Data는 지갑 대조(Kind)에만 쓰인다.
             bool affordable = _controller.ResourceCount(data.Kind) >= c.Amount;
 
             BuildingCostRow row = Instantiate(_costRowPrefab, _costContent, false);
-            row.Set(rname, c.Amount, affordable);
+            row.Set(c.Resource.Icon, c.Amount, affordable);
         }
     }
 
@@ -283,6 +311,30 @@ public class BuildingInfoUI : MonoBehaviour
             }
         }
         return resource.Data;
+    }
+
+    // 생산 줄을 켜고 아이콘·수량을 채운다. 아이콘 미할당 SO는 흰 사각형 대신 빈 칸으로 둔다(BuildingCostRow와 같은 규약).
+    private void ShowProduceRow(ResourceAsset output, string amountLabel)
+    {
+        if (_produceRow != null)
+        {
+            _produceRow.SetActive(true);
+        }
+        if (_produceIcon != null)
+        {
+            Sprite icon = output != null ? output.Icon : null;
+            _produceIcon.enabled = icon != null;
+            _produceIcon.sprite = icon;
+        }
+        SetText(_produceAmountText, amountLabel);
+    }
+
+    private void HideProduceRow()
+    {
+        if (_produceRow != null)
+        {
+            _produceRow.SetActive(false);
+        }
     }
 
     private static void SetText(TextMeshProUGUI label, string value)

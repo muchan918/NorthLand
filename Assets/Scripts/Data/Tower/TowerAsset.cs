@@ -9,6 +9,8 @@ public class TowerAsset : ScriptableObject
     public GameObject TowerPrefab;
     public GameObject GhostPrefab; // 배치 전 미리보기용 투명 타워 프리팹. TowerPrefab과 동일한 구조를 가져야 한다.
 
+    // 타워 선택 패널 버튼에 표시할 아이콘(ResourceAsset.Icon과 같은 규약 — 표기 소스를 SO 한 곳에 둔다).
+    public Sprite Icon;
     // 배치 시 모델을 그리드 축에서 Y축으로 얼마나 돌릴지(도). **0 = 축 정렬**이 기본이고, 활대·포신이
     // 넓어 인접 배치 시 실루엣이 겹치는 모델만 값을 갖는다(아처 석궁 45°, #359).
     //

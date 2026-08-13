@@ -9,9 +9,13 @@ using UnityEngine.UI;
 // (프리팹 StoreOfferRow의 Cost/Gain 텍스트와 Button을 인스펙터에서 연결할 것)
 public class StoreOfferRow : MonoBehaviour
 {
-    [Tooltip("지불 자원 텍스트 (예: 마나석 10)")]
+    [Tooltip("지불 자원 아이콘 (마나석)")]
+    [SerializeField] Image _payIcon;
+    [Tooltip("지불 수량")]
     [SerializeField] TextMeshProUGUI _costText;
-    [Tooltip("획득 자원 텍스트 (예: → 나무 30)")]
+    [Tooltip("획득 자원 아이콘")]
+    [SerializeField] Image _gainIcon;
+    [Tooltip("획득 수량")]
     [SerializeField] TextMeshProUGUI _gainText;
     [Tooltip("교환 버튼")]
     [SerializeField] Button _exchangeButton;
@@ -45,19 +49,32 @@ public class StoreOfferRow : MonoBehaviour
     /// 교환 한 줄을 채운다(생성 직후 1회). 표시 문자열은 이미 로컬라이즈된 자원명을 받는다.<br/>
     /// <paramref name="onExchange"/>는 버튼 클릭 시 호출된다 — 실제 차감/지급은 컨트롤러가 한다(뷰는 로직 없음).
     /// </summary>
-    public void Bind(string payName, int payAmount, string gainName, int gainAmount, string buttonText, Action onExchange)
+    public void Bind(Sprite payIcon, int payAmount, Sprite gainIcon, int gainAmount, string buttonText, Action onExchange)
     {
         _onExchange = onExchange;
 
+        SetIcon(_payIcon, payIcon);
+        SetIcon(_gainIcon, gainIcon);
         if (_costText != null)
         {
-            _costText.text = $"{payName} {payAmount}";
+            _costText.text = payAmount.ToString();
         }
-        SetGain(gainName, gainAmount);
+        SetGain(gainAmount);
         if (_buttonLabel != null)
         {
             _buttonLabel.text = buttonText;
         }
+    }
+
+    // 아이콘 미할당 SO를 흰 사각형으로 그리지 않는다 — BuildingCostRow와 같은 규약.
+    private static void SetIcon(Image target, Sprite icon)
+    {
+        if (target == null)
+        {
+            return;
+        }
+        target.enabled = icon != null;
+        target.sprite = icon;
     }
 
     /// <summary>
@@ -65,11 +82,11 @@ public class StoreOfferRow : MonoBehaviour
     /// 이 값이 따라 움직여야 표시와 실지급이 어긋나지 않는다.<br/>
     /// 행 재생성이 아니라 갱신인 이유는 <see cref="SetInteractable"/>과 같다 — 클릭 처리 도중 행이 파괴되면 안 된다.
     /// </summary>
-    public void SetGain(string gainName, int gainAmount)
+    public void SetGain(int gainAmount)
     {
         if (_gainText != null)
         {
-            _gainText.text = $"→ {gainName} {gainAmount}";
+            _gainText.text = gainAmount.ToString();
         }
     }
 
@@ -83,6 +100,11 @@ public class StoreOfferRow : MonoBehaviour
         if (_costText != null)
         {
             _costText.color = canExchange ? _affordableColor : _insufficientColor;
+        }
+        if (_payIcon != null)
+        {
+            // 아이콘은 자원 그림이라 초록으로 물들이지 않는다 — 부족할 때만 회색으로 죽인다(BuildingCostRow와 동일).
+            _payIcon.color = canExchange ? Color.white : _insufficientColor;
         }
     }
 

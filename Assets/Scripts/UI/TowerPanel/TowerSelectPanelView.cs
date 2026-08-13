@@ -78,10 +78,21 @@ public class TowerSelectPanelView : MonoBehaviour
 
         var button = Instantiate(_buttonPrefab, _content);
 
-        var label = button.GetComponentInChildren<TMP_Text>();
-        if (label != null)
+        // 아이콘·이름은 프리팹의 TowerButtonView가 소유한 슬롯에 채운다(테두리/배너 이미지와 섞이지 않게).
+        // TowerID는 내부 식별자라 표시명으로 쓰지 않는다 — Data가 없으면(테이블 행 누락) ID로 폴백한다.
+        string displayName = tower.Data != null
+            ? LocalizationHelper.Get(LocalizationHelper.k_TowersTable, tower.Data.NameKey)
+            : tower.TowerID;
+
+        var view = button.GetComponent<TowerButtonView>();
+        if (view != null)
         {
-            label.text = tower.TowerID;
+            view.Set(tower.Icon, displayName);
+        }
+        else
+        {
+            var label = button.GetComponentInChildren<TMP_Text>();
+            if (label != null) label.text = displayName;
         }
 
         // 호버 시 타워 코스트/스탯 툴팁(#141). 버튼 프리팹 편집 없이 런타임으로 부착 —
