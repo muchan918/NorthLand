@@ -124,7 +124,7 @@ Boss.Stat.MoveSpeed × P1_MaxFactor × slowFactor^n  <  P1_MinSpeed
 
 | 감속 중첩 | 실효 속도 | vs `MinSpeed 10` | 충돌 피해 (`×3.75`) |
 |---|---|---|---|
-| 0 | 33.6 | 초과 | 126.0 (성문 HP 1000의 **12.6%**) |
+| 0 | 33.6 | 초과 | 126.0 (성문 HP 200의 **63%**) |
 | 1 | 26.88 | 초과 | 100.8 |
 | 2 | 21.50 | 초과 | 80.6 |
 | 3 | 17.20 | 초과 | 64.5 |
@@ -136,7 +136,7 @@ Boss.Stat.MoveSpeed × P1_MaxFactor × slowFactor^n  <  P1_MinSpeed
 >
 > `Boss.Stat.MoveSpeed`가 12 → 4.8(×0.4)로 내려갈 때 `P1_MinSpeed`(25)와 `P1_DamagePerSpeedUnit`(1.5)이
 > 함께 조정되지 않아, 파훼 문턱이 6중첩 → **2중첩**으로 떨어지고(감속 타워 하나로 돌진이 사실상 무력화)
-> 충돌 피해도 성문 HP의 12.6% → 5.0%로 줄어 있었다.
+> 충돌 피해도 성문 HP의 63% → 25.2%로 줄어 있었다.
 >
 > | 변수 | 이전 | 현재 | 근거 |
 > |---|---|---|---|
@@ -145,7 +145,7 @@ Boss.Stat.MoveSpeed × P1_MaxFactor × slowFactor^n  <  P1_MinSpeed
 >
 > 계수를 "배율류라 스케일 대상이 아니다"로 분류했던 것이 누락의 원인이다. `DamagePerSpeedUnit`은
 > **속도당 피해**라 속도 단위가 바뀌면 같이 움직여야 한다. 두 값 복원으로 파훼 문턱(6중첩)과
-> 충돌 피해(성문 HP의 12.6%)가 스케일 변경 이전과 정확히 같아졌다.
+> 충돌 피해(성문 HP의 63%)가 스케일 변경 이전과 정확히 같아졌다.
 >
 > ⚠ **한 블랙보드 값이 에셋 안에 네 벌로 직렬화되며 자동 동기화되지 않는다.**
 >
@@ -208,7 +208,7 @@ Boss.Stat.MoveSpeed × P1_MaxFactor × slowFactor^n  <  P1_MinSpeed
 | `P1_MaxFactor` | Float | `7` | 속도 배수 상한 → 실효 **33.6**(`MoveSpeed 4.8` 기준). **파훼 불변식 참조** |
 | `P1_AccelPerSecond` | Float | `3` | 1→7까지 2초 |
 | `P1_ArriveDistance` | Float | `5` | **`AttackRange`(2.4)보다 크게.** 아래 「경로 끝 파괴」 참조 — 이 값으로 보스 생존 확인됨 |
-| `P1_DamagePerSpeedUnit` | Float | `3.75` | 실효 33.6 × 3.75 = **126** 피해 (성문 HP 1000의 12.6%). **속도당 피해라 `MoveSpeed` 스케일과 반비례로 움직인다** |
+| `P1_DamagePerSpeedUnit` | Float | `3.75` | 실효 33.6 × 3.75 = **126** 피해 (성문 HP 200의 63%). **속도당 피해라 `MoveSpeed` 스케일과 반비례로 움직인다** |
 | `P1_MinSpeed` | Float | `10` | 이 속도 미만이면 피해 0. **파훼 불변식이 이 값에 걸린다** — 감속 6중첩 |
 | `P1_MaxDuration` | Float | `15` | 돌진 상한. **0이면 영구 Running 위험** |
 

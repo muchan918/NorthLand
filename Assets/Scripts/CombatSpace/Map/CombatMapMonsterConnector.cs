@@ -189,8 +189,10 @@ namespace CombatSpace
                 return false;
             }
 
+            monsterSpawn.SetGateCoordinateRoot(fixedEnemyRoute.CoordinateRoot);
+
             monsterSpawn.SetRoute(combinedWorldRoute);
-            monsterSpawn.SetSpawnPoint(spawnPosition, spawnRotation);
+            monsterSpawn.SetSpawnPoint(spawnPosition,spawnRotation);
 
             return true;
         }

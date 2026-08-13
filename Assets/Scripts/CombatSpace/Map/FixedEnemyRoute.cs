@@ -21,6 +21,10 @@ namespace CombatSpace
 
         public int WaypointCount => waypoints.Count;
 
+        public Transform CoordinateRoot => coordinateRoot;
+
+ 
+
         public bool TryGetWorldPoints(List<Vector3> result)
         {
             if (result == null)
