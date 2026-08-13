@@ -235,6 +235,10 @@ MonoBehaviour:
     m_Key: castle.effect.lv3
     m_Metadata:
       m_Items: []
+  - m_Id: 12524623578435584
+    m_Key: lab.effect.upgrade
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

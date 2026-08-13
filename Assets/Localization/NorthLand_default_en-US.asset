@@ -258,6 +258,16 @@ MonoBehaviour:
       House exchange rate improves again.'
     m_Metadata:
       m_Items: []
+  - m_Id: 12524623578435584
+    m_Localized: 'Chain Shock damage increases by {0}%
+
+      Chain Shock radius
+      increases by {1}%
+
+      Chain Shock recharge time decreases by {2}%'
+    m_Metadata:
+      m_Items:
+      - rid: 5763336045537525835
   references:
     version: 2
     RefIds:
@@ -269,3 +279,4 @@ MonoBehaviour:
         - id: 6894325276794880
         - id: 12023646333251584
         - id: 12023173794574336
+        - id: 12524623578435584

@@ -16,9 +16,13 @@ public class BuildingInfoUI : MonoBehaviour
     private const string k_PerVillagerKey = "building.upgrade.per_villager";
     private const string k_MaxKey = "building.upgrade.max";
     private const string k_LevelKey = "building.upgrade.level";
-    // 마법 연구소 등 업그레이드 전용 건물의 효과 줄 라벨. 생산 건물의 "주민당 5→7" 자리에 표시된다 —
-    // 강화 효과(스킬 강화)는 이번 범위 밖(추후 구현)이라 수치 대신 이 안내 문구를 보여준다.
+    // 마법 연구소 등 업그레이드 전용 건물의 효과 줄 라벨. 생산 건물의 "주민당 5→7" 자리에 표시된다.
+    // 구체적인 강화 수치는 업그레이드 버튼 위 별도 줄(k_LabEffectKey)이 담당하고, 이 자리는
+    // 그 줄을 만들 수 없을 때(문구 키 미등록·SO에 레벨 없음)의 폴백으로 남는다.
     private const string k_SkillPendingKey = "building.upgrade.skill_pending";
+    // 스킬 강화 건물의 "이번 업그레이드로 얼마나 오르는지" 문구(#375). 레벨마다 문장이 아니라 숫자만
+    // 달라지므로 본진(castle.effect.lv{n})과 달리 레벨별로 키를 쪼개지 않고 Smart String 하나를 공유한다.
+    private const string k_LabEffectKey = "lab.effect.upgrade";
     // 본진 레벨 부족으로 다음 레벨이 잠긴 상태(#229). 진짜 최대(k_MaxKey)와 구분해야
     // "왜 못 올리는지"가 보인다 — Smart String {0}에 필요한 본진 레벨이 들어간다.
     private const string k_RequireCastleKey = "building.upgrade.require_castle";
@@ -33,6 +37,8 @@ public class BuildingInfoUI : MonoBehaviour
     [SerializeField] TextMeshProUGUI _amountText;
     [Tooltip("건물 설명 (BuildingTable.DescriptionKey)")]
     [SerializeField] TextMeshProUGUI _descriptionText;
+    [Tooltip("업그레이드 버튼 위 강화 효과 문구 (마법 연구소 등 스킬 강화 건물에서만 채워진다)")]
+    [SerializeField] TextMeshProUGUI _skillEffectText;
 
     [Header("주민당 생산 (ProduceRow — 생산 건물에서만 표시)")]
     [Tooltip("생산 줄 전체. 생산 건물이 아니면 통째로 숨긴다.")]
@@ -134,6 +140,9 @@ public class BuildingInfoUI : MonoBehaviour
     {
         // 설명은 건물 종류와 무관하게 같은 소스라 분기 이전에 한 번만 채운다.
         SetText(_descriptionText, BuildingDescription());
+        // 강화 문구는 스킬 강화 건물만 채운다. 같은 패널을 모든 건물이 재사용하므로 여기서 먼저 비워야
+        // 마법 연구소를 보다 생산 건물을 클릭했을 때 이전 문구가 남지 않는다(분기 추가 시 빠뜨릴 자리를 없앤다).
+        SetText(_skillEffectText, string.Empty);
 
         // 표시 대상 분기: 생산 라인(주민당량) → 업그레이드 전용 건물(마법 연구소 등) → 그 외(본진 등, 이름만).
         if (_lineIndex >= 0)
@@ -161,8 +170,8 @@ public class BuildingInfoUI : MonoBehaviour
     }
 
     // 마법 연구소 등 업그레이드 전용 건물: 이름(Lv 현재/최대) + 효과 안내 + 비용(마나석) + 업그레이드 버튼.
-    // 생산 라인과 달리 "주민당 자원" 같은 즉시 효과값이 없다 — 강화 효과(스킬 강화)는 스킬 시스템이 레벨을 참조해
-    // 정하는 후속(TODO)이라, 효과 줄엔 수치를 지어내지 않고 "이번 범위 밖(추후 구현)" 안내 문구를 표시한다.
+    // 생산 라인과 달리 "주민당 자원" 같은 즉시 효과값이 없어, 대신 업그레이드 버튼 위에 이번 업그레이드로
+    // 스킬 스탯이 몇 % 변하는지를 문장으로 보여준다(#375).
     private void RefreshUpgradeBuilding()
     {
         int level = _controller.UpgradeBuildingLevel(_upgradeIndex);
@@ -173,6 +182,9 @@ public class BuildingInfoUI : MonoBehaviour
         // 본진 레벨로 잠긴 상태면 강화 안내 대신 잠금 사유를 보여준다 — 지금 필요한 정보는 그쪽이다(#229).
         string lockNotice = LockNotice(_controller.UpgradeBuildingRequiredCastleLevel(_upgradeIndex));
         SetText(_amountText, lockNotice ?? L(k_SkillPendingKey));
+        // 최대 도달이면 안내할 다음 효과가 없고, 잠긴 상태면 지금 필요한 정보는 잠금 사유 쪽이다 —
+        // 둘 다 빈 줄로 두면 CSF가 그 자리를 접는다(CastlePanelUI의 _upgradeEffectText와 같은 규약).
+        SetText(_skillEffectText, (isMax || lockNotice != null) ? string.Empty : UpgradeEffect(level + 1));
         HideProduceRow(); // 주민당 산출이 없는 건물
         if (isMax)
         {
@@ -233,6 +245,48 @@ public class BuildingInfoUI : MonoBehaviour
         requiredCastleLevel > 0
             ? LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, k_RequireCastleKey, requiredCastleLevel + 1)
             : null;
+
+    // 이번 업그레이드로 스킬 스탯이 몇 % 변하는지(#375). 배율 테이블(SO)에서 직접 산출하므로
+    // 밸런싱이 magic_lab.asset을 고치면 문구가 자동으로 따라가고, SkillManager가 실제 적용하는 값과
+    // 어긋날 수 없다 — 표시용 수치를 따로 authoring하지 않는 이유다(SkillEffect 계보의 규약).
+    // 그 대가로 이 UI는 스킬 시스템을 참조하지 않는다(베이스 스탯은 SkillManager 소유, 여기선 배율만 안다).
+    //
+    // 인자는 '지금 누르면 도달할' 레벨(1-based)이다. 문구 키가 없으면 LocalizationHelper.Get이
+    // 에러를 내지만, 이 키는 레벨과 무관한 고정 키 하나뿐이라 본진(castle.effect.lv{n})처럼
+    // 엔트리 존재를 확인할 필요가 없다 — 없으면 그건 세팅 실수고 드러나는 편이 낫다.
+    private string UpgradeEffect(int nextLevel)
+    {
+        BuildingAsset.SkillUpgradeLevel next = Scaling(nextLevel);
+        if (next == null)
+        {
+            return string.Empty; // 스킬 강화 건물이 아니거나 authoring된 레벨이 없다 — _amountText 폴백이 받는다.
+        }
+        BuildingAsset.SkillUpgradeLevel cur = Scaling(nextLevel - 1); // null = Lv0(강화 없음, 배율 1.0)
+        return LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, k_LabEffectKey,
+            Pct(cur?.DamageMultiplier ?? 1f, next.DamageMultiplier, false),
+            Pct(cur?.RadiusMultiplier ?? 1f, next.RadiusMultiplier, false),
+            Pct(cur?.CooldownMultiplier ?? 1f, next.CooldownMultiplier, true));
+    }
+
+    // 레벨 n(1-based)의 배율 엔트리. 0이나 범위 밖이면 null = 강화 없음(SkillManager.RefreshUpgrade와 같은 규약).
+    private BuildingAsset.SkillUpgradeLevel Scaling(int level)
+    {
+        List<BuildingAsset.SkillUpgradeLevel> levels = _building?.Skill?.UpgradeLevels;
+        return (levels == null || level < 1 || level > levels.Count) ? null : levels[level - 1];
+    }
+
+    // 베이스가 아니라 '현재 레벨 대비' 증감률. 버튼 위 문구는 "지금 누르면 뭐가 좋아지나"에 답해야 하므로
+    // 누적치(Lv1→2에서 +40%)가 아니라 이번 업그레이드분(+17%)이어야 한다.
+    //
+    // inverted는 쿨다운처럼 '낮을수록 이득'인 스탯용 — 0.9→0.8을 감소폭(11%)으로 뒤집는다.
+    // 0/음수 배율을 1.0으로 막는 건 SkillManager.PositiveOr1과 같은 방어다(0으로 나누기·부호 뒤집힘 방지).
+    private static int Pct(float current, float next, bool inverted)
+    {
+        float a = current > 0f ? current : 1f;
+        float b = next > 0f ? next : 1f;
+        float ratio = inverted ? 1f - b / a : b / a - 1f;
+        return Mathf.RoundToInt(ratio * 100f);
+    }
 
     private string BuildingName()
     {
