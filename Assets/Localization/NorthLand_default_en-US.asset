@@ -234,6 +234,30 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 5763336045537525835
+  - m_Id: 12180213619658752
+    m_Localized: Increases maximum villagers by 1.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12180213649018880
+    m_Localized: 'Woodcutter''s Hut, Mine and Farm gain 2 more upgrade levels.
+
+      Magic
+      Laboratory gains 1 more upgrade level.
+
+      Alchemist''s House exchange rate
+      improves.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12180213649018881
+    m_Localized: 'Woodcutter''s Hut, Mine and Farm gain 2 further upgrade levels.
+
+      Magic
+      Laboratory gains 1 further upgrade level.
+
+      Alchemist''s House exchange
+      rate improves again.'
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

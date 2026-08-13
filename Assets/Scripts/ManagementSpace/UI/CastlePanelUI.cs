@@ -24,6 +24,11 @@ public class CastlePanelUI : MonoBehaviour
     private const string k_UpgradeKey = "game.btn.upgrade";
     // 비용 박스 헤더 — 목록이 둘이라 어느 쪽 비용인지 표시가 필요하다. 기존 키를 재사용한다(중복 키 금지).
     private const string k_CostKey = "building.upgrade.cost";
+    // 주민 증가 1회의 효과 안내(증가량은 항상 1로 고정이라 레벨과 무관한 단일 문구).
+    private const string k_VillagerEffectKey = "castle.villager_effect";
+    // 본진 다음 레벨의 효과 설명. 레벨마다 무엇이 열리는지가 달라 키를 레벨로 나눈다 — "castle.effect.lv2" 형태.
+    // 문구 authoring은 NorthLand_default 스트링 테이블에서 한다(코드는 키만 조립).
+    private const string k_UpgradeEffectKeyPrefix = "castle.effect.lv";
 
     [Tooltip("주민·자원 상태 소스. 비우면 씬에서 자동 탐색.")]
     [SerializeField] ManagementController _controller;
@@ -33,6 +38,10 @@ public class CastlePanelUI : MonoBehaviour
     [SerializeField] TextMeshProUGUI _titleText;
     [Tooltip("주민 현황 (배치/총 보유)")]
     [SerializeField] TextMeshProUGUI _villagerText;
+    [Tooltip("주민 증가 효과 안내 (예: 주민 수가 +1 증가합니다). 비워도 동작한다.")]
+    [SerializeField] TextMeshProUGUI _villagerEffectText;
+    [Tooltip("본진 다음 레벨의 효과 설명(레벨별 스트링 키). 비워도 동작한다.")]
+    [SerializeField] TextMeshProUGUI _upgradeEffectText;
 
     [Header("주민 증가 비용 (ScrollView)")]
     [Tooltip("주민 증가 비용 Row들이 생성될 ScrollView의 Content Transform")]
@@ -206,6 +215,8 @@ public class CastlePanelUI : MonoBehaviour
             _addVillagerButton.interactable = !villagerMax && _controller.CanIncreaseVillagers(_building);
         }
         SetText(_addVillagerButtonText, villagerMax ? L(k_MaxKey) : L(k_AddVillagerKey));
+        // 최대 도달 시엔 안내할 다음 효과가 없다 — 빈 줄로 두면 박스가 CSF로 자연히 줄어든다.
+        SetText(_villagerEffectText, villagerMax ? string.Empty : L(k_VillagerEffectKey));
 
         // 본진 업그레이드(#229): 미등록(-1)이면 비용이 null이라 자동으로 MAX 표시 + 비활성이 된다.
         // 본진은 자기 요구치로 잠기지 않으므로 여기서 null은 언제나 '진짜 최대'다(잠금 안내가 필요 없다).
@@ -218,6 +229,23 @@ public class CastlePanelUI : MonoBehaviour
             _upgradeButton.interactable = _controller.CanUpgradeBuilding(_upgradeIndex);
         }
         SetText(_upgradeButtonText, upgradeMax ? L(k_MaxKey) : L(k_UpgradeKey));
+        // 지금 누르면 도달할 레벨(level은 이미 표시용 1-based)의 효과를 보여준다.
+        SetText(_upgradeEffectText, upgradeMax ? string.Empty : UpgradeEffect(level + 1));
+    }
+
+    // 도달할 레벨의 효과 문구. **키가 없으면 빈 문자열**을 돌려준다.
+    //
+    // 키는 레벨로 조립하는데(`castle.effect.lv{n}`) 조립에는 상한이 없고, 레벨 수는 `castle.asset`의
+    // `Castle.UpgradeLevels`(순수 SO authoring, WL-015 축)가 정한다. 즉 밸런싱 담당이 코드도 CSV도
+    // 건드리지 않고 레벨을 하나 붙이는 것만으로 문구가 없는 레벨이 생긴다. `LocalizationHelper.Get`은
+    // `StringDatabase`를 그대로 통과시키는 얇은 래퍼라 폴백이 없어, 그대로 두면 본진 패널에 미해석 키가
+    // 노출된다 — 문구 없는 레벨은 그냥 안 보이는 편이 낫다.
+    private static string UpgradeEffect(int nextLevel)
+    {
+        string key = k_UpgradeEffectKeyPrefix + nextLevel;
+        var table = UnityEngine.Localization.Settings.LocalizationSettings.StringDatabase
+            .GetTable(LocalizationHelper.k_DefaultTable);
+        return table != null && table.GetEntry(key) != null ? L(key) : string.Empty;
     }
 
     private string BuildingName()
@@ -254,11 +282,11 @@ public class CastlePanelUI : MonoBehaviour
                 continue;
             }
 
-            string rname = LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, data.NameKey);
+            // 자원 종류는 아이콘으로만 표기한다 — Data는 지갑 대조(Kind)에만 쓰인다.
             bool affordable = _controller.ResourceCount(data.Kind) >= c.Amount;
 
             BuildingCostRow row = Instantiate(_costRowPrefab, content, false);
-            row.Set(rname, c.Amount, affordable);
+            row.Set(c.Resource.Icon, c.Amount, affordable);
         }
     }
 
