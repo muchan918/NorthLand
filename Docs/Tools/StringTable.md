@@ -27,9 +27,27 @@ LocalizationSettings.SelectedLocale =
 
 ## 2. 현재 상태 (실제 생성된 것)
 
-- **테이블 컬렉션**: `NorthLand_default` **1개** (String Table Collection)
-- **키**: `Test` **1개** (placeholder, 한국어 값 `"Test-kr"`)
-- 아직 본격적인 UI/시스템 텍스트는 넣지 않았다. 실제 텍스트를 추가할 때는 [4. 키·테이블 컨벤션(제안)](#4-키--테이블-컨벤션-제안)을 따른다.
+**테이블 컬렉션 7개**, 총 190개 키. 3개 로케일(`ko-KR`/`en-US`/`ja-JP`) 전부 채워져 있다.
+
+| 컬렉션 | 키 수 | 용도 | 코드 상수 |
+|---|---|---|---|
+| `NorthLand_default` | 55 | 공통 UI·자원 이름·본진 효과 문구 등 | `LocalizationHelper.k_DefaultTable` |
+| `NorthLand_buildings` | 18 | 건물 이름/역할/설명 (6종 × 3키) | `k_BuildingsTable` |
+| `NorthLand_Towers` | 62 | 타워 이름/역할/설명 | `k_TowersTable` |
+| `NorthLand_Enemies` | 21 | 적 이름/설명 | `k_EnemiesTable` |
+| `NorthLand_Rewards` | 12 | 웨이브 보상 카드 | (상수 없음 — `RewardCardView`가 문자열 직접 사용) |
+| `NorthLand_Skills` | 8 | 스킬 | — |
+| `NorthLand_Territories` | 14 | 영토 (#337로 시스템 제거됨, 테이블만 잔존) | — |
+
+⚠️ **컬렉션명은 대소문자를 구분한다.** `_Towers`/`_Enemies`/`_Rewards`/`_Skills`/`_Territories`는
+대문자로 시작하고 `_default`/`_buildings`는 소문자다 — 통일돼 있지 않으므로 상수를 쓸 것(WL-060).
+
+표시 문자열의 소유권은 **String Table에 있다.** DataTable CSV(`ResourceTable.csv`/`BuildingTable.csv`/
+`TowerTable.csv` 등)는 `NameKey`/`RoleKey`/`DescriptionKey` 컬럼에 **키만** 들고 있고 문자열은 없다
+(WL-013 해소, PR#126). 이름을 바꾸려면 CSV가 아니라 이 테이블의 **값**을 고친다.
+
+> 자원·건물 표시 이름의 현재 값과 변경 절차는 `Docs/ManagementArea/Resources.md` §5.6이 정본이다
+> (현재 이름은 임시안 — #374).
 
 ## 3. 코드에서 사용하기
 
@@ -106,7 +124,9 @@ reward_choice.title
 | `System_Notice` | 낮/밤 전환, 웨이브, 게임오버 등 | 4.4, 5.x |
 | `Reward_Choice` | 웨이브 보상 선택 | 5.2, 6.6 |
 
-(현재는 `NorthLand_default` 하나만 존재. 위 구조로 갈지, 단일 테이블을 유지할지는 팀 합의 후 결정.)
+⚠️ **이 표는 채택되지 않았다.** 실제로는 §2의 `NorthLand_*` 7개 컬렉션(공간이 아니라 **데이터 종류**
+단위 — 자원/건물/타워/적/보상/스킬)으로 갈라졌다. 위 표는 초기 제안 기록이며, 새 키를 추가할 때는
+§2의 실제 컬렉션 중에서 고른다.
 
 ## 5. 신규 키 추가 절차
 

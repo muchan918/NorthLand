@@ -19,39 +19,39 @@ MonoBehaviour:
     m_Items: []
   m_TableData:
   - m_Id: 663232851968
-    m_Localized: Wood Cutter's House
+    m_Localized: Biscuit House
     m_Metadata:
       m_Items: []
   - m_Id: 850768572416
-    m_Localized: Wood Production
+    m_Localized: Produces Biscuits
     m_Metadata:
       m_Items: []
   - m_Id: 938781847552
-    m_Localized: Wood production as many as the number of residents deployed
+    m_Localized: Produces biscuits per assigned villager.
     m_Metadata:
       m_Items: []
   - m_Id: 1026795122688
-    m_Localized: Mine
+    m_Localized: Chocolate Tree
     m_Metadata:
       m_Items: []
   - m_Id: 1090347216896
-    m_Localized: Iron Production
+    m_Localized: Produces Chocolate
     m_Metadata:
       m_Items: []
   - m_Id: 1152288698368
-    m_Localized: Iron production as many as the number of residents deployed
+    m_Localized: Produces chocolate per assigned villager.
     m_Metadata:
       m_Items: []
   - m_Id: 1321805688832
-    m_Localized: Farm
+    m_Localized: Sugar Farm
     m_Metadata:
       m_Items: []
   - m_Id: 1352474439680
-    m_Localized: Food Production
+    m_Localized: Produces Sugar
     m_Metadata:
       m_Items: []
   - m_Id: 1380861489152
-    m_Localized: Food production as many as the number of residents deployed
+    m_Localized: Produces sugar per assigned villager.
     m_Metadata:
       m_Items: []
   - m_Id: 1914511175680
@@ -76,11 +76,11 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 7796770877440
-    m_Localized: Exchange a Mana Stone for a choice of wood, iron, or food
+    m_Localized: Exchange Star Candy for Biscuit, Chocolate, or Sugar.
     m_Metadata:
       m_Items: []
   - m_Id: 8711661826048
-    m_Localized: Unlock and Upgrade skills by consuming Mana Stones
+    m_Localized: Unlock and upgrade skills by consuming Star Candy.
     m_Metadata:
       m_Items: []
   - m_Id: 8647807741952

@@ -19,7 +19,7 @@ MonoBehaviour:
   PlacementYaw: 45
   Cost: []
   Attack:
-    AttackDamage: 15
+    AttackDamage: 20
     AttackRange: 17
     AttackInterval: 0.9
     ProjectilePrefab: {fileID: 1891895467215282, guid: 0f05aae0a4943f146ab784745afc5251, type: 3}
