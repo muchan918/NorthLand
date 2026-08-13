@@ -17,7 +17,7 @@ MonoBehaviour:
   MovementMode: 0
   Melee:
     Stat:
-      MaxHp: 40
+      MaxHp: 54
       MoveSpeed: 10
       AttackDamage: 10
       AttackRange: 1.6

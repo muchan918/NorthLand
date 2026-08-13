@@ -20,7 +20,7 @@ MonoBehaviour:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
     Amount: 20
   Attack:
-    AttackDamage: 12
+    AttackDamage: 18
     AttackRange: 18
     AttackInterval: 1
     ProjectilePrefab: {fileID: 1891895467215282, guid: 0f05aae0a4943f146ab784745afc5251, type: 3}
