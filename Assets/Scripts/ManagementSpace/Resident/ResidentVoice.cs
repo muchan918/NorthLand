@@ -97,10 +97,20 @@ public class ResidentVoice : MonoBehaviour
     private void Awake()
     {
         source = GetComponent<AudioSource>();
-        animator = GetComponent<Animator>();
+
+        // 자식까지 탐색: Animator는 모델 자식에 붙는 프리팹 구성이 흔하다
+        // (`ResidentAgent`가 같은 이유로 같은 탐색을 한다 — WL-093).
+        animator = GetComponentInChildren<Animator>();
 
         // 인사와 작별을 가르는 데만 쓴다(PickGreetingClip). 상태만으로는 구분되지 않는다.
         resident = GetComponent<Resident>();
+
+        // 조용한 무동작을 막는다 — 참조가 빠지면 이 주민만 영영 무음인데, 걷기·대화는 멀쩡해서
+        // 증상이 "이 캐릭터만 말을 안 한다"로만 보인다(`ResidentAgent`와 같은 형태의 방어).
+        if (animator == null)
+        {
+            Debug.LogWarning($"[{name}] Animator를 찾지 못해 목소리가 나오지 않습니다.", this);
+        }
 
         // 저작 실수로 조용히 깨지지 않도록 재생 규약을 코드에서 못박는다.
         // 특히 spatialBlend는 0이어야 한다 — 3D로 두면 Unity의 거리 감쇠가 우리가 계산한 볼륨 위에

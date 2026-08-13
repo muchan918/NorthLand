@@ -89,7 +89,8 @@ public class ResidentDragCoordinator : MonoBehaviour
     {
         SceneManager.sceneLoaded -= HandleSceneLoaded;
 
-        // MouseManager·DayNightManager 모두 DontDestroyOnLoad라 이쪽보다 오래 살 수 있다 → 반드시 해제.
+        // MouseManager는 DontDestroyOnLoad라 이쪽보다 오래 살 수 있다 → 반드시 해제.
+        // DayNightManager는 **씬 싱글톤**이라 보통 먼저 죽지만, 살아 있는 경우가 남으므로 같이 푼다.
         var mm = MouseManager.Instance;
         if (mm != null && _subscribed)
         {
@@ -114,6 +115,10 @@ public class ResidentDragCoordinator : MonoBehaviour
 
     private void TrySubscribe()
     {
+        // 호출부가 이미 막고 있지만(Start 1회 + LateUpdate의 !_subscribed) 형제 코디네이터와 형태를 맞춘다 —
+        // 이 셋은 갈라지기 시작하면 조용히 어긋나는 계열이다(WL-145).
+        if (_subscribed) return;
+
         var mm = MouseManager.Instance;
         if (mm == null)
         {

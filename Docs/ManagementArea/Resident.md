@@ -1546,6 +1546,8 @@ OK path=Assets/Behavior/ResidentBehavior.asset nodes=15 linkedAgents=9
 
 1. **`Resident`가 문 대신 좌표+방향을 든다.** `EmergingFrom`(`ResidentDoorPoint`) → `EmergeOrigin` + `EmergeForward`. 나오는 자리가 늘 문인 것은 아니게 됐기 때문이고, 등장 브랜치가 쓰던 것은 어차피 그 둘뿐이었다.
 2. **`BuildingInstanceRegistry` 신설.** 컨트롤러는 건물을 **SO로만** 아는데(자원·레벨은 좌표가 없어도 성립한다) 퇴장은 **월드 좌표**가 필요하다. 그 간극만 메우는 `BuildingAsset → Transform` 레지스트리이고, 등록은 건물 루트에 이미 있는 `BuildingInfo`가 한다 — 전용 마커를 만들어 프리팹마다 붙이는 authoring 비용(그것도 `Assets/Imported` 소유다)을 치를 이유가 없다.
+   - **SO를 키로 쓰는 것은 설계상 보장된 전제다.** 생산 건물은 **나무꾼의 집·광산·농장 3종 고정**이고(GDD §6.1), 「건물 건설」은 *"새 건물을 지어 할 수 있는 작업을 **해금**하는 시스템"*(GDD §4 표)이라 **같은 건물을 여러 채 짓는 개념이 없다.** 그래서 "SO 하나 = 씬 인스턴스 하나"가 성립하고, 레지스트리의 중복 경고는 **authoring 실수를 잡는 그물**이지 예상되는 경우가 아니다.
+   - ⚠ **이 전제가 바뀌면 여기만 고쳐서는 안 된다.** `ManagementController.LineIndexOf`가 같은 전제 위에 있어(SO로 라인을 찾는다) **둘을 함께** 인스턴스 기반으로 옮겨야 한다. 한쪽만 옮기면 배치 −1 퇴장이 늘 첫 번째 건물에서만 나오고, 경고는 씬 로드 때 한 번 지나가 놓치기 쉽다(WL-021).
 3. **선택 집합의 죽은 항목 청소**(`ResidentSelectionCoordinator.PruneDead`). **낮에도 주민이 사라지게 된 부작용을 막는다** — 종전에 사라지는 시점은 밤 귀가뿐이었고 그건 `HandleDayToNight`가 통째로 처리했다. 배치 통지가 스포너의 소멸보다 **먼저** 도착할 수 있어 이벤트만으로는 한 프레임 늦고, 그 사이 꺼진 주민이 집합에 남으면 풀 재사용 시 `OutlineHighlight.OnEnable`이 초록을 복원한다(§11.12의 유령 초록과 같은 뿌리).
 
 **씬 배선은 스냅샷에만 있다** (SceneWorkflow §4① — 정본 확정 전)

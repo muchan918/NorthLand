@@ -38,6 +38,18 @@ public static class ResidentVoiceAudibility
     private static float s_zoomGain;
     private static bool s_hasCamera;
 
+    /// 도메인 리로드를 끈 환경에서 static이 이전 플레이 세션의 값을 물고 시작하는 것을 막는다
+    /// (`BuildingInstanceRegistry`와 같은 규약). `Time.frameCount`는 플레이 시작에 0으로 돌아가므로
+    /// `s_stampedFrame`이 새 프레임 번호와 우연히 맞으면 **지난 세션의 줌 게이트를 한 프레임 더 쓴다.**
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics()
+    {
+        s_camera = null;
+        s_stampedFrame = -1;
+        s_zoomGain = 0f;
+        s_hasCamera = false;
+    }
+
     /// 이 위치의 주민 목소리가 들려야 하는 정도(0~1)와 좌우 팬(-1~1).
     ///
     /// 카메라를 못 찾으면 **들리지 않는 것으로 답한다.** `CameraVisibility`가 반대로(보인다고) 답하는 것과
