@@ -24,20 +24,6 @@ public class WaveRewardSelectionUI : MonoBehaviour
     [SerializeField]
     private Transform cardContainer;
 
-    [Header("등급 색 (인덱스 0 = Lv1)")]
-    // 카드면 틴트. 비워두면 아래 기본 팔레트를 쓰므로 인스펙터 배선 없이도 동작한다
-    // (필드 초기화자는 이미 씬에 직렬화된 컴포넌트엔 적용되지 않아서, 폴백을 코드에 둔다).
-    [SerializeField]
-    private Color[] levelColors;
-
-    // 동 → 은 → 금. 픽셀아트 톤에 맞춰 채도를 낮게 잡았다.
-    private static readonly Color[] DefaultLevelColors =
-    {
-        new Color(0.69f, 0.55f, 0.34f), // Lv1
-        new Color(0.78f, 0.82f, 0.85f), // Lv2
-        new Color(0.95f, 0.76f, 0.31f), // Lv3
-    };
-
     [SerializeField]
     [FormerlySerializedAs("Openpanel")]
     private GameObject openPanel;
@@ -221,31 +207,28 @@ public class WaveRewardSelectionUI : MonoBehaviour
                 : default;
 
             RewardCardView card = Instantiate(cardPrefab, cardContainer);
-            card.Bind(reward, snapshot, ResolveTint(snapshot), SelectReward);
+            card.Bind(reward, snapshot, ResolveFaceIndex(snapshot), SelectReward);
             spawnedCards.Add(card);
         }
 
         return spawnedCards.Count > 0;
     }
 
-    // 이 보상을 고르면 도달할 레벨에 대응하는 카드 색. 레벨→색 매핑 소유자를 한 곳에 모으려고
-    // RewardCardView가 아니라 여기서 뽑아 넘긴다.
+    // 이 보상을 고르면 도달할 레벨에 대응하는 카드면 인덱스(#356).
     //
     // 카드는 두 가지를 동시에 말한다(#353) — "지금 보유"는 채워진 별과 레벨 줄 왼쪽이, "고르면
-    // 도달"은 미리보기 별과 이 색과 레벨 줄 오른쪽이 맡는다. 즉 이 색은 채워진 별이 아니라
+    // 도달"은 미리보기 별과 이 카드면과 레벨 줄 오른쪽이 맡는다. 즉 카드면은 채워진 별이 아니라
     // 미리보기 별과 같은 편에 선다.
     //
     // 채워진 별에 맞춰 Level로 내리지 말 것: 만렙 효과는 후보에서 빠지므로(#292) 카드에
-    // 뜨는 현재 레벨은 0~2뿐이고, palette[level-1]은 Lv0과 Lv1이 같은 동색이 되며 금색은 한 번도
-    // 나오지 않는다. 도달 레벨 기준이라야 동(Lv0 카드) → 은(Lv1) → 금(Lv2, 고르면 만렙)이 다 쓰인다.
-    private Color ResolveTint(SkillEffectSnapshot snapshot)
+    // 뜨는 현재 레벨은 0~2뿐이고, faces[level-1]은 Lv0과 Lv1이 같은 카드면이 되며 최고 등급은
+    // 한 번도 나오지 않는다. 도달 레벨 기준이라야 Lv0 카드 → Lv1 → Lv2(고르면 만렙)가 다 쓰인다.
+    //
+    // 상한 클램프는 배열을 소유한 RewardCardView가 한다 — 장 수를 아는 쪽이 거기이고, 모자라면
+    // 콘솔에 경고를 남겨야 하기 때문. 여기선 하한만 막는다(효과가 없으면 NextLevel이 0이라 -1).
+    private int ResolveFaceIndex(SkillEffectSnapshot snapshot)
     {
-        Color[] palette = levelColors != null && levelColors.Length > 0
-            ? levelColors
-            : DefaultLevelColors;
-
-        // 효과가 없으면 NextLevel이 0이라 -1이 되는데 Clamp가 0으로 받아낸다(배열 밖 접근 방지).
-        return palette[Mathf.Clamp(snapshot.NextLevel - 1, 0, palette.Length - 1)];
+        return Mathf.Max(snapshot.NextLevel - 1, 0);
     }
 
     private void ClearCards()

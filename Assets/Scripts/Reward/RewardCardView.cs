@@ -20,12 +20,40 @@ public class RewardCardView : MonoBehaviour
 
     [Header("Graphics")]
     // 카드면. 레벨별 카드 에셋으로 교체하는 자리(#320) — 미배선이면 조용히 건너뛴다.
-    // 에셋이 준비되면 코드 수정 없이 인스펙터 배선만으로 켜진다.
     [SerializeField]
     private Image cardFace;
 
+    // 이름칸·설명칸 배경과 아이콘 틀. 카드면과 함께 등급마다 통째로 갈린다.
+    [SerializeField]
+    private Image namePlate;
+
+    [SerializeField]
+    private Image descPlate;
+
+    [SerializeField]
+    private Image iconFrame;
+
     [SerializeField]
     private Image icon;
+
+    // 한 등급이 쓰는 스킨 한 벌. 슬롯을 배열 4개로 흩지 않고 하나로 묶는 이유는 등급이 늘 때
+    // 배열 길이 4개를 따로 맞춰야 하는 상태를 만들지 않기 위해서다 — 한 벌이 곧 한 등급이다.
+    [System.Serializable]
+    private struct LevelSkin
+    {
+        public Sprite face;
+        public Sprite namePlate;
+        public Sprite descPlate;
+        public Sprite iconFrame;
+    }
+
+    // 도달 레벨 순서. 인덱스 = Bind가 받는 faceIndex이고, 어느 색을 몇 번째에 둘지는 인스펙터가
+    // 소유한다 — 코드는 색 이름을 모른다(#356).
+    //
+    // 도입 전에는 카드면 한 장에 등급 색(WaveRewardSelectionUI.levelColors)을 틴트로 얹었다.
+    // 카드 아트가 색까지 담게 되면서 틴트가 이중으로 곱해져 탁해지므로 스프라이트 교체로 바꿨다.
+    [SerializeField]
+    private LevelSkin[] levelSkins;
 
     [Header("Texts")]
     [SerializeField]
@@ -60,11 +88,11 @@ public class RewardCardView : MonoBehaviour
     private WaveRewardData boundReward;
 
     /// 보상 하나를 이 카드에 표시한다. snapshot은 이 보상의 레벨·수치 한 벌이고(#353),
-    /// faceTint는 등급 색(RGB만 쓰고 알파는 프리팹 값을 유지).
+    /// faceIndex는 levelFaces에서 고를 자리(도달 레벨 기준, #356).
     public void Bind(
         WaveRewardData reward,
         SkillEffectSnapshot snapshot,
-        Color faceTint,
+        int faceIndex,
         Action<WaveRewardData> selectCallback)
     {
         boundReward = reward;
@@ -106,14 +134,11 @@ public class RewardCardView : MonoBehaviour
         // "고르면 오른다"는 거짓 표시가 되므로 통째로 비워 씬 배선 사고가 화면에 드러나게 한다.
         bool hasStats = !string.IsNullOrEmpty(snapshot.Stats);
 
-        // 등급 색도 위 규약 안에 둔다 — 별이 0개인데 카드면만 Lv1 색으로 칠하면 표시 세 요소
-        // (별·레벨 줄·색) 중 하나가 규약을 벗어난다. 미표시일 땐 프리팹 기본색을 유지한다.
-        //
-        // 알파는 프리팹이 정한 값을 그대로 둔다 — 카드면의 투명도는 등급이 아니라 디자인의 몫이고,
-        // 넘겨받은 색의 알파까지 적용하면 등급 색을 바꿀 때마다 투명도가 딸려 바뀐다.
-        if (cardFace != null && hasStats)
+        // 등급 카드면도 위 규약 안에 둔다 — 별이 0개인데 카드면만 Lv1 아트로 바뀌면 표시 세 요소
+        // (별·레벨 줄·카드면) 중 하나가 규약을 벗어난다. 미표시일 땐 프리팹 기본 카드면을 유지한다.
+        if (hasStats)
         {
-            cardFace.color = new Color(faceTint.r, faceTint.g, faceTint.b, cardFace.color.a);
+            ApplySkin(faceIndex);
         }
 
         if (descriptionText != null)
@@ -129,6 +154,44 @@ public class RewardCardView : MonoBehaviour
 
         // hasStats가 false면 (0, 0)이라 미리보기 칸도 그려지지 않는다 — 위 규약대로 통째로 빈다.
         ApplyStars(hasStats ? snapshot.Level : 0, hasStats ? snapshot.NextLevel : 0);
+    }
+
+    // 도달 레벨에 대응하는 스킨 한 벌로 갈아끼운다. 슬롯별로 Image가 미배선이거나 스프라이트가
+    // 비어 있으면 그 슬롯만 건너뛰고 프리팹 기본값을 남긴다 — 아트가 아직 안 온 칸이 있어도
+    // 나머지는 정상 동작해야 하기 때문.
+    private void ApplySkin(int faceIndex)
+    {
+        if (levelSkins == null || levelSkins.Length == 0)
+        {
+            return;
+        }
+
+        // 스킨 벌 수와 효과 상한(SkillEffect.maxLevel)은 별 칸(ApplyStars)과 똑같이 서로 다른
+        // 저장소가 소유한다 — 벌 수는 NorthLand-Imported의 Card.prefab이, 상한은 GameScene의
+        // 인스펙터가 갖는다. 상한을 올리면 도달 레벨이 벌 수를 넘어서는데, 클램프만 하면 최고
+        // 두 레벨이 같은 스킨을 쓰면서도 코드·프리팹 어느 쪽에도 diff가 남지 않는다.
+        if (faceIndex >= levelSkins.Length)
+        {
+            Debug.LogWarning(
+                $"[RewardCardView] 등급 스킨이 모자랍니다: {levelSkins.Length}벌 < 도달 레벨 {faceIndex + 1}. " +
+                $"카드 프리팹의 levelSkins를 SkillEffect.maxLevel에 맞추세요.",
+                this);
+        }
+
+        LevelSkin skin = levelSkins[Mathf.Clamp(faceIndex, 0, levelSkins.Length - 1)];
+
+        ApplySprite(cardFace, skin.face);
+        ApplySprite(namePlate, skin.namePlate);
+        ApplySprite(descPlate, skin.descPlate);
+        ApplySprite(iconFrame, skin.iconFrame);
+    }
+
+    private static void ApplySprite(Image target, Sprite sprite)
+    {
+        if (target != null && sprite != null)
+        {
+            target.sprite = sprite;
+        }
     }
 
     // 왼쪽부터 current개를 켜고, 그 다음 한 칸을 반투명 미리보기로, 나머지는 끈다.
