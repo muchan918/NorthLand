@@ -44,12 +44,12 @@ public class ProductionLineView : MonoBehaviour
     }
 
     /// <summary>표시 전용 자원 행(마나석)으로 바인딩한다(#166) — 주민수 칸·+/- 버튼은 숨긴다.</summary>
-    public void BindResourceDisplay(ManagementController controller, ResourceKind kind, string nameKey)
+    public void BindResourceDisplay(ManagementController controller, ResourceKind kind)
     {
         _controller = controller;
         _mode = RowMode.Mana;
         _kind = kind;
-        ConfigureVillagerUI(false); // nameKey는 표시명이 아이콘으로 대체되며 쓰이지 않는다(시그니처는 호출부 호환 위해 유지)
+        ConfigureVillagerUI(false); // 표시명은 아이콘이 대신하므로 이름 키를 받지 않는다
     }
 
     // 주민수 칸·+/- 버튼은 Villager 행에서만 보인다(#166 — 마나/특수 자원은 주민 배치 대상이 아님).

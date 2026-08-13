@@ -230,7 +230,22 @@ public class CastlePanelUI : MonoBehaviour
         }
         SetText(_upgradeButtonText, upgradeMax ? L(k_MaxKey) : L(k_UpgradeKey));
         // 지금 누르면 도달할 레벨(level은 이미 표시용 1-based)의 효과를 보여준다.
-        SetText(_upgradeEffectText, upgradeMax ? string.Empty : L(k_UpgradeEffectKeyPrefix + (level + 1)));
+        SetText(_upgradeEffectText, upgradeMax ? string.Empty : UpgradeEffect(level + 1));
+    }
+
+    // 도달할 레벨의 효과 문구. **키가 없으면 빈 문자열**을 돌려준다.
+    //
+    // 키는 레벨로 조립하는데(`castle.effect.lv{n}`) 조립에는 상한이 없고, 레벨 수는 `castle.asset`의
+    // `Castle.UpgradeLevels`(순수 SO authoring, WL-015 축)가 정한다. 즉 밸런싱 담당이 코드도 CSV도
+    // 건드리지 않고 레벨을 하나 붙이는 것만으로 문구가 없는 레벨이 생긴다. `LocalizationHelper.Get`은
+    // `StringDatabase`를 그대로 통과시키는 얇은 래퍼라 폴백이 없어, 그대로 두면 본진 패널에 미해석 키가
+    // 노출된다 — 문구 없는 레벨은 그냥 안 보이는 편이 낫다.
+    private static string UpgradeEffect(int nextLevel)
+    {
+        string key = k_UpgradeEffectKeyPrefix + nextLevel;
+        var table = UnityEngine.Localization.Settings.LocalizationSettings.StringDatabase
+            .GetTable(LocalizationHelper.k_DefaultTable);
+        return table != null && table.GetEntry(key) != null ? L(key) : string.Empty;
     }
 
     private string BuildingName()

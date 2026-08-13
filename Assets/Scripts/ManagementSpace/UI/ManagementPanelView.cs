@@ -116,7 +116,7 @@ public class ManagementPanelView : MonoBehaviour
 
         // ② 마나석 표시 행(배치 없음, +n = 웨이브 클리어 마나 미리보기)
         _manaView = Instantiate(_linePrefab, _lineContainer);
-        _manaView.BindResourceDisplay(_controller, ResourceKind.Mana, ResourceNameKey(ResourceKind.Mana));
+        _manaView.BindResourceDisplay(_controller, ResourceKind.Mana);
     }
 
     private void HandleLocaleChanged(Locale locale)
@@ -155,6 +155,4 @@ public class ManagementPanelView : MonoBehaviour
         }
     }
 
-    // 자원 표시명 스트링 테이블 키 — CSV(ResourceTable) NameKey와 동일한 규약 game.resources.{종류소문자}.
-    private static string ResourceNameKey(ResourceKind kind) => $"game.resources.{kind.ToString().ToLowerInvariant()}";
 }
