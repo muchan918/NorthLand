@@ -323,6 +323,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &37504962 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3091912987581425124, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
+  m_PrefabInstance: {fileID: 572341031524862308}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &111725155
 GameObject:
   m_ObjectHideFlags: 0
@@ -398,7 +403,7 @@ MonoBehaviour:
   waveProvider: {fileID: 111725157}
   playOnStart: 0
   startRound: 0
-  gatePrefab: {fileID: 1575376242241284251, guid: 788faa61af890a34190abb04b7b8b8f9, type: 3}
+  gatePrefab: {fileID: 7755653996151452929, guid: 0df6c15a63df9cf4c8d8fc69ed81d033, type: 3}
 --- !u!4 &111725159
 Transform:
   m_ObjectHideFlags: 0
@@ -1117,6 +1122,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
+--- !u!4 &422961414 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1562921618077330383, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
+  m_PrefabInstance: {fileID: 572341031524862308}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &426114281
 GameObject:
   m_ObjectHideFlags: 0
@@ -7395,6 +7405,46 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 144619837}
     - target: {fileID: 4963974573323370521, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
+      propertyPath: waypoints.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4963974573323370521, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
+      propertyPath: 'waypoints.Array.data[0]'
+      value: 
+      objectReference: {fileID: 422961414}
+    - target: {fileID: 4963974573323370521, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
+      propertyPath: 'waypoints.Array.data[1]'
+      value: 
+      objectReference: {fileID: 37504962}
+    - target: {fileID: 4963974573323370521, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
+      propertyPath: 'waypoints.Array.data[2]'
+      value: 
+      objectReference: {fileID: 422961414}
+    - target: {fileID: 4963974573323370521, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
+      propertyPath: 'waypoints.Array.data[3]'
+      value: 
+      objectReference: {fileID: 422961414}
+    - target: {fileID: 4963974573323370521, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
+      propertyPath: 'waypoints.Array.data[4]'
+      value: 
+      objectReference: {fileID: 422961414}
+    - target: {fileID: 4963974573323370521, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
+      propertyPath: 'waypoints.Array.data[5]'
+      value: 
+      objectReference: {fileID: 422961414}
+    - target: {fileID: 4963974573323370521, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
+      propertyPath: 'waypoints.Array.data[6]'
+      value: 
+      objectReference: {fileID: 422961414}
+    - target: {fileID: 4963974573323370521, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
+      propertyPath: 'waypoints.Array.data[7]'
+      value: 
+      objectReference: {fileID: 422961414}
+    - target: {fileID: 4963974573323370521, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
+      propertyPath: 'waypoints.Array.data[8]'
+      value: 
+      objectReference: {fileID: 37504962}
+    - target: {fileID: 4963974573323370521, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
       propertyPath: localWaypoints.Array.size
       value: 10
       objectReference: {fileID: 0}
@@ -13085,7 +13135,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 54.75
+  m_fontSize: 60.35
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -23173,7 +23223,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 42.95
+  m_fontSize: 40.2
   m_fontSizeBase: 24
   m_fontWeight: 400
   m_enableAutoSizing: 1

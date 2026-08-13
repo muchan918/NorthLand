@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fcbd96be4e9930648becf40d9e4080ba, type: 3}
   m_Name: CombatMapGenerationSettings
   m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapGenerationSettings
-  Width: 70
-  Height: 70
+  Width: 36
+  Height: 36
   MapMargin: 7
   TileSize: 6
   TileHeight: 0
@@ -24,7 +24,7 @@ MonoBehaviour:
   RouteNoiseScale: 0.08
   RouteNoiseWeight: 3
   TurnPenalty: 0.5
-  RouteStartPosition: {x: 0, y: 35}
+  RouteStartPosition: {x: 0, y: 18}
   GrassRadius: 5
   BaseProtectionRange: 5
   BuffTilePool: {fileID: 11400000, guid: a0a3fc912827b8b44b122fafdc78f75c, type: 2}
@@ -32,9 +32,9 @@ MonoBehaviour:
   ErosionProbability: 0.3
   MinErosionIterations: 3
   MaxErosionIterations: 5
-  WaterNoiseScale: 0.05
-  WaterThreshold: 0.55
-  WaterRoadClearance: 2
+  WaterNoiseScale: 20
+  WaterThreshold: 0.25
+  WaterRoadClearance: 0
   MinWaterArea: 3
   MaxWaterRatio: 0.3
   WaterSmoothingIterations: 0

@@ -27,6 +27,10 @@ public class MonsterSpawn : MonoBehaviour
     [Tooltip("몬스터가 도달해 제거되는 경로 끝점에 생성할 성문 프리팹. 비워두면 생성하지 않는다.")]
     [SerializeField] private GameObject gatePrefab;
 
+    [SerializeField] private Vector3 gatePositionOffset = new(0f, 0f, -3f);
+    [SerializeField] private Vector3 gateRotation = new(0f, -17f, 0f);
+    [SerializeField] private Vector3 gateScale = new(3f, 3f, 3f);
+
     private GameObject gateInstance;
     private bool hasGeneratedSpawnPoint;
     private Vector3 generatedSpawnPosition;
@@ -106,12 +110,12 @@ public class MonsterSpawn : MonoBehaviour
 
         if (gateInstance == null)
         {
-            gateInstance = Instantiate(gatePrefab, endPoint, Quaternion.identity);
+            gateInstance = Instantiate(gatePrefab);
         }
-        else
-        {
-            gateInstance.transform.position = endPoint;
-        }
+
+        gateInstance.transform.position = endPoint + gatePositionOffset;
+        gateInstance.transform.rotation = Quaternion.Euler(gateRotation);
+        gateInstance.transform.localScale = gateScale;
     }
 
     public void StartRound(int round)
