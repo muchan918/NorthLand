@@ -199,36 +199,22 @@ public class WaveRewardSelectionUI : MonoBehaviour
                 continue;
             }
 
-            // 레벨·수치를 카드당 한 번만 뜬다(#353) — 카드면 색과 카드 안 표시가 같은 값을 보게
+            // 레벨·수치를 카드당 한 번만 뜬다(#353) — 등급 스킨과 카드 안 표시가 같은 값을 보게
             // 하려면 조회가 한 곳이어야 한다. 매니저가 없으면 default가 그대로 "효과 없음"이라
             // 별도 분기 없이 빈 카드 경로로 흐른다.
+            //
+            // 레벨→스킨 매핑은 배열을 가진 RewardCardView가 통째로 소유한다(#356) — 여긴
+            // 매핑 데이터가 하나도 없으므로 인덱스를 미리 풀어서 넘기지 않는다.
             SkillEffectSnapshot snapshot = SkillEffectManager.Instance != null
                 ? SkillEffectManager.Instance.GetSnapshot(reward.RewardType)
                 : default;
 
             RewardCardView card = Instantiate(cardPrefab, cardContainer);
-            card.Bind(reward, snapshot, ResolveFaceIndex(snapshot), SelectReward);
+            card.Bind(reward, snapshot, SelectReward);
             spawnedCards.Add(card);
         }
 
         return spawnedCards.Count > 0;
-    }
-
-    // 이 보상을 고르면 도달할 레벨에 대응하는 카드면 인덱스(#356).
-    //
-    // 카드는 두 가지를 동시에 말한다(#353) — "지금 보유"는 채워진 별과 레벨 줄 왼쪽이, "고르면
-    // 도달"은 미리보기 별과 이 카드면과 레벨 줄 오른쪽이 맡는다. 즉 카드면은 채워진 별이 아니라
-    // 미리보기 별과 같은 편에 선다.
-    //
-    // 채워진 별에 맞춰 Level로 내리지 말 것: 만렙 효과는 후보에서 빠지므로(#292) 카드에
-    // 뜨는 현재 레벨은 0~2뿐이고, faces[level-1]은 Lv0과 Lv1이 같은 카드면이 되며 최고 등급은
-    // 한 번도 나오지 않는다. 도달 레벨 기준이라야 Lv0 카드 → Lv1 → Lv2(고르면 만렙)가 다 쓰인다.
-    //
-    // 상한 클램프는 배열을 소유한 RewardCardView가 한다 — 장 수를 아는 쪽이 거기이고, 모자라면
-    // 콘솔에 경고를 남겨야 하기 때문. 여기선 하한만 막는다(효과가 없으면 NextLevel이 0이라 -1).
-    private int ResolveFaceIndex(SkillEffectSnapshot snapshot)
-    {
-        return Mathf.Max(snapshot.NextLevel - 1, 0);
     }
 
     private void ClearCards()

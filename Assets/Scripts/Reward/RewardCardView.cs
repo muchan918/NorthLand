@@ -47,7 +47,7 @@ public class RewardCardView : MonoBehaviour
         public Sprite iconFrame;
     }
 
-    // 도달 레벨 순서. 인덱스 = Bind가 받는 faceIndex이고, 어느 색을 몇 번째에 둘지는 인스펙터가
+    // 도달 레벨 순서. 인덱스 = 도달 레벨 - 1이고, 어느 색을 몇 번째에 둘지는 인스펙터가
     // 소유한다 — 코드는 색 이름을 모른다(#356).
     //
     // 도입 전에는 카드면 한 장에 등급 색(WaveRewardSelectionUI.levelColors)을 틴트로 얹었다.
@@ -79,20 +79,18 @@ public class RewardCardView : MonoBehaviour
     [SerializeField]
     private Sprite starOff;
 
-    // 미리보기 칸의 알파. 인스펙터 필드가 아니라 코드 상수로 두는 근거는
-    // WaveRewardSelectionUI.DefaultLevelColors와 같다 — 이미 직렬화된 컴포넌트엔 필드
-    // 초기화자가 안 먹으므로, 값이 실행 경로에 있어야 씬 배선 없이도 동작한다.
+    // 미리보기 칸의 알파. 인스펙터 필드가 아니라 코드 상수로 두는 이유는 이미 직렬화된
+    // 컴포넌트엔 필드 초기화자가 안 먹기 때문 — 값이 실행 경로에 있어야 씬 배선 없이도 동작한다.
     private const float k_PreviewAlpha = 0.45f;
 
     private Action<WaveRewardData> onSelect;
     private WaveRewardData boundReward;
 
     /// 보상 하나를 이 카드에 표시한다. snapshot은 이 보상의 레벨·수치 한 벌이고(#353),
-    /// faceIndex는 levelFaces에서 고를 자리(도달 레벨 기준, #356).
+    /// 등급 스킨(levelSkins)도 별과 똑같이 이 스냅샷에서 파생한다(#356).
     public void Bind(
         WaveRewardData reward,
         SkillEffectSnapshot snapshot,
-        int faceIndex,
         Action<WaveRewardData> selectCallback)
     {
         boundReward = reward;
@@ -138,7 +136,7 @@ public class RewardCardView : MonoBehaviour
         // (별·레벨 줄·카드면) 중 하나가 규약을 벗어난다. 미표시일 땐 프리팹 기본 카드면을 유지한다.
         if (hasStats)
         {
-            ApplySkin(faceIndex);
+            ApplySkin(snapshot);
         }
 
         if (descriptionText != null)
@@ -159,10 +157,29 @@ public class RewardCardView : MonoBehaviour
     // 도달 레벨에 대응하는 스킨 한 벌로 갈아끼운다. 슬롯별로 Image가 미배선이거나 스프라이트가
     // 비어 있으면 그 슬롯만 건너뛰고 프리팹 기본값을 남긴다 — 아트가 아직 안 온 칸이 있어도
     // 나머지는 정상 동작해야 하기 때문.
-    private void ApplySkin(int faceIndex)
+    //
+    // 인덱스는 별(ApplyStars)과 같은 경로로 스냅샷에서 직접 파생한다 — 카드는 두 가지를 동시에
+    // 말하고(#353), "고르면 도달"은 미리보기 별과 이 스킨과 레벨 줄 오른쪽이 맡는다. 즉 스킨은
+    // 채워진 별이 아니라 미리보기 별과 같은 편에 선다.
+    //
+    // 채워진 별에 맞춰 Level로 내리지 말 것: 만렙 효과는 후보에서 빠지므로(#292) 카드에 뜨는
+    // 현재 레벨은 0~2뿐이고, levelSkins[Level - 1]은 Lv0과 Lv1이 같은 스킨이 되며 최고 등급은
+    // 한 번도 나오지 않는다. 도달 레벨 기준이라야 Lv0 카드 → Lv1 → Lv2(고르면 만렙)가 다 쓰인다.
+    // 하한도 여기서 막는다 — 효과가 없으면 NextLevel이 0이라 -1이 된다.
+    private void ApplySkin(SkillEffectSnapshot snapshot)
     {
+        int faceIndex = Mathf.Max(snapshot.NextLevel - 1, 0);
+
+        // 아래 "벌 수 < 도달 레벨"과 같은 이유로 조용히 넘기지 않는다 — 오히려 이쪽이 더 심하다.
+        // 0벌이면 등급이 전부 프리팹 기본 카드면으로 붕괴하는데, 프리팹이 별도 저장소
+        // (NorthLand-Imported)에 있어 미동기·구본 배선이면 정확히 이 상태가 된다. 슬롯별 null
+        // 스킵(ApplySprite)의 침묵과는 층이 다르다 — 그건 부분 결손, 이건 기능 전체 무효화다.
         if (levelSkins == null || levelSkins.Length == 0)
         {
+            Debug.LogWarning(
+                "[RewardCardView] 등급 스킨이 배선되지 않았습니다. " +
+                "카드 프리팹(NorthLand-Imported)의 levelSkins 동기화를 확인하세요.",
+                this);
             return;
         }
 
