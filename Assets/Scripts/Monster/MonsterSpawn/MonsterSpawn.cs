@@ -495,9 +495,23 @@ public class MonsterSpawn : MonoBehaviour
         //
         // 보스 BT 소환체(잡몹)는 IsBoss가 아니므로 정상적으로 배율을 받는다 — 소환체는 그 웨이브의
         // 잡몹과 같은 취급이 맞다.
+        //
+        // ★ **웨이브 번호는 `currentRound`가 아니라 `DayNightManager`에서 읽는다**(ForceClearWave와 같은 패턴).
+        //   웨이브 스폰 경로만 보면 `currentRound`로 충분하다 — `SpawnRoundAsync`가 대입 직후에 돌기 때문.
+        //   하지만 이 메서드는 **공개 소환 창구 `SpawnMonster`**(보스 BT의 지속 소환)도 함께 타고, 그쪽은
+        //   `StartRound` 타이밍과 무관하게 불린다. `currentRound`는 검증을 통과한 뒤에야 대입되므로
+        //   그 전에는 0이거나 직전 웨이브 값(낡음)이고, `WaveHpScale(0)`은 인덱스가 클램프돼 **배율 1.0**을
+        //   돌려준다 — W15(×5.45)에서 소환된 잡몹이 5배 넘게 약해진다.
+        //
+        // ⚠ **이 오작동은 아무 신호도 내지 않는다.** `WaveHpScale`의 LogError는 배율이 0 이하일 때만 나는데
+        //   여기서 나오는 값은 정상 범위인 1.0이다. 증상이 "보스가 부르는 잡몹이 좀 약하다"뿐이라
+        //   원인에서 멀다 — 그래서 값이 맞는 경로가 아니라 **읽는 출처**를 고정한다.
         if (!enemy.IsBoss)
         {
-            enemy.ApplyWaveHpScale(WaveHpScale(currentRound));
+            DayNightManager dayNight = DayNightManager.Instance;
+            int wave = dayNight != null ? dayNight.CurrentWave : currentRound;
+
+            enemy.ApplyWaveHpScale(WaveHpScale(wave));
         }
 
         // Enemy가 IRouteMovementAgent.RouteCompleted를 구독하여
