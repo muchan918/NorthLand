@@ -258,6 +258,22 @@ MonoBehaviour:
       rate improves again.'
     m_Metadata:
       m_Items: []
+  - m_Id: 12540128333557760
+    m_Localized: Continue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12540971610959872
+    m_Localized: Start with Seed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12541230072360960
+    m_Localized: Enter a seed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12545821845385216
+    m_Localized: Start with Seed
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

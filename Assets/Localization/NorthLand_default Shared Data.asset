@@ -235,6 +235,22 @@ MonoBehaviour:
     m_Key: castle.effect.lv3
     m_Metadata:
       m_Items: []
+  - m_Id: 12540128333557760
+    m_Key: title.btn.continue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12540971610959872
+    m_Key: title.btn.start_with_seed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12541230072360960
+    m_Key: title.seed.placeholder
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12545821845385216
+    m_Key: title.btn2.start_with_seed
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
