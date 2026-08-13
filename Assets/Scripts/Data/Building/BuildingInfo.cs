@@ -4,6 +4,13 @@ public class BuildingInfo : MonoBehaviour, ISelectable
 {
     [SerializeField] private BuildingAsset _buildingAsset;
 
+    /// 이 씬 인스턴스가 어느 건물인가. **씬에서 건물 종류를 되짚어야 하는 소비처**가 쓴다 —
+    /// 컨트롤러는 건물을 SO로만 알기 때문에(`ManagementController.LineIndexOf`), 클릭·드롭처럼
+    /// 월드에서 출발하는 경로는 여기서 SO로 건너와야 한다. 첫 사용처는 주민 드롭 배치(Resident.md §8)다.
+    ///
+    /// `BuildingInstanceRegistry`와 방향이 반대인 짝이다(그쪽은 SO → Transform).
+    public BuildingAsset Asset => _buildingAsset;
+
     // 이 건물이 어느 패널을 여는지. 게이트를 BuildingType이 아니라 '데이터 존재'로 거는 이유는
     // BuildingAsset.ValidateUpgradeCosts와 같다 — 타입은 인스펙터 authoring 분류일 뿐 동작 스위치가 아니다.
     // (BuildingType.Castle이 있지만 여기서 쓰지 않는다 — 타입은 인스펙터가 그릴 필드만 정한다.)
