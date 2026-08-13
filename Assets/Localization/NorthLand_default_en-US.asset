@@ -213,7 +213,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 12023173794574336
-    m_Localized: Save Data {0}
+    m_Localized: Save Profile {0}
     m_Metadata:
       m_Items:
       - rid: 5763336045537525835

@@ -213,7 +213,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 12023173794574336
-    m_Localized: "\u30BB\u30FC\u30D6\u30C7\u30FC\u30BF {0}"
+    m_Localized: "\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u30BB\u30FC\u30D6 {0}"
     m_Metadata:
       m_Items:
       - rid: 5763336045537525837
