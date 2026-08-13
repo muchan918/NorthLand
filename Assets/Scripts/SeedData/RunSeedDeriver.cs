@@ -9,7 +9,8 @@ namespace NorthLand.Core
     /// </summary>
     public static class RunSeedDeriver
     {
-        public const int CurrentVersion = 1;
+        // 시드 파생 규칙 또는 시드로 복원되는 맵 생성 설정이 변경되면 올린다.
+        public const int CurrentVersion = 2;
 
         public const string CombatMapTag = "CombatMap";
 

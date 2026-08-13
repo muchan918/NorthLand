@@ -17,9 +17,9 @@ MonoBehaviour:
   MapMargin: 7
   TileSize: 6
   TileHeight: 0
-  MinWaypointCount: 8
-  MaxWaypointCount: 12
-  MinWaypointDistance: 15
+  MinWaypointCount: 6
+  MaxWaypointCount: 9
+  MinWaypointDistance: 7
   MaxWaypointPlacementAttempts: 30
   RouteNoiseScale: 0.08
   RouteNoiseWeight: 3

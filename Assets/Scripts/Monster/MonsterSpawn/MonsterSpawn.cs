@@ -31,6 +31,8 @@ public class MonsterSpawn : MonoBehaviour
     [SerializeField] private Vector3 gateRotation = new(0f, -17f, 0f);
     [SerializeField] private Vector3 gateScale = new(3f, 3f, 3f);
 
+    private Transform gateCoordinateRoot;
+
     private GameObject gateInstance;
     private bool hasGeneratedSpawnPoint;
     private Vector3 generatedSpawnPosition;
@@ -73,6 +75,17 @@ public class MonsterSpawn : MonoBehaviour
         CancelSpawnTasks();
     }
 
+    /// <summary>
+    /// 성문 위치 오프셋과 회전을 계산할 좌표 기준을 지정한다.
+    /// </summary>
+    public void SetGateCoordinateRoot(Transform coordinateRoot)
+    {
+        gateCoordinateRoot = coordinateRoot;
+
+        // 경로가 먼저 설정된 경우에도 즉시 성문 Transform을 다시 적용한다.
+        UpdateGate();
+    }
+
     public void SetSpawnPoint(Vector3 position, Quaternion rotation)
     {
         generatedSpawnPosition = position;
@@ -113,8 +126,12 @@ public class MonsterSpawn : MonoBehaviour
             gateInstance = Instantiate(gatePrefab);
         }
 
-        gateInstance.transform.position = endPoint + gatePositionOffset;
-        gateInstance.transform.rotation = Quaternion.Euler(gateRotation);
+        Vector3 worldOffset = gateCoordinateRoot != null? gateCoordinateRoot.TransformVector(gatePositionOffset): gatePositionOffset;
+
+        Quaternion worldRotation = gateCoordinateRoot != null? gateCoordinateRoot.rotation * Quaternion.Euler(gateRotation): Quaternion.Euler(gateRotation);
+
+        gateInstance.transform.position = endPoint + worldOffset;
+        gateInstance.transform.rotation = worldRotation;
         gateInstance.transform.localScale = gateScale;
     }
 
