@@ -27,6 +27,12 @@ public class MonsterSpawn : MonoBehaviour
     [Tooltip("몬스터가 도달해 제거되는 경로 끝점에 생성할 성문 프리팹. 비워두면 생성하지 않는다.")]
     [SerializeField] private GameObject gatePrefab;
 
+    [SerializeField] private Vector3 gatePositionOffset = new(0f, 0f, -3f);
+    [SerializeField] private Vector3 gateRotation = new(0f, -17f, 0f);
+    [SerializeField] private Vector3 gateScale = new(3f, 3f, 3f);
+
+    private Transform gateCoordinateRoot;
+
     private GameObject gateInstance;
     private bool hasGeneratedSpawnPoint;
     private Vector3 generatedSpawnPosition;
@@ -69,6 +75,17 @@ public class MonsterSpawn : MonoBehaviour
         CancelSpawnTasks();
     }
 
+    /// <summary>
+    /// 성문 위치 오프셋과 회전을 계산할 좌표 기준을 지정한다.
+    /// </summary>
+    public void SetGateCoordinateRoot(Transform coordinateRoot)
+    {
+        gateCoordinateRoot = coordinateRoot;
+
+        // 경로가 먼저 설정된 경우에도 즉시 성문 Transform을 다시 적용한다.
+        UpdateGate();
+    }
+
     public void SetSpawnPoint(Vector3 position, Quaternion rotation)
     {
         generatedSpawnPosition = position;
@@ -106,12 +123,16 @@ public class MonsterSpawn : MonoBehaviour
 
         if (gateInstance == null)
         {
-            gateInstance = Instantiate(gatePrefab, endPoint, Quaternion.identity);
+            gateInstance = Instantiate(gatePrefab);
         }
-        else
-        {
-            gateInstance.transform.position = endPoint;
-        }
+
+        Vector3 worldOffset = gateCoordinateRoot != null? gateCoordinateRoot.TransformVector(gatePositionOffset): gatePositionOffset;
+
+        Quaternion worldRotation = gateCoordinateRoot != null? gateCoordinateRoot.rotation * Quaternion.Euler(gateRotation): Quaternion.Euler(gateRotation);
+
+        gateInstance.transform.position = endPoint + worldOffset;
+        gateInstance.transform.rotation = worldRotation;
+        gateInstance.transform.localScale = gateScale;
     }
 
     public void StartRound(int round)
