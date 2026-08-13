@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b00045f12942b46c698459096c89274e, type: 3}
   m_Name: Night Wipe
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.FullScreenPassRendererFeature
-  m_Active: 1
+  m_Active: 0
   injectionPoint: 600
   fetchColorBuffer: 1
   requirements: 0
@@ -32,7 +32,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: edb250ac097f481fa89c38a1e224b773, type: 3}
   m_Name: Flat Kit Pixelation
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::FlatKit.FlatKitPixelation
-  m_Active: 1
+  m_Active: 0
   settings: {fileID: 11400000, guid: 6f6b1e07cadeedf4e8a277108c0639a8, type: 2}
 --- !u!114 &11400000
 MonoBehaviour:
