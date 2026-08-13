@@ -13,6 +13,7 @@ public class MouseManager : MonoBehaviour
     {
         Idle,
         BoxSelect,      // Idle의 하위 상태 — 배치·조준 중에는 진입할 수 없다(#261)
+        UnitDrag,       // BoxSelect와 형제. 누른 순간 IDragHandle을 잡았으면 이쪽으로 갈린다(§5.4)
         Placement,
         SkillTargeting
     }
@@ -41,6 +42,26 @@ public class MouseManager : MonoBehaviour
     public event Action<IReadOnlyList<IGroupSelectable>> OnBoxSelectUpdate;
     /// 드래그 종료(버튼 뗌). 구독자가 유예했던 갱신을 여기서 한 번 처리한다.
     public event Action OnBoxSelectEnd;
+
+    // ── 유닛 끌기(#341 후속, Resident.md §8) 2단계 통지 ─────────────
+    // 사각형 선택과 같은 규약이다 — 매니저는 "무엇을 집었다 / 어디에 놓았다"만 알리고, 들린 대상의 상태·
+    // 배치 판정은 도메인 코디네이터(주민 = ResidentDragCoordinator)가 소유한다.
+    /// 끌기 시작. 인자는 **누른 순간 커서 밑에 있던** 끌 수 있는 대상이다(§5.4).
+    public event Action<IDragHandle> OnUnitDragBegin;
+    /// 끌기 종료(버튼 뗌 — §8.4가 정한 **유일한 종료점**). 인자는 놓는 순간 커서 밑에 있던 GameObject(없으면 null).
+    ///
+    /// 해석하지 않고 그대로 넘긴다. "생산 건물인가"는 매니저가 답할 수 있는 질문이 아니다(원칙 2).
+    ///
+    /// ⚠ **시작이 있으면 종료는 반드시 온다.** 배치·조준 전환이나 씬 로드로 모드가 끊겨도 `SetMode`가
+    ///   `null`을 실어 발행한다 — 안 그러면 구독자가 들고 있던 주민이 영영 화면에 안 돌아온다.
+    ///
+    /// ⚠ **놓은 자리에 연출을 띄우게 되면 좌표를 여기서 함께 실어 보낼 것.** 대상의 `transform.position`으로
+    ///   되짚으면 안 된다 — `CandyLand`의 건물 `Obj_*`는 피벗이 콜라이더에서 24~69유닛 떨어져 있고
+    ///   `magic_lab`·`farm`·`castle` **셋은 피벗이 아예 같은 좌표**라 건물 구분조차 안 된다(실제로 밟은
+    ///   함정이다 — `Docs/ManagementArea/Resident.md` §11.15). 필요한 값은 `ResolveDropTarget`의 히트 지점이고,
+    ///   `PlacementRequest.OnConfirmed(hit, pos)`가 좌표를 함께 넘기는 것과 같은 이유다.
+    ///   지금은 쓰는 곳이 없어 싣지 않는다.
+    public event Action<GameObject> OnUnitDragEnd;
 
     /// 드래그 중인 사각형의 스크린 좌표 영역. 사각형 UI가 매 프레임 읽어 간다(IsBoxSelecting이 true일 때만 유효).
     public Rect BoxSelectScreenRect { get; private set; }
@@ -72,6 +93,17 @@ public class MouseManager : MonoBehaviour
     private bool _pressActive;
     private Vector2 _pressScreenPos;
     private bool _pressAdditive; // 추가 선택 키(Shift)는 **누른 시점** 상태로 고정 — 도중에 눌렀다 떼도 안 바뀐다
+    // 누른 순간 커서 밑에 있던 끌 수 있는 대상(없으면 null). 임계 거리를 넘을 때 사각형/유닛 끌기를 가르는
+    // 유일한 기준이다(§5.4). **뗄 때 다시 재지 않는다** — 커서가 그새 다른 것 위로 옮겨 갔을 수 있다.
+    private IDragHandle _pressDragHandle;
+
+    // ── 유닛 끌기 상태 ─────────────────────────────────────────────
+    private IDragHandle _dragHandle;   // 끌고 있는 대상
+    private GameObject _dropTarget;    // 놓는 순간 커서 밑에 있던 것. ExitUnitDrag가 실어 보내고 비운다
+
+    // 드롭 대상 탐색용 버퍼. 끌고 있는 동안 **매 프레임** 도는 경로라(조준 표시) 할당하지 않는다.
+    private readonly RaycastHit[] _dropHits = new RaycastHit[32];
+    private bool _warnedDropHitsFull;
 
     // ── 드래그 사각형 선택 상태(#261) ───────────────────────────────
     [Header("Box Select")]
@@ -133,6 +165,7 @@ public class MouseManager : MonoBehaviour
         {
             case Mode.Idle: UpdateIdle(screenPos, overUI); break;
             case Mode.BoxSelect: UpdateBoxSelect(screenPos); break;
+            case Mode.UnitDrag: UpdateUnitDrag(screenPos, overUI); break;
             case Mode.Placement: UpdatePlacement(screenPos, overUI); break;
             case Mode.SkillTargeting: UpdateSkillTargeting(screenPos, overUI); break;
         }
@@ -154,9 +187,13 @@ public class MouseManager : MonoBehaviour
     /// 대입해 버려서 뒤따르는 `ResetGesture`의 `_mode == BoxSelect` 검사가 항상 거짓이었다(WL-143).
     /// 그러면 구독자의 유예 플래그가 켜진 채 남아 우측 패널이 영구 정지한다. 전환 지점을 여기 하나로 모으면
     /// 호출 순서와 무관하게 통지가 보장된다 — `PhasePanelSwitcher`처럼 Cancel을 직접 부르는 경로도 포함.
+    ///
+    /// **유닛 끌기도 같은 이음매를 쓴다.** 그쪽은 통지를 놓쳤을 때의 대가가 더 크다 — 들린 주민은 화면에서
+    /// 감춰져 있으므로(Resident.md §8), 종료 통지가 새면 그 주민이 영영 돌아오지 않는다.
     private void SetMode(Mode next)
     {
         if (_mode == Mode.BoxSelect && next != Mode.BoxSelect) ExitBoxSelect();
+        if (_mode == Mode.UnitDrag && next != Mode.UnitDrag) ExitUnitDrag();
         _mode = next;
     }
 
@@ -226,6 +263,7 @@ public class MouseManager : MonoBehaviour
             _pressActive = !overUI; // UI 위에서 시작한 제스처는 채택하지 않는다
             _pressScreenPos = screenPos;
             _pressAdditive = IsAdditivePressed();
+            _pressDragHandle = ResolveDragHandle(screenPos, overUI);
 
             // 같은 프레임에 뗌까지 함께 보고되는 경우(저프레임·히칭)를 여기서 소화한다. 그냥 return하면
             // 다음 프레임엔 wasReleasedThisFrame이 false·isPressed도 false라 아래 방어가 제스처를 버려
@@ -250,11 +288,22 @@ public class MouseManager : MonoBehaviour
             return;
         }
 
-        // 임계 거리를 넘으면 드래그로 승격(#261).
+        // 임계 거리를 넘으면 드래그로 승격(#261). **여기가 §5.4의 분기 지점이다** — 누를 때 무엇을 잡았는지로
+        // 유닛 끌기와 사각형 선택이 배타적으로 갈린다. 판정 근거는 누른 시점에 이미 고정돼 있다.
         if ((screenPos - _pressScreenPos).sqrMagnitude >= _dragThreshold * _dragThreshold)
         {
-            BeginBoxSelect(screenPos);
+            if (_pressDragHandle != null) BeginUnitDrag();
+            else BeginBoxSelect(screenPos);
         }
+    }
+
+    /// 누른 지점의 끌 수 있는 대상. UI 위에서 시작한 제스처는 애초에 채택하지 않으므로 함께 걸러낸다.
+    private IDragHandle ResolveDragHandle(Vector2 screenPos, bool overUI)
+    {
+        if (overUI || !RaycastMask(screenPos, _selectableMask, out var hit)) return null;
+
+        hit.collider.TryGetComponent(out IDragHandle handle);
+        return handle;
     }
 
     /// 임계 미만으로 움직인 좌클릭의 확정 처리 — 기존 단일 선택 / Shift 토글 규칙 그대로다.
@@ -301,7 +350,110 @@ public class MouseManager : MonoBehaviour
     /// 진행 중인 좌클릭 제스처를 버린다. 배치·조준으로 모드가 바뀌거나 씬이 갈릴 때, 누른 상태만 남아
     /// 돌아온 뒤 엉뚱한 클릭으로 확정되는 것을 막는다.
     /// (드래그 중이었다면 모드 이탈은 `SetMode`가 책임진다 — 여기서 중복 처리하지 않는다)
-    private void ResetGesture() => _pressActive = false;
+    private void ResetGesture()
+    {
+        _pressActive = false;
+        _pressDragHandle = null;   // 남겨 두면 다음 제스처가 엉뚱하게 유닛 끌기로 갈린다
+    }
+
+    // ── UnitDrag: 유닛 끌기 (Resident.md §8) ───────────────────────
+    private void BeginUnitDrag()
+    {
+        SetMode(Mode.UnitDrag);
+        _pressActive = false;
+        _dragHandle = _pressDragHandle;
+        _dropTarget = null;
+
+        // 집어 든 그 대상이 지금 호버 중이다. 곧 화면에서 사라지므로 여기서 내리지 않으면 **노란 테두리가
+        // 주인 없이 남고**, 되돌아올 때 `OutlineHighlight.OnEnable`이 그대로 복원한다.
+        // 끌고 있는 동안의 호버는 `UpdateUnitDrag`가 다음 프레임부터 드롭 대상 규칙으로 다시 세운다.
+        ClearHover();
+
+        // 단일 선택의 부수 표시(사거리 원·인포 패널·초록 아웃라인)는 대상의 OnDeselected로만 꺼진다.
+        // 집어 올리는 순간 대상이 화면에서 사라지므로, 여기서 비우지 않으면 그 표시가 주인 없이 남는다
+        // — BeginBoxSelect와 같은 이유(WL-087 계열).
+        Select(null);
+
+        OnUnitDragBegin?.Invoke(_dragHandle);
+    }
+
+    private void UpdateUnitDrag(Vector2 screenPos, bool overUI)
+    {
+        // **끌고 있는 동안에도 커서 밑 대상을 추적한다.** 안 그러면 어느 건물을 겨누고 있는지 화면에
+        // 아무 표시가 없어 조준 자체가 성립하지 않는다(들린 주민도 안 보이므로 단서가 0이 된다).
+        //
+        // 요점은 **드롭과 같은 규칙으로 찾는 것**이다 — 노란 테두리가 뜬 그 대상이 곧 주민을 받는 대상이라야
+        // 표시가 약속이 된다. 평상시 호버(`UpdateHover`)를 그대로 쓰면 앞을 지나가는 주민이 노랗게 떠서
+        // "주민에게 주민을 떨어뜨리는" 그림이 되고, 실제 드롭 대상과도 어긋난다.
+        //
+        // UI 위에서는 대상이 없는 것으로 친다. 패널 뒤의 건물이 레이에 걸리므로, 걸러 내지 않으면
+        // **경영 패널 위에서 손을 뗐을 때 안 보이는 건물에 주민이 들어간다.**
+        GameObject target = overUI ? null : ResolveDropTarget(screenPos);
+
+        IHoverable hoverable = null;
+        if (target != null) target.TryGetComponent(out hoverable);
+        SetHover(hoverable);
+
+        // 놓는 순간이 유일한 종료점이다(§8.4). 우클릭·Esc는 끌기를 끊지 않는다 — 우클릭은 그 사이에도
+        // 카메라 이동으로 계속 동작하고(CameraController2.MoveDrag), 취소 제스처는 두지 않는다.
+        //
+        // wasReleasedThisFrame이 아니라 isPressed로 판정하는 이유는 BoxSelect와 같다(WL-143): 포커스 상실 등으로
+        // 뗀 프레임을 놓치면 이 모드에 영구 고착되고, 그러면 들린 주민이 화면에 영영 안 돌아온다.
+        if (Mouse.current.leftButton.isPressed) return;
+
+        // 방금 위에서 잰 것을 그대로 쓴다 — **보고 있던 대상과 놓이는 대상이 같아야** 한다.
+        _dropTarget = target;
+
+        SetMode(Mode.Idle); // 통지는 SetMode → ExitUnitDrag가 맡는다
+    }
+
+    /// 놓는 지점의 대상. **끌 수 있는 것(`IDragHandle`)은 건너뛰고 그 뒤를 본다.**
+    ///
+    /// 끌고 온 것을 또 다른 끌 수 있는 것 위에 놓는 데는 의미가 없는데, `Physics.Raycast`는 가장 가까운
+    /// 하나만 주므로 그냥 쓰면 **건물 앞에 선 주민 하나가 레이를 막는다.** 증상이 "가끔 배치가 안 된다"라
+    /// 원인을 짚기 어려운 종류다 — 드롭 대상 레이어에 주민과 건물이 함께 올라와 있는 이상 구조적으로 생긴다.
+    ///
+    /// 끌고 있는 동안 **매 프레임** 도는 경로라(조준 표시가 여기 붙는다) 버퍼를 쓴다. 대신 버퍼가 차면
+    /// 경고를 남긴다 — 조용히 잘리면 위와 똑같은 증상으로 돌아온다.
+    private GameObject ResolveDropTarget(Vector2 screenPos)
+    {
+        if (_camera == null) return null;
+
+        int count = Physics.RaycastNonAlloc(
+            _camera.ScreenPointToRay(screenPos), _dropHits, Mathf.Infinity, _selectableMask);
+
+        if (count == _dropHits.Length && !_warnedDropHitsFull)
+        {
+            _warnedDropHitsFull = true;
+            Debug.LogWarning($"[MouseManager] 드롭 대상 후보가 버퍼({_dropHits.Length})를 채웠습니다. " +
+                             "더 먼 대상이 잘려 드롭이 어긋날 수 있습니다.");
+        }
+
+        GameObject nearest = null;
+        float nearestDistance = float.MaxValue;
+
+        for (int i = 0; i < count; i++)
+        {
+            if (_dropHits[i].distance >= nearestDistance) continue;
+            if (_dropHits[i].collider.TryGetComponent(out IDragHandle _)) continue;
+
+            nearest = _dropHits[i].collider.gameObject;
+            nearestDistance = _dropHits[i].distance;
+        }
+
+        return nearest;
+    }
+
+    /// UnitDrag를 벗어날 때의 정리·통지. **`SetMode`만 호출한다**(직접 부르면 모드가 어긋난다).
+    private void ExitUnitDrag()
+    {
+        GameObject target = _dropTarget;
+
+        _dragHandle = null;
+        _dropTarget = null;
+
+        OnUnitDragEnd?.Invoke(target);
+    }
 
     // ── BoxSelect: 드래그 사각형 선택 (#261) ───────────────────────
     private void BeginBoxSelect(Vector2 screenPos)

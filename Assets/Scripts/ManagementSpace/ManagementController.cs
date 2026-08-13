@@ -52,6 +52,12 @@ public class ManagementController : MonoBehaviour
 
         /// <summary>본진에서 주민 수를 늘렸다(<see cref="TryIncreaseVillagers"/>).</summary>
         VillagerIncreased,
+
+        /// <summary>이 건물에 주민 1명이 배치됐다(<see cref="AssignVillager"/>) — 마을 군중이 1명 줄어야 한다(#341, Resident.md §3.2).</summary>
+        VillagerAssigned,
+
+        /// <summary>이 건물에서 주민 1명이 빠졌다(<see cref="UnassignVillager"/>) — <b>그 건물의</b> 출입 포인트에서 1명이 걸어 나온다(#341, Resident.md §3.2).</summary>
+        VillagerUnassigned,
     }
 
     /// <summary>
@@ -832,35 +838,54 @@ public class ManagementController : MonoBehaviour
     }
 
     // ── 뷰(또는 후속 패널 버튼)가 호출하는 진입점 ─────────────────────────
-    public void AssignVillager(int index)
+    /// <summary>
+    /// 이 라인에 주민 1명을 배치한다 — 낮에만, 유휴 주민이 남아 있을 때만.<br/>
+    /// <br/>
+    /// <b>성공 여부를 반환한다</b>(#341, Resident.md §9 선행 조율). 드롭 배치(§8)는 실패를 알아야
+    /// "배치 없이 그 자리에 놓기 + 거절 피드백"을 할 수 있는데, 종전 <c>void</c> 시그니처로는
+    /// 감당 가능 여부를 호출부가 다시 계산해야 했다 — 같은 판정이 두 곳에 생기면 조용히 어긋난다.<br/>
+    /// <br/>
+    /// 성공하면 <see cref="OnBuildingAction"/>으로 <see cref="BuildingAction.VillagerAssigned"/>를 알린다.
+    /// 군중(<c>ResidentSpawner</c>)이 이 통지를 받아 화면의 주민 1명을 거둔다 — 컨트롤러는 군중을 모른다.
+    /// </summary>
+    public bool AssignVillager(int index)
     {
         if (!CanEditLine(index))
         {
-            return;
+            return false;
         }
         if (AssignedTotal >= MaxVillagers)
         {
             Debug.Log($"[경영] 가용 주민이 없습니다. (배치 {AssignedTotal}/{MaxVillagers})");
-            return;
+            return false;
         }
 
         _villagerCounts[index]++;
         OnChanged?.Invoke();
+        OnBuildingAction?.Invoke(_lineBuildings[index], BuildingAction.VillagerAssigned);
+        return true;
     }
 
-    public void UnassignVillager(int index)
+    /// <summary>
+    /// 이 라인에서 주민 1명을 뺀다 — 낮에만, 배치된 인원이 있을 때만. 성공 여부를 반환한다.<br/>
+    /// 성공하면 <see cref="OnBuildingAction"/>으로 <see cref="BuildingAction.VillagerUnassigned"/>를 알린다 —
+    /// <b>대상이 특정되는</b> 이벤트라야 군중이 <b>그 건물</b>의 출입 포인트에서 1명을 내보낼 수 있다(§3.2).
+    /// </summary>
+    public bool UnassignVillager(int index)
     {
         if (!CanEditLine(index))
         {
-            return;
+            return false;
         }
         if (_villagerCounts[index] <= 0)
         {
-            return;
+            return false;
         }
 
         _villagerCounts[index]--;
         OnChanged?.Invoke();
+        OnBuildingAction?.Invoke(_lineBuildings[index], BuildingAction.VillagerUnassigned);
+        return true;
     }
 
     /// <summary>
