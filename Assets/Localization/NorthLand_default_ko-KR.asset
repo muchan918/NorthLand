@@ -250,10 +250,21 @@ MonoBehaviour:
       \uC9D1 \uAD50\uD658 \uD6A8\uC728\uC774 \uD55C \uB2E8\uACC4 \uB354 \uC0C1\uC2B9\uD569\uB2C8\uB2E4"
     m_Metadata:
       m_Items: []
-  - m_Id: 12524623578435584
-    m_Localized: "\uAC10\uC804 \uB370\uBBF8\uC9C0\uAC00 {0}% \uC99D\uAC00\uD569\uB2C8\uB2E4\n\uAC10\uC804
-      \uBC94\uC704\uAC00 {1}% \uC99D\uAC00\uD569\uB2C8\uB2E4\n\uAC10\uC804 \uC7AC\uCDA9\uC804
-      \uC2DC\uAC04\uC774 {2}% \uAC10\uC18C\uD569\uB2C8\uB2E4"
+  - m_Id: 12534587986448384
+    m_Localized: "\uAC10\uC804 \uB370\uBBF8\uC9C0\uAC00 \uAE30\uBCF8 \uB300\uBE44
+      {0}% \uC99D\uAC00\uD569\uB2C8\uB2E4"
+    m_Metadata:
+      m_Items:
+      - rid: 5763336045537525836
+  - m_Id: 12534588045168640
+    m_Localized: "\uAC10\uC804 \uBC94\uC704\uAC00 \uAE30\uBCF8 \uB300\uBE44 {0}%
+      \uC99D\uAC00\uD569\uB2C8\uB2E4"
+    m_Metadata:
+      m_Items:
+      - rid: 5763336045537525836
+  - m_Id: 12534588045168641
+    m_Localized: "\uAC10\uC804 \uC7AC\uCDA9\uC804 \uC2DC\uAC04\uC774 \uAE30\uBCF8
+      \uB300\uBE44 {0}% \uAC10\uC18C\uD569\uB2C8\uB2E4"
     m_Metadata:
       m_Items:
       - rid: 5763336045537525836
@@ -268,4 +279,6 @@ MonoBehaviour:
         - id: 6894325276794880
         - id: 12023646333251584
         - id: 12023173794574336
-        - id: 12524623578435584
+        - id: 12534587986448384
+        - id: 12534588045168640
+        - id: 12534588045168641

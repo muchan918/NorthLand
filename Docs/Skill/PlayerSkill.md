@@ -67,7 +67,7 @@
 - `SkillManager`가 `ManagementController.GetUpgradeLevel(magicLabAsset)`로 레벨(int)만 pull하고, 레벨→배율 매핑(인스펙터 authoring 리스트, 수치 placeholder)은 스킬 클래스가 소유한다. `ManagementController`는 "스킬"을 전혀 모른다.
 - `SkillUpgradeLevel`에는 버프용 배율 4종(`BuffDamageMultiplierScale`/`BuffAttackSpeedMultiplierScale`/`BuffDurationMultiplier`/`BuffCooldownMultiplier`)도 남아있으나 **읽는 쪽이 없어 무의미하다** (#315, `BuildingUpgrade.md` §8).
 - 시전 시점에 캐싱된 유효값(`effectiveDamage` 등)을 사용 — `ImpactResolved` 이벤트 발행이나 `SkillEffect` 구독 흐름은 건드리지 않는다. 보상 효과들은 여전히 자기 소유 필드 × `Level`로 완전히 독립 계산한다(§3 표 참고).
-- **이 배율은 경영 패널에 증감률로 노출된다(#375)** — 연구소를 클릭하면 업그레이드 버튼 위에 "감전 데미지가 N% 증가합니다" 3줄이 뜬다. 단 **그 수치를 계산하는 쪽은 `SkillManager`가 아니라 `BuildingInfoUI`**이며, `BuildingAsset.Skill.UpgradeLevels`의 배율만 읽어 현재 레벨 대비 증감률을 낸다. UI는 베이스 스탯(`damage`/`radius`/`cooldown`, 여기 private 필드)을 모르기 때문에 절대값이 아니라 %로만 표시된다 — **베이스 스탯을 인스펙터가 아닌 곳으로 옮기거나 절대값 표시가 필요해지면 이 UI가 영향을 받는다.** 서식·문구는 `SkillStatsFormatter`가 아니라 로컬라이제이션 키 `lab.effect.upgrade`(`NorthLand_default`)가 소유한다(문장형이라 라벨 조립이 아니다). 상세는 `BuildingUpgrade.md` §8.
+- **이 배율은 경영 패널에 증감률로 노출된다(#375)** — 연구소를 클릭하면 업그레이드 버튼 위에 "감전 데미지가 기본 대비 N% 증가합니다" 형태로 뜬다. 기준은 **기본 스탯 대비 누적 총량**이다(직전 레벨 대비 델타가 아니다) — 배율이 누적 곱이 아니라 기본값에 한 번만 곱해지므로(위 `RefreshUpgrade`) 배율 자체가 곧 표시값이다. 그 레벨에서 배율이 1.0인 스탯은 줄이 통째로 빠진다. 단 **그 수치를 계산하는 쪽은 `SkillManager`가 아니라 `BuildingInfoUI`**이며, `BuildingAsset.Skill.UpgradeLevels`의 배율만 읽어 현재 레벨 대비 증감률을 낸다. UI는 베이스 스탯(`damage`/`radius`/`cooldown`, 여기 private 필드)을 모르기 때문에 절대값이 아니라 %로만 표시된다 — **베이스 스탯을 인스펙터가 아닌 곳으로 옮기거나 절대값 표시가 필요해지면 이 UI가 영향을 받는다.** 서식·문구는 `SkillStatsFormatter`가 아니라 로컬라이제이션 키 `lab.effect.upgrade`(`NorthLand_default`)가 소유한다(문장형이라 라벨 조립이 아니다). 상세는 `BuildingUpgrade.md` §8.
 
 ### 3.2 마법 연구소 착탄 이펙트 교체 (#206)
 

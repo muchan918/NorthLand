@@ -199,17 +199,29 @@ asmdef 부재로 순수 유닛 테스트 불가(Resources.md §7) — UI도 다�
 
 ### 강화 수치 UI 표시 (#375)
 
-업그레이드 버튼 **위** 줄(`BuildingInfoUI._skillEffectText`)에 이번 업그레이드로 스킬 스탯이 몇 % 변하는지를 문장 3줄로 보여준다.
+업그레이드 버튼 **위** 줄(`BuildingInfoUI._skillEffectText`)에 도달 레벨의 스킬 스탯이 **기본 대비** 얼마나 오르는지를 문장으로 보여준다(Lv2 도달 예시).
 
 ```
-감전 데미지가 20% 증가합니다
-감전 범위가 50% 증가합니다
-감전 재충전 시간이 10% 감소합니다
+감전 데미지가 기본 대비 40% 증가합니다
+감전 범위가 기본 대비 100% 증가합니다
+감전 재충전 시간이 기본 대비 20% 감소합니다
 ```
 
-- **기준은 베이스가 아니라 현재 레벨 대비**다. 버튼 위 문구는 "지금 누르면 뭐가 좋아지나"에 답해야 하므로 누적치(Lv1→2에서 +40%)가 아니라 이번 업그레이드분(+17%)을 쓴다.
-- 문자열은 `NorthLand_default`의 **키 하나**(`lab.effect.upgrade`, Smart String `{0}{1}{2}`)를 전 레벨이 공유한다 — 레벨마다 문장이 아니라 숫자만 달라서, 본진의 `castle.effect.lv{n}`처럼 레벨별로 쪼갤 이유가 없다. **레벨을 늘려도 문구 작업이 없다.**
-- 수치는 `BuildingInfoUI`가 `BuildingAsset.Skill.UpgradeLevels`의 배율에서 **직접 산출**한다(`Scaling`/`Pct`/`UpgradeEffect`). 표시용 값을 따로 authoring하지 않으므로 밸런싱이 `magic_lab.asset`을 고치면 문구가 자동으로 따라가고, `SkillManager`가 실제 적용하는 값과 어긋날 수 없다. 대가로 **절대값(피해 36)은 표시하지 않는다** — 베이스 스탯은 `SkillManager`의 private 필드고, UI가 그걸 읽으면 경영↔전투 결합이 새로 생긴다.
+- **기준은 기본 스탯 대비 누적 총량**이다(직전 레벨 대비 델타가 아니다). 배율은 누적 곱이 아니라 기본값에 **한 번만** 곱해지므로(`SkillManager.cs:150-152`) 배율 자체가 이미 기본 대비 총량이고, 문구는 그걸 그대로 환산한다. 델타로 바꾸면 선형 authoring(1.2/1.4/1.6/1.8/2.0)이 20/17/14/12/11로 보여 **같은 폭인데 레벨이 오를수록 나빠지는 것처럼 읽힌다.**
+  현재 authoring 기준 표시값:
+
+  | Lv | 데미지 | 범위 | 재충전 |
+  |---|---|---|---|
+  | 1 | 20% | 50% | 10% |
+  | 2 | 40% | 100% | 20% |
+  | 3 | 60% | 150% | 30% |
+  | 4 | 80% | 250% | 40% |
+  | 5 | 100% | 350% | 45% |
+
+- 문자열은 `NorthLand_default`의 **스탯별 키 3개**(`lab.effect.damage`/`.radius`/`.cooldown`, Smart String `{0}`)를 전 레벨이 공유한다 — 레벨마다 문장이 아니라 숫자만 달라서, 본진의 `castle.effect.lv{n}`처럼 레벨별로 쪼갤 이유가 없다. **레벨을 늘려도 문구 작업이 없다.** 반대로 줄 단위로 쪼갠 이유는 아래 "변하지 않는 스탯" 항목.
+- 수치는 `BuildingInfoUI`가 `BuildingAsset.UpgradeSteps`의 배율에서 **직접 산출**한다(`Scaling`/`Pct`/`UpgradeEffect`). 표시용 값을 따로 authoring하지 않으므로 밸런싱이 `magic_lab.asset`을 고치면 문구가 자동으로 따라가고, `SkillManager`가 실제 적용하는 값과 어긋날 수 없다. 대가로 **절대값(피해 36)은 표시하지 않는다** — 베이스 스탯은 `SkillManager`의 private 필드고, UI가 그걸 읽으면 경영↔전투 결합이 새로 생긴다.
+  ⚠ `Skill.UpgradeLevels`를 직접 읽지 않고 **`UpgradeSteps`를 인덱싱한 뒤 `as SkillUpgradeLevel`로 좁힌다** — 컨트롤러가 레벨·MAX를 세는 것과 물리적으로 같은 리스트여야 한다(PR#378 리뷰). `UpgradeSteps`는 Castle→Skill→Production→Exchange 중 첫 그룹만 돌려주므로, 두 그룹을 동시에 authoring한 건물에서 "Lv 2/3인데 4행째의 %"가 뜨는 것을 막는다.
+- **변하지 않는 스탯은 줄 자체가 빠진다** — 배율이 1.0(그 레벨에서 안 건드림)이면 0%가 되고, 0%나 음수를 "N% 증가합니다"에 넣으면 거짓 문장이 된다(`AddEffectLine`의 양수 가드, `RewardCardView`가 수치 없는 카드를 통째로 비우는 규약과 동일). 수치가 placeholder(TBD)라 밸런싱 패스에서 한 레벨에 한 스탯만 올리는 순간 필요해진다.
 - 쿨다운은 낮아지는 게 이득이라 `Pct(..., inverted: true)`로 부호를 뒤집어 "감소합니다"로 읽힌다.
 - **최대 도달·본진 레벨 잠금이면 빈 줄**이다(잠금 상태에서 필요한 정보는 잠금 사유 쪽, §9). `Body`의 VerticalLayoutGroup이 `childControlHeight = true`라 빈 줄이면 자리가 접힌다.
 - `building.upgrade.skill_pending`은 **삭제되지 않고 폴백으로 남는다** — SO에 해당 레벨이 없으면 `UpgradeEffect`가 빈 문자열을 돌려주고, `_amountText`의 "스킬 강화"만 보인다.
