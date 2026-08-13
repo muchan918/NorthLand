@@ -207,6 +207,22 @@ MonoBehaviour:
     m_Key: game.management.confirm_end_day.no_tower_today
     m_Metadata:
       m_Items: []
+  - m_Id: 12023173794574336
+    m_Key: save.slot.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12023408398774272
+    m_Key: save.slot.empty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12023483460038656
+    m_Key: save.slot.corrupted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12023646333251584
+    m_Key: save.slot.updated
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

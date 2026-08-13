@@ -43,9 +43,14 @@ namespace NorthLand.Combat
 
         public event Action<float, float> OnHpChanged;
 
+        /// [테스트 전용] 켜져 있으면 모든 피해를 무시한다. 기본 false라 정상 플레이 동작에 영향이 없다.
+        /// 밖에서 매 프레임 HP를 되돌리는 방식으로는 대체할 수 없다 — TakeDamage가 그 자리에서
+        /// GameOver()를 부르고, TryRestoreCurrentHp는 0 이하 복원을 거부하기 때문.
+        public bool DebugInvincible { get; set; }
+
         public void TakeDamage(DamageInfo info)
         {
-            if (IsDead) return;   // 이미 파괴됨 — 추가 피해·중복 판정 차단
+            if (IsDead || DebugInvincible) return;   // 이미 파괴됨 또는 무적 — 추가 피해·중복 판정 차단
 
             currentHp -= info.Amount;
             // Debug.Log($"{name} took {info.Amount} dmg, hp={currentHp}");   // 디버그용 — 전투 중 로그 스팸 방지 위해 비활성

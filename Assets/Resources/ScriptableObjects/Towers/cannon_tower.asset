@@ -15,6 +15,7 @@ MonoBehaviour:
   TowerID: cannon_tower
   TowerPrefab: {fileID: 3104185744962560807, guid: 3aa39c2dca7c6674484d79f6043acd6e, type: 3}
   GhostPrefab: {fileID: 3104185744962560807, guid: 017965e4e87759048b99f86070e0dee8, type: 3}
+  PlacementYaw: 45
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
     Amount: 20
@@ -24,11 +25,13 @@ MonoBehaviour:
     AttackDamage: 9
     AttackRange: 14
     AttackInterval: 0.75
-    ProjectilePrefab: {fileID: 4221183324172678294, guid: 58184368b64351d4094976b3524ed9a1, type: 3}
+    ProjectilePrefab: {fileID: 1250854711421224, guid: 5ccb73330f855184d927c1dd9e69f379, type: 3}
     Flight:
       rid: 1498367259597078607
     PelletCount: 1
     SpreadAngle: 0
+    BurstCount: 1
+    BurstInterval: 0
   Impact: 1
   SplashRadius: 5
   ChainRadius: 0
@@ -49,6 +52,24 @@ MonoBehaviour:
     MaxTargets: 1
     TickInterval: 1
     DamagePerTick: 0
+    LockRamp:
+      PerStack: 0
+      MaxStacks: 0
+      StackInterval: 0
+      DecaySeconds: 0
+  GroundZone:
+    ZonePrefab: {fileID: 0}
+    Radius: 0
+    Duration: 0
+    Interval: 0
+  Ramp:
+    Stat: 2
+    Trigger: 0
+    Profile:
+      PerStack: 0
+      MaxStacks: 0
+      StackInterval: 0
+      DecaySeconds: 0
   Effects: []
   references:
     version: 2

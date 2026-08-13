@@ -221,7 +221,7 @@ bool BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost,
 - 진입: 패널/버튼 → `BeginTowerPlacement(so)` → `StartPlacement` → `MouseManager.BeginPlacement`.
 - 매 프레임(Placement): 레이캐스트 → `Snap(hit)`(풋프린트 중심) + 프리뷰 갱신 → 고스트 이동 → `CanPlaceAt(hit)`.
 - 확정(좌클릭·유효): `OnConfirmed(hit, pos)` → 아래 확정 순서 → (`keepPlacing=false`면) Idle 복귀.
-- 취소(우클릭/Esc) / 확정 복귀: `OnEnded` → 프리뷰 정리 → 종료 통지.
+- 취소(우클릭) / 확정 복귀: `OnEnded` → 프리뷰 정리 → 종료 통지.
 
 **확정 순서 (`PlaceTower`)** — 순서 자체가 계약이다:
 
@@ -420,7 +420,7 @@ const float PopDuration      = 0.28f;   // 〃
 - [x] road·lava·타일없음·점유 셀이 풋프린트에 포함되면 무효(빨강 하이라이트), 좌클릭 무반응.
 - [x] 풋프린트 전 셀이 grass·미점유면 유효(초록), 좌클릭 시 타워가 중심에 생성되고 전 셀 점유.
 - [x] 점유된 셀에 겹쳐 배치 불가.
-- [x] 우클릭/Esc로 취소, 프리뷰 정리.
+- [x] 우클릭으로 취소, 프리뷰 정리.
 - [x] 사거리 미리보기 원이 **타일 버프를 반영한** 사거리로 표시된다.
 - [x] `TowerAsset` 주입으로 배치되고, 배치된 인스턴스가 **그 SO로** 조립된다(WL-129).
 - [x] 자원 부족 시 고스트가 빨강, 확정해도 배치되지 않는다.

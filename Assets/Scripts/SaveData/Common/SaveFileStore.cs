@@ -10,21 +10,32 @@ namespace NorthLand.Core
     /// </summary>
     public sealed class SaveFileStore
     {
-        private const string SaveFileName = "run-save.json";
+        private const string DefaultSaveFileName = "run-save.json";
 
         public string SavePath { get; }
 
         public bool Exists => File.Exists(SavePath);
 
         public SaveFileStore(string directoryPath)
+        : this(directoryPath, DefaultSaveFileName)
+        {
+        }
+
+        public SaveFileStore(string directoryPath,string saveFileName)
         {
             if (string.IsNullOrWhiteSpace(directoryPath))
             {
                 throw new ArgumentException("세이브 디렉터리 경로가 비어 있습니다.",nameof(directoryPath));
             }
 
-            SavePath = Path.Combine(directoryPath,SaveFileName);
+            if (string.IsNullOrWhiteSpace(saveFileName))
+            {
+                throw new ArgumentException("세이브 파일 이름이 비어 있습니다.",nameof(saveFileName));
+            }
+
+            SavePath = Path.Combine(directoryPath,saveFileName);
         }
+
 
         /// <summary>
         /// 저장 파일의 JSON 문자열을 읽는다.

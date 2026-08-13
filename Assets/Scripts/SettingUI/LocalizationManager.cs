@@ -3,10 +3,10 @@ using UnityEngine;
 using UnityEngine.Localization;
 using UnityEngine.Localization.Settings;
 using UnityEngine.UI;
+using NorthLand.Core;
 
 public class LocalizationManager : MonoBehaviour
 {
-    private const string LocalePreferenceKey = "SelectedLocale";
 
     [SerializeField] private Button KoreaButton;
     [SerializeField] private TextMeshProUGUI KoreaText;
@@ -48,19 +48,36 @@ public class LocalizationManager : MonoBehaviour
 
     private void LoadSavedLocale()
     {
-        string currentCode =
-            LocalizationSettings.SelectedLocale?.Identifier.Code ?? "ko-KR";
+        GameSettingsService service = GameSettingsService.Instance;
 
-        string savedCode =
-            PlayerPrefs.GetString(LocalePreferenceKey, currentCode);
+        if (service == null || service.CurrentSettings == null)
+        {
+            Debug.LogWarning("[LocalizationManager] 게임 설정이 준비되지 않았습니다.",this);
 
-        ApplyLocale(savedCode);
+            ApplyLocale("ko-KR");
+            return;
+        }
+
+        ApplyLocale(service.CurrentSettings.localeCode);
     }
 
     private void ChangeLocale(string code)
     {
-        PlayerPrefs.SetString(LocalePreferenceKey, code);
-        PlayerPrefs.Save();
+        GameSettingsService service = GameSettingsService.Instance;
+
+        if (service == null)
+        {
+            Debug.LogWarning("[LocalizationManager] 게임 설정 서비스를 찾을 수 없습니다.",this);
+
+            return;
+        }
+
+        if (!service.TrySetLocale(code, out string error))
+        {
+            Debug.LogWarning($"언어 설정 저장에 실패했습니다: {error}",this);
+
+            return;
+        }
 
         ApplyLocale(code);
         LocalizationPanel.SetActive(false);

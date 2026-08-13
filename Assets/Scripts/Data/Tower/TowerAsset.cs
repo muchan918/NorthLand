@@ -9,6 +9,19 @@ public class TowerAsset : ScriptableObject
     public GameObject TowerPrefab;
     public GameObject GhostPrefab; // 배치 전 미리보기용 투명 타워 프리팹. TowerPrefab과 동일한 구조를 가져야 한다.
 
+    // 배치 시 모델을 그리드 축에서 Y축으로 얼마나 돌릴지(도). **0 = 축 정렬**이 기본이고, 활대·포신이
+    // 넓어 인접 배치 시 실루엣이 겹치는 모델만 값을 갖는다(아처 석궁 45°, #359).
+    //
+    // 왜 프리팹이 아니라 여기인가: `TowerPlacer`가 `Instantiate`의 세 번째 인자로 루트 회전을 통째로
+    // 덮으므로 **프리팹 루트에 저작한 각도는 지워진다.** 모델 자식 노드에 넣으면 살아남지만 본체와
+    // 고스트가 각각 값을 들게 되어 둘이 갈릴 수 있다 — 한 값을 양쪽이 읽게 하려고 SO로 올렸다.
+    //
+    // 배치 판정과는 무관하다. 점유 단위는 여전히 축 정렬 셀이고(`RebuildFootprint`는 그리드 축으로
+    // 셀을 뻗는다) 조준도 대상 위치에서 계산하므로, 이 값은 **보이는 각도만** 바꾼다.
+    [Tooltip("배치 시 모델을 Y축으로 돌릴 각도(도). 0 = 그리드 축 정렬(기본). " +
+             "활대·포신이 넓어 인접 배치 시 겹치는 모델에만 쓴다.")]
+    public float PlacementYaw;
+
     [HideInInspector]
     public TowerData Data;
 

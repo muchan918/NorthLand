@@ -118,41 +118,41 @@ namespace NorthLand.Core
         {
             lookup = null;
 
-            if (towerAssets == null)
+            TowerAsset[] loadedAssets = Resources.LoadAll<TowerAsset>("ScriptableObjects/Towers");
+
+            if (loadedAssets == null || loadedAssets.Length == 0)
             {
-                Debug.LogError("[Load] 타워 에셋 목록이 없습니다.", this);
+                Debug.LogError("[Load] Resources에서 타워 에셋을 찾을 수 없습니다.",this);
 
                 return false;
             }
 
-            var result = new Dictionary<string, TowerAsset>(StringComparer.Ordinal);
+            var result =new Dictionary<string, TowerAsset>(loadedAssets.Length,StringComparer.Ordinal);
 
-            for (int i = 0; i < towerAssets.Count; i++)
+            for (int i = 0; i < loadedAssets.Length; i++)
             {
-                TowerAsset asset = towerAssets[i];
+                TowerAsset asset = loadedAssets[i];
 
                 if (asset == null)
                 {
-                    Debug.LogError($"[Load] 타워 에셋 목록의 {i}번 항목이 비어 있습니다.", this);
+                    Debug.LogError($"[Load] 로드된 타워 에셋 {i}번 항목이 비어 있습니다.",this);
 
                     return false;
                 }
 
-                if (string.IsNullOrEmpty(asset.TowerID))
+                if (string.IsNullOrWhiteSpace(asset.TowerID))
                 {
-                    Debug.LogError($"[Load] 타워 에셋 {asset.name}의 TowerID가 비어 있습니다.", asset);
+                    Debug.LogError($"[Load] 타워 에셋 {asset.name}의 TowerID가 비어 있습니다.",asset);
 
                     return false;
                 }
 
-                if (result.ContainsKey(asset.TowerID))
+                if (!result.TryAdd(asset.TowerID, asset))
                 {
-                    Debug.LogError($"[Load] 중복된 TowerID가 등록되어 있습니다: {asset.TowerID}", this);
+                    Debug.LogError($"[Load] 중복된 TowerID가 존재합니다: {asset.TowerID}",asset);
 
                     return false;
                 }
-
-                result.Add(asset.TowerID, asset);
             }
 
             lookup = result;

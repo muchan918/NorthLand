@@ -15,6 +15,7 @@ MonoBehaviour:
   TowerID: archer_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: af8de5afe47137043ad4ec48d2323017, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: 5d9bff6eeac419349bde17bbdae0e99c, type: 3}
+  PlacementYaw: 45
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
     Amount: 20
@@ -22,11 +23,13 @@ MonoBehaviour:
     AttackDamage: 12
     AttackRange: 18
     AttackInterval: 1
-    ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
+    ProjectilePrefab: {fileID: 1891895467215282, guid: 0f05aae0a4943f146ab784745afc5251, type: 3}
     Flight:
       rid: 3470829504553025636
     PelletCount: 1
     SpreadAngle: 0
+    BurstCount: 1
+    BurstInterval: 0
   Impact: 0
   SplashRadius: 0
   ChainRadius: 0
@@ -47,6 +50,24 @@ MonoBehaviour:
     MaxTargets: 1
     TickInterval: 1
     DamagePerTick: 0
+    LockRamp:
+      PerStack: 0
+      MaxStacks: 0
+      StackInterval: 0
+      DecaySeconds: 0
+  GroundZone:
+    ZonePrefab: {fileID: 0}
+    Radius: 0
+    Duration: 0
+    Interval: 0
+  Ramp:
+    Stat: 2
+    Trigger: 0
+    Profile:
+      PerStack: 0
+      MaxStacks: 0
+      StackInterval: 0
+      DecaySeconds: 0
   Effects: []
   references:
     version: 2

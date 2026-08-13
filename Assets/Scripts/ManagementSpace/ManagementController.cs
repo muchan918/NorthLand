@@ -669,6 +669,7 @@ public class ManagementController : MonoBehaviour
         {
             _dayNight.OnNightToDay -= HandleNightToDay;
             _dayNight.OnDayToNight -= HandleDayToNight;
+            _dayNight.OnDayStart -= HandleDayStart;
         }
     }
 
@@ -827,6 +828,7 @@ public class ManagementController : MonoBehaviour
 
         _dayNight.OnNightToDay += HandleNightToDay;
         _dayNight.OnDayToNight += HandleDayToNight;
+        _dayNight.OnDayStart += HandleDayStart;
     }
 
     // ── 뷰(또는 후속 패널 버튼)가 호출하는 진입점 ─────────────────────────
@@ -928,6 +930,11 @@ public class ManagementController : MonoBehaviour
     // 낮→밤은 배치 확정만 하고 정산은 없다(팀 계약 #5) — IsDay 게이트를 쓰는 버튼(교환/업그레이드)이
     // 전환 즉시 비활성화되도록 OnChanged만 재발행한다(WL-104).
     private void HandleDayToNight() => OnChanged?.Invoke();
+
+    // OnDayStart는 낮이 시작되는 모든 시점(1일차 부트스트랩·EndNight·SkipDay)에 발행된다.
+    // OnNightToDay만 구독하면 SkipDay처럼 밤을 거치지 않고 WaveCount만 오르는 경로에서
+    // 웨이브 표시가 갱신되지 않는다(ManagementPanelView._phaseText가 CurrentWave를 pull하므로).
+    private void HandleDayStart() => OnChanged?.Invoke();
 
     private void HandleNightToDay()
     {
