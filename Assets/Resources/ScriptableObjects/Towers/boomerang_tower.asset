@@ -15,10 +15,9 @@ MonoBehaviour:
   TowerID: boomerang_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: 977f5bc74f84c4f4793dc1f54fc45390, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: babe5261b8910674780692e1c6cef94a, type: 3}
-  PlacementYaw: 0
   Cost: []
   Attack:
-    AttackDamage: 18
+    AttackDamage: 12
     AttackRange: 20
     AttackInterval: 1.1
     ProjectilePrefab: {fileID: 2063295315579062000, guid: 18cf1c0733a021e468a7d1d1e0452d55, type: 3}
@@ -26,8 +25,6 @@ MonoBehaviour:
       rid: 1498367290197934156
     PelletCount: 1
     SpreadAngle: 0
-    BurstCount: 1
-    BurstInterval: 0
   Impact: 1
   SplashRadius: 5
   ChainRadius: 0
@@ -48,24 +45,6 @@ MonoBehaviour:
     MaxTargets: 1
     TickInterval: 1
     DamagePerTick: 0
-    LockRamp:
-      PerStack: 0
-      MaxStacks: 0
-      StackInterval: 0
-      DecaySeconds: 0
-  GroundZone:
-    ZonePrefab: {fileID: 0}
-    Radius: 0
-    Duration: 0
-    Interval: 0
-  Ramp:
-    Stat: 2
-    Trigger: 0
-    Profile:
-      PerStack: 0
-      MaxStacks: 0
-      StackInterval: 0
-      DecaySeconds: 0
   Effects: []
   references:
     version: 2

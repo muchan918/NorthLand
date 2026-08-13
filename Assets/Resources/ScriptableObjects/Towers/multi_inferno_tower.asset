@@ -15,7 +15,6 @@ MonoBehaviour:
   TowerID: multi_inferno_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: f22a1137e86e5b54297c2bcae46c2062, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: a2f1472cfb0fbb84f9e687d3138834e4, type: 3}
-  PlacementYaw: 0
   Cost: []
   Attack:
     AttackDamage: 0
@@ -26,8 +25,6 @@ MonoBehaviour:
       rid: -2
     PelletCount: 1
     SpreadAngle: 0
-    BurstCount: 1
-    BurstInterval: 0
   Impact: 0
   SplashRadius: 0
   ChainRadius: 0
@@ -47,25 +44,7 @@ MonoBehaviour:
     Range: 20
     MaxTargets: 5
     TickInterval: 1
-    DamagePerTick: 8.8
-    LockRamp:
-      PerStack: 0
-      MaxStacks: 0
-      StackInterval: 0
-      DecaySeconds: 0
-  GroundZone:
-    ZonePrefab: {fileID: 0}
-    Radius: 0
-    Duration: 0
-    Interval: 0
-  Ramp:
-    Stat: 2
-    Trigger: 0
-    Profile:
-      PerStack: 0
-      MaxStacks: 0
-      StackInterval: 0
-      DecaySeconds: 0
+    DamagePerTick: 6
   Effects: []
   references:
     version: 2

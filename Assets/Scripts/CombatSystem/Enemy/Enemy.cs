@@ -90,9 +90,7 @@ namespace NorthLand.Combat
         {
             monsterStateMachine = GetComponent<MonsterStateMachine>();
 
-            // 배율 미적용 상태의 최대치다. 스포너가 곧 ApplyWaveHpScale로 덮어쓴다 —
-            // 스포너를 거치지 않는 경로(테스트 씬 직접 배치)는 배율 1이라 이 값이 그대로 정답이 된다.
-            currentHp = MaxHp;
+            currentHp = Stat != null ? Stat.MaxHp : 0f;
 
             // 자식까지 탐색(WL-093): MonsterMove가 자식 오브젝트에 붙는 프리팹에서도 movement를 찾도록
             // GetComponentInChildren 사용 — line 61·MonsterSpawn·MonsterStateMachine의 탐색 범위와 일치시킨다.
@@ -142,37 +140,8 @@ namespace NorthLand.Combat
 
         // HP UI(월드 스페이스 체력바 등)가 구독하는 공개 계약. Awake와 TakeDamage에서 통지.
         public float CurrentHp => currentHp;
-
-        // 최대 HP는 SO 값 × 웨이브 배율이다. **배율을 여기 한 곳에만 곱한다** —
-        // HpRatio·executeThreshold(처형 표식)·Heal·HP UI가 전부 이 프로퍼티를 경유하므로
-        // 곱셈을 분산시키면 그중 하나를 빠뜨렸을 때 조용히 어긋난다.
-        public float MaxHp => Stat != null ? Stat.MaxHp * hpScale : 0f;
-
+        public float MaxHp => Stat != null ? Stat.MaxHp : 0f;
         public event Action<float, float> OnHpChanged;
-
-        // 웨이브 진행에 따른 최대 HP 배율(Docs/Core/CombatBalance.md §4.7).
-        // **직렬화하지 않는다** — 프리팹의 성질이 아니라 "이번 스폰이 몇 번째 웨이브인가"의 성질이다.
-        // 1 = 무보정이므로 스포너를 거치지 않는 경로(테스트 씬에 직접 배치 등)도 그대로 동작한다.
-        float hpScale = 1f;
-
-        /// 스폰 직후 웨이브 HP 배율을 주입한다. **`MonsterSpawn`이 유일한 호출자**다.
-        ///
-        /// ⚠ **현재 HP를 새 최대치로 다시 채운다.** `Awake`가 이미 `currentHp`를 배율 없는 값으로
-        /// 초기화해 버렸기 때문이다(`Instantiate`가 `Awake`를 즉시 돌리므로 스포너가 끼어들 틈이 없다).
-        /// 그래서 이 메서드는 **피해를 입기 전에 한 번만** 부르는 것을 전제로 한다 — 전투 중에 부르면
-        /// 체력이 회복된다. (풀링이 들어오면 HP 초기화가 `OnEnable`로 옮겨가므로 그때 이 자리도 함께 본다)
-        public void ApplyWaveHpScale(float scale)
-        {
-            if (scale <= 0f)
-            {
-                Debug.LogError($"[Enemy] {name}: 웨이브 HP 배율이 0 이하입니다({scale}) — 무보정(1)으로 처리합니다.", this);
-                scale = 1f;
-            }
-
-            hpScale = scale;
-            currentHp = MaxHp;
-            OnHpChanged?.Invoke(currentHp, MaxHp);
-        }
 
         // Stat 미설정(Stat==null)에서도 안전하도록 null 가드(공개 IAttacker 계약).
         public float AttackDamage => Stat != null ? Stat.AttackDamage : 0f;

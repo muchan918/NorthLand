@@ -15,12 +15,11 @@ MonoBehaviour:
   TowerID: soda_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: 11821cec09aec2147a7c1035fbbc8668, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: 47a1f592ba98e2447bb40b61de36868a, type: 3}
-  PlacementYaw: 0
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
     Amount: 40
   Attack:
-    AttackDamage: 12
+    AttackDamage: 8
     AttackRange: 16
     AttackInterval: 0.85
     ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
@@ -28,8 +27,6 @@ MonoBehaviour:
       rid: 3470829504553025637
     PelletCount: 1
     SpreadAngle: 0
-    BurstCount: 1
-    BurstInterval: 0
   Impact: 0
   SplashRadius: 0
   ChainRadius: 0
@@ -50,24 +47,6 @@ MonoBehaviour:
     MaxTargets: 1
     TickInterval: 1
     DamagePerTick: 0
-    LockRamp:
-      PerStack: 0
-      MaxStacks: 0
-      StackInterval: 0
-      DecaySeconds: 0
-  GroundZone:
-    ZonePrefab: {fileID: 0}
-    Radius: 0
-    Duration: 0
-    Interval: 0
-  Ramp:
-    Stat: 2
-    Trigger: 0
-    Profile:
-      PerStack: 0
-      MaxStacks: 0
-      StackInterval: 0
-      DecaySeconds: 0
   Effects:
   - rid: 3470829504553025630
   references:
