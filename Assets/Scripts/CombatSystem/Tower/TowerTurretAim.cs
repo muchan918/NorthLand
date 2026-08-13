@@ -136,18 +136,29 @@ namespace NorthLand.Combat
             _hadTarget = true;
             _lostPending = false;   // 유예 안에 다시 잡았다 → 마무리 통지 취소(경계 채터 흡수)
 
-            // 수평 성분만 쓴다 — 앙각은 모델이 저작한 값(`MissileG_Barrel`의 -30°)이 정본이다.
-            // 대상을 향해 포신을 내리면 하늘로 쏘아 올리는 미사일 런처의 실루엣이 깨지고, 발사 자체도
-            // 수평 조준으로 계산되므로(`AttackAction.TryAttack`이 aimDir.y를 0으로 둔다) 맞출 상대도 없다.
+            // 수평 성분만 쓴다 — 앙각은 모델이 저작한 값이 정본이다. 대상을 향해 포신을 내리면
+            // 하늘로 쏘아 올리는 실루엣이 깨지고, 발사 자체도 수평 조준으로 계산되므로
+            // (`AttackAction.TryAttack`이 aimDir.y를 0으로 둔다) 맞출 상대도 없다.
             Vector3 direction = _target.position - turret.position;
             direction.y = 0f;
             if (direction.sqrMagnitude < 0.0001f) return;   // 바로 위/아래 — 수평 방향이 정의되지 않는다
 
-            // 포신은 모델에서 +Z를 향해 저작돼 있다(`ShootPoint`가 Turret 로컬 +Z에 있다) — 그래서
-            // 보정 오프셋 없이 LookRotation을 그대로 쓴다. 모델을 교체할 때 이 전제가 깨지면 포탑이
-            // 옆을 보며 쏘게 되므로, 교체 시 ShootPoint의 로컬 좌표를 먼저 확인할 것.
-            Quaternion desired = Quaternion.LookRotation(direction.normalized, Vector3.up);
-            turret.rotation = Quaternion.RotateTowards(turret.rotation, desired, turnSpeed * Time.deltaTime);
+            // ★ **회전을 대입하지 않고 월드 Y축 델타만 얹는다.** `turret.rotation = LookRotation(...)`으로
+            //   덮어쓰면 LookRotation의 결과가 앙각 0이라 **마디에 저작된 앙각이 지워진다.**
+            //   미사일 터렛은 앙각이 자식(`MissileG_Barrel` -30°)에 있어 문제가 드러나지 않았지만,
+            //   캐논(`CandyCanon`)은 `turret`이 앙각을 **자기 자신**에 가진 마디(`Top` -45°)라
+            //   조준이 시작되는 순간 포신이 평평해져 박격포가 직사포가 됐다(2026-08-12).
+            //   대기 회전(`IdleTurn`)이 이미 같은 방식이라 축도 일치한다 — 조준↔대기 전환에서 튀지 않는다.
+            //
+            //   ⚠ 앙각이 자식에 있는 프리팹(미사일)에서는 `turret.forward`가 이미 수평이라
+            //     **거동이 종전과 완전히 동일하다.** 캐논만 고쳐지고 회귀는 없다.
+            Vector3 flatForward = turret.forward;
+            flatForward.y = 0f;
+            if (flatForward.sqrMagnitude < 0.0001f) return;   // 포신이 수직 — 수평 방위가 정의되지 않는다
+
+            float delta = Vector3.SignedAngle(flatForward, direction, Vector3.up);
+            float step = Mathf.Clamp(delta, -turnSpeed * Time.deltaTime, turnSpeed * Time.deltaTime);
+            turret.Rotate(Vector3.up, step, Space.World);
         }
 
         /// 조준할 적이 없을 때의 거동. 유예가 지나면 **한 번만** 통지하고, 그 뒤로는 설정에 따라
