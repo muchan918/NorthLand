@@ -239,12 +239,31 @@ void PlaySfx(AudioClip clip, float volumeScale = 1f);  // 2D 원샷. 볼륨 0·�
   코드 쪽 변경을 따라온다.
 - **새 재생 경로를 만드는 쪽은 `GetEffectiveVolume`을 곱한다**(§2).
 
+### 6.1 매니저를 거치지 않는 재생 경로
+
+믹서가 없어 `GetEffectiveVolume`이 유일한 연결 고리이므로, **자기 `AudioSource`를 직접 미는 경로**가 생기면
+여기 적는다. 지금 둘이다.
+
+| 경로 | 볼륨 제어 | 성격 |
+|---|---|---|
+| `SkillManager`의 `AudioSource.PlayClipAtPoint` | ❌ **안 받는다**(WL-179 이관 대기) | 스킬 착탄음 |
+| `ResidentVoice`(주민 대화 목소리) | ✅ 매 프레임 `GetEffectiveVolume(Sfx)`를 곱한다 | 주민 목소리 |
+
+> **`ResidentVoice`는 `PlaySfx`를 쓸 수 없어서 따로 났다.** 요구가 "화면 중심에 가까울수록 크게, 화면 밖은
+> 무음"이라 **볼륨이 매 프레임 바뀌어야 하는데**, `PlaySfx`는 `PlayOneShot`이라 호출 시점의 볼륨을 굽는다.
+> 그래서 자기 `AudioSource`를 들고 `volume`을 직접 갱신한다 — 부수 효과로 **설정 슬라이더가 이미 울리고
+> 있는 소리에도 즉시 반영된다**(`PlaySfx`에는 없는 성질이다). 감쇠를 Unity의 3D 오디오에 맡기지 않은 근거는
+> `Docs/ManagementArea/Resident.md` §11.16에 있다.
+
 ## 7. 미확정 / TODO
 
 - [ ] **SFX 풀링·3D** — `PlaySfx(clip, position)`, `AudioSource` 풀, 동시재생 상한,
       `SkillManager.cs:269`의 `PlayClipAtPoint` 이관. 구조는 **중앙 풀 + `AudioClip` 직접 전달**로
       방향을 잡아뒀다(사운드 뱅크 SO·`SoundId` enum은 도입하지 않는다). 현재의 2D 원샷 `PlaySfx`는
       전환 스팅어처럼 **드물게 한 번 울리는 소리** 전용이다
+      - ⚠ **풀을 만들 때 `ResidentVoice`(§6.1)를 흡수 대상으로 보지 말 것.** 그쪽은 "위치 기반 3D 감쇠"가
+        아니라 **화면 좌표 기반 감쇠**이고(오쏘 카메라라 3D 감쇠가 성립하지 않는다), 소리마다 볼륨이
+        **매 프레임 바뀐다.** 원샷 풀과 요구가 다르다
 - [x] **BGM·전환음 클립 에셋** — `Assets/Imported/@NorthLand/Sound`에 낮·밤 BGM 2개 + 전환 스팅어 2개(§4.5)
 - [x] **씬 배치** — `GameScene`에 `SoundCue/InGameCue`, `TitleScene`에 `SoundCue/TitleCue`
 - [ ] **타이틀 BGM 클립** — 트랙 에셋이 없어 `TitleCue.titleClip`이 비어 있다(정지만 한다, §5.1).
