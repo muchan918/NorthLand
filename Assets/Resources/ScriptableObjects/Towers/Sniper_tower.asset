@@ -15,9 +15,10 @@ MonoBehaviour:
   TowerID: Sniper_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: 28d6e50d7aad3d24eb3da6b519f7e3e0, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: 02bd685941e50c74a861dd02e3773db9, type: 3}
+  PlacementYaw: 0
   Cost: []
   Attack:
-    AttackDamage: 20
+    AttackDamage: 31
     AttackRange: 36
     AttackInterval: 2
     ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
@@ -25,6 +26,8 @@ MonoBehaviour:
       rid: 3470829504553025640
     PelletCount: 1
     SpreadAngle: 0
+    BurstCount: 1
+    BurstInterval: 0
   Impact: 0
   SplashRadius: 0
   ChainRadius: 0
@@ -45,6 +48,24 @@ MonoBehaviour:
     MaxTargets: 1
     TickInterval: 1
     DamagePerTick: 0
+    LockRamp:
+      PerStack: 0
+      MaxStacks: 0
+      StackInterval: 0
+      DecaySeconds: 0
+  GroundZone:
+    ZonePrefab: {fileID: 0}
+    Radius: 0
+    Duration: 0
+    Interval: 0
+  Ramp:
+    Stat: 2
+    Trigger: 0
+    Profile:
+      PerStack: 0
+      MaxStacks: 0
+      StackInterval: 0
+      DecaySeconds: 0
   Effects: []
   references:
     version: 2

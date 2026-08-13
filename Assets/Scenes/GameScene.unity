@@ -518,6 +518,14 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 84c85404c0bade847a1de0477ee7c30a, type: 2}
   - {fileID: 11400000, guid: c59febb364f089c44afe7fb28e23b48b, type: 2}
   - {fileID: 11400000, guid: ac9230aa1e16b43469e9d42602444517, type: 2}
+  - {fileID: 11400000, guid: 4922216a236558a4398404af9e10f418, type: 2}
+  - {fileID: 11400000, guid: 53db2c31fa0fe06488bda592cdb3d887, type: 2}
+  - {fileID: 11400000, guid: 39afe99ab428619448ce925c0ad5422c, type: 2}
+  - {fileID: 11400000, guid: 930d6e07c830da843b7b974141bffc1b, type: 2}
+  - {fileID: 11400000, guid: e00ae8c2a9722bc4c8935bee147cd736, type: 2}
+  - {fileID: 11400000, guid: 78707c5ac976b044192922877d0e910d, type: 2}
+  - {fileID: 11400000, guid: 9c0943bf1c97e5e488bee70890538755, type: 2}
+  - {fileID: 11400000, guid: 83e6017eeec05c84e9811d226c89e19c, type: 2}
 --- !u!114 &111725158
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -535,6 +543,22 @@ MonoBehaviour:
   waveProvider: {fileID: 111725157}
   playOnStart: 0
   startRound: 0
+  waveHpScales:
+  - 1
+  - 1
+  - 1.1
+  - 1.15
+  - 1.2
+  - 1.6
+  - 2.05
+  - 2.4
+  - 3.1
+  - 3.85
+  - 4.85
+  - 5.05
+  - 5.25
+  - 5.35
+  - 5.45
   gatePrefab: {fileID: 7755653996151452929, guid: 0df6c15a63df9cf4c8d8fc69ed81d033, type: 3}
   gatePositionOffset: {x: 0, y: 0, z: -3}
   gateRotation: {x: 0, y: -17, z: 0}
@@ -12833,7 +12857,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Villager
+  m_text: "\uC8FC\uBBFC"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: abd3dbb38214e2542946d1e6ecbad192, type: 2}
   m_sharedMaterial: {fileID: 3648609920881002622, guid: abd3dbb38214e2542946d1e6ecbad192, type: 2}
@@ -15691,7 +15715,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Production
+  m_text: "\uC0DD\uC0B0\uB77C\uC778"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: abd3dbb38214e2542946d1e6ecbad192, type: 2}
   m_sharedMaterial: {fileID: 3648609920881002622, guid: abd3dbb38214e2542946d1e6ecbad192, type: 2}
@@ -22754,7 +22778,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Cost
+  m_text: "\uBE44\uC6A9"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: abd3dbb38214e2542946d1e6ecbad192, type: 2}
   m_sharedMaterial: {fileID: 3648609920881002622, guid: abd3dbb38214e2542946d1e6ecbad192, type: 2}
@@ -23330,7 +23354,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Next
+  m_text: "\uB2E4\uC74C"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: abd3dbb38214e2542946d1e6ecbad192, type: 2}
   m_sharedMaterial: {fileID: 3648609920881002622, guid: abd3dbb38214e2542946d1e6ecbad192, type: 2}
@@ -24045,7 +24069,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Selected Towers
+  m_text: "\uC120\uD0DD\uB41C \uD0C0\uC6CC"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -24900,7 +24924,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Day/Night
+  m_text: "\uB0AE"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: abd3dbb38214e2542946d1e6ecbad192, type: 2}
   m_sharedMaterial: {fileID: 3648609920881002622, guid: abd3dbb38214e2542946d1e6ecbad192, type: 2}
@@ -25012,7 +25036,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Upgrade
+  m_text: "\uC5C5\uADF8\uB808\uC774\uB4DC"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -25039,7 +25063,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 42.95
+  m_fontSize: 40.2
   m_fontSizeBase: 24
   m_fontWeight: 400
   m_enableAutoSizing: 1
