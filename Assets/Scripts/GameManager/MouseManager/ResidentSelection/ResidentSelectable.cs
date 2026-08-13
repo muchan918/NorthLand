@@ -9,12 +9,12 @@ using UnityEngine;
 /// 도메인 해석과 인원 상한은 소비처인 `ResidentSelectionCoordinator`가 담당한다.
 ///
 /// ⚠️ `MouseManager`는 `hit.collider.TryGetComponent<T>`로 대상을 찾는다 — **GameObject당 인터페이스 구현을
-/// 하나만** 잡고 부모 탐색도 하지 않는다. 그래서 `IHoverable`·`ISelectable`·`IGroupSelectable`을
+/// 하나만** 잡고 부모 탐색도 하지 않는다. 그래서 `IHoverable`·`ISelectable`·`IGroupSelectable`·`IDragHandle`을
 /// 이 컴포넌트 하나에 모아 둔다. 나중에 주민 툴팁을 별도 컴포넌트로 빼면 툴팁이나 아웃라인 중
 /// 하나가 조용히 죽는다(`TowerGroupSelectable`에 같은 경고가 있다) → 반드시 여기 합칠 것.
 /// 마커는 콜라이더와 같은 GameObject(주민 루트)에 있어야 한다.
 [DisallowMultipleComponent]
-public class ResidentSelectable : MonoBehaviour, IGroupSelectable, IHoverable, ISelectable, IOutlineKindFilter
+public class ResidentSelectable : MonoBehaviour, IGroupSelectable, IHoverable, ISelectable, IOutlineKindFilter, IDragHandle
 {
     private Resident _resident;
 
@@ -42,6 +42,12 @@ public class ResidentSelectable : MonoBehaviour, IGroupSelectable, IHoverable, I
     public void OnHoverExit() { }
     public void OnSelected() { }
     public void OnDeselected() { }
+
+    // ── 들어서 끌 수 있다 (IDragHandle) ─────────────────────────────────
+    //
+    // 멤버 없는 순수 마커다. 이 컴포넌트가 붙어 있다는 사실만으로 "주민 위에서 좌드래그를 시작하면
+    // 사각형이 아니라 유닛 끌기"가 성립한다(MouseManager.md §5.4). 누구를 몇 명 드는지, 놓았을 때
+    // 배치되는지는 전부 `ResidentDragCoordinator`가 정한다 — 마커는 판정에 참여하지 않는다.
 
     // ── 인원 상한을 아웃라인 종류별로 게이팅 ─────────────────────────────
     //

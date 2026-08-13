@@ -32,19 +32,19 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 3710819598741504
-    m_Localized: Wood
+    m_Localized: Biscuit
     m_Metadata:
       m_Items: []
   - m_Id: 3710894051831808
-    m_Localized: Iron
+    m_Localized: Chocolate
     m_Metadata:
       m_Items: []
   - m_Id: 3710897180782592
-    m_Localized: Food
+    m_Localized: Sugar
     m_Metadata:
       m_Items: []
   - m_Id: 3710962737754112
-    m_Localized: Mana
+    m_Localized: Star Candy
     m_Metadata:
       m_Items: []
   - m_Id: 3712710684585984
@@ -239,23 +239,23 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 12180213649018880
-    m_Localized: 'Woodcutter''s Hut, Mine and Farm gain 2 more upgrade levels.
+    m_Localized: 'Biscuit House, Chocolate Tree and Sugar Farm gain 2 more upgrade
+      levels.
 
-      Magic
-      Laboratory gains 1 more upgrade level.
+      Magic Laboratory gains 1 more upgrade level.
 
-      Alchemist''s House exchange rate
-      improves.'
+      Alchemist''s
+      House exchange rate improves.'
     m_Metadata:
       m_Items: []
   - m_Id: 12180213649018881
-    m_Localized: 'Woodcutter''s Hut, Mine and Farm gain 2 further upgrade levels.
+    m_Localized: 'Biscuit House, Chocolate Tree and Sugar Farm gain 2 further upgrade
+      levels.
 
-      Magic
-      Laboratory gains 1 further upgrade level.
+      Magic Laboratory gains 1 further upgrade level.
 
-      Alchemist''s House exchange
-      rate improves again.'
+      Alchemist''s
+      House exchange rate improves again.'
     m_Metadata:
       m_Items: []
   - m_Id: 12540128333557760
@@ -274,6 +274,21 @@ MonoBehaviour:
     m_Localized: Start with Seed
     m_Metadata:
       m_Items: []
+  - m_Id: 12534587986448384
+    m_Localized: Chain Shock damage +{0}% vs. base
+    m_Metadata:
+      m_Items:
+      - rid: 5763336045537525835
+  - m_Id: 12534588045168640
+    m_Localized: Chain Shock radius +{0}% vs. base
+    m_Metadata:
+      m_Items:
+      - rid: 5763336045537525835
+  - m_Id: 12534588045168641
+    m_Localized: Chain Shock recharge time -{0}% vs. base
+    m_Metadata:
+      m_Items:
+      - rid: 5763336045537525835
   references:
     version: 2
     RefIds:
@@ -285,3 +300,6 @@ MonoBehaviour:
         - id: 6894325276794880
         - id: 12023646333251584
         - id: 12023173794574336
+        - id: 12534587986448384
+        - id: 12534588045168640
+        - id: 12534588045168641
