@@ -9,7 +9,6 @@ namespace NorthLand.Core
     [Serializable]
     public sealed class RunSeedData
     {
-        // 파생 알고리즘 변경 여부를 구분한다.
         public int SeedVersion = 1;
 
         // 플레이어에게 표시하고 공유하는 대표 시드.
