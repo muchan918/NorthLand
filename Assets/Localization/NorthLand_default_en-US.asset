@@ -32,19 +32,19 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 3710819598741504
-    m_Localized: Wood
+    m_Localized: Biscuit
     m_Metadata:
       m_Items: []
   - m_Id: 3710894051831808
-    m_Localized: Iron
+    m_Localized: Chocolate
     m_Metadata:
       m_Items: []
   - m_Id: 3710897180782592
-    m_Localized: Food
+    m_Localized: Sugar
     m_Metadata:
       m_Items: []
   - m_Id: 3710962737754112
-    m_Localized: Mana
+    m_Localized: Star Candy
     m_Metadata:
       m_Items: []
   - m_Id: 3712710684585984
@@ -239,23 +239,23 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 12180213649018880
-    m_Localized: 'Woodcutter''s Hut, Mine and Farm gain 2 more upgrade levels.
+    m_Localized: 'Biscuit House, Chocolate Tree and Sugar Farm gain 2 more upgrade
+      levels.
 
-      Magic
-      Laboratory gains 1 more upgrade level.
+      Magic Laboratory gains 1 more upgrade level.
 
-      Alchemist''s House exchange rate
-      improves.'
+      Alchemist''s
+      House exchange rate improves.'
     m_Metadata:
       m_Items: []
   - m_Id: 12180213649018881
-    m_Localized: 'Woodcutter''s Hut, Mine and Farm gain 2 further upgrade levels.
+    m_Localized: 'Biscuit House, Chocolate Tree and Sugar Farm gain 2 further upgrade
+      levels.
 
-      Magic
-      Laboratory gains 1 further upgrade level.
+      Magic Laboratory gains 1 further upgrade level.
 
-      Alchemist''s House exchange
-      rate improves again.'
+      Alchemist''s
+      House exchange rate improves again.'
     m_Metadata:
       m_Items: []
   references:

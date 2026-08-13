@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: mana
   m_EditorClassIdentifier: Assembly-CSharp::ResourceAsset
   ResourceID: mana
-  Icon: {fileID: 21300000, guid: 00508bdb78a104ea7aa35d626eb49d95, type: 3}
+  Icon: {fileID: -48598917, guid: 394a6ed21def76242b6aea3e99daadfc, type: 3}

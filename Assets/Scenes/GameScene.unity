@@ -2543,7 +2543,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CameraController2
   cinemachineCamera: {fileID: 1228655714}
   cameraTarget: {fileID: 863015837}
-  moveSpeed: 50
+  moveSpeed: 250
   xBounds: {x: -1450, y: 1200}
   zBounds: {x: -1050, y: 550}
   dragSpeed: 0.3
@@ -4947,6 +4947,9 @@ MonoBehaviour:
   emergeInterval: 0.13
   cohortCooldownSeconds: 45
   spawnSnapDistance: 2
+  despawnEffectPrefab: {fileID: 0}
+  despawnEffectLifetime: 3
+  exitFallbackDistance: 3
 --- !u!4 &1061213900
 Transform:
   m_ObjectHideFlags: 0
@@ -8482,7 +8485,6 @@ MonoBehaviour:
   panel: {fileID: 1909950348}
   cardPrefab: {fileID: 3180376243941213659, guid: ac3fe899a10bba2439346af1ccce7292, type: 3}
   cardContainer: {fileID: 915435450}
-  levelColors: []
   openPanel: {fileID: 1123896257}
   gameSpeedController: {fileID: 7536131759758459493}
 --- !u!114 &1658482856
@@ -15742,7 +15744,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36.5
+  m_fontSize: 48
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
