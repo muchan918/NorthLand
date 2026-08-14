@@ -199,6 +199,7 @@ namespace CombatSpace
 
             RebuildRegistry();
         }
+#endif
 
         public bool TryGetTileId(BattleTile tile, out string tileId)
         {
@@ -227,6 +228,5 @@ namespace CombatSpace
 
             return false;
         }
-#endif
     }
 }

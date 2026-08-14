@@ -30,7 +30,7 @@ Shader "NorthLand/SkillAura"
     {
         Tags
         {
-            "RenderPipeline" = "Universal"
+            "RenderPipeline" = "UniversalPipeline"
             "RenderType" = "Transparent"
             "Queue" = "Transparent+500"
         }
