@@ -213,7 +213,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 12023173794574336
-    m_Localized: Save Data {0}
+    m_Localized: Save Profile {0}
     m_Metadata:
       m_Items:
       - rid: 5763336045537525835
@@ -256,6 +256,22 @@ MonoBehaviour:
 
       Alchemist''s
       House exchange rate improves again.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12540128333557760
+    m_Localized: Continue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12540971610959872
+    m_Localized: Start with Seed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12541230072360960
+    m_Localized: Enter a seed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12545821845385216
+    m_Localized: Start with Seed
     m_Metadata:
       m_Items: []
   - m_Id: 12534587986448384
