@@ -109,6 +109,7 @@ public class SettingUI : MonoBehaviour
         {
             GameSpeedController.Instance.SetPaused(GamePauseReason.Settings,true);
         }
+
     }
 
     public void ClosePanel()

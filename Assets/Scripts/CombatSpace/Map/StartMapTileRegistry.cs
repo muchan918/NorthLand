@@ -202,10 +202,6 @@ namespace CombatSpace
             RebuildRegistry();
         }
 #endif
-
-
-
-
         public bool TryGetTileId(BattleTile tile, out string tileId)
         {
             tileId = string.Empty;

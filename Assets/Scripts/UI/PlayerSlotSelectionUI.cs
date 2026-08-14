@@ -9,15 +9,10 @@ namespace NorthLand.UI
     public sealed class PlayerSlotSelectionUI : MonoBehaviour
     {
         [SerializeField]
-        private TMP_Text selectedSlotText;
-
-        [SerializeField]
         private TMP_Text errorText;
 
         [SerializeField]
         private PlayerSlotView[] slotViews;
-
-        private const string SlotNameKey = "save.slot.name";
 
         /// <summary>
         /// 슬롯 버튼에서 0, 1, 2를 전달한다.
@@ -68,25 +63,6 @@ namespace NorthLand.UI
             }
 
             RefreshAllSlots();
-            RefreshSelectedSlot();
-        }
-
-        private void RefreshSelectedSlot()
-        {
-            if (selectedSlotText == null)
-            {
-                return;
-            }
-
-            PlayerSaveService service = PlayerSaveService.Instance;
-
-            if (service == null || !service.HasSelectedSlot || service.CurrentPlayerData == null)
-            {
-                selectedSlotText.text = string.Empty;
-                return;
-            }
-
-            selectedSlotText.text =LocalizationHelper.Get(LocalizationHelper.k_DefaultTable,SlotNameKey,service.CurrentSlotIndex + 1);
         }
 
         private void ClearError()
@@ -117,7 +93,6 @@ namespace NorthLand.UI
             LocalizationSettings.SelectedLocaleChanged += HandleSelectedLocaleChanged;
 
             RefreshAllSlots();
-            RefreshSelectedSlot();
         }
 
        private void OnDisable()
@@ -129,7 +104,6 @@ namespace NorthLand.UI
         private void HandleSelectedLocaleChanged(Locale locale)
         {
             RefreshAllSlots();
-            RefreshSelectedSlot();
         }
 
         private void RefreshAllSlots()
@@ -189,7 +163,6 @@ namespace NorthLand.UI
             if (!service.SlotExists(slotIndex))
             {
                 RefreshAllSlots();
-                RefreshSelectedSlot();
                 return;
             }
 
@@ -200,7 +173,6 @@ namespace NorthLand.UI
             }
 
             RefreshAllSlots();
-            RefreshSelectedSlot();
         }
     }
 }
