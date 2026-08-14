@@ -15,17 +15,18 @@ MonoBehaviour:
   TowerID: triple_shoot_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: 32f20ff8123df644db927f0b6ddf86a8, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: 3a45e3ede25a4e04dbe0f760784d4c40, type: 3}
-  PlacementYaw: 0
+  Icon: {fileID: 0}
+  PlacementYaw: 45
   Cost: []
   Attack:
-    AttackDamage: 16
+    AttackDamage: 20
     AttackRange: 17
     AttackInterval: 0.9
-    ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
+    ProjectilePrefab: {fileID: 1891895467215282, guid: 0f05aae0a4943f146ab784745afc5251, type: 3}
     Flight:
       rid: 1498367303671873620
     PelletCount: 3
-    SpreadAngle: 40
+    SpreadAngle: 28
     BurstCount: 1
     BurstInterval: 0
   Impact: 1
