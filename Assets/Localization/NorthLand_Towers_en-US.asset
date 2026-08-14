@@ -283,6 +283,10 @@ MonoBehaviour:
       two burning zones; where they overlap, the burn stacks'
     m_Metadata:
       m_Items: []
+  - m_Id: 9086890910756864
+    m_Localized: Normal Tower
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

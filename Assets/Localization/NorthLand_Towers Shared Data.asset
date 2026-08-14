@@ -263,6 +263,10 @@ MonoBehaviour:
     m_Key: towers.twin_missile.desc
     m_Metadata:
       m_Items: []
+  - m_Id: 9086890910756864
+    m_Key: towers.normal
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

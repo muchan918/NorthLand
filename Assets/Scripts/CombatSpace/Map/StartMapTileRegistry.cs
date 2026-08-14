@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
-
+using UnityEngine.Localization;
+using UnityEngine.Localization.Settings;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
+
 
 namespace CombatSpace
 {
@@ -199,6 +201,10 @@ namespace CombatSpace
 
             RebuildRegistry();
         }
+#endif
+
+
+
 
         public bool TryGetTileId(BattleTile tile, out string tileId)
         {
@@ -227,6 +233,5 @@ namespace CombatSpace
 
             return false;
         }
-#endif
     }
 }
