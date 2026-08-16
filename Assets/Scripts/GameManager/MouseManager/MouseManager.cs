@@ -5,7 +5,6 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;   // 프로젝트는 신규 Input System 사용
 using UnityEngine.SceneManagement;
 using CombatSpace;               // CombatMapTileView / CombatTileType (전투 타일 판정)
-using NorthLand.Core;            // GameManager / GameResult (런 종료 시 조준 정리)
 
 /// 클릭으로 선택 가능한 배치물(타워·건물 등)이 구현한다. (요구사항 ②)
 public class MouseManager : MonoBehaviour
@@ -119,11 +118,6 @@ public class MouseManager : MonoBehaviour
     private readonly List<GroupSelectableRegistry.Entry> _boxHits = new();
     private readonly List<IGroupSelectable> _boxTargets = new();
 
-    // ── 런 종료 구독 ───────────────────────────────────────────────
-    // 구독했던 GameManager를 들고 있다가 해제한다. GameManager는 전투 씬 단위로 생기고 사라지지만
-    // MouseManager는 DontDestroyOnLoad라, 해제 시점에 Instance를 다시 읽으면 이미 다른 인스턴스다.
-    private GameManager _gameManager;
-
     private void Awake()
     {
         if (Instance == null)
@@ -144,7 +138,6 @@ public class MouseManager : MonoBehaviour
         if (Instance == this)
         {
             SceneManager.sceneLoaded -= HandleSceneLoaded;
-            if (_gameManager != null) _gameManager.OnResultDecided -= HandleResultDecided;
         }
     }
 
@@ -159,22 +152,6 @@ public class MouseManager : MonoBehaviour
         _hovered = null;
         ResetGesture();
         CancelPlacement();
-        CancelSkillTargeting();
-
-        // 런 종료 통지를 새 씬의 GameManager로 다시 건다 — 저쪽은 전투 씬마다 새로 생기므로
-        // 이전 구독을 먼저 끊는다. sceneLoaded는 씬 오브젝트의 Awake 뒤에 오므로 이 시점에
-        // Instance는 이미 세팅돼 있다. GameManager가 없는 씬(타이틀 등)은 null로 두고 넘어간다.
-        if (_gameManager != null) _gameManager.OnResultDecided -= HandleResultDecided;
-        _gameManager = GameManager.Instance;
-        if (_gameManager != null) _gameManager.OnResultDecided += HandleResultDecided;
-    }
-
-    // 런이 끝나면(패배·승리) 조준 중이던 스킬 고스트가 결과 화면 뒤에 그대로 남는다(#391).
-    // 우클릭 취소는 UpdateSkillTargeting 안에 있어 마우스를 눌러야만 돌고, 게임 오버는 입력이
-    // 아니라 아무도 정리해 주지 않았다. 재조준·재시전은 SkillManager.CanCast()가 이미
-    // Result != Playing으로 막으므로, 여기서는 남은 표시만 걷어낸다.
-    private void HandleResultDecided(GameResult result)
-    {
         CancelSkillTargeting();
     }
 

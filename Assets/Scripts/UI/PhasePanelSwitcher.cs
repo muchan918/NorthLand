@@ -1,3 +1,4 @@
+using NorthLand.Core;   // GameManager / GameResult (런 종료 시 조준 취소)
 using UnityEngine;
 
 /// <summary>
@@ -5,6 +6,7 @@ using UnityEngine;
 /// 밤에는 같은 자리에 스킬 패널을 노출한다. <see cref="DayNightManager"/>의 전환 이벤트를 구독해
 /// 두 패널의 활성 상태를 토글한다(페이즈 반응 시스템은 이벤트 훅 구조 — 팀 계약 #5).
 /// 밤→낮 전환 시 진행 중이던 스킬 조준을 취소한다. <see cref="NightActionPanelView"/>와 동일한 패턴.
+/// 런 종료(패배·승리)도 같은 이유로 조준을 취소한다(#391) — 조준 취소의 소유자가 이 클래스다.
 /// </summary>
 public class PhasePanelSwitcher : MonoBehaviour
 {
@@ -13,6 +15,11 @@ public class PhasePanelSwitcher : MonoBehaviour
 
     private void Start()
     {
+        // 런 종료 구독은 DayNightManager 조기 반환보다 **앞**에 둔다 — 뒤에 두면 그쪽이 없는 씬에서
+        // 조준 취소까지 함께 빠진다. 두 신호는 서로 독립이다.
+        if (GameManager.Instance != null)
+            GameManager.Instance.OnResultDecided += HandleResultDecided;
+
         if (DayNightManager.Instance == null)
         {
             Debug.LogError("[페이즈패널] DayNightManager를 찾을 수 없습니다.");
@@ -28,9 +35,23 @@ public class PhasePanelSwitcher : MonoBehaviour
 
     private void OnDestroy()
     {
+        // Start와 같은 이유로 조기 반환보다 앞.
+        if (GameManager.Instance != null)
+            GameManager.Instance.OnResultDecided -= HandleResultDecided;
+
         if (DayNightManager.Instance == null) return;
         DayNightManager.Instance.OnDayStart -= ShowDay;
         DayNightManager.Instance.OnDayToNight -= ShowNight;
+    }
+
+    // 런 종료(패배·승리) 시 조준 중이던 인디케이터가 결과 화면 뒤에 그대로 남는다(#391).
+    // 우클릭 취소는 UpdateSkillTargeting 안에 있어 마우스를 눌러야만 돌고, 게임 오버는 입력이
+    // 아니라 아무도 정리해 주지 않았다. 재조준·재시전은 SkillManager.CanCast()가 이미
+    // Result != Playing으로 막으므로, 여기서는 남은 표시만 걷어낸다.
+    // 패널 토글은 하지 않는다 — 결과 화면이 위를 덮고, 다음 씬 로드가 상태를 다시 잡는다.
+    private void HandleResultDecided(GameResult result)
+    {
+        MouseManager.Instance?.CancelSkillTargeting();
     }
 
     private void ShowDay()
