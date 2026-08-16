@@ -95,8 +95,10 @@ public sealed class MonsterSpawnWaveProvider :
         FinalWaveNumber = orderedWaves.Count;
     }
 
-    // 웨이브 번호(1-base)를 리스트 인덱스로 변환한다. 범위 밖이면 false.
-    // 1-base ↔ 0-base 변환은 이 한 곳에만 둔다.
+    /// <summary>
+    /// 웨이브 번호에 해당하는 원본 웨이브 에셋을 반환합니다.
+    /// 다음 웨이브 미리보기처럼 스폰 전에 구성 정보를 읽는 UI에서 사용합니다.
+    /// </summary>
     public bool TryGetWaveAsset(int waveNumber, out MonsterWaveAsset wave)
     {
         if (waveNumber < 1 || waveNumber > orderedWaves.Count)
