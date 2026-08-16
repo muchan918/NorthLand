@@ -88,7 +88,7 @@ namespace NorthLand.UI
 
                 if (recipeByResult.ContainsKey(recipe.Result))
                 {
-                    Debug.LogWarning($"[FusionTowerCodexUI] '{recipe.Result.TowerID}'ÀÇ ·¹½ÃÇÇ°¡ µÎ °³ ÀÌ»ó Á¸ÀçÇÕ´Ï´Ù.", recipe);
+                    Debug.LogWarning($"[FusionTowerCodexUI] '{recipe.Result.TowerID}'ì˜ ë ˆì‹œí”¼ê°€ ë‘ ê°œ ì´ìƒ ì¡´ì¬í•©ë‹ˆë‹¤.", recipe);
 
                     continue;
                 }
@@ -101,7 +101,7 @@ namespace NorthLand.UI
         {
             if (content == null || entryPrefab == null)
             {
-                Debug.LogError("[FusionTowerCodexUI] Content ¶Ç´Â Entry PrefabÀÌ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù.", this);
+                Debug.LogError("[FusionTowerCodexUI] Content ë˜ëŠ” Entry Prefabì´ ì—°ê²°ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.", this);
 
                 return;
             }
@@ -175,7 +175,7 @@ namespace NorthLand.UI
             }
             else
             {
-                selectedRecipeText.text = selectedRecipeText.text = LocalizationHelper.Get(LocalizationHelper.k_TowersTable, "towers.normal");
+                selectedRecipeText.text = LocalizationHelper.Get(LocalizationHelper.k_TowersTable, "towers.normal");
             }
         }
 
@@ -183,7 +183,7 @@ namespace NorthLand.UI
         {
             if (recipe == null || recipe.Materials == null || recipe.Materials.Count == 0)
             {
-                return "Á¶ÇÕ Á¤º¸ ¾øÀ½";
+                return "ì¡°í•© ì •ë³´ ì—†ìŒ";
             }
 
             Dictionary<TowerAsset, int> materialCounts = new();
@@ -202,7 +202,7 @@ namespace NorthLand.UI
             }
 
             if (materialCounts.Count == 0)
-                return "Á¶ÇÕ Á¤º¸ ¾øÀ½";
+                return "ì¡°í•© ì •ë³´ ì—†ìŒ";
 
             StringBuilder builder = new();
             bool first = true;
@@ -217,7 +217,7 @@ namespace NorthLand.UI
 
                 if (material.Value > 1)
                 {
-                    builder.Append(" ¡¿ ");
+                    builder.Append(" Ã— ");
                     builder.Append(material.Value);
 
                 }
@@ -230,7 +230,7 @@ namespace NorthLand.UI
         private static string GetTowerName(TowerAsset tower)
         {
             if (tower == null)
-                return "Á¤º¸ ¾øÀ½";
+                return "ì •ë³´ ì—†ìŒ";
 
             if (string.IsNullOrWhiteSpace(tower.TowerID))
                 return tower.name;
@@ -261,10 +261,10 @@ namespace NorthLand.UI
             }
 
             if (selectedTowerNameText != null)
-                selectedTowerNameText.text = "Å¸¿ö ¾øÀ½";
+                selectedTowerNameText.text = "íƒ€ì›Œ ì—†ìŒ";
 
             if (selectedRecipeText != null)
-                selectedRecipeText.text = "Á¶ÇÕ Á¤º¸ ¾øÀ½";
+                selectedRecipeText.text = "ì¡°í•© ì •ë³´ ì—†ìŒ";
         }
 
         public void Open()

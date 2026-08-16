@@ -29,7 +29,7 @@ namespace NorthLand.UI
         [SerializeField] private Image buttonBackground;
 
         /// <summary>
-        /// µµ°¨ ¸ñ·Ï Ç×¸ñÀ» ÃÊ±âÈ­ÇÕ´Ï´Ù.
+        /// ë„ê° ëª©ë¡ í•­ëª©ì„ ì´ˆê¸°í™”í•©ë‹ˆë‹¤.
         /// </summary>
         public void Initialize(TowerAsset targetTower, string displayName, Action<TowerAsset> selectedCallback)
         {
@@ -50,7 +50,7 @@ namespace NorthLand.UI
                 }
 
                 if (towerNameText != null)
-                    towerNameText.text = "Á¤º¸ ¾øÀ½";
+                    towerNameText.text = "ì •ë³´ ì—†ìŒ";
 
                 return;
             }
@@ -92,7 +92,7 @@ namespace NorthLand.UI
         {
             if (button == null)
             {
-                Debug.LogWarning($"[{nameof(FusionTowerEntry)}] ButtonÀÌ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù.", this);
+                Debug.LogWarning($"[{nameof(FusionTowerEntry)}] Buttonì´ ì—°ê²°ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.", this);
 
                 return;
             }
@@ -105,7 +105,7 @@ namespace NorthLand.UI
         {
             if (tower == null)
             {
-                Debug.LogWarning($"[{nameof(FusionTowerEntry)}] TowerAssetÀÌ ¾ø½À´Ï´Ù.", this);
+                Debug.LogWarning($"[{nameof(FusionTowerEntry)}] TowerAssetì´ ì—†ìŠµë‹ˆë‹¤.", this);
 
                 return;
             }
