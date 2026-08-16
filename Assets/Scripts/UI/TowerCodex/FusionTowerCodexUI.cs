@@ -217,7 +217,7 @@ namespace NorthLand.UI
 
                 if (material.Value > 1)
                 {
-                    builder.Append(" × ");
+                    builder.Append(" * ");
                     builder.Append(material.Value);
 
                 }
