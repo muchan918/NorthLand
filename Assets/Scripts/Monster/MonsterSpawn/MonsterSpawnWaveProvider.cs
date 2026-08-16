@@ -97,7 +97,7 @@ public sealed class MonsterSpawnWaveProvider :
 
     // 웨이브 번호(1-base)를 리스트 인덱스로 변환한다. 범위 밖이면 false.
     // 1-base ↔ 0-base 변환은 이 한 곳에만 둔다.
-    private bool TryGetWaveAsset(int waveNumber, out MonsterWaveAsset wave)
+    public bool TryGetWaveAsset(int waveNumber, out MonsterWaveAsset wave)
     {
         if (waveNumber < 1 || waveNumber > orderedWaves.Count)
         {
