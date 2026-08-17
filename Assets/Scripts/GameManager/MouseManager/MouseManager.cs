@@ -609,8 +609,14 @@ public class MouseManager : MonoBehaviour
 
     /// 코드에서 대상을 선택한다. 클릭과 같은 경로를 타므로 이전 선택 해제·패널 정리가 그대로 유지된다.
     /// 패널 UI를 직접 켜면 선택 상태가 어긋난다 — 반드시 이 메서드를 쓸 것.
+    ///
+    /// 클릭 경로는 Idle에서만 돈다(CommitClick ← UpdateIdle). 코드 선택은 그 전제 밖이라
+    /// 진행 중이던 배치·조준을 여기서 접는다 — BeginPlacement가 반대 방향으로 하는 것과 같은 규칙이다.
+    /// 그래서 _selected는 항상 null에서 시작하고, **같은 대상을 다시 넘겨도 중복 제거에 삼켜지지 않는다.**
     public void SelectExternally(ISelectable target)
     {
+        CancelInteractions();
+
         Select(target);
         OnPrimarySelect?.Invoke(target);
     }
