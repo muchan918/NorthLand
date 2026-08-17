@@ -607,6 +607,14 @@ public class MouseManager : MonoBehaviour
         OnPrimarySelect?.Invoke(null);
     }
 
+    /// 코드에서 대상을 선택한다. 클릭과 같은 경로를 타므로 이전 선택 해제·패널 정리가 그대로 유지된다.
+    /// 패널 UI를 직접 켜면 선택 상태가 어긋난다 — 반드시 이 메서드를 쓸 것.
+    public void SelectExternally(ISelectable target)
+    {
+        Select(target);
+        OnPrimarySelect?.Invoke(target);
+    }
+
     private void Select(ISelectable next)
     {
         if (_selected == next) return;

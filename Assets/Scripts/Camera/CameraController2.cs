@@ -55,6 +55,12 @@ public class CameraController2 : MonoBehaviour
     public float CurrentZoomSize =>
         cinemachineCamera != null ? cinemachineCamera.Lens.OrthographicSize : minZoomSize;
 
+    [SerializeField] private float zoomSmoothTime = 0.2f;
+
+    private bool isZooming;
+    private float zoomTarget;
+    private float zoomVelocity;
+
     [Header("미니맵 이동")]
     [SerializeField] private float minimapMoveSmoothTime = 0.15f;
 
@@ -112,6 +118,8 @@ public class CameraController2 : MonoBehaviour
 
     private void LateUpdate()
     {
+        UpdateTargetZoom();
+
         if (!isMinimapMoving || cameraTarget == null)
         {
             return;
@@ -154,6 +162,28 @@ public class CameraController2 : MonoBehaviour
         MoveKeyboard();
         MoveDrag();
         ZoomMouseWheel();
+    }
+
+    private void UpdateTargetZoom()
+    {
+        if (!isZooming || cinemachineCamera == null) return;
+
+        float next = Mathf.SmoothDamp(cinemachineCamera.Lens.OrthographicSize, zoomTarget,
+            ref zoomVelocity, zoomSmoothTime, Mathf.Infinity, Time.unscaledDeltaTime);
+
+        if (Mathf.Abs(next - zoomTarget) < 0.01f)
+        {
+            next = zoomTarget;
+            zoomVelocity = 0f;
+            isZooming = false;
+        }
+
+        // 렌즈 대입 방식은 ZoomMouseWheel(242~256행)과 똑같이 맞출 것.
+        var lens = cinemachineCamera.Lens;
+        lens.OrthographicSize = next;
+        cinemachineCamera.Lens = lens;
+
+        OnZoomChanged?.Invoke(next);
     }
 
     private void MoveKeyboard()
@@ -281,6 +311,16 @@ public class CameraController2 : MonoBehaviour
 
         minimapMoveTarget = ClampPosition(worldPosition);
         isMinimapMoving = true;
+    }
+
+    /// 지정한 오쏘 사이즈로 부드럽게 줌한다. 범위 밖 값은 clamp된다.
+    public void ZoomTo(float orthographicSize)
+    {
+        if (cinemachineCamera == null) return;
+
+        zoomTarget = Mathf.Clamp(orthographicSize, minZoomSize, maxZoomSize);
+        zoomVelocity = 0f;
+        isZooming = true;
     }
 
     public void MoveViewCenterTo(
