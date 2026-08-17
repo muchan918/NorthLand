@@ -270,6 +270,11 @@ public class CameraController2 : MonoBehaviour
             return;
         }
 
+        // 휠을 굴리면 진행 중인 대상 줌이 양보한다 — 이동이 WASD·드래그에 양보하는 것과 같은 규칙.
+        // 안 놓으면 Update에서 바꾼 배율을 같은 프레임 LateUpdate(UpdateTargetZoom)가 되돌려
+        // 굴리는 내내 고무줄처럼 잠긴다(목표에 못 닿아 종료 조건도 안 걸린다).
+        isZooming = false;
+
         float before = cinemachineCamera.Lens.OrthographicSize;
         float nextSize = Mathf.Clamp(before - scrollValue * zoomSpeed, minZoomSize, maxZoomSize);
 
