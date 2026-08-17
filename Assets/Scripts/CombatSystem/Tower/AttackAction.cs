@@ -199,9 +199,26 @@ namespace NorthLand.Combat
             // BoomerangFlight처럼 "발사 순간 회전을 방향으로 고정"하는 비행 방식은 PelletCount==1이어도
             // (부메랑이 그렇다, #298) 대상을 조준해야 한다 — 예전엔 PelletCount>1일 때만 계산해서
             // 산탄 아닌 단발 직선형 비행이 항상 월드 +Z로 나가는 버그가 있었다.
+            // ★ **Y 성분을 버리지 않는다.** 예전에는 `aimDir.y = 0f`로 조준을 완전 수평으로 만들었는데,
+            // 이 맵의 지형이 그것을 허용하지 않는다 — 타워가 설 수 있는 Grass 타일의 윗면
+            // (`BattleTile.AnchorPosition.y`)은 3.80이고 몬스터가 걷는 Road 타일 윗면은 0.80이다.
+            // 즉 타워는 **항상 3.00 높은 곳**에 서고, 사거리 버프 타일(`BT_Range_1/2/3`)에 올리면
+            // 앵커가 5.00·6.20·7.40으로 1.20씩 더 올라간다. 수평으로 쏘면 그 높이의 평면을 훑으므로
+            // 몬스터 콜라이더 상단보다 위를 지나가 **전탄이 빗나간다** — 실측(2026-08-18):
+            //
+            //   머즐 y      6.24(일반) / 7.44(Range_1) / 8.64(Range_2) / 9.84(Range_3)
+            //   Flying_Bat  콜라이더 상단 5.05 → 일반 타일에서도 100% 미스
+            //   Yellow·Red  상단 6.51·6.67 → 일반 타일은 정수리를 스치고, 버프 타일에서 100% 미스
+            //
+            // 대상을 획득해 발사까지 하면서 데미지만 0이라 원인이 드러나지 않는 자리였다.
+            // Y를 살리면 언덕 위에서 움푹한 길을 내려다보고 쏘는 실제 지형과 조준이 일치한다.
+            //
+            // ⚠ 이 값을 쓰는 것은 **`HitPosition`이다** — 그래서 그 필드가 조준의 정본이 됐다.
+            // 몬스터 프리팹에서 몸통 중심(콜라이더 안)을 가리키지 않으면 땅바닥이나 몸 아래를 쏜다.
+            // 미할당 시 `Enemy.Awake`가 피벗으로 폴백하는데, 피벗은 박쥐처럼 떠 있는 적에서는
+            // 자기 콜라이더 **밖**이다 — Homing/Chain도 같은 필드를 읽으므로 저작은 공통 전제다.
             Transform aimAt = target.HitPosition;
             Vector3 aimDir = aimAt != null ? aimAt.position - spawnPos : Vector3.forward;
-            aimDir.y = 0f;
             Quaternion baseRotation = aimDir.sqrMagnitude > 0.0001f
                 ? Quaternion.LookRotation(aimDir.normalized)
                 : Quaternion.identity;
@@ -213,6 +230,12 @@ namespace NorthLand.Combat
             {
                 // 부채꼴 균등 분할: -half ~ +half. 회전에 오프셋을 실어 보내므로 StraightFlight는
                 // 대상을 몰라도 그 방향 그대로 직진하기만 하면 된다(무상태 규칙 유지).
+                //
+                // 오프셋이 `baseRotation` **뒤에** 곱해지므로 조준축을 기준으로 한 좌우 분할이다 —
+                // 앙각이 실린 뒤에도 부채꼴이 조준선을 감싸는 원뿔로 유지된다. 대신 3발이 **같은
+                // 앙각을 공유**하므로 한 발은 한 높이에만 커밋된다. 지금 기하에서는 무해하다
+                // (박쥐 조준점 4.24 ≈ 레드그루미 4.24로 층 차이가 콜라이더 세로 폭보다 훨씬 작다)
+                // — 고도가 확연히 다른 적이 추가되면 그때 세로 판정 여유가 필요해진다.
                 float angle = pelletCount == 1 ? 0f : Mathf.Lerp(-half, half, i / (float)(pelletCount - 1));
                 Quaternion rotation = angle == 0f ? baseRotation : baseRotation * Quaternion.Euler(0f, angle, 0f);
 
