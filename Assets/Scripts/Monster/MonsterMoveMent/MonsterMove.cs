@@ -14,8 +14,13 @@ public class MonsterMove : MonoBehaviour, IRouteMovementAgent
     private readonly List<Vector3> route = new List<Vector3>();
     private int currentRouteIndex;
 
+    // 잔여 경로 거리 계산(#387). 경로 확정 시 누적을 한 번 만들어 두고 조회는 O(1)로 답한다.
+    private readonly RouteDistanceTracker routeDistance = new RouteDistanceTracker();
+
     public MovementMode SupportedMode => MovementMode.Ground;
     public bool HasRouteRemaining => currentRouteIndex < route.Count;
+
+    public float RemainingRouteDistance => routeDistance.Remaining(transform.position, route, currentRouteIndex);
     public bool CanMove => canMove;
     public bool IsStopped { get; set; }
 
@@ -117,10 +122,12 @@ public class MonsterMove : MonoBehaviour, IRouteMovementAgent
 
         if (!hasRoute)
         {
+            routeDistance.SetRoute(null);   // 이전 경로의 누적이 남아 잔여 거리를 거짓 보고하지 않게 한다
             return;
         }
 
         route.AddRange(routePoints);
+        routeDistance.SetRoute(route);
         SkipReachedPoints();
     }
 
