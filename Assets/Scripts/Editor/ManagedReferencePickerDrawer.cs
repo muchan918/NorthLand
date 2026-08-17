@@ -150,3 +150,10 @@ public sealed class ProjectileFlightDrawer : ManagedReferencePickerDrawer { }
 /// 기반 드로어가 그대로 동작한다 — `ResolveBaseType`이 리스트 요소에서는 요소 타입을 돌려준다.
 [CustomPropertyDrawer(typeof(HitEffect), useForChildren: true)]
 public sealed class HitEffectDrawer : ManagedReferencePickerDrawer { }
+
+/// 조준 정책 축(`TowerAsset.Targeting`)에 타입 피커를 붙인다(#387).
+///
+/// 정책 클래스들은 수치 필드가 없어서 펼쳐도 비어 있다 — 이 축에서 저작하는 것은 **종류 하나**뿐이고,
+/// 그 종류를 고르는 창구가 이 드롭다운이다.
+[CustomPropertyDrawer(typeof(TargetingPolicy), useForChildren: true)]
+public sealed class TargetingPolicyDrawer : ManagedReferencePickerDrawer { }

@@ -33,7 +33,7 @@
 | **BoxSelect** | Idle에서 좌드래그 임계 초과 — **누른 지점이 빈 곳** | 사각형 영역 선택(§5) | 버튼 뗌 |
 | **UnitDrag** | Idle에서 좌드래그 임계 초과 — **누른 지점이 `IDragHandle`** | 대상을 집어 끌고 다니다 놓는다(§5.4) | 버튼 뗌 |
 | **Placement** | `BeginPlacement()` | 고스트가 커서를 따라다니고 유효 위치에서 확정 | 확정 · 우클릭 |
-| **SkillTargeting** | `BeginSkillTargeting()` | 범위 인디케이터 표시, 전투 타일 위에서 시전 확정 | 시전 · 우클릭 |
+| **SkillTargeting** | `BeginSkillTargeting()` | 범위 인디케이터 표시, 전투 타일 위에서 시전 확정 | 시전 · 우클릭 · 런 종료(#391) |
 
 - `BoxSelect`·`UnitDrag`는 **Idle의 하위 상태**다 — 배치·조준 중에는 애초에 진입할 수 없다. 둘은 형제이며 진입 시점에 배타적으로 갈린다(§5.4).
 - 호버 추적은 **Idle과 UnitDrag에서** 한다. 나머지 모드에서는 툴팁·호버 하이라이트를 끈다. `UnitDrag`가 예외인 이유는 §5.4 — 들린 대상이 안 보이므로 호버가 조준의 유일한 단서다.

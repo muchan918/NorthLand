@@ -39,8 +39,14 @@ public class FlyingMonsterMove : MonoBehaviour, IRouteMovementAgent
     // 스턴 축은 속도 컴포저와 독립이다(StunGate 주석 참조).
     private readonly StunGate stunGate = new StunGate();
 
+    // 잔여 경로 거리 계산(#387). 공중 경로는 샘플링·고도 적용을 거친 뒤의 `route`가 실제 비행 경로이므로
+    // 그 목록을 그대로 잰다 — 지상 원본 경로로 재면 실제로 나는 거리와 어긋난다.
+    private readonly RouteDistanceTracker routeDistance = new RouteDistanceTracker();
+
     public MovementMode SupportedMode => MovementMode.Flying;
     public bool HasRouteRemaining => currentRouteIndex < route.Count;
+
+    public float RemainingRouteDistance => routeDistance.Remaining(transform.position, route, currentRouteIndex);
 
     public bool CanMove => canMove;
 
@@ -111,6 +117,8 @@ public class FlyingMonsterMove : MonoBehaviour, IRouteMovementAgent
         {
             hasRoute = false;
 
+            routeDistance.SetRoute(null);   // 이전 경로의 누적이 남아 잔여 거리를 거짓 보고하지 않게 한다
+
             Debug.LogError($"[{name}] 공중 이동 경로가 비어 있습니다.",this);
 
             return;
@@ -136,6 +144,8 @@ public class FlyingMonsterMove : MonoBehaviour, IRouteMovementAgent
         }
 
         hasRoute = route.Count > 0;
+
+        routeDistance.SetRoute(route);
 
         if (!hasRoute)
         {

@@ -289,6 +289,38 @@ MonoBehaviour:
     m_Metadata:
       m_Items:
       - rid: 5763336045537525835
+  - m_Id: 13826005721063424
+    m_Localized: First
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13826005754617856
+    m_Localized: Last
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13826005754617857
+    m_Localized: Close
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13826005754617858
+    m_Localized: Strong
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13826005754617859
+    m_Localized: Weak
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13828415663284224
+    m_Localized: Stats
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13828415701032960
+    m_Localized: Targeting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13828415705227264
+    m_Localized: Can Merge
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:
