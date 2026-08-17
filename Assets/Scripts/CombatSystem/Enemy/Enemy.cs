@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace NorthLand.Combat
 {
-    public class Enemy : MonoBehaviour, IAttacker, IDamageable
+    public class Enemy : MonoBehaviour, IAttacker, IDamageable, ITargetProfile
     {
         [SerializeField] EnemyAsset data;
         [SerializeField] Transform hitPosition;
@@ -147,6 +147,13 @@ namespace NorthLand.Combat
         // HpRatio·executeThreshold(처형 표식)·Heal·HP UI가 전부 이 프로퍼티를 경유하므로
         // 곱셈을 분산시키면 그중 하나를 빠뜨렸을 때 조용히 어긋난다.
         public float MaxHp => Stat != null ? Stat.MaxHp * hpScale : 0f;
+
+        /// ITargetProfile — 타워 조준 정책이 읽는 경로 진행도(#387). `CurrentHp`/`MaxHp`는 위를 그대로 쓴다.
+        ///
+        /// 경로 이동 컴포넌트가 없으면 **NaN**이다. 0(=종점 도달)으로 대신하면 경로가 없다는 이유만으로
+        /// "앞선 적" 조준에 항상 1순위로 뽑힌다 — 모른다는 사실이 값으로 위장되는 자리다.
+        public float RemainingRouteDistance =>
+            routeMovement != null ? routeMovement.RemainingRouteDistance : float.NaN;
 
         public event Action<float, float> OnHpChanged;
 

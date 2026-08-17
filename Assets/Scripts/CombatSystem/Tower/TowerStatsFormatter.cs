@@ -48,6 +48,14 @@ namespace NorthLand.Combat
                 ? $"Ramp({stat}): {stacks}/{maxStacks} ×{multiplier:0.##}"
                 : null;
 
+        /// 조준 방식의 표시명(#387). 정책은 키만 알고, 로케일 해석은 여기서 한다.
+        ///
+        /// ⚠ 이 값은 **조회 시점 스냅샷**이라 로케일이 바뀌어도 자동 갱신되지 않는다
+        /// (`LocalizationHelper` 주석의 pull 경로 한계 — 정보 패널 전체가 같은 트레이드오프다, #153).
+        /// 패널을 다시 열면 새 로케일로 해석된다.
+        public static string TargetingName(TargetingPolicy policy)
+            => policy == null ? string.Empty : Label(policy.DisplayNameKey);
+
         /// 연발 한 줄(#336). 1발이면 null — 대부분의 타워에서 줄이 늘지 않는다.
         public static string BuildBurstLine(int burstCount)
             => burstCount > 1 ? $"Burst: ×{burstCount}" : null;

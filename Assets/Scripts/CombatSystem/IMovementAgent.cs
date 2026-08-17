@@ -56,6 +56,10 @@ namespace NorthLand.Combat
 
         bool HasRouteRemaining { get; }
 
+        // 종점(본진)까지 남은 **경로를 따라 잰** 길이(#387). "앞선 적/뒤처진 적" 조준 정책의 판정 근거다.
+        // 계산은 RouteDistanceTracker가 소유한다 — 지상·공중 구현이 같은 규칙을 각자 쓰지 않게 한다.
+        float RemainingRouteDistance { get; }
+
         event Action RouteCompleted;
 
         void SetRoute(IReadOnlyList<Vector3> routePoints);
