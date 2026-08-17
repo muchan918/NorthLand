@@ -46,8 +46,9 @@ public class CameraController2 : MonoBehaviour
     /// 그래서 계약은 "붙을 때 <see cref="CurrentZoomSize"/>로 pull, 바뀌면 이 이벤트로 push"다
     /// (<c>ManagementController.OnChanged</c>와 같은 계보).<br/>
     /// <br/>
-    /// ⚠ 지금은 마우스 휠(<see cref="ZoomMouseWheel"/>)이 유일한 발행처다. 부드러운 줌·대상 줌인 같은
-    /// 경로를 추가하면 그쪽에서도 발행해야 소비처가 어긋나지 않는다.
+    /// ⚠ 발행처가 <b>둘</b>이다 — 마우스 휠(<see cref="ZoomMouseWheel"/>)과 대상 줌(<see cref="UpdateTargetZoom"/>).
+    /// 세이브 복원처럼 <c>Lens</c>를 직접 쓰는 경로를 더 추가하면 그쪽에서도 발행해야 소비처가 어긋나지 않는다.
+    /// 발행이 두 곳에 인라인으로 복제돼 있어 이 경고가 유일한 방어다(WL-024의 <c>ApplyZoom</c> seam이 아직 없다).
     /// </summary>
     public event Action<float> OnZoomChanged;
 
@@ -376,10 +377,15 @@ public class CameraController2 : MonoBehaviour
         isMinimapMoving = true;
     }
 
+    // 대상 추종 모션(이동+줌)을 함께 내린다. 줌만 남기면 보상·설정 패널이 열렸을 때
+    // 이동은 멎는데 줌만 계속 빨려 들어간다 — UpdateTargetZoom이 unscaledDeltaTime이라 timeScale=0에서도 돈다.
     private void CancelMinimapMove()
     {
         isMinimapMoving = false;
         minimapMoveVelocity = Vector3.zero;
+
+        isZooming = false;
+        zoomVelocity = 0f;
 
         if (cameraTarget != null)
         {

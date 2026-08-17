@@ -6021,6 +6021,7 @@ GameObject:
   - component: {fileID: 1051704683}
   - component: {fileID: 1051704682}
   - component: {fileID: 1051704681}
+  - component: {fileID: 1051704685}
   m_Layer: 5
   m_Name: BuildingShortcutPanel
   m_TagString: Untagged
@@ -6079,6 +6080,7 @@ MonoBehaviour:
   - focus: {fileID: 153262722}
     button: {fileID: 1811207357}
   _camera: {fileID: 522335599}
+  _group: {fileID: 1051704685}
   _tooltipPanel: {fileID: 1238433380}
   _tooltipRect: {fileID: 1238433381}
   _tooltipText: {fileID: 271494163}
@@ -6148,6 +6150,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1051704679}
   m_CullTransparentMesh: 1
+--- !u!225 &1051704685
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1051704679}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &1061213898
 GameObject:
   m_ObjectHideFlags: 0

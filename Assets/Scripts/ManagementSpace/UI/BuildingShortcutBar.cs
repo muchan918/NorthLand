@@ -16,6 +16,9 @@ public class BuildingShortcutBar : MonoBehaviour
     [SerializeField] private Entry[] _entries;
     [SerializeField] private CameraController2 _camera;
 
+    // 밤에 통째로 내리는 용도. SetActive가 아닌 이유는 ApplyPhase 주석 참고.
+    [SerializeField] private CanvasGroup _group;
+
     [Header("툴팁")]
     [SerializeField] private GameObject _tooltipPanel;
     [SerializeField] private RectTransform _tooltipRect;
@@ -37,6 +40,18 @@ public class BuildingShortcutBar : MonoBehaviour
             entry.button.interactable = entry.focus != null;
             entry.button.onClick.AddListener(() => Focus(entry));
         }
+
+        if (DayNightManager.Instance == null)
+        {
+            Debug.LogError("[바로가기] DayNightManager를 찾을 수 없습니다 — 밤에도 패널이 열려 있게 됩니다.", this);
+            return;
+        }
+
+        // OnDayStart는 부트스트랩(1일차)에도 오므로 낮 신호로 쓴다(PhasePanelSwitcher와 같은 구독).
+        DayNightManager.Instance.OnDayStart += ShowDay;
+        DayNightManager.Instance.OnDayToNight += ShowNight;
+
+        ApplyPhase(DayNightManager.Instance.CurrentPhase == DayNightManager.Phase.Day);
     }
 
     private void OnDestroy()
@@ -45,6 +60,30 @@ public class BuildingShortcutBar : MonoBehaviour
         {
             if (entry.button != null) entry.button.onClick.RemoveAllListeners();
         }
+
+        if (DayNightManager.Instance == null) return;
+
+        DayNightManager.Instance.OnDayStart -= ShowDay;
+        DayNightManager.Instance.OnDayToNight -= ShowNight;
+    }
+
+    private void ShowDay() => ApplyPhase(true);
+
+    private void ShowNight() => ApplyPhase(false);
+
+    // 밤에는 경영 공간에 갈 수 없다 — 전투 중 카메라가 마을로 순간이동하는 것을 막는다(GDD 밤 순간이동 방지).
+    // SetActive가 아니라 CanvasGroup인 이유: 이 스크립트가 그 패널에 붙어 있어, 오브젝트를 끄면 아침에 스스로 켜지 못한다.
+    private void ApplyPhase(bool day)
+    {
+        if (_group != null)
+        {
+            _group.alpha = day ? 1f : 0f;
+            _group.interactable = day;
+            _group.blocksRaycasts = day; // false면 EventTrigger의 PointerEnter 자체가 오지 않는다
+        }
+
+        // 툴팁은 UICanvas 직속이라 패널과 함께 사라지지 않는다 — 밤 전환 순간 커서가 버튼 위였으면 남는다.
+        if (!day) HideTooltip();
     }
 
     private void LateUpdate()
@@ -94,14 +133,14 @@ public class BuildingShortcutBar : MonoBehaviour
         _tooltipRect.position = pos;
     }
 
-    // 언어가 바뀌어도 맞도록 호버할 때마다 조회한다.
+    // 언어가 바뀌어도 맞도록 호버할 때마다 로컬라이즈를 다시 탄다.
+    // 테이블 조회는 BuildingInfo.Awake가 Data에 캐시해 둔 것을 쓴다 — 여기서 또 Get 체인을 타지 않는다.
     private static string ResolveName(BuildingFocusPoint focus)
     {
         BuildingAsset asset = focus != null && focus.Building != null ? focus.Building.Asset : null;
         if (asset == null) return string.Empty;
 
-        BuildingTable table = DataTableManager.Get<BuildingTable>("BuildingTable");
-        BuildingData data = table != null ? table.Get(asset.BuildingID) : null;
+        BuildingData data = asset.Data;
 
         return data != null
             ? LocalizationHelper.Get(LocalizationHelper.k_BuildingsTable, data.NameKey)
