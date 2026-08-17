@@ -36,6 +36,17 @@ public class TowerAsset : ScriptableObject
     [Header("공격")]
     public AttackFields Attack;
 
+    // ── 조준 정책 (#387) ────────────────────────────────────────────────────────
+    // "사거리 안의 여러 적 중 누구를 겨누는가". **비워두면 앞선 적**(본진에 가장 가까운 적)이다 —
+    // 누수 방지가 타워의 존재 이유라 그것이 장르 기본값이다. 예전 거동(최근접)을 원하는 타워는
+    // `NearestTargeting`을 명시적으로 고를 것. 새 방식이 필요하면 TargetingPolicy 파생 1개를 추가한다.
+    //
+    // `Attack` 안이 아니라 여기 있는 이유: 조준은 공격 액션이 아니라 **타워**의 성질이다.
+    // 포탑 조준 연출(TowerTurretAim)도 같은 값을 따라가야 겨눈 적과 맞는 적이 갈라지지 않는다
+    // — 그래서 소비 지점이 `Tower.AcquireTarget` 하나로 유지된다(#336).
+    [Header("조준")]
+    [SerializeReference] public NorthLand.Combat.TargetingPolicy Targeting;
+
     [Header("명중")]
     public ImpactKind Impact;
     public float SplashRadius;          // Impact = Area

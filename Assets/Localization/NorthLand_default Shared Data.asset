@@ -263,6 +263,38 @@ MonoBehaviour:
     m_Key: lab.effect.cooldown
     m_Metadata:
       m_Items: []
+  - m_Id: 13826005721063424
+    m_Key: game.tower.targeting.first
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13826005754617856
+    m_Key: game.tower.targeting.last
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13826005754617857
+    m_Key: game.tower.targeting.nearest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13826005754617858
+    m_Key: game.tower.targeting.highest_hp
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13826005754617859
+    m_Key: game.tower.targeting.lowest_hp
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13828415663284224
+    m_Key: game.tower.info.stats
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13828415701032960
+    m_Key: game.tower.info.targeting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13828415705227264
+    m_Key: game.tower.info.merge
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
