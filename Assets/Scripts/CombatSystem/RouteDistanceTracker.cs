@@ -32,15 +32,25 @@ namespace NorthLand.Combat
 
         /// 현재 위치에서 종점까지 남은 경로 길이 = (다음 웨이포인트까지 직선거리) + (그 지점부터의 누적).
         ///
-        /// 완주했거나 경로가 없으면 0이다 — 종점에 닿기 직전이라는 뜻이므로 "가장 앞선 적"으로
-        /// 취급되는 것이 맞다. (경로 자체를 갖지 못하는 대상은 여기까지 오지 않는다 — 그쪽은
-        /// `ITargetProfile.RemainingRouteDistance`가 NaN을 낸다.)
+        /// ⚠ **"완주"와 "경로를 모른다"를 같은 값으로 내면 안 된다.** 둘 다 0으로 냈다가 잡은 버그다 —
+        /// `FirstTargeting`의 점수가 `-잔여거리`라 **0은 실제 후보(전부 음수) 전부를 이기는 최고점**이다.
+        /// 경로가 비어 있는 몬스터(두 mover 모두 빈 경로 분기가 있고, 공중은 `LogError`까지 달려 있을
+        /// 만큼 실제로 발생한다) 한 마리가 살아 있는 동안 맵의 **모든 타워가 선두 대신 그 한 마리에 붙는다.**
+        /// 폴백(`Tower.FindTarget`)은 후보 **전원**이 순위 밖일 때만 도는 all-or-nothing이라 걸러주지 못한다.
+        ///
+        ///   0    = 완주(종점 도달) — "가장 앞선 적"이 맞다
+        ///   NaN  = 경로를 모른다   — 순위 밖. 정책이 `TryGetRouteDistance`에서 걸러낸다
         public float Remaining(Vector3 position, IReadOnlyList<Vector3> route, int currentIndex)
         {
-            if (route == null || currentIndex < 0 || currentIndex >= route.Count) return 0f;
+            // 경로 자체가 없다 = 진행도를 말할 수 없다.
+            if (route == null || route.Count == 0 || currentIndex < 0) return float.NaN;
 
-            // SetRoute를 거치지 않은 경로(방어) — 누적을 모르면 순서를 만들 수 없으니 0으로 둔다.
-            if (currentIndex >= suffix.Count) return 0f;
+            // 완주. **`suffix.Count` 검사보다 먼저** 와야 한다 — 완주는 그쪽 조건도 함께 만족하므로
+            // 순서가 바뀌면 종점에 닿은 적이 "모름"으로 빠진다.
+            if (currentIndex >= route.Count) return 0f;
+
+            // 경로는 있는데 누적이 없다(SetRoute 미호출) — 순서를 만들 수 없으니 모른다고 답한다.
+            if (currentIndex >= suffix.Count) return float.NaN;
 
             return Vector3.Distance(position, route[currentIndex]) + suffix[currentIndex];
         }

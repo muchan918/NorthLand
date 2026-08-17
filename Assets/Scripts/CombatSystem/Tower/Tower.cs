@@ -309,6 +309,10 @@ namespace NorthLand.Combat
 
             // 정책이 순위를 못 매기는 후보(경로·체력 정보가 없는 대상)만 남았을 때의 폴백.
             // 점수 축이 다른 값을 한 비교에 섞지 않으려고 따로 추린다 — 근거는 `TargetingPolicy.Score`.
+            //
+            // ⚠ **도달 조건**: 후보 **전원**이 순위 밖일 때만 쓰인다(all-or-nothing). 경로를 모르는 적이
+            // 섞여 있으면 그 적은 영영 선택되지 않는데, 축이 다른 값을 견주지 않기 위한 의도된 선택이다.
+            // 실제로 도는 경우는 경로가 없는 적만 사거리에 있는 상황 — 죽은 코드가 아니다.
             IDamageable nearest = null;
             float nearestSqrDistance = float.MaxValue;
 
@@ -443,6 +447,20 @@ namespace NorthLand.Combat
                 Debug.LogWarning(
                     $"[Tower] {name}({asset.TowerID}): Actions가 비어 있어 아무 동작도 하지 않습니다 — " +
                     "프리팹에 TowerAction이 담겼는지, `Assets/Imported/`가 최신인지 확인하세요.", this);
+            }
+
+            // ⚠ **저작했는데 아무 일도 일어나지 않는 조합의 유일한 신호다.** `Targeting`은 모든 타워 SO의
+            // 인스펙터에 뜨지만, 실제로 그 값을 읽는 것은 `AcquireTarget`을 경유하는 공격 액션뿐이다 —
+            // 빔(자체 잠금)·오라(대상 개념 없음) 타워에 저작하면 경고도 로그도 없이 무시된다.
+            //
+            // 인게임 전환 행은 `Has<AttackAction>()`으로 아예 띄우지 않아 막았지만(OnSelected), SO 필드는
+            // 가릴 수단이 없다. 밸런싱 단계에서 "정책이 안 먹는다"로 보여 시스템 전체를 의심하게 되는 자리라
+            // 저작 시점에 드러낸다. 근본 해소는 WL-178(빔이 정책으로 빈 슬롯을 채우게 하는 것)이다.
+            if (asset.Targeting != null && !Has<AttackAction>())
+            {
+                Debug.LogWarning(
+                    $"[Tower] {name}({asset.TowerID}): 조준 정책({asset.Targeting.GetType().Name})이 저작됐지만 " +
+                    "AttackAction이 없어 무시됩니다 — 빔·오라 타워는 자체 대상 선정을 씁니다(WL-178).", this);
             }
         }
 

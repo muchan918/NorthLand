@@ -147,9 +147,8 @@ namespace NorthLand.Combat
             // 연발 도중이면 사이클 첫 발의 대상을 그대로 쓰고, 사이클 경계에서만 호스트에게 다시 묻는다
             // (#387). 대상 **선정**은 여전히 호스트가 소유한다(`Tower.AcquireTarget`) — 포탑 조준 연출과
             // 같은 정의를 쓰기 위해서다. 여기가 정하는 것은 "누구를"이 아니라 "언제 다시 묻는가"뿐이다.
-            IDamageable target = burstRemaining > 0 && Owner.IsTargetValid(burstTarget, Range)
-                ? burstTarget
-                : Owner.AcquireTarget();
+            bool reuseBurstTarget = burstRemaining > 0 && Owner.IsTargetValid(burstTarget, Range);
+            IDamageable target = reuseBurstTarget ? burstTarget : Owner.AcquireTarget();
 
             if (target == null)
             {
@@ -162,14 +161,18 @@ namespace NorthLand.Combat
 
             if (!TryAttack(target)) return;
 
-            // 사이클의 첫 발이면 남은 발수를 채우고 대상을 붙든다. 이어지는 발이면 하나 줄인다.
+            // 사이클의 첫 발이면 남은 발수를 채우고, 이어지는 발이면 하나 줄인다.
             // BurstCount 기본 1이면 첫 발에서 0이 되어 곧바로 Interval로 떨어진다 = 기존 거동.
-            if (burstRemaining <= 0)
-            {
-                burstRemaining = Mathf.Max(1, fields.BurstCount) - 1;
-                burstTarget = target;
-            }
+            if (burstRemaining <= 0) burstRemaining = Mathf.Max(1, fields.BurstCount) - 1;
             else burstRemaining--;
+
+            // 붙들던 대상을 못 쓴 발은 **새로 고른 대상을 남은 발이 이어받는다.**
+            // 이 대입이 첫 발 분기 안에만 있으면, 연발 도중 대상이 죽었을 때 죽은 참조가 사이클 끝까지
+            // 남아 남은 발이 매번 따로 재조준한다 — "버스트 = 같은 조준"이 대상 사망 시에만 깨진다.
+            //
+            // 사이클을 접는 쪽(burstRemaining = 0)이 아니라 이어받는 쪽을 고른 이유: 접으면 적을 죽인
+            // 순간 남은 발이 사라지고 정규 간격으로 돌아가, **잘 죽인 것이 손해가 된다.**
+            if (!reuseBurstTarget) burstTarget = target;
 
             // 사이클이 끝났으면 붙들던 대상을 놓는다 — 다음 첫 발은 정책이 새로 고른다.
             if (burstRemaining <= 0) burstTarget = null;
