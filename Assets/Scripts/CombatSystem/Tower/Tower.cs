@@ -5,7 +5,7 @@ using CombatSpace;
 
 namespace NorthLand.Combat
 {
-    public class Tower : MonoBehaviour, IAttacker, ISelectable
+    public class Tower : MonoBehaviour, IAttacker, ISelectable, ITargetingSelector
     {
         [SerializeField] TowerAsset data;
 
@@ -205,9 +205,45 @@ namespace NorthLand.Combat
         [NonSerialized] int acquiredFrame = -1;
         [NonSerialized] Collider[] acquireBuffer;
 
-        /// 사거리 안에서 가장 가까운 적. **프레임당 실제 조회는 1회**고 같은 프레임의 이후 호출은
-        /// 캐시를 돌려준다 — 소비처들이 서로의 호출 주기를 몰라도 되게 하는 장치다.
-        /// (발사 프레임에는 액션이 Update에서 먼저 계산하고, 포탑 연출이 LateUpdate에서 그 값을 받는다.)
+        // ── 조준 정책 (#387) ────────────────────────────────────────────────
+        // 이 **인스턴스**의 조준 방식 덮어쓰기. null = SO 저작값을 그대로 쓴다.
+        //
+        // ★ 인게임 전환을 `data.Targeting`에 직접 쓰면 안 되는 이유는 `activeKinds`와 같은 축이다:
+        //   ① SO 오염 — TowerAsset은 그 종류의 **모든 인스턴스가 공유**한다. 하나를 바꾸면 필드에 깔린
+        //      같은 타워가 전부 함께 바뀐다(플레이어는 누른 타워 하나만 바뀔 것으로 기대한다).
+        //   ② 영구 기록 — `[SerializeReference]`라 에디터 플레이 모드에서 누른 버튼이 `.asset` 파일에
+        //      그대로 저장된다. 테스트하다 누른 값이 저작값이 되어 커밋에 섞인다.
+        // 런타임 상태이므로 직렬화하지 않는다(액션 규칙 ③과 같은 축).
+        [NonSerialized] TargetingPolicy targetingOverride;
+
+        /// 이 타워가 실제로 쓰는 조준 정책. **인게임 전환 > SO 저작값 > 기본(앞선 적)** 순으로 이긴다.
+        public TargetingPolicy Targeting =>
+            targetingOverride ?? (data != null ? data.Targeting : null) ?? TargetingPolicy.Default;
+
+        // ── ITargetingSelector (정보 패널이 쓰는 창구) ──────────────────────
+        public string TargetingName => Targeting.DisplayName;
+
+        public void CycleTargeting(int step)
+        {
+            targetingOverride = TargetingPolicy.Cycle(Targeting, step);
+
+            // 이번 프레임의 캐시를 버려 새 정책으로 곧바로 다시 고르게 한다. 다음 프레임이면 어차피
+            // 새로 스캔하지만, 버튼을 누른 프레임에 포탑이 옛 대상을 향한 채로 한 번 더 그려지는 것을 막는다.
+            acquiredFrame = -1;
+            acquired = null;
+        }
+
+        /// 이 타워가 지금 겨누는 적 — **정책이 고른 1위를 매번 돌려준다**. 프레임당 실제 조회는 1회고
+        /// 같은 프레임의 이후 호출은 캐시를 받는다(소비처들이 서로의 호출 주기를 몰라도 되게 하는 장치).
+        ///
+        /// ★ **대상을 죽을 때까지 붙들지 않는 이유**(#387에서 한 번 그렇게 했다가 되돌렸다):
+        ///   붙들면 조준 정책이 "재선정하는 순간"에만 의미를 갖는다. `뒤처진 적`처럼 새 적이 스폰될
+        ///   때마다 1위가 바뀌는 정책은 사실상 동작하지 않게 되어, 플레이어가 고른 우선순위가 장식이 된다.
+        ///   (`앞선 적`은 선두가 계속 선두라 증상이 안 보여서 더 나쁘다 — 정책마다 다르게 고장 난다.)
+        ///
+        ///   대신 **연발 한 사이클 동안의 고정은 `AttackAction`이 소유한다.** 버스트는 "같은 조준으로
+        ///   시간을 두고 여러 발"이라 그 안에서 대상이 갈리면 정의가 깨지는데, 그 경계를 아는 것은
+        ///   발사 리듬을 굴리는 액션뿐이다. 호스트는 "지금 1위가 누구인가"만 답한다.
         ///
         /// 사거리는 원장 합성값(`AttackRange`)이라 사거리 버프가 조준 범위에도 그대로 반영된다.
         /// 공격 액션이 없으면 0이 되어 조회 없이 곧바로 null이다.
@@ -216,11 +252,33 @@ namespace NorthLand.Combat
             if (acquiredFrame == Time.frameCount) return acquired;
 
             acquiredFrame = Time.frameCount;
-            acquired = FindNearestEnemy(AttackRange);
+            acquired = FindTarget(AttackRange);
             return acquired;
         }
 
-        IDamageable FindNearestEnemy(float range)
+        /// 이 대상을 계속 겨눠도 되는가. 연발 사이클 동안 대상을 붙드는 `AttackAction`이 쓴다.
+        ///
+        /// ⚠ **파괴 검사가 `IsDead`보다 먼저다.** 본진에 도달한 적은 `Die()`를 거치지 않고 파괴되므로
+        /// (`Enemy.HandleRouteCompleted`) `IsDead`는 false인 채 GameObject만 사라진다. 게다가 인터페이스
+        /// 참조에는 Unity의 `==` 오버로드가 걸리지 않아 `target == null`로도 잡히지 않는다 —
+        /// 그래서 Transform(`HitPosition`)으로 검사한다. 이 순서가 아니면 연발 도중 대상이 본진에
+        /// 닿아 사라졌을 때 남은 발이 허공을 향해 나간다.
+        internal bool IsTargetValid(IDamageable target, float range)
+        {
+            if (target == null) return false;
+
+            Transform hit = target.HitPosition;
+            if (hit == null) return false;   // Unity == 오버로드: 파괴된 대상이 여기서 걸린다
+
+            if (target.IsDead) return false;
+
+            // ⚠ 스캔은 콜라이더 위치로 거리를 재는데 여기서는 `HitPosition`을 쓴다(붙들고 있는 대상의
+            //   콜라이더를 다시 얻을 경로가 없다). 사거리 경계에서 두 값이 갈리면 연발이 한 발 일찍
+            //   끊길 뿐이라 무해하지만, 기준 통일은 WL-122(범위 판정 원점) 본안에서 함께 볼 것.
+            return (hit.position - transform.position).sqrMagnitude <= range * range;
+        }
+
+        IDamageable FindTarget(float range)
         {
             if (range <= 0f) return null;
 
@@ -231,17 +289,28 @@ namespace NorthLand.Combat
 
 #if UNITY_EDITOR
             // ⚠ 포화의 대가가 여기서는 특히 크다. `Physics.Overlap*NonAlloc`은 버퍼가 차면 나머지를
-            // 말없이 버리는데, 이 함수는 그 결과에서 **최근접 1기**를 고른다 — 실제 최근접이 버려지면
+            // 말없이 버리는데, 이 함수는 그 결과에서 **정책 1위 1기**를 고른다 — 진짜 1위가 버려지면
             // 포탑 조준과 실제 사격이 **함께** 엉뚱한 적으로 간다. "이 타워가 겨누는 대상"의 단일 출처가
             // 되면서 오차의 파급 범위가 넓어진 자리다(밀집 웨이브는 47마리까지 간다).
+            //
+            // 대상 고정(#387)이 들어오면서 이 누락은 **더 오래 간다** — 예전에는 다음 프레임 재조회가
+            // 사실상 다시 뽑았지만, 이제 잘못 고른 대상을 죽을 때까지 물고 있는다.
             // 크기 산정 근거 합의는 WL-170 본안이고, 여기서는 조용한 누락을 드러내는 것까지만 한다.
             if (count == acquireBuffer.Length)
                 Debug.LogWarning($"[Tower] {name}: 대상 탐색 버퍼 포화({count}) — 초과분이 누락되어 " +
-                                 $"실제 최근접이 아닌 적을 겨눌 수 있습니다. 사거리={range:0.#}", this);
+                                 $"정책이 고른 것과 다른 적을 겨눌 수 있습니다. 사거리={range:0.#}", this);
 #endif
 
-            IDamageable closest = null;
-            float closestSqrDistance = float.MaxValue;
+            // 인게임 전환 > SO 저작값 > 기본(앞선 적). 저작이 비면 전부 기본으로 떨어진다 — 의도된 거동 변경.
+            TargetingPolicy policy = Targeting;
+
+            IDamageable best = null;
+            float bestScore = float.NegativeInfinity;
+
+            // 정책이 순위를 못 매기는 후보(경로·체력 정보가 없는 대상)만 남았을 때의 폴백.
+            // 점수 축이 다른 값을 한 비교에 섞지 않으려고 따로 추린다 — 근거는 `TargetingPolicy.Score`.
+            IDamageable nearest = null;
+            float nearestSqrDistance = float.MaxValue;
 
             for (int i = 0; i < count; i++)
             {
@@ -251,14 +320,22 @@ namespace NorthLand.Combat
                 if (damageable.Faction == Faction) continue;
 
                 float sqrDistance = (hit.transform.position - origin).sqrMagnitude;
-                if (sqrDistance < closestSqrDistance)
+                if (sqrDistance < nearestSqrDistance)
                 {
-                    closestSqrDistance = sqrDistance;
-                    closest = damageable;
+                    nearestSqrDistance = sqrDistance;
+                    nearest = damageable;
+                }
+
+                // 프로필은 경로를 따라 오는 적만 가진다(병사·본진 등은 null) — 정책이 알아서 처리한다.
+                float score = policy.Score(new TargetCandidate(damageable, damageable as ITargetProfile, sqrDistance));
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    best = damageable;
                 }
             }
 
-            return closest;
+            return best ?? nearest;
         }
 
         /// 지금이 전투 시간(밤)인가. **호스트가 이미 계산해 둔 값을 그대로 공개한다** — 연출 컴포넌트가
@@ -277,6 +354,10 @@ namespace NorthLand.Combat
 
             // 풀링 등으로 재활성화됐을 때 버프가 고착되지 않도록 원장을 비운다(PR#115 리뷰 지적).
             stats.Clear();
+
+            // 파괴된 적을 가리키는 참조를 비활성 상태로 들고 있지 않게 한다(프레임 캐시라 기능상
+            // 영향은 없지만, 풀링으로 오래 잠들어 있는 타워가 지난 웨이브의 적을 붙들 이유가 없다).
+            acquired = null;
         }
 
         void Register()
@@ -339,6 +420,10 @@ namespace NorthLand.Combat
             // ⚠ OnDisable/OnEnable 왕복에서는 **지우지 않는다** — 합성 커맨드의 Release/Reoccupy가
             //   그 경로를 쓰므로, 지우면 롤백된 합성 결과가 효과를 잃는다.
             activeKinds = null;
+
+            // 조준 전환도 같이 버린다 — 다른 종류로 재조립된 타워가 이전 정체성에서 고른 조준을
+            // 물고 있으면, 플레이어가 만지지도 않은 새 타워가 SO 저작값과 다르게 동작한다.
+            targetingOverride = null;
 
             // 액션을 만들지 않는다 — 프리팹에 이미 담겨 있다. 예전에는 여기서 TowerBehaviourFactory가
             // SO의 TowerType을 보고 AddComponent로 조립하고, 새 SO에서 빠진 컴포넌트를 다시 떼어냈다
@@ -420,7 +505,10 @@ namespace NorthLand.Combat
                 return;
             }
 
-            TowerInfoUI.Instance.ShowInfo(data.Data, BuildStatsText());
+            // 조준 전환 행은 **`AcquireTarget`이 실제로 거동을 좌우하는 타워에만** 넘긴다.
+            // 오라 전용 타워에 조작을 띄우면 눌러도 아무 일이 없고, 빔 타워는 자체 탐색을 쓴다(WL-178).
+            // 안 되는 조작을 보여주는 쪽이 아예 없는 것보다 나쁘다.
+            TowerInfoUI.Instance.ShowInfo(data.Data, BuildStatsText(), Has<AttackAction>() ? this : null);
             ShowRangeCircle();
         }
 

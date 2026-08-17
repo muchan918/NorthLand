@@ -28,6 +28,15 @@ namespace NorthLand.Combat
         // 이번 공격 사이클에서 아직 남은 연발 수(#336). 0 = 사이클 종료(다음 발이 새 사이클의 첫 발).
         [NonSerialized] int burstRemaining;
 
+        // 이번 연발 사이클이 붙들고 있는 대상(#387). 사이클 밖에서는 null이다.
+        //
+        // ★ 대상 고정의 **유일한 소유자**다. 호스트(`Tower.AcquireTarget`)는 "지금 정책 1위가 누구인가"만
+        //   답하고 아무것도 붙들지 않는다 — 붙들면 조준 정책이 재선정 순간에만 의미를 갖게 되어
+        //   `뒤처진 적`처럼 1위가 자주 바뀌는 정책이 사실상 죽는다. 반대로 버스트 안에서까지 매 발
+        //   다시 고르면 "같은 조준으로 시간을 두고 여러 발"이라는 버스트의 정의가 깨진다.
+        //   그 경계(사이클의 시작과 끝)를 아는 것은 발사 리듬을 굴리는 여기뿐이라 고정도 여기 산다.
+        [NonSerialized] IDamageable burstTarget;
+
         // 이 타워가 애초에 쏠 수 있는가(저작이 갖춰졌는가). 조립 시 1회 판정한다 —
         // 판정 재료(수치·탄환 프리팹·비행 부품)가 전부 SO 값이라 Initialize 사이에 바뀌지 않는다.
         [NonSerialized] bool canFire;
@@ -60,6 +69,7 @@ namespace NorthLand.Combat
             zone = asset.GroundZone;
             cooldownTimer = 0f;
             burstRemaining = 0;
+            burstTarget = null;
 
             // TryAttack이 실패하는 조건과 **같은 것**을 미리 판정해 둔다(아래 Tick 주석 참조).
             canFire = fields != null && fields.ProjectilePrefab != null && flight != null;
@@ -69,6 +79,10 @@ namespace NorthLand.Combat
         {
             // 외부에 남기는 상태가 없다(투사체는 발사 후 독립). 쿨다운만 초기화해 재활성화 시 즉시 사격 가능.
             cooldownTimer = 0f;
+
+            // 붙들던 대상은 놓는다 — 다음 밤에 이미 사라진 적을 물고 시작하지 않게(#387).
+            burstRemaining = 0;
+            burstTarget = null;
         }
 
         // 정보 패널에 이 액션이 기여할 줄: 공격력 / 사거리 / 공격속도.
@@ -79,6 +93,9 @@ namespace NorthLand.Combat
 
             string text = TowerStatsFormatter.BuildAttackLines(Damage, Range, Interval);
 
+            // 조준 방식은 여기서 내지 않는다 — 인게임 전환이 붙으면서 정보 패널의 **전용 행**이
+            // 소유하게 됐다(#387). 스탯 블록은 선택 시점 스냅샷이라 버튼을 눌러도 갱신되지 않아,
+            // 여기 두면 조작 직후 두 표기가 어긋난다.
             return TowerStatsFormatter.Join(
                 text,
                 TowerStatsFormatter.BuildBurstLine(fields.BurstCount),
@@ -127,24 +144,35 @@ namespace NorthLand.Combat
             cooldownTimer -= deltaTime;
             if (cooldownTimer > 0f) return;
 
-            // 대상 선정은 호스트가 소유한다(`Tower.AcquireTarget`) — 포탑 조준 연출과 **같은 정의**를
-            // 쓰기 위해서다. 예전에 여기 있던 탐색은 원점·반경·마스크가 그쪽과 완전히 같은 중복이었다.
-            IDamageable target = Owner.AcquireTarget();
+            // 연발 도중이면 사이클 첫 발의 대상을 그대로 쓰고, 사이클 경계에서만 호스트에게 다시 묻는다
+            // (#387). 대상 **선정**은 여전히 호스트가 소유한다(`Tower.AcquireTarget`) — 포탑 조준 연출과
+            // 같은 정의를 쓰기 위해서다. 여기가 정하는 것은 "누구를"이 아니라 "언제 다시 묻는가"뿐이다.
+            IDamageable target = burstRemaining > 0 && Owner.IsTargetValid(burstTarget, Range)
+                ? burstTarget
+                : Owner.AcquireTarget();
 
             if (target == null)
             {
                 // 연발 도중 대상이 사라지면 사이클을 접는다. 남겨두면 다음 적이 사거리에 들어온 순간
                 // 남은 발이 간격 없이 몰아서 나간다 — 연발 리듬이 적의 등장 타이밍에 좌우된다.
                 burstRemaining = 0;
+                burstTarget = null;
                 return;
             }
 
             if (!TryAttack(target)) return;
 
-            // 사이클의 첫 발이면 남은 발수를 채우고, 이어지는 발이면 하나 줄인다.
+            // 사이클의 첫 발이면 남은 발수를 채우고 대상을 붙든다. 이어지는 발이면 하나 줄인다.
             // BurstCount 기본 1이면 첫 발에서 0이 되어 곧바로 Interval로 떨어진다 = 기존 거동.
-            if (burstRemaining <= 0) burstRemaining = Mathf.Max(1, fields.BurstCount) - 1;
+            if (burstRemaining <= 0)
+            {
+                burstRemaining = Mathf.Max(1, fields.BurstCount) - 1;
+                burstTarget = target;
+            }
             else burstRemaining--;
+
+            // 사이클이 끝났으면 붙들던 대상을 놓는다 — 다음 첫 발은 정책이 새로 고른다.
+            if (burstRemaining <= 0) burstTarget = null;
 
             // 연발이 남았으면 짧은 간격, 사이클이 끝났으면 정규 공격 간격(원장 경유).
             cooldownTimer = burstRemaining > 0
