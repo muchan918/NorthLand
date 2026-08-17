@@ -43,8 +43,12 @@ namespace NorthLand.Combat
         /// 체력 40점과 거리 -25점처럼 **축이 다른 값이 한 비교에 섞여** 순위가 무의미해진다.
         public abstract float Score(in TargetCandidate candidate);
 
-        /// 정보 패널 표기용 이름.
-        public abstract string DisplayName { get; }
+        /// 정보 패널 표기용 **로컬라이즈 키**(`NorthLand_default` 테이블).
+        ///
+        /// 완성된 문자열이 아니라 키를 내는 이유: 정책은 전투 규칙이라 로케일을 알 이유가 없고,
+        /// 조회 **시점**도 정책이 정할 일이 아니다(패널은 pull 방식이라 여는 순간 해석된다).
+        /// 키 → 문자열 변환은 표시 문자열의 단일 출처인 `TowerStatsFormatter`가 맡는다.
+        public abstract string DisplayNameKey { get; }
 
         /// 인게임에서 순환 선택할 수 있는 정책 목록 — **표시 순서가 곧 이 배열 순서**다.
         ///
@@ -113,7 +117,7 @@ namespace NorthLand.Combat
     {
         public override float Score(in TargetCandidate candidate) => -candidate.SqrDistance;
 
-        public override string DisplayName => "가까운 적";
+        public override string DisplayNameKey => "game.tower.targeting.nearest";
     }
 
     // "타워로부터 가장 먼 적"(FarthestTargeting)은 두지 않는다. `NearestTargeting`의 부호만 뒤집으면
@@ -129,7 +133,7 @@ namespace NorthLand.Combat
         public override float Score(in TargetCandidate candidate)
             => TryGetRouteDistance(candidate, out float remaining) ? -remaining : float.NegativeInfinity;
 
-        public override string DisplayName => "앞선 적";
+        public override string DisplayNameKey => "game.tower.targeting.first";
     }
 
     /// 경로를 가장 적게 지나온 적. 뒤쪽부터 깎아 앞줄이 두꺼워지는 것을 막는 용도.
@@ -139,7 +143,7 @@ namespace NorthLand.Combat
         public override float Score(in TargetCandidate candidate)
             => TryGetRouteDistance(candidate, out float remaining) ? remaining : float.NegativeInfinity;
 
-        public override string DisplayName => "뒤처진 적";
+        public override string DisplayNameKey => "game.tower.targeting.last";
     }
 
     /// 현재 체력이 가장 높은 적. 탱커·보스를 물고 늘어지는 고화력 타워용.
@@ -152,7 +156,7 @@ namespace NorthLand.Combat
         public override float Score(in TargetCandidate candidate)
             => candidate.Profile != null ? candidate.Profile.CurrentHp : float.NegativeInfinity;
 
-        public override string DisplayName => "체력 높은 적";
+        public override string DisplayNameKey => "game.tower.targeting.highest_hp";
     }
 
     /// 현재 체력이 가장 낮은 적. 마무리를 몰아 처치 수를 늘리는 용도(킬스택 성장 타워와 궁합).
@@ -162,6 +166,6 @@ namespace NorthLand.Combat
         public override float Score(in TargetCandidate candidate)
             => candidate.Profile != null ? -candidate.Profile.CurrentHp : float.NegativeInfinity;
 
-        public override string DisplayName => "체력 낮은 적";
+        public override string DisplayNameKey => "game.tower.targeting.lowest_hp";
     }
 }

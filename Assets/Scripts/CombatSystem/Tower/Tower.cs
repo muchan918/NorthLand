@@ -221,7 +221,7 @@ namespace NorthLand.Combat
             targetingOverride ?? (data != null ? data.Targeting : null) ?? TargetingPolicy.Default;
 
         // ── ITargetingSelector (정보 패널이 쓰는 창구) ──────────────────────
-        public string TargetingName => Targeting.DisplayName;
+        public string TargetingName => TowerStatsFormatter.TargetingName(Targeting);
 
         public void CycleTargeting(int step)
         {
