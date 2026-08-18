@@ -1,31 +1,34 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public sealed class NextWavePreviewHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+namespace NorthLand.UI
 {
-    [SerializeField] private GameObject previewPanel;
-
-    private void Start()
+    public sealed class NextWavePreviewHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
-        if (previewPanel != null)
+        [SerializeField] private GameObject previewPanel;
+
+        private void Start()
         {
-            previewPanel.SetActive(false);
+            if (previewPanel != null)
+            {
+                previewPanel.SetActive(false);
+            }
         }
-    }
 
-    public void OnPointerEnter(PointerEventData eventData)
-    {
-        if (previewPanel != null)
+        public void OnPointerEnter(PointerEventData eventData)
         {
-            previewPanel.SetActive(true);
+            if (previewPanel != null)
+            {
+                previewPanel.SetActive(true);
+            }
         }
-    }
 
-    public void OnPointerExit(PointerEventData eventData)
-    {
-        if (previewPanel != null)
+        public void OnPointerExit(PointerEventData eventData)
         {
-            previewPanel.SetActive(false);
+            if (previewPanel != null)
+            {
+                previewPanel.SetActive(false);
+            }
         }
     }
 }

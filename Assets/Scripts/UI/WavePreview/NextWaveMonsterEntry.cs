@@ -2,22 +2,25 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public sealed class NextWaveMonsterEntry : MonoBehaviour
+namespace NorthLand.UI
 {
-    [SerializeField] private Image iconImage;
-    [SerializeField] private TMP_Text countText;
-
-    public void Bind(Sprite icon, int count)
+    public sealed class NextWaveMonsterEntry : MonoBehaviour
     {
-        if (iconImage != null)
-        {
-            iconImage.sprite = icon;
-            iconImage.enabled = icon != null;
-        }
+        [SerializeField] private Image iconImage;
+        [SerializeField] private TMP_Text countText;
 
-        if (countText != null)
+        public void Bind(Sprite icon, int count)
         {
-            countText.text = $"* {count}";
+            if (iconImage != null)
+            {
+                iconImage.sprite = icon;
+                iconImage.enabled = icon != null;
+            }
+
+            if (countText != null)
+            {
+                countText.text = $"* {count}";
+            }
         }
     }
 }

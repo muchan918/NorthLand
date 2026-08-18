@@ -2,143 +2,103 @@ using System.Collections.Generic;
 using NorthLand.Combat;
 using UnityEngine;
 
-public sealed class NextWavePreviewView : MonoBehaviour
+namespace NorthLand.UI
 {
-    [Header("Wave Data")]
-    [SerializeField] private MonsterSpawnWaveProvider waveProvider;
-
-    [Header("UI")]
-    [SerializeField] private Transform content;
-    [SerializeField] private NextWaveMonsterEntry entryPrefab;
-    [SerializeField] private Sprite unknownMonsterIcon;
-
-    private readonly List<NextWaveMonsterEntry> spawnedEntries = new();
-    private readonly Dictionary<EnemyAsset, int> monsterCounts = new();
-    private readonly List<EnemyAsset> monsterOrder = new();
-
-    private DayNightManager dayNightManager;
-
-    private void Start()
+    public sealed class NextWavePreviewView : MonoBehaviour
     {
-        dayNightManager = DayNightManager.Instance;
+        [Header("Wave Data")]
+        [SerializeField] private MonsterSpawnWaveProvider waveProvider;
 
-        if (dayNightManager == null)
+        [Header("UI")]
+        [SerializeField] private Transform content;
+        [SerializeField] private NextWaveMonsterEntry entryPrefab;
+        [SerializeField] private Sprite unknownMonsterIcon;
+
+        private readonly List<NextWaveMonsterEntry> spawnedEntries = new();
+
+        private DayNightManager dayNightManager;
+
+        private void Start()
         {
-            Debug.LogWarning("DayNightManager was not found.");
-            return;
-        }
+            dayNightManager = DayNightManager.Instance;
 
-        dayNightManager.OnDayStart += HandleDayStart;
-
-        Refresh();
-    }
-
-    private void OnDestroy()
-    {
-        if (dayNightManager == null)
-        {
-            return;
-        }
-
-        dayNightManager.OnDayStart -= HandleDayStart;
-    }
-
-    private void HandleDayStart()
-    {
-        Refresh();
-    }
-
-    private void Refresh()
-    {
-        ClearEntries();
-
-        if (waveProvider == null || dayNightManager == null)
-        {
-            return;
-        }
-
-        int nextWaveNumber = dayNightManager.CurrentWave;
-
-        if (!waveProvider.TryGetWaveAsset(nextWaveNumber,out MonsterWaveAsset waveAsset) ||waveAsset == null)
-        {
-            return;
-        }
-
-        monsterCounts.Clear();
-        monsterOrder.Clear();
-
-        int unknownMonsterCount = 0;
-
-        if (waveAsset.Groups == null)
-        {
-            return;
-        }
-
-        foreach (MonsterWaveGroup group in waveAsset.Groups)
-        {
-            if (group == null ||group.MonsterPrefab == null ||group.Count <= 0)
+            if (dayNightManager == null)
             {
-                continue;
+                Debug.LogWarning("DayNightManager was not found.");
+                return;
             }
 
-            Enemy enemy = group.MonsterPrefab.GetComponentInChildren<Enemy>(true);
+            dayNightManager.OnDayStart += HandleDayStart;
 
-            EnemyAsset enemyAsset = enemy != null ? enemy.Asset: null;
+            Refresh();
+        }
 
-            if (enemyAsset == null)
+        private void OnDestroy()
+        {
+            if (dayNightManager == null)
             {
-                unknownMonsterCount += group.Count;
-                continue;
+                return;
             }
 
-            if (!monsterCounts.ContainsKey(enemyAsset))
+            dayNightManager.OnDayStart -= HandleDayStart;
+        }
+
+        private void HandleDayStart()
+        {
+            Refresh();
+        }
+
+        private void Refresh()
+        {
+            ClearEntries();
+
+            if (waveProvider == null || dayNightManager == null)
             {
-                monsterCounts.Add(enemyAsset, 0);
-                monsterOrder.Add(enemyAsset);
+                return;
             }
 
-            monsterCounts[enemyAsset] += group.Count;
-        }
+            int currentWaveNumber = dayNightManager.CurrentWave;
 
-        foreach (EnemyAsset enemyAsset in monsterOrder)
-        {
-            AddEntry(enemyAsset.Icon,monsterCounts[enemyAsset]);
-        }
-
-        if (unknownMonsterCount > 0)
-        {
-            AddEntry(null, unknownMonsterCount);
-        }
-    }
-
-    private void AddEntry(Sprite icon, int count)
-    {
-        if (content == null || entryPrefab == null)
-        {
-            return;
-        }
-
-        NextWaveMonsterEntry entry =
-            Instantiate(entryPrefab, content);
-
-        entry.Bind(icon != null ? icon : unknownMonsterIcon,count);
-
-        spawnedEntries.Add(entry);
-    }
-
-    private void ClearEntries()
-    {
-        foreach (NextWaveMonsterEntry entry in spawnedEntries)
-        {
-            if (entry == null)
+            if (!waveProvider.TryGetWaveComposition(currentWaveNumber, out IReadOnlyList<WaveMonsterCount> composition))
             {
-                continue;
+                return;
             }
 
-            entry.gameObject.SetActive(false);
-            Destroy(entry.gameObject);
+            foreach (WaveMonsterCount monster in composition)
+            {
+                AddEntry(monster.Asset != null ? monster.Asset.Icon : null, monster.Count);
+            }
         }
 
-        spawnedEntries.Clear();
+        private void AddEntry(Sprite icon, int count)
+        {
+            if (content == null || entryPrefab == null)
+            {
+                return;
+            }
+
+            NextWaveMonsterEntry entry =
+                Instantiate(entryPrefab, content);
+
+            entry.Bind(icon != null ? icon : unknownMonsterIcon, count);
+
+            spawnedEntries.Add(entry);
+        }
+
+        private void ClearEntries()
+        {
+            foreach (NextWaveMonsterEntry entry in spawnedEntries)
+            {
+                if (entry == null)
+                {
+                    continue;
+                }
+
+                entry.gameObject.SetActive(false);
+                Destroy(entry.gameObject);
+            }
+
+            spawnedEntries.Clear();
+        }
     }
 }
