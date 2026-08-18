@@ -216,13 +216,19 @@
   `EnemyAgent.BindSpawner`로 자기를 만든 스포너에 묶인다(경로 주입과 같은 자리).
   ⚠ `AliveMonsterCount`는 `childCount`라 **보스 자신과 사망 연출 중인 몬스터(`destroyDelay` 2초)를 포함**한다
 - `MonsterSpawnWaveProvider.TryGetWave(int, out IReadOnlyList<MonsterSpawnEntry>)` /
-  `TryGetRewardPool(int, out WaveRewardPool)` / `FinalWaveNumber` / `IsFinalWave(int)` (#294) —
+  `TryGetWaveComposition(int, out IReadOnlyList<WaveMonsterCount>)` /
+  `TryGetRewardPool(int, out WaveRewardPool)` / `FinalWaveNumber` / `IsFinalWave(int)` (#294, #384) —
+  `TryGetWaveComposition`은 `TryGetWave`와 같은 그룹 유효성 규칙(널 그룹·널 프리팹·0 이하 수량 제외)을
+  거친 뒤 각 그룹의 `EnemyAsset`과 출현 수량을 웨이브 등록 순서대로 UI에 제공한다. 같은 `EnemyAsset`이
+  뒤에서 다시 등장해도 합산하지 않고 별도 항목으로 유지하므로 미리보기에서 실제 그룹 출현 순서를 읽을
+  수 있다. `WaveMonsterCount`는 `EnemyAsset Asset`과 `int Count`를 담는 읽기 전용 값이며, 원본
+  `MonsterWaveAsset`과 프리팹 계층은 소비자에게 노출하지 않는다.
   **웨이브 번호 = `waves` 리스트에서 몇 번째인가(1-base)**. 진행 순서의 진실 공급원은 인스펙터
   리스트 순서 하나뿐이며, `MonsterWaveAsset`은 자기 번호를 갖지 않는다(`waveNumber` 필드 제거 —
   직렬화된 값과 실제 순서가 조용히 어긋나는 WL-126형 함정 제거). 순서 변경은 리스트 드래그,
   웨이브 추가는 리스트 append로 한다. **리스트의 마지막 항목이 최종 웨이브** —
   `FinalWaveNumber = 등록 개수`라 웨이브를 추가하면 승리 조건이 자동으로 따라온다.
-  1-base↔0-base 변환은 `TryGetWaveAsset` 한 곳에만 있다(`MonsterSpawnWaveProvider.cs:99`).
+  1-base↔0-base 변환은 private `TryGetWaveAsset` 한 곳에만 있으며, Provider의 공개 API만 이를 경유한다.
   ⚠ 리스트 중간의 null 슬롯은 경고 후 제외·압축된다(런타임 `orderedWaves`) — 빈 밤을 만들지 않기 위한
   **의도된 동작**으로, null은 웨이브가 아니라 authoring 노이즈로 본다. 빈 슬롯 뒤의 웨이브가 한 칸씩
   당겨지고 `FinalWaveNumber`(=유효 웨이브 개수)도 함께 줄어든다 → 빈 슬롯이 있으면 인스펙터 행 번호와
@@ -785,6 +791,9 @@
    - **Tank(최종보스) 정본 예외(#326, PR#368)**: 보스 프리팹의 정본은 메인 저장소의 구 경로 `Assets/Prefabs/Monster/Tank.prefab`(**삭제됨**)이 아니라 `Assets/Imported/@NorthLand/Prefabs/Boss/Tank.prefab`이다. Tank는 Imported의 모델·컨트롤러·파티클(`@NorthLand/Animations/Boss/Tank.controller`, `@NorthLand/Particles/Boss/Tank`)을 직접 조립하는 프리팹이라 그것들과 같은 저장소에서 함께 변경한다 — StartMap이 타일 프리팹과 같은 저장소에 있어야 하는 것과 같은 이유다. 동일 GUID의 Tank를 메인·Imported 양쪽에 동시에 두지 않는다.
      - ⚠ **이관이 "이동"이 아니라 "삭제 + 신규 생성"이라 GUID가 바뀌었다** — 구 `70c1fbefa025da447a8b0a70dd7c0c2a` → 신 `251ac093362a5e547a0ed5618a9729cd`. 구 GUID를 들고 있던 배선은 자동으로 따라오지 않고 **Missing Prefab으로만 나타난다.** `MonsterWave 15.asset:25`는 새 GUID로 재배선됐으나 **`BossTest.asset:18`은 구 GUID가 남아 있다**(2026-08-13 전수 확인 — 저장소 전체에서 이 한 곳). 테스트 전용 에셋이라 런에는 영향이 없지만, 보스 테스트 웨이브를 돌리면 아무것도 스폰되지 않는다.
    - **Tank 동기화 계약**: 보스가 등장하는 웨이브를 실행·리뷰·빌드하기 전에 `NorthLand-Imported`를 동기화해야 하며, sparse checkout을 쓰면 `@NorthLand/Prefabs/Boss/**` · `@NorthLand/Animations/Boss/**` · `@NorthLand/Particles/Boss/**`를 반드시 포함한다. Tank 프리팹 변경은 Imported 저장소에 먼저 커밋·Push한 다음 메인 저장소의 웨이브 SO 배선을 커밋한다. **미동기 환경에서는 최종 웨이브의 보스 그룹이 Missing Prefab이 되어 보스가 스폰되지 않고, 증상은 "최종 웨이브가 그냥 지나간다"로만 보인다** — 컴파일도 콘솔도 조용하다(WL-082와 같은 계통).
+   - **몬스터 `hitPosition` 동기화 계약(#386)**: 몬스터 프리팹의 `hitPosition` 자식 트랜스폼은 **조준 방향의 정본**이다 — `AttackAction.TryAttack`이 `aimDir`의 Y를 살려 그 좌표를 향해 쏘고, `HomingFlight`의 추적점·`Projectile.ApplyArea`의 스플래시 중심·`ApplyChain`의 체인 원점·`TowerTurretAim`의 선회 대상·`Tower.IsTargetValid`의 사거리 판정이 전부 같은 필드를 읽는다. 실행·리뷰·빌드 전에 `NorthLand-Imported`를 **`57e08e53`(몬스터 히트포지션 할당 및 위치 재조정) 이상**으로 동기화해야 하며, sparse checkout을 쓰면 `@NorthLand/Prefabs/Monster/**`를 반드시 포함한다. 프리팹 변경은 Imported 저장소에 먼저 커밋·Push한 다음 메인 저장소의 코드·SO 배선을 커밋한다.
+     - ⚠ **실패 모드가 두 단계이고 위쪽만 시끄럽다.** 미할당은 `Enemy.Awake`(`Enemy.cs:111-115`)가 `LogError` + 피벗 폴백으로 잡지만, **할당돼 있고 위치만 틀리면 로그가 한 줄도 없다** — 증상은 "특정 몬스터만 안 맞는다"뿐이고 컴파일도 콘솔도 조용하다(Tank 동기화 계약과 같은 계통, WL-082). 특히 떠 있는 적은 루트 피벗이 자기 콜라이더 **밖**이라 폴백조차 몸 아래를 겨눈다(`Flying_Bat` 콜라이더 y=[2.35~5.05], 루트 1.00).
+     - 저작 기준: `hitPosition`은 **콜라이더 안, 몸통 중심 언저리**를 가리킨다. StartMap 스폰 y=1.00 기준 실측 — `Yellow_Grummy` 4.00 / `Red_Grummy` 4.24 / `Blue_Grummy` 6.00 / `MidBoss` 5.00 / `Flying_Bat` 4.24. 인스펙터의 로컬 Y에 부모 스케일(2.7~5.0)이 곱해지므로 표시값과 월드 높이가 다르다 — 조정 후 콜라이더 안인지 확인할 것(WL-122). `Phantom`·`Shadow`는 아직 미할당이다.
    - **리뷰어 주석(죽은 사본)**: `Assets/Personal/SUNGSOO/Font/`는 폰트가 TMP 정본으로 이관되며 더 이상 참조되지 않는 죽은 사본이다 — 이 경로의 폰트 아틀라스 churn을 WL-041 재발로 보고하지 말 것(WL-041 참고, 삭제 대기 중).
 
 ## 5. 미합의 전역 계약 (합의 없는 변경·점유 = 최소 🟠)

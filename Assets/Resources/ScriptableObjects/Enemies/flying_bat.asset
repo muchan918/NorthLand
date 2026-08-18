@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: flying_bat
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAsset
   EnemyID: flying_bat
+  icon: {fileID: -89749972, guid: 611814e844084fe46931e9f62bde78e0, type: 3}
   EnemyType: 0
   MovementMode: 1
   Melee:
