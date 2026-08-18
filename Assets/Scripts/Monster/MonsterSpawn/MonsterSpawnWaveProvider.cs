@@ -47,8 +47,11 @@ public sealed class MonsterSpawnWaveProvider :
         BuildWaveOrder();
     }
 
-    /// 웨이브 번호를 내부 orderedWaves 인덱스로 변환해 에셋을 조회합니다.
-    /// Provider 내부 API에서만 사용합니다.
+    /// <summary>
+    /// 웨이브 번호에 해당하는 유효한 스폰 목록을 제공합니다.
+    /// MonsterSpawn이 소비하는 공개 API이며,
+    /// UI용 몬스터 구성은 TryGetWaveComposition을 사용합니다.
+    /// </summary>
     public bool TryGetWave(int waveNumber,out IReadOnlyList<MonsterSpawnEntry> entries)
     {
         cachedEntries.Clear();
@@ -183,8 +186,8 @@ public sealed class MonsterSpawnWaveProvider :
     }
 
     /// <summary>
-    /// 웨이브 번호에 해당하는 원본 웨이브 에셋을 반환합니다.
-    /// 다음 웨이브 미리보기처럼 스폰 전에 구성 정보를 읽는 UI에서 사용합니다.
+    /// 웨이브 번호를 내부 orderedWaves 인덱스로 변환해 에셋을 조회합니다.
+    /// Provider 내부 API에서만 사용합니다.
     /// </summary>
     private bool TryGetWaveAsset(int waveNumber, out MonsterWaveAsset wave)
     {

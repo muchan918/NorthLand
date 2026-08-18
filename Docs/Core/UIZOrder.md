@@ -70,6 +70,12 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 8. `Minimap`
 9. `EndDayConfirmPopup` — `UICanvas` 내부 모달
 
+`PreviewHoverButton`과 `NextWavePreviewPanel`은 낮 전용 웨이브 편성 UI다. 두 오브젝트를
+`UICanvas` 직속 sibling으로 두지 않고 `PhasePanelSwitcher._dayPanel`인 `TowerPanel`의 자식으로 둔다.
+따라서 밤 전환 시 버튼·열린 패널·포인터 입력이 `TowerPanel`과 함께 내려가며, 별도 전역 UI 순서를
+차지하지 않는다. `PreviewHoverButton`이 먼저, `NextWavePreviewPanel`이 뒤 sibling이어서 미리보기 패널이
+버튼보다 위에 그려져야 한다.
+
 `Minimap`은 `UICanvas`의 자식 Canvas이며 `overrideSorting = false`로 설정한다. 따라서 루트 Canvas처럼 별도 전역 레이어를 차지하지 않고 `UICanvas` 내부의 sibling 순서를 따른다.
 
 독립 정렬을 사용하지 않는 자식 Canvas의 `sortingOrder`는 혼동을 방지하기 위해 `0`으로 유지한다.
