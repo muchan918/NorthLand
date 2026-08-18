@@ -9,10 +9,12 @@ namespace NorthLand.UI
 
         private void Start()
         {
-            if (previewPanel != null)
-            {
-                previewPanel.SetActive(false);
-            }
+            HidePreview();
+        }
+
+        private void OnDisable()
+        {
+            HidePreview();
         }
 
         public void OnPointerEnter(PointerEventData eventData)
@@ -24,6 +26,11 @@ namespace NorthLand.UI
         }
 
         public void OnPointerExit(PointerEventData eventData)
+        {
+            HidePreview();
+        }
+
+        private void HidePreview()
         {
             if (previewPanel != null)
             {

@@ -13,6 +13,7 @@ namespace NorthLand.UI
         [SerializeField] private Transform content;
         [SerializeField] private NextWaveMonsterEntry entryPrefab;
         [SerializeField] private Sprite unknownMonsterIcon;
+        [SerializeField] private GameObject noMoreWavesView;
 
         private readonly List<NextWaveMonsterEntry> spawnedEntries = new();
 
@@ -24,12 +25,33 @@ namespace NorthLand.UI
 
             if (dayNightManager == null)
             {
-                Debug.LogWarning("DayNightManager was not found.");
+                Debug.LogError("[웨이브 미리보기] DayNightManager를 찾을 수 없습니다.",this);
+                enabled = false;
+                return;
+            }
+
+            if (waveProvider == null)
+            {
+                Debug.LogError("[웨이브 미리보기] waveProvider가 연결되지 않았습니다.",this);
+                enabled = false;
+                return;
+            }
+
+            if (content == null)
+            {
+                Debug.LogError("[웨이브 미리보기] content가 연결되지 않았습니다.",this);
+                enabled = false;
+                return;
+            }
+
+            if (entryPrefab == null)
+            {
+                Debug.LogError("[웨이브 미리보기] entryPrefab이 연결되지 않았습니다.",this);
+                enabled = false;
                 return;
             }
 
             dayNightManager.OnDayStart += HandleDayStart;
-
             Refresh();
         }
 
@@ -52,21 +74,42 @@ namespace NorthLand.UI
         {
             ClearEntries();
 
-            if (waveProvider == null || dayNightManager == null)
+            if (noMoreWavesView != null)
             {
-                return;
+                noMoreWavesView.SetActive(false);
             }
 
             int currentWaveNumber = dayNightManager.CurrentWave;
 
-            if (!waveProvider.TryGetWaveComposition(currentWaveNumber, out IReadOnlyList<WaveMonsterCount> composition))
+            if (waveProvider.FinalWaveNumber <= 0)
             {
+                Debug.LogError("[웨이브 미리보기] 등록된 웨이브가 없습니다.",this);
+                return;
+            }
+
+            if (currentWaveNumber > waveProvider.FinalWaveNumber)
+            {
+                ShowNoMoreWaves();
+                return;
+            }
+
+            if (!waveProvider.TryGetWaveComposition(currentWaveNumber,out IReadOnlyList<WaveMonsterCount> composition))
+            {
+                Debug.LogError($"[웨이브 미리보기] {currentWaveNumber}웨이브 구성을 가져오지 못했습니다.",this);
                 return;
             }
 
             foreach (WaveMonsterCount monster in composition)
             {
-                AddEntry(monster.Asset != null ? monster.Asset.Icon : null, monster.Count);
+                AddEntry(monster.Asset != null ? monster.Asset.Icon : null,monster.Count);
+            }
+        }
+
+        private void ShowNoMoreWaves()
+        {
+            if (noMoreWavesView != null)
+            {
+                noMoreWavesView.SetActive(true);
             }
         }
 
