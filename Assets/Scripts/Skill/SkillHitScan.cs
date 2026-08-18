@@ -7,7 +7,8 @@ using NorthLand.Combat;
 public static class SkillHitScan
 {
     // 시전면과 몬스터 부양 높이가 다르다: 시전은 y=2 평면(SkillButtonView._castHeight)인데
-    // 지상 몬스터는 타일 표면 +6(CombatMapTileSpawner.monsterWaypointYOffset, WL-063),
+    // 지상 몬스터는 타일 표면 + monsterWaypointYOffset(CombatMapTileSpawner, 코드 기본값 6f ·
+    // 씬 authoring 3.2 — 값이 씬에 있어 여기서 파생할 수 없다, WL-063/WL-149),
     // 공중은 거기서 +4(FlyingMonsterMove.altitude)를 더 뜬다. 수평 반경으로 이 차이를 덮으면
     // 원반 인디케이터보다 넓게 맞으므로, 축을 나눠 수직만 연다.
     //
