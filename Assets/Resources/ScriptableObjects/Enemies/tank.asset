@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: tank
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAsset
   EnemyID: tank
+  icon: {fileID: -1834205307, guid: ba91eca879fbf1048a5f6bf80986044c, type: 3}
   EnemyType: 2
   MovementMode: 0
   Melee:

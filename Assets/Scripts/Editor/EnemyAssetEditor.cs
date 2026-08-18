@@ -11,6 +11,7 @@ public class EnemyAssetEditor : Editor
         var enemyTypeProp = serializedObject.FindProperty("EnemyType");
 
         EditorGUILayout.PropertyField(serializedObject.FindProperty("EnemyID"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("icon"));
         EditorGUILayout.PropertyField(enemyTypeProp);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("MovementMode"));
         EditorGUILayout.Space();

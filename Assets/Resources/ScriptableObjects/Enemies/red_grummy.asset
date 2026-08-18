@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: red_grummy
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAsset
   EnemyID: red_grummy
+  icon: {fileID: 947293940, guid: 0632be9c1f11f6d45b94022fc8e23bc5, type: 3}
   EnemyType: 0
   MovementMode: 0
   Melee:

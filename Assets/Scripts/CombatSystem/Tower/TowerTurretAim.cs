@@ -137,8 +137,13 @@ namespace NorthLand.Combat
             _lostPending = false;   // 유예 안에 다시 잡았다 → 마무리 통지 취소(경계 채터 흡수)
 
             // 수평 성분만 쓴다 — 앙각은 모델이 저작한 값이 정본이다. 대상을 향해 포신을 내리면
-            // 하늘로 쏘아 올리는 실루엣이 깨지고, 발사 자체도 수평 조준으로 계산되므로
-            // (`AttackAction.TryAttack`이 aimDir.y를 0으로 둔다) 맞출 상대도 없다.
+            // 곡사 실루엣(캐논의 `Top` -45°)이 깨지고, 선회는 연출 전용이므로 판정과 어긋나도 무해하다.
+            //
+            // ⚠ **더 이상 "발사도 수평이라서"가 근거가 아니다.** `AttackAction.TryAttack`은 이제
+            // `aimDir`의 Y를 살려 실제로 아래를 겨눈다(타워는 Grass 윗면 3.80+, 적은 Road 윗면 0.80을
+            // 걷는다 — 그 주석 참조). 즉 **연출은 수평, 판정은 3D**로 갈라져 있다. 이 컴포넌트가
+            // 앙각까지 따라가게 만들려면 마디에 저작된 앙각을 어떻게 보존할지부터 정해야 하므로
+            // (`turret.rotation` 대입이 앙각을 지우는 문제, 2026-08-12 캐논 사고) 여기서는 손대지 않는다.
             Vector3 direction = _target.position - turret.position;
             direction.y = 0f;
             if (direction.sqrMagnitude < 0.0001f) return;   // 바로 위/아래 — 수평 방향이 정의되지 않는다
