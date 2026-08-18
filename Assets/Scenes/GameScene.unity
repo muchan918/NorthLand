@@ -12999,7 +12999,7 @@ MonoBehaviour:
   bombPrefab: {fileID: 8925636819348908530, guid: b4c2d3008892ecf4ba6ba30b57d958a1, type: 3}
   damagePerLevel: 20
   explosionDelay: 2
-  explosionRadius: 10
+  explosionRadius: 20
   enemyLayerMask:
     serializedVersion: 2
     m_Bits: 128
