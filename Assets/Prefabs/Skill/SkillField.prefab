@@ -137,4 +137,3 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SkillField
   visual: {fileID: 7673952797928234495}
   visualThickness: 0.02
-  verticalRange: 12

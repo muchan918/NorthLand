@@ -59,6 +59,23 @@ public class SkillManagerTest : MonoBehaviour
         else
             Debug.LogError($"[SkillTest] FAIL: 충전 소진 판정 이상 (연속 성공={burstSucceeded}, 초과 시전={overCast})");
 
+        // 4. 공중 유닛 회귀(#398): 시전은 지면인데 대상은 그 위 8f(부양 6f + 비행 고도 4f에 근사).
+        // 위 1~3번은 더미를 시전 지점과 같은 높이에 두어 수직차가 0이라, 판정이 구체든 캡슐이든 통과한다
+        // — 그래서 감전이 공중 유닛을 못 때리던 버그를 한 번도 잡지 못했다. 이 케이스가 그 축을 지킨다.
+        SkillManager.Instance.RefillChargesNow();   // 3번에서 충전을 전부 소진했다
+
+        var airDummy = new GameObject("SkillTest_AirDummy").AddComponent<DummyDamageable>();
+        airDummy.transform.position = transform.position + Vector3.up * 8f;
+        Physics.SyncTransforms();   // 위 26번 줄과 같은 이유 — Auto Sync Transforms가 꺼져 있다
+
+        bool airCast = SkillManager.Instance.CastAt(transform.position);
+        if (airCast && airDummy.DamageTaken > 0f)
+            Debug.Log($"[SkillTest] PASS: 공중 대상 적중, 데미지={airDummy.DamageTaken}");
+        else
+            Debug.LogError($"[SkillTest] FAIL: 공중 대상 미적중 (시전={airCast}, 데미지={airDummy.DamageTaken}) — SkillHitScan 수직 범위 확인");
+
+        Destroy(airDummy.gameObject);
+
         // 검증 과정에서 소모한 충전을 되돌린다 — 안 그러면 Play 시작 직후 스킬 버튼이
         // 재충전 간격(씬 값 10초)만큼 비활성 상태로 보여 인터랙티브 테스트를 방해한다.
         SkillManager.Instance.RefillChargesNow();

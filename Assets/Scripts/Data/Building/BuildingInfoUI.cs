@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -17,17 +18,9 @@ public class BuildingInfoUI : MonoBehaviour
     private const string k_MaxKey = "building.upgrade.max";
     private const string k_LevelKey = "building.upgrade.level";
     // 마법 연구소 등 업그레이드 전용 건물의 효과 줄 라벨. 생산 건물의 "주민당 5→7" 자리에 표시된다.
-    // 구체적인 강화 수치는 업그레이드 버튼 위 별도 줄(k_LabEffectKey)이 담당하고, 이 자리는
-    // 그 줄을 만들 수 없을 때(문구 키 미등록·SO에 레벨 없음)의 폴백으로 남는다.
+    // 구체적인 강화 수치는 업그레이드 버튼 위 별도 줄(UpgradeEffect)이 담당하고, 이 자리는
+    // 그 줄을 만들 수 없을 때(SO에 레벨 없음·씬에 SkillManager 없음)의 폴백으로 남는다.
     private const string k_SkillPendingKey = "building.upgrade.skill_pending";
-    // 스킬 강화 건물의 "이번 업그레이드로 얼마나 오르는지" 문구(#375). 레벨마다 문장이 아니라 숫자만
-    // 달라지므로 본진(castle.effect.lv{n})과 달리 레벨별로 키를 쪼개지 않는다 — 레벨이 늘어도 문구 작업이 없다.
-    //
-    // 대신 **스탯별로** 쪼갠다: 한 키에 3줄을 몰아넣으면 배율이 그대로인 스탯까지 "0% 증가합니다"로
-    // 나온다(PR#378 리뷰). 줄 단위로 나눠야 변한 스탯만 골라 이어 붙일 수 있다.
-    private const string k_LabDamageKey = "lab.effect.damage";
-    private const string k_LabRadiusKey = "lab.effect.radius";
-    private const string k_LabCooldownKey = "lab.effect.cooldown";
     // 본진 레벨 부족으로 다음 레벨이 잠긴 상태(#229). 진짜 최대(k_MaxKey)와 구분해야
     // "왜 못 올리는지"가 보인다 — Smart String {0}에 필요한 본진 레벨이 들어간다.
     private const string k_RequireCastleKey = "building.upgrade.require_castle";
@@ -251,42 +244,59 @@ public class BuildingInfoUI : MonoBehaviour
             ? LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, k_RequireCastleKey, requiredCastleLevel + 1)
             : null;
 
-    // 이번 업그레이드로 스킬 스탯이 몇 % 변하는지(#375). 배율 테이블(SO)에서 직접 산출하므로
-    // 밸런싱이 magic_lab.asset을 고치면 문구가 자동으로 따라가고, SkillManager가 실제 적용하는 값과
-    // 어긋날 수 없다 — 표시용 수치를 따로 authoring하지 않는 이유다(SkillEffect 계보의 규약).
-    // 그 대가로 이 UI는 스킬 시스템을 참조하지 않는다(베이스 스탯은 SkillManager 소유, 여기선 배율만 안다).
+    // 이번 업그레이드로 감전 스탯이 **어떤 값이 되는지**(#398). 예전에는 "기본 대비 40% 증가합니다"였는데,
+    // %는 플레이어가 체감하는 값이 아니라 "데미지 30 → 36" 형태의 실수치로 바꿨다. 표기 규약은 생산 건물의
+    // "주민당 5 → 7"(RefreshProductionLine)·보상 카드(SkillStatsFormatter)와 같다.
     //
-    // 인자는 '지금 누르면 도달할' 레벨(1-based)이다. 문구 키가 없으면 LocalizationHelper.Get이
-    // 에러를 내지만, 키는 레벨과 무관한 고정 3개뿐이라 본진(castle.effect.lv{n})처럼 엔트리 존재를
-    // 확인할 필요가 없다 — 없으면 그건 세팅 실수고 드러나는 편이 낫다.
+    // **배율은 선택된 건물에서, 베이스 스탯은 SkillManager에서** 가져온다. SkillManager가 문자열까지
+    // 만들게 하면 자기 _magicLabAsset을 기준으로 계산하므로, 두 번째 스킬 강화 건물이 생겼을 때
+    // 클릭한 건물과 다른 수치를 보여주게 된다(PR#378 리뷰가 짚은 "같은 리스트를 읽어야 한다"는 축).
+    // 곱셈은 SkillManager.Scale을 그대로 태운다 — 실제 적용과 같은 식을 통과해야 표기가 어긋나지 않는다.
+    //
+    // 인자는 '지금 누르면 도달할' 레벨(1-based)이다.
     private string UpgradeEffect(int nextLevel)
     {
         BuildingAsset.SkillUpgradeLevel next = Scaling(nextLevel);
-        if (next == null)
+        // 스킬 강화 건물이 아니거나, authoring된 레벨이 없거나, 베이스 스탯 출처(씬의 SkillManager)가
+        // 없다 — 어느 쪽이든 _amountText 폴백(k_SkillPendingKey)이 받는다.
+        if (next == null || SkillManager.Instance == null)
         {
-            return string.Empty; // 스킬 강화 건물이 아니거나 authoring된 레벨이 없다 — _amountText 폴백이 받는다.
+            return string.Empty;
         }
-        // 강화되는 스탯만 줄로 만든다. 세 줄을 무조건 채우면 그 레벨에서 안 건드리는 스탯(배율 1.0)이
-        // "0% 증가합니다"로 나온다 — 수치가 아직 placeholder(TBD)라 밸런싱 패스에서 한 레벨에 한 스탯만
-        // 올리는 순간 바로 나타난다(PR#378 리뷰).
+
+        // 현재 레벨의 배율. 미강화(Lv0)면 Scaling이 null을 주고, 그건 곧 "배율 없음 = 베이스가 현재값"이다.
+        BuildingAsset.SkillUpgradeLevel current = Scaling(nextLevel - 1);
+        SkillManager skill = SkillManager.Instance;
+
         var lines = new List<string>(3);
-        AddEffectLine(lines, k_LabDamageKey, next.DamageMultiplier, false);
-        AddEffectLine(lines, k_LabRadiusKey, next.RadiusMultiplier, false);
-        AddEffectLine(lines, k_LabCooldownKey, next.CooldownMultiplier, true);
+        AddStatLine(lines, skill.BaseDamage, DamageMult(current), DamageMult(next),
+            SkillStatsFormatter.BuildSkillDamageLine);
+        AddStatLine(lines, skill.BaseRadius, RadiusMult(current), RadiusMult(next),
+            SkillStatsFormatter.BuildSkillRadiusLine);
+        AddStatLine(lines, skill.BaseCooldown, CooldownMult(current), CooldownMult(next),
+            SkillStatsFormatter.BuildSkillCooldownLine);
         return string.Join("\n", lines);
     }
 
-    // 증감률이 양수일 때만 줄을 추가한다. 0은 "변화 없음"이라 할 말이 없고, 음수는 업그레이드가 스탯을
-    // 깎았다는 뜻이라 authoring 실수다 — 어느 쪽도 "N% 증가합니다" 문장에 넣으면 거짓이 되므로 줄을 비운다
-    // (RewardCardView가 수치 없는 보상 카드를 통째로 비우는 것과 같은 규약).
-    private static void AddEffectLine(List<string> lines, string key, float multiplier, bool inverted)
+    // 값이 변하는 스탯만 줄로 만든다. 세 줄을 무조건 채우면 그 레벨에서 안 건드리는 스탯이 "30 → 30"으로
+    // 나온다 — 수치가 아직 placeholder(TBD)라 밸런싱 패스에서 한 레벨에 한 스탯만 올리는 순간 바로
+    // 나타난다(PR#378 리뷰가 %표기에서 지적한 것과 같은 문제).
+    private static void AddStatLine(List<string> lines, float baseValue, float currentMultiplier,
+                                    float nextMultiplier, Func<float, float, string> build)
     {
-        int pct = Pct(multiplier, inverted);
-        if (pct > 0)
+        float current = SkillManager.Scale(baseValue, currentMultiplier);
+        float next = SkillManager.Scale(baseValue, nextMultiplier);
+        if (!Mathf.Approximately(current, next))
         {
-            lines.Add(LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, key, pct));
+            lines.Add(build(current, next));
         }
     }
+
+    // 배율 엔트리가 없으면(미강화 Lv0 · 범위 밖) 1.0 = 베이스 그대로. SkillManager.RefreshUpgrade의
+    // "레벨 0/범위 밖 = 배율 1.0"과 같은 규약이다.
+    private static float DamageMult(BuildingAsset.SkillUpgradeLevel s) => s == null ? 1f : s.DamageMultiplier;
+    private static float RadiusMult(BuildingAsset.SkillUpgradeLevel s) => s == null ? 1f : s.RadiusMultiplier;
+    private static float CooldownMult(BuildingAsset.SkillUpgradeLevel s) => s == null ? 1f : s.CooldownMultiplier;
 
     // 레벨 n(1-based)의 배율 엔트리. 0이나 범위 밖이면 null = 강화 없음(SkillManager.RefreshUpgrade와 같은 규약).
     //
@@ -300,21 +310,6 @@ public class BuildingInfoUI : MonoBehaviour
         return (steps == null || level < 1 || level > steps.Count)
             ? null
             : steps[level - 1] as BuildingAsset.SkillUpgradeLevel;
-    }
-
-    // 도달 레벨의 배율을 **기본 스탯 대비 증감률**로 환산한다. 배율 1.4 → "40% 증가".
-    //
-    // 직전 레벨과 비교하지 않는 이유: 배율은 누적 곱이 아니라 기본값에 **한 번만** 곱해진다
-    // (`SkillManager.cs:150-152`의 `damage * scaling.DamageMultiplier`). 즉 배율 자체가 이미 기본 대비
-    // 총량이라, 레벨을 올려도 "지금 상태가 기본의 몇 배인가"가 그대로 읽힌다. 직전 레벨 대비 델타로
-    // 바꾸면 선형 authoring(1.2/1.4/1.6/1.8/2.0)이 20/17/14/12/11로 보여 같은 폭인데 나빠지는 것처럼 읽힌다.
-    //
-    // inverted는 쿨다운처럼 '낮을수록 이득'인 스탯용 — 배율 0.8을 감소폭 20%로 뒤집는다.
-    // 0/음수 배율을 1.0으로 막는 건 SkillManager.PositiveOr1과 같은 방어다(authoring 실수 흡수).
-    private static int Pct(float multiplier, bool inverted)
-    {
-        float m = multiplier > 0f ? multiplier : 1f;
-        return Mathf.RoundToInt((inverted ? 1f - m : m - 1f) * 100f);
     }
 
     private string BuildingName()
