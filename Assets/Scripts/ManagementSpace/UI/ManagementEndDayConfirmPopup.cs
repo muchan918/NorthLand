@@ -1,13 +1,13 @@
 using System.Text;
-using NorthLand.Combat;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
 /// 낮 종료(낮→밤) 확인 팝업(#219). 강제 게이팅을 해제한 대신, [다음(낮 종료)] 클릭 시
-/// 낮 프로세스 조건(① 유휴 주민 존재, ② 오늘 타워 미배치)이 하나라도 미충족이면 이 팝업으로 안내한다.<br/>
-/// 영토 확장 조건은 영토 시스템과 함께 사라졌다(#337).
+/// 낮 프로세스 조건(유휴 주민 존재)이 미충족이면 이 팝업으로 안내한다.<br/>
+/// 영토 확장 조건은 영토 시스템과 함께 사라졌고(#337), 타워 미배치 경고는 #410에서 삭제됐다 —
+/// 배치를 미루는 것도 전략이며, 배치·합성 방법은 1스테이지 시작 전 튜토리얼이 가르친다.
 /// <list type="bullet">
 /// <item>[계속] → 조건 미충족이어도 밤으로 진행(<see cref="ManagementController.EndDay"/>).</item>
 /// <item>[취소] → 팝업만 닫고 낮 유지.</item>
@@ -31,7 +31,6 @@ public class ManagementEndDayConfirmPopup : MonoBehaviour
     private const string k_KeyProceed = "game.btn.proceed";
     private const string k_KeyCancel = "game.btn.cancel";
     private const string k_KeyIdleVillagers = "game.management.confirm_end_day.idle_villagers"; // 스마트 스트링 {0}=유휴 수
-    private const string k_KeyNoTowerToday = "game.management.confirm_end_day.no_tower_today";
     private const string k_KeyQuestion = "game.management.confirm_end_day.question";
 
     [Tooltip("팝업 루트 오브젝트 — 표시/숨김 토글 대상. 이 스크립트가 얹힌 오브젝트와 달라야 한다" +
@@ -48,24 +47,6 @@ public class ManagementEndDayConfirmPopup : MonoBehaviour
     [SerializeField] Button _cancelButton;
 
     private ManagementController _controller;
-
-    // ── 오늘 타워를 배치했는가 ────────────────────────────────────────────
-    // 타워 배치는 경영 모델이 아니라 전투 공간의 상태라, 컨트롤러가 아니라 이 팝업이 직접 관찰한다
-    // (팀 계약 #4 공간 분리 — ManagementController가 Tower를 알게 만들지 않는다).
-    // 별도 isPlaced 플래그를 타워 쪽에 심지 않는 이유: Tower.Active가 이미 "살아 있는 타워"의 정본이고
-    // 배치 프리뷰(고스트)는 여기 들어오지 않는다(WL-066). 플래그를 새로 두면 이 정본과 어긋날 수 있다.
-    private bool _placedTowerToday;
-    private int _towerCountAtLastChange;
-
-    /// <summary>
-    /// 오늘 타워 경고를 띄울 조건. <b>현재 기준: "오늘 새로 배치한 타워가 없다"</b>.<br/>
-    /// <br/>
-    /// ⚠ <b>정책을 바꾸려면 이 프로퍼티 하나만 갈아끼우면 된다.</b> 경고가 너무 잦다는 피드백이 오면:<br/>
-    /// ① 무방비일 때만 경고 → <c>Tower.Active.Count == 0</c><br/>
-    /// ② 경고 간격 축소 → 초반 N일만 보거나, 며칠에 한 번만 보도록 조건에 날짜를 섞는다<br/>
-    /// 어느 쪽이든 <see cref="BuildWarnings"/>와 문구 키는 그대로 두고 여기만 손대면 된다.
-    /// </summary>
-    private bool ShouldWarnAboutTowers => !_placedTowerToday;
 
     private void Awake()
     {
@@ -90,21 +71,12 @@ public class ManagementEndDayConfirmPopup : MonoBehaviour
         if (DayNightManager.Instance != null)
         {
             DayNightManager.Instance.OnDayToNight += Hide;
-            DayNightManager.Instance.OnDayStart += HandleDayStart;
         }
         else
         {
             // 구독 실패가 조용히 지나가면 "가끔 밤에 팝업이 안 닫힌다"로만 드러난다 — 여기서 즉시 알린다.
             Debug.LogWarning("[경영] DayNightManager를 찾지 못해 밤 전환 자동 닫기가 비활성화됩니다.");
         }
-
-        Tower.ActiveChanged += HandleTowerActiveChanged;
-
-        // ⚠ 이 스냅샷 시점은 RunSaveManager.Start()(타워 복원)와 순서가 보장되지 않는다 —
-        // 이 저장소엔 ScriptExecutionOrder가 없고 [DefaultExecutionOrder]도 RunBootstrapper뿐이다.
-        // 이어하기 직후 하루치 경고가 뜨거나 안 뜨거나 갈리지만, 타워가 실제로 있는 상태라 피해는 없어
-        // 순서를 고정하지 않는다(Resources.md §7).
-        _towerCountAtLastChange = Tower.Active.Count;
     }
 
     private void OnDestroy()
@@ -112,32 +84,7 @@ public class ManagementEndDayConfirmPopup : MonoBehaviour
         if (DayNightManager.Instance != null)
         {
             DayNightManager.Instance.OnDayToNight -= Hide;
-            DayNightManager.Instance.OnDayStart -= HandleDayStart;
         }
-
-        Tower.ActiveChanged -= HandleTowerActiveChanged;
-    }
-
-    // 낮이 시작될 때마다 "오늘 배치했다"를 리셋한다. 1일차 부트스트랩에서도 발생한다.
-    private void HandleDayStart()
-    {
-        _placedTowerToday = false;
-        _towerCountAtLastChange = Tower.Active.Count;
-    }
-
-    // Tower.ActiveChanged는 등록/해제 양쪽에서 발생하므로(합성은 3개를 소비하고 1개를 만든다)
-    // 이벤트 자체가 아니라 **수가 늘었는지**로 판정한다. 합성 결과가 등록되는 순간도 배치로 친다 —
-    // 플레이어가 오늘 전투 준비를 위해 실제로 행동했다는 점에서 같다.
-    private void HandleTowerActiveChanged()
-    {
-        int now = Tower.Active.Count;
-
-        if (now > _towerCountAtLastChange)
-        {
-            _placedTowerToday = true;
-        }
-
-        _towerCountAtLastChange = now;
     }
 
     /// <summary>
@@ -180,10 +127,6 @@ public class ManagementEndDayConfirmPopup : MonoBehaviour
         {
             int idle = controller.MaxVillagers - controller.AssignedTotal;
             sb.AppendLine(LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, k_KeyIdleVillagers, idle));
-        }
-        if (ShouldWarnAboutTowers)
-        {
-            sb.AppendLine(LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, k_KeyNoTowerToday));
         }
 
         if (sb.Length == 0)

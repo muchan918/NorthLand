@@ -203,10 +203,6 @@ MonoBehaviour:
     m_Key: game.btn.undo
     m_Metadata:
       m_Items: []
-  - m_Id: 11583934444511232
-    m_Key: game.management.confirm_end_day.no_tower_today
-    m_Metadata:
-      m_Items: []
   - m_Id: 12023173794574336
     m_Key: save.slot.name
     m_Metadata:
