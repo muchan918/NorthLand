@@ -26,7 +26,6 @@ MonoBehaviour:
     m_ReadOnly: 1
     m_SerializedLabels:
     - Locale-en-US
-    - Preload
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 244b4f61fa2dd9e4698143e60d38f30f
     m_Address: NorthLand_Towers_en-US

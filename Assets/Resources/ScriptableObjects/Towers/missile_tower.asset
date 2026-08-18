@@ -15,8 +15,10 @@ MonoBehaviour:
   TowerID: missile_tower
   TowerPrefab: {fileID: 4442612599947703802, guid: 4c793250efbddf3488ab65a1d8db6478, type: 3}
   GhostPrefab: {fileID: 1359696496414130033, guid: 0bc1f90d631402240aae8427311a2ce3, type: 3}
+  Icon: {fileID: 0}
   PlacementYaw: 0
   Cost: []
+  Rarity: 1
   Attack:
     AttackDamage: 27
     AttackRange: 24

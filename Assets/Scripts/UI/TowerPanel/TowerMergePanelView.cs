@@ -22,9 +22,6 @@ public class TowerMergePanelView : MonoBehaviour
     [SerializeField] Transform _candidateContent;
     [SerializeField] Button _candidateButtonPrefab;
 
-    [Header("리소스")]
-    [SerializeField] TowerRecipe[] _recipes;
-
     private readonly List<(Button button, TowerRecipe recipe)> _candidates = new();
     private readonly List<GameObject> _rows = new();
     private bool _built;
@@ -60,7 +57,7 @@ public class TowerMergePanelView : MonoBehaviour
             return;
         }
 
-        foreach (var recipe in _recipes)
+        foreach (var recipe in TowerRecipeCatalog.All)
         {
             if (recipe == null) continue;
 

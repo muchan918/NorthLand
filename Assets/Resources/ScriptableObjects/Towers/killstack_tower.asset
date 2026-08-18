@@ -15,8 +15,10 @@ MonoBehaviour:
   TowerID: killstack_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: 44d1d8dc79781934ab0adc4e4066c493, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: 03bc07acd71da4b46862037d92106a8f, type: 3}
+  Icon: {fileID: 0}
   PlacementYaw: 0
   Cost: []
+  Rarity: 1
   Attack:
     AttackDamage: 20
     AttackRange: 30
