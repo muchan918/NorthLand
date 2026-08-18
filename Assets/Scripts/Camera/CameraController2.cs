@@ -46,14 +46,21 @@ public class CameraController2 : MonoBehaviour
     /// 그래서 계약은 "붙을 때 <see cref="CurrentZoomSize"/>로 pull, 바뀌면 이 이벤트로 push"다
     /// (<c>ManagementController.OnChanged</c>와 같은 계보).<br/>
     /// <br/>
-    /// ⚠ 지금은 마우스 휠(<see cref="ZoomMouseWheel"/>)이 유일한 발행처다. 부드러운 줌·대상 줌인 같은
-    /// 경로를 추가하면 그쪽에서도 발행해야 소비처가 어긋나지 않는다.
+    /// ⚠ 발행처가 <b>둘</b>이다 — 마우스 휠(<see cref="ZoomMouseWheel"/>)과 대상 줌(<see cref="UpdateTargetZoom"/>).
+    /// 세이브 복원처럼 <c>Lens</c>를 직접 쓰는 경로를 더 추가하면 그쪽에서도 발행해야 소비처가 어긋나지 않는다.
+    /// 발행이 두 곳에 인라인으로 복제돼 있어 이 경고가 유일한 방어다(WL-024의 <c>ApplyZoom</c> seam이 아직 없다).
     /// </summary>
     public event Action<float> OnZoomChanged;
 
     /// <summary>현재 오쏘 사이즈. 구독 시점에 1회 읽어 초기 상태를 맞추는 용도다.</summary>
     public float CurrentZoomSize =>
         cinemachineCamera != null ? cinemachineCamera.Lens.OrthographicSize : minZoomSize;
+
+    [SerializeField] private float zoomSmoothTime = 0.2f;
+
+    private bool isZooming;
+    private float zoomTarget;
+    private float zoomVelocity;
 
     [Header("미니맵 이동")]
     [SerializeField] private float minimapMoveSmoothTime = 0.15f;
@@ -112,6 +119,8 @@ public class CameraController2 : MonoBehaviour
 
     private void LateUpdate()
     {
+        UpdateTargetZoom();
+
         if (!isMinimapMoving || cameraTarget == null)
         {
             return;
@@ -154,6 +163,28 @@ public class CameraController2 : MonoBehaviour
         MoveKeyboard();
         MoveDrag();
         ZoomMouseWheel();
+    }
+
+    private void UpdateTargetZoom()
+    {
+        if (!isZooming || cinemachineCamera == null) return;
+
+        float next = Mathf.SmoothDamp(cinemachineCamera.Lens.OrthographicSize, zoomTarget,
+            ref zoomVelocity, zoomSmoothTime, Mathf.Infinity, Time.unscaledDeltaTime);
+
+        if (Mathf.Abs(next - zoomTarget) < 0.01f)
+        {
+            next = zoomTarget;
+            zoomVelocity = 0f;
+            isZooming = false;
+        }
+
+        // 렌즈 대입 방식은 ZoomMouseWheel(242~256행)과 똑같이 맞출 것.
+        var lens = cinemachineCamera.Lens;
+        lens.OrthographicSize = next;
+        cinemachineCamera.Lens = lens;
+
+        OnZoomChanged?.Invoke(next);
     }
 
     private void MoveKeyboard()
@@ -239,6 +270,11 @@ public class CameraController2 : MonoBehaviour
             return;
         }
 
+        // 휠을 굴리면 진행 중인 대상 줌이 양보한다 — 이동이 WASD·드래그에 양보하는 것과 같은 규칙.
+        // 안 놓으면 Update에서 바꾼 배율을 같은 프레임 LateUpdate(UpdateTargetZoom)가 되돌려
+        // 굴리는 내내 고무줄처럼 잠긴다(목표에 못 닿아 종료 조건도 안 걸린다).
+        isZooming = false;
+
         float before = cinemachineCamera.Lens.OrthographicSize;
         float nextSize = Mathf.Clamp(before - scrollValue * zoomSpeed, minZoomSize, maxZoomSize);
 
@@ -281,6 +317,16 @@ public class CameraController2 : MonoBehaviour
 
         minimapMoveTarget = ClampPosition(worldPosition);
         isMinimapMoving = true;
+    }
+
+    /// 지정한 오쏘 사이즈로 부드럽게 줌한다. 범위 밖 값은 clamp된다.
+    public void ZoomTo(float orthographicSize)
+    {
+        if (cinemachineCamera == null) return;
+
+        zoomTarget = Mathf.Clamp(orthographicSize, minZoomSize, maxZoomSize);
+        zoomVelocity = 0f;
+        isZooming = true;
     }
 
     public void MoveViewCenterTo(
@@ -336,10 +382,15 @@ public class CameraController2 : MonoBehaviour
         isMinimapMoving = true;
     }
 
+    // 대상 추종 모션(이동+줌)을 함께 내린다. 줌만 남기면 보상·설정 패널이 열렸을 때
+    // 이동은 멎는데 줌만 계속 빨려 들어간다 — UpdateTargetZoom이 unscaledDeltaTime이라 timeScale=0에서도 돈다.
     private void CancelMinimapMove()
     {
         isMinimapMoving = false;
         minimapMoveVelocity = Vector3.zero;
+
+        isZooming = false;
+        zoomVelocity = 0f;
 
         if (cameraTarget != null)
         {
