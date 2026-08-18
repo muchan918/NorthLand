@@ -32,7 +32,6 @@ MonoBehaviour:
     m_ReadOnly: 1
     m_SerializedLabels:
     - Locale-ko-KR
-    - Preload
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: a278a00a8ce31664cb0a309886d864c6
     m_Address: NorthLand_Territories_ko-KR

@@ -15,8 +15,10 @@ MonoBehaviour:
   TowerID: boomerang_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: 977f5bc74f84c4f4793dc1f54fc45390, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: babe5261b8910674780692e1c6cef94a, type: 3}
+  Icon: {fileID: 0}
   PlacementYaw: 0
   Cost: []
+  Rarity: 1
   Attack:
     AttackDamage: 18
     AttackRange: 20

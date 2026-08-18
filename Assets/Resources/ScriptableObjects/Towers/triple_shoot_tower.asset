@@ -18,6 +18,7 @@ MonoBehaviour:
   Icon: {fileID: 0}
   PlacementYaw: 45
   Cost: []
+  Rarity: 1
   Attack:
     AttackDamage: 20
     AttackRange: 17

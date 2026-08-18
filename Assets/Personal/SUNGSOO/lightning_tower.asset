@@ -15,7 +15,10 @@ MonoBehaviour:
   TowerID: lightning_tower
   TowerPrefab: {fileID: 0}
   GhostPrefab: {fileID: 0}
+  Icon: {fileID: 0}
+  PlacementYaw: 0
   Cost: []
+  Rarity: 1
   Attack:
     AttackDamage: 0
     AttackRange: 0
@@ -25,6 +28,8 @@ MonoBehaviour:
       rid: -2
     PelletCount: 1
     SpreadAngle: 0
+    BurstCount: 1
+    BurstInterval: 0
   Impact: 2
   SplashRadius: 0
   ChainRadius: 0
@@ -45,6 +50,24 @@ MonoBehaviour:
     MaxTargets: 1
     TickInterval: 1
     DamagePerTick: 0
+    LockRamp:
+      PerStack: 0
+      MaxStacks: 0
+      StackInterval: 0
+      DecaySeconds: 0
+  GroundZone:
+    ZonePrefab: {fileID: 0}
+    Radius: 0
+    Duration: 0
+    Interval: 0
+  Ramp:
+    Stat: 2
+    Trigger: 0
+    Profile:
+      PerStack: 0
+      MaxStacks: 0
+      StackInterval: 0
+      DecaySeconds: 0
   Effects: []
   references:
     version: 2
