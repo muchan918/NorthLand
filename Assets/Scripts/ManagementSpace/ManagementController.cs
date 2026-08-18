@@ -39,7 +39,7 @@ public class ManagementController : MonoBehaviour
     // 갈리면 오버라이드가 없는 새 씬이 조용히 다른 경제로 돈다.
     // 식량 0: 주민 증가 1차 비용이 15라 초기 지급이 있으면 낮1에 무조건 사는 것이 정답이 되어 선택이 사라진다.
     [Tooltip("게임 시작(런당 1회) 시 지급되는 초기 나무/철/식량. 마나석은 전투 보상 전용이라 제외(팀 계약 #3, 이슈 #130)")]
-    [SerializeField] int _initialWood = 60;
+    [SerializeField] int _initialWood = 55;
     [SerializeField] int _initialIron = 20;
     [SerializeField] int _initialFood = 0;
 
