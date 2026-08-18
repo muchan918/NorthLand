@@ -30,13 +30,9 @@ public sealed class MonsterSpawnWaveProvider :
     private readonly List<MonsterSpawnEntry> cachedEntries = new List<MonsterSpawnEntry>();
 
     private readonly List<WaveMonsterCount> cachedComposition = new();
-    private readonly Dictionary<EnemyAsset, int> cachedMonsterCounts = new();
-    private readonly List<EnemyAsset> cachedMonsterOrder = new();
 
     // 등록된 웨이브 개수 = 리스트 마지막 항목의 웨이브 번호 = 최종 웨이브. 등록된 웨이브가 없으면 0.
     public int FinalWaveNumber { get; private set; }
-
-    private int cachedUnknownMonsterCount;
 
     // 이 웨이브를 클리어하면 게임이 끝나는가(승리 판정용). 웨이브 미등록(0)이면 판정하지 않는다.
     // 최종 번호를 넘어선 라운드도 true로 수렴시켜, 데이터 없는 밤이 무한 반복되지 않게 한다.
@@ -84,9 +80,6 @@ public sealed class MonsterSpawnWaveProvider :
     public bool TryGetWaveComposition(int waveNumber,out IReadOnlyList<WaveMonsterCount> composition)
     {
         cachedComposition.Clear();
-        cachedMonsterCounts.Clear();
-        cachedMonsterOrder.Clear();
-        cachedUnknownMonsterCount = 0;
 
         if (!TryGetWaveAsset(waveNumber, out MonsterWaveAsset wave))
         {
@@ -104,30 +97,7 @@ public sealed class MonsterSpawnWaveProvider :
             Enemy enemy = monsterPrefab.GetComponentInChildren<Enemy>(true);
             EnemyAsset asset = enemy != null ? enemy.Asset : null;
 
-            if (asset == null)
-            {
-                cachedUnknownMonsterCount += spawnCount;
-                continue;
-            }
-
-            if (!cachedMonsterCounts.ContainsKey(asset))
-            {
-                cachedMonsterCounts.Add(asset, 0);
-                cachedMonsterOrder.Add(asset);
-            }
-
-            cachedMonsterCounts[asset] += spawnCount;
-        }
-
-        foreach (EnemyAsset asset in cachedMonsterOrder)
-        {
-            cachedComposition.Add(new WaveMonsterCount(asset, cachedMonsterCounts[asset]));
-        }
-
-        if (cachedUnknownMonsterCount > 0)
-        {
-            cachedComposition.Add(
-                new WaveMonsterCount(null, cachedUnknownMonsterCount));
+            cachedComposition.Add(new WaveMonsterCount(asset, spawnCount));
         }
 
         composition = cachedComposition;

@@ -219,9 +219,10 @@
   `TryGetWaveComposition(int, out IReadOnlyList<WaveMonsterCount>)` /
   `TryGetRewardPool(int, out WaveRewardPool)` / `FinalWaveNumber` / `IsFinalWave(int)` (#294, #384) —
   `TryGetWaveComposition`은 `TryGetWave`와 같은 그룹 유효성 규칙(널 그룹·널 프리팹·0 이하 수량 제외)을
-  거친 뒤 `EnemyAsset`별 출현 수량을 최초 등장 순서로 합산해 UI에 제공한다. `WaveMonsterCount`는
-  `EnemyAsset Asset`과 `int Count`를 담는 읽기 전용 값이며, 원본 `MonsterWaveAsset`과 프리팹 계층은
-  소비자에게 노출하지 않는다.
+  거친 뒤 각 그룹의 `EnemyAsset`과 출현 수량을 웨이브 등록 순서대로 UI에 제공한다. 같은 `EnemyAsset`이
+  뒤에서 다시 등장해도 합산하지 않고 별도 항목으로 유지하므로 미리보기에서 실제 그룹 출현 순서를 읽을
+  수 있다. `WaveMonsterCount`는 `EnemyAsset Asset`과 `int Count`를 담는 읽기 전용 값이며, 원본
+  `MonsterWaveAsset`과 프리팹 계층은 소비자에게 노출하지 않는다.
   **웨이브 번호 = `waves` 리스트에서 몇 번째인가(1-base)**. 진행 순서의 진실 공급원은 인스펙터
   리스트 순서 하나뿐이며, `MonsterWaveAsset`은 자기 번호를 갖지 않는다(`waveNumber` 필드 제거 —
   직렬화된 값과 실제 순서가 조용히 어긋나는 WL-126형 함정 제거). 순서 변경은 리스트 드래그,
