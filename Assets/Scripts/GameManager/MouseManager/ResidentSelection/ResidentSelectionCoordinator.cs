@@ -174,11 +174,13 @@ public class ResidentSelectionCoordinator : MonoBehaviour
         var mm = MouseManager.Instance;
         if (mm == null)
         {
-            if (!_warnedNoMouseManager)
+            // TitleScene에서는 MouseManager가 없는 것이 정상이다.
+            if (DayNightManager.Instance != null && !_warnedNoMouseManager)
             {
                 _warnedNoMouseManager = true;
                 Debug.LogWarning("[주민 선택] MouseManager가 아직 없어 주민 선택이 대기 중입니다.");
             }
+
             return;
         }
 
@@ -318,6 +320,13 @@ public class ResidentSelectionCoordinator : MonoBehaviour
     private void EnsureManagement()
     {
         if (_management != null) return;
+
+        // TitleScene에서는 주민 선택 시스템을 사용하지 않는다.
+        // MouseManager는 이전 GameScene에서 넘어와 남아 있을 수 있다.
+        if (MouseManager.Instance == null || DayNightManager.Instance == null)
+        {
+            return;
+        }
 
         // 못 찾았으면 백오프한다. 이 컴포넌트는 DontDestroyOnLoad라 **모든 씬에 상주**하고,
         // ManagementController가 없는 씬(TitleScene 등)에서는 조기 반환 조건이 영구히 거짓이다 —

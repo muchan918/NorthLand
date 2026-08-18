@@ -190,8 +190,8 @@ namespace NorthLand.UI
 
             if (!playerSaveService.HasSelectedSlot)
             {
-                error = "선택된 플레이어 세이브 슬롯이 없습니다.";
-
+                // 슬롯 미선택은 타이틀 진입 직후의 정상 상태다.
+                error = string.Empty;
                 return false;
             }
 
