@@ -65,6 +65,14 @@ public class SkillManager : MonoBehaviour
 
     public float Radius => effectiveRadius;
 
+    // 마법 연구소 배율이 **곱해지기 전**의 원본 스탯. 건물 정보 패널이 "30 → 36"처럼 강화 전후를
+    // 보여주려면 배율(건물 SO 소유)과 베이스(여기 소유) 둘 다 필요한데, 배율만으로는 절대값을
+    // 만들 수 없다. 위의 Radius(= effectiveRadius)와 헷갈리지 말 것 — 그쪽은 강화가 반영된 현재값이고
+    // 조준 인디케이터가 쓴다.
+    public float BaseDamage => damage;
+    public float BaseRadius => radius;
+    public float BaseCooldown => cooldown;
+
     // 보상이 없어도 들고 있는 기본 충전. 보상 카드가 "충전 횟수 N → N+1"을 계산할 때도 이 값을
     // 써야 버튼 표기("2/2")와 갈리지 않는다 — 두 화면이 각자 `1 +`을 들고 있으면 기본값을 바꾸는
     // 순간 조용히 어긋난다.
@@ -148,9 +156,9 @@ public class SkillManager : MonoBehaviour
             // 레벨이 테이블 크기를 넘으면(비정상 상태 — 컨트롤러가 레벨을 이 SO에서 산출하므로 실제로는
             // 발생하지 않지만) base로 되돌리지 않고 마지막 엔트리를 유지한다(PR#216 리뷰, 방어적 clamp).
             BuildingAsset.SkillUpgradeLevel scaling = levels[Mathf.Clamp(level, 1, levels.Count) - 1];
-            effectiveDamage = damage * PositiveOr1(scaling.DamageMultiplier);
-            effectiveRadius = radius * PositiveOr1(scaling.RadiusMultiplier);
-            effectiveCooldown = cooldown * PositiveOr1(scaling.CooldownMultiplier);
+            effectiveDamage = Scale(damage, scaling.DamageMultiplier);
+            effectiveRadius = Scale(radius, scaling.RadiusMultiplier);
+            effectiveCooldown = Scale(cooldown, scaling.CooldownMultiplier);
         }
         else
         {
@@ -172,6 +180,11 @@ public class SkillManager : MonoBehaviour
     // 데이터나 실수로 0/음수가 들어와도 1.0(배율 없음)으로 취급해 방어한다(PR#216 리뷰) — 쿨다운 0=무한
     // 연발, 사거리 0=미적중 같은 조용한 파괴적 결과를 막는다.
     static float PositiveOr1(float multiplier) => multiplier > 0f ? multiplier : 1f;
+
+    /// 베이스 스탯에 마법 연구소 배율을 적용한다. **표시와 실효가 같은 식을 통과해야** 어긋나지 않으므로
+    /// 건물 정보 패널(BuildingInfoUI)도 이 메서드로 미리보기 값을 계산한다 — 곱셈식과 0/음수 방어가
+    /// 두 벌로 갈리면, 한쪽만 고쳤을 때 "패널엔 36인데 실제론 30"이 조용히 발생한다.
+    public static float Scale(float baseValue, float multiplier) => baseValue * PositiveOr1(multiplier);
 
     // 만충이 아닐 때만 시계가 돌고, 간격마다 1발씩 채운다. 만충에서 타이머를 0으로 되돌리므로
     // 다음 시전 직후의 재충전은 항상 온전한 간격에서 출발한다.

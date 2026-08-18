@@ -17,6 +17,17 @@ public static class SkillStatsFormatter
     const string k_FieldTickDamageKey = "skills.stat.field_tick_damage";
     const string k_FieldRadiusKey     = "skills.stat.field_radius";
     const string k_ExecuteThresholdKey = "skills.stat.execute_threshold";
+
+    // 마법 연구소 강화 미리보기용(#398). 위 키들이 보상 특수효과의 스탯이라면 이 셋은 감전 본체의
+    // 스탯이다 — 같은 종류의 정보라 같은 테이블·같은 서식을 쓴다.
+    const string k_SkillDamageKey   = "skills.stat.damage";
+    const string k_SkillRadiusKey   = "skills.stat.radius";
+    const string k_SkillCooldownKey = "skills.stat.cooldown";
+
+    // 재충전만 단위가 붙는다("10초 → 9초"). 단위를 라벨 문자열에 넣으면 언어별 표기(초/s/秒)를
+    // 코드가 하드코딩하게 되고, 줄 전체를 Smart String("재충전 시간 {0}초 → {1}초")으로 만들면
+    // 화살표가 로컬라이즈 문자열 안으로 들어가 k_Arrow 단일 출처가 깨진다. 단위만 키로 빼면 둘 다 지킨다.
+    const string k_SecondUnitKey = "skills.stat.unit.second";
     
     // 상한 도달 표기. 언어와 무관하게 통용되는 토큰이라 로컬라이제이션 테이블에 넣지 않는다(#292).
     const string k_MaxText = "Max";
@@ -55,4 +66,24 @@ public static class SkillStatsFormatter
     /// 여기서 직접 ×100 하므로 호출부는 비율(0.1f)을 그대로 넘긴다.
     public static string BuildExecuteThresholdLine(float current, float next)
         => $"{Label(k_ExecuteThresholdKey)}: {current * 100f:0.#}%{k_Arrow}{next * 100f:0.#}%";
+
+    // ── 마법 연구소 강화 미리보기(#398) ──────────────────────────────
+    // 건물 정보 패널이 "이번 업그레이드로 감전이 어떻게 변하는가"를 보여줄 때 쓴다. 보상 카드와 같은
+    // 서식을 쓰는 이유는 위 메서드들과 같다 — 두 화면이 같은 종류의 정보(스탯 수치)를 보여주므로
+    // 표기가 갈리면 안 된다.
+
+    /// 감전 데미지 한 줄. "데미지: 30 → 36"
+    public static string BuildSkillDamageLine(float current, float next)
+        => $"{Label(k_SkillDamageKey)}: {current:0.#}{k_Arrow}{next:0.#}";
+
+    /// 감전 범위 한 줄. "공격 범위: 6 → 9"
+    public static string BuildSkillRadiusLine(float current, float next)
+        => $"{Label(k_SkillRadiusKey)}: {current:0.#}{k_Arrow}{next:0.#}";
+
+    /// 재충전 간격 한 줄. "재충전 시간: 10초 → 9초" — 이 스탯만 낮을수록 이득이라 값이 줄어든다.
+    public static string BuildSkillCooldownLine(float current, float next)
+    {
+        string unit = Label(k_SecondUnitKey);
+        return $"{Label(k_SkillCooldownKey)}: {current:0.#}{unit}{k_Arrow}{next:0.#}{unit}";
+    }
 }
