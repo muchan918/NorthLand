@@ -17,7 +17,7 @@ MonoBehaviour:
   GhostPrefab: {fileID: 6801833135963741600, guid: 4605832d26ef29a49969945c4b0556cd, type: 3}
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-    Amount: 30
+    Amount: 25
   Attack:
     AttackDamage: 0
     AttackRange: 0
