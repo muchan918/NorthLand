@@ -1,5 +1,19 @@
+using NorthLand.Combat;
 using System.Collections.Generic;
 using UnityEngine;
+
+
+public readonly struct WaveMonsterCount
+{
+    public EnemyAsset Asset { get; }
+    public int Count { get; }
+
+    public WaveMonsterCount(EnemyAsset asset, int count)
+    {
+        Asset = asset;
+        Count = count;
+    }
+}
 
 // Wave SO를 MonsterSpawnEntry로 변환하여 제공.
 // 웨이브 진행 순서 = waves 리스트의 등록 순서(1-base 인덱스). 마지막 항목이 최종 웨이브다(#294).
@@ -15,6 +29,8 @@ public sealed class MonsterSpawnWaveProvider :
 
     private readonly List<MonsterSpawnEntry> cachedEntries = new List<MonsterSpawnEntry>();
 
+    private readonly List<WaveMonsterCount> cachedComposition = new();
+
     // 등록된 웨이브 개수 = 리스트 마지막 항목의 웨이브 번호 = 최종 웨이브. 등록된 웨이브가 없으면 0.
     public int FinalWaveNumber { get; private set; }
 
@@ -27,7 +43,11 @@ public sealed class MonsterSpawnWaveProvider :
         BuildWaveOrder();
     }
 
-    // 웨이브 번호(1-base = waves 리스트에서 몇 번째인가)에 해당하는 스폰 목록 제공
+    /// <summary>
+    /// 웨이브 번호에 해당하는 유효한 스폰 목록을 제공합니다.
+    /// MonsterSpawn이 소비하는 공개 API이며,
+    /// UI용 몬스터 구성은 TryGetWaveComposition을 사용합니다.
+    /// </summary>
     public bool TryGetWave(int waveNumber,out IReadOnlyList<MonsterSpawnEntry> entries)
     {
         cachedEntries.Clear();
@@ -43,28 +63,12 @@ public sealed class MonsterSpawnWaveProvider :
 
         foreach (MonsterWaveGroup group in wave.Groups)
         {
-            if (group == null)
+            if (!TryResolveGroup(waveNumber,wave,group,out GameObject monsterPrefab,out int spawnCount))
             {
                 continue;
             }
 
-            if (group.MonsterPrefab == null)
-            {
-                Debug.LogWarning($"Wave {waveNumber}에 몬스터 프리팹이 없는 항목이 있습니다.",wave);
-
-                continue;
-            }
-
-            int spawnCount = Mathf.Max(0, group.Count);
-
-            if (spawnCount == 0)
-            {
-                continue;
-            }
-
-            cachedEntries.Add(
-                new MonsterSpawnEntry(group.MonsterPrefab,spawnCount,nextGroupStartDelay,spawnInterval)
-            );
+            cachedEntries.Add(new MonsterSpawnEntry(monsterPrefab,spawnCount,nextGroupStartDelay,spawnInterval));
 
             nextGroupStartDelay += spawnCount * spawnInterval;
         }
@@ -72,6 +76,62 @@ public sealed class MonsterSpawnWaveProvider :
         entries = cachedEntries;
         return cachedEntries.Count > 0;
     }
+
+    public bool TryGetWaveComposition(int waveNumber,out IReadOnlyList<WaveMonsterCount> composition)
+    {
+        cachedComposition.Clear();
+
+        if (!TryGetWaveAsset(waveNumber, out MonsterWaveAsset wave))
+        {
+            composition = cachedComposition;
+            return false;
+        }
+
+        foreach (MonsterWaveGroup group in wave.Groups)
+        {
+            if (!TryResolveGroup(waveNumber,wave,group,out GameObject monsterPrefab,out int spawnCount))
+            {
+                continue;
+            }
+
+            Enemy enemy = monsterPrefab.GetComponentInChildren<Enemy>(true);
+            EnemyAsset asset = enemy != null ? enemy.Asset : null;
+
+            cachedComposition.Add(new WaveMonsterCount(asset, spawnCount));
+        }
+
+        composition = cachedComposition;
+        return cachedComposition.Count > 0;
+    }
+
+    private bool TryResolveGroup(int waveNumber,MonsterWaveAsset wave,MonsterWaveGroup group,out GameObject monsterPrefab,out int spawnCount)
+    {
+        monsterPrefab = null;
+        spawnCount = 0;
+
+        if (group == null)
+        {
+            return false;
+        }
+
+        if (group.MonsterPrefab == null)
+        {
+            Debug.LogWarning($"Wave {waveNumber}에 몬스터 프리팹이 없는 항목이 있습니다.",wave);
+
+            return false;
+        }
+
+        spawnCount = Mathf.Max(0, group.Count);
+
+        if (spawnCount == 0)
+        {
+            return false;
+        }
+
+        monsterPrefab = group.MonsterPrefab;
+        return true;
+    }
+
 
     // 리스트 등록 순서를 그대로 진행 순서로 삼는다.
     // null 슬롯은 웨이브가 아니라 authoring 노이즈로 보고 제외·압축한다 — 웨이브는 빈 밤 없이
@@ -95,8 +155,10 @@ public sealed class MonsterSpawnWaveProvider :
         FinalWaveNumber = orderedWaves.Count;
     }
 
-    // 웨이브 번호(1-base)를 리스트 인덱스로 변환한다. 범위 밖이면 false.
-    // 1-base ↔ 0-base 변환은 이 한 곳에만 둔다.
+    /// <summary>
+    /// 웨이브 번호를 내부 orderedWaves 인덱스로 변환해 에셋을 조회합니다.
+    /// Provider 내부 API에서만 사용합니다.
+    /// </summary>
     private bool TryGetWaveAsset(int waveNumber, out MonsterWaveAsset wave)
     {
         if (waveNumber < 1 || waveNumber > orderedWaves.Count)

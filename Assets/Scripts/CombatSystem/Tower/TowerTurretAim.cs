@@ -60,6 +60,17 @@ namespace NorthLand.Combat
         ///   갈라지고, 이 이벤트는 앞으로 소비처가 늘어날 자리다(사운드·파티클·UI).
         public event System.Action TargetLost;
 
+        /// `TargetLost`가 실제로 발행될 수 있는 상태인지. **`turret`이 미할당이면 `LateUpdate`가 맨 위에서
+        /// 조기 반환해 `Rest()`에 영영 도달하지 못하므로 이 이벤트는 한 번도 나지 않는다.**
+        ///
+        /// 공개하는 이유: 이 컴포넌트는 계약상 **연출 전용**이고 붙이지 않아도 전투 결과는 달라지지 않지만,
+        /// `TowerAnimationVisual`이 **루프로 저작된 발사 상태를 빠져나오는 유일한 신호**로 이 이벤트를 쓴다
+        /// (FattyPoly Part4의 `MachineGun`·`Minigun`은 `Fire` 클립이 `m_LoopTime: 1`이고 `Fire`에서 나가는
+        /// 전이가 전부 조건부라 무조건 탈출이 없다 — 팩마다 `Fire` 저작이 정반대다). 그래서 **연출 필드 하나가
+        /// 비면 밤새 발사 모션이 반복되는데 경고도 예외도 없다.** 그 침묵을 소비처가 저작 시점에 깨도록
+        /// 상태만 읽기로 내보낸다 — 정지 책임을 이 컴포넌트가 지는 것은 아니다(WL-193).
+        public bool PublishesTargetLost => turret != null;
+
         Tower _tower;
         Transform _target;
         float _scanTimer;

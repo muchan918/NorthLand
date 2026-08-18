@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using NorthLand.Combat;
 using NorthLand.Core;
@@ -13,11 +14,6 @@ public class SkillField : MonoBehaviour
     [SerializeField] Transform visual;              // 원반 메시. 반경이 바뀌면 코드가 스케일을 맞춘다
     [SerializeField] float visualThickness = 0.02f;
 
-    [Header("판정")]
-    // 착탄점은 타일 표면(지면)인데 몬스터는 그 위 6f에 떠 있다(WL-063, CombatMapTileSpawner의
-    // monsterWaypointYOffset). 수평 반경으로 수직 도달까지 해결하려 들면 범위가 같이 커지므로 축을 나눈다.
-    [SerializeField] float verticalRange = 12f;
-
     float damagePerTick;
     float radius;
     float tickInterval;
@@ -28,8 +24,7 @@ public class SkillField : MonoBehaviour
     float tickTimer;
     bool initialized;
     // 반경이 커질수록 한 틱에 걸리는 적이 는다(씬 authoring 18 — 감전 6·폭탄 10보다 넓다).
-    // OverlapCapsuleNonAlloc은 버퍼가 차면 나머지를 조용히 버리므로 다른 판정보다 넉넉히 잡는다.
-    readonly Collider[] hitBuffer = new Collider[64];
+    readonly List<IDamageable> hits = new List<IDamageable>(64);
 
     public void Init(float damagePerTick, float radius, float duration, float tickInterval,
                      LayerMask enemyLayerMask, bool debugLog)
@@ -104,40 +99,25 @@ public class SkillField : MonoBehaviour
 
     void Tick()
     {
-        // 수직 축 캡슐 — 수평 단면이 정확히 반경 radius의 원이라 원반 비주얼과 1:1로 맞고,
-        // 수직만 verticalRange까지 열어 부양한 적에게 닿는다(구체로 하면 수평까지 같이 커진다).
-        int count = Physics.OverlapCapsuleNonAlloc(
-            transform.position,
-            transform.position + Vector3.up * verticalRange,
-            radius, hitBuffer, enemyLayerMask);
+        SkillHitScan.CollectEnemies(transform.position, radius, enemyLayerMask, hits);
 
-        // 포화 = 초과분이 조용히 누락된 상태. "가끔 안 맞는다"로만 보이고 재현이 안 되므로 로그로 드러낸다.
-        if (count == hitBuffer.Length)
-            Debug.LogWarning($"[SkillEffect] 전기장 판정 버퍼 포화({count}) — 초과분 누락. 반경={radius}", this);
-
-        int hitTargets = 0;
-        for (int i = 0; i < count; i++)
-        {
-            var damageable = hitBuffer[i].GetComponentInParent<IDamageable>();
-            // Source: 플레이어 스킬 계열은 IAttacker 개체가 아니라 null (SkillManager의 DamageInfo와 동일 규약).
-            if (damageable != null && damageable.Faction == Faction.Enemy && !damageable.IsDead)
-            {
-                damageable.TakeDamage(new DamageInfo(damagePerTick, null));
-                hitTargets++;
-            }
-        }
+        // Source: 플레이어 스킬 계열은 IAttacker 개체가 아니라 null (SkillManager의 DamageInfo와 동일 규약).
+        foreach (var damageable in hits)
+            damageable.TakeDamage(new DamageInfo(damagePerTick, null));
 
         if (debugLog)
-            Debug.Log($"[SkillEffect] 전기장 틱: 위치={transform.position}, 적중={hitTargets}마리, 데미지={damagePerTick}, 반경={radius}, 남은 지속={lifeTimer:0.##}s");
+            Debug.Log($"[SkillEffect] 전기장 틱: 위치={transform.position}, 적중={hits.Count}마리, 데미지={damagePerTick}, 반경={radius}, 남은 지속={lifeTimer:0.##}s");
     }
 
 #if UNITY_EDITOR
     void OnDrawGizmosSelected()
     {
         // Tick의 캡슐 판정과 같은 모양 — 기즈모만 구체로 두면 수직 범위를 오해한다.
+        // 판정이 위아래 양방향이라 캡을 둘 다 그린다(SkillHitScan.VerticalRange 주석 참고).
         Gizmos.color = new Color(0.3f, 0.7f, 1f);
-        Gizmos.DrawWireSphere(transform.position, radius);
-        Gizmos.DrawWireSphere(transform.position + Vector3.up * verticalRange, radius);
+        Vector3 vertical = Vector3.up * SkillHitScan.VerticalRange;
+        Gizmos.DrawWireSphere(transform.position - vertical, radius);
+        Gizmos.DrawWireSphere(transform.position + vertical, radius);
     }
 #endif
 }

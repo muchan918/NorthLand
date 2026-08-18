@@ -170,7 +170,7 @@ asmdef 부재로 순수 유닛 테스트 불가(Resources.md §7) — UI도 다�
 | 수치 출처 | `BuildingAsset.Production.UpgradeLevels`(비용+주민당량) | `BuildingAsset.Skill.UpgradeLevels`(**비용+스킬 강화 배율**, `SkillUpgradeLevel`, #205) |
 | 비용 차감 | `TrySpend(costs)` 게이트웨이(원자적) | **동일** `TrySpend(costs)` 게이트웨이 |
 | 업그레이드 효과 | 주민당량↑(즉시, 정산 반영) | 레벨만 오르고, 강화는 소비 시스템(`SkillManager`, #205)이 레벨을 참조해 기본 스탯 배율로 적용 |
-| UI | `BuildingInfoUI`(클릭→패널→버튼) | **동일** `BuildingInfoUI`(별 분기). (연금술사의 집은 예외 — 업그레이드 트랙이 아니라 교환소라 **별도 `StorePanelUI`** 를 띄운다, #211) 생산의 "주민당 5→7" 자리(`_amountText`)는 여전히 `building.upgrade.skill_pending`("스킬 강화")이지만, **강화 수치는 업그레이드 버튼 위 별도 줄**(`_skillEffectText`)에 "감전 데미지가 N% 증가합니다" 3줄로 표시한다(#375, 아래 상세) |
+| UI | `BuildingInfoUI`(클릭→패널→버튼) | **동일** `BuildingInfoUI`(별 분기). (연금술사의 집은 예외 — 업그레이드 트랙이 아니라 교환소라 **별도 `StorePanelUI`** 를 띄운다, #211) 생산의 "주민당 5→7" 자리(`_amountText`)는 여전히 `building.upgrade.skill_pending`("스킬 강화")이지만, **강화 수치는 업그레이드 버튼 위 별도 줄**(`_skillEffectText`)에 "데미지: 36 → 42" 형태로 표시한다(#375 도입 → #398에서 % 문장형에서 실수치로 개정, 아래 상세) |
 
 ### 데이터 (SO)
 > ⚠ **#229 이후**: 등록 경로가 `Skill.UpgradeLevels` 하드코딩에서 타입 중립 `BuildingAsset.UpgradeSteps`로 바뀌었고,
@@ -197,39 +197,44 @@ asmdef 부재로 순수 유닛 테스트 불가(Resources.md §7) — UI도 다�
 - 레벨→배율 매핑은 `BuildingAsset.Skill.UpgradeLevels`(SO, index i = 레벨 i+1)에 authoring한다 — CSV 미사용(WL-015와 동일 축), 씬이 아니라 SO라 밸런싱 패스가 `GameScene.unity`를 안 건드린다(PR#216 리뷰 반영). 수치는 **placeholder(TBD, 밸런싱 후속)**.
 - 한때 `SkillManager`/`BuffSkillManager` 둘이 공통 베이스클래스 없이 동일 패턴을 각자 구현했다("스킬 2개뿐이라 추상화 안 함" 방침). **#315로 버프 스킬이 제거돼 소비처는 `SkillManager` 하나뿐이며, 중복 자체가 사라졌다.**
 
-### 강화 수치 UI 표시 (#375)
+### 강화 수치 UI 표시 (#375 도입 → #398 실수치 표기)
 
-업그레이드 버튼 **위** 줄(`BuildingInfoUI._skillEffectText`)에 도달 레벨의 스킬 스탯이 **기본 대비** 얼마나 오르는지를 문장으로 보여준다(Lv2 도달 예시).
+업그레이드 버튼 **위** 줄(`BuildingInfoUI._skillEffectText`)에 이번 업그레이드로 감전 스탯이 **어떤 값이 되는지**를 현재값 → 도달값으로 보여준다(Lv1 → Lv2 예시).
 
 ```
-감전 데미지가 기본 대비 40% 증가합니다
-감전 범위가 기본 대비 100% 증가합니다
-감전 재충전 시간이 기본 대비 20% 감소합니다
+데미지: 36 → 42
+공격 범위: 9 → 12
+재충전 시간: 9초 → 8초
 ```
 
-- **기준은 기본 스탯 대비 누적 총량**이다(직전 레벨 대비 델타가 아니다). 배율은 누적 곱이 아니라 기본값에 **한 번만** 곱해지므로(`SkillManager.cs:150-152`) 배율 자체가 이미 기본 대비 총량이고, 문구는 그걸 그대로 환산한다. 델타로 바꾸면 선형 authoring(1.2/1.4/1.6/1.8/2.0)이 20/17/14/12/11로 보여 **같은 폭인데 레벨이 오를수록 나빠지는 것처럼 읽힌다.**
-  현재 authoring 기준 표시값:
+- **#375의 % 문장형("감전 데미지가 기본 대비 40% 증가합니다")에서 #398로 바뀌었다.** %는 기본 대비 누적 배율이라 플레이어가 체감하는 값이 아니었다 — 지금 데미지가 30인지 48인지 모르는 채 "40% 증가"만 읽히고, 감전 베이스 스탯이 화면 어디에도 없어 환산할 방법도 없었다. 표기 규약은 생산 건물의 "주민당 5 → 7"(`RefreshProductionLine`)·보상 카드(`SkillStatsFormatter`)와 같다.
+- **배율은 클릭한 건물 SO에서, 베이스 스탯은 `SkillManager`에서** 온다. 절대값을 만들려면 두 출처가 다 필요하다(배율만으로는 절대값이 안 나온다) — #375가 "UI가 베이스 스탯을 읽으면 경영↔전투 결합이 새로 생긴다"며 미뤄 뒀던 그 결합을 **이번에 열었다**: `SkillManager.BaseDamage`/`BaseRadius`/`BaseCooldown`(배율 적용 **전** 원본)과 `static SkillManager.Scale(baseValue, multiplier)`.
+  - **곱셈은 `Scale` 하나만 통과한다** — 0/음수 배율 방어(`PositiveOr1`)까지 그 안에 있어서, UI가 곱셈식을 따로 들면 한쪽만 고쳤을 때 "패널엔 36인데 실제론 30"이 조용히 생긴다. 표시와 실효가 같은 식을 지나는 것이 이 결합을 허용한 대가이자 조건이다.
+  - ⚠ **문자열은 `SkillManager`가 만들지 않는다.** 매니저는 자기 `_magicLabAsset` 하나만 알기 때문에, 두 번째 스킬 강화 건물이 생기면 **클릭한 건물과 다른 수치**를 보여주게 된다. 배율은 항상 선택된 건물에서 읽는다(PR#378 리뷰의 "컨트롤러와 같은 리스트를 읽어야 한다"와 같은 축).
+- 현재 authoring 기준 도달값(베이스 데미지 30 / 범위 6 / 재충전 10 — `GameScene`의 `SkillManager` 인스펙터, WL-015 축):
 
-  | Lv | 데미지 | 범위 | 재충전 |
+  | Lv | 데미지 | 공격 범위 | 재충전 |
   |---|---|---|---|
-  | 1 | 20% | 50% | 10% |
-  | 2 | 40% | 100% | 20% |
-  | 3 | 60% | 150% | 30% |
-  | 4 | 80% | 250% | 40% |
-  | 5 | 100% | 350% | 45% |
+  | 0(미강화) | 30 | 6 | 10초 |
+  | 1 | 36 | 9 | 9초 |
+  | 2 | 42 | 12 | 8초 |
+  | 3 | 48 | 15 | 7초 |
+  | 4 | 54 | 21 | 6초 |
+  | 5 | 60 | 27 | 5.5초 |
 
-- 문자열은 `NorthLand_default`의 **스탯별 키 3개**(`lab.effect.damage`/`.radius`/`.cooldown`, Smart String `{0}`)를 전 레벨이 공유한다 — 레벨마다 문장이 아니라 숫자만 달라서, 본진의 `castle.effect.lv{n}`처럼 레벨별로 쪼갤 이유가 없다. **레벨을 늘려도 문구 작업이 없다.** 반대로 줄 단위로 쪼갠 이유는 아래 "변하지 않는 스탯" 항목.
-- 수치는 `BuildingInfoUI`가 `BuildingAsset.UpgradeSteps`의 배율에서 **직접 산출**한다(`Scaling`/`Pct`/`UpgradeEffect`). 표시용 값을 따로 authoring하지 않으므로 밸런싱이 `magic_lab.asset`을 고치면 문구가 자동으로 따라가고, `SkillManager`가 실제 적용하는 값과 어긋날 수 없다. 대가로 **절대값(피해 36)은 표시하지 않는다** — 베이스 스탯은 `SkillManager`의 private 필드고, UI가 그걸 읽으면 경영↔전투 결합이 새로 생긴다.
-  ⚠ `Skill.UpgradeLevels`를 직접 읽지 않고 **`UpgradeSteps`를 인덱싱한 뒤 `as SkillUpgradeLevel`로 좁힌다** — 컨트롤러가 레벨·MAX를 세는 것과 물리적으로 같은 리스트여야 한다(PR#378 리뷰). `UpgradeSteps`는 Castle→Skill→Production→Exchange 중 첫 그룹만 돌려주므로, 두 그룹을 동시에 authoring한 건물에서 "Lv 2/3인데 4행째의 %"가 뜨는 것을 막는다.
-- **변하지 않는 스탯은 줄 자체가 빠진다** — 배율이 1.0(그 레벨에서 안 건드림)이면 0%가 되고, 0%나 음수를 "N% 증가합니다"에 넣으면 거짓 문장이 된다(`AddEffectLine`의 양수 가드, `RewardCardView`가 수치 없는 카드를 통째로 비우는 규약과 동일). 수치가 placeholder(TBD)라 밸런싱 패스에서 한 레벨에 한 스탯만 올리는 순간 필요해진다.
-- 쿨다운은 낮아지는 게 이득이라 `Pct(..., inverted: true)`로 부호를 뒤집어 "감소합니다"로 읽힌다.
+- 문자열 소유가 옮겨졌다: `NorthLand_default`의 문장형 키 3개(`lab.effect.damage`/`.radius`/`.cooldown`)는 **삭제**됐고, `NorthLand_Skills`의 라벨 키 3개(`skills.stat.damage`/`.radius`/`.cooldown`)를 쓴다. 문장이 아니라 "라벨: 값 → 값" 조립이라 **서식 소유자는 로컬라이제이션 문자열이 아니라 `SkillStatsFormatter`**(`BuildSkillDamageLine`/`BuildSkillRadiusLine`/`BuildSkillCooldownLine`)이며, 보상 카드와 화살표(`k_Arrow`)·숫자 서식(`0:0.#`)을 공유한다.
+  - **단위("초")만 별도 키**(`skills.stat.unit.second`)인 이유: 라벨에 단위를 붙이면 언어별 표기(초/s/秒)를 코드가 하드코딩하게 되고, 줄 전체를 Smart String("재충전 시간 {0}초 → {1}초")으로 만들면 화살표가 로컬라이즈 문자열 안으로 들어가 `k_Arrow` 단일 출처가 깨진다. 단위만 키로 빼면 둘 다 지킨다.
+- 배율 엔트리는 `Skill.UpgradeLevels`를 직접 읽지 않고 **`UpgradeSteps`를 인덱싱한 뒤 `as SkillUpgradeLevel`로 좁힌다**(#375에서 확립, 그대로) — 컨트롤러가 레벨·MAX를 세는 것과 물리적으로 같은 리스트여야 한다(PR#378 리뷰). `UpgradeSteps`는 Castle→Skill→Production→Exchange 중 첫 그룹만 돌려주므로, 두 그룹을 동시에 authoring한 건물에서 "Lv 2/3인데 4행째 수치"가 뜨는 것을 막는다.
+  - **현재값 쪽 배율은 `Scaling(nextLevel - 1)`**이고, Lv0이면 null = 배율 없음 = **베이스가 곧 현재값**이다(`SkillManager.RefreshUpgrade`의 "레벨 0/범위 밖 = 배율 1.0"과 같은 규약, `DamageMult`/`RadiusMult`/`CooldownMult`).
+- **값이 변하지 않는 스탯은 줄 자체가 빠진다** — 그 레벨에서 안 건드리는 스탯이 "30 → 30"으로 뜨는 것을 `AddStatLine`의 `Mathf.Approximately` 가드가 막는다(%표기 시절 "0% 증가합니다"를 막던 것과 같은 목적, `RewardCardView`가 수치 없는 카드를 통째로 비우는 규약과 동일 계보). 수치가 placeholder(TBD)라 밸런싱 패스에서 한 레벨에 한 스탯만 올리는 순간 필요해진다.
+- 재충전은 낮아지는 게 이득이라 값이 **줄어드는** 유일한 줄이다("9초 → 8초"). %표기 시절의 `Pct(..., inverted: true)` 부호 뒤집기는 사라졌다 — 실수치는 방향을 설명할 필요가 없다.
 - **최대 도달·본진 레벨 잠금이면 빈 줄**이다(잠금 상태에서 필요한 정보는 잠금 사유 쪽, §9). `Body`의 VerticalLayoutGroup이 `childControlHeight = true`라 빈 줄이면 자리가 접힌다.
-- `building.upgrade.skill_pending`은 **삭제되지 않고 폴백으로 남는다** — SO에 해당 레벨이 없으면 `UpgradeEffect`가 빈 문자열을 돌려주고, `_amountText`의 "스킬 강화"만 보인다.
+- `building.upgrade.skill_pending`은 **삭제되지 않고 폴백으로 남는다** — SO에 해당 레벨이 없거나 **씬에 `SkillManager`가 없으면**(베이스 스탯 출처 부재, `SkillManager.Instance == null`) `UpgradeEffect`가 빈 문자열을 돌려주고, `_amountText`의 "스킬 강화"만 보인다.
 
 ⚠ **씬/프리팹 이원화 주의(WL-189)**: `GameScene.unity`의 `BuildingInfoPanel`은 `Assets/Imported/@NorthLand/Prefabs/UI/BuildingInfoPanel.prefab`에서 **unpack된 독립 오브젝트**다. 프리팹만 고치면 플레이 씬에 반영되지 않고 에러도 안 난다 — 양쪽 다 손대야 한다.
 
 ### 잔여 / TODO
-- [ ] **수치 밸런싱**: 레벨 수·레벨당 마나 비용(현재 placeholder 20/40/60), 스킬 강화 배율(현재 placeholder). 배율을 바꾸면 위 UI 문구의 %가 자동으로 따라간다(별도 작업 불필요).
+- [ ] **수치 밸런싱**: 레벨 수·레벨당 마나 비용(현재 placeholder 20/40/60), 스킬 강화 배율(현재 placeholder). 배율을 바꾸면 위 UI 표시값이 자동으로 따라간다(별도 작업 불필요). 단 **베이스 스탯(`SkillManager` 인스펙터)을 바꾸면 위 도달값 표도 함께 갱신**해야 한다 — 표시값이 배율만이 아니라 베이스×배율이 됐다(#398).
 - [ ] **클릭 오브젝트**: 마법 연구소를 클릭해 패널을 열려면 씬/프리팹에 `BuildingInfo`(+`Selectable` 레이어 콜라이더) 배치 필요 —
   생산 건물 클릭 오브젝트와 동일하게 건물 프리팹(Imported 사각지대 가능, WL-040) 쪽 작업.
 - [x] **연금술사(Store 타입, #211 교환 → #229 효율 업그레이드)**: 교환소가 먼저 구현되고(`BuildingAsset.Exchange`, 상세는 `Docs/ManagementArea/Resources.md` §3), **효율 업그레이드는 #229에서 완성**됐다(§9). 지불 마나석 고정, 받는 자원량 × `GainMultiplier`라는 효과는 종전 설계 그대로지만 **레벨의 출처가 바뀌었다** — 자체 레벨 트랙을 갖는 대신 본진 레벨이 배율 행을 고른다.

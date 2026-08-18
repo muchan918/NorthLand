@@ -337,6 +337,21 @@
             "converted": "5bf55d5343f6cf94898b703a48695081"
         },
         {
+            "name": "Color 1",
+            "source": "0166f0d850a1d2f44a6906e0bcf3a906",
+            "converted": "899e807da8e8e104cbac538a049443a2"
+        },
+        {
+            "name": "Color 2",
+            "source": "3ab7a01bec385b3499c4ed6350f68837",
+            "converted": "5bbd24df9e796ca419c8dc21110de5b7"
+        },
+        {
+            "name": "Color 3",
+            "source": "06e92612d913c0b48a4d17e3b7361be5",
+            "converted": "4c133bebbfe1e6d4f9c7eba2a9f3ef19"
+        },
+        {
             "name": "Color_2",
             "source": "ad0974441f0ed61458db1b71f87d29be",
             "converted": "54cf9ff543d0c4f449f89920b02240de"
@@ -390,6 +405,11 @@
             "name": "Lit",
             "source": "31321ba15b8f8eb4c954353edc038b1d",
             "converted": "f020f9112025e8240bc4119aa9b6acf0"
+        },
+        {
+            "name": "Maine_Material",
+            "source": "af8f9b9e841ade74d97285b4446a1784",
+            "converted": "c52346174120b50429d644efc23d5cc7"
         },
         {
             "name": "Material.002",
@@ -510,6 +530,11 @@
             "name": "Palette256",
             "source": "df80e43d0e98e934e90be1493ab2cb20",
             "converted": "80fbe7940c03e1a42b371f6ed53a74ab"
+        },
+        {
+            "name": "Palette256",
+            "source": "d8e37c42a25c9084e8c85c1c547f23ab",
+            "converted": "4b52853f281abf74699925e9fe69ab0f"
         },
         {
             "name": "Pedra",
