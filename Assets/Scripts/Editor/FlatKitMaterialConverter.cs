@@ -66,6 +66,44 @@ public static class FlatKitMaterialConverter
         Debug.Log(Revert(Selection.gameObjects));
     }
 
+    [MenuItem("NorthLand/FlatKit/4. 원장 점검 (진단만 — 바꾸지 않는다)", priority = 203)]
+    private static void AuditMenu()
+    {
+        Debug.Log(Audit());
+    }
+
+    // 정리는 메뉴를 따로 세우고 대화상자로 한 번 더 막는다. `Convert` 안에 있던 같은 삭제가
+    // 위험했던 이유는 삭제 자체가 아니라 **아무도 보지 않는 자리에서 일어난다**는 것이었다.
+    [MenuItem("NorthLand/FlatKit/5. 끊긴 기록 정리 (사본이 사라진 항목 제거)", priority = 204)]
+    private static void PruneMissingMenu()
+    {
+        ConversionMap map = LoadMap();
+        List<ConversionEntry> broken = map.entries.Where(e => LoadByGuid(e.converted) == null).ToList();
+
+        if (broken.Count == 0)
+        {
+            Debug.Log($"{k_Tag} 정리할 항목 없음 — 기록 {map.entries.Count}건 전부 사본이 살아 있다.");
+            return;
+        }
+
+        bool ok = EditorUtility.DisplayDialog(
+            "FlatKit 원장 정리",
+            $"사본을 로드할 수 없는 기록 {broken.Count}건을 원장에서 지운다.\n\n" +
+            "⚠ Assets/Imported(중첩 저장소)가 최신인지 먼저 확인할 것 — 낡은 체크아웃에서 실행하면 " +
+            "멀쩡한 매핑이 지워지고 원본 복귀(Revert) 경로가 팀 전체에서 끊긴다.\n\n" +
+            string.Join("\n", broken.Take(15).Select(e => e.name)) +
+            (broken.Count > 15 ? "\n…" : string.Empty),
+            "Imported 최신 확인했다 — 정리",
+            "취소");
+
+        if (!ok)
+        {
+            return;
+        }
+
+        Debug.Log(PruneMissing());
+    }
+
     // ── 공개 API (unity-cli exec에서 직접 호출한다) ──────────────────────────
 
     /// <summary>
@@ -217,7 +255,8 @@ public static class FlatKitMaterialConverter
             updated++;
         }
 
-        return $"{k_Tag} 템플릿 재적용 — 갱신 {updated}" + (missing > 0 ? $" / 참조 끊김 {missing}" : string.Empty);
+        return $"{k_Tag} 템플릿 재적용 — 갱신 {updated}" +
+               (missing > 0 ? $" / 참조 끊김 {missing} (원인은 메뉴 「4. 원장 점검」)" : string.Empty);
     }
 
     /// <summary>
@@ -291,7 +330,179 @@ public static class FlatKitMaterialConverter
                (dirtyScenes.Count > 0 ? $"\n{k_Tag} 씬 {dirtyScenes.Count}개 dirty — 저장은 직접 할 것." : string.Empty);
     }
 
+    /// <summary>
+    /// 원장과 실제 에셋이 어긋난 지점을 **바꾸지 않고** 보고한다.
+    ///
+    /// 두 방향을 함께 보는 이유: 한쪽만 보면 원인을 못 짚는다. 같은 사고가 원장에서는 "기록이 없다"로,
+    /// 폴더에서는 "사본이 늘었다"로 나타나기 때문이다.
+    ///  - **끊긴 기록** — 원장에 있는데 사본(또는 원본)이 로드되지 않는다. Imported 미동기이거나 실제 삭제다.
+    ///  - **미등재 사본** — 출력 폴더에 있는데 원장에 없다. 과거 `Convert`가 기록을 조용히 지우고 새로
+    ///    만든 흔적이며, `Revert`가 원장으로 역매핑을 만들기 때문에 **이 사본들은 되돌릴 수 없다**(WL-194).
+    ///    그래서 참조 개수까지 함께 센다 — 참조 중인 미등재 사본이 실제 피해이고, 참조 0은 잔재다.
+    /// </summary>
+    public static string Audit()
+    {
+        ConversionMap map = LoadMap();
+
+        var broken = new List<string>();
+
+        foreach (ConversionEntry entry in map.entries)
+        {
+            bool hasCopy = LoadByGuid(entry.converted) != null;
+            bool hasSource = LoadByGuid(entry.source) != null;
+
+            if (hasCopy && hasSource)
+            {
+                continue;
+            }
+
+            broken.Add($"{entry.name} (사본 {(hasCopy ? "OK" : "없음")} / 원본 {(hasSource ? "OK" : "없음")})");
+        }
+
+        // 폴더가 아예 없으면 Imported 자체가 미동기라 "미등재 사본"을 판단할 근거가 없다 —
+        // 여기서 0건이라고 답하면 그게 곧 오진이 된다.
+        if (!AssetDatabase.IsValidFolder(k_OutputFolder))
+        {
+            return $"{k_Tag} 점검 중단 — 출력 폴더가 없다: {k_OutputFolder}. " +
+                   $"Assets/Imported(중첩 저장소)를 먼저 동기화할 것(WL-194).\n" +
+                   $"{k_Tag} 원장 기록 {map.entries.Count}건 / 끊긴 기록 {broken.Count}건.";
+        }
+
+        var listed = new HashSet<string>(map.entries.Select(e => e.converted));
+        string[] copyGuids = AssetDatabase.FindAssets("t:Material", new[] { k_OutputFolder });
+
+        var orphanPaths = new List<string>();
+
+        foreach (string guid in copyGuids)
+        {
+            if (listed.Contains(guid))
+            {
+                continue;
+            }
+
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+
+            if (!string.IsNullOrEmpty(path))
+            {
+                orphanPaths.Add(path);
+            }
+        }
+
+        Dictionary<string, int> refs = CountReferences(orphanPaths);
+
+        var report = new System.Text.StringBuilder();
+        report.Append($"{k_Tag} 원장 점검 — 기록 {map.entries.Count}건 / 폴더 사본 {copyGuids.Length}개");
+
+        if (broken.Count > 0)
+        {
+            report.Append($"\n{k_Tag} 끊긴 기록 {broken.Count}건 (메뉴 5로 정리 — Imported 최신 확인 후): ");
+            report.Append(string.Join(", ", broken.Take(20)));
+            report.Append(broken.Count > 20 ? " …" : string.Empty);
+        }
+
+        if (orphanPaths.Count > 0)
+        {
+            int live = orphanPaths.Count(x => refs.TryGetValue(x, out int c) && c > 0);
+
+            report.Append($"\n{k_Tag} 미등재 사본 {orphanPaths.Count}개 (그중 참조 중 {live}개 — " +
+                          "**이 사본들은 Revert로 되돌릴 수 없다**):");
+
+            foreach (string path in orphanPaths.OrderByDescending(x => refs.TryGetValue(x, out int c) ? c : 0))
+            {
+                int count = refs.TryGetValue(path, out int c2) ? c2 : 0;
+
+                report.Append($"\n  - {System.IO.Path.GetFileNameWithoutExtension(path)}" +
+                              (count > 0 ? $" — 참조 {count}곳" : " — 참조 없음(잔재)"));
+            }
+        }
+
+        if (broken.Count == 0 && orphanPaths.Count == 0)
+        {
+            report.Append($"\n{k_Tag} 어긋난 지점 없음.");
+        }
+
+        return report.ToString();
+    }
+
+    /// <summary>
+    /// 사본을 로드할 수 없는 기록을 원장에서 제거한다.
+    ///
+    /// **`Convert`가 하던 조용한 삭제를 그대로 옮겨온 것이다** — 동작은 같고, 사람이 "Imported가
+    /// 최신"임을 확인하고 누른다는 점만 다르다. 그 한 가지가 WL-194의 전부다.
+    /// </summary>
+    public static string PruneMissing()
+    {
+        ConversionMap map = LoadMap();
+        List<ConversionEntry> broken = map.entries.Where(e => LoadByGuid(e.converted) == null).ToList();
+
+        if (broken.Count == 0)
+        {
+            return $"{k_Tag} 정리할 항목 없음 — 기록 {map.entries.Count}건 전부 사본이 살아 있다.";
+        }
+
+        foreach (ConversionEntry entry in broken)
+        {
+            map.entries.Remove(entry);
+        }
+
+        SaveMap(map);
+
+        return $"{k_Tag} 원장 정리 — {broken.Count}건 제거: " +
+               string.Join(", ", broken.Take(20).Select(e => e.name)) +
+               (broken.Count > 20 ? " …" : string.Empty);
+    }
+
     // ── 내부 ────────────────────────────────────────────────────────────────
+
+    /// 대상 에셋들을 **직접** 참조하는 프리팹·씬의 개수. 역참조 조회 API가 없어 전수 조사로 센다.
+    ///
+    /// 대상별로 훑지 않고 소비처를 한 번만 훑는다 — 대상이 12개면 전수 조사가 12배가 되므로,
+    /// 명시적 진단 메뉴라도 그 비용은 받아들일 이유가 없다.
+    private static Dictionary<string, int> CountReferences(IEnumerable<string> targetPaths)
+    {
+        var counts = new Dictionary<string, int>();
+
+        foreach (string path in targetPaths)
+        {
+            counts[path] = 0;
+        }
+
+        if (counts.Count == 0)
+        {
+            return counts;
+        }
+
+        // `t:Prefab t:Scene`을 한 필터에 넣으면 AND로 해석될 수 있어 따로 돌린다.
+        var consumers = new HashSet<string>();
+
+        foreach (string filter in new[] { "t:Prefab", "t:Scene" })
+        {
+            foreach (string guid in AssetDatabase.FindAssets(filter))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+
+                if (!string.IsNullOrEmpty(path))
+                {
+                    consumers.Add(path);
+                }
+            }
+        }
+
+        foreach (string consumer in consumers)
+        {
+            // recursive = false. 머티리얼은 렌더러가 직접 물므로 직접 의존성으로 잡히고,
+            // true로 켜면 프리팹 중첩을 타고 들어가 같은 참조가 여러 번 세어진다.
+            foreach (string dep in AssetDatabase.GetDependencies(consumer, false))
+            {
+                if (counts.ContainsKey(dep))
+                {
+                    counts[dep]++;
+                }
+            }
+        }
+
+        return counts;
+    }
 
     private static Material GetOrCreateConverted(
         Material src,
@@ -315,9 +526,21 @@ public static class FlatKitMaterialConverter
                 return cached;
             }
 
-            // 사본이 지워졌으면 기록을 버리고 새로 만든다.
-            map.entries.Remove(existing);
-            bySource.Remove(srcGuid);
+            // 기록은 있는데 사본이 로드되지 않는다. **여기서 기록을 버리고 새로 만들면 원장이 조용히
+            // 훼손된다.** 사본은 중첩 저장소(`Assets/Imported`)에 있고 원장은 이 저장소에 있어서,
+            // Imported가 낡은 사람이 Convert를 한 번 돌리면 그 항목이 원장에서 사라지고 중복 사본이
+            // 생긴다. 그 삭제가 커밋되면 원본→사본 매핑이 팀 전체에서 끊기고 `Revert`도 함께 죽는다.
+            // 실측(2026-08-18): `Palette256`이 이 경로로 사본 5개까지 늘고, 원장 미등재 사본 12개가
+            // 남았다 — 그중 5개는 프리팹이 참조 중이어서 이미 되돌릴 수 없다(WL-194).
+            //
+            // "정말 지워졌다"와 "아직 안 받았다"를 여기서 구별할 방법이 없으므로 **어느 쪽이든 멈춘다.**
+            // 슬롯은 손대지 않은 채 호출자의 `unresolved`로 넘어가므로 프리팹 참조는 그대로 남는다.
+            // 사본을 의도적으로 지웠다면 메뉴 「4. 원장 점검」으로 확인한 뒤 「5. 끊긴 기록 정리」로 푼다 —
+            // 같은 삭제를 **사람이 Imported 최신을 확인하고 누르는 자리**로 옮긴 것이 요점이다.
+            Debug.LogWarning($"{k_Tag} 원장에 기록된 사본을 로드할 수 없어 새로 만들지 않고 건너뛴다: " +
+                             $"\"{existing.name}\" (converted {existing.converted}). " +
+                             $"{k_OutputFolder}가 동기화됐는지 먼저 확인할 것 — 메뉴 「4. 원장 점검」(WL-194).");
+            return null;
         }
 
         var dst = new Material(template);

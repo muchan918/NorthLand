@@ -496,9 +496,26 @@
   하나를 공유해 중첩이 사라진다(2연발의 "두 개 겹치면 두 배"가 여기 걸려 있다).
   이펙트 프리팹에 이 컴포넌트가 없어도 된다 — **런타임에 붙이므로** 벤더 파티클 팩 프리팹을 무수정으로 지정할 수 있다
 - **`TowerTurretAim`**(`MonoBehaviour`, `NorthLand.Combat`, #336) — 포탑 마디를 조준 대상 쪽으로 돌리는
-  **연출 전용** 컴포넌트. `TowerReloadVisual`과 같은 축이라 붙이지 않아도 전투 결과가 달라지지 않는다.
+  **연출 전용** 컴포넌트. `TowerReloadVisual`과 같은 축이라 붙이지 않아도 **전투 결과가** 달라지지 않는다.
   ⚠ **사격은 이 회전을 기다리지 않는다** — 얽으면 선회 속도가 곧 DPS 노브가 되어 연출값이 밸런싱 표 밖에서
   화력을 흔든다
+  ⚠ **다만 "전투 무관"이 "없어도 되는 것"은 아니다.** 이 컴포넌트는 `TargetLost`(적을 잃고 대기로 정착한 순간,
+  `targetLostGrace`로 경계 채터 흡수)도 함께 내고, 그 신호가 `TowerAnimationVisual`이 **루프로 저작된 발사
+  상태를 빠져나오는 유일한 출처**다. `turret` 미할당이면 `LateUpdate`가 조기 반환해 `TargetLost`가 영영
+  발행되지 않으므로, 저작 상태를 `PublishesTargetLost`(읽기)로 노출해 소비처가 `Awake`에서 경고한다(WL-193)
+- **`TowerAnimationVisual`**(`MonoBehaviour`, `NorthLand.Combat`, #359) — 타워 모델의 Animator를 생애 사건
+  (발사·설치·해제·적 소실)에 맞춰 재생하는 **연출 전용** 컴포넌트. 모델 팩 컨트롤러는 파라미터가 전부
+  Trigger라 **누가 켜주지 않으면 영원히 Idle만 돈다** — 프리팹을 제대로 물려도 모션이 안 나오는 이유가 여기 있다.
+  공개 API는 `PlayFire`/`PlayReload`/`PlayIdle`/`PlayInstall`/`PlayRemove`(철거 경로가 없어 `PlayRemove`는
+  호출자 대기 중). 발사는 `fireState`(상태 직접 재생 — 연사에서 반동이 사격과 어긋나지 않는다) 또는
+  `fireTrigger`(그래프의 전이 규칙에 맡김) 중 하나.
+  ⚠ **팩마다 `Fire` 저작이 정반대다** — Part2(CrossBow·Culverin)는 exitTime으로 `Idle` 복귀하지만
+  Part4(MachineGun·Minigun)는 `Fire` 클립이 `m_LoopTime: 1`이고 `Fire`에서 나가는 전이가 전부 조건부라
+  **무조건 탈출이 없다.** 그래서 정지가 그래프의 성질이 아니라 **저작 사항**이고, 어긋나면 예외도 경고도 없이
+  밤새 발사 모션이 반복된다 — `Awake`가 그 조합(`idleTrigger` 또는 `playReloadOnTargetLost`+`reloadTrigger`,
+  그리고 `TowerTurretAim.turret`)을 검사해 소리를 낸다. 저작 절차는 `TowerAddGuide.md` §3.3 함정 ④ (WL-193)
+  ⚠ 설치 지연은 **unscaled**(등장 연출 `TowerSpawnEffect.ConvergeDuration`과 같은 축), 장전 지연은
+  **scaled**(공격 쿨다운과 같은 축)다 — 두 지연이 같은 API를 쓰지 않는 것이 요점이다(WL-179)
 - **`RampProfile`**(`[Serializable]`, `NorthLand.Combat`, #300) — 램프 **수치 규약**(`PerStack`/`MaxStacks`/
   `StackInterval`/`DecaySeconds`)과 스택→배율 환산(`Multiplier`/`StacksFromTime`). 소비처가 둘이고 **적용 지점이
   다르다**: `RampAction`(원장, 타워 전역) / `BeamAction.Beam.LockRamp`(대상별, 원장 미경유 — 원장은 타워 단위라
@@ -794,6 +811,7 @@
    - **몬스터 `hitPosition` 동기화 계약(#386)**: 몬스터 프리팹의 `hitPosition` 자식 트랜스폼은 **조준 방향의 정본**이다 — `AttackAction.TryAttack`이 `aimDir`의 Y를 살려 그 좌표를 향해 쏘고, `HomingFlight`의 추적점·`Projectile.ApplyArea`의 스플래시 중심·`ApplyChain`의 체인 원점·`TowerTurretAim`의 선회 대상·`Tower.IsTargetValid`의 사거리 판정이 전부 같은 필드를 읽는다. 실행·리뷰·빌드 전에 `NorthLand-Imported`를 **`57e08e53`(몬스터 히트포지션 할당 및 위치 재조정) 이상**으로 동기화해야 하며, sparse checkout을 쓰면 `@NorthLand/Prefabs/Monster/**`를 반드시 포함한다. 프리팹 변경은 Imported 저장소에 먼저 커밋·Push한 다음 메인 저장소의 코드·SO 배선을 커밋한다.
      - ⚠ **실패 모드가 두 단계이고 위쪽만 시끄럽다.** 미할당은 `Enemy.Awake`(`Enemy.cs:111-115`)가 `LogError` + 피벗 폴백으로 잡지만, **할당돼 있고 위치만 틀리면 로그가 한 줄도 없다** — 증상은 "특정 몬스터만 안 맞는다"뿐이고 컴파일도 콘솔도 조용하다(Tank 동기화 계약과 같은 계통, WL-082). 특히 떠 있는 적은 루트 피벗이 자기 콜라이더 **밖**이라 폴백조차 몸 아래를 겨눈다(`Flying_Bat` 콜라이더 y=[2.35~5.05], 루트 1.00).
      - 저작 기준: `hitPosition`은 **콜라이더 안, 몸통 중심 언저리**를 가리킨다. StartMap 스폰 y=1.00 기준 실측 — `Yellow_Grummy` 4.00 / `Red_Grummy` 4.24 / `Blue_Grummy` 6.00 / `MidBoss` 5.00 / `Flying_Bat` 4.24. 인스펙터의 로컬 Y에 부모 스케일(2.7~5.0)이 곱해지므로 표시값과 월드 높이가 다르다 — 조정 후 콜라이더 안인지 확인할 것(WL-122). `Phantom`·`Shadow`는 아직 미할당이다.
+   - **Part4 타워 모델 동기화 계약(램프업·개틀링)**: 두 타워의 **모델·Animator·포탑 마디 배선·공용 탄환 프리팹이 전부 `Assets/Imported`에 있다** — 메인 저장소 쪽 변경은 SO 2종(`PlacementYaw`·`ProjectilePrefab`)과 FlatKit 변환 원장 1줄뿐이므로, **Imported를 `6c5e879c`(Feat: 램프업·개틀링 타워 모델 적용) 이상으로 동기화하지 않으면 SO의 프리팹 참조가 해소되지 않는다.** sparse checkout을 쓰면 `@NorthLand/Prefabs/Tower/GatlingShooter/**` · `@NorthLand/Prefabs/Tower/RampUpTower/**` · `@NorthLand/Prefabs/Projectile/**` · `@NorthLand/Materials/FlatKit/**` · `TowerAssets/FattyPolyTurretPart4/**`를 반드시 포함한다. 커밋 순서는 **Imported 선행**이다(WL-040). 몬스터 `hitPosition` 계약과 같은 형식이고 근거도 같지만, **사각지대가 반대 방향으로도 작동한다는 점이 이 건의 교훈이다** — 메인 diff만 보면 "프리팹 미생성"으로 오판하거나(§4 「Imported 사각지대」), 거꾸로 **원장 1줄이 보여서 "변환 완료"로 오판**한다. 후자가 실제로 났다: 2026-08-18 FlatKit 변환 사본이 만들어지고 원장에도 적혔지만 **프리팹 재배선이 빠져** 탄환이 벤더 URP Lit 머티리얼을 그대로 물고 있었다(WL-194).
    - **리뷰어 주석(죽은 사본)**: `Assets/Personal/SUNGSOO/Font/`는 폰트가 TMP 정본으로 이관되며 더 이상 참조되지 않는 죽은 사본이다 — 이 경로의 폰트 아틀라스 churn을 WL-041 재발로 보고하지 말 것(WL-041 참고, 삭제 대기 중).
 
 ## 5. 미합의 전역 계약 (합의 없는 변경·점유 = 최소 🟠)

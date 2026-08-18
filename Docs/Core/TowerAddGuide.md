@@ -122,10 +122,22 @@ archer_tower,towers.archer.name,1,1,towers.archer.role,towers.archer.desc
 | `enemyLayerMask` | 공격 타워면 ✅ | 대상 탐색 레이어 |
 | `firePoint` | 선택 | 발사 위치. 비우면 타워 루트에서 나간다 |
 | `data`(TowerAsset) | 선택 | 채우면 3.5의 SO와 **같은 것**이어야 한다(다르면 경고 후 배치된 쪽으로 재조립) |
+| `TowerAnimationVisual` | 모델에 Animator가 있으면 ✅ | **연출 전용.** 모델 팩 컨트롤러는 파라미터가 전부 Trigger라 **누가 켜주지 않으면 영원히 Idle만 돈다.** 발사는 `fireState`(상태 직접 재생, 연사에 권장) 또는 `fireTrigger`. ⚠ **발사 클립이 루프면 정지 경로를 반드시 저작할 것** — 아래 함정 ④ |
+| `TowerTurretAim` | 포탑 마디가 있으면 선택 | **연출 전용**(선회). 다만 `turret`을 물려야 `TargetLost`가 발행된다 — 그 신호가 위 정지 경로의 **유일한 출처**다 |
 
 **확인** 3.5에서 SO에 이 프리팹을 물리고 저장하면 `OnValidate`가 액션↔수치 짝을 검사한다.
+연출 컴포넌트 배선은 `Awake`가 검사해 콘솔 경고로 알린다(Animator 없음 / `turret` 미할당 / 루프 발사 클립 + 정지 경로 없음).
 **⚠ 함정** ① **같은 타입의 액션을 둘 담지 말 것**(내부 소스 키 충돌 → 스탯·상태이상 슬롯을 서로 덮어씀)
 ② `Actions`가 비면 **예외도 경고도 없이** 아무 동작을 안 한다 ③ 커밋이 중첩 저장소로 간다([§2](#2-7단계-마스터-체크리스트)).
+④ **모델 팩마다 `Fire` 저작이 정반대다.** FattyPoly Part2(CrossBow·Culverin)는 `Fire → Idle`에 exitTime 전이가
+있어 클립이 끝나면 스스로 돌아오지만, **Part4(MachineGun·Minigun)는 `Fire` 클립이 `m_LoopTime: 1`이고
+`Fire`에서 나가는 전이가 전부 조건부(`Idle`/`Reload`/`Remove`)라 무조건 탈출이 없다.** 후자에서 정지를
+저작하지 않으면 적이 사라져도 발사 모션이 밤새 반복된다 — `idleTrigger`를 채우거나
+(`playReloadOnTargetLost` + `reloadTrigger`)를 켜고 **`TowerTurretAim.turret`을 함께 물릴 것**(WL-193).
+⑤ **탄환 프리팹을 여러 타워가 공유하면 소유자를 정할 것.** 현재 `Rolly_Bullet`
+하나를 소다·화염아처·스나이퍼·킬스택 4종이 함께 물고 있어, 그 프리팹이나 그것이 참조하는 벤더 FBX를
+건드리면 4종이 함께 흔들린다. 벤더 팩 재임포트가 메시를 같은 GUID로 덮어쓰는 일이 실제로 있으므로
+(2026-08-18 `Bullet00.FBX` 28320→25024), **공용 탄환은 팩 밖(`@NorthLand`)으로 복제해 소유하는 쪽이 안전하다.**
 각 액션의 동작은 [Tower.md](Tower.md) §3.5.
 
 ### 3.4 고스트 프리팹
@@ -296,6 +308,10 @@ unity-cli editor refresh --compile
 | 고스트가 타일을 못 짚는다 | [3.4](#34-고스트-프리팹) 고스트에 Collider가 붙어 있음 |
 | 타워를 클릭해도 선택이 안 된다 | [3.3](#33-타워-프리팹) Collider 없음 또는 레이어가 `_selectableMask` 밖 |
 | 낮엔 되는데 밤에 안 쏜다(또는 반대) | 페이즈 게이팅이 액션별로 다르다 → [Tower.md §3.5](Tower.md) |
+| 모션이 아예 안 난다 | [3.3](#33-타워-프리팹) `TowerAnimationVisual` 미부착·Animator 미할당. 콘솔에 `[TowerAnimationVisual]` 경고가 있는지 먼저 볼 것 |
+| **발사 모션이 안 멈춘다**(적이 사라져도 반복) | [3.3](#33-타워-프리팹) 함정 ④ — 팩의 `Fire` 클립이 Loop인데 정지 경로 미저작. `idleTrigger` 또는 (`playReloadOnTargetLost`+`reloadTrigger`) **＋ `TowerTurretAim.turret`** |
+| '적 소실 시' 마무리 연출이 안 난다 | [3.3](#33-타워-프리팹) `TowerTurretAim.turret` 미할당 → `TargetLost`가 영영 발행되지 않는다(`LateUpdate` 조기 반환) |
+| 탄환 외형이 나도 모르게 바뀌었다 | [3.3](#33-타워-프리팹) 함정 ⑤ — 공용 탄환 프리팹/벤더 FBX가 재임포트로 덮어써졌는지 |
 | 이름이 `towers.xxx.name`으로 보인다 | [3.7](#37-로컬라이제이션) 키 누락 또는 CSV 키 문자열 오타 |
 | 효과(화상·감속 등)가 안 걸린다 | [3.5](#35-so-수치-기입) `Effects` 빔. 합성 결과 타워라면 계승 축 → [§7](#7-합성-결과-타워일-때--델타만) |
 | 내 프리팹 작업이 동료 환경에 없다 | [§2](#2-7단계-마스터-체크리스트) 중첩 저장소 — 커밋이 갈라진다 |
