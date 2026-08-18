@@ -216,13 +216,19 @@
   `EnemyAgent.BindSpawner`로 자기를 만든 스포너에 묶인다(경로 주입과 같은 자리).
   ⚠ `AliveMonsterCount`는 `childCount`라 **보스 자신과 사망 연출 중인 몬스터(`destroyDelay` 2초)를 포함**한다
 - `MonsterSpawnWaveProvider.TryGetWave(int, out IReadOnlyList<MonsterSpawnEntry>)` /
-  `TryGetRewardPool(int, out WaveRewardPool)` / `FinalWaveNumber` / `IsFinalWave(int)` (#294) —
+  `TryGetWaveComposition(int, out IReadOnlyList<WaveMonsterCount>)` /
+  `TryGetRewardPool(int, out WaveRewardPool)` / `FinalWaveNumber` / `IsFinalWave(int)` (#294, #384) —
+  `TryGetWaveComposition`은 `TryGetWave`와 같은 그룹 유효성 규칙(널 그룹·널 프리팹·0 이하 수량 제외)을
+  거친 뒤 각 그룹의 `EnemyAsset`과 출현 수량을 웨이브 등록 순서대로 UI에 제공한다. 같은 `EnemyAsset`이
+  뒤에서 다시 등장해도 합산하지 않고 별도 항목으로 유지하므로 미리보기에서 실제 그룹 출현 순서를 읽을
+  수 있다. `WaveMonsterCount`는 `EnemyAsset Asset`과 `int Count`를 담는 읽기 전용 값이며, 원본
+  `MonsterWaveAsset`과 프리팹 계층은 소비자에게 노출하지 않는다.
   **웨이브 번호 = `waves` 리스트에서 몇 번째인가(1-base)**. 진행 순서의 진실 공급원은 인스펙터
   리스트 순서 하나뿐이며, `MonsterWaveAsset`은 자기 번호를 갖지 않는다(`waveNumber` 필드 제거 —
   직렬화된 값과 실제 순서가 조용히 어긋나는 WL-126형 함정 제거). 순서 변경은 리스트 드래그,
   웨이브 추가는 리스트 append로 한다. **리스트의 마지막 항목이 최종 웨이브** —
   `FinalWaveNumber = 등록 개수`라 웨이브를 추가하면 승리 조건이 자동으로 따라온다.
-  1-base↔0-base 변환은 `TryGetWaveAsset` 한 곳에만 있다(`MonsterSpawnWaveProvider.cs:99`).
+  1-base↔0-base 변환은 private `TryGetWaveAsset` 한 곳에만 있으며, Provider의 공개 API만 이를 경유한다.
   ⚠ 리스트 중간의 null 슬롯은 경고 후 제외·압축된다(런타임 `orderedWaves`) — 빈 밤을 만들지 않기 위한
   **의도된 동작**으로, null은 웨이브가 아니라 authoring 노이즈로 본다. 빈 슬롯 뒤의 웨이브가 한 칸씩
   당겨지고 `FinalWaveNumber`(=유효 웨이브 개수)도 함께 줄어든다 → 빈 슬롯이 있으면 인스펙터 행 번호와
