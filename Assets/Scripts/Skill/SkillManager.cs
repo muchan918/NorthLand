@@ -49,8 +49,9 @@ public class SkillManager : MonoBehaviour
     float rechargeTimer;
     int bonusCharges;   // 추가시전(#319) 보상이 올려주는 추가 최대 충전
 
-    readonly Collider[] hitBuffer = new Collider[16];
     readonly List<IDamageable> hitTargets = new List<IDamageable>(16);
+    // RemoveAll에 매번 람다를 넘기면 호출마다 델리게이트가 할당된다. 시전마다 도는 경로라 캐시한다.
+    static readonly Predicate<IDamageable> s_IsDead = d => d.IsDead;
 
     // 마법 연구소 레벨로 계산한 유효 스탯(레벨 0/미배선이면 기본값과 동일).
     float effectiveDamage;
@@ -222,23 +223,15 @@ public class SkillManager : MonoBehaviour
     // 임팩트 1회: 반경 내 적 전체에게 데미지 적용 + 맞은 적을 hitTargets에 수집 + 연출.
     void ResolveImpactDamage(Vector3 position)
     {
-        hitTargets.Clear();
+        SkillHitScan.CollectEnemies(position, effectiveRadius, enemyLayerMask, hitTargets);
+        int damagedCount = hitTargets.Count;
 
-        int count = Physics.OverlapSphereNonAlloc(position, effectiveRadius, hitBuffer, enemyLayerMask);
-        int damagedCount = 0;
-        for (int i = 0; i < count; i++)
-        {
-            var damageable = hitBuffer[i].GetComponentInParent<IDamageable>();
-            // Source: 플레이어 스킬은 IAttacker 개체(타워/몬스터)가 아니라 직접 시전이라 null로 둔다.
-            // 현재 DamageInfo.Source는 어디서도 역참조하지 않아 안전(StatusEffectHandler.cs 참고).
-            if (damageable != null && damageable.Faction == Faction.Enemy && !damageable.IsDead)
-            {
-                damageable.TakeDamage(new DamageInfo(effectiveDamage, null));
-                damagedCount++;
-                if (!damageable.IsDead)   // 즉사한 적은 특수효과 대상에서 제외
-                    hitTargets.Add(damageable);
-            }
-        }
+        // Source: 플레이어 스킬은 IAttacker 개체(타워/몬스터)가 아니라 직접 시전이라 null로 둔다.
+        // 현재 DamageInfo.Source는 어디서도 역참조하지 않아 안전(StatusEffectHandler.cs 참고).
+        foreach (var damageable in hitTargets)
+            damageable.TakeDamage(new DamageInfo(effectiveDamage, null));
+
+        hitTargets.RemoveAll(s_IsDead);   // 즉사한 적은 특수효과 대상에서 제외
 
         // 쿨다운이 있어 자주 호출되지 않으므로 로그 스팸 걱정 없이 시전마다 요약을 남긴다(테스트용).
         Debug.Log($"[Skill] 감전 시전: 위치={position}, 적중={damagedCount}마리, 데미지={effectiveDamage}");
