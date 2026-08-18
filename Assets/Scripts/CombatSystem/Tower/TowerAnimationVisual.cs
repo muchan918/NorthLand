@@ -28,6 +28,20 @@ namespace NorthLand.Combat
     // FattyPoly 팩처럼 발사 클립의 실제 움직임이 앞부분에 몰려 있고(CrossBow_Fire는 0.85초 중 앞 0.25초)
     // 뒤가 빈 구간이면, 중간에 잘려도 잃는 그림이 없으므로 이쪽이 낫다.
     //
+    // ## 발사 상태를 어떻게 빠져나오나 — 팩마다 정반대다
+    // Part2(CrossBow·Culverin)는 `Fire → Idle`에 exitTime 전이가 있어 클립이 끝나면 스스로 돌아온다.
+    // 반면 **Part4(MachineGun·Minigun)는 `Fire` 클립이 `m_LoopTime: 1`이고 `Fire`에서 나가는 전이가
+    // 전부 조건부(`Idle`/`Reload`/`Remove`)라 무조건 탈출이 없다** — 아무도 켜주지 않으면 밤새 반복된다.
+    // 즉 **정지가 그래프의 성질이 아니라 저작 사항**이고, 그 신호는 `TowerTurretAim.TargetLost` 하나뿐이다
+    // (사거리 이탈·사망·밤 종료가 전부 거기로 모이고 경계 채터도 그쪽에서 흡수된다 — 여기서 적을 다시
+    // 탐색하지 않는 이유다).
+    //
+    // ⚠ 그 결과 **정지가 순수 연출 필드 몇 개에 걸려 있다**: `TowerTurretAim`의 `turret`(미할당이면
+    //   `LateUpdate`가 조기 반환해 `TargetLost`가 영영 나지 않는다) + `idleTrigger` 또는
+    //   (`playReloadOnTargetLost` + `reloadTrigger`). 모델 팩을 교체하다 `turret` 하나를 놓치는 순간
+    //   경고도 예외도 없이 발사 모션이 무한 반복되므로, `Awake`가 그 조합을 **저작 시점에** 검사해
+    //   소리를 낸다(`WarnOnLoopingFireWithoutStop`). WL-193.
+    //
     // ## 장전 모션의 `reloadDelay`를 고르는 법
     // **발사 클립 길이가 아니라 그 타워의 공격 간격에서 역산한다.** 발사가 끝난 뒤에 장전을 붙이면
     // 한 발의 연출 길이가 `발사 + 장전`이 되는데, 그게 공격 간격보다 길면 연출이 매 발마다 뒤처져
@@ -89,6 +103,12 @@ namespace NorthLand.Combat
                  "같은 오브젝트의 TowerTurretAim이 내는 신호를 쓰므로 그 컴포넌트가 있어야 동작한다.")]
         [SerializeField] bool playReloadOnTargetLost;
 
+        [Tooltip("적이 사라진 순간 켤 대기 복귀 Trigger 이름. **루프로 저작된 발사 상태를 빠져나오는 " +
+                 "정본 경로다** — 채우면 '적 소실 시' 연출이 장전 대신 이것을 쓴다. 둘을 함께 켜지 " +
+                 "않는 이유는 HandleTargetLost 주석 참고. FattyPoly 팩은 \"Idle\"이다. " +
+                 "비우면 playReloadOnTargetLost의 장전 경로를 그대로 쓴다(기존 타워 무변경).")]
+        [SerializeField] string idleTrigger;
+
         [Tooltip("설치 시 직접 재생할 상태 이름. 모델 팩이 \"Install\"이라 이름 붙인 상태가 반드시 정답은 " +
                  "아니다 — 아처(CrossBow)는 Install이 '하늘에서 낙하'라 등장 연출과 부딪혀서 \"CrossBow_Reload\"를 " +
                  "쓴다. Trigger가 아니라 상태 이름인 이유는 클래스 주석 참고. 비우면 재생하지 않는다.")]
@@ -111,6 +131,7 @@ namespace NorthLand.Combat
         int _fireHash;
         int _fireStateHash;
         int _reloadHash;
+        int _idleHash;
         int _installHash;
         int _removeHash;
         // 설치 지연 대기를 활성화 주기에 묶는다. `destroyCancellationToken`이 아니라 자체 CTS인 이유는
@@ -122,9 +143,15 @@ namespace NorthLand.Combat
             _tower = GetComponent<Tower>();
             _turretAim = GetComponent<TowerTurretAim>();
 
-            if (playReloadOnTargetLost && _turretAim == null)
+            if (WantsTargetLost && _turretAim == null)
                 Debug.LogWarning($"[TowerAnimationVisual] {name}: TowerTurretAim이 없어 " +
-                                 "'적 소실 시 장전' 연출이 나오지 않습니다.", this);
+                                 "'적 소실 시' 연출(장전·대기 복귀)이 나오지 않습니다.", this);
+
+            // 컴포넌트는 있는데 `turret`이 비어 있는 경우. 위 경고로는 잡히지 않는 별개의 구멍이고,
+            // 모델 팩 교체가 정확히 그 필드를 놓치기 쉬운 작업이라 따로 세운다(WL-193).
+            if (WantsTargetLost && _turretAim != null && !_turretAim.PublishesTargetLost)
+                Debug.LogWarning($"[TowerAnimationVisual] {name}: TowerTurretAim의 turret이 미할당이라 " +
+                                 "TargetLost가 발행되지 않습니다 — '적 소실 시' 연출이 나오지 않습니다.", this);
 
             // 인스펙터 미할당 폴백. `true`는 비활성 자식도 훑는다 — 연출용으로 꺼둔 노드 아래에
             // Animator가 들어가도 배선이 조용히 끊기지 않게 한다.
@@ -134,6 +161,7 @@ namespace NorthLand.Combat
             _fireHash = Hash(fireTrigger);
             _fireStateHash = Hash(fireState);
             _reloadHash = Hash(reloadTrigger);
+            _idleHash = Hash(idleTrigger);
             _installHash = Hash(installState);
             _removeHash = Hash(removeState);
 
@@ -141,6 +169,46 @@ namespace NorthLand.Combat
             // 그 침묵이 정확히 이 컴포넌트가 존재하는 이유이므로 여기서는 소리를 낸다.
             if (animator == null || animator.runtimeAnimatorController == null)
                 Debug.LogWarning($"[TowerAnimationVisual] {name}: Animator 또는 컨트롤러가 없어 모션이 나오지 않습니다.", this);
+            else
+                WarnOnLoopingFireWithoutStop();
+        }
+
+        /// `TargetLost`에 걸 연출이 하나라도 저작돼 있는지. 구독 여부와 경고 조건이 **같은 식**을
+        /// 봐야 해서 프로퍼티로 둔다 — 갈라지면 "구독은 했는데 경고는 안 나는" 조합이 생긴다.
+        /// 해시가 아니라 문자열을 보는 이유: `Awake`의 첫 경고가 해시 계산보다 앞에 있다.
+        bool WantsTargetLost => playReloadOnTargetLost || !string.IsNullOrEmpty(idleTrigger);
+
+        /// 발사 상태를 스스로 빠져나올 수 없는 팩에서 **정지를 실제로 낼 수 있는지.**
+        /// `TargetLost`가 유일한 신호이므로 그 **발행 조건까지** 함께 본다 — 트리거만 채워도
+        /// 신호가 없으면 아무 일도 일어나지 않는다(WL-193).
+        bool HasStopPath
+            => _turretAim != null && _turretAim.PublishesTargetLost
+               && (_idleHash != 0 || (playReloadOnTargetLost && _reloadHash != 0));
+
+        /// **루프로 저작된 발사 클립 + 정지 경로 없음**을 저작 시점에 드러낸다.
+        ///
+        /// 이 조합은 예외도 로그도 없이 "밤새 발사 모션이 반복된다"로만 드러난다 — `Play`는 요청만
+        /// 하고 Animator는 루프를 정상으로 보기 때문이다. 무증상을 깨는 것이 이 컴포넌트의 존재
+        /// 이유이므로(위 Animator 경고와 같은 축) 여기서도 소리를 낸다.
+        ///
+        /// 상태명으로 클립을 찾는 근거: `fireState`가 이미 "상태명 = 클립명" 관례에 기대고 있다
+        /// (FattyPoly 팩 전체가 그렇게 저작돼 있다). 관례가 깨진 팩에서는 클립을 못 찾아 **경고가
+        /// 나지 않을 뿐**이고 오탐은 생기지 않는다 — 저작 보조 도구로서 그 방향이 맞다.
+        void WarnOnLoopingFireWithoutStop()
+        {
+            // 트리거 경로(`fireState` 비움)는 그래프의 전이 규칙에 맡긴 것이라 여기서 판단할 근거가 없다.
+            if (_fireStateHash == 0 || HasStopPath) return;
+
+            foreach (AnimationClip clip in animator.runtimeAnimatorController.animationClips)
+            {
+                if (clip == null || clip.name != fireState || !clip.isLooping) continue;
+
+                Debug.LogWarning($"[TowerAnimationVisual] {name}: 발사 클립 \"{fireState}\"이 루프로 " +
+                                 "저작돼 있는데 정지 경로가 없어 적이 사라져도 발사 모션이 계속 반복됩니다 — " +
+                                 "idleTrigger를 채우거나 playReloadOnTargetLost + reloadTrigger를 켜고 " +
+                                 "TowerTurretAim의 turret을 물릴 것.", this);
+                return;
+            }
         }
 
         static int Hash(string name) => string.IsNullOrEmpty(name) ? 0 : Animator.StringToHash(name);
@@ -148,7 +216,7 @@ namespace NorthLand.Combat
         void OnEnable()
         {
             _tower.OnFired += HandleFired;
-            if (playReloadOnTargetLost && _turretAim != null) _turretAim.TargetLost += PlayReload;
+            if (WantsTargetLost && _turretAim != null) _turretAim.TargetLost += HandleTargetLost;
 
             if (!playInstallOnEnable) return;
 
@@ -169,7 +237,7 @@ namespace NorthLand.Combat
         void OnDisable()
         {
             _tower.OnFired -= HandleFired;
-            if (playReloadOnTargetLost && _turretAim != null) _turretAim.TargetLost -= PlayReload;
+            if (WantsTargetLost && _turretAim != null) _turretAim.TargetLost -= HandleTargetLost;
 
             // 수렴 중에 꺼진 타워가 되살아나며 두 번 설치되지 않게
             _installCts?.Cancel();
@@ -225,6 +293,32 @@ namespace NorthLand.Combat
             }
 
             if (_fireHash != 0) animator.SetTrigger(_fireHash);
+        }
+
+        /// 적을 잃었을 때의 마무리. **`idleTrigger`가 정지의 정본 경로이고 장전보다 우선한다.**
+        ///
+        /// 둘을 함께 켜지 않는 이유: `Fire`에서 나가는 전이 목록에서 `Idle`이 `Reload`보다 앞에 있어
+        /// (FattyPoly Part4 실측) 같은 프레임에 둘을 켜면 `Idle`로 빠지고 **`Reload` 트리거는 소비되지
+        /// 못한 채 남는다.** 그 잔여 트리거는 다음 발사 직후 뜬금없는 장전 모션으로 되돌아온다 —
+        /// "Trigger는 전이가 일어날 때만 소비된다"는 클래스 주석의 전제가 그대로 적용된다.
+        void HandleTargetLost()
+        {
+            if (_idleHash != 0)
+            {
+                PlayIdle();
+                return;
+            }
+
+            if (playReloadOnTargetLost) PlayReload();
+        }
+
+        /// 대기 상태로 돌아가는 트리거. 루프로 저작된 발사 상태를 빠져나오는 **명시적 정지 경로**다 —
+        /// 장전을 마무리 연출로 쓰지 않는(또는 장전 클립이 없는) 팩에서는 이것만으로 정지가 성립한다.
+        public void PlayIdle()
+        {
+            if (_idleHash == 0 || !Ready()) return;
+
+            animator.SetTrigger(_idleHash);
         }
 
         /// 장전 모션. 발사 후 `reloadDelay`만큼 뒤에 자동으로 불린다.
