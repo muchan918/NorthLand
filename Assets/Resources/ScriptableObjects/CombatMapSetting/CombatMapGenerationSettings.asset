@@ -32,9 +32,9 @@ MonoBehaviour:
   ErosionProbability: 0.3
   MinErosionIterations: 3
   MaxErosionIterations: 5
-  WaterNoiseScale: 20
-  WaterThreshold: 0.25
+  WaterNoiseScale: 0.9
+  WaterThreshold: 0.7
   WaterRoadClearance: 0
-  MinWaterArea: 3
-  MaxWaterRatio: 0.3
+  MinWaterArea: 1
+  MaxWaterRatio: 0.162
   WaterSmoothingIterations: 0
