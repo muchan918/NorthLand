@@ -834,8 +834,8 @@ MonoBehaviour:
   - 5.35
   - 5.45
   gatePrefab: {fileID: 7755653996151452929, guid: 0df6c15a63df9cf4c8d8fc69ed81d033, type: 3}
-  gatePositionOffset: {x: 0, y: -3, z: 2.5}
-  gateRotation: {x: 0, y: -17, z: 0}
+  gatePositionOffset: {x: -1, y: -3, z: 2.5}
+  gateRotation: {x: 0, y: -19, z: 0}
   gateScale: {x: 3, y: 3, z: 3}
 --- !u!4 &111725159
 Transform:
@@ -7657,7 +7657,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapRevealController
   mapGenerator: {fileID: 1175259922}
   totalRounds: 30
-  previewRounds: 0
+  previewRounds: 30
   testRound: 0
 --- !u!114 &1175259920
 MonoBehaviour:
@@ -7677,7 +7677,7 @@ MonoBehaviour:
   buffTileIconPreview: {fileID: 9140323519560391690}
   roadTilePrefab: {fileID: 376632769588615151, guid: bcc97aac1203837468bb300b99cb732e, type: 3}
   grassTilePrefab: {fileID: 4056655319366159548, guid: 01a0e59758422c6469a1f537bb0d4bcd, type: 3}
-  waterTilePrefab: {fileID: 7429171252680331435, guid: a16cd64f59ec9054ea4a8aa9652cdd76, type: 3}
+  waterTilePrefab: {fileID: 1321884185926494, guid: b954c9d3a421d5a41aedd82a7e719768, type: 3}
   revealYOffset: 7.2000003
   revealCurve:
     serializedVersion: 2
@@ -7724,7 +7724,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1175259917}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3c0573714409d534ea6e1fa00cda25b1, type: 3}
   m_Name: 
