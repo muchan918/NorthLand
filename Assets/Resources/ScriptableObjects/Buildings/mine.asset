@@ -20,45 +20,33 @@ MonoBehaviour:
     OutputResource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
     UpgradeLevels:
     - Cost:
-      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-        Amount: 20
       - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
-        Amount: 10
+        Amount: 20
       RequiredCastleLevel: 0
       AmountPerVillager: 14
     - Cost:
-      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-        Amount: 40
       - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
-        Amount: 20
+        Amount: 40
       RequiredCastleLevel: 0
       AmountPerVillager: 18
     - Cost:
-      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-        Amount: 70
       - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
-        Amount: 35
+        Amount: 70
       RequiredCastleLevel: 1
       AmountPerVillager: 22
     - Cost:
-      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-        Amount: 110
       - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
-        Amount: 55
+        Amount: 110
       RequiredCastleLevel: 1
       AmountPerVillager: 26
     - Cost:
-      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-        Amount: 160
       - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
-        Amount: 80
+        Amount: 160
       RequiredCastleLevel: 2
       AmountPerVillager: 30
     - Cost:
-      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-        Amount: 220
       - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
-        Amount: 110
+        Amount: 220
       RequiredCastleLevel: 2
       AmountPerVillager: 34
   Skill:

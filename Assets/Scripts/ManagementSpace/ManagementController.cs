@@ -35,9 +35,12 @@ public class ManagementController : MonoBehaviour
     [Tooltip("웨이브 클리어(밤→낮 정산) 시 지급되는 마나석 고정량 (GDD §4.3)")]
     [SerializeField] int _manaPerWaveClear = 10;
 
+    // 값 근거는 Docs/Core/EconomyBalance.md §1.1·§2.1 (#382). 씬 오버라이드와 반드시 같은 값으로 유지할 것 —
+    // 갈리면 오버라이드가 없는 새 씬이 조용히 다른 경제로 돈다.
+    // 식량 0: 주민 증가 1차 비용이 15라 초기 지급이 있으면 낮1에 무조건 사는 것이 정답이 되어 선택이 사라진다.
     [Tooltip("게임 시작(런당 1회) 시 지급되는 초기 나무/철/식량. 마나석은 전투 보상 전용이라 제외(팀 계약 #3, 이슈 #130)")]
-    [SerializeField] int _initialWood = 110;
-    [SerializeField] int _initialIron = 40;
+    [SerializeField] int _initialWood = 55;
+    [SerializeField] int _initialIron = 20;
     [SerializeField] int _initialFood = 0;
 
     /// <summary>상태(자원·주민 배치·페이즈)가 바뀔 때 발생. 뷰는 이걸 구독해 다시 렌더한다.</summary>
