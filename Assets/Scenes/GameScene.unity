@@ -3889,7 +3889,7 @@ MonoBehaviour:
   _maxVillagers: 2
   _manaPerWaveClear: 10
   _initialWood: 55
-  _initialIron: 20
+  _initialIron: 30
   _initialFood: 0
 --- !u!4 &544968474
 Transform:

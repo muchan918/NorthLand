@@ -38,9 +38,12 @@ public class ManagementController : MonoBehaviour
     // 값 근거는 Docs/Core/EconomyBalance.md §1.1·§2.1 (#382). 씬 오버라이드와 반드시 같은 값으로 유지할 것 —
     // 갈리면 오버라이드가 없는 새 씬이 조용히 다른 경제로 돈다.
     // 식량 0: 주민 증가 1차 비용이 15라 초기 지급이 있으면 낮1에 무조건 사는 것이 정답이 되어 선택이 사라진다.
+    // 철 30: 광산 Lv1도 철 20이고 전 타워가 철 ≥5를 요구하므로, 20으로 두면 낮1에 광산을 올린 순간
+    // 철이 0이 되어 타워를 한 기도 못 놓는다(건물 업그레이드에는 undo가 없다). 30이면 광산을 올려도
+    // 아처 2기(30W+10I)가 남아 W1을 넘긴다 — 4기는 여전히 나무에서 막힌다(최저 60W > 55W).
     [Tooltip("게임 시작(런당 1회) 시 지급되는 초기 나무/철/식량. 마나석은 전투 보상 전용이라 제외(팀 계약 #3, 이슈 #130)")]
     [SerializeField] int _initialWood = 55;
-    [SerializeField] int _initialIron = 20;
+    [SerializeField] int _initialIron = 30;
     [SerializeField] int _initialFood = 0;
 
     /// <summary>상태(자원·주민 배치·페이즈)가 바뀔 때 발생. 뷰는 이걸 구독해 다시 렌더한다.</summary>
