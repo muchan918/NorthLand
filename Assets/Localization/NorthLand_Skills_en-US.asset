@@ -50,6 +50,22 @@ MonoBehaviour:
     m_Localized: Execute Threshold
     m_Metadata:
       m_Items: []
+  - m_Id: 4946586674565120
+    m_Localized: Damage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4946586712313856
+    m_Localized: Range
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4946586712313857
+    m_Localized: Recharge
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4946586712313858
+    m_Localized: s
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

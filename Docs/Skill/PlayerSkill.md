@@ -14,7 +14,8 @@
 | ~~`BuffSkillManager`~~ | **미사용 (#315)** — 버프 스킬(#103). 즉시 발동, `Tower.Active` 전체에 공격력/공속 배율. 씬 미배선이라 `Instance`가 항상 null |
 | `SkillEffectManager` | 보상 라우터(씬 싱글톤). `WaveRewardController.GrantReward` → `ApplyReward(reward)` → 타입 매칭 효과에 레벨 가산 위임. `GetLevel(type)`(세이브용) / 보상 후보 필터용 `IsMaxLevel(type)`(#292) / 카드 표시용 `GetSnapshot(type)` 제공 — 표시에 필요한 `Level`·`NextLevel`·`NextIsMax`·`Stats`(#287·#292)를 한 벌로 넘긴다. **값마다 따로 조회하지 말 것**(#353) |
 | `SkillEffect` (추상) | 특수효과 공통 베이스(MonoBehaviour, `SkillEffectManager` 오브젝트에 부착). 레벨·상한 소유 + 스킬 이벤트 구독 관리 + 표시 수치 제공(`GetStatSummary`) |
-| `SkillStatsFormatter` | 보상 카드 표시 문자열의 단일 출처(#287). 라벨 조회(`NorthLand_Skills`)와 숫자 서식이 여기 한 곳에만 있다 — `TowerStatsFormatter` 대응 |
+| `SkillStatsFormatter` | 스킬 수치 표시 문자열의 단일 출처(#287). 라벨 조회(`NorthLand_Skills`)와 숫자 서식이 여기 한 곳에만 있다 — `TowerStatsFormatter` 대응. 보상 카드용 줄 + 마법 연구소 강화 미리보기용 줄(#398, §3.1)을 함께 소유한다 |
+| `SkillHitScan` | 스킬 범위 판정의 단일 출처(#398, static). 감전·폭탄·전기장이 같은 수직 캡슐 규칙(`VerticalRange` 12f)으로 적을 모은다 — 버퍼 자동 확장 + `IDamageable` 중복 제거 포함(§5) |
 | `SkillCastContext` | 시전 1회의 정보 묶음(착탄 위치/맞은 적). 효과가 써넣는 필드는 없다 — 읽기 전용(#319). 짝인 `BuffCastContext`는 버프 스킬과 함께 **미사용 (#315)** |
 | `SkillVisualSet` | 마법 연구소 레벨 → 감전 착탄 이펙트 프리팹 매핑 SO(`Assets/Resources/ScriptableObjects/Skill/`). `Resolve(level)`로 구간 조회, `SkillManager`가 레벨 변경 시에만 캐싱 |
 
@@ -67,7 +68,10 @@
 - `SkillManager`가 `ManagementController.GetUpgradeLevel(magicLabAsset)`로 레벨(int)만 pull하고, 레벨→배율 매핑(인스펙터 authoring 리스트, 수치 placeholder)은 스킬 클래스가 소유한다. `ManagementController`는 "스킬"을 전혀 모른다.
 - `SkillUpgradeLevel`에는 버프용 배율 4종(`BuffDamageMultiplierScale`/`BuffAttackSpeedMultiplierScale`/`BuffDurationMultiplier`/`BuffCooldownMultiplier`)도 남아있으나 **읽는 쪽이 없어 무의미하다** (#315, `BuildingUpgrade.md` §8).
 - 시전 시점에 캐싱된 유효값(`effectiveDamage` 등)을 사용 — `ImpactResolved` 이벤트 발행이나 `SkillEffect` 구독 흐름은 건드리지 않는다. 보상 효과들은 여전히 자기 소유 필드 × `Level`로 완전히 독립 계산한다(§3 표 참고).
-- **이 배율은 경영 패널에 증감률로 노출된다(#375)** — 연구소를 클릭하면 업그레이드 버튼 위에 "감전 데미지가 기본 대비 N% 증가합니다" 형태로 뜬다. 기준은 **기본 스탯 대비 누적 총량**이다(직전 레벨 대비 델타가 아니다) — 배율이 누적 곱이 아니라 기본값에 한 번만 곱해지므로(위 `RefreshUpgrade`) 배율 자체가 곧 표시값이다. 그 레벨에서 배율이 1.0인 스탯은 줄이 통째로 빠진다. 단 **그 수치를 계산하는 쪽은 `SkillManager`가 아니라 `BuildingInfoUI`**이며, `BuildingAsset.Skill.UpgradeLevels`의 배율만 읽어 현재 레벨 대비 증감률을 낸다. UI는 베이스 스탯(`damage`/`radius`/`cooldown`, 여기 private 필드)을 모르기 때문에 절대값이 아니라 %로만 표시된다 — **베이스 스탯을 인스펙터가 아닌 곳으로 옮기거나 절대값 표시가 필요해지면 이 UI가 영향을 받는다.** 서식·문구는 `SkillStatsFormatter`가 아니라 로컬라이제이션 키 `lab.effect.upgrade`(`NorthLand_default`)가 소유한다(문장형이라 라벨 조립이 아니다). 상세는 `BuildingUpgrade.md` §8.
+- **이 배율은 경영 패널에 실수치로 노출된다(#375 도입 → #398 개정)** — 연구소를 클릭하면 업그레이드 버튼 위에 "데미지: 36 → 42" 형태로 이번 업그레이드의 전후 값이 뜬다. 도입 당시에는 "감전 데미지가 기본 대비 N% 증가합니다"라는 % 문장형이었는데, 베이스 스탯이 화면 어디에도 없어 플레이어가 %를 실제 값으로 환산할 수 없었다(#398). 그 레벨에서 값이 변하지 않는 스탯은 줄이 통째로 빠진다.
+  - **수치를 조립하는 쪽은 여전히 `BuildingInfoUI`**다(`SkillManager`가 아니다) — 매니저는 자기 `_magicLabAsset` 하나만 알아서, 두 번째 스킬 강화 건물이 생기면 클릭한 건물과 다른 수치를 내놓는다. 배율은 선택된 건물의 `UpgradeSteps`에서 읽는다.
+  - **다만 베이스 스탯은 이제 UI가 읽는다** — %표기 시절 "UI는 베이스 스탯을 모른다"는 전제가 절대값 표시로 깨졌고, `damage`/`radius`/`cooldown`을 `BaseDamage`/`BaseRadius`/`BaseCooldown`으로 공개했다(배율 적용 **전** 원본이며, `Radius`(= `effectiveRadius`, 조준 인디케이터용)와 혼동 금지). 곱셈은 `static SkillManager.Scale`을 UI와 `RefreshUpgrade`가 **공유**한다 — 0/음수 배율 방어(`PositiveOr1`)까지 한 식에 있어야 "패널엔 36인데 실제론 30"이 안 생긴다.
+  - 서식·라벨은 로컬라이제이션 문장이 아니라 **`SkillStatsFormatter`**(`BuildSkillDamageLine`/`…RadiusLine`/`…CooldownLine`)가 소유하고, 라벨 키는 `NorthLand_Skills`의 `skills.stat.damage`/`.radius`/`.cooldown`(+ 단위 `skills.stat.unit.second`)이다. 옛 `NorthLand_default`의 `lab.effect.*` 3키는 삭제됐다. 상세는 `BuildingUpgrade.md` §8.
 
 ### 3.2 마법 연구소 착탄 이펙트 교체 (#206)
 
@@ -109,9 +113,12 @@
 - **`DamageInfo` source=null 규약**: 플레이어 스킬 계열은 `IAttacker` 개체가 아니므로 source를 null로 넘긴다(`SkillManager` 주석 참고).
 - **`Projectile.DamageDealt`는 static 이벤트** — 구독 해제는 구독자 책임. 파괴 경로(`OnDestroy`→`Unsubscribe`)에서 반드시 해제. `BurnBuff`는 #315로 미사용이 됐고 현재 구독자는 `RampAction`(`Trigger=Hit`)뿐이다. ⚠ **빔 타워(`BeamAction`)는 이 이벤트를 발행하지 않으므로**, 여기 붙는 새 효과는 빔 타워에서 조용히 빠진다(WL-155).
 - **웨이브/런 종료 시 진행 중 효과 취소(#200)**: 시전 후 **지연·지속 발동하는 효과 2종 한정** — 지연 폭탄(`SkillBomb`)·지속 장판(`SkillField`, #316) — 을 취소한다(추가시전이 충전형이 되며 반복 착탄이 사라져 `SkillManager`는 취소 대상이 없다, #319). 신호는 `DayNightManager.OnNightToDay`(밤→낮=웨이브 종료)와 `GameManager.OnResultDecided`(승리/게임오버 — `EndNight()`를 안 타는 종료 경로) 둘 다 구독(적이 사라졌거나 결과 화면 뒤에서 잔존 발동 방지). 폭탄·장판은 `initialized`를 내리고 자기 파괴(장판은 잔류 딜 없이 즉시 사라진다). **취소 대상 아님**: 적 DoT는 자체 타이머로 만료된다(낮엔 타워가 밤 게이팅돼 실害 0). 조준(타겟팅) 모드 취소는 별개로 `PhasePanelSwitcher`가 소유한다 — 웨이브 종료는 `OnDayStart`, 런 종료는 같은 `OnResultDecided`를 구독해 `MouseManager.CancelSkillTargeting()`을 부른다(#391). 입력 매니저 쪽에서 구독하지 않는 이유는 `MouseManager.md` §1 원칙 2·3(매니저는 도메인을 모른다)이며, 씬 오브젝트인 이쪽이 `GameManager`와 수명이 같아 재바인딩도 불필요하다.
-- **범위 판정의 수직 축은 반경으로 풀지 말 것(#316)** — 착탄점(`context.Position`)은 전투 타일 표면이지만 몬스터는 그 위 **6f에 떠 있다**(`CombatMapTileSpawner`의 `monsterWaypointYOffset`, WL-063). 감전(반경 6)이 맞는 건 반경이 우연히 부양 높이와 같아서고, 그보다 작은 반경을 쓰는 효과는 지면에서 친 구체가 적에게 닿지 않아 **적중 0**이 된다. 수평 반경을 키워 억지로 닿게 하면 밸런싱 범위가 같이 커지므로, `SkillField`처럼 **수직 축 캡슐**(`Physics.OverlapCapsuleNonAlloc`, 바닥→`verticalRange`)로 축을 나눈다 — 수평 단면이 정확히 반경 `radius`의 원이라 장판 비주얼과도 1:1로 맞는다.
-- ⚠ **트리거 콜라이더 방식은 이 프로젝트에서 성립하지 않는다** — WL-068이 한때 "지면까지 닿는 길쭉한 트리거 콜라이더"를 해소 방향으로 적었으나, 적 프리팹(`Tank.prefab`)에 **Rigidbody가 없어** `OnTrigger*`가 아예 발동하지 않는다(Unity는 양쪽 중 하나에 Rigidbody를 요구). `Assets/Scripts` 전체에 `OnTrigger*` 사용처가 0건이며 전 범위 판정이 `Physics.Overlap*NonAlloc`이다. 트리거로 가려면 장판 쪽에 Kinematic Rigidbody 추가 + Layer Collision Matrix 확인 + `OnTriggerExit`가 안 불리는 사망 케이스 처리가 따라붙는다 — #316은 캡슐 판정으로 해결했고, 그게 이 프로젝트의 방향이다.
-- 관련 WatchList: **WL-068**(스킬 시전 Y와 몬스터 부양 높이 불일치 시 적중 0 — 해소 방향은 위 두 항목으로 정정됐다), **WL-050**(배율 덮어쓰기 비스택).
+- **범위 판정의 수직 축은 반경으로 풀지 말 것(#316 → #398 단일 출처화)** — 시전면·착탄점은 낮은 평면인데(`SkillButtonView._castHeight`, 씬 2) 지상 몬스터는 타일 표면 +6f(`CombatMapTileSpawner.monsterWaypointYOffset`, WL-063), 공중 몬스터는 거기서 +4f(`FlyingMonsterMove.altitude`) 더 떠 있다. 수평 반경으로 이 차이를 덮으면 밸런싱 범위가 같이 커지고 원반 인디케이터보다 넓게 맞으므로, **축을 나눠 수직만 연다** — `Physics.OverlapCapsuleNonAlloc`, 수평 단면은 정확히 반경 `radius`의 원이라 인디케이터·장판 비주얼과 1:1로 맞는다.
+  - #316에서 `SkillField`만 이 방식이었고 감전·폭탄은 `OverlapSphere`로 남아 **공중 유닛에 적중 0**이었다(#398). 지금은 셋 다 **`SkillHitScan.CollectEnemies`** 한 곳을 통과한다 — 수직 폭은 `SkillHitScan.VerticalRange`(12f) 상수 하나가 소유하고, `SkillField`의 기즈모도 같은 값을 그린다(기즈모가 자기 값을 따로 들면 눈에 보이는 범위가 거짓이 된다).
+  - 캡슐은 시전면 **위아래 양쪽**으로 연다 — `_castHeight`는 씬에서만 2고 스크립트 기본값은 20이라, 프리팹 리셋·신규 씬에서 시전면이 몬스터보다 위로 갈 수 있다. 시전면 아래엔 적이 없으므로 아래로 여는 대가는 없다.
+  - `CollectEnemies`가 **버퍼 포화 시 2배로 키워 다시 친다**(64 시작) + `IDamageable` 단위 중복 제거. `OverlapNonAlloc`은 초과분을 조용히 버리는데, 연구소 Lv5에서 감전 반경이 27까지 커져 밀집 웨이브에서 몇 마리가 재현 불가능하게 빠지던 축이다(WL-157의 스킬·폭탄 쪽).
+- ⚠ **트리거 콜라이더 방식은 이 프로젝트에서 성립하지 않는다** — WL-068이 한때 "지면까지 닿는 길쭉한 트리거 콜라이더"를 해소 방향으로 적었으나, 적 프리팹(`Tank.prefab`)에 **Rigidbody가 없어** `OnTrigger*`가 아예 발동하지 않는다(Unity는 양쪽 중 하나에 Rigidbody를 요구). `Assets/Scripts` 전체에 `OnTrigger*` 사용처가 0건이며 전 범위 판정이 `Physics.Overlap*NonAlloc`이다. 트리거로 가려면 장판 쪽에 Kinematic Rigidbody 추가 + Layer Collision Matrix 확인 + `OnTriggerExit`가 안 불리는 사망 케이스 처리가 따라붙는다 — #316이 캡슐 판정으로 해결했고 #398이 스킬 전체로 넓혔다. 그게 이 프로젝트의 방향이다.
+- 관련 WatchList: **WL-068**(스킬 시전 Y와 몬스터 부양 높이 불일치 시 적중 0 — **#398에서 해소**, 위 캡슐 단일 출처 항목), **WL-050**(배율 덮어쓰기 비스택).
 
 ## 6. 잔여 작업 (#169)
 

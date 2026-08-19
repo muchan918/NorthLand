@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using NorthLand.Combat;
 using NorthLand.Core;
@@ -13,7 +14,7 @@ public class SkillBomb : MonoBehaviour
 
     float timer;
     bool initialized;
-    readonly Collider[] hitBuffer = new Collider[16];
+    readonly List<IDamageable> hits = new List<IDamageable>(16);
 
     public void Init(float damage, float radius, float delay, LayerMask enemyLayerMask, bool debugLog)
     {
@@ -62,21 +63,14 @@ public class SkillBomb : MonoBehaviour
     void Explode()
     {
         initialized = false;   // 이중 폭발 방어(같은 프레임 재진입 차단)
-        int count = Physics.OverlapSphereNonAlloc(transform.position, radius, hitBuffer, enemyLayerMask);
-        int hitTargets = 0;
-        for (int i = 0; i < count; i++)
-        {
-            var damageable = hitBuffer[i].GetComponentInParent<IDamageable>();
-            // Source: 플레이어 스킬 계열은 IAttacker 개체가 아니라 null (SkillManager의 DamageInfo와 동일 규약).
-            if (damageable != null && damageable.Faction == Faction.Enemy && !damageable.IsDead)
-            {
-                damageable.TakeDamage(new DamageInfo(damage, null));
-                hitTargets++;
-            }
-        }
+        SkillHitScan.CollectEnemies(transform.position, radius, enemyLayerMask, hits);
+
+        // Source: 플레이어 스킬 계열은 IAttacker 개체가 아니라 null (SkillManager의 DamageInfo와 동일 규약).
+        foreach (var damageable in hits)
+            damageable.TakeDamage(new DamageInfo(damage, null));
 
         if (debugLog)
-            Debug.Log($"[SkillEffect] 폭탄 폭발: 위치={transform.position}, 적중={hitTargets}마리, 데미지={damage}, 반경={radius}");
+            Debug.Log($"[SkillEffect] 폭탄 폭발: 위치={transform.position}, 적중={hits.Count}마리, 데미지={damage}, 반경={radius}");
 
         Destroy(gameObject);
     }
