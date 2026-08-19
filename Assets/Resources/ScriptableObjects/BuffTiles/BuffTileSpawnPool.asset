@@ -15,7 +15,7 @@ MonoBehaviour:
   entries:
   - definition: {fileID: 11400000, guid: cab074dba2797b74dbbd803becc0670c, type: 2}
     enabled: 1
-    weight: 85
+    weight: 70
   - definition: {fileID: 11400000, guid: 19e753cb6ba7510449a1fd49b3476093, type: 2}
     enabled: 1
     weight: 8
@@ -23,5 +23,14 @@ MonoBehaviour:
     enabled: 1
     weight: 5
   - definition: {fileID: 11400000, guid: 94b3f41bae76f634d8bb826cd1fbb47e, type: 2}
+    enabled: 1
+    weight: 2
+  - definition: {fileID: 11400000, guid: d6b249d863c8e004bb7b658031bb9a7d, type: 2}
+    enabled: 1
+    weight: 8
+  - definition: {fileID: 11400000, guid: 5bd47c07f17a5ca4fae43977af5fa638, type: 2}
+    enabled: 1
+    weight: 5
+  - definition: {fileID: 11400000, guid: 99b6968aa29fa3b4288f452d33e4b70c, type: 2}
     enabled: 1
     weight: 2
