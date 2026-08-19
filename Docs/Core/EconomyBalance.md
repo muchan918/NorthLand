@@ -631,6 +631,14 @@ W5~W10 완화 여부**다. §4.4가 *"의도한 압력이면 두고, 아니면 �
 - [ ] [GDD §3.2](../GDD.md)의 "식량 = 건물 건설·업그레이드·타워 강화" → **주민 증가 · 농장 업그레이드**로 정정
 - [x] [CombatBalance §1.4](CombatBalance.md) 경제 발췌표 · §4.4 전제 · §5 비용표 — **2026-08-18 갱신 완료**,
       **2026-08-19 재갱신**(라인 업그레이드 3종 행 통합 + 초기 지급 비스켓 60 → 55 오기 정정)
+- [x] **[CombatBalance §5](CombatBalance.md) 값 표 폐지 → 이 문서 §1.2로 위임 (2026-08-19)** —
+      §5 표의 wood/iron 열이 「초코를 전 타워 필수재로」 단계보다 먼저 쓰여 `archer` · `choco` · `soda`
+      3종이 철 없는 옛 구성에 남아 있었다(총액만 일치). **표대로 재저작하면 철 요구가 조용히 사라지는**
+      자리였다. 소유를 갈랐다 — **화력·킬 눈금 = CombatBalance §6.0·§6.2 / 자원 비용 = 이 문서 §1.2.**
+      함께: §4.4·헤더의 ⛔ 블록이 1차 이관만 반영한 중간 결론("전 구간 1.29~1.93 이완")을 들고 있어
+      §6.1과 정반대를 지시했다 — 수치 서술을 빼고 §6.1 링크로 대체했다
+- [ ] [SystemMap §6](../Review/SystemMap.md) 「타워 밸런싱 규약」에 **소유 분할**(화력=CombatBalance /
+      비용=EconomyBalance §1.2) 한 줄 등재 — 정본 지정이 CombatBalance 단독으로 남아 있다
 - [ ] [Resources.md](../ManagementArea/Resources.md) · [BuildingUpgrade.md](../ManagementArea/BuildingUpgrade.md) —
       각설탕 소비처가 생긴 것과 농장만 비용 통화가 다른 것을 반영
 
