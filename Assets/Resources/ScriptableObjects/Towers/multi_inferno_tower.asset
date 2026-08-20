@@ -15,7 +15,7 @@ MonoBehaviour:
   TowerID: multi_inferno_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: f22a1137e86e5b54297c2bcae46c2062, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: a2f1472cfb0fbb84f9e687d3138834e4, type: 3}
-  Icon: {fileID: 0}
+  Icon: {fileID: 21300000, guid: 426f46816302d6040bcd87702210b6ab, type: 3}
   PlacementYaw: 0
   Cost: []
   Rarity: 1
@@ -30,6 +30,8 @@ MonoBehaviour:
     SpreadAngle: 0
     BurstCount: 1
     BurstInterval: 0
+  Targeting:
+    rid: -2
   Impact: 0
   SplashRadius: 0
   ChainRadius: 0

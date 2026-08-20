@@ -15,7 +15,7 @@ MonoBehaviour:
   TowerID: incendiary_cannon_tower
   TowerPrefab: {fileID: 3104185744962560807, guid: 34cedffb59030164ca577c754e27aec0, type: 3}
   GhostPrefab: {fileID: 3104185744962560807, guid: 7d78ffcc46993dd46a03b462daf40438, type: 3}
-  Icon: {fileID: 0}
+  Icon: {fileID: 1063712138, guid: bf5df59efcc6ea749836e001111bdb2c, type: 3}
   PlacementYaw: 45
   Cost: []
   Rarity: 1

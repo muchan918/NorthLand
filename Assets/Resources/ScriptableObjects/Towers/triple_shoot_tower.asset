@@ -15,7 +15,7 @@ MonoBehaviour:
   TowerID: triple_shoot_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: 32f20ff8123df644db927f0b6ddf86a8, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: 3a45e3ede25a4e04dbe0f760784d4c40, type: 3}
-  Icon: {fileID: 0}
+  Icon: {fileID: -1482791652, guid: 83579f1da1853ea47bacd9e3e796fcd1, type: 3}
   PlacementYaw: 45
   Cost: []
   Rarity: 1
@@ -30,6 +30,8 @@ MonoBehaviour:
     SpreadAngle: 28
     BurstCount: 1
     BurstInterval: 0
+  Targeting:
+    rid: -2
   Impact: 1
   SplashRadius: 1
   ChainRadius: 0
@@ -72,6 +74,8 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
     - rid: 1498367303671873620
       type: {class: StraightFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:

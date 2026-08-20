@@ -15,7 +15,7 @@ MonoBehaviour:
   TowerID: flame_archer_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: ad18bc0797391de4db72c77838c11c00, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: 5f7b3ba163abd21499207565fa06a6a3, type: 3}
-  Icon: {fileID: 0}
+  Icon: {fileID: -1841019452, guid: 83579f1da1853ea47bacd9e3e796fcd1, type: 3}
   PlacementYaw: 45
   Cost: []
   Rarity: 1

@@ -15,12 +15,14 @@ MonoBehaviour:
   TowerID: cannon_tower
   TowerPrefab: {fileID: 3104185744962560807, guid: 3aa39c2dca7c6674484d79f6043acd6e, type: 3}
   GhostPrefab: {fileID: 3104185744962560807, guid: 017965e4e87759048b99f86070e0dee8, type: 3}
+  Icon: {fileID: 1362225209, guid: bf5df59efcc6ea749836e001111bdb2c, type: 3}
   PlacementYaw: 45
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
     Amount: 20
   - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
     Amount: 10
+  Rarity: 0
   Attack:
     AttackDamage: 12
     AttackRange: 14
@@ -32,6 +34,8 @@ MonoBehaviour:
     SpreadAngle: 0
     BurstCount: 1
     BurstInterval: 0
+  Targeting:
+    rid: -2
   Impact: 1
   SplashRadius: 5
   ChainRadius: 0
@@ -74,6 +78,8 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
     - rid: 1498367259597078607
       type: {class: BallisticFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
