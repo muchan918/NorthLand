@@ -14,6 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WaveRewardData
   displayName: rewards.count.name
   description: rewards.count.desc
-  icon: {fileID: 21300000, guid: 7a755947c83b54a4283d95a84f336a7d, type: 3}
+  icon: {fileID: -63241537, guid: 6c9e0ab272d990845bb0dc0b6d616851, type: 3}
   rewardType: 2
-  amount: 1

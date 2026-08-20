@@ -5,7 +5,8 @@ using UnityEngine.UI;
 /// 스킬 버튼 1개(#103). 클릭 시 MouseManager에 스킬 타겟팅을 요청하고,
 /// 확정되면 SkillManager.CastAt이 실행되도록 연결한다. TowerSelectPanelView.cs의 배선 방식 참고.
 /// 충전 소진/낮 게이팅 중엔 Button의 Disabled Color(인스펙터에서 설정)로 막고,
-/// 보유 충전 수와 다음 충전까지 남은 초를 TMP 텍스트로 함께 보여준다(#319).
+/// 다음 충전까지의 진행을 원형 게이지로 보여준다(#397). 보유 충전 수와 남은 초는 서로를
+/// 대신하는 표시라 동시에 뜨지 않는다 — 0발일 때만 남은 초, 1발 이상일 때만 충전 수(#319).
 [RequireComponent(typeof(Button))]
 public class SkillButtonView : MonoBehaviour
 {
@@ -20,6 +21,8 @@ public class SkillButtonView : MonoBehaviour
     [SerializeField] TMP_Text _rechargeText;
     [Tooltip("보유 충전 수 표시(#319). 비워두면 표시하지 않는다.")]
     [SerializeField] TMP_Text _chargeText;
+    [Tooltip("다음 충전까지의 진행을 그리는 원형 게이지(#397). Image Type=Filled/Radial 360. 비워두면 표시하지 않는다.")]
+    [SerializeField] Image _fillImage;
 
     // 마지막으로 찍은 값. 매 프레임 문자열을 새로 만들지 않으려고 캐싱한다 — TMP의 text 세터가
     // 같은 값을 걸러내더라도 보간 문자열은 이미 할당된 뒤라, 조립 자체를 건너뛰어야 의미가 있다.
@@ -39,18 +42,36 @@ public class SkillButtonView : MonoBehaviour
         if (SkillManager.Instance == null) return;
 
         _button.interactable = SkillManager.Instance.CanCast();
+        RefreshFill();
         RefreshRechargeText();
         RefreshChargeText();
     }
 
-    // 다음 1발이 찰 때까지 남은 시간을 올림한 정수 초로 보여주고, 만충이면 숨긴다 —
-    // "0"이 남아 있으면 아직 기다리는 중인 것처럼 읽힌다.
+    // 게이지는 0에서 1로 차오르는 방향(Clockwise 체크 기준). 만충이면 통째로 끈다 —
+    // 꽉 찬 게이지를 남겨두면 "아직 뭔가 진행 중"으로 읽히고, 만충은 더 기다릴 것이 없는 상태다.
+    // fillAmount 세터가 같은 값을 걸러내므로 여기엔 별도 캐싱을 두지 않는다.
+    private void RefreshFill()
+    {
+        if (_fillImage == null) return;
+
+        bool show = SkillManager.Instance.Charges < SkillManager.Instance.MaxCharges;
+        if (_fillImage.gameObject.activeSelf != show)
+            _fillImage.gameObject.SetActive(show);
+
+        if (!show) return;
+
+        _fillImage.fillAmount = SkillManager.Instance.RechargeProgress01;
+    }
+
+    // 다음 1발이 찰 때까지 남은 시간을 올림한 정수 초로 보여주되, 0발일 때만 띄운다(#397) —
+    // 충전이 남아 있으면 지금 쓸 수 있다는 뜻이라, 초가 같이 보이면 기다려야 하는 것처럼 읽힌다.
+    // 진행 상황은 그 동안 원형 게이지가 대신 보여준다.
     private void RefreshRechargeText()
     {
         if (_rechargeText == null) return;
 
         float remaining = SkillManager.Instance.RechargeRemaining;
-        bool show = remaining > 0f;
+        bool show = SkillManager.Instance.Charges == 0;
 
         if (_rechargeText.gameObject.activeSelf != show)
             _rechargeText.gameObject.SetActive(show);
@@ -65,19 +86,27 @@ public class SkillButtonView : MonoBehaviour
         _rechargeText.text = seconds.ToString();
     }
 
-    // "2/2" 형태로 보유/최대를 함께 보여준다 — 보유만 찍으면 몇 발까지 차는지 알 수 없다.
-    // 보상이 없어도 기본 1발이 있으므로 항상 표시한다.
+    // 보유 수만 숫자로 찍는다(#397). 두 경우엔 아예 숨긴다:
+    //  - 최대가 1발이면 값이 0/1뿐이라 회색 처리·게이지와 완전히 중복이다. 추가시전(#319) 보상으로
+    //    2발이 되는 순간 숫자가 나타나므로, 그 등장 자체가 "연발이 생겼다"는 신호가 된다.
+    //  - 0발이면 같은 자리를 남은 초가 대신하므로 "0"은 노이즈다.
     private void RefreshChargeText()
     {
         if (_chargeText == null) return;
 
         int charges = SkillManager.Instance.Charges;
         int maxCharges = SkillManager.Instance.MaxCharges;
+
+        bool show = maxCharges > 1 && charges > 0;
+        if (_chargeText.gameObject.activeSelf != show)
+            _chargeText.gameObject.SetActive(show);
+
+        if (!show) return;
         if (charges == _shownCharges && maxCharges == _shownMaxCharges) return;
 
         _shownCharges = charges;
         _shownMaxCharges = maxCharges;
-        _chargeText.text = $"{charges}/{maxCharges}";
+        _chargeText.text = charges.ToString();
     }
 
     private void HandleClick()

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 // 보상 카드 한 장을 그리는 데 필요한 레벨·수치를 한 번에 담아 넘기는 값(#353).
 //
@@ -43,6 +44,9 @@ public class SkillEffectManager : MonoBehaviour
 {
     public static SkillEffectManager Instance { get; private set; }
 
+    // 획득 목록 표시부가 다시 그려야 하는 시점(#397). 레벨이 바뀌는 두 경로에서 발화한다.
+    public event Action EffectsChanged;
+
     // 이 오브젝트에 부착된 효과 컴포넌트들. Awake에서 수집한다.
     readonly Dictionary<WaveRewardType, SkillEffect> effects = new();
 
@@ -79,6 +83,7 @@ public class SkillEffectManager : MonoBehaviour
         }
 
         effect.OnRewardApplied();
+        EffectsChanged?.Invoke();
     }
 
     // 현재 효과 레벨. 효과 미부착/미보유 시 0.
@@ -117,7 +122,13 @@ public class SkillEffectManager : MonoBehaviour
             return false;
         }
 
-        return effect.TryRestoreLevel(level);
+        bool restored = effect.TryRestoreLevel(level);
+
+        // 세이브 복원도 레벨을 바꾸는 경로다 — 여기서 안 쏘면 불러오기 직후 패널이 빈 채로 남는다.
+        if (restored)
+            EffectsChanged?.Invoke();
+
+        return restored;
     }
 
     /// <summary>
