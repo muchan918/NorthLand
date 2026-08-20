@@ -597,11 +597,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 38357085}
   m_CullTransparentMesh: 1
---- !u!224 &62346521 stripped
-RectTransform:
-  m_CorrespondingSourceObject: {fileID: 230810885848341327, guid: c623142958a73fa4591e6753f9c8f4a4, type: 3}
-  m_PrefabInstance: {fileID: 7278366597303245063}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &103759974
 GameObject:
   m_ObjectHideFlags: 0
@@ -16237,6 +16232,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BaseHealthBar
   slider: {fileID: 1653178526582022121}
+  fillImage: {fileID: 0}
+  healthSpriteSteps: []
 --- !u!224 &1206582899751270607
 RectTransform:
   m_ObjectHideFlags: 0
@@ -26307,46 +26304,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 5236193169772626758}
     m_Modifications:
-    - target: {fileID: 230810885848341327, guid: c623142958a73fa4591e6753f9c8f4a4, type: 3}
-      propertyPath: m_Pivot.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 230810885848341327, guid: c623142958a73fa4591e6753f9c8f4a4, type: 3}
-      propertyPath: m_Pivot.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 230810885848341327, guid: c623142958a73fa4591e6753f9c8f4a4, type: 3}
-      propertyPath: m_SizeDelta.x
-      value: 97.94
-      objectReference: {fileID: 0}
-    - target: {fileID: 230810885848341327, guid: c623142958a73fa4591e6753f9c8f4a4, type: 3}
-      propertyPath: m_SizeDelta.y
-      value: 26.82
-      objectReference: {fileID: 0}
-    - target: {fileID: 230810885848341327, guid: c623142958a73fa4591e6753f9c8f4a4, type: 3}
-      propertyPath: m_AnchoredPosition.x
-      value: -48.97
-      objectReference: {fileID: 0}
-    - target: {fileID: 230810885848341327, guid: c623142958a73fa4591e6753f9c8f4a4, type: 3}
-      propertyPath: m_AnchoredPosition.y
-      value: 13.410034
-      objectReference: {fileID: 0}
-    - target: {fileID: 474225315834775635, guid: c623142958a73fa4591e6753f9c8f4a4, type: 3}
-      propertyPath: m_ChildControlWidth
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 474225315834775635, guid: c623142958a73fa4591e6753f9c8f4a4, type: 3}
-      propertyPath: m_ChildControlHeight
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 474225315834775635, guid: c623142958a73fa4591e6753f9c8f4a4, type: 3}
-      propertyPath: m_ChildForceExpandWidth
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 474225315834775635, guid: c623142958a73fa4591e6753f9c8f4a4, type: 3}
-      propertyPath: m_ChildForceExpandHeight
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 606565266006513886, guid: c623142958a73fa4591e6753f9c8f4a4, type: 3}
       propertyPath: m_SizeDelta.x
       value: 0
@@ -26355,42 +26312,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: SkillEffectPanel
       objectReference: {fileID: 0}
-    - target: {fileID: 2294032874031542370, guid: c623142958a73fa4591e6753f9c8f4a4, type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2294032874031542370, guid: c623142958a73fa4591e6753f9c8f4a4, type: 3}
-      propertyPath: m_AnchorMin.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2294032874031542370, guid: c623142958a73fa4591e6753f9c8f4a4, type: 3}
-      propertyPath: m_SizeDelta.x
-      value: 97.94
-      objectReference: {fileID: 0}
-    - target: {fileID: 2294032874031542370, guid: c623142958a73fa4591e6753f9c8f4a4, type: 3}
-      propertyPath: m_SizeDelta.y
-      value: 26.82
-      objectReference: {fileID: 0}
-    - target: {fileID: 2294032874031542370, guid: c623142958a73fa4591e6753f9c8f4a4, type: 3}
-      propertyPath: m_AnchoredPosition.x
-      value: 48.97
-      objectReference: {fileID: 0}
-    - target: {fileID: 2294032874031542370, guid: c623142958a73fa4591e6753f9c8f4a4, type: 3}
-      propertyPath: m_AnchoredPosition.y
-      value: -13.41
-      objectReference: {fileID: 0}
     - target: {fileID: 2413082577471353373, guid: c623142958a73fa4591e6753f9c8f4a4, type: 3}
       propertyPath: _canvas
       value: 
       objectReference: {fileID: 7702654707586447746}
-    - target: {fileID: 2413082577471353373, guid: c623142958a73fa4591e6753f9c8f4a4, type: 3}
-      propertyPath: _tooltipRect
-      value: 
-      objectReference: {fileID: 62346521}
-    - target: {fileID: 7238765116798596657, guid: c623142958a73fa4591e6753f9c8f4a4, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 8357609386173633069, guid: c623142958a73fa4591e6753f9c8f4a4, type: 3}
       propertyPath: m_Pivot.x
       value: 0
@@ -26495,7 +26420,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ManagementPanelView
   _controller: {fileID: 544968473}
   _villagerPoolText: {fileID: 1996708410501471215}
-  _phaseText: {fileID: 9140032144899211736}
+  _waveText: {fileID: 9140032144899211736}
   _endDayButton: {fileID: 1338056982012208749}
   _endDayConfirmPopup: {fileID: 2036014236899349841}
   _lineContainer: {fileID: 2925405271458988414}
