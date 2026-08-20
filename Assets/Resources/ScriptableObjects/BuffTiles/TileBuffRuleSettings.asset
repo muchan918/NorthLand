@@ -28,3 +28,9 @@ MonoBehaviour:
   - stat: 2
     modifierMode: 1
     stackMode: 0
+  - stat: 3
+    modifierMode: 0
+    stackMode: 1
+  - stat: 3
+    modifierMode: 1
+    stackMode: 1

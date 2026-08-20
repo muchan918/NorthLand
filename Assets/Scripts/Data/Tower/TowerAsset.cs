@@ -119,13 +119,21 @@ public class TowerAsset : ScriptableObject
     /// WL-056의 "오라 반경 단일 출처" 성질을 유지하면서 구 `TowerType` 분기만 걷어낸 것이다.
     /// 구 `MagicRadius`는 `MagicEffectType`으로 Buff/Debuff를 골랐는데, 오라를 둘 다 가진 타워를
     /// 표현할 수 없었다. 최댓값을 쓰면 공격+오라 하이브리드 타워도 자연히 커버된다.
-    public float PreviewRadius => Mathf.Max(
-        Mathf.Max(
-            Attack != null ? Attack.AttackRange : 0f,
-            Beam != null ? Beam.Range : 0f),
-        Mathf.Max(
-            BuffAura != null ? BuffAura.Radius : 0f,
-            DebuffAura != null ? DebuffAura.Radius : 0f));
+    public float PreviewRadius => Mathf.Max(AttackSideRadius, AuraSideRadius);
+
+    /// `TowerStat.AttackRange` 축이 붙는 쪽 기본값(공격·빔).
+    ///
+    /// 두 축을 따로 노출하는 이유: 프리뷰가 타일 버프를 얹을 때 **어느 축의 modifier를 쓸지** 갈라야 한다.
+    /// 합친 값 하나만 들고 있으면 배치 프리뷰 원과 배치 후 실제 반경이 어긋난다(오라 타워는 사거리 축
+    /// modifier를 받지 않으므로, 사거리 축을 그냥 얹으면 프리뷰만 부풀어 보인다).
+    public float AttackSideRadius => Mathf.Max(
+        Attack != null ? Attack.AttackRange : 0f,
+        Beam != null ? Beam.Range : 0f);
+
+    /// `TowerStat.AuraRadius` 축이 붙는 쪽 기본값(버프·디버프 오라).
+    public float AuraSideRadius => Mathf.Max(
+        BuffAura != null ? BuffAura.Radius : 0f,
+        DebuffAura != null ? DebuffAura.Radius : 0f);
 
 #if UNITY_EDITOR
     // 저작 실수를 **저장하는 순간** 드러낸다(WL-130 해소).

@@ -23,10 +23,15 @@ namespace NorthLand.Combat
 
         public override TowerActivePhase ActivePhase => TowerActivePhase.NightOnly;
 
-        // 오라 반경은 공격 사거리와 같은 원장 축을 쓴다 — "사거리"라는 개념을 둘로 두지 않기 위함.
-        // 기본값만 다르다(SO의 DebuffAura.Radius). 타일 버프의 사거리 증가가 오라에도 그대로 반영된다.
+        // 오라 반경은 **자기 축**(TowerStat.AuraRadius)을 쓴다. 예전에는 공격 사거리 축을 공유해
+        // "사거리 개념을 둘로 두지 않는다"를 만족했는데, 버프 타일이 증가량을 칸 단위 절댓값으로
+        // 약속하는 순간 그 전제가 깨졌다 — 오라 기본 반경(1.6~2.7칸)이 공격 사거리(3칸)보다 작아
+        // 같은 "+3칸"이 오라에서는 지름 3배가 됐다(장판이 상시 보이니 그대로 드러난다).
+        //
+        // 축만 갈렸고 단일 출처는 유지된다 — 판정(ApplyDebuff)·선택 원·장판(AuraZoneVisual)이
+        // 전부 이 프로퍼티 하나를 본다.
         public float Radius =>
-            aura == null ? 0f : Owner.Stats.Evaluate(TowerStat.AttackRange, aura.Radius);
+            aura == null ? 0f : Owner.Stats.Evaluate(TowerStat.AuraRadius, aura.Radius);
 
         // 선택 사거리 원은 오라 반경을 그린다 — 배치 프리뷰 원(TowerPlacer가 PreviewRadius로 그림)과
         // 같은 값이라 "놓을 때 보이던 원이 선택하면 사라진다"는 비일관이 생기지 않는다.
