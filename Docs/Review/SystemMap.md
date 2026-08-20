@@ -523,6 +523,21 @@
   `StackInterval`/`DecaySeconds`)과 스택→배율 환산(`Multiplier`/`StacksFromTime`). 소비처가 둘이고 **적용 지점이
   다르다**: `RampAction`(원장, 타워 전역) / `BeamAction.Beam.LockRamp`(대상별, 원장 미경유 — 원장은 타워 단위라
   "대상이 바뀌면 리셋"을 표현할 수 없다). ⚠ `DecaySeconds = 0`은 "영구"가 아니라 **"웨이브 동안 유지"**다
+- **`TowerAsset.BeamStage` / `Beam.VisualStages`**(`[Serializable]`, #426) — 빔의 램프 진행도별 겉모습
+  (`Label`/`FromProgress`/`Width`/`Color`). `BeamAction`이 진행도(= 달성 스택 ÷ `MaxStacks`)로 문턱 이하 중
+  **가장 높은** 단계를 골라 자기 `LineRenderer`에 얹는다. **미저작이면 아무것도 하지 않아 기존 단색 연출이
+  그대로 남는다**(멀티 인페르노 무변경).
+  ⚠ **연출 수치인데 프리팹 컴포넌트가 아니라 SO에 있는 이유가 계약이다** — 컴포넌트로 두면 Imported 프리팹이
+  본 저장소 MonoBehaviour를 참조해 **참조 방향이 모델·에셋과 반대**가 되고(모델은 본 저장소 SO → Imported
+  프리팹), 한 기능 안에서 머지 순서가 갈린다. Imported만 먼저 받으면 Missing Script 상태에서 재직렬화되며
+  배선이 조용히 사라진다. SO에 두면 참조가 한 방향으로만 흘러 기존 규칙(Imported 선행)이 유지되고, 이 연출을
+  본 저장소 diff만으로 검토할 수 있다. **새 연출 값은 이 선례를 따를 것**(WL-196).
+  ⚠ 최고 단계 문턱을 1.0 근처에 두지 말 것 — `single_inferno`는 체류(3.33초) 안에 만렙(3.36초)에 도달하지
+  못해 진행도가 0.88에서 멈춘다(`CombatBalance.md` §3.2). 문턱이 그보다 높으면 그 단계가 화면에 안 나온다
+- **빔의 발사 원점은 `Tower.firePoint`다**(#426) — `BeamAction.FollowLockedTargets`가 읽고, 미할당이면 타워
+  루트(바닥)로 폴백한다. ⚠ **사거리 판정 원점은 일부러 루트로 남겨 둔다**(`MaintainLocks`) — 포신 높이에서
+  구형 판정하면 지상 적 기준 수평 도달거리가 그만큼 줄어 바닥에 그리는 사거리 원과 어긋난다. 즉 연출과
+  규칙이 원점을 의도적으로 달리 쓴다
 - `Tower.ApplyTileBuff(TileBuffCalculationResult)`(`NorthLand.Combat`) — 타일 버프를 원장에 지속형 소스로 넣는다.
   `TowerTileBuff.Initialize`가 **푸시**한다(스탯 게터가 되읽지 않음) → 초기화 순서 의존이 없다.
   ✅ **`Tower.Build`와의 호출 순서 의존은 #274에서 해소됐다** — 오라의 `Radius`가 접근할 때마다 원장을 평가하고

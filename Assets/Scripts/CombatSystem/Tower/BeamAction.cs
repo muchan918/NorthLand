@@ -35,7 +35,9 @@ namespace NorthLand.Combat
         // ⚠ `lockedTargets`를 넣거나 빼는 모든 지점에서 이 리스트도 같은 인덱스로 함께 갱신할 것.
         [NonSerialized] List<float> lockElapsed;
 
-        // 빔 비주얼 — 최소 구현(임시 머티리얼, LineRenderer). 연출 폴리싱은 별도 이슈.
+        // 빔 비주얼. 굵기·색은 `BeamFields.VisualStages`(SO)가 저작하고 여기서는 그리기만 한다 —
+        // 연출 수치를 프리팹 컴포넌트에 두면 Imported 프리팹이 본 저장소 스크립트를 참조하게 되어
+        // 머지 순서가 다른 에셋과 반대가 된다(WL-196). SO에 두면 참조가 한 방향으로만 흐른다.
         [NonSerialized] List<LineRenderer> beams;
         [NonSerialized] Material beamMaterial;
 
@@ -174,6 +176,23 @@ namespace NorthLand.Combat
             return ramp.Multiplier(ramp.StacksFromTime(lockElapsed[index]));
         }
 
+        /// 연출용 램프 진행도(0~1) = 달성 스택 ÷ MaxStacks. **배율이 아니라 진행도를 넘기는 이유**는
+        /// 연출이 밸런스 수치에 묶이지 않게 하기 위함이다 — `PerStack`을 조정해 최대 배율이 ×13에서
+        /// ×20으로 바뀌어도 단계 문턱을 다시 잡을 필요가 없다.
+        ///
+        /// **램프 미저작(멀티 인페르노)은 1을 돌린다 — 최대 단계다.** 0이 아닌 이유: 램프가 없는 빔은
+        /// "약한 상태에서 자라는 중"이 아니라 **처음부터 끝까지 같은 세기**다(균일 지속딜). 0을 돌리면
+        /// 5대를 동시에 지지는 3차 타워가 단일 인페르노의 첫 단계보다 가늘고 차갑게 보여 정체성이
+        /// 거꾸로 읽힌다. 단일 단계만 저작한 프리팹도 그 단계가 선택되므로 이 기본값이 손해를 주지 않는다.
+        float RampProgress(int index)
+        {
+            RampProfile ramp = fields?.LockRamp;
+            if (ramp == null || !ramp.IsAuthored || ramp.MaxStacks <= 0) return 1f;
+            if (index < 0 || index >= lockElapsed.Count) return 0f;
+
+            return Mathf.Clamp01(ramp.StacksFromTime(lockElapsed[index]) / (float)ramp.MaxStacks);
+        }
+
         void ApplyToLocked()
         {
             int baseId = Owner.GetInstanceID();
@@ -231,6 +250,43 @@ namespace NorthLand.Combat
             beamMaterial = new Material(Shader.Find("Sprites/Default")) { color = new Color(1f, 0.25f, 0.1f, 0.9f) };
         }
 
+        /// 진행도에 맞는 단계의 굵기·색을 빔에 얹는다. `VisualStages` 미저작이면 아무것도 하지 않아
+        /// `CreateBeam`의 기본 겉모습이 그대로 남는다(기존 거동).
+        ///
+        /// 색을 머티리얼이 아니라 `startColor`/`endColor`로 넣는 이유: 단계마다 머티리얼을 복제하지
+        /// 않으려는 것이고, 그래야 전환이 인스턴스 생성 없이 같은 프레임에 반영된다.
+        void ApplyStage(LineRenderer lr, float progress)
+        {
+            TowerAsset.BeamStage stage = StageFor(progress);
+            if (stage == null) return;
+
+            lr.widthMultiplier = stage.Width;
+            lr.startColor = stage.Color;
+            lr.endColor = stage.Color;
+        }
+
+        /// 진행도가 속한 단계. 문턱 이하 중 **가장 높은** 것을 고르므로 저작 순서가 뒤섞여도 결과가 같다.
+        /// 첫 단계 문턱이 0보다 크게 저작돼 후보가 없으면 가장 낮은 단계로 떨어진다.
+        TowerAsset.BeamStage StageFor(float progress)
+        {
+            List<TowerAsset.BeamStage> stages = fields?.VisualStages;
+            if (stages == null || stages.Count == 0) return null;
+
+            TowerAsset.BeamStage best = null;
+            TowerAsset.BeamStage lowest = null;
+            for (int i = 0; i < stages.Count; i++)
+            {
+                TowerAsset.BeamStage s = stages[i];
+                if (s == null) continue;
+
+                if (lowest == null || s.FromProgress < lowest.FromProgress) lowest = s;
+                if (s.FromProgress > progress) continue;
+                if (best == null || s.FromProgress >= best.FromProgress) best = s;
+            }
+
+            return best ?? lowest;
+        }
+
         LineRenderer CreateBeam()
         {
             var go = new GameObject("BeamVisual");
@@ -267,6 +323,8 @@ namespace NorthLand.Combat
                     beams[i].enabled = false;
                     continue;
                 }
+
+                ApplyStage(beams[i], RampProgress(i));
 
                 beams[i].enabled = true;
                 beams[i].SetPosition(0, origin);
