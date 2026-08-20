@@ -109,25 +109,19 @@ public class SettingUI : MonoBehaviour
 
     public void OpenPanel()
     {
-        if (settingPanel == null)
+        if (GameManager.Instance != null && GameManager.Instance.Result != GameResult.Playing)
         {
             return;
         }
 
+        if (settingPanel == null)
+            return;
+
         MouseManager.Instance?.CancelInteractions();
-
-        if (localizationManager != null)
-        {
-            localizationManager.OnClose();
-        }
-
+        localizationManager?.OnClose();
         settingPanel.SetActive(true);
 
-        if (GameSpeedController.Instance != null)
-        {
-            GameSpeedController.Instance.SetPaused(GamePauseReason.Settings,true);
-        }
-
+        GameSpeedController.Instance?.SetPaused(GamePauseReason.Settings,true);
     }
 
     public void ClosePanel()
