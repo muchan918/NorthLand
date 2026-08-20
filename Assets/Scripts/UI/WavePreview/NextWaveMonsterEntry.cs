@@ -23,9 +23,18 @@ namespace NorthLand.UI
 
             if (countText != null)
             {
-                countText.text = $"{count}";
 
-                countText.color = isBoss? bossCountColor : normalCountColor;
+                if (!isBoss)
+                {
+                    countText.text = $"{count}";
+                }
+                else
+                {
+                    countText.text = $"BOSS";
+                    countText.color = bossCountColor;
+                }
+
+              
             }
         }
     }
