@@ -1,4 +1,5 @@
 using System;
+using NorthLand.Core;
 using UnityEngine;
 
 /// <summary>
@@ -44,7 +45,11 @@ public class BuildingFeedback : MonoBehaviour
         _controller = FindFirstObjectByType<ManagementController>();
         if (_controller == null)
         {
-            Debug.LogWarning($"[건물연출] {name}: ManagementController가 씬에 없어 연출이 재생되지 않습니다.", this);
+            if (!GameSceneManager.IsTitleScene)
+            {
+                Debug.LogWarning($"[건물연출] {name}: ManagementController가 씬에 없어 연출이 재생되지 않습니다.",this);
+            }
+
             return;
         }
 
