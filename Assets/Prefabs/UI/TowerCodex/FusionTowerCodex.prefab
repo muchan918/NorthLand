@@ -1520,7 +1520,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FusionTowerCodexUI
   panelRoot: {fileID: 8912853208905166703}
-  openButton: {fileID: 0}
+  openButton: {fileID: 3634751632020347538, guid: d92d8c0fdb3587144bdd94a4cf9829a6, type: 3}
   closeButton: {fileID: 1456314491373581571}
   content: {fileID: 7609812280952060701}
   entryPrefab: {fileID: 4757222982712679959, guid: 62b52688f754e3d42a03907867052650, type: 3}
