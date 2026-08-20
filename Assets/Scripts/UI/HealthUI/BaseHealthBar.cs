@@ -17,6 +17,8 @@ public class BaseHealthBar : MonoBehaviour
     [SerializeField] Sprite healthy60Sprite;
     [SerializeField] Sprite healthy40Sprite;
     [SerializeField] Sprite healthy20Sprite;
+    [SerializeField] Sprite healthy0Sprite;
+
 
     void Awake()
     {
@@ -68,7 +70,9 @@ public class BaseHealthBar : MonoBehaviour
             fillImage.sprite = healthy60Sprite;
         else if (ratio > 0.2f)
             fillImage.sprite = healthy40Sprite;
-        else
+        else if (ratio > 0f)
             fillImage.sprite = healthy20Sprite;
+        else
+            fillImage.sprite = healthy0Sprite;
     }
 }
