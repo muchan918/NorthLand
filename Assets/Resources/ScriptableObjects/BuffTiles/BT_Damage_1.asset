@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8f49e81514ce2be49adb1f934afd23eb, type: 3}
-  m_Name: BT_Range_2
+  m_Name: BT_Damage_1
   m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.BuffTileDefinition
-  id: range_plus_2
-  prefab: {fileID: 6999418819918400073, guid: 2ec32517aeebc8a48a451a2964d022fa, type: 3}
+  id: Damage_plus_1
+  prefab: {fileID: 3733212974178513189, guid: 4825e259dcb6f6945a28c2c75f850602, type: 3}
   icon: {fileID: 21300000, guid: 32dbacac0bdef454c99e60e9f2e7c1ec, type: 3}
   modifiers:
-  - Stat: 0
-    ModifierMode: 0
-    Value: 5
+  - Stat: 1
+    ModifierMode: 1
+    Value: 10
