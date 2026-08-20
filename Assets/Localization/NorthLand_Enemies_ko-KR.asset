@@ -107,6 +107,10 @@ MonoBehaviour:
       \uBAAC\uC2A4\uD130"
     m_Metadata:
       m_Items: []
+  - m_Id: 11241464069173248
+    m_Localized: BOSS
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

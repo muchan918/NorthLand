@@ -101,7 +101,9 @@ namespace NorthLand.UI
 
             foreach (WaveMonsterCount monster in composition)
             {
-                AddEntry(monster.Asset != null ? monster.Asset.Icon : null,monster.Count);
+                bool isBoss =monster.Asset != null &&monster.Asset.EnemyType == EnemyType.Boss;
+
+                AddEntry(monster.Asset != null ? monster.Asset.Icon : null,monster.Count,isBoss);
             }
         }
 
@@ -113,17 +115,13 @@ namespace NorthLand.UI
             }
         }
 
-        private void AddEntry(Sprite icon, int count)
+        private void AddEntry(Sprite icon, int count, bool isBoss)
         {
             if (content == null || entryPrefab == null)
-            {
                 return;
-            }
 
-            NextWaveMonsterEntry entry =
-                Instantiate(entryPrefab, content);
-
-            entry.Bind(icon != null ? icon : unknownMonsterIcon, count);
+            NextWaveMonsterEntry entry = Instantiate(entryPrefab, content);
+            entry.Bind(icon != null ? icon : unknownMonsterIcon, count, isBoss);
 
             spawnedEntries.Add(entry);
         }
