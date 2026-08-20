@@ -9,7 +9,11 @@ namespace NorthLand.UI
         [SerializeField] private Image iconImage;
         [SerializeField] private TMP_Text countText;
 
-        public void Bind(Sprite icon, int count)
+        [Header("Count Colors")]
+        [SerializeField] private Color normalCountColor = Color.white;
+        [SerializeField] private Color bossCountColor = Color.red;
+
+        public void Bind(Sprite icon, int count, bool isBoss)
         {
             if (iconImage != null)
             {
@@ -19,7 +23,9 @@ namespace NorthLand.UI
 
             if (countText != null)
             {
-                countText.text = $"* {count}";
+                countText.text = $"{count}";
+
+                countText.color = isBoss? bossCountColor : normalCountColor;
             }
         }
     }
