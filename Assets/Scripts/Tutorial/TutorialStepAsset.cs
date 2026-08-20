@@ -4,7 +4,7 @@ using UnityEngine;
 // 이 에셋은 "몇 번째 단계인가"를 스스로 갖지 않는다 — 진행 순서는 전적으로
 // TutorialSequenceAsset.steps 리스트의 등록 순서가 결정한다(MonsterWaveAsset과 같은 규칙).
 [CreateAssetMenu(fileName = "TutorialStep", menuName = "Tutorial/Step")]
-public sealed class TutorialStepAsset : ScriptableObject
+public class TutorialStepAsset : ScriptableObject
 {
     [Header("팝업 — 셋 다 비우면 팝업을 건너뛴다")]
     [SerializeField]
@@ -23,6 +23,10 @@ public sealed class TutorialStepAsset : ScriptableObject
     [SerializeField]
     private string bubbleText;
 
+    [Header("완료 조건 — 비우면 팝업 확인만으로 넘어간다")]
+    [SerializeReference]
+    private TutorialCondition completion;
+
     public string PopupTitle => popupTitle;
 
     public string PopupBody => popupBody;
@@ -37,4 +41,6 @@ public sealed class TutorialStepAsset : ScriptableObject
         !string.IsNullOrWhiteSpace(popupTitle)
         || !string.IsNullOrWhiteSpace(popupBody)
         || popupImage != null;
+
+    public TutorialCondition Completion => completion;
 }
