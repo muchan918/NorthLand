@@ -11,6 +11,13 @@ public class BaseHealthBar : MonoBehaviour
 
     PlayerBase playerBase;
 
+    [SerializeField] Image fillImage;
+    [SerializeField] Sprite healthy100Sprite;
+    [SerializeField] Sprite healthy80Sprite;
+    [SerializeField] Sprite healthy60Sprite;
+    [SerializeField] Sprite healthy40Sprite;
+    [SerializeField] Sprite healthy20Sprite;
+
     void Awake()
     {
         gameObject.SetActive(false); // 본진이 스폰되기 전에는 숨김
@@ -47,6 +54,21 @@ public class BaseHealthBar : MonoBehaviour
 
     void UpdateBar(float current, float max)
     {
-        slider.value = max > 0f ? current / max : 0f;
+        float ratio = max > 0f ? current / max : 0f;
+        slider.value = ratio;
+
+        if (fillImage == null)
+            return;
+
+        if (ratio > 0.8f)
+            fillImage.sprite = healthy100Sprite;
+        else if (ratio > 0.6f)
+            fillImage.sprite = healthy80Sprite;
+        else if (ratio > 0.4f)
+            fillImage.sprite = healthy60Sprite;
+        else if (ratio > 0.2f)
+            fillImage.sprite = healthy40Sprite;
+        else
+            fillImage.sprite = healthy20Sprite;
     }
 }
