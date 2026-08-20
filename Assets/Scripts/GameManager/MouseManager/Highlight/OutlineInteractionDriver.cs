@@ -45,7 +45,7 @@ public class OutlineInteractionDriver : MonoBehaviour
     {
         if (s_instance != null && s_instance != this)
         {
-            Destroy(gameObject);
+            Destroy(this);
             return;
         }
         s_instance = this;
