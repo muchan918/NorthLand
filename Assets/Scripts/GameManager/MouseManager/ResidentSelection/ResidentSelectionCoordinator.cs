@@ -320,33 +320,22 @@ public class ResidentSelectionCoordinator : MonoBehaviour
     private void EnsureManagement()
     {
         if (_management != null) return;
-
-        // TitleScene에서는 주민 선택 시스템을 사용하지 않는다.
-        // MouseManager는 이전 GameScene에서 넘어와 남아 있을 수 있다.
-        if (MouseManager.Instance == null || DayNightManager.Instance == null)
-        {
-            return;
-        }
-
-        // 못 찾았으면 백오프한다. 이 컴포넌트는 DontDestroyOnLoad라 **모든 씬에 상주**하고,
-        // ManagementController가 없는 씬(TitleScene 등)에서는 조기 반환 조건이 영구히 거짓이다 —
-        // 백오프가 없으면 매 프레임 씬 전수 탐색(FindFirstObjectByType)을 돈다.
         if (--_managementRetryCountdown > 0) return;
 
         _managementRetryCountdown = k_ManagementRetryFrames;
-
         _management = FindFirstObjectByType<ManagementController>();
+
         if (_management == null)
         {
-            if (!_warnedNoManagement)
+            if (DayNightManager.Instance != null && !_warnedNoManagement)
             {
                 _warnedNoManagement = true;
                 Debug.LogWarning("[주민 선택] ManagementController가 없어 선택 인원 상한을 적용하지 않습니다.");
             }
+
             return;
         }
 
-        // 배정 수·주민 상한이 바뀌면 이미 선택한 집합이 상한을 넘을 수 있다 → 그때 다시 깎는다.
         _management.OnChanged += HandleManagementChanged;
     }
 
