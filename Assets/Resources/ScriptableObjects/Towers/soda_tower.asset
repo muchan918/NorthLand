@@ -86,5 +86,5 @@ MonoBehaviour:
     - rid: 3470829504553025637
       type: {class: HomingFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
-        Speed: 320
+        Speed: 80
         ArcHeight: 8

@@ -290,7 +290,18 @@ namespace NorthLand.Combat
                 for (int i = 0; i < lockedTargets.Count; i++)
                 {
                     IDamageable v = lockedTargets[i];
-                    if (v == null || v.IsDead || v.HitPosition == null) continue;
+
+                    // 그릴 수 없는 대상은 **그 빔을 끈다.** 건너뛰기만 하면 그 인덱스가 아래
+                    // HideFrom의 범위 밖이라 직전 프레임 위치·색으로 켜진 채 남는다 — 폴백 경로는
+                    // 같은 조건에서 끄므로, 건너뛰면 두 경로의 계약이 갈린다. 지금은 MaintainLocks가
+                    // 먼저 제거해 도달하지 않지만, 그 제거 조건이 바뀌면 연출 경로에서만
+                    // 유령 빔이 남고 경고도 로그도 나지 않는다.
+                    if (v == null || v.IsDead || v.HitPosition == null)
+                    {
+                        visual.Hide(i);
+                        continue;
+                    }
+
                     visual.Draw(i, origin, v.HitPosition.position, RampProgress(i));
                 }
                 visual.HideFrom(lockedTargets.Count);
@@ -314,7 +325,9 @@ namespace NorthLand.Combat
 
         void HideAllBeams()
         {
-            visual?.HideAll();
+            // `?.`이 아니라 `!= null`을 쓴다 — Unity의 오버로드된 ==가 파괴된 오브젝트를 null로
+            // 판정하는데 `?.`은 순수 C# 검사라 그걸 타지 않는다. 같은 필드의 다른 접점(:288)과 관행을 맞춘다.
+            if (visual != null) visual.HideAll();
 
             if (beams == null) return;
             for (int i = 0; i < beams.Count; i++) beams[i].enabled = false;

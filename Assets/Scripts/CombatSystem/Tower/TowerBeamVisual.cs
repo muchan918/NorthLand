@@ -84,6 +84,16 @@ namespace NorthLand.Combat
             lr.SetPosition(1, target);
         }
 
+        /// <summary>
+        /// 빔 하나를 끈다. `HideFrom`이 꼬리만 끄는 것과 달리 **중간 인덱스**를 끌 수 있다 —
+        /// 잠금 목록에 남아 있지만 그릴 수 없는 대상(사망 연출 중 등)이 유령 빔으로 남지 않게 한다.
+        /// </summary>
+        public void Hide(int index)
+        {
+            if (index < 0 || index >= _beams.Count) return;
+            if (_beams[index] != null) _beams[index].enabled = false;
+        }
+
         /// <summary><paramref name="keep"/>개만 남기고 나머지 빔을 끈다.</summary>
         public void HideFrom(int keep)
         {
