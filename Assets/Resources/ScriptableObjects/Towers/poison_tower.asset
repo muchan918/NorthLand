@@ -15,7 +15,7 @@ MonoBehaviour:
   TowerID: poison_tower
   TowerPrefab: {fileID: 527708244005276318, guid: 3046675b0c7627047a8e5d9571fa45f0, type: 3}
   GhostPrefab: {fileID: 527708244005276318, guid: 3f7d03ebd2feee2468a836693208b76a, type: 3}
-  Icon: {fileID: 0}
+  Icon: {fileID: 21300000, guid: 59bc52b9c2e07034a9b97e40ea6888a4, type: 3}
   PlacementYaw: 0
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
@@ -62,6 +62,7 @@ MonoBehaviour:
       MaxStacks: 0
       StackInterval: 0
       DecaySeconds: 0
+    VisualStages: []
   GroundZone:
     ZonePrefab: {fileID: 0}
     Radius: 0
