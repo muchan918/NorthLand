@@ -2179,7 +2179,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6070493752960929522, guid: f497cb5157e725641873e040be3fe455, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 400
+      value: -400
       objectReference: {fileID: 0}
     - target: {fileID: 6070493752960929522, guid: f497cb5157e725641873e040be3fe455, type: 3}
       propertyPath: m_AnchoredPosition.y
@@ -2196,6 +2196,14 @@ PrefabInstance:
     - target: {fileID: 6070493752960929522, guid: f497cb5157e725641873e040be3fe455, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7388589045575645043, guid: f497cb5157e725641873e040be3fe455, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
+      value: 
+      objectReference: {fileID: 1614170420404791618}
+    - target: {fileID: 7388589045575645043, guid: f497cb5157e725641873e040be3fe455, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: LoadMainMenu
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2299,6 +2307,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: ReplayButton
       objectReference: {fileID: 0}
+    - target: {fileID: 7348907936010149240, guid: 2cb366d203e29db4784404c4dfa21707, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
+      value: 
+      objectReference: {fileID: 1614170420404791618}
+    - target: {fileID: 7348907936010149240, guid: 2cb366d203e29db4784404c4dfa21707, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: RetryGame
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -2379,7 +2395,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1651230975280027280, guid: 07f7cb824f255c04ab255b24e67f89b8, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -400
+      value: 400
       objectReference: {fileID: 0}
     - target: {fileID: 1651230975280027280, guid: 07f7cb824f255c04ab255b24e67f89b8, type: 3}
       propertyPath: m_AnchoredPosition.y
@@ -2397,9 +2413,21 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2759986071502688942, guid: 07f7cb824f255c04ab255b24e67f89b8, type: 3}
+      propertyPath: m_StringReference.m_TableEntryReference.m_KeyId
+      value: 6628387554144256
+      objectReference: {fileID: 0}
     - target: {fileID: 6211091898398812265, guid: 07f7cb824f255c04ab255b24e67f89b8, type: 3}
       propertyPath: m_Name
       value: CloseButton
+      objectReference: {fileID: 0}
+    - target: {fileID: 6760560218206546625, guid: 07f7cb824f255c04ab255b24e67f89b8, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
+      value: 
+      objectReference: {fileID: 1614170420404791618}
+    - target: {fileID: 6760560218206546625, guid: 07f7cb824f255c04ab255b24e67f89b8, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: QuitGame
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
