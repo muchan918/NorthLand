@@ -35,13 +35,11 @@ namespace NorthLand.Combat
         // ⚠ `lockedTargets`를 넣거나 빼는 모든 지점에서 이 리스트도 같은 인덱스로 함께 갱신할 것.
         [NonSerialized] List<float> lockElapsed;
 
-        // 빔 비주얼 — 최소 구현(임시 머티리얼, LineRenderer). 프리팹에 `TowerBeamVisual`이 배선돼 있으면
-        // 그쪽에 그리기를 넘기고 이 폴백은 아예 만들지 않는다.
+        // 빔 비주얼. 굵기·색은 `BeamFields.VisualStages`(SO)가 저작하고 여기서는 그리기만 한다 —
+        // 연출 수치를 프리팹 컴포넌트에 두면 Imported 프리팹이 본 저장소 스크립트를 참조하게 되어
+        // 머지 순서가 다른 에셋과 반대가 된다(WL-196). SO에 두면 참조가 한 방향으로만 흐른다.
         [NonSerialized] List<LineRenderer> beams;
         [NonSerialized] Material beamMaterial;
-
-        // 단계형 빔 연출(있으면). 연출 수치는 액션이 갖지 않는다는 규칙 ①에 따라 프리팹 컴포넌트가 소유한다.
-        [NonSerialized] TowerBeamVisual visual;
 
         public override TowerActivePhase ActivePhase => TowerActivePhase.NightOnly;
 
@@ -73,8 +71,7 @@ namespace NorthLand.Combat
             lockedTargets ??= new List<IDamageable>();
             lockElapsed ??= new List<float>();
 
-            visual = Owner.BeamVisual;
-            if (visual == null) EnsureBeamPool();   // 폴백만 준비한다 — 둘을 함께 만들면 빔이 두 겹으로 보인다
+            EnsureBeamPool();
         }
 
         public override void Dispose()
@@ -183,11 +180,14 @@ namespace NorthLand.Combat
         /// 연출이 밸런스 수치에 묶이지 않게 하기 위함이다 — `PerStack`을 조정해 최대 배율이 ×13에서
         /// ×20으로 바뀌어도 단계 문턱을 다시 잡을 필요가 없다.
         ///
-        /// 램프 미저작(멀티 인페르노)은 0을 돌려 항상 첫 단계로 그려진다 — 균일 지속딜이라 그게 맞다.
+        /// **램프 미저작(멀티 인페르노)은 1을 돌린다 — 최대 단계다.** 0이 아닌 이유: 램프가 없는 빔은
+        /// "약한 상태에서 자라는 중"이 아니라 **처음부터 끝까지 같은 세기**다(균일 지속딜). 0을 돌리면
+        /// 5대를 동시에 지지는 3차 타워가 단일 인페르노의 첫 단계보다 가늘고 차갑게 보여 정체성이
+        /// 거꾸로 읽힌다. 단일 단계만 저작한 프리팹도 그 단계가 선택되므로 이 기본값이 손해를 주지 않는다.
         float RampProgress(int index)
         {
             RampProfile ramp = fields?.LockRamp;
-            if (ramp == null || !ramp.IsAuthored || ramp.MaxStacks <= 0) return 0f;
+            if (ramp == null || !ramp.IsAuthored || ramp.MaxStacks <= 0) return 1f;
             if (index < 0 || index >= lockElapsed.Count) return 0f;
 
             return Mathf.Clamp01(ramp.StacksFromTime(lockElapsed[index]) / (float)ramp.MaxStacks);
@@ -250,6 +250,43 @@ namespace NorthLand.Combat
             beamMaterial = new Material(Shader.Find("Sprites/Default")) { color = new Color(1f, 0.25f, 0.1f, 0.9f) };
         }
 
+        /// 진행도에 맞는 단계의 굵기·색을 빔에 얹는다. `VisualStages` 미저작이면 아무것도 하지 않아
+        /// `CreateBeam`의 기본 겉모습이 그대로 남는다(기존 거동).
+        ///
+        /// 색을 머티리얼이 아니라 `startColor`/`endColor`로 넣는 이유: 단계마다 머티리얼을 복제하지
+        /// 않으려는 것이고, 그래야 전환이 인스턴스 생성 없이 같은 프레임에 반영된다.
+        void ApplyStage(LineRenderer lr, float progress)
+        {
+            TowerAsset.BeamStage stage = StageFor(progress);
+            if (stage == null) return;
+
+            lr.widthMultiplier = stage.Width;
+            lr.startColor = stage.Color;
+            lr.endColor = stage.Color;
+        }
+
+        /// 진행도가 속한 단계. 문턱 이하 중 **가장 높은** 것을 고르므로 저작 순서가 뒤섞여도 결과가 같다.
+        /// 첫 단계 문턱이 0보다 크게 저작돼 후보가 없으면 가장 낮은 단계로 떨어진다.
+        TowerAsset.BeamStage StageFor(float progress)
+        {
+            List<TowerAsset.BeamStage> stages = fields?.VisualStages;
+            if (stages == null || stages.Count == 0) return null;
+
+            TowerAsset.BeamStage best = null;
+            TowerAsset.BeamStage lowest = null;
+            for (int i = 0; i < stages.Count; i++)
+            {
+                TowerAsset.BeamStage s = stages[i];
+                if (s == null) continue;
+
+                if (lowest == null || s.FromProgress < lowest.FromProgress) lowest = s;
+                if (s.FromProgress > progress) continue;
+                if (best == null || s.FromProgress >= best.FromProgress) best = s;
+            }
+
+            return best ?? lowest;
+        }
+
         LineRenderer CreateBeam()
         {
             var go = new GameObject("BeamVisual");
@@ -266,13 +303,8 @@ namespace NorthLand.Combat
         // 잠긴 대상 수만큼 빔을 켜고 위치를 따라가게 한다. 다음 틱 전에 죽거나 사라진 대상은 그 빔만 끈다.
         void FollowLockedTargets()
         {
-            // 폴백 풀은 연출 컴포넌트가 없을 때만 만든다 — 아래 분기보다 앞에서 만들면
-            // `TowerBeamVisual`이 배선된 타워에도 쓰지 않는 LineRenderer가 생긴다.
-            if (visual == null)
-            {
-                EnsureBeamPool();
-                while (beams.Count < lockedTargets.Count) beams.Add(CreateBeam());
-            }
+            EnsureBeamPool();
+            while (beams.Count < lockedTargets.Count) beams.Add(CreateBeam());
 
             // 빔이 **나가는 곳**은 포신(firePoint)이다 — AttackAction이 투사체를 그 지점에서
             // 생성하는 것과 같은 규칙이며, 미할당 프리팹은 타워 루트로 폴백하는 것도 동일하다.
@@ -283,31 +315,6 @@ namespace NorthLand.Combat
             Transform firePoint = Owner.FirePoint;
             Vector3 origin = firePoint != null ? firePoint.position : Origin.position;
 
-            // 단계형 연출이 배선돼 있으면 그쪽이 굵기·색까지 책임진다. 램프 진행도를 함께 넘겨
-            // "무엇을 그릴지"의 판단을 연출 쪽에 남긴다 — 액션은 진행도만 계산한다.
-            if (visual != null)
-            {
-                for (int i = 0; i < lockedTargets.Count; i++)
-                {
-                    IDamageable v = lockedTargets[i];
-
-                    // 그릴 수 없는 대상은 **그 빔을 끈다.** 건너뛰기만 하면 그 인덱스가 아래
-                    // HideFrom의 범위 밖이라 직전 프레임 위치·색으로 켜진 채 남는다 — 폴백 경로는
-                    // 같은 조건에서 끄므로, 건너뛰면 두 경로의 계약이 갈린다. 지금은 MaintainLocks가
-                    // 먼저 제거해 도달하지 않지만, 그 제거 조건이 바뀌면 연출 경로에서만
-                    // 유령 빔이 남고 경고도 로그도 나지 않는다.
-                    if (v == null || v.IsDead || v.HitPosition == null)
-                    {
-                        visual.Hide(i);
-                        continue;
-                    }
-
-                    visual.Draw(i, origin, v.HitPosition.position, RampProgress(i));
-                }
-                visual.HideFrom(lockedTargets.Count);
-                return;
-            }
-
             for (int i = 0; i < beams.Count; i++)
             {
                 IDamageable victim = i < lockedTargets.Count ? lockedTargets[i] : null;
@@ -317,6 +324,8 @@ namespace NorthLand.Combat
                     continue;
                 }
 
+                ApplyStage(beams[i], RampProgress(i));
+
                 beams[i].enabled = true;
                 beams[i].SetPosition(0, origin);
                 beams[i].SetPosition(1, victim.HitPosition.position);
@@ -325,10 +334,6 @@ namespace NorthLand.Combat
 
         void HideAllBeams()
         {
-            // `?.`이 아니라 `!= null`을 쓴다 — Unity의 오버로드된 ==가 파괴된 오브젝트를 null로
-            // 판정하는데 `?.`은 순수 C# 검사라 그걸 타지 않는다. 같은 필드의 다른 접점(:288)과 관행을 맞춘다.
-            if (visual != null) visual.HideAll();
-
             if (beams == null) return;
             for (int i = 0; i < beams.Count; i++) beams[i].enabled = false;
         }
