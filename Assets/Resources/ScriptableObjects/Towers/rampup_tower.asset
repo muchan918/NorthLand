@@ -15,7 +15,7 @@ MonoBehaviour:
   TowerID: rampup_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: 22f90d4dfb6e7b84088c84393944b9af, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: 17f7b303891c39a48b5a798c7cf7bb6e, type: 3}
-  Icon: {fileID: 0}
+  Icon: {fileID: -1826988560, guid: e5fe0d4a97ba2c447ab9719193e3a0dd, type: 3}
   PlacementYaw: 45
   Cost: []
   Rarity: 1

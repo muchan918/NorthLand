@@ -15,12 +15,14 @@ MonoBehaviour:
   TowerID: flame_field_tower
   TowerPrefab: {fileID: 527708244005276318, guid: e140b9458a468234d80d74ec42a8409c, type: 3}
   GhostPrefab: {fileID: 527708244005276318, guid: 4c7a365b5aa7f434bbfcaf5f6896c694, type: 3}
+  Icon: {fileID: -1780630886, guid: 25286478e3980874383d8fac9815d935, type: 3}
   PlacementYaw: 0
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
     Amount: 45
   - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
     Amount: 25
+  Rarity: 0
   Attack:
     AttackDamage: 0
     AttackRange: 0
@@ -32,6 +34,8 @@ MonoBehaviour:
     SpreadAngle: 0
     BurstCount: 1
     BurstInterval: 0
+  Targeting:
+    rid: -2
   Impact: 0
   SplashRadius: 0
   ChainRadius: 0
