@@ -912,6 +912,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: SettingCanvas Variant
       objectReference: {fileID: 0}
+    - target: {fileID: 1127504998811947239, guid: d827c8325f3dcb945bf7e85066dd5149, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1313887784496117518, guid: d827c8325f3dcb945bf7e85066dd5149, type: 3}
       propertyPath: settingbutton
       value: 
