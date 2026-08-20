@@ -14,6 +14,9 @@ public static class UILayer
     /// <summary>상위 모달(RewardCanvas) — 보상 선택.</summary>
     public const int Modal = 500;
 
+    /// <summary>튜토리얼 오버레이(TutorialCanvas) — 안내 팝업·말풍선. 보상 화면 위, 설정 화면 아래.</summary>
+    public const int Tutorial = 600;
+
     /// <summary>최상위 모달(ResultCanvas) — 게임오버·승리 결과.</summary>
     public const int Result = 900;
 }

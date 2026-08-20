@@ -157,3 +157,8 @@ public sealed class HitEffectDrawer : ManagedReferencePickerDrawer { }
 /// 그 종류를 고르는 창구가 이 드롭다운이다.
 [CustomPropertyDrawer(typeof(TargetingPolicy), useForChildren: true)]
 public sealed class TargetingPolicyDrawer : ManagedReferencePickerDrawer { }
+
+/// 튜토리얼 완료 조건 축(`TutorialStepAsset.completion`)에 타입 피커를 붙인다.
+/// `useForChildren: true`라 어떤 파생 조건이 담겨 있어도 이 드로어가 그린다.
+[CustomPropertyDrawer(typeof(TutorialCondition), useForChildren: true)]
+public class TutorialConditionDrawer : ManagedReferencePickerDrawer { }

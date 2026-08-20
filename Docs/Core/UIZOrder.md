@@ -37,6 +37,7 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 | 월드 오버레이 | `SelectionBoxView` | `50` | 드래그 선택 사각형. 입력을 받지 않으며 HUD **아래**에 그린다 |
 | 기본 | `UICanvas` | `100` | 일반 HUD, 미니맵, 관리·타워·스킬·정보 패널 |
 | 상위 모달 | `RewardCanvas` | `500` | 보상 선택 화면 |
+| 튜토리얼 오버레이 | `TutorialCanvas` | `600` | 튜토리얼 안내 팝업·말풍선. 보상 화면보다 위, 설정 화면보다 아래 — 안내 도중에도 설정을 열 수 있고, 보상 화면 위에 안내가 뜬다 |
 | 설정 모달 | `SettingCanvas` | `700` | 인게임 설정 화면. 일반 HUD와 보상 화면보다 위, 결과 화면보다 아래 |
 | 최상위 모달 | `ResultCanvas` | `900` | 게임오버·승리 결과 화면 |
 | 코드 생성 오버레이 | `TowerTooltipView` | `100` (`UILayer.Hud`) | 입력을 받지 않는 툴팁. HUD 캔버스를 찾아 자식으로 붙고, 없을 때만 같은 값으로 자체 생성 |
@@ -103,6 +104,7 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 | 모달 | 정렬 방식 | 입력 차단 Graphic | 일시정지 |
 |---|---|---|---|
 | 보상 선택 | `RewardCanvas`, Order `500` | `RewardPanel`의 전체 화면 `Image` | `GamePauseReason.Reward` |
+| 튜토리얼 팝업 | `TutorialCanvas`, Order `600` | `Popup` 루트의 전체 화면 `Image`(`raycastTarget`) | 정책 확정 필요 — 현재 **일시정지 없음**(안내를 읽는 동안 밤이 흐른다). ⚠ 말풍선 구간은 차단하지 않는다(#408 범위 밖) |
 | 설정 | `SettingCanvas`, Order `700` | `GuardPanel`의 전체 화면 투명 `Image` | `GamePauseReason.Settings` |
 | 게임오버 | `ResultCanvas`, Order `900` | `GameOverPanel`의 전체 화면 `Image` | 정책 확정 필요 |
 | 승리 | `ResultCanvas`, Order `900` | `VictoryPanel`의 전체 화면 `Image` | 정책 확정 필요 |
