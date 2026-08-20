@@ -1,6 +1,7 @@
 using NorthLand.Core;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 public class SettingUI : MonoBehaviour
 {
@@ -14,6 +15,9 @@ public class SettingUI : MonoBehaviour
     [Header("Buttons")]
     [SerializeField]
     private Button settingbutton;
+
+    [Header("Input")]
+    [SerializeField] private bool toggleWithEscape = true;
 
 
     public bool IsOpen => settingPanel != null && settingPanel.activeSelf;
@@ -40,6 +44,20 @@ public class SettingUI : MonoBehaviour
 
         localizationManager.OnClose();
         settingPanel.SetActive(false);
+    }
+
+    private void Update()
+    {
+        if (!toggleWithEscape)
+            return;
+
+        if (Keyboard.current == null)
+            return;
+
+        if (!Keyboard.current.escapeKey.wasPressedThisFrame)
+            return;
+
+        TogglePanel();
     }
 
     private void OnDestroy()
