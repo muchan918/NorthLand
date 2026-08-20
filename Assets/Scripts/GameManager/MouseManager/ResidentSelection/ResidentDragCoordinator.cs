@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using NorthLand.Core;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -73,7 +74,7 @@ public class ResidentDragCoordinator : MonoBehaviour
     {
         if (s_instance != null && s_instance != this)
         {
-            Destroy(gameObject);
+            Destroy(this);
             return;
         }
         s_instance = this;
@@ -122,11 +123,13 @@ public class ResidentDragCoordinator : MonoBehaviour
         var mm = MouseManager.Instance;
         if (mm == null)
         {
-            if (!_warnedNoMouseManager)
+            // TitleScene에서는 MouseManager가 없는 것이 정상이다.
+            if (!GameSceneManager.IsTitleScene && !_warnedNoMouseManager)
             {
                 _warnedNoMouseManager = true;
                 Debug.LogWarning("[주민 드래그] MouseManager가 아직 없어 주민 끌기가 대기 중입니다.");
             }
+
             return;
         }
 
