@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: yellow_grummy
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAsset
   EnemyID: yellow_grummy
-  icon: {fileID: 1877774308, guid: aafd5f7863e07ab438104d6f6d44e311, type: 3}
+  icon: {fileID: 2002020298, guid: 682246412fcb13d4ba330daba9f358b3, type: 3}
   EnemyType: 0
   MovementMode: 0
   Melee:
