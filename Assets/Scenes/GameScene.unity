@@ -8046,7 +8046,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.CombatMapRevealController
   mapGenerator: {fileID: 1175259922}
   totalRounds: 30
-  previewRounds: 30
+  previewRounds: 0
   testRound: 0
 --- !u!114 &1175259920
 MonoBehaviour:
