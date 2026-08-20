@@ -383,17 +383,28 @@
   아니라 능력을 묻게 한다. 예: 보스 P3 마력 봉인 대상 = `Has<AttackAction>()`(`EnemyNodeQuery.IsAttackTower`)
 - `Tower.Stats`(`TowerStats`, `NorthLand.Combat`) — **이 타워의 스탯 modifier 단일 원장.** 타일 버프·
   버프 오라·보스 봉인이 전부 여기로 수렴하며(버프 스킬도 소비처였으나 #315로 제거) 합성 규칙은 `TowerStats.Evaluate` 한 곳에만 산다:
-  `(기본값 + Σflat) × (1 + Σpercent/100) × (1 + Σ배율보너스)`. 축은 `TowerStat`(AttackDamage/AttackRange/AttackSpeed)
-  3종, 모드는 `TowerModifierMode`(Flat/Percentage/Multiplier). 소스별 합산 중첩, 같은 소스키는 교체(refresh).
+  `(기본값 + Σflat) × (1 + Σpercent/100) × (1 + Σ배율보너스)`. 축은 `TowerStat`(AttackDamage/AttackRange/AttackSpeed/AuraRadius)
+  4종, 모드는 `TowerModifierMode`(Flat/Percentage/Multiplier). 소스별 합산 중첩, 같은 소스키는 교체(refresh).
+  ⚠️ **`TowerStat`·`TileBuffStat` 둘 다 새 축은 뒤에만 추가한다** — 값이 SO에 int로 직렬화돼 있어 중간
+  삽입은 기존 저작을 조용히 한 칸씩 밀어낸다(버프 타일 SO·`TileBuffRuleSettings`가 전부 숫자로 저장돼 있다).
+  두 enum은 **인덱스로 1:1이 아니다**(`TileBuffStat`은 AttackRange=0/AttackDamage=1, `TowerStat`은 반대) —
+  변환은 `Tower.ApplyTileBuff`가 **이름으로 명시 매핑**하는 한 곳뿐이고, 축을 늘리면 여기에도 한 줄 추가해야 한다.
   `Apply(sourceId, modifiers, duration, now)` / `Remove(sourceId)` / `Prune(now)` / `Evaluate(stat, baseValue)`.
   ⚠️ **`Evaluate`는 0 하한을 건다.** 배율 모드가 보너스를 합산하므로(0.5 → −0.5) 디버프 방향 소스가 겹치면
   합이 −1 아래로 내려가 결과가 음수가 되고, 하류에 클램프가 없어(`Enemy.currentHp -= amount`) **음수 데미지가
   회복이 된다**. 예: 보스 P3 마력 봉인은 sourceId가 에이전트별이라 보스 3기가 각각 `damageMul 0.5`를 걸면 음수.
   원장이 단일 출처이므로 이 하한 하나가 전 소비처를 덮는다.
-  **원장 축 커버리지(오라 타워 포함)**: 공격 타워는 3축 전부, 오라 타워는 `Radius`(=AttackRange 축) +
-  DoT의 `DamageAmount`(AttackDamage 축) + `TickInterval`(AttackSpeed 축)이 원장을 거친다 →
-  **타일 버프 3종이 오라 타워에도 동일하게 먹힌다.** 예전에는 반경만 반영돼 "사거리 타일은 먹히는데
-  공격력 타일은 무반응"이라는 예측 불가능한 비대칭이 있었다.
+  **원장 축 커버리지(오라 타워 포함)**: 공격 타워는 AttackDamage/AttackRange/AttackSpeed, 오라 타워는
+  `Radius`(**AuraRadius 축**) + DoT의 `DamageAmount`(AttackDamage 축) + `TickInterval`(AttackSpeed 축)이
+  원장을 거친다 → **타일 버프가 오라 타워에도 동일하게 먹힌다.** 예전에는 반경만 반영돼 "사거리 타일은
+  먹히는데 공격력 타일은 무반응"이라는 예측 불가능한 비대칭이 있었다.
+  ⚠️ **오라 반경이 공격 사거리와 다른 축인 것이 계약이다(#421).** 예전에는 "사거리 개념을 둘로 두지
+  않는다"며 `AttackRange` 축을 공유했는데, 버프 타일이 증가량을 **칸 단위 절댓값**으로 약속하는 순간
+  전제가 깨졌다 — 오라 기본 반경(1.6~2.7칸)이 공격 사거리(3칸)보다 작아 같은 `+n칸`이 오라에서는 지름
+  3배가 됐고(flame_field 9.6 → 30.6, 화면 면적 10배), 장판은 상시 보이므로 그대로 드러났다. 그래서
+  사거리 버프 타일 3종은 `AuraRadius`에 **퍼센트**(+5/10/15%)로 얹는다 — 기본값이 작은 축에 flat을
+  얹으면 같은 문제가 재발한다. **축만 갈렸고 단일 출처는 유지된다**: 판정(`ApplyDebuff`)·선택 원·장판
+  (`AuraZoneVisual`)이 전부 `DebuffAuraAction.Radius`/`BuffAuraAction.Radius` 하나를 본다.
   의도적으로 원장을 거치지 **않는** 2가지 —
   ① 오라 재스캔 주기(`DebuffAuraFields.Interval`): 빠르게 해도 DoT는 이미 대상이 소유하므로 갱신만
   잦아지고 피해가 늘지 않는다(독 타워에서 "공속"의 의미를 갖는 축은 `TickInterval`이다).
@@ -555,7 +566,35 @@
   **`DisplayRange`**: 선택 시 그릴 사거리 원의 반경(공격=교전 사거리 / 오라=오라 반경 / 없으면 0).
   호스트는 액션들이 보고한 값의 **최대치**로 원을 그린다. `AttackRange`로 대신 그리면 공격 액션이 없는
   오라 타워에서 0이 되어 원이 사라진다(#192 회귀 — 정보 패널엔 반경이 뜨는데 바닥 원만 없어 더 눈에 띈다).
-  `DescribeStats`와 같은 "액션이 자기 표시를 안다" 규약
+  `DescribeStats`와 같은 "액션이 자기 표시를 안다" 규약.
+  ⚠️ **`Tower.DisplayRange`는 `public`이다(#421)** — 소비처가 선택 원만이 아니라 장판 이펙트
+  (`AuraZoneVisual`)까지 둘이다. "플레이어가 알아야 할 영향 범위"의 단일 출처이므로, 표시 계열이
+  반경을 따로 계산하지 말고 이 값을 볼 것
+- `AuraZoneVisual`(`NorthLand.Combat`, `[ExecuteAlways]`, #421) — 오라 장판 파티클을 `Tower.DisplayRange`에
+  맞춰 **런타임에 스케일**한다. 프리팹에 스케일을 박으면 밸런싱으로 `Radius`를 바꿀 때와 버프 타일로
+  반경이 변할 때 표시가 어긋나고, 후자는 원리적으로 하드코딩이 따라갈 수 없다(`RangeCircle`이 선택 원에서
+  같은 문제를 푸는 방식과 같은 축). 식은
+  `localScale = (반경 × 2 × edgeCompensation) ÷ (스케일 1에서의 이펙트 지름 × 부모 누적 스케일)`.
+  "스케일 1에서의 지름"은 `referenceDiameter`가 0이면 자식 파티클까지 훑어 **실측**한다 —
+  프리팹마다 손으로 적던 상수가 실제로 틀려 있었고(11.5로 적혀 있었지만 실측 13.5), 아트가 이펙트를
+  만지는 순간 상수는 조용히 거짓이 된다.
+  ⚠️ **실측 기준은 `AreaBounds`라는 이름의 자식 파티클이다** — 아트가 붙인 경계선 전용 파트로 오라
+  이펙트 3종(`Choco/FlameField/Poison_Area`)에 전부 있다. "자식 중 최댓값"을 쓰면 안 되는 이유는
+  `AreaWaves`처럼 커지며 페이드아웃하는 링이 **기하학적 최대 순간에 알파가 이미 0**이라, 그 값에 맞추면
+  눈에 보이는 링이 사거리보다 훨씬 작아 보이기 때문. 이름이 규약이므로 **파트 이름을 바꾸면 조용히
+  폴백(전체 최댓값)으로 떨어진다.**
+  ⚠️ 캐시 키가 반경 **하나가 아니라 반경 + 부모 누적 스케일**인 것도 계약이다 — `TowerSpawnEffect`가
+  타워 루트를 0 → 원본으로 애니메이션하는 동안 부모 스케일이 매 프레임 변하는데, 반경만으로 캐시하면
+  팝 중간값에서 계산된 스케일이 그대로 굳는다(실측: 부모 0.048에서 `localScale 43`이 유지돼 월드 지름 279,
+  정상 25). ⚠️ `velocityOverLifetime`으로 입자가 밖으로 흘러가는 이펙트는 실측식이 과소평가한다 —
+  그런 이펙트는 `referenceDiameter`에 명시값을 넣을 것
+- `TowerPlacementData.AttackRange` / `.AuraRadius` / `.PreviewRadius`(#421) — 배치 프리뷰가 **두 축을
+  따로** 싣는다. 합친 값 하나만 들면 타일 버프를 얹을 때 어느 축의 modifier를 쓸지 알 수 없어 프리뷰 원과
+  배치 후 실제 반경이 어긋난다. 기본값 출처는 `TowerAsset.AttackSideRadius`(공격·빔) /
+  `AuraSideRadius`(버프·디버프 오라)이고, `PreviewRadius`는 여전히 둘 중 최댓값이다(WL-056 단일 출처 유지).
+  ⚠️ **생성자에 기본값을 주지 않는다** — 예전 `placementYaw = 0f` 기본값 때문에 인자를 하나 끼워 넣은
+  순간 `new(w, h, range, so.PlacementYaw)` 호출부가 **컴파일을 통과하며** yaw를 반경으로 넘겼고,
+  축약 생성자라 grep에도 안 걸렸다. 전부 필수 인자로 두면 같은 실수가 컴파일 에러가 된다
 - **타워 종류의 정본 = 프리팹의 `Actions` 리스트**(#274). 구 `TowerBehaviourFactory`(`TowerType`/`MagicEffectType`
   switch가 살던 유일한 곳)와 `TowerAssetEditor`는 **삭제됐다.** 배치 **전** 능력 질의는 `TowerAsset.HasAction<T>()`,
   프리뷰 반경은 `TowerAsset.PreviewRadius`(구 `MagicRadius`), 저작 검증은 `TowerAsset.OnValidate`(WL-130 해소).

@@ -92,8 +92,13 @@ namespace NorthLand.Combat
             _appliedParentScale = parentScale;
         }
 
-        // 경계선 역할을 하는 자식의 이름 규약. 오라 이펙트 3종(Choco/FlameField/Poison_Area) 전부
-        // 이 이름으로 "링 최댓값=경계"인 파트를 따로 두고 있다 — 아트가 붙인 의도된 명찰이라 그대로 신뢰한다.
+        // 경계선 역할을 하는 자식의 이름 규약. 바닥 장판 3종(`Choco/FlameField/Poison_Area`)이 이 이름으로
+        // "링 최댓값=경계"인 파트를 따로 두고 있다 — 아트가 붙인 의도된 명찰이라 그대로 신뢰한다.
+        //
+        // ⚠ 이 컴포넌트가 붙은 프리팹은 6개이고 **절반만 이 파트를 갖는다.** 바닥 장판 `*_Area` 3종은
+        // 이 경로를 타고, 빛기둥 `*_Aura` 3종(`VerticalGlow` 하나뿐)은 파트가 없어 아래 폴백(전체 최댓값)으로
+        // 떨어진다 — 폴백이 틀렸던 원인인 `AreaWaves`가 `*_Aura`에는 없어 성립한다.
+        // 이름이 곧 규약이므로 아트가 파트 이름을 바꾸면 경고 없이 폴백으로 내려간다.
         const string BoundaryParticleName = "AreaBounds";
 
         /// 스케일 1에서 이 이펙트가 덮는 지름을 **자식 파티클까지 훑어** 실측한다(1회 계산 후 캐시).
@@ -123,6 +128,7 @@ namespace NorthLand.Combat
         /// 전부 꺼져 있어 성립한다). 그런 이펙트가 들어오면 `referenceDiameter`에 명시값을 넣을 것.
         float MeasuredDiameter()
         {
+            if (float.IsNaN(_measuredDiameter)) return 0f;   // 이미 실패한 이펙트 — 재측정도 재경고도 하지 않는다
             if (_measuredDiameter > 0f) return _measuredDiameter;
 
             ParticleSystem[] systems = GetComponentsInChildren<ParticleSystem>(true);
@@ -149,6 +155,12 @@ namespace NorthLand.Combat
             {
                 Debug.LogWarning($"[AuraZoneVisual] 이펙트 지름을 실측할 수 없습니다({name}) — startSize가 " +
                                  "Curve 모드일 수 있습니다. referenceDiameter에 값을 직접 넣어 주세요.", this);
+
+                // 실패도 기억한다. 성공만 캐시하면 Apply가 unitDiameter<=0으로 조기 반환해 _appliedRadius도
+                // 안 잡히므로, LateUpdate마다 같은 측정을 다시 하고 경고를 매 프레임 찍는다 — 하필 원인을
+                // 찾으려고 콘솔을 보는 순간 그 콘솔이 이 경고로 덮인다. GetComponentsInChildren의 매 프레임
+                // 할당도 함께 사라진다.
+                _measuredDiameter = float.NaN;
                 return 0f;
             }
 
