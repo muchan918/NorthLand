@@ -916,10 +916,6 @@ PrefabInstance:
       propertyPath: settingbutton
       value: 
       objectReference: {fileID: 2089697466}
-    - target: {fileID: 6925977610862801934, guid: d827c8325f3dcb945bf7e85066dd5149, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
