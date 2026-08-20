@@ -1,3 +1,4 @@
+using NorthLand.Core;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -85,7 +86,7 @@ public class OutlineInteractionDriver : MonoBehaviour
         if (mm == null)
         {
             // TitleScene에서는 MouseManager가 없는 것이 정상이다.
-            if (DayNightManager.Instance != null && !_warnedNoMouseManager)
+            if (!GameSceneManager.IsTitleScene && !_warnedNoMouseManager)
             {
                 _warnedNoMouseManager = true;
                 Debug.LogWarning("[아웃라인] MouseManager가 아직 없어 호버·선택 아웃라인이 대기 중입니다.");

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using NorthLand.Core;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -123,7 +124,7 @@ public class ResidentDragCoordinator : MonoBehaviour
         if (mm == null)
         {
             // TitleScene에서는 MouseManager가 없는 것이 정상이다.
-            if (DayNightManager.Instance != null && !_warnedNoMouseManager)
+            if (!GameSceneManager.IsTitleScene && !_warnedNoMouseManager)
             {
                 _warnedNoMouseManager = true;
                 Debug.LogWarning("[주민 드래그] MouseManager가 아직 없어 주민 끌기가 대기 중입니다.");

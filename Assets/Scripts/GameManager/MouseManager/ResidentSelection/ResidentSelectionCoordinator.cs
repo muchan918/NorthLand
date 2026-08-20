@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using NorthLand.Core;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -175,7 +176,7 @@ public class ResidentSelectionCoordinator : MonoBehaviour
         if (mm == null)
         {
             // TitleScene에서는 MouseManager가 없는 것이 정상이다.
-            if (DayNightManager.Instance != null && !_warnedNoMouseManager)
+            if (!GameSceneManager.IsTitleScene && !_warnedNoMouseManager)
             {
                 _warnedNoMouseManager = true;
                 Debug.LogWarning("[주민 선택] MouseManager가 아직 없어 주민 선택이 대기 중입니다.");
@@ -327,7 +328,7 @@ public class ResidentSelectionCoordinator : MonoBehaviour
 
         if (_management == null)
         {
-            if (DayNightManager.Instance != null && !_warnedNoManagement)
+            if (!GameSceneManager.IsTitleScene && !_warnedNoManagement)
             {
                 _warnedNoManagement = true;
                 Debug.LogWarning("[주민 선택] ManagementController가 없어 선택 인원 상한을 적용하지 않습니다.");
