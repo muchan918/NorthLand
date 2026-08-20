@@ -32,6 +32,11 @@ namespace NorthLand.Combat
         // 하나뿐인 개념"은 여전히 단일 값을 읽기 때문이다(BeamAction의 `Owner.FirePoint`).
         [SerializeField] Transform[] firePoints;
 
+        // 빔 연출 컴포넌트(선택). 비워두면 `BeamAction`이 자체 최소 구현(임시 머티리얼 LineRenderer)으로
+        // 폴백하므로 **기존 빔 타워는 무변경**이다. firePoint와 같은 이유로 여기 있다 — 씬 참조의
+        // 소유자는 호스트다(액션 규칙 ②).
+        [SerializeField] TowerBeamVisual beamVisual;
+
         // ★ 이 타워가 "무엇을 하는 물건인지"를 담는 액션들 — **프리팹이 정본이다**(#274).
         //
         // 인스펙터에서 `+ Attack Action` / `+ Buff Aura Action`을 골라 담는다. 예전에는 SO의 TowerType을
@@ -92,6 +97,7 @@ namespace NorthLand.Combat
         // 다루기 까다롭고, 이렇게 두면 프리팹의 기존 배선 값이 제자리에 남는다.
         internal Transform FirePoint => firePoint;
         internal LayerMask EnemyLayerMask => enemyLayerMask;
+        internal TowerBeamVisual BeamVisual => beamVisual;
 
         // 다음 발사에 쓸 포구. 커서를 여기서 굴리는 이유는 배선의 소유자가 호스트이기 때문이다
         // (액션 규칙 ②) — 액션이 인덱스를 관리하면 포구 개수를 알아야 하고, 그 값이 프리팹 배선이라
