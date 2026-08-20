@@ -16303,12 +16303,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BaseHealthBar
   slider: {fileID: 1653178526582022121}
   fillImage: {fileID: 361256467}
-  healthy100Sprite: {fileID: 1849808907, guid: 57ecfbe2355768d41ac135ff50032a91, type: 3}
-  healthy80Sprite: {fileID: 577056641, guid: d0a178e57db960749bda879da5f6a6cb, type: 3}
-  healthy60Sprite: {fileID: -583454413, guid: 08a52b5bc4776bc4baca29af76bf5ba9, type: 3}
-  healthy40Sprite: {fileID: 1367928437, guid: cdddf8c10ef91f74883b6f4b82e565bd, type: 3}
-  healthy20Sprite: {fileID: 1325575105, guid: fc6f4963e3953804fa9220554f7931af, type: 3}
-  healthy0Sprite: {fileID: -1765903097, guid: 34fa46b17b2598c439aa7d3645786254, type: 3}
+  healthSpriteSteps:
+  - threshold: 0.8
+    sprite: {fileID: 1849808907, guid: 57ecfbe2355768d41ac135ff50032a91, type: 3}
+  - threshold: 0.6
+    sprite: {fileID: 577056641, guid: d0a178e57db960749bda879da5f6a6cb, type: 3}
+  - threshold: 0.4
+    sprite: {fileID: -583454413, guid: 08a52b5bc4776bc4baca29af76bf5ba9, type: 3}
+  - threshold: 0.2
+    sprite: {fileID: 1367928437, guid: cdddf8c10ef91f74883b6f4b82e565bd, type: 3}
+  - threshold: 0
+    sprite: {fileID: 1325575105, guid: fc6f4963e3953804fa9220554f7931af, type: 3}
+  - threshold: 0
+    sprite: {fileID: -1765903097, guid: 34fa46b17b2598c439aa7d3645786254, type: 3}
 --- !u!224 &1206582899751270607
 RectTransform:
   m_ObjectHideFlags: 0

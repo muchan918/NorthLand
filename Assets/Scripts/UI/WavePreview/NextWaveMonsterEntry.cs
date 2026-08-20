@@ -6,6 +6,8 @@ namespace NorthLand.UI
 {
     public sealed class NextWaveMonsterEntry : MonoBehaviour
     {
+        private const string k_BossStringTableKey = "enemies.system.boss";
+
         [SerializeField] private Image iconImage;
         [SerializeField] private TMP_Text countText;
 
@@ -21,21 +23,11 @@ namespace NorthLand.UI
                 iconImage.enabled = icon != null;
             }
 
-            if (countText != null)
-            {
+            if (countText == null)
+                return;
 
-                if (!isBoss)
-                {
-                    countText.text = $"{count}";
-                }
-                else
-                {
-                    countText.text = $"BOSS";
-                    countText.color = bossCountColor;
-                }
-
-              
-            }
+            countText.text = isBoss? LocalizationHelper.Get(LocalizationHelper.k_EnemiesTable,k_BossStringTableKey): count.ToString();
+            countText.color = isBoss ? bossCountColor: normalCountColor;
         }
     }
 }

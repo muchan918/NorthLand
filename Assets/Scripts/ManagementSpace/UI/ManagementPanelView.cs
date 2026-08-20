@@ -4,9 +4,10 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Localization;
 using UnityEngine.Localization.Settings;
+using UnityEngine.Serialization;
 
 /// <summary>
-/// 경영 패널 뷰. <see cref="ManagementController"/>를 구독해 자원 HUD·주민 풀·페이즈·생산/자원 라인을 렌더하고,
+/// 경영 패널 뷰. <see cref="ManagementController"/>를 구독해 자원 HUD·주민 풀·웨이브·생산/자원 라인을 렌더하고,
 /// '밤으로' 버튼을 컨트롤러에 연결한다. 로직은 전혀 갖지 않는다(위젯 참조 + 렌더링만) —
 /// 실제 UI 아트로 교체 시 이 뷰의 인스펙터 참조만 다시 연결하면 컨트롤러/모델은 그대로다.<br/>
 /// <br/>
@@ -17,10 +18,7 @@ using UnityEngine.Localization.Settings;
 /// </summary>
 public class ManagementPanelView : MonoBehaviour
 {
-    private const string k_DayStringTableKey = "game.system.day";
-    private const string k_NightStringTableKey = "game.system.night";
     private const string k_WaveStringTableKey = "game.system.wave";
-    private const string k_DefenseStringTableKey = "game.system.defense";
 
     [Header("컨트롤러")]
     [SerializeField] ManagementController _controller;
@@ -28,9 +26,10 @@ public class ManagementPanelView : MonoBehaviour
     // 자원 지갑(보유량) 총량 표기는 탑 바에서 생산 라인 각 행의 지갑 칸으로 이관됨(#166, Resources.md §5.5 (C)).
     // 여기서 더 이상 관리하지 않는다 — ProductionLineView가 행별로 ResourceCount를 표시한다.
 
-    [Header("주민 풀 / 페이즈")]
+    [Header("주민 풀 / 웨이브")]
     [SerializeField] TMP_Text _villagerPoolText;
-    [SerializeField] TMP_Text _phaseText;
+    [FormerlySerializedAs("_phaseText")]
+    [SerializeField] TMP_Text _waveText;
     [SerializeField] Button _endDayButton;
     [Tooltip("낮 종료 확인 팝업(#219) — 싱글톤 아님, 이 뷰가 직접 참조를 들고 호출한다.")]
     [SerializeField] ManagementEndDayConfirmPopup _endDayConfirmPopup;
@@ -130,9 +129,9 @@ public class ManagementPanelView : MonoBehaviour
         {
             _villagerPoolText.text = $"{_controller.AssignedTotal}/{_controller.MaxVillagers}";
         }
-        if (_phaseText != null)
+        if (_waveText != null)
         {
-            _phaseText.text = $"{LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, k_WaveStringTableKey)} {_controller.CurrentWave}";
+            _waveText.text = $"{LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, k_WaveStringTableKey)} {_controller.CurrentWave}";
         }
         if (_endDayButton != null)
         {
