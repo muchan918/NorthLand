@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f49e81514ce2be49adb1f934afd23eb, type: 3}
+  m_Name: BT_Damage_1
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSpace.BuffTileDefinition
+  id: Damage_plus_1
+  prefab: {fileID: 3733212974178513189, guid: 4825e259dcb6f6945a28c2c75f850602, type: 3}
+  icon: {fileID: 21300000, guid: 32dbacac0bdef454c99e60e9f2e7c1ec, type: 3}
+  modifiers:
+  - Stat: 1
+    ModifierMode: 1
+    Value: 10

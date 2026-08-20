@@ -15,11 +15,15 @@ MonoBehaviour:
   TowerID: haste_tower
   TowerPrefab: {fileID: 527708244005276318, guid: b8dd447b76ed929439c677e7e946362a, type: 3}
   GhostPrefab: {fileID: 527708244005276318, guid: 176674a10a91cf948b2304f59bba8820, type: 3}
+  Icon: {fileID: 0}
+  PlacementYaw: 0
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
     Amount: 30
   - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
     Amount: 20
+  Rarity: 0
+  UnlockWave: 3
   Attack:
     AttackDamage: 0
     AttackRange: 0
@@ -29,6 +33,10 @@ MonoBehaviour:
       rid: -2
     PelletCount: 1
     SpreadAngle: 0
+    BurstCount: 1
+    BurstInterval: 0
+  Targeting:
+    rid: -2
   Impact: 0
   SplashRadius: 0
   ChainRadius: 0
@@ -52,6 +60,24 @@ MonoBehaviour:
     MaxTargets: 1
     TickInterval: 1
     DamagePerTick: 0
+    LockRamp:
+      PerStack: 0
+      MaxStacks: 0
+      StackInterval: 0
+      DecaySeconds: 0
+  GroundZone:
+    ZonePrefab: {fileID: 0}
+    Radius: 0
+    Duration: 0
+    Interval: 0
+  Ramp:
+    Stat: 2
+    Trigger: 0
+    Profile:
+      PerStack: 0
+      MaxStacks: 0
+      StackInterval: 0
+      DecaySeconds: 0
   Effects: []
   references:
     version: 2

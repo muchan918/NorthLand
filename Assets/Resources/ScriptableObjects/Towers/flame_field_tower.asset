@@ -23,6 +23,7 @@ MonoBehaviour:
   - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
     Amount: 25
   Rarity: 0
+  UnlockWave: 6
   Attack:
     AttackDamage: 0
     AttackRange: 0
@@ -49,7 +50,7 @@ MonoBehaviour:
       DamageAmount: 0
       TickInterval: 0
   DebuffAura:
-    Radius: 9.6
+    Radius: 15
     Interval: 1
   Beam:
     Range: 0

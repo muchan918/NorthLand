@@ -17,6 +17,8 @@ namespace NorthLand.Core
 
         private bool pendingContinue;
 
+        public static bool IsTitleScene => SceneManager.GetActiveScene().name == TitleScene;
+
         // 첫 씬이 로드되기 전에 Unity가 자동 호출한다. 매니저를 여기서 부팅한다.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Bootstrap()

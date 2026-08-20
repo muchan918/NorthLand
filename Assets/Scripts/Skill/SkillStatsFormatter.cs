@@ -42,6 +42,10 @@ public static class SkillStatsFormatter
     public static string BuildLevelLine(int current, int next, bool nextIsMax)
         => $"{Label(k_LevelKey)} {current}{k_Arrow}{(nextIsMax ? k_MaxText : $"{Label(k_LevelKey)} {next}")}";
 
+    /// 획득 목록 툴팁의 레벨 줄. 보상 카드와 달리 미리보기가 아니라 지금 보유한 레벨만 보여준다("Lv 2").
+    public static string BuildCurrentLevelLine(int level)
+        => $"{Label(k_LevelKey)} {level}";
+
     /// 화상·버프 화상 공용 틱 데미지 한 줄.
     public static string BuildTickDamageLine(float current, float next)
         => $"{Label(k_TickDamageKey)}: {current:0.#}{k_Arrow}{next:0.#}";

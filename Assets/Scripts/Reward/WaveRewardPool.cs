@@ -9,6 +9,9 @@ public class WaveRewardPool : ScriptableObject
 {
     [SerializeField]
     private List<WaveRewardData> rewards = new();
+    
+    // 표시부가 고정 순서로 순회할 때 쓴다(#397). 이 순서가 곧 화면 표시 순서다.
+    public IReadOnlyList<WaveRewardData> Rewards => rewards;
 
     // 풀에 등록된 유효 보상 수. 후보가 0인 이유(풀이 빔 vs 전부 만렙)를 호출부가 구분할 때 쓴다.
     public int ValidRewardCount
