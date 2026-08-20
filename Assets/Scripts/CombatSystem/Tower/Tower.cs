@@ -485,6 +485,7 @@ namespace NorthLand.Combat
             AddTileModifier(result, TileBuffStat.AttackDamage, TowerStat.AttackDamage);
             AddTileModifier(result, TileBuffStat.AttackRange, TowerStat.AttackRange);
             AddTileModifier(result, TileBuffStat.AttackSpeed, TowerStat.AttackSpeed);
+            AddTileModifier(result, TileBuffStat.AuraRadius, TowerStat.AuraRadius);
 
             // duration<=0 = 지속형. 타일 버프는 타워가 그 타일 위에 있는 한 유지된다.
             stats.Apply(TileBuffSourceId, TileBuffScratch, 0f, Time.time);

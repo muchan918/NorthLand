@@ -11,17 +11,28 @@ public readonly struct TowerPlacementData
 {
     public readonly int GridWidth;    // 풋프린트 가로(셀 수)
     public readonly int GridHeight;   // 풋프린트 세로(셀 수)
-    public readonly float AttackRange; // 사거리(월드 반경) — 미리보기 원 반경
+    public readonly float AttackRange; // 공격·빔 사거리(월드 반경). 0 = 이 타워에 그 축이 없음
+    // 오라(장판) 반경. 사거리와 **따로** 싣는 이유는 타일 버프 축이 갈려 있어서다(TowerStat.AuraRadius) —
+    // 합친 값 하나만 들면 어느 축의 modifier를 얹어야 할지 알 수 없고, 프리뷰가 실제와 어긋난다.
+    public readonly float AuraRadius;
+
+    // 버프 없는 상태의 미리보기 원 반경 = 두 축 중 큰 쪽(TowerAsset.PreviewRadius와 같은 규칙).
+    public float PreviewRadius => Mathf.Max(AttackRange, AuraRadius);
     // 모델을 그리드 축에서 Y축으로 돌릴 각도(도). 출처는 `TowerAsset.PlacementYaw` 하나고, 고스트와
     // 본체가 **같은 값**을 읽어야 미리보기와 실제 배치가 어긋나지 않아서 여기까지 실어 온다.
     public readonly float PlacementYaw;
 
-    // yaw 기본값 0 = 축 정렬. 값을 안 넘기는 호출부는 기존과 동일하게 동작한다.
-    public TowerPlacementData(int gridWidth, int gridHeight, float attackRange, float placementYaw = 0f)
+    // ⚠ **기본값을 주지 않는다.** 예전에는 yaw에 기본값 0이 있었는데, 뒤에 `auraRadius`를 그 앞으로
+    // 끼워 넣는 순간 `new(w, h, range, so.PlacementYaw)` 호출부가 **컴파일을 통과하면서** yaw를
+    // 반경으로 넘겼다 — 실제로 아처·캐논(yaw 45)의 고스트 사거리 원이 45로 그려졌고, 축약 생성자
+    // `new(...)`라 grep에도 걸리지 않았다. 전부 필수 인자로 두면 같은 실수가 컴파일 에러로 잡힌다.
+    public TowerPlacementData(int gridWidth, int gridHeight, float attackRange, float auraRadius,
+        float placementYaw)
     {
         GridWidth = Mathf.Max(1, gridWidth);
         GridHeight = Mathf.Max(1, gridHeight);
         AttackRange = attackRange;
+        AuraRadius = auraRadius;
         PlacementYaw = placementYaw;
     }
 }
@@ -217,12 +228,11 @@ public class TowerPlacer : MonoBehaviour
         // CancelPlacement가 이전 배치의 OnEnded=EndPlacement를 발화해 _onConfirmed을 null로 지우므로,
         // 여기서 미리 대입하면 합성 재료 소모 콜백이 유실된다(무료 합성 버그).
 
-        // 프리뷰 반경 = 공격 사거리와 오라 반경 중 큰 쪽(TowerAsset.PreviewRadius 단일 출처, WL-056).
-        // 예전에는 여기서 `ResolveAttackFields → 없으면 MagicRadius`로 다시 분기했는데, 그 분기가
-        // 곧 `TowerType`을 아는 4번째 지점이었다. SO가 최댓값 하나로 답하면 호출부는 종류를 몰라도 된다(#274).
-        float previewRange = so.PreviewRadius;
-
-        return StartPlacement(new(so.Data.GridWidth, so.Data.GridHeight, previewRange, so.PlacementYaw),
+        // 프리뷰 반경은 **두 축을 따로** 넘긴다. 합친 값 하나(`so.PreviewRadius`)만 주면 타일 버프를 얹을 때
+        // 어느 축의 modifier를 쓸지 알 수 없어 프리뷰가 배치 후와 어긋난다(TowerPlacementData.AuraRadius 참조).
+        // 호출부가 여전히 타워 종류를 모르는 것은 그대로다 — SO가 축별 기본값으로 답한다(#274, WL-056).
+        return StartPlacement(
+            new(so.Data.GridWidth, so.Data.GridHeight, so.AttackSideRadius, so.AuraSideRadius, so.PlacementYaw),
             onConfirmed, onEnded, historyOwner);
     }
 
@@ -282,7 +292,7 @@ public class TowerPlacer : MonoBehaviour
         {
             buffTileIconPreview.ShowAll();
         }
-        CreateRangeIndicator(_activeData.AttackRange);
+        CreateRangeIndicator(_activeData.PreviewRadius);
         CreateCellHighlights(_activeData.GridWidth * _activeData.GridHeight);
         return true;
     }
@@ -578,11 +588,24 @@ public class TowerPlacer : MonoBehaviour
 
         TileBuffCalculationResult result = previewBuffCalculator.Calculate(previewDefinitions, tileBuffRules);
 
-        float flat = result.GetValue(TileBuffStat.AttackRange, TileModifierMode.Flat);
+        // 두 축을 각자 합성해 큰 쪽을 쓴다 — 배치 후 `Tower.DisplayRange`가 액션별 값의 최댓값을
+        // 고르는 것과 같은 규칙이라, 프리뷰 원과 배치 후 원이 같은 값을 가리킨다.
+        return Mathf.Max(
+            Buffed(_activeData.AttackRange, TileBuffStat.AttackRange),
+            Buffed(_activeData.AuraRadius, TileBuffStat.AuraRadius));
 
-        float percentage = result.GetValue(TileBuffStat.AttackRange, TileModifierMode.Percentage);
+        float Buffed(float baseValue, TileBuffStat stat)
+        {
+            // 없는 축은 0으로 남긴다. 이 가드가 없으면 오라 전용 타워(사거리 0)가 사거리 타일 위에서
+            // flat 증가분만큼의 유령 원을 그려, 실제 오라 반경보다 큰 값이 Max를 이긴다.
+            if (baseValue <= 0f) return 0f;
 
-        return (_activeData.AttackRange + flat) * (1f + percentage / 100f);
+            float flat = result.GetValue(stat, TileModifierMode.Flat);
+
+            float percentage = result.GetValue(stat, TileModifierMode.Percentage);
+
+            return (baseValue + flat) * (1f + percentage / 100f);
+        }
     }
 
     // 반지름 갱신은 RangeCircle이 자체적으로 같은 값 재생성을 생략한다(중복 캐시 불필요).
@@ -770,8 +793,8 @@ public class TowerPlacer : MonoBehaviour
             return false;
         }
 
-        _activeData = new TowerPlacementData(asset.Data.GridWidth,asset.Data.GridHeight,asset.PreviewRadius,
-            asset.PlacementYaw);
+        _activeData = new TowerPlacementData(asset.Data.GridWidth,asset.Data.GridHeight,asset.AttackSideRadius,
+            asset.AuraSideRadius,asset.PlacementYaw);
 
         Vector3 position =CalculateFootprintCenter(anchor,_activeData);
 
