@@ -551,7 +551,10 @@ namespace NorthLand.Combat
         // 표시용 반경 = 액션들이 보고한 값 중 최대. `AttackRange`를 쓰면 공격 액션이 없는 오라 타워에서
         // 0이 되어 원이 아예 그려지지 않는다(#192 회귀). 최대값을 쓰는 이유는 공격+오라 하이브리드 타워에서
         // 더 넓은 쪽이 플레이어가 알아야 할 영향 범위이기 때문.
-        float DisplayRange
+        //
+        // public인 이유: 선택 원(`RangeCircle`)만이 아니라 장판 이펙트(`AuraZoneVisual`)도 같은 값을 봐야
+        // 표시가 실제 판정과 어긋나지 않는다. "플레이어가 알아야 할 영향 범위"의 단일 출처다.
+        public float DisplayRange
         {
             get
             {
