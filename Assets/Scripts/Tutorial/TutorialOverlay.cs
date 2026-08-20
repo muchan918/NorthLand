@@ -36,6 +36,14 @@ public class TutorialOverlay : MonoBehaviour
 
     private void Awake()
     {
+        // 배선 누락을 raw NRE 대신 어느 필드가 비었는지로 알린다 — 이 오버레이는 씬에서 손으로
+        // 배선하는 물건이라(Tutorial.md §1.4) 누락이 실제로 일어난다.
+        if (!ValidateReferences())
+        {
+            enabled = false;
+            return;
+        }
+
         confirmButton.onClick.AddListener(OnConfirmClicked);
         HideAll();
     }
@@ -43,7 +51,32 @@ public class TutorialOverlay : MonoBehaviour
     private void OnDestroy()
     {
         // 리스너를 남기면 씬을 다시 로드했을 때 죽은 대상을 호출한다.
-        confirmButton.onClick.RemoveListener(OnConfirmClicked);
+        if (confirmButton != null)
+        {
+            confirmButton.onClick.RemoveListener(OnConfirmClicked);
+        }
+    }
+
+    // 하나라도 비면 표시가 성립하지 않는다. 비어 있는 것을 전부 알려 준다 —
+    // 하나씩 고쳐 가며 여러 번 재생하지 않게.
+    private bool ValidateReferences()
+    {
+        bool ok = true;
+
+        if (popupRoot == null) { LogMissing(nameof(popupRoot)); ok = false; }
+        if (popupTitle == null) { LogMissing(nameof(popupTitle)); ok = false; }
+        if (popupBody == null) { LogMissing(nameof(popupBody)); ok = false; }
+        if (popupImage == null) { LogMissing(nameof(popupImage)); ok = false; }
+        if (confirmButton == null) { LogMissing(nameof(confirmButton)); ok = false; }
+        if (bubbleRoot == null) { LogMissing(nameof(bubbleRoot)); ok = false; }
+        if (bubbleText == null) { LogMissing(nameof(bubbleText)); ok = false; }
+
+        return ok;
+    }
+
+    private void LogMissing(string field)
+    {
+        Debug.LogError($"[{nameof(TutorialOverlay)}] {field}이(가) 연결되지 않았습니다.",this);
     }
 
     public void ShowPopup(string title, string body, Sprite image)

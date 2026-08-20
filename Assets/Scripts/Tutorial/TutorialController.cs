@@ -35,16 +35,32 @@ public class TutorialController : MonoBehaviour
     private void Awake()
     {
         _context = new TutorialContext();
+
+        // 오버레이 없이는 팝업도 말풍선도 띄울 수 없다 — 배선 누락을 raw NRE 대신 여기서 알린다.
+        if (overlay == null)
+        {
+            Debug.LogError($"[{nameof(TutorialController)}] Overlay가 연결되지 않았습니다.",this);
+
+            enabled = false;
+        }
     }
 
     private void OnEnable()
     {
+        if (overlay == null)
+        {
+            return;
+        }
+
         overlay.PopupConfirmed += OnPopupConfirmed;
     }
 
     private void OnDisable()
     {
-        overlay.PopupConfirmed -= OnPopupConfirmed;
+        if (overlay != null)
+        {
+            overlay.PopupConfirmed -= OnPopupConfirmed;
+        }
 
         // 감시를 남긴 채 꺼지면 죽은 구독이 된다. 다만 다시 켜도 이어서 진행되지는 않는다.
         EndActiveCondition();
@@ -132,14 +148,17 @@ public class TutorialController : MonoBehaviour
         _phase = Phase.Action;
         _active = condition;
 
-        // 구독을 Begin보다 먼저 건다 — 조건이 Begin 도중에 충족될 수도 있다.
-        _active.Satisfied += OnConditionSatisfied;
-        _active.Begin(_context);
-
+        // 말풍선을 Begin보다 먼저 띄운다 — 조건이 Begin 도중에 충족되면 그 자리에서 다음 단계까지
+        // 진입한 뒤 여기로 돌아오므로, 뒤에 두면 지나간 단계의 말풍선이 새 단계 위에 켜진다.
+        // 먼저 띄워 두면 그 경로의 HideBubble이 정상적으로 걷어 간다.
         if (step.HasBubble)
         {
             overlay.ShowBubble(step.BubbleText);
         }
+
+        // 구독을 Begin보다 먼저 건다 — 조건이 Begin 도중에 충족될 수도 있다.
+        _active.Satisfied += OnConditionSatisfied;
+        _active.Begin(_context);
     }
 
     private void OnConditionSatisfied()

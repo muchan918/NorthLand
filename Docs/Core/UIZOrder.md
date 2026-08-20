@@ -104,6 +104,7 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 | 모달 | 정렬 방식 | 입력 차단 Graphic | 일시정지 |
 |---|---|---|---|
 | 보상 선택 | `RewardCanvas`, Order `500` | `RewardPanel`의 전체 화면 `Image` | `GamePauseReason.Reward` |
+| 튜토리얼 팝업 | `TutorialCanvas`, Order `600` | `Popup` 루트의 전체 화면 `Image`(`raycastTarget`) | 정책 확정 필요 — 현재 **일시정지 없음**(안내를 읽는 동안 밤이 흐른다). ⚠ 말풍선 구간은 차단하지 않는다(#408 범위 밖) |
 | 설정 | `SettingCanvas`, Order `700` | `GuardPanel`의 전체 화면 투명 `Image` | `GamePauseReason.Settings` |
 | 게임오버 | `ResultCanvas`, Order `900` | `GameOverPanel`의 전체 화면 `Image` | 정책 확정 필요 |
 | 승리 | `ResultCanvas`, Order `900` | `VictoryPanel`의 전체 화면 `Image` | 정책 확정 필요 |
