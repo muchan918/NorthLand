@@ -1,3 +1,4 @@
+using NorthLand.Core;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -44,7 +45,7 @@ public class OutlineInteractionDriver : MonoBehaviour
     {
         if (s_instance != null && s_instance != this)
         {
-            Destroy(gameObject);
+            Destroy(this);
             return;
         }
         s_instance = this;
@@ -84,14 +85,15 @@ public class OutlineInteractionDriver : MonoBehaviour
         var mm = MouseManager.Instance;
         if (mm == null)
         {
-            if (!_warnedNoMouseManager)
+            // TitleScene에서는 MouseManager가 없는 것이 정상이다.
+            if (!GameSceneManager.IsTitleScene && !_warnedNoMouseManager)
             {
                 _warnedNoMouseManager = true;
                 Debug.LogWarning("[아웃라인] MouseManager가 아직 없어 호버·선택 아웃라인이 대기 중입니다.");
             }
+
             return;
         }
-
         mm.OnHoverChanged += HandleHoverChanged;
         mm.OnSelectionChanged += HandleSelectionChanged;
         _subscribed = true;

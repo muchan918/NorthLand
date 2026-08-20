@@ -1,6 +1,7 @@
 using NorthLand.Core;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 public class SettingUI : MonoBehaviour
 {
@@ -14,7 +15,6 @@ public class SettingUI : MonoBehaviour
     [Header("Buttons")]
     [SerializeField]
     private Button settingbutton;
-
 
     public bool IsOpen => settingPanel != null && settingPanel.activeSelf;
 
@@ -40,6 +40,20 @@ public class SettingUI : MonoBehaviour
 
         localizationManager.OnClose();
         settingPanel.SetActive(false);
+    }
+
+    private void Update()
+    {
+        if (GameManager.Instance == null)
+            return;
+
+        if (Keyboard.current == null)
+            return;
+
+        if (!Keyboard.current.escapeKey.wasPressedThisFrame)
+            return;
+
+        TogglePanel();
     }
 
     private void OnDestroy()
@@ -91,25 +105,19 @@ public class SettingUI : MonoBehaviour
 
     public void OpenPanel()
     {
-        if (settingPanel == null)
+        if (GameManager.Instance != null && GameManager.Instance.Result != GameResult.Playing)
         {
             return;
         }
 
+        if (settingPanel == null)
+            return;
+
         MouseManager.Instance?.CancelInteractions();
-
-        if (localizationManager != null)
-        {
-            localizationManager.OnClose();
-        }
-
+        localizationManager?.OnClose();
         settingPanel.SetActive(true);
 
-        if (GameSpeedController.Instance != null)
-        {
-            GameSpeedController.Instance.SetPaused(GamePauseReason.Settings,true);
-        }
-
+        GameSpeedController.Instance?.SetPaused(GamePauseReason.Settings,true);
     }
 
     public void ClosePanel()

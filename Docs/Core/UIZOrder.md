@@ -37,6 +37,7 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 | 월드 오버레이 | `SelectionBoxView` | `50` | 드래그 선택 사각형. 입력을 받지 않으며 HUD **아래**에 그린다 |
 | 기본 | `UICanvas` | `100` | 일반 HUD, 미니맵, 관리·타워·스킬·정보 패널 |
 | 상위 모달 | `RewardCanvas` | `500` | 보상 선택 화면 |
+| 튜토리얼 오버레이 | `TutorialCanvas` | `600` | 튜토리얼 안내 팝업·말풍선. 보상 화면보다 위, 설정 화면보다 아래 — 안내 도중에도 설정을 열 수 있고, 보상 화면 위에 안내가 뜬다 |
 | 설정 모달 | `SettingCanvas` | `700` | 인게임 설정 화면. 일반 HUD와 보상 화면보다 위, 결과 화면보다 아래 |
 | 최상위 모달 | `ResultCanvas` | `900` | 게임오버·승리 결과 화면 |
 | 코드 생성 오버레이 | `TowerTooltipView` | `100` (`UILayer.Hud`) | 입력을 받지 않는 툴팁. HUD 캔버스를 찾아 자식으로 붙고, 없을 때만 같은 값으로 자체 생성 |
@@ -103,6 +104,7 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 | 모달 | 정렬 방식 | 입력 차단 Graphic | 일시정지 |
 |---|---|---|---|
 | 보상 선택 | `RewardCanvas`, Order `500` | `RewardPanel`의 전체 화면 `Image` | `GamePauseReason.Reward` |
+| 튜토리얼 팝업 | `TutorialCanvas`, Order `600` | `Popup` 루트의 전체 화면 `Image`(`raycastTarget`) | 정책 확정 필요 — 현재 **일시정지 없음**(안내를 읽는 동안 밤이 흐른다). ⚠ 말풍선 구간은 차단하지 않는다(#408 범위 밖) |
 | 설정 | `SettingCanvas`, Order `700` | `GuardPanel`의 전체 화면 투명 `Image` | `GamePauseReason.Settings` |
 | 게임오버 | `ResultCanvas`, Order `900` | `GameOverPanel`의 전체 화면 `Image` | 정책 확정 필요 |
 | 승리 | `ResultCanvas`, Order `900` | `VictoryPanel`의 전체 화면 `Image` | 정책 확정 필요 |
@@ -143,7 +145,11 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 - 설정 화면에서 `Time.timeScale`을 직접 변경하지 않는다.
 - 다른 시스템이 등록한 일시정지 사유는 설정 화면을 닫더라도 해제하지 않는다.
 
-현재 설정 화면은 UI 버튼으로 열고 닫는다. 키보드 토글은 중앙 입력 처리의 Cancel 액션 우선순위가 확정된 후 적용한다.
+ESC 입력 소유권은 씬별로 하나만 둔다.
+
+- `GameScene`: `SettingUI`가 ESC를 읽어 설정 화면을 토글한다. 설정 화면을 열 때는 `MouseManager.CancelInteractions()`로 진행 중인 배치·조준·선택을 먼저 취소한다.
+- `TitleScene`: `MainMenuUI`가 ESC를 읽어 세이브 패널을 토글한다. `SettingUI`는 `GameManager.Instance`가 없는 씬에서 ESC를 처리하지 않으므로 설정 화면은 UI 버튼으로만 열고 닫는다.
+- 같은 씬에 ESC 소비처를 추가하지 않는다. 다른 모달 닫기나 상호작용 취소 등 두 번째 소비처가 필요해지면 직접 폴링을 늘리지 않고 중앙 Cancel 라우터와 우선순위를 먼저 확정한다.
 
 ## 6. 변경 절차
 
@@ -205,6 +211,8 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 - [ ] 설정 화면이 일반 HUD와 보상 화면보다 위에 표시되는지 확인한다.
 - [ ] 설정 화면이 열린 동안 미니맵과 하위 HUD가 입력을 받지 않는지 확인한다.
 - [ ] 설정 화면을 열고 닫을 때 `GamePauseReason.Settings`가 정상적으로 등록 및 해제되는지 확인한다.
+- [ ] `GameScene`에서 ESC로 설정 화면이 열리고 다시 ESC를 누르면 닫히는지 확인한다.
+- [ ] `TitleScene`에서 ESC가 세이브 패널만 토글하고 `SettingUI`는 반응하지 않는지 확인한다.
 - [ ] 설정 화면과 결과 화면이 동시에 활성화됐을 때 `ResultCanvas`가 위에 표시되는지 확인한다.
 - [x] 게임오버·승리 화면이 열린 동안 아래 HUD 버튼이 입력을 받지 않는지 확인한다.
 - [ ] 게임오버·승리 화면이 1920×1080에서 중앙에 정상 표시되는지 확인한다.

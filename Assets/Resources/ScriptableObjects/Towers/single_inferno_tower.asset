@@ -57,6 +57,19 @@ MonoBehaviour:
       MaxStacks: 8
       StackInterval: 0.42
       DecaySeconds: 0
+    VisualStages:
+    - Label: "1\uB2E8\uACC4 \uC870\uC900 \uC2DC\uC791"
+      FromProgress: 0
+      Width: 0.3
+      Color: {r: 0.45, g: 0.75, b: 1, a: 0.85}
+    - Label: "2\uB2E8\uACC4 \uAC00\uC5F4"
+      FromProgress: 0.35
+      Width: 0.55
+      Color: {r: 1, g: 0.85, b: 0.35, a: 0.95}
+    - Label: "3\uB2E8\uACC4 \uCD5C\uB300"
+      FromProgress: 0.7
+      Width: 0.95
+      Color: {r: 1, g: 0.35, b: 0.15, a: 1}
   GroundZone:
     ZonePrefab: {fileID: 0}
     Radius: 0

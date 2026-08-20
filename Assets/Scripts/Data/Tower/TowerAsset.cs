@@ -40,6 +40,15 @@ public class TowerAsset : ScriptableObject
     [Tooltip("타워 등급: 일반 0, 희귀 1, 전설 2")]
     public TowerRarity Rarity;
 
+    // 타워 선택 패널에서 이 타워가 열리는 웨이브(#424). 여기 두는 이유는 `Icon`과 같다 —
+    // 표기·저작 값의 소스를 SO 한 곳에 둔다. 씬 인스펙터의 타워 목록에 병렬 배열로 두면
+    // 순서가 어긋나는 순간 조용히 엉키고(WL-076 축), TowerTable.csv는 로컬라이즈 키와
+    // 그리드 크기 전용이라 여기가 맞다.
+    [Header("해금")]
+    [Tooltip("이 웨이브 번호 이상에서 해금된다. 1 = 처음부터 열림(기본).")]
+    [Min(1)]
+    public int UnlockWave = 1;
+
     // ── 평탄 스키마 (#274 Phase 1) ──────────────────────────────────────────────
     // 타입별 래퍼(Single/Area/Chain/Magic)를 풀어 한 층으로 편다. 타입별 필드가 7개뿐이라
     // 그룹 클래스 없이도 읽을 만하고, 안 쓰는 타워에서 값이 0이어도 아무도 안 읽으므로 무해하다.
@@ -445,6 +454,44 @@ public class TowerAsset : ScriptableObject
         [Tooltip("같은 대상을 계속 잠글수록 피해가 오르는 램프. StackInterval초마다 한 단계씩 오르고, " +
                  "대상이 죽거나 사거리를 벗어나면 0에서 다시 시작한다. 비워두면 균일 지속딜(기존 거동).")]
         public NorthLand.Combat.RampProfile LockRamp;
+
+        // 램프 진행도에 따른 빔 겉모습(#426). **프리팹 컴포넌트가 아니라 여기 있는 이유가 두 가지다.**
+        //
+        // ① 액션 규칙 ① — "액션은 수치를 갖지 않는다. 전부 TowerAsset에서 읽는다." 굵기·색도 수치이므로
+        //    같은 규칙을 받는다. `Icon`·`ProjectilePrefab`·`PlacementYaw`가 이미 같은 성격으로 이 SO에 있다.
+        // ② **저장소 교차 참조 제거(WL-196)** — 이 값을 프리팹에 두면 Imported 프리팹이 본 저장소의
+        //    MonoBehaviour를 참조하게 되어, 다른 에셋과 **반대 방향**의 머지 순서(본 저장소 선행)가
+        //    필요해진다. Imported만 먼저 받으면 Missing Script가 되고 재직렬화 시 배선이 조용히 날아간다.
+        //    SO에 두면 참조가 본 저장소 → Imported 한 방향으로만 흘러 기존 규칙(Imported 선행)이 그대로
+        //    성립하고, 이 연출을 본 저장소 diff만으로 검토할 수 있다.
+        [Tooltip("램프 진행도별 빔 굵기·색. 비워두면 단색 기본 연출(기존 거동). " +
+                 "낮은 문턱부터 순서대로 저작할 것.")]
+        public List<BeamStage> VisualStages = new List<BeamStage>();
+    }
+
+    /// 빔 연출 한 구간. 램프 진행도(0~1)가 이 문턱 이상이면 이 겉모습으로 그린다.
+    ///
+    /// **연속 보간이 아니라 단계인 이유**: 램프가 오르고 있다는 것을 플레이어가 알아채야 하는 연출이다.
+    /// 굵기를 연속으로 키우면 프레임당 변화가 미세해 "세지고 있다"가 읽히지 않는다 — 전환 순간이
+    /// 사건이 되어야 눈에 걸린다(COC 인페르노가 같은 이유로 단계형이다).
+    ///
+    /// ⚠ **최고 단계 문턱을 1.0에 붙이지 말 것.** `single_inferno`는 만렙까지 3.36초가 걸리는데 적 체류가
+    /// 3.33초라 마지막 스택에 도달하지 못한다(CombatBalance.md §3.2). 문턱이 1.0 근처면 그 단계가
+    /// 화면에 영원히 안 나온다.
+    [System.Serializable]
+    public class BeamStage
+    {
+        [Tooltip("에디터에서 알아보기 위한 이름. 런타임에는 쓰지 않는다.")]
+        public string Label;
+
+        [Tooltip("이 단계가 시작되는 진행도(0~1). 진행도 이하 중 **가장 높은** 문턱의 단계가 쓰인다.")]
+        [Range(0f, 1f)] public float FromProgress;
+
+        [Tooltip("빔 굵기(월드 단위).")]
+        public float Width = 0.5f;
+
+        [Tooltip("빔 색.")]
+        [ColorUsage(true, true)] public Color Color = Color.white;
     }
 
     // 성장(램프업) 저작 묶음(#300). 계기와 축은 여기서, 수치는 공용 부품 `RampProfile`이 소유한다 —

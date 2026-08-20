@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
+  m_Name: TutorialStepTest3
+  m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
+  popupTitle: "\uB05D"
+  popupBody: "\uC774\uAC8C \uB05D\uC784"
+  popupImage: {fileID: 21300000, guid: 0ea55d44caa264747ab394066c83ca61, type: 3}
+  bubbleText: "\uB0AE \uC885\uB8CC\uD574"
+  completion:
+    rid: 3470829919344263264
+  references:
+    version: 2
+    RefIds:
+    - rid: 3470829919344263264
+      type: {class: PhaseChangedCondition, ns: , asm: Assembly-CSharp}
+      data:
+        target: 1

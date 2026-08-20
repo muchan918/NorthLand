@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using NorthLand.Core;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -91,7 +92,7 @@ public class ResidentSelectionCoordinator : MonoBehaviour
     {
         if (s_instance != null && s_instance != this)
         {
-            Destroy(gameObject);
+            Destroy(this);
             return;
         }
         s_instance = this;
@@ -174,11 +175,13 @@ public class ResidentSelectionCoordinator : MonoBehaviour
         var mm = MouseManager.Instance;
         if (mm == null)
         {
-            if (!_warnedNoMouseManager)
+            // TitleScene에서는 MouseManager가 없는 것이 정상이다.
+            if (!GameSceneManager.IsTitleScene && !_warnedNoMouseManager)
             {
                 _warnedNoMouseManager = true;
                 Debug.LogWarning("[주민 선택] MouseManager가 아직 없어 주민 선택이 대기 중입니다.");
             }
+
             return;
         }
 
@@ -318,26 +321,22 @@ public class ResidentSelectionCoordinator : MonoBehaviour
     private void EnsureManagement()
     {
         if (_management != null) return;
-
-        // 못 찾았으면 백오프한다. 이 컴포넌트는 DontDestroyOnLoad라 **모든 씬에 상주**하고,
-        // ManagementController가 없는 씬(TitleScene 등)에서는 조기 반환 조건이 영구히 거짓이다 —
-        // 백오프가 없으면 매 프레임 씬 전수 탐색(FindFirstObjectByType)을 돈다.
         if (--_managementRetryCountdown > 0) return;
 
         _managementRetryCountdown = k_ManagementRetryFrames;
-
         _management = FindFirstObjectByType<ManagementController>();
+
         if (_management == null)
         {
-            if (!_warnedNoManagement)
+            if (!GameSceneManager.IsTitleScene && !_warnedNoManagement)
             {
                 _warnedNoManagement = true;
                 Debug.LogWarning("[주민 선택] ManagementController가 없어 선택 인원 상한을 적용하지 않습니다.");
             }
+
             return;
         }
 
-        // 배정 수·주민 상한이 바뀌면 이미 선택한 집합이 상한을 넘을 수 있다 → 그때 다시 깎는다.
         _management.OnChanged += HandleManagementChanged;
     }
 

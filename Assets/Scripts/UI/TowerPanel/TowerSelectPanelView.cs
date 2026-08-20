@@ -27,7 +27,8 @@ public class TowerSelectPanelView : MonoBehaviour
 
     private TowerPlacer _towerPlacer;
     private ManagementController _management; // 자원 조회용(소비처는 컨트롤러 경유 — WL-017). null이면 permissive.
-    private readonly List<(Button button, TowerAsset tower)> _buttons = new(); // 버튼별 감당가능 갱신용
+    private DayNightManager _dayNight;        // 해금 웨이브 조회용. null이면(테스트 씬) 전부 해금으로 본다.
+    private readonly List<(Button button, TowerAsset tower)> _buttons = new(); // 버튼별 갱신용
 
     private void Awake()
     {
@@ -43,19 +44,28 @@ public class TowerSelectPanelView : MonoBehaviour
 
     private void Start()
     {
+        // Instance는 DayNightManager.Awake에서 잡히므로 Start에서 읽는다.
+        _dayNight = DayNightManager.Instance != null
+            ? DayNightManager.Instance
+            : FindFirstObjectByType<DayNightManager>();
+
         foreach (var tower in _towers)
         {
             AddTowerButton(tower);
         }
 
         // 자원 변동 시 버튼 활성/비활성 갱신 — 못 사는 타워는 버튼이 죽어 고스트 진입 자체가 막힌다.
-        if (_management != null) _management.OnChanged += RefreshAffordability;
-        RefreshAffordability();
+        if (_management != null) _management.OnChanged += RefreshButtons;
+        // 해금 갱신도 같은 경로를 쓴다. 낮이 시작되는 모든 시점에 오므로(부트스트랩 포함)
+        // 웨이브가 오른 직후의 낮 화면에서 잠금이 풀린 상태로 들어온다.
+        if (_dayNight != null) _dayNight.OnDayStart += RefreshButtons;
+        RefreshButtons();
     }
 
     private void OnDestroy()
     {
-        if (_management != null) _management.OnChanged -= RefreshAffordability;
+        if (_management != null) _management.OnChanged -= RefreshButtons;
+        if (_dayNight != null) _dayNight.OnDayStart -= RefreshButtons;
     }
 
     /// <summary>타워 버튼 하나를 스크롤뷰에 추가한다. 런타임에 반복 호출해도 된다.</summary>
@@ -104,8 +114,8 @@ public class TowerSelectPanelView : MonoBehaviour
         RefreshButton(button, tower); // 초기 활성 상태 반영
     }
 
-    /// <summary>보유 자원으로 감당 가능한 타워만 버튼을 활성화한다. (자원 변동 시 재호출)</summary>
-    private void RefreshAffordability()
+    /// <summary>해금 여부와 보유 자원을 버튼에 반영한다. (자원 변동·낮 시작 시 재호출)</summary>
+    private void RefreshButtons()
     {
         foreach ((Button button, TowerAsset tower) in _buttons)
         {
@@ -113,10 +123,26 @@ public class TowerSelectPanelView : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 해금 상태는 <see cref="DayNightManager.CurrentWave"/>로 **매번 계산한다** — 이벤트로 갱신된 값을
+    /// 들고 있으면 세이브 복원 경로에서 조용히 틀어진다(`TryRestoreState`는 의도적으로 페이즈 이벤트를
+    /// 발행하지 않으므로, 해금됐어야 할 타워가 잠긴 채 남는다).
+    /// </summary>
+    private bool IsUnlocked(TowerAsset tower)
+        => _dayNight == null || _dayNight.CurrentWave >= tower.UnlockWave;
+
     private void RefreshButton(Button button, TowerAsset tower)
     {
         if (button == null) return;
-        button.interactable = _management == null || _management.CanAfford(tower.Cost);
+
+        bool unlocked = IsUnlocked(tower);
+
+        // 자물쇠는 해금 여부만 본다 — 자원 부족까지 자물쇠로 보이면 두 상태가 구별되지 않는다.
+        var view = button.GetComponent<TowerButtonView>();
+        if (view != null) view.SetLocked(!unlocked);
+
+        // interactable은 둘의 AND. 해금만으로 덮어쓰면 자원 게이트가 죽는다.
+        button.interactable = unlocked && (_management == null || _management.CanAfford(tower.Cost));
     }
 
     private void HandleClick(TowerAsset tower)
@@ -124,6 +150,13 @@ public class TowerSelectPanelView : MonoBehaviour
         if (_towerPlacer == null)
         {
             Debug.LogError("[타워선택패널] TowerPlacer가 연결되지 않았습니다.");
+            return;
+        }
+
+        // 방어: interactable 우회로 클릭돼도 미해금이면 배치 진입 차단.
+        if (!IsUnlocked(tower))
+        {
+            Debug.Log($"[타워선택패널] '{tower.TowerID}'는 아직 해금되지 않았습니다(해금 웨이브 {tower.UnlockWave}).");
             return;
         }
 

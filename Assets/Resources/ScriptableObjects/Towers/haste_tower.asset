@@ -23,6 +23,7 @@ MonoBehaviour:
   - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
     Amount: 20
   Rarity: 0
+  UnlockWave: 3
   Attack:
     AttackDamage: 0
     AttackRange: 0
