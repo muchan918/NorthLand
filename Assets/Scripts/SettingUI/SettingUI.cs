@@ -16,10 +16,6 @@ public class SettingUI : MonoBehaviour
     [SerializeField]
     private Button settingbutton;
 
-    [Header("Input")]
-    [SerializeField] private bool toggleWithEscape = true;
-
-
     public bool IsOpen => settingPanel != null && settingPanel.activeSelf;
 
     private void Awake()
@@ -48,7 +44,7 @@ public class SettingUI : MonoBehaviour
 
     private void Update()
     {
-        if (!toggleWithEscape)
+        if (GameManager.Instance == null)
             return;
 
         if (Keyboard.current == null)

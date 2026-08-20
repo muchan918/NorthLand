@@ -769,7 +769,10 @@
 ## 4. 팀 계약 (위반 = 🔴 후보)
 
 1. **입력 단일 창구**: 포인터/키보드 입력은 MouseManager만 읽는다. 게임플레이 코드의
-   `Mouse.current`/`Keyboard.current` 직접 폴링 금지. 클릭 반응은 ISelectable, 그룹 선택 참여는
+   `Mouse.current`/`Keyboard.current` 직접 폴링 금지. 단, 씬 UI의 ESC는 씬별 단일 소유자만 직접 읽는다:
+   `GameScene`은 `SettingUI`, `TitleScene`은 `MainMenuUI`가 소유한다. `SettingUI`는
+   `GameManager.Instance`가 없는 씬에서 ESC를 처리하지 않는다. 같은 씬에 두 번째 ESC 소비처가 필요해지면 중앙 Cancel 라우터로
+   이관하고 우선순위를 먼저 확정한다. 클릭 반응은 ISelectable, 그룹 선택 참여는
    IGroupSelectable 마커, 배치는 PlacementRequest로 참여. 스킬 타겟팅·드래그 사각형 선택(#261)도
    MouseManager 상태 추가로 구현했다 — 새 상호작용은 모드를 늘리고 **통지만** 하며, 집합·표시의
    소유는 소비처에 둔다. (Docs/Core/MouseManager.md)

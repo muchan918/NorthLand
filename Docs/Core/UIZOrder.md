@@ -143,7 +143,11 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 - 설정 화면에서 `Time.timeScale`을 직접 변경하지 않는다.
 - 다른 시스템이 등록한 일시정지 사유는 설정 화면을 닫더라도 해제하지 않는다.
 
-현재 설정 화면은 UI 버튼으로 열고 닫는다. 키보드 토글은 중앙 입력 처리의 Cancel 액션 우선순위가 확정된 후 적용한다.
+ESC 입력 소유권은 씬별로 하나만 둔다.
+
+- `GameScene`: `SettingUI`가 ESC를 읽어 설정 화면을 토글한다. 설정 화면을 열 때는 `MouseManager.CancelInteractions()`로 진행 중인 배치·조준·선택을 먼저 취소한다.
+- `TitleScene`: `MainMenuUI`가 ESC를 읽어 세이브 패널을 토글한다. `SettingUI`는 `GameManager.Instance`가 없는 씬에서 ESC를 처리하지 않으므로 설정 화면은 UI 버튼으로만 열고 닫는다.
+- 같은 씬에 ESC 소비처를 추가하지 않는다. 다른 모달 닫기나 상호작용 취소 등 두 번째 소비처가 필요해지면 직접 폴링을 늘리지 않고 중앙 Cancel 라우터와 우선순위를 먼저 확정한다.
 
 ## 6. 변경 절차
 
