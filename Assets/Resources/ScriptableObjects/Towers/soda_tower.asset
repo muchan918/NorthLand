@@ -25,7 +25,7 @@ MonoBehaviour:
     AttackDamage: 20
     AttackRange: 27
     AttackInterval: 1.5
-    ProjectilePrefab: {fileID: 1162392375372998, guid: c701a4c638d46394ea193e71e98f9995, type: 3}
+    ProjectilePrefab: {fileID: 1162392375372998, guid: c2da60c3896a09d42811362601158f7d, type: 3}
     Flight:
       rid: 3470829504553025637
     PelletCount: 1
