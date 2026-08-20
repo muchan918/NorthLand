@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: ogre_king
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAsset
   EnemyID: ogre_king
-  icon: {fileID: -1834205307, guid: ba91eca879fbf1048a5f6bf80986044c, type: 3}
+  icon: {fileID: 964718539, guid: 689a61df2ab26f34e8c9c92bde375af1, type: 3}
   EnemyType: 2
   MovementMode: 0
   Melee:

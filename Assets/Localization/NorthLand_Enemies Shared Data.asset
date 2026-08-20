@@ -99,6 +99,10 @@ MonoBehaviour:
     m_Key: enemies.bat.desc
     m_Metadata:
       m_Items: []
+  - m_Id: 11241464069173248
+    m_Key: enemies.system.boss
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
