@@ -233,7 +233,10 @@ namespace NorthLand.UI
                 if (continueButton != null)
                     continueButton.gameObject.SetActive(false);
 
-                Debug.LogWarning($"[MainMenuUI] 이어하기를 시작할 수 없습니다: {error}",this);
+                if (!string.IsNullOrEmpty(error))
+                {
+                    Debug.LogWarning($"[MainMenuUI] 이어하기를 시작할 수 없습니다: {error}", this);
+                }
 
                 return;
             }
