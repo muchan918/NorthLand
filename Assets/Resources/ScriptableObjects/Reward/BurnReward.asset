@@ -14,6 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WaveRewardData
   displayName: rewards.burn.name
   description: rewards.burn.desc
-  icon: {fileID: 21300000, guid: f5699dec832a42c4bac28090b8d50955, type: 3}
+  icon: {fileID: 323453838, guid: 73395192a55363e4cbc8720d41f84dbc, type: 3}
   rewardType: 0
-  amount: 1

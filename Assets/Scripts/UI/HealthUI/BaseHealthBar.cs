@@ -1,19 +1,31 @@
+using System;
 using NorthLand.Combat;
 using UnityEngine;
 using UnityEngine.UI;
 
-// 화면 상단 오버레이 Canvas에 배치되는 본진(PlayerBase) 체력바.
-// PlayerBase는 낮에는 존재하지 않고 밤에 MonsterSpawn이 성문(BaseGate)을 스폰할 때 생성되므로,
-// 이미 스폰된 경우(Instance)와 앞으로 스폰될 경우(OnBaseSpawned) 둘 다 대응한다.
 public class BaseHealthBar : MonoBehaviour
 {
-    [SerializeField] Slider slider;
+    [Serializable]
+    private struct HealthSpriteStep
+    {
+        [Range(0f, 1f)]
+        public float threshold;
 
-    PlayerBase playerBase;
+        public Sprite sprite;
+    }
+
+    [SerializeField] private Slider slider;
+    [SerializeField] private Image fillImage;
+
+    [Tooltip("임계값이 높은 순서로 설정합니다. 마지막 항목은 0% fallback입니다.")]
+    [SerializeField] private HealthSpriteStep[] healthSpriteSteps;
+
+    private PlayerBase playerBase;
+    private int appliedStepIndex = -1;
 
     void Awake()
     {
-        gameObject.SetActive(false); // 본진이 스폰되기 전에는 숨김
+        gameObject.SetActive(false);
 
         if (slider == null)
         {
@@ -30,6 +42,7 @@ public class BaseHealthBar : MonoBehaviour
     void OnDestroy()
     {
         PlayerBase.OnBaseSpawned -= Bind;
+
         if (playerBase != null)
             playerBase.OnHpChanged -= UpdateBar;
     }
@@ -41,12 +54,53 @@ public class BaseHealthBar : MonoBehaviour
 
         playerBase = pb;
         playerBase.OnHpChanged += UpdateBar;
+
         gameObject.SetActive(true);
         UpdateBar(playerBase.CurrentHp, playerBase.MaxHp);
     }
 
     void UpdateBar(float current, float max)
     {
-        slider.value = max > 0f ? current / max : 0f;
+        float ratio = max > 0f? Mathf.Clamp01(current / max): 0f;
+
+        slider.value = ratio;
+        UpdateHealthSprite(ratio);
+    }
+
+    private void UpdateHealthSprite(float ratio)
+    {
+        if (fillImage == null ||healthSpriteSteps == null ||healthSpriteSteps.Length == 0)
+        {
+            return;
+        }
+
+        int selectedIndex = healthSpriteSteps.Length - 1;
+
+        for (int i = 0; i < healthSpriteSteps.Length - 1; i++)
+        {
+            if (ratio > healthSpriteSteps[i].threshold)
+            {
+                selectedIndex = i;
+                break;
+            }
+        }
+
+        if (selectedIndex == appliedStepIndex)
+            return;
+
+        Sprite selectedSprite = healthSpriteSteps[selectedIndex].sprite;
+
+        // 미할당 단계라면 현재 스프라이트를 유지한다.
+        if (selectedSprite == null)
+        {
+            Debug.LogWarning(
+                $"[BaseHealthBar] {selectedIndex}번 체력 단계의 Sprite가 없습니다.",
+                this);
+
+            return;
+        }
+
+        fillImage.sprite = selectedSprite;
+        appliedStepIndex = selectedIndex;
     }
 }
