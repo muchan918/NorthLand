@@ -10,7 +10,10 @@ concurrency:
 
 jobs:
   review:
-    if: github.event.pull_request.draft == false
+    # fork PR은 시크릿을 받지 못해 리뷰 스텝이 어차피 실패한다(GITHUB_TOKEN도 read-only).
+    # 실패 대신 스킵시켜 Actions 탭을 깨끗하게 유지한다.
+    # pull_request_target으로 바꾸면 시크릿이 fork 코드에 노출되므로 절대 금지.
+    if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.fork == false
     runs-on: ubuntu-latest
     timeout-minutes: 35
     permissions:

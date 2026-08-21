@@ -16,7 +16,13 @@ concurrency:
 
 jobs:
   claude:
-    if: contains(github.event.comment.body, '@claude')
+    # 퍼블릭 저장소이므로 작성자 검증이 필수다. issue_comment는 fork PR의 코멘트여도
+    # base 저장소 컨텍스트에서 시크릿과 함께 실행되므로, 게이트가 없으면 외부인이
+    # @claude 한 줄로 팀 OAuth 토큰을 소모시키고 write 권한 잡에 지시문을 주입할 수 있다.
+    # author_association은 GitHub이 채우는 값이라 코멘트 본문으로 위조할 수 없다.
+    if: |
+      contains(github.event.comment.body, '@claude') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
