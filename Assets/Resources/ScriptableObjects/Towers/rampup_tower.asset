@@ -19,9 +19,10 @@ MonoBehaviour:
   PlacementYaw: 45
   Cost: []
   Rarity: 1
+  UnlockWave: 1
   Attack:
     AttackDamage: 20
-    AttackRange: 18
+    AttackRange: 25
     AttackInterval: 0.8
     ProjectilePrefab: {fileID: 1796010324365560, guid: 71eb331b713d7274b9be930b15c1a48b, type: 3}
     Flight:
@@ -57,6 +58,7 @@ MonoBehaviour:
       MaxStacks: 0
       StackInterval: 0
       DecaySeconds: 0
+    VisualStages: []
   GroundZone:
     ZonePrefab: {fileID: 0}
     Radius: 0
