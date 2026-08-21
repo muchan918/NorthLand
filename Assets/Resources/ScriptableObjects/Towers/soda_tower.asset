@@ -20,12 +20,12 @@ MonoBehaviour:
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
     Amount: 40
-  Rarity: 0
+  Rarity: 1
   UnlockWave: 5
   Attack:
-    AttackDamage: 20
+    AttackDamage: 30
     AttackRange: 27
-    AttackInterval: 1.5
+    AttackInterval: 2.2
     ProjectilePrefab: {fileID: 1162392375372998, guid: c2da60c3896a09d42811362601158f7d, type: 3}
     Flight:
       rid: 3470829504553025637
@@ -60,6 +60,7 @@ MonoBehaviour:
       MaxStacks: 0
       StackInterval: 0
       DecaySeconds: 0
+    VisualStages: []
   GroundZone:
     ZonePrefab: {fileID: 0}
     Radius: 0
@@ -84,6 +85,7 @@ MonoBehaviour:
       type: {class: StunStatus, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
         Duration: 0.7
+        ImmunityWindow: 0.4
     - rid: 3470829504553025637
       type: {class: HomingFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:

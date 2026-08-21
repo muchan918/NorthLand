@@ -231,12 +231,12 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 6203434653622272
-    m_Localized: Scaling Marksman
+    m_Localized: Scaling Firepower
     m_Metadata:
       m_Items: []
   - m_Id: 6203434653622273
-    m_Localized: 'Every kill raises its damage: +15% per kill, up to 2.2x at 8 kills.
-      Resets when the wave ends.'
+    m_Localized: 'Every hit raises its damage: +8% per hit, up to 1.64x at 8 hits.
+      Loses a stack every 2s, and resets when the wave ends.'
     m_Metadata:
       m_Items: []
   - m_Id: 6219949113253888

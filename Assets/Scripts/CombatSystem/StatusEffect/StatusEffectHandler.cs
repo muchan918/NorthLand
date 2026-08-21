@@ -53,21 +53,34 @@ namespace NorthLand.Combat
         // ── 스턴 재적용 제한(#164) ─────────────────────────────
         // 스턴 축은 minMoveSpeed 하한 클램프를 우회해 완전 정지를 만든다. 그래서 클램프가 막고 있던
         // 소프트락을 이 클래스가 대신 막아야 한다. 규칙 두 개가 세트로 필요하다:
-        //  1) 스턴 중 재적용 무시 — 없으면 명중마다 remaining이 0.7로 리셋돼 만료가 영원히 오지 않는다.
-        //     soda는 AttackInterval 3 / StunDuration 0.7이고 Projectile의 StunEffectId가 static이라
-        //     모든 소다가 단일 소스를 공유한다. 5기가 균등 분산되면 명중 간격 0.6s < 0.7s로 끊기지 않는다.
+        //  1) 스턴 중 재적용 무시 — 없으면 명중마다 remaining이 리셋돼 만료가 영원히 오지 않는다.
+        //     `StunStatus`가 공유 static ID를 쓰므로(HitEffect.cs) 모든 소다가 단일 소스이고, 여러 기가
+        //     균등 분산되면 명중 간격이 스턴 지속보다 짧아져 끊기지 않는다. **이 규칙은 지우면 안 된다** —
+        //     밤 종료 조건이 몬스터 전멸이라(MonsterSpawn) 영구 정지는 곧 밤이 끝나지 않는 것이다.
         //  2) 종료 후 면역 창 — 1)만으로는 만료 직후 재스턴이 가능해 가동률이 100%에 가깝다.
         // 결과적으로 최대 가동률 = 스턴 지속 / (스턴 지속 + 면역 창)이 되어 타워를 몇 기 깔든 상한이 있다.
+        //
+        // ⚠ 두 규칙의 역할이 #441에서 갈렸다. **1기 기준 가동률은 공격 간격이 정한다**
+        //   (`간격 > 스턴 지속`이면 매 발이 새 스턴이 되고 가동률 = 지속/간격 — TowerAsset.OnValidate가
+        //   이 하한을 경고로 지킨다). 2)는 이제 **다기(多機) 케이스 전용 상한**이고, 창 길이는 부여자가
+        //   저작한다 — 소다를 여럿 깔았을 때 기여가 0이 되지 않으면서(WL-141) 완전 봉인도 막는 손잡이다.
         //
         // 소스가 아니라 대상 기준으로 판정하는 이유: 소스 기준이면 서로 다른 스턴원 2개가 번갈아 걸어
         // 다시 영구 정지가 만들어진다. "행동 불가"는 겹칠 이유가 없으므로 동시에 하나만 허용한다.
         //
-        // 이 핸들러는 런타임 AddComponent로 붙으므로(클래스 주석 참조) 실제로는 아래 기본값이 쓰인다.
-        // 인스펙터 노출은 미리 부착된 경우의 튜닝용이고, 정식 수치는 GDD §7 CC 사인오프 대상이다(WL-026).
+        // ⚠ **이 값은 이제 폴백이다**(#441). 부여자가 창 길이를 함께 넘기면 그 값이 이긴다 —
+        // 스턴을 거는 유일한 경로인 `StunStatus`가 SO 필드로 창을 저작하게 됐으므로(WL-026: CC 가동률
+        // 상한이 코드 기본값에 갇혀 있던 문제), 실제 플레이에서 아래 값이 쓰이는 경로는 남지 않는다.
+        // 핸들러를 미리 부착해 두고 ApplySlow를 직접 부르는 호출자(테스트 등)를 위해 남긴다.
         [SerializeField] float stunImmunityWindow = 1.4f;
 
         // 이 시각 전에는 재스턴을 받지 않는다. 스턴이 끝나는 시점에 갱신된다.
         float stunImmuneUntil;
+
+        // 지금 걸린 스턴이 끝날 때 적용할 창. **부여 시점에 확정해 EndStun까지 들고 간다** —
+        // 만료 시점에 조회하면 그 사이 다른 부여자가 값을 바꿨을 때 어느 스턴의 규칙인지가 흐려진다.
+        // 스턴은 대상당 하나뿐이므로(아래 게이트) 부여 시점 값이 곧 그 스턴의 규칙이다.
+        float activeStunImmunity;
 
         // 현재 스턴을 보유한 소스. stunActive가 false면 의미 없다
         // (effectId는 해시코드라 -1 같은 센티널을 쓸 수 없다).
@@ -80,6 +93,7 @@ namespace NorthLand.Combat
             // mover는 자식 GO까지 탐색한다(WL-129 A안). Enemy.cs·MonsterSpawn·MonsterStateMachine의
             // GetComponentInChildren 탐색과 정합 — MonsterMove가 자식에 있어도 CC(슬로우/스턴)가 적용된다.
             mover = GetComponentInChildren<IMovementAgent>();
+            activeStunImmunity = stunImmunityWindow;
         }
 
         // 타워가 사거리 내에서 매 Interval마다 호출.
@@ -111,7 +125,9 @@ namespace NorthLand.Combat
 
         // 타워/투사체가 호출: 대상에 슬로우(또는 스턴=배율0)를 부여·갱신한다. DoT와 동일하게 대상 쪽에서 duration을 소진 →
         // 갱신이 끊겨도 남은 시간 후 원복. multiplier: 1=정상, 0.6=40%감속, 0=완전정지. 같은 effectId는 갱신(존 재적용/재명중).
-        public void ApplySlow(int effectId, float multiplier, float duration)
+        /// `immunityWindow` — 이 스턴이 끝난 뒤 재스턴을 막을 시간(초). 음수면 이 핸들러의 폴백을 쓴다.
+        /// 감속에는 의미가 없다(감속은 하한 클램프가 받아내므로 게이트를 두지 않는다).
+        public void ApplySlow(int effectId, float multiplier, float duration, float immunityWindow = -1f)
         {
             if (duration <= 0f) return;
             multiplier = Mathf.Clamp01(multiplier);
@@ -144,6 +160,7 @@ namespace NorthLand.Combat
             {
                 stunActive = true;
                 stunSource = effectId;
+                activeStunImmunity = immunityWindow >= 0f ? immunityWindow : stunImmunityWindow;
             }
 
             PushToMover(effectId, multiplier);
@@ -156,7 +173,7 @@ namespace NorthLand.Combat
         void EndStun()
         {
             stunActive = false;
-            stunImmuneUntil = Time.time + stunImmunityWindow;
+            stunImmuneUntil = Time.time + activeStunImmunity;
         }
 
         // 효과 하나를 이동 에이전트의 해당 축에 밀어넣는다. 여러 효과를 여기서 합치지 않는 이유:

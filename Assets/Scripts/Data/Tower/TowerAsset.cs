@@ -227,14 +227,45 @@ public class TowerAsset : ScriptableObject
         // ⚠ 18 = 타일 6유닛 × 규약 계수 3. 타일 크기가 바뀌면 이 상수도 함께 바뀐다 —
         //   `OnValidate`는 씬 없이도 돌아 CombatMapGenerator.Settings를 참조할 수 없으므로
         //   단일 출처(WL-034)를 쓰지 못하고 여기 상수로 둔다.
+        // ⚠ **CC 항**(#441). 규약의 유도는 "적이 사거리를 **등속으로** 통과한다"를 전제하는데,
+        //   스턴 타워는 자기가 그 전제를 깬다 — 맞을 때마다 대상이 멈춰 체류 시간이 스스로 늘어난다.
+        //     체류 = 통과시간 + 스턴지속 × 발수     →     발수 = 통과시간 / (간격 − 스턴지속)
+        //   통과시간은 규약이 전제한 `사거리/6`초(속도 10)이므로, 3발 보장 조건이 한 항만 늘어난다:
+        //     간격 ≤ 사거리/18 + 스턴지속
+        //   예: 소다(사거리 27 · 스턴 0.7) → 상한 2.2초, 그 간격에서 4.5/(2.2−0.7) = 3.0발.
+        //   이 항이 없으면 CC 타워는 "규약을 어기는 예외"로 관리해야 하는데, 그러면 규약이 지켜지는지
+        //   자체를 검사할 수 없게 된다. 항을 세워 두면 새 CC 타워도 같은 식으로 검사된다.
         if (hasAttack && attackAuthored && Attack.AttackRange > 0f && Attack.AttackInterval > 0f)
         {
-            float intervalLimit = Attack.AttackRange / 18f;
+            var stun = LongestStun();
+            float stunDuration = stun != null ? stun.Duration : 0f;
+            float intervalLimit = Attack.AttackRange / 18f + stunDuration;
+
             if (Attack.AttackInterval > intervalLimit + 0.0001f)
                 Debug.LogWarning($"[TowerAsset] {name}: AttackInterval({Attack.AttackInterval})이 밸런싱 규약 " +
-                                 $"상한({intervalLimit:0.###})을 넘습니다 — 사거리 {Attack.AttackRange / 6f:0.##}타일에서 " +
-                                 "적이 지나가는 동안 발사가 5발 미만이라 쿨다운 위상에 따라 화력이 튑니다. " +
+                                 $"상한({intervalLimit:0.###})을 넘습니다 — 사거리 {Attack.AttackRange / 6f:0.##}타일" +
+                                 (stunDuration > 0f ? $" · 스턴 {stunDuration:0.##}초" : "") +
+                                 "에서 적이 지나가는 동안 발사가 3발 미만이라 쿨다운 위상에 따라 화력이 튑니다. " +
                                  "간격을 줄이고 발당 피해를 그만큼 올리세요(Docs/Core/CombatBalance.md §2).", this);
+
+            // 위 식의 **하한**. 간격이 스턴 지속보다 짧으면 스턴이 끊기는 구간이 사실상 사라져
+            // (`StatusEffectHandler`의 규칙 ①이 스턴 중 명중을 버리므로 만료 직후 바로 재스턴된다)
+            // 대상이 전진하지 못한다. 밤 종료 조건이 몬스터 전멸이라 딜 공급이 없으면 밤이 끝나지 않는다.
+            if (stunDuration > 0f && Attack.AttackInterval <= stunDuration)
+                Debug.LogWarning($"[TowerAsset] {name}: AttackInterval({Attack.AttackInterval})이 스턴 지속" +
+                                 $"({stunDuration:0.##}초)보다 짧거나 같습니다 — 대상이 사실상 계속 정지 상태가 되어 " +
+                                 "전진하지 못합니다. 간격을 스턴 지속보다 길게 두세요.", this);
+
+            // 같은 식의 나머지 경계. 면역 창이 `간격 − 스턴지속`보다 길면 **다음 발이 창 안에 들어와**
+            // 스턴이 걸리지 않는다 — 피해는 그대로 들어가고 CC만 조용히 절반 이하로 떨어지므로
+            // 저작자가 알아채기 어렵다. 창은 다기(多機) 상한을 위한 값이지, 1기의 발사를 버리는
+            // 장치가 아니다(StatusEffectHandler의 규칙 ②).
+            if (stun != null && stunDuration > 0f && Attack.AttackInterval > stunDuration &&
+                stun.ImmunityWindow > Attack.AttackInterval - stunDuration + 0.0001f)
+                Debug.LogWarning($"[TowerAsset] {name}: StunStatus.ImmunityWindow({stun.ImmunityWindow})이 " +
+                                 $"간격−스턴지속({Attack.AttackInterval - stunDuration:0.###})보다 깁니다 — " +
+                                 "다음 발이 면역 창 안에 들어와 스턴이 걸리지 않는 발사가 생깁니다. " +
+                                 "창을 줄이거나 간격을 늘리세요.", this);
         }
 
         // ── 명중 방식 ↔ 그 방식이 요구하는 수치 ─────────────────────────────
@@ -349,6 +380,26 @@ public class TowerAsset : ScriptableObject
             Debug.LogWarning($"[TowerAsset] {name}: Ramp.Trigger=Hit인데 프리팹에 AttackAction이 없습니다 " +
                              "— 명중 통지는 투사체 공격에서만 발행되므로 스택이 영영 쌓이지 않습니다. " +
                              "빔 타워라면 대상별 램프를 쓰거나 Trigger=Kill로 바꾸세요.", this);
+    }
+
+    /// 이 타워가 명중으로 거는 스턴 중 **지속이 가장 긴 것**. 스턴을 걸지 않으면 null.
+    ///
+    /// 규약 ①의 CC 항이 쓰는 값이다. 최댓값을 쓰는 이유: 대상은 스턴을 하나만 갖고
+    /// (`StatusEffectHandler`의 대상 기준 게이트) 그중 먼저 걸린 것이 만료될 때까지 유지되므로,
+    /// 체류 시간을 늘리는 기여는 가장 긴 항이 대표한다.
+    /// `Effects`는 `[SerializeReference]`라 rename·삭제로 항목이 null이 될 수 있어 건너뛴다.
+    NorthLand.Combat.StunStatus LongestStun()
+    {
+        if (Effects == null) return null;
+
+        NorthLand.Combat.StunStatus longest = null;
+        for (int i = 0; i < Effects.Count; i++)
+        {
+            if (Effects[i] is NorthLand.Combat.StunStatus stun &&
+                (longest == null || stun.Duration > longest.Duration))
+                longest = stun;
+        }
+        return longest;
     }
 #endif
 
