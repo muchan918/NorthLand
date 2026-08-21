@@ -1,7 +1,7 @@
 using NorthLand.Combat;
+using NorthLand.Core;
 using System.Collections.Generic;
 using UnityEngine;
-
 
 public readonly struct WaveMonsterCount
 {
@@ -24,10 +24,19 @@ public sealed class MonsterSpawnWaveProvider :
     [SerializeField]
     private List<MonsterWaveAsset> waves = new List<MonsterWaveAsset>();
 
+    [Header("Seed")]
+    [Tooltip("몬스터 스폰 랜덤에 사용할 마스터 시드를 제공하는 RunBootstrapper")]
+    [SerializeField]
+    private RunBootstrapper runBootstrapper;
+
     // 인스펙터 waves에서 null 슬롯만 걸러낸 런타임 진행 순서. 인덱스 0 = 1웨이브.
     private readonly List<MonsterWaveAsset> orderedWaves = new List<MonsterWaveAsset>();
 
     private readonly List<MonsterSpawnEntry> cachedEntries = new List<MonsterSpawnEntry>();
+
+    private readonly List<GameObject> normalSpawnPrefabs = new List<GameObject>();
+
+    private readonly List<GameObject> bossSpawnPrefabs = new List<GameObject>();
 
     private readonly List<WaveMonsterCount> cachedComposition = new();
 
@@ -51,6 +60,8 @@ public sealed class MonsterSpawnWaveProvider :
     public bool TryGetWave(int waveNumber,out IReadOnlyList<MonsterSpawnEntry> entries)
     {
         cachedEntries.Clear();
+        normalSpawnPrefabs.Clear();
+        bossSpawnPrefabs.Clear();
 
         if (!TryGetWaveAsset(waveNumber,out MonsterWaveAsset wave))
         {
@@ -58,21 +69,38 @@ public sealed class MonsterSpawnWaveProvider :
             return false;
         }
 
-        float nextGroupStartDelay = 0f;
-        float spawnInterval = Mathf.Max(0f, wave.SpawnInterval);
+        // 웨이브 그룹의 수량을 개별 프리팹 목록으로 펼치고,
+        // 일반 몬스터와 보스를 분리한다.
+        CollectSpawnPrefabs(waveNumber, wave);
 
-        foreach (MonsterWaveGroup group in wave.Groups)
+        System.Random waveRandom = CreateWaveRandom(waveNumber);
+
+        // 일반 몬스터만 랜덤으로 섞는다.
+        // 보스 목록은 섞지 않고 항상 일반 몬스터 뒤에 배치한다.
+        if (wave.RandomizeSpawnOrder)
         {
-            if (!TryResolveGroup(waveNumber,wave,group,out GameObject monsterPrefab,out int spawnCount))
-            {
-                continue;
-            }
-
-            cachedEntries.Add(new MonsterSpawnEntry(monsterPrefab,spawnCount,nextGroupStartDelay,spawnInterval));
-
-            nextGroupStartDelay += spawnCount * spawnInterval;
+            Shuffle(normalSpawnPrefabs, waveRandom);
         }
 
+        // 기존 에셋이나 잘못된 Inspector 값이 0이어도
+        // 최소 한 마리씩 생성되도록 보정한다.
+        int spawnCountPerBatch = Mathf.Max(1, wave.SpawnCountPerBatch);
+
+        // 음수 인터벌을 방지한다.
+        float minSpawnInterval = Mathf.Max(0f, wave.MinSpawnInterval);
+
+        // 최대값이 최소값보다 작으면 최소값으로 보정한다.
+        float maxSpawnInterval =Mathf.Max(minSpawnInterval,wave.MaxSpawnInterval);
+
+        float nextStartDelay = AddEntriesByBatch(normalSpawnPrefabs,spawnCountPerBatch,minSpawnInterval,maxSpawnInterval,0f,waveRandom);
+
+        if (normalSpawnPrefabs.Count > 0 &&
+            bossSpawnPrefabs.Count > 0)
+        {
+            nextStartDelay += RandomRange(waveRandom,minSpawnInterval,maxSpawnInterval);
+        }
+
+        AddEntriesByBatch(bossSpawnPrefabs,spawnCountPerBatch,minSpawnInterval,maxSpawnInterval,nextStartDelay,waveRandom);
         entries = cachedEntries;
         return cachedEntries.Count > 0;
     }
@@ -104,6 +132,89 @@ public sealed class MonsterSpawnWaveProvider :
         return cachedComposition.Count > 0;
     }
 
+    private void CollectSpawnPrefabs(int waveNumber,MonsterWaveAsset wave)
+    {
+        foreach (MonsterWaveGroup group in wave.Groups)
+        {
+            if (!TryResolveGroup(waveNumber,wave,group,out GameObject monsterPrefab,out int spawnCount))
+            {
+                continue;
+            }
+
+            bool isBoss = IsBossPrefab(monsterPrefab);
+
+            List<GameObject> targetList =isBoss? bossSpawnPrefabs: normalSpawnPrefabs;
+
+            for (int i = 0; i < spawnCount; i++)
+            {
+                targetList.Add(monsterPrefab);
+            }
+        }
+    }
+
+    private static bool IsBossPrefab(GameObject monsterPrefab)
+    {
+        if (monsterPrefab == null)
+        {
+            return false;
+        }
+
+        Enemy enemy = monsterPrefab.GetComponentInChildren<Enemy>(true);
+
+        return enemy != null && enemy.Asset != null && enemy.Asset.EnemyType == EnemyType.Boss;
+    }
+
+    private static void Shuffle(List<GameObject> prefabs,System.Random random)
+    {
+        for (int i = prefabs.Count - 1; i > 0; i--)
+        {
+            int randomIndex = random.Next(0, i + 1);
+
+            (prefabs[i], prefabs[randomIndex]) = (prefabs[randomIndex], prefabs[i]);
+        }
+    }
+
+    private static float RandomRange(System.Random random,float min,float max)
+    {
+        if (max <= min)
+        {
+            return min;
+        }
+
+        return min + (float)random.NextDouble() * (max - min);
+    }
+
+    private float AddEntriesByBatch(IReadOnlyList<GameObject> prefabs,int maxSpawnCountPerBatch,float minSpawnInterval,float maxSpawnInterval,float initialStartDelay,
+     System.Random random)
+    {
+        float currentStartDelay = initialStartDelay;
+        int currentIndex = 0;
+
+        while (currentIndex < prefabs.Count)
+        {
+            int remainingCount = prefabs.Count - currentIndex;
+
+            int batchCount = random.Next(1,maxSpawnCountPerBatch + 1);
+
+            batchCount = Mathf.Min(batchCount,remainingCount);
+
+            int batchEnd = currentIndex + batchCount;
+
+            for (int i = currentIndex; i < batchEnd; i++)
+            {
+                cachedEntries.Add(new MonsterSpawnEntry(prefabs[i],1,currentStartDelay,0f));
+            }
+
+            currentIndex = batchEnd;
+
+            if (currentIndex < prefabs.Count)
+            {
+                currentStartDelay += RandomRange(random,minSpawnInterval,maxSpawnInterval);
+            }
+        }
+
+        return currentStartDelay;
+    }
     private bool TryResolveGroup(int waveNumber,MonsterWaveAsset wave,MonsterWaveGroup group,out GameObject monsterPrefab,out int spawnCount)
     {
         monsterPrefab = null;
@@ -182,6 +293,27 @@ public sealed class MonsterSpawnWaveProvider :
 
         rewardPool = wave.RewardPool;
         return rewardPool != null;
+    }
+
+    private System.Random CreateWaveRandom(int waveNumber)
+    {
+        if (runBootstrapper == null)
+        {
+            runBootstrapper = FindFirstObjectByType<RunBootstrapper>();
+        }
+
+        int masterSeed = runBootstrapper != null? runBootstrapper.MasterSeed: 0;
+
+        if (masterSeed <= 0)
+        {
+            Debug.LogWarning($"[MonsterSpawn] 마스터 시드를 찾을 수 없어 웨이브 {waveNumber}의 번호를 임시 시드로 사용합니다.",this);
+
+            masterSeed = waveNumber;
+        }
+
+        int waveSeed = RunSeedDeriver.Derive(masterSeed,$"MonsterSpawn.Wave.{waveNumber}");
+
+        return new System.Random(waveSeed);
     }
 
 }
