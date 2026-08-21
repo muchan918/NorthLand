@@ -606,9 +606,26 @@ ApplyOrRefresh / ApplySlow → StatusEffectHandler
 
 **스턴에는 가동률 상한이 있다**([StatusEffectHandler.cs:48-58](../../Assets/Scripts/CombatSystem/StatusEffect/StatusEffectHandler.cs)).
 스턴 축은 `minMoveSpeed` 하한 클램프를 우회해 완전 정지를 만들므로, 클램프가 막던 소프트락을 핸들러가
-대신 막는다 — ① 스턴 중 재적용 무시 ② 종료 후 면역 창(`stunImmunityWindow`). 판정은 **소스가 아니라
+대신 막는다 — ① 스턴 중 재적용 무시 ② 종료 후 면역 창. 판정은 **소스가 아니라
 대상 기준**이다(소스 기준이면 서로 다른 스턴원 2개가 번갈아 걸어 영구 정지가 만들어진다).
 현재 `Projectile.StunEffectId`가 static이라 **모든 소다 타워가 단일 소스를 공유**한다.
+
+#### 두 규칙의 역할이 갈렸다 (#441)
+
+**면역 창은 이제 저작 값이다** — `StunStatus.ImmunityWindow`(기본 0.4)가 소유하고, `ApplySlow`가
+선택 인자로 받아 **부여 시점에 확정해 `EndStun`까지 들고 간다.** 만료 시점에 조회하면 그 사이 다른
+부여자가 값을 바꿨을 때 어느 스턴의 규칙인지가 흐려진다. `StatusEffectHandler.stunImmunityWindow`
+필드는 폴백으로만 남는다 — 스턴을 거는 유일한 경로가 `StunStatus`이므로 실제 플레이에서는 쓰이지 않는다.
+CC 가동률 상한이 코드 기본값에 갇혀 있던 문제(WL-026)가 이걸로 풀린다.
+
+| | 담당 | 근거 |
+|---|---|---|
+| **1기 가동률** | 공격 간격 | `간격 > 스턴지속`이면 매 발이 새 스턴이 되고 가동률 = 지속/간격. 이 하한은 `TowerAsset.OnValidate`가 지킨다([CombatBalance.md §2](CombatBalance.md) 규약 ① CC 항) |
+| **다기(多機) 천장** | 면역 창 | 대상당 상한 = `지속/(지속+창)`. 소다 0.7/0.4면 64% — 2기째 기여가 0이던 문제(WL-141)가 풀리면서도 완전 봉인은 막힌다 |
+
+⚠ **규칙 ①은 지우면 안 된다.** 밤 종료 조건이 몬스터 전멸이므로(`MonsterSpawn`) 영구 정지는 곧
+밤이 끝나지 않는 것이다. 면역 창을 0으로 두는 것도 같은 방향의 위험인데, 그 타워가 대상을 스스로
+죽이지 못할 때(딜을 걷어낸 순수 유틸 스턴 타워) 드러난다.
 
 > ⚠ **이 static이 상한의 근거는 아니다.** 게이트 `CanStunNow()`([:148](../../Assets/Scripts/CombatSystem/StatusEffect/StatusEffectHandler.cs))는
 > `!stunActive && Time.time >= stunImmuneUntil`이고 두 값 모두 **핸들러(대상) 인스턴스 필드**이며,
