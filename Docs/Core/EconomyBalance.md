@@ -210,7 +210,7 @@ GDD는 갱신 대상이다(§6).
 
 - 잔액 검사: [TowerFusionController.cs:67](../../Assets/Scripts/GameManager/MouseManager/TowerPlacement/TowerFusionController.cs:67) `CanAfford(recipe.ExtraCost)`
 - 지불: 같은 파일 119행이 `TowerPlacer.BeginTowerPlacement(recipe.Result, recipe.ExtraCost, …)`
-- 되돌리기 환원: [TowerPlaceCommand.cs:96](../../Assets/Scripts/GameManager/MouseManager/TowerPlacement/TowerPlaceCommand.cs:96) — 실지불액을 들고 있어 100% 돌아온다
+- 되돌리기 환원: [ReversibleCommandBase.cs:71](../../Assets/Scripts/Command/ReversibleCommandBase.cs:71) — 커맨드가 실지불액을 들고 있어 100% 돌아온다(#444에서 공통 기반으로 승격)
 
 **→ 레시피 12개 에셋에 값을 적는 것만으로 끝난다.** 티어별 정액으로 둔다:
 
@@ -244,6 +244,8 @@ GDD는 갱신 대상이다(§6).
 
 ⚠ **되돌리기(§GDD 5.2)가 100% 환원이라 "합성 후 취소"로 식량을 태울 수 없다** — 이미 커맨드가
 실지불액을 들고 있다. 무료 시행착오가 보장되므로 정액 비용을 붙여도 벽이 되지 않는다.
+**#444로 건물 업그레이드·주민 증축도 같은 성질을 갖는다** — 낮 안에서는 어떤 지출도 오클릭으로
+날아가지 않으므로, 비용 곡선을 세울 때 "실수 여유분"을 얹을 필요가 없다(밤으로 넘기면 확정된다).
 ⚠ **`Recipe_Example_Gatling` · `Recipe_Example_Sniper`는 예제 레시피로 보인다** — 실사용 여부를
 확인해 정본만 저작할 것(둘 다 살아 있으면 게이트링·스나이퍼가 두 경로로 나온다).
 

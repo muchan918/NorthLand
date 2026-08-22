@@ -10,7 +10,9 @@
 > - `Assets/Scripts/CombatSystem/Tower/Tower.cs` — `Asset` 읽기 접근자
 > **구현 파일 — 커맨드 패턴(#263)**:
 > - `Assets/Scripts/Command/IReversibleCommand.cs` — Execute/Confirm/Commit/Undo **4단 계약**(#281에서 중립 위치로 이전)
+> - `Assets/Scripts/Command/ReversibleCommandBase.cs` — 4단 상태 기계 + 비용 환원 **공통 기반**(#444에서 승격)
 > - `Assets/Scripts/Command/CommandHistory.cs` — 되돌리기 LIFO 히스토리(#281)
+> - `Assets/Scripts/Command/UndoRequest.cs` — 되돌리기 요청 단일 진입점(버튼 · Ctrl+Z 공용, #444)
 > - `Assets/Scripts/GameManager/MouseManager/TowerPlacement/TowerMergeCommand.cs` — 재료 소프트 소모·확정·원복
 > - `Assets/Scripts/GameManager/MouseManager/TowerPlacement/TowerFootprint.cs` — `Release()`/`Reoccupy()`(점유만 임시 해제)
 > **구현 파일 — 선택·패널 UI(#183)**:
@@ -82,8 +84,8 @@
 | 매칭 규칙 | `TowerFusionMatcher` | 레거시(Fusion). 순수 static, `TryResolve`/`BuildRequired`/`CanFuse` |
 | 레시피 | `TowerRecipe` (SO) | 레거시(접두 없음). `Materials`/`Result`/`ExtraCost` |
 | 재료 집합(선택 상태) | `TowerMergeGroup` | 순수 C#·코디네이터 소유. `Towers`/`Add`/`Remove`/`Clear`/`Prune`/`OnChanged`. 구 `TowerWallet` 대체 |
-| 되돌릴 수 있는 조작 | `IReversibleCommand` | `Execute`/`Confirm`/`Commit`/`Undo` **4단**(#263→#281). 구현체는 합성·배치 둘 |
-| 되돌리기 히스토리 | `CommandHistory` | LIFO 20. `Confirm`이 등록 시점, 밤 진입에 일괄 `Commit`(#281) |
+| 되돌릴 수 있는 조작 | `IReversibleCommand` | `Execute`/`Confirm`/`Commit`/`Undo` **4단**(#263→#281). 구현체는 합성·배치·**경영**(#444) 셋이고, 상태 기계는 `ReversibleCommandBase`가 공유한다 |
+| 되돌리기 히스토리 | `CommandHistory` | LIFO 20. `Confirm`이 등록 시점, 밤 진입에 일괄 `Commit`(#281). **#444로 경영 조작도 이 스택을 쓴다** — 합성과 건물 업그레이드가 한 순서에 섞인다 |
 | 재료 소모 트랜잭션 | `TowerMergeCommand` | 소프트 소모(타일 `Release`+비활성화) → `Confirm`=세션 성공(재료는 살아 있다) → `Commit`=밤에 진짜 파괴 / `Undo`=결과 회수+재료 원복 |
 | 선택 코디네이터 | `TowerMergeCoordinator` | 그룹 소유·게이팅·패널 권위·실행 오케스트레이션(파사드: `SelectedTowers`/`OnGroupChanged`/`CanMerge`/`RequestMerge`) |
 | 합성 패널 뷰 | `TowerMergePanelView` | 선택 리스트 + 후보 버튼. 코디네이터만 참조 |
@@ -323,9 +325,11 @@
 
 재조립 동안 재료 스케일은 `VfxScaleHold`가 배타 점유하며, 어떤 경로로 끊겨도(씬 전환·취소·예외) 연출 호스트의 `OnDestroy`가 원복한다 — **안 보이는 타워가 최악의 실패 모드**라는 판단은 등장 연출과 같다.
 
-### 9.3 확정한 합성 되돌리기 — #281
+### 9.3 확정한 합성 되돌리기 — #281 (→ #444)
 
-배치 세션이 성공으로 끝나도 합성은 **밤 전까지 되돌릴 수 있다.** 되돌리기 버튼(`TowerUndoButtonView`, 페이즈 패널 밖에 상시 배치 — 밤엔 비활성)이 `CommandHistory.Undo()`를 부르고, 히스토리 최상단이 이 합성이면 결과 타워가 회수되고 재료가 복원된다.
+배치 세션이 성공으로 끝나도 합성은 **밤 전까지 되돌릴 수 있다.** 되돌리기 버튼(`TowerUndoButtonView`, 페이즈 패널 밖에 상시 배치 — 밤엔 비활성)과 **Ctrl+Z**가 모두 `UndoRequest.Submit()`을 지나 `CommandHistory.Undo()`를 부르고, 히스토리 최상단이 이 합성이면 결과 타워가 회수되고 재료가 복원된다.
+
+⚠ **#444로 스택에 경영 조작(건물 업그레이드·주민 증축)이 함께 쌓인다.** "최상단이 이 합성인가"는 이제 타워 조작만 세어 판단할 수 없다 — 합성 뒤에 건물을 올렸다면 Ctrl+Z 한 번은 그 건물을 되돌린다. 상태 기계도 `ReversibleCommandBase`로 올라갔으므로 아래 계약은 `TowerMergeCommand.OnUndo(wasConfirmed)`가 지킨다(`wasConfirmed=false`면 ③만 도는 #263의 취소 경로다).
 
 **되돌리기 순서 — 네 단계 전부가 계약이다:**
 
@@ -333,7 +337,7 @@
 ① TowerDissolveEffect.Play([결과 타워], TileSize, DissolveMode.Rewind)
      ← 결과 타워가 **아직 살아 있는 동안**. Play의 시각 사본 복제가 동기로 끝나므로
        바로 아래에서 Destroy해도 안전하다
-② _result.Undo()      결과 타워: TowerFootprint.Release() → Destroy → ExtraCost 환원(Grant)
+② _result.Undo()      결과 타워: 선택 해제 → TowerFootprint.Release() → Destroy → ExtraCost 환원(Grant)
 ③ RestoreMaterials()  재료: Reoccupy() → SetActive(true)
 ④ effect.RestoreTo(재료들)  가루의 목적지 등록 + 같은 프레임에 스케일 0으로 잡기
 ```
@@ -345,6 +349,8 @@
 - **밤에는 불가능하다.** `OnDayToNight`에 히스토리 전체가 `Commit`되어 재료가 진짜로 파괴되고 스택이 비워진다.
 
 **LIFO여야 하는 이유**는 편의가 아니다. `A 배치(tile1) → A+B 합성 → C를 (비워진) tile1에 배치` 상태에서 합성을 먼저 되돌리면 A가 tile1을 되찾지 못하고 위의 불변식 ②가 발동해 **A가 타일 없는 타워가 된다.** LIFO가 C를 먼저 되돌리게 강제해 이 경로를 원천 차단한다 — LIFO 자체가 유효성 검사다. ⚠ 낮 중 타워 철거·사망처럼 히스토리를 거치지 않고 대상이 사라지는 경로가 생기면 이 불변식이 깨진다.
+
+같은 논지가 경영 축에도 그대로 적용된다(#444) — 본진 레벨이 하위 건물의 실질 Max를 정하므로 본진을 먼저 되돌리면 하위 건물이 상한을 넘은 레벨로 남고, LIFO가 그것을 막는다. 상세는 `Docs/ManagementArea/BuildingUpgrade.md` §10.
 
 ---
 
@@ -366,7 +372,7 @@
 | 재료 집합 저장(이음매) | **`TowerMergeGroup`**(순수 C#, 코디네이터 소유) | 실행부·매칭이 소비, `OnChanged` 단일 통지 |
 | 매칭 규칙 | **`TowerFusionMatcher`**(순수) | 버튼 활성·실행 공유 단일 출처 |
 | 합성 실행(검증·배치·소모) | **`TowerFusionController`**(muchan) | `TryFuse(recipe, group)`. 진행 중 커맨드 1개를 배치 콜백으로 물고 있다 |
-| 재료 소모의 되돌리기 | **`TowerMergeCommand`**(#263) | 소프트 소모/확정/원복. `TowerMergeGroup`을 모른다(집합 정리는 `Prune`이 담당) |
+| 재료 소모의 되돌리기 | **`TowerMergeCommand`**(#263) | 소프트 소모/확정/원복. `TowerMergeGroup`을 모른다(집합 정리는 `Prune`이 한다). 상태 기계·비용 환원은 `ReversibleCommandBase`(#444)에 있다 |
 | 결과 고스트 배치·타일 검증·점유 | **`TowerPlacer`** / `TowerFootprint` | TowerPlacement.md. `TowerFootprint`가 `Release`/`Reoccupy`로 임시 해제도 담당(#263) |
 | 자원(ExtraCost) 지불 | **`ManagementController`** | `CanAfford`/`TrySpend`, WL-017 |
 | 소모 연출(화이트아웃·폭발·부유·수렴·재조립) | **`TowerDissolveEffect`**(#265, n0wst4ndup, #281에서 개명) | 시각 전용·논블로킹. **도메인 무지** — `Transform` 목록과 타일 한 칸 크기만 받는다. 등장 연출과 부품(`GrainSwarm`·`VfxScaleHold`)·시간 축을 공유. §9.2 |
