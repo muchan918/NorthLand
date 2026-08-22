@@ -473,7 +473,7 @@ public class ManagementController : MonoBehaviour
         int previousLevel = next;
         string buildingId = UpgradeBuildingId(index);
         PushSpendUndo(levels[previousLevel].Cost,
-            () => TryRestoreUpgradeBuilding(buildingId, previousLevel),
+            () => TryRevertUpgradeBuilding(buildingId, index, previousLevel),
             $"{_upgradeBuildingRefs[index].BuildingID} 업그레이드");
         OnChanged?.Invoke();
         OnBuildingAction?.Invoke(_upgradeBuildingRefs[index], BuildingAction.Upgraded);
@@ -946,7 +946,7 @@ public class ManagementController : MonoBehaviour
         int previousLevel = next;
         string buildingId = LineBuildingId(index);
         PushSpendUndo(target.Cost,
-            () => TryRestoreProductionLine(buildingId, previousLevel, LineVillagers(index)),
+            () => TryRevertProductionLine(buildingId, index, previousLevel),
             $"{LineDisplayName(index)} 업그레이드");
         OnChanged?.Invoke();
         OnBuildingAction?.Invoke(_lineBuildings[index], BuildingAction.Upgraded);
@@ -1308,6 +1308,43 @@ public class ManagementController : MonoBehaviour
     ///
     /// 뺄 수 없으면(있을 수 없지만) **상한을 내리지 않고 실패로 끝낸다** — 그러면 비용도 환원되지 않아
     /// (<see cref="ResourceSpendCommand"/>) 상태와 지갑이 함께 제자리에 남는다.
+    /// <summary>
+    /// 업그레이드 전용 건물의 되돌리기 — 복원 전에 <b>대상이 등록 시점의 그 건물인지 대조한다</b>(#444).
+    /// </summary>
+    ///
+    /// 복원 API는 대상을 `BuildingID`로 **다시 찾는다**(세이브는 index가 없어 그럴 수밖에 없다). 그래서
+    /// 같은 SO가 배열에 두 번 등록되면 `FindUpgradeIndexById`가 첫 일치를 잡아 **엉뚱한 건물이 되돌아간다**
+    /// — 자원은 환원되는데 레벨은 남의 것이 내려가고 콘솔은 조용하다. 되돌리기는 등록 시점의 index를
+    /// 쥐고 있으므로 여기서 대조해 그 경로를 막는다(SO 유일성 전제 WL-021을 상속하지 않는다).
+    ///
+    /// ⚠ 실패는 **에러로 남긴다**. `CommandHistory.Undo`가 커맨드를 실행 전에 스택에서 빼므로 실패한
+    /// 항목은 재시도되지 않는다 — 조용히 넘어가면 "눌렀는데 아무 일도 없다"로만 보인다(WL-148).
+    private bool TryRevertUpgradeBuilding(string buildingId, int registeredIndex, int previousLevel)
+    {
+        if (FindUpgradeIndexById(buildingId) != registeredIndex)
+        {
+            Debug.LogError($"[되돌리기] {buildingId}: 되돌릴 대상을 다시 찾지 못했습니다(등록 index {registeredIndex}) — " +
+                           "같은 건물 SO가 _upgradeBuildings에 중복 등록됐는지 확인하세요.", this);
+            return false;
+        }
+
+        return TryRestoreUpgradeBuilding(buildingId, previousLevel);
+    }
+
+    /// 생산 라인의 되돌리기 — 대조 근거는 <see cref="TryRevertUpgradeBuilding"/>과 같다.
+    /// 주민 배치 수는 스냅샷하지 않고 **되돌리는 시점의 값**을 읽어 그대로 유지한다.
+    private bool TryRevertProductionLine(string buildingId, int registeredIndex, int previousLevel)
+    {
+        if (FindLineIndexById(buildingId) != registeredIndex)
+        {
+            Debug.LogError($"[되돌리기] {buildingId}: 되돌릴 대상을 다시 찾지 못했습니다(등록 index {registeredIndex}) — " +
+                           "같은 건물 SO가 _productionBuildings에 중복 등록됐는지 확인하세요.", this);
+            return false;
+        }
+
+        return TryRestoreProductionLine(buildingId, previousLevel, LineVillagers(registeredIndex));
+    }
+
     private bool RevertVillagerGrowth(int previousBonus)
     {
         int restoredMax = _maxVillagers + previousBonus;
