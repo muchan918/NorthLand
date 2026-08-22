@@ -126,11 +126,11 @@ public sealed class MonsterSpawnWaveProvider :
                 continue;
             }
 
-            Enemy enemy = monsterPrefab.GetComponentInChildren<Enemy>(true);
+            Enemy enemy = monsterPrefab.GetComponent<Enemy>();
             EnemyAsset asset = enemy != null ? enemy.Asset : null;
             WaveMonsterCount count = new WaveMonsterCount(asset, spawnCount);
 
-            (IsBossPrefab(monsterPrefab) ? cachedBossComposition : cachedComposition).Add(count);
+            (enemy != null && enemy.IsBoss? cachedBossComposition: cachedComposition).Add(count);
         }
 
         cachedComposition.AddRange(cachedBossComposition);
@@ -160,14 +160,9 @@ public sealed class MonsterSpawnWaveProvider :
 
     private static bool IsBossPrefab(GameObject monsterPrefab)
     {
-        if (monsterPrefab == null)
-        {
-            return false;
-        }
+        Enemy enemy = monsterPrefab != null? monsterPrefab.GetComponent<Enemy>(): null;
 
-        Enemy enemy = monsterPrefab.GetComponentInChildren<Enemy>(true);
-
-        return enemy != null && enemy.Asset != null && enemy.Asset.EnemyType == EnemyType.Boss;
+        return enemy != null && enemy.IsBoss;
     }
 
     private static void Shuffle(List<GameObject> prefabs,System.Random random)
