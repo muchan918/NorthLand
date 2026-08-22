@@ -300,14 +300,16 @@ public sealed class MonsterSpawnWaveProvider :
     {
         if (runBootstrapper == null)
         {
+            Debug.LogWarning("[MonsterSpawn] RunBootstrapper 참조가 없어 씬에서 검색합니다.",this);
+
             runBootstrapper = FindFirstObjectByType<RunBootstrapper>();
         }
 
-        int masterSeed = runBootstrapper != null? runBootstrapper.MasterSeed: 0;
+        int masterSeed = runBootstrapper != null ? runBootstrapper.MasterSeed : 0;
 
         if (masterSeed <= 0)
         {
-            Debug.LogWarning($"[MonsterSpawn] 마스터 시드를 찾을 수 없어 웨이브 {waveNumber}의 번호를 임시 시드로 사용합니다.",this);
+            Debug.LogError($"[MonsterSpawn] 마스터 시드를 찾을 수 없어 웨이브 {waveNumber} 번호를 임시 시드로 사용합니다.",this);
 
             masterSeed = waveNumber;
         }
