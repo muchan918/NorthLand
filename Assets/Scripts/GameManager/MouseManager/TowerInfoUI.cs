@@ -42,13 +42,14 @@ public class TowerInfoUI : MonoBehaviour
     [SerializeField] GameObject _mergeContainer;
     [Tooltip("후보 칸이 생성될 부모 = 배치 팔레트에서 복사해 온 Scroll View의 Content.")]
     [SerializeField] Transform _mergeContent;
-    [Tooltip("후보 칸 프리팹(TowerButton 복제 + TowerMergeTargetSlot). 비면 블록이 뜨지 않는다.")]
+    [Tooltip("후보 칸 프리팹(TowerButton 복제 + TowerMergeTargetSlot, NorthLand-Imported 소속). 비면 블록이 뜨지 않고 경고를 1회 남긴다.")]
     [SerializeField] TowerMergeTargetSlot _mergeSlotPrefab;
 
     // 이번 표시로 만든 칸들. **`_mergeContent.childCount`로 대신하면 안 된다** — `Destroy`는 프레임 끝에
     // 반영되므로, 같은 프레임에 비우고 다시 채우는 이 경로에서는 childCount가 방금 지운 칸까지 세어
     // "표시할 게 0인데 블록이 켜진" 상태가 된다.
     private readonly List<TowerMergeTargetSlot> _mergeSlots = new();
+    private bool _mergeWiringWarned; // 아래 HasMergeSlotWiring — 경고 1회 제한용
 
     private void Awake()
     {
@@ -161,7 +162,7 @@ public class TowerInfoUI : MonoBehaviour
     {
         ClearMergeSlots();
 
-        if (_mergeContent != null && _mergeSlotPrefab != null && !string.IsNullOrEmpty(materialTowerId))
+        if (!string.IsNullOrEmpty(materialTowerId) && HasMergeSlotWiring())
         {
             // 표시 순서는 뷰가 정한다(색인은 카탈로그 적재 순서 그대로 — Resources.LoadAll이라 비결정적).
             // 등급 다음 표시 이름: 도감(FusionTowerCodexUI.LoadData)과 같은 규칙이라 두 화면의 순서가 일치한다.
@@ -173,6 +174,11 @@ public class TowerInfoUI : MonoBehaviour
                 TowerAsset result = recipe.Result; // 색인이 Result 없는 레시피를 이미 걸렀다
 
                 TowerMergeTargetSlot slot = Instantiate(_mergeSlotPrefab, _mergeContent);
+
+                // 정본 프리팹은 **아이콘만** 그린다(이름 칸이 없다 — 의도, TowerMerge.md §8.5).
+                // 그래도 이름을 계속 넘기는 이유가 둘 있다: ① 이름 칸을 가진 변종 프리팹이 쓸 값이고,
+                // ② 이 호출이 `EnsureData`로 `result.Data`(런타임 전용, 에셋 미직렬화)를 채워 **아래 툴팁이
+                // 이름·역할·설명 키를 읽게** 한다. "안 보이는 인자"라고 지우면 툴팁이 TowerID로 떨어진다.
                 slot.Set(result.Icon, TowerDisplayName.Of(result));
 
                 // 상위 타워의 스탯·코스트는 호버 툴팁이 맡는다 — 기존 감지기를 런타임 부착해 재사용하므로
@@ -196,6 +202,30 @@ public class TowerInfoUI : MonoBehaviour
         {
             _mergeContainer.SetActive(_mergeSlots.Count > 0);
         }
+    }
+
+    /// <summary>
+    /// 후보 칸을 만들 배선이 온전한가. 비어 있으면 **한 번만** 경고한다.
+    /// </summary>
+    // 이 경로는 타워를 누를 때마다 돈다 — 매번 짖으면 콘솔이 못 쓰게 되므로 1회로 제한한다.
+    // 그래도 완전히 조용하면 안 되는 이유: 칸 프리팹이 **별도 저장소(NorthLand-Imported) 소속**이라
+    // 미동기 환경에서는 참조가 풀려 null이 되고, 증상이 "타워를 눌러도 상위 타워가 안 뜬다" 하나로
+    // 배선 누락과 구별되지 않는다(컴파일도 콘솔도 조용 — WL-040 계통, SystemMap §4 동기화 계약).
+    private bool HasMergeSlotWiring()
+    {
+        if (_mergeContent != null && _mergeSlotPrefab != null) return true;
+
+        if (!_mergeWiringWarned)
+        {
+            _mergeWiringWarned = true;
+            Debug.LogWarning(
+                "[TowerInfoUI] 합성 후보 칸 배선이 비어 '합성 가능' 블록을 띄울 수 없습니다 — " +
+                $"_mergeContent={(_mergeContent != null ? "OK" : "null")}, " +
+                $"_mergeSlotPrefab={(_mergeSlotPrefab != null ? "OK" : "null")}. " +
+                "칸 프리팹은 NorthLand-Imported 소속입니다(@NorthLand/Prefabs/UI/TowerTargetSlot.prefab) — " +
+                "인스펙터 배선과 Imported 저장소 동기화를 함께 확인하세요.", this);
+        }
+        return false;
     }
 
     private void ClearMergeSlots()
