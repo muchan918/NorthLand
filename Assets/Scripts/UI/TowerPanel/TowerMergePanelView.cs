@@ -61,16 +61,13 @@ public class TowerMergePanelView : MonoBehaviour
         {
             if (recipe == null) continue;
 
-            // 결과 타워의 런타임 Data(에셋에 저장 안 됨)를 채워 라벨을 로컬라이즈할 수 있게 한다(채움 규약).
-            if (recipe.Result != null && recipe.Result.Data == null)
-            {
-                recipe.Result.Data = DataTableManager.Get<TowerTable>("TowerTable")?.Get(recipe.Result.TowerID);
-            }
+            // 결과 타워의 런타임 Data(에셋에 저장 안 됨)를 채워 라벨·툴팁이 키를 읽을 수 있게 한다(채움 규약).
+            TowerDisplayName.EnsureData(recipe.Result);
 
             var button = Instantiate(_candidateButtonPrefab, _candidateContent);
 
             var label = button.GetComponentInChildren<TMP_Text>();
-            if (label != null) label.text = recipe.Result != null ? LocalizedTowerName(recipe.Result) : recipe.name;
+            if (label != null) label.text = recipe.Result != null ? TowerDisplayName.Of(recipe.Result) : recipe.name;
 
             var captured = recipe; // 클로저 캡처(루프 변수 캡처 함정 회피)
             button.onClick.AddListener(() => { if (_coordinator != null) _coordinator.RequestMerge(captured); });
@@ -105,7 +102,7 @@ public class TowerMergePanelView : MonoBehaviour
 
             var row = Instantiate(_selectedRowPrefab, _selectedListContent);
             var text = row.GetComponentInChildren<TMP_Text>();
-            if (text != null) text.text = LocalizedTowerName(tower.Asset);
+            if (text != null) text.text = TowerDisplayName.Of(tower.Asset);
             _rows.Add(row);
         }
     }
@@ -120,18 +117,5 @@ public class TowerMergePanelView : MonoBehaviour
 
             button.gameObject.SetActive(_coordinator.CanMerge(recipe));
         }
-    }
-
-    // TowerID → TowerData.NameKey → NorthLand_Towers 로컬라이즈. Data/NameKey 없으면 TowerID 폴백.
-    private static string LocalizedTowerName(TowerAsset asset)
-    {
-        if (asset == null) return "?";
-
-        var data = asset.Data;
-        if (data != null && !string.IsNullOrEmpty(data.NameKey))
-        {
-            return LocalizationHelper.Get(LocalizationHelper.k_TowersTable, data.NameKey);
-        }
-        return asset.TowerID;
     }
 }

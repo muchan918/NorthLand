@@ -260,17 +260,17 @@ public class TowerTooltipView : MonoBehaviour
 
     // 헤더 = 타워 이름 (+ 역할, 있으면). Data 미채움 시 TowerID로 폴백.
     // BuildingTooltipSource의 "이름 - 역할" 표기와 같은 계열.
+    // 이름 자체는 공용 TowerDisplayName이 푼다(폴백 규칙 단일 출처) — 여기가 더하는 것은 역할 한 줄뿐이다.
+    // EnsureData를 거치므로 배치 경로를 타지 않은 결과 타워(합성 후보·정보 패널 후보 행)에서도 키가 잡힌다.
     private string ResolveHeader(TowerAsset t)
     {
-        if (t.Data == null || string.IsNullOrEmpty(t.Data.NameKey)) return t.TowerID;
+        string name = TowerDisplayName.Of(t);
 
-        string name = LocalizationHelper.Get(LocalizationHelper.k_TowersTable, t.Data.NameKey);
-        if (!string.IsNullOrEmpty(t.Data.RoleKey))
-        {
-            string role = LocalizationHelper.Get(LocalizationHelper.k_TowersTable, t.Data.RoleKey);
-            if (!string.IsNullOrEmpty(role)) return $"{name} - {role}";
-        }
-        return name;
+        TowerData data = TowerDisplayName.EnsureData(t);
+        if (data == null || string.IsNullOrEmpty(data.RoleKey)) return name;
+
+        string role = LocalizationHelper.Get(LocalizationHelper.k_TowersTable, data.RoleKey);
+        return string.IsNullOrEmpty(role) ? name : $"{name} - {role}";
     }
 
     // 설명(#141): TowerData.DescriptionKey를 Towers 테이블에서 pull. Magic 타워는 공통 공격 스탯이

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NorthLand.Combat;
 using TMPro;
 using UnityEngine;
@@ -36,11 +37,18 @@ public class TowerInfoUI : MonoBehaviour
     // 알기 시작하면 pull 방식이 무너진다(ITargetingSelector 주석).
     ITargetingSelector _targeting;
 
-    [Header("합성 후보 (자리만 — 채우는 로직은 미구현)")]
-    [Tooltip("합성 후보 블록 전체. Content에 행이 하나라도 붙어야 표시된다.")]
+    [Header("합성 후보 — 이 타워를 재료로 쓰는 상위 타워 (TowerMerge.md §8.5)")]
+    [Tooltip("합성 후보 블록 전체. 표시할 상위 타워가 하나라도 있을 때만 켠다.")]
     [SerializeField] GameObject _mergeContainer;
-    [Tooltip("후보 행이 생성될 부모. TowerRecipe를 훑는 로직이 붙으면 여기에 행을 채운다.")]
+    [Tooltip("후보 칸이 생성될 부모 = 배치 팔레트에서 복사해 온 Scroll View의 Content.")]
     [SerializeField] Transform _mergeContent;
+    [Tooltip("후보 칸 프리팹(TowerButton 복제 + TowerMergeTargetSlot). 비면 블록이 뜨지 않는다.")]
+    [SerializeField] TowerMergeTargetSlot _mergeSlotPrefab;
+
+    // 이번 표시로 만든 칸들. **`_mergeContent.childCount`로 대신하면 안 된다** — `Destroy`는 프레임 끝에
+    // 반영되므로, 같은 프레임에 비우고 다시 채우는 이 경로에서는 childCount가 방금 지운 칸까지 세어
+    // "표시할 게 0인데 블록이 켜진" 상태가 된다.
+    private readonly List<TowerMergeTargetSlot> _mergeSlots = new();
 
     private void Awake()
     {
@@ -90,7 +98,7 @@ public class TowerInfoUI : MonoBehaviour
         SetText(_descriptionText, L(data.DescriptionKey));
         ApplyStats(statsText);
         ApplyTargeting(targeting);
-        RefreshMergeVisibility();
+        RefreshMergeTargets(data.TowerID);
         gameObject.SetActive(true);
     }
 
@@ -102,7 +110,7 @@ public class TowerInfoUI : MonoBehaviour
         SetText(_descriptionText, L(descriptionKey));
         ApplyStats(statsText);
         ApplyTargeting(null);   // 축약 경로는 타워 인스턴스를 모르므로 조준 조작을 붙일 수 없다
-        RefreshMergeVisibility();
+        RefreshMergeTargets(null);  // TowerID를 모르면 역방향 조회를 할 수 없다 → 블록을 접는다
         gameObject.SetActive(true);
     }
 
@@ -113,6 +121,7 @@ public class TowerInfoUI : MonoBehaviour
         SetText(_descriptionText, string.Empty);
         SetText(_statsText, string.Empty);
         ApplyTargeting(null);   // 선택이 풀린 타워를 계속 붙들지 않는다(파괴된 타워를 조작하는 경로 차단)
+        RefreshMergeTargets(null);  // 다음 표시가 축약 경로여도 직전 타워의 후보가 남지 않게 비운다
         gameObject.SetActive(false);
     }
 
@@ -139,14 +148,69 @@ public class TowerInfoUI : MonoBehaviour
         }
     }
 
-    // 후보 행이 채워졌을 때만 블록을 띄운다. 후보 로직이 붙어 _mergeContent에 행을 넣는 순간 자동으로 나타나므로,
-    // 그때 이 뷰를 고칠 필요가 없다(자리와 배선만 미리 잡아둔 이유).
-    private void RefreshMergeVisibility()
+    /// <summary>
+    /// "이 타워를 재료로 쓰는 상위 타워" 블록을 다시 그린다(TowerMerge.md §8.5).
+    /// <paramref name="materialTowerId"/>가 없거나 그 타워가 어떤 레시피의 재료도 아니면 블록을 접는다.
+    /// </summary>
+    // 조회는 TowerMergeTargetIndex(= TowerFusionMatcher.BuildRequired 기반) 한 곳만 쓴다 —
+    // 재료 판정을 여기서 다시 구현하면 표시와 실제 합성 가능성이 갈린다(TowerMerge.md §6 단일 출처).
+    //
+    // 밤에도 이 블록은 뜬다. 코디네이터의 낮 게이팅은 **실행**에 걸리는 것이고(§10), 이건 조작이 아니라
+    // 정보다 — 밤에 "이 타워로 무엇을 만들 수 있었나"를 감추면 다음 낮 계획을 세울 수 없다.
+    private void RefreshMergeTargets(string materialTowerId)
     {
+        ClearMergeSlots();
+
+        if (_mergeContent != null && _mergeSlotPrefab != null && !string.IsNullOrEmpty(materialTowerId))
+        {
+            // 표시 순서는 뷰가 정한다(색인은 카탈로그 적재 순서 그대로 — Resources.LoadAll이라 비결정적).
+            // 등급 다음 표시 이름: 도감(FusionTowerCodexUI.LoadData)과 같은 규칙이라 두 화면의 순서가 일치한다.
+            var sorted = new List<TowerRecipe>(TowerMergeTargetIndex.RecipesUsing(materialTowerId));
+            sorted.Sort(CompareByRarityThenName);
+
+            foreach (TowerRecipe recipe in sorted)
+            {
+                TowerAsset result = recipe.Result; // 색인이 Result 없는 레시피를 이미 걸렀다
+
+                TowerMergeTargetSlot slot = Instantiate(_mergeSlotPrefab, _mergeContent);
+                slot.Set(result.Icon, TowerDisplayName.Of(result));
+
+                // 상위 타워의 스탯·코스트는 호버 툴팁이 맡는다 — 기존 감지기를 런타임 부착해 재사용하므로
+                // 칸 프리팹에 툴팁 배선이 필요 없다(TowerSelectPanelView·합성 패널과 같은 선례).
+                // 프리팹에 이미 붙어 있으면 [DisallowMultipleComponent]가 AddComponent를 거부하므로 먼저 조회한다.
+                if (!slot.TryGetComponent(out TowerTooltipSource tooltip))
+                {
+                    tooltip = slot.gameObject.AddComponent<TowerTooltipSource>();
+                }
+                tooltip.Init(result); // Data는 TowerDisplayName.Of가 이미 채웠다(툴팁이 키를 읽을 수 있다)
+
+                _mergeSlots.Add(slot);
+            }
+        }
+
         if (_mergeContainer != null)
         {
-            _mergeContainer.SetActive(_mergeContent != null && _mergeContent.childCount > 0);
+            _mergeContainer.SetActive(_mergeSlots.Count > 0);
         }
+    }
+
+    private void ClearMergeSlots()
+    {
+        foreach (TowerMergeTargetSlot slot in _mergeSlots)
+        {
+            if (slot != null) Destroy(slot.gameObject);
+        }
+        _mergeSlots.Clear();
+    }
+
+    // 등급 오름차순 → 표시 이름. CompareOrdinal은 한글 음절이 유니코드상 가나다 순이라 그대로 쓸 수 있고,
+    // 도감이 이미 같은 비교를 쓴다(두 화면의 정렬 규칙을 하나로 유지).
+    private static int CompareByRarityThenName(TowerRecipe left, TowerRecipe right)
+    {
+        int rarity = left.Result.Rarity.CompareTo(right.Result.Rarity);
+        if (rarity != 0) return rarity;
+
+        return string.CompareOrdinal(TowerDisplayName.Of(left.Result), TowerDisplayName.Of(right.Result));
     }
 
     private static void SetText(TextMeshProUGUI label, string value)
