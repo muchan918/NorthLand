@@ -208,7 +208,13 @@
 - **하단 Horizontal Scroll View — 후보 버튼**: **레시피(카탈로그)마다 버튼 1개를 미리 생성해 담아두고 기본 `SetActive(false)`**. 매칭되는 레시피의 버튼만 `SetActive(true)`.
   - 활성 판정 = `_coordinator.CanMerge(recipe)`(= `TowerFusionMatcher.CanFuse(group.Towers, recipe)`). (매칭 규칙 재구현 금지 — §6 단일 출처.)
   - `ExtraCost` 감당 여부(`ManagementController.CanAfford(recipe.ExtraCost)`)는 (선택) `interactable`/딤 표시로 구분하되, **최종 검증은 실행부(`TryFuse`)가 한다**(방어). #183 완료기준은 매칭 기반 `SetActive`까지 — 현 구현은 `SetActive`만.
-  - 버튼 표시 = 결과 타워(`recipe.Result`) 이름(→ `Result.TowerID` → `NameKey` 로컬라이즈, Data/NameKey 없으면 TowerID 폴백). 아이콘 필드가 생기면 교체.
+  - **버튼 표시 = 결과 타워(`recipe.Result`) 아이콘 + 이름**(#445). 둘 다 프리팹(`TowerButton.prefab` — 배치 팔레트와 같은 것)의 `TowerButtonView.Set(Sprite, string)` 슬롯에 채운다. 이름은 `TowerDisplayName.Of`(단일 출처, §8.5), 아이콘은 `TowerAsset.Icon`(미할당이면 슬롯 off — 흰 사각형보다 빈 칸이 낫다는 `ResourceAsset` 계보 규약).
+    - 도입 시엔 `GetComponentInChildren<TMP_Text>()`로 **라벨만** 채웠다(아이콘 필드가 없던 시절 규약). `TowerAsset.Icon`이 생기고 실사용 타워 19종이 전부 채워진 뒤에도 이 경로가 남아, 후보 버튼은 테두리 안이 빈 칸이라 무슨 타워인지 그림으로 알 수 없었다.
+    - `SetLocked`는 부르지 않는다 — 합성 후보에는 **해금** 개념이 없다. 원본 프리팹의 `TowerLockOverlay`는 `m_IsActive: 0`이라 그대로 조용하다(§8.5 `TowerMergeTargetSlot`이 같은 이유로 그 컴포넌트를 떼어낸 것과 같은 판단).
+  - **호버 툴팁의 코스트 슬롯 = 소모될 재료 타워**(#445, `TowerMergeCandidateHover` → `TowerTooltipView.Show(..., recipe)`). 배치 팔레트 버튼은 그 자리에 **자원**을 노란 줄로 내지만, 합성은 **자원이 아니라 타워가 나간다** — 결과 SO의 `Cost`는 지불되지 않으므로(§9: `TryFuse`는 `ExtraCost`로 배치를 연다) 그걸 그대로 그리면 합성 전용 타워는 `Cost`가 비어 있어 노란 줄이 통째로 사라지고 합성이 "공짜"로 보인다.
+    - 표기 = `재료`(로컬라이즈 키 `game.merge.materials`, `NorthLand_default`) 다음 `타워명 x수량` 줄 나열, 이어서 `ExtraCost`가 있으면 자원 줄. 라벨을 붙이는 이유는 이 슬롯이 평소 자원을 그리는 자리라 라벨이 없으면 타워 이름이 자원명으로 읽히기 때문이다.
+    - **재료 집계는 `TowerFusionMatcher.BuildRequired`** — §6 단일 출처. 여기서 다시 세면 "툴팁엔 2개인데 실제로는 3개를 먹는" 어긋남이 생긴다.
+    - ⚠ **표시하는 것은 레시피의 요구량이지 "지금 선택한 것 중 무엇이 소모되는가"가 아니다.** 후보 버튼은 매칭될 때만 켜지므로 둘이 실질적으로 같고, 실제 소모 대상은 핑크 프리뷰(§8.4)가 월드에서 가리킨다.
   - **onClick → `_coordinator.RequestMerge(recipe)`**(코디네이터가 그룹을 물려 `TryFuse(recipe, group)` 호출). 버튼이 자기 `TowerRecipe`를 클로저로 물음.
   - **갱신 시점 = 그룹이 바뀔 때마다** 전 버튼 재판정 — `_coordinator.OnGroupChanged` 구독(패널이 활성일 때. 코디네이터는 내부적으로 `TowerMergeGroup.OnChanged`를 이 이벤트로 포워딩). 패널은 `OnEnable`에서도 현재 상태로 1회 동기화.
   - **UX 트레이드오프(경미)**: `SetActive` 방식은 비매칭 버튼이 사라져 스크롤뷰가 리플로우된다(선택 변경마다 버튼이 튀어나왔다 사라짐). 이슈가 택한 방식이라 유지하되, 튐이 거슬리면 '전체 표시 + `interactable`로 회색' 대안 고려. 또 **여분 허용 시 실제 소모될 재료가 무엇인지**(선택 순서 index로 결정)는 리스트에 표시되지 않음 — 후속 폴리시(호버 시 소모 대상 하이라이트).
@@ -236,6 +242,7 @@
 - **칸 = 결과 타워 아이콘 + 이름**(`TowerMergeTargetSlot`). **겉모습은 배치 팔레트 칸과 같다** — 프리팹은 `TowerButton.prefab`을 복제해 `Button`·`TowerButtonView`·`TowerLockOverlay`를 떼고 이 컴포넌트를 붙인 것이다. 같은 정보를 같은 모양으로 보여주되 **누를 수는 없는** 칸이다.
   - 팔레트의 `TowerButtonView`를 그대로 쓰지 않는 이유: `SetLocked`·해제 연출이 배치 팔레트의 **해금** 개념과 한 몸이고 정보 패널에는 잠금이 없다. (원본 프리팹의 `TowerLockOverlay`는 `m_IsActive: 0`이라 남겨둬도 조용하지만, 배선할 슬롯이 늘고 의도가 흐려진다.)
   - 상세 스탯·코스트는 **호버 툴팁**이 맡는다 — `TowerTooltipSource`를 런타임 부착해 재사용하므로 칸 프리팹에 툴팁 배선이 없다(§8.2 후보 버튼·`TowerSelectPanelView`와 같은 선례). 칸 안에 `Raycast Target`이 켜진 `Image`가 하나 있어야 호버가 잡히는데, 복제 원본의 `Slot/Img_Bg`가 이미 그래서 `Button`을 떼도 유지된다.
+    - **레시피를 함께 넘긴다**(`Init(result, recipe)`, #445) — 여기 뜨는 타워는 합성으로만 얻으므로 자원 코스트가 비어 있고, 툴팁이 낼 수 있는 유일한 코스트가 "무슨 타워 몇 개"다. 이 블록의 존재 이유가 "이 타워로 무엇을 만들 수 있나"인데 **무엇이 더 필요한지**를 안 보여주면 반쪽이다(표기 규칙은 §8.2 후보 버튼과 같다).
   - **클릭 동작은 없다**(의도). 우측 패널의 최종 결정권은 스위처 하나라는 §8.1 계약을 건드리지 않으려면, 칸이 패널을 갈아치우는 경로를 만들지 않는 게 맞다.
 - **표시 순서 = 등급 → 표시 이름**(도감 `LoadData`와 같은 규칙 → 두 화면의 순서가 일치). **정렬은 뷰가 한다** — 이름 정렬이 로케일 의존이라, 로케일을 모르는 색인이 미리 정해두면 언어를 바꿀 때 어긋난다.
 - **밤에도 뜬다**. §10 게이팅은 **실행**에 걸리는 것이고 이건 조작이 아니라 정보다 — 밤에 감추면 다음 낮 계획을 세울 수 없다.

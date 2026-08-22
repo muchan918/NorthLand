@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 using TMPro;
 using UnityEngine;
@@ -96,7 +97,11 @@ public class TowerTooltipView : MonoBehaviour
     /// 스탯 아래에 덧붙일 한 줄(없으면 null). 합성 후보 호버가 "물려받는 효과"를 여기로 넘긴다(#274 Phase 5) —
     /// SO만 봐서는 알 수 없고 **현재 선택 집합에 의존하는** 정보라 툴팁이 스스로 만들 수 없다.
     /// </param>
-    public void Show(TowerAsset tower, RectTransform anchor, string extraStatsLine = null)
+    /// <param name="recipe">
+    /// 이 타워를 **합성으로** 얻는 레시피(없으면 null). 있으면 코스트 슬롯이 자원 대신 <b>재료 타워</b>를 낸다 —
+    /// 합성 후보는 결과 SO의 <c>Cost</c>를 지불하지 않으므로, 레시피를 안 넘기면 노란 줄이 통째로 빈다(#445).
+    /// </param>
+    public void Show(TowerAsset tower, RectTransform anchor, string extraStatsLine = null, TowerRecipe recipe = null)
     {
         if (!_ready) return;
         if (tower == null) { Hide(); return; }
@@ -106,10 +111,16 @@ public class TowerTooltipView : MonoBehaviour
         _descText.text = desc;
         _descText.gameObject.SetActive(!string.IsNullOrEmpty(desc)); // 설명 없으면 빈 줄 안 남기고 접음
         _statsText.text = NorthLand.Combat.TowerStatsFormatter.Join(BuildStats(tower), extraStatsLine);
-        _costText.text = BuildCost(tower);
+        _costText.text = BuildCost(tower, recipe);
 
-        // 아이콘: TowerAsset에 Sprite 필드가 생기면 여기서 `_icon.sprite = tower.Icon;` 로 바인딩한다.
-        // 지금은 슬롯만 존재(플레이스홀더) — 필드가 없으므로 자리만 유지한다.
+        // 아이콘은 버튼·후보 칸과 같은 SO 필드를 그린다(TowerAsset.Icon) — 같은 타워가 화면마다 다르게
+        // 보이지 않게. 미할당이면 슬롯을 끈다: 스프라이트 없는 Image는 흰 사각형이 아니라 **회색 판**으로
+        // 그려져(툴팁 폴백이 색을 깔아둔다) 아이콘이 있는 것처럼 보인다(TowerButtonView.Set과 같은 규약).
+        if (_icon != null)
+        {
+            _icon.enabled = tower.Icon != null;
+            _icon.sprite = tower.Icon;
+        }
 
         _panel.SetActive(true);
         if (anchor != null) PositionAbove(anchor);
@@ -154,11 +165,16 @@ public class TowerTooltipView : MonoBehaviour
         hlg.childControlWidth = hlg.childControlHeight = true;
         hlg.childForceExpandWidth = hlg.childForceExpandHeight = false;
 
-        // 아이콘 플레이스홀더(Image 슬롯만 — TowerAsset Sprite 필드는 나중에)
+        // 아이콘 슬롯. **색은 흰색이어야 한다** — Image.color는 스프라이트에 곱해지므로, 구 플레이스홀더
+        // 회색(0.30,0.32,0.40)을 그대로 두면 Show가 채운 아이콘이 어둡게 깔린다. 스프라이트가 없을 때는
+        // Show가 슬롯을 끄기 때문에 회색 판으로 자리를 채울 이유도 없다.
+        // preserveAspect는 배치 팔레트 칸(TowerButton.prefab의 Img_Icon)과 같은 값이다 — 40x40 고정 칸에
+        // 비정사각 아이콘이 들어와도 두 화면에서 같은 모양으로 보인다.
         var iconGO = new GameObject("Icon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
         iconGO.transform.SetParent(header.transform, false);
         _icon = iconGO.GetComponent<Image>();
-        _icon.color = new Color(0.30f, 0.32f, 0.40f, 1f);
+        _icon.color = Color.white;
+        _icon.preserveAspect = true;
         _icon.raycastTarget = false;
         var le = iconGO.AddComponent<LayoutElement>();
         le.preferredWidth = le.minWidth = 40;
@@ -295,13 +311,57 @@ public class TowerTooltipView : MonoBehaviour
             : NorthLand.Combat.TowerStatsFormatter.BuildRangeLine(t.PreviewRadius);
     }
 
-    // 코스트: '자원명 x수량' 줄 나열(자원명은 default 테이블 로컬라이즈, BuildingInfoUI 표기와 동일 계열).
-    private string BuildCost(TowerAsset t)
+    /// <summary>
+    /// 코스트 슬롯 = "이걸 세우려면 무엇이 나가는가". 배치는 자원이 나가지만(<see cref="TowerAsset.Cost"/>),
+    /// <b>합성은 재료 타워가 나간다</b>(+ 레시피의 <c>ExtraCost</c>) — 그래서 레시피를 받으면 표기 대상이 바뀐다.
+    /// 결과 SO의 <c>Cost</c>를 그대로 쓰면 합성 후보의 노란 줄이 통째로 비어 "공짜"로 보인다(#445).
+    /// </summary>
+    private string BuildCost(TowerAsset t, TowerRecipe recipe)
     {
-        if (t.Cost == null) return string.Empty;
+        if (recipe == null) return BuildResourceLines(t.Cost);
+
+        // Join은 두 줄이 다 비면 null을 낸다 — 슬롯 텍스트에 그대로 들어가므로 빈 문자열로 눌러 둔다.
+        return NorthLand.Combat.TowerStatsFormatter.Join(
+            BuildMaterialLines(recipe), BuildResourceLines(recipe.ExtraCost)) ?? string.Empty;
+    }
+
+    // 합성 재료: '재료' 라벨 + '타워명 x수량' 줄 나열.
+    // **집계는 후보 판정·실행부와 같은 출처(TowerFusionMatcher.BuildRequired)를 쓴다** — 여기서 다시 세면
+    // "툴팁엔 2개인데 실제로는 3개를 먹는" 어긋남이 생긴다(TowerMerge.md §6 단일 출처).
+    // 라벨을 붙이는 이유: 이 슬롯은 평소 **자원**을 그리는 자리라, 라벨이 없으면 타워 이름이 자원명으로 읽힌다.
+    private static string BuildMaterialLines(TowerRecipe recipe)
+    {
+        List<(string id, int count)> required = TowerFusionMatcher.BuildRequired(recipe);
+        if (required.Count == 0) return string.Empty; // 재료 없는 레시피 = 저작 실수(합성 자체가 성립하지 않는다)
+
+        // 라벨이 비어도(키 누락·로케일 미선택) 첫 줄이 빈 줄로 남지 않게 BuildResourceLines와 같은 방식으로 잇는다.
+        var sb = new StringBuilder(LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, "game.merge.materials") ?? string.Empty);
+        foreach ((string id, int count) in required)
+        {
+            if (sb.Length > 0) sb.Append('\n');
+            sb.Append($"{ResolveMaterialName(recipe, id)} x{count}");
+        }
+        return sb.ToString();
+    }
+
+    // BuildRequired는 TowerID로 집계하므로 이름을 낼 SO를 레시피에서 되찾는다(표시 이름은 TowerDisplayName 단일 출처).
+    private static string ResolveMaterialName(TowerRecipe recipe, string towerId)
+    {
+        foreach (TowerRecipe.MaterialEntry entry in recipe.Materials)
+        {
+            if (entry != null && entry.Tower != null && entry.Tower.TowerID == towerId)
+                return TowerDisplayName.Of(entry.Tower);
+        }
+        return towerId; // 집계 출처가 같은 리스트라 도달하지 않는다 — 그래도 ID를 내 빈 줄이 되지 않게 한다
+    }
+
+    // 자원 코스트: '자원명 x수량' 줄 나열(자원명은 default 테이블 로컬라이즈, BuildingInfoUI 표기와 동일 계열).
+    private string BuildResourceLines(IReadOnlyList<ResourceCost> costs)
+    {
+        if (costs == null) return string.Empty;
 
         var sb = new StringBuilder();
-        foreach (ResourceCost c in t.Cost)
+        foreach (ResourceCost c in costs)
         {
             if (c == null || c.Resource == null || c.Amount <= 0) continue;
             ResourceData data = ResolveResourceData(c.Resource);

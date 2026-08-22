@@ -66,8 +66,22 @@ public class TowerMergePanelView : MonoBehaviour
 
             var button = Instantiate(_candidateButtonPrefab, _candidateContent);
 
-            var label = button.GetComponentInChildren<TMP_Text>();
-            if (label != null) label.text = recipe.Result != null ? TowerDisplayName.Of(recipe.Result) : recipe.name;
+            string displayName = recipe.Result != null ? TowerDisplayName.Of(recipe.Result) : recipe.name;
+
+            // 아이콘·이름은 프리팹(= 배치 팔레트와 같은 `TowerButton.prefab`)의 TowerButtonView 슬롯에 채운다.
+            // 라벨만 채우고 아이콘을 비워두면 테두리 안이 빈 칸으로 남아 후보가 무슨 타워인지 그림으로 알 수 없다(#445).
+            // `SetLocked`는 부르지 않는다 — 합성 후보에는 해금 개념이 없고, 프리팹의 TowerLockOverlay는
+            // `m_IsActive: 0`이라 그대로 조용하다(TowerMerge.md §8.5의 같은 판단).
+            var view = button.GetComponent<TowerButtonView>();
+            if (view != null)
+            {
+                view.Set(recipe.Result != null ? recipe.Result.Icon : null, displayName);
+            }
+            else
+            {
+                var label = button.GetComponentInChildren<TMP_Text>();
+                if (label != null) label.text = displayName;
+            }
 
             var captured = recipe; // 클로저 캡처(루프 변수 캡처 함정 회피)
             button.onClick.AddListener(() => { if (_coordinator != null) _coordinator.RequestMerge(captured); });

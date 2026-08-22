@@ -182,7 +182,11 @@ public class TowerInfoUI : MonoBehaviour
                 {
                     tooltip = slot.gameObject.AddComponent<TowerTooltipSource>();
                 }
-                tooltip.Init(result); // Data는 TowerDisplayName.Of가 이미 채웠다(툴팁이 키를 읽을 수 있다)
+                // 레시피까지 넘긴다 — 여기 뜨는 타워는 **합성으로만** 얻으므로 자원 코스트가 비어 있고,
+                // 툴팁이 대신 낼 수 있는 유일한 코스트가 "무슨 타워 몇 개"다. 이 블록의 존재 이유가
+                // "이걸로 무엇을 만들 수 있나"인데 무엇이 더 필요한지를 안 보여주면 반쪽이다(#445).
+                // Data는 TowerDisplayName.Of가 이미 채웠다(툴팁이 키를 읽을 수 있다).
+                tooltip.Init(result, recipe);
 
                 _mergeSlots.Add(slot);
             }
