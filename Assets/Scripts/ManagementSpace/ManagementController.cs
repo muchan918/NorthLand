@@ -468,6 +468,13 @@ public class ManagementController : MonoBehaviour
 
         _upgradeLevel[index] = next + 1;
         Debug.Log($"[경영] {_upgradeBuildingRefs[index].BuildingID} 업그레이드 → Lv{_upgradeLevel[index]}");
+
+        // 되돌리기 등록(#444). 이전 레벨로 되맞추는 일은 세이브 복원 API가 그대로 해 준다.
+        int previousLevel = next;
+        string buildingId = UpgradeBuildingId(index);
+        PushSpendUndo(levels[previousLevel].Cost,
+            () => TryRestoreUpgradeBuilding(buildingId, previousLevel),
+            $"{_upgradeBuildingRefs[index].BuildingID} 업그레이드");
         OnChanged?.Invoke();
         OnBuildingAction?.Invoke(_upgradeBuildingRefs[index], BuildingAction.Upgraded);
         return true;
@@ -553,6 +560,12 @@ public class ManagementController : MonoBehaviour
 
         _bonusVillagers++;
         Debug.Log($"[경영] 주민 수 증가 → {MaxVillagers}명 ({_bonusVillagers}/{levels.Count}회차)");
+
+        // 되돌리기 등록(#444). 상한을 내리는 조작이라 되돌리기가 배치까지 볼 수 있어야 한다 —
+        // 규칙은 RevertVillagerGrowth 참고.
+        int previousBonus = _bonusVillagers - 1;
+        PushSpendUndo(target.Cost, () => RevertVillagerGrowth(previousBonus),
+            $"{building.BuildingID} 주민 증축");
         OnChanged?.Invoke();
         OnBuildingAction?.Invoke(building, BuildingAction.VillagerIncreased);
         return true;
@@ -927,6 +940,14 @@ public class ManagementController : MonoBehaviour
         _level[index] = next + 1;
         _amountPerVillager[index] = target.AmountPerVillager;
         Debug.Log($"[경영] {LineDisplayName(index)} 업그레이드 → Lv{_level[index]} (주민당량 {_amountPerVillager[index]})");
+
+        // 되돌리기 등록(#444). 복원 API가 레벨과 주민 배치를 함께 받으므로 배치 수는 스냅샷하지 않고
+        // **되돌리는 시점의 값**을 읽어 그대로 유지한다 — 그 사이 주민을 넣거나 뺐을 수 있다.
+        int previousLevel = next;
+        string buildingId = LineBuildingId(index);
+        PushSpendUndo(target.Cost,
+            () => TryRestoreProductionLine(buildingId, previousLevel, LineVillagers(index)),
+            $"{LineDisplayName(index)} 업그레이드");
         OnChanged?.Invoke();
         OnBuildingAction?.Invoke(_lineBuildings[index], BuildingAction.Upgraded);
         return true;
@@ -1245,5 +1266,77 @@ public class ManagementController : MonoBehaviour
         OnChanged?.Invoke();
 
         return true;
+    }
+
+    // ── 되돌리기 등록 (#444) ─────────────────────────────────────────────
+    /// <summary>
+    /// 자원을 소모한 경영 조작을 되돌리기 히스토리에 올린다 — 타워 배치·합성과 <b>같은 스택</b>이라
+    /// 건물 업그레이드 → 타워 배치 → 건물 업그레이드를 눌린 역순으로 하나씩 되감는다(LIFO, #444).
+    /// </summary>
+    ///
+    /// 되돌리는 방법으로 위의 세이브 복원 API(<c>TryRestore*</c>)를 그대로 넘긴다 — "비용·페이즈 게이트를
+    /// 타지 않고 상태를 그 값으로 맞춘다"가 되돌리기에 필요한 것과 정확히 같아서, 되돌리기 전용 감소
+    /// 경로를 따로 만들지 않는다(근거는 <see cref="ResourceSpendCommand"/> 주석).
+    ///
+    /// 등록에 실패해도 조작 자체는 정상이므로 경고만 남기고 진행한다 — "되돌릴 수 없다" 하나만 잃는다
+    /// (<c>TowerPlacer</c>가 배치 커맨드 인수 실패를 다루는 것과 같은 판단).
+    private void PushSpendUndo(IReadOnlyList<ResourceCost> paid, Func<bool> revert, string label)
+    {
+        var command = new ResourceSpendCommand(this, paid, revert, label);
+        if (command.Execute())
+        {
+            CommandHistory.Push(command); // Confirm()도 여기서 걸린다(등록과 확정은 한 몸)
+            return;
+        }
+
+        Debug.LogWarning($"[경영] {label}: 되돌리기 커맨드 인수에 실패했습니다 — " +
+                         "이 조작은 되돌릴 수 없습니다(조작 자체는 정상).", this);
+    }
+
+    /// <summary>
+    /// 주민 증축 1회를 되돌린다(#444) — 상한을 <paramref name="previousBonus"/> 기준으로 되맞춘다.
+    /// </summary>
+    ///
+    /// **배치가 상한을 넘게 되면 먼저 한 명을 뺀다.** 늘린 주민은 그날 바로 배치할 수 있고 그 배치는
+    /// 히스토리를 거치지 않으므로(<see cref="AssignVillager"/>는 자원을 쓰지 않아 되돌리기 축의 바깥이다),
+    /// 상한만 내리면 **없는 주민이 계속 생산하는 상태**가 남는다. 그래서 되돌리기가 배치까지 본다.
+    ///
+    /// 어느 라인에서 뺄지는 **가장 많이 배치된 라인**으로 정한다 — 임의 선택이지만 결정적이고, 분산
+    /// 배치한 판을 가장 덜 흐트러뜨린다. 빼는 일 자체는 <see cref="UnassignVillager"/>를 그대로 쓰므로
+    /// <see cref="BuildingAction.VillagerUnassigned"/>가 발화해 **그 건물에서 주민 1명이 걸어 나온다** —
+    /// 되돌렸다는 사실이 화면에서 읽히는 경로가 이미 있어서 연출을 새로 만들지 않는다(Resident.md §3.2).
+    ///
+    /// 뺄 수 없으면(있을 수 없지만) **상한을 내리지 않고 실패로 끝낸다** — 그러면 비용도 환원되지 않아
+    /// (<see cref="ResourceSpendCommand"/>) 상태와 지갑이 함께 제자리에 남는다.
+    private bool RevertVillagerGrowth(int previousBonus)
+    {
+        int restoredMax = _maxVillagers + previousBonus;
+
+        while (AssignedTotal > restoredMax)
+        {
+            int line = FullestLineIndex();
+            if (line < 0 || !UnassignVillager(line))
+            {
+                Debug.LogWarning($"[되돌리기] 주민 증축: 배치 {AssignedTotal}명을 상한 {restoredMax}명으로 " +
+                                 "줄일 수 없어 되돌리지 않았습니다.", this);
+                return false;
+            }
+        }
+
+        return TryRestoreBonusVillagers(previousBonus);
+    }
+
+    // 주민이 가장 많이 배치된 라인(전부 0이면 -1). 동수면 낮은 index가 이긴다 — 같은 판에서 되돌리기가
+    // 두 번 불려도 같은 선택을 하도록 결정적으로 둔다.
+    private int FullestLineIndex()
+    {
+        if (_villagerCounts == null) return -1;
+
+        int best = -1;
+        for (int i = 0; i < _villagerCounts.Length; i++)
+        {
+            if (_villagerCounts[i] > 0 && (best < 0 || _villagerCounts[i] > _villagerCounts[best])) best = i;
+        }
+        return best;
     }
 }
