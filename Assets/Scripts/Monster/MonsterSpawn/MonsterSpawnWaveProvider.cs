@@ -86,13 +86,15 @@ public sealed class MonsterSpawnWaveProvider :
         // 최소 한 마리씩 생성되도록 보정한다.
         int spawnCountPerBatch = Mathf.Max(1, wave.SpawnCountPerBatch);
 
+        float intraBatchJitter = Mathf.Max(0f, wave.IntraBatchJitter);
+
         // 음수 인터벌을 방지한다.
         float minSpawnInterval = Mathf.Max(0f, wave.MinSpawnInterval);
 
         // 최대값이 최소값보다 작으면 최소값으로 보정한다.
         float maxSpawnInterval =Mathf.Max(minSpawnInterval,wave.MaxSpawnInterval);
 
-        float nextStartDelay = AddEntriesByBatch(normalSpawnPrefabs,spawnCountPerBatch,minSpawnInterval,maxSpawnInterval,0f,waveRandom);
+        float nextStartDelay = AddEntriesByBatch(normalSpawnPrefabs,spawnCountPerBatch,intraBatchJitter,minSpawnInterval,maxSpawnInterval,0f,waveRandom);
 
         if (normalSpawnPrefabs.Count > 0 &&
             bossSpawnPrefabs.Count > 0)
@@ -100,7 +102,7 @@ public sealed class MonsterSpawnWaveProvider :
             nextStartDelay += RandomRange(waveRandom,minSpawnInterval,maxSpawnInterval);
         }
 
-        AddEntriesByBatch(bossSpawnPrefabs,spawnCountPerBatch,minSpawnInterval,maxSpawnInterval,nextStartDelay,waveRandom);
+        AddEntriesByBatch(bossSpawnPrefabs,spawnCountPerBatch,intraBatchJitter,minSpawnInterval,maxSpawnInterval,nextStartDelay,waveRandom);
         entries = cachedEntries;
         return cachedEntries.Count > 0;
     }
@@ -184,7 +186,7 @@ public sealed class MonsterSpawnWaveProvider :
         return min + (float)random.NextDouble() * (max - min);
     }
 
-    private float AddEntriesByBatch(IReadOnlyList<GameObject> prefabs,int maxSpawnCountPerBatch,float minSpawnInterval,float maxSpawnInterval,float initialStartDelay,
+    private float AddEntriesByBatch(IReadOnlyList<GameObject> prefabs,int maxSpawnCountPerBatch,float intraBatchJitter,float minSpawnInterval,float maxSpawnInterval,float initialStartDelay,
      System.Random random)
     {
         float currentStartDelay = initialStartDelay;
@@ -202,7 +204,7 @@ public sealed class MonsterSpawnWaveProvider :
 
             for (int i = currentIndex; i < batchEnd; i++)
             {
-                cachedEntries.Add(new MonsterSpawnEntry(prefabs[i],1,currentStartDelay,0f));
+                cachedEntries.Add(new MonsterSpawnEntry(prefabs[i],1,currentStartDelay + (i - currentIndex) * intraBatchJitter,0f));
             }
 
             currentIndex = batchEnd;
