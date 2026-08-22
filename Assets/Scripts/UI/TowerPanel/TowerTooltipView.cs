@@ -8,14 +8,17 @@ using UnityEngine.UI;
 /// 타워 전용 호버 툴팁 뷰(#141). 건물과 공유하는 범용 <see cref="TooltipUI"/>(헤더+본문 텍스트뿐)와 달리
 /// 타워 정보에 맞춘 독립 슬롯(아이콘/이름/스탯/코스트)을 갖는다.
 /// <br/>
-/// <b>씬 배치(권장)</b>: <see cref="TooltipUI"/>와 같은 계보로, 인스펙터 슬롯을 채워 <c>UICanvas</c>의
-/// 마지막 자식으로 배치한다(HUD 위·모달 아래 — Docs/Core/UIZOrder.md §4).
+/// <b>씬 배치</b>: <see cref="TooltipUI"/>와 같은 계보로 <c>UICanvas</c>의 마지막 자식에 둔다
+/// (HUD 위·모달 아래 — Docs/Core/UIZOrder.md §4).
 /// (주의) 루트 오브젝트는 '활성'으로 둬야 Awake가 실행되어 Instance가 등록된다. 숨김은 자식
 /// <c>_panel</c> 토글로 처리하므로 루트를 미리 꺼두지 말 것.
 /// <br/>
-/// <b>폴백</b>: 슬롯이 비어 있으면 <see cref="BuildFallback"/>이 계층을 코드로 만든다. 이때도 자체 캔버스를
-/// 만들지 않고 씬의 HUD 캔버스(<see cref="UILayer.Hud"/>) 아래로 붙는다 — 테스트 씬처럼 HUD 캔버스가
-/// 아예 없을 때만 표준 sortingOrder로 캔버스를 생성한다.
+/// ⚠ <b>내용 슬롯은 인스펙터로 배선할 수 없다</b> — <c>_panel</c>·<c>_panelRect</c>·<c>_icon</c>·텍스트 4종이
+/// <c>[SerializeField]</c> 없는 private이라 <see cref="BuildFallback"/>이 <b>항상</b> 실행되고, 색·폰트·오프셋도
+/// 코드가 소유한다(WL-078에 등재된 상태 — 슬롯 재직렬화 또는 스타일 SO 외부화 대기). 그래서 아래 폴백은
+/// "슬롯이 비었을 때의 예비"가 아니라 <b>현재 유일한 계층 생성 경로</b>다: 툴팁 모양을 바꾸려면 씬이 아니라
+/// 이 파일을 고친다. 폴백도 자체 캔버스를 만들지 않고 씬의 HUD 캔버스(<see cref="UILayer.Hud"/>) 아래로
+/// 붙으며, 테스트 씬처럼 HUD 캔버스가 아예 없을 때만 표준 sortingOrder로 캔버스를 생성한다.
 /// <see cref="TowerTooltipSource"/>가 버튼 호버를 감지해 <see cref="Show"/>를 호출한다.
 /// </summary>
 public class TowerTooltipView : MonoBehaviour

@@ -239,12 +239,18 @@
 - **조회 방향이 셋이다**: 선택 집합→레시피(`TowerFusionMatcher.CanFuse`, 합성 패널) / 결과→재료(`FusionTowerCodexUI.recipeByResult`, 도감) / **재료→결과(`TowerMergeTargetIndex`, 이 절)**.
 - **색인 = `TowerMergeTargetIndex.RecipesUsing(towerId)`**(순수 static, lazy 1회 구축). 재료 집계는 **`TowerFusionMatcher.BuildRequired`를 쓴다** — §6 단일 출처. 재료 판정을 두 벌로 구현하면 "정보 패널엔 상위 타워로 뜨는데 실제로는 재료로 안 걸리는" 어긋남이 생긴다.
   - `Result`가 없는 레시피는 색인에서 제외한다(행을 그릴 결과 타워가 없다 = 저작 실수).
-- **칸 = 결과 타워 아이콘 + 이름**(`TowerMergeTargetSlot`). **겉모습은 배치 팔레트 칸과 같다** — 프리팹은 `TowerButton.prefab`을 복제해 `Button`·`TowerButtonView`·`TowerLockOverlay`를 떼고 이 컴포넌트를 붙인 것이다. 같은 정보를 같은 모양으로 보여주되 **누를 수는 없는** 칸이다.
+- **칸 = 결과 타워 아이콘 하나**(`TowerMergeTargetSlot`). **이름 칸은 의도적으로 없다** — 정보 패널은 폭이 좁아 이름 배너까지 넣으면 칸이 커져 한 줄에 몇 개 안 들어가고 블록이 패널을 통째로 밀어낸다. **이름은 호버 툴팁이 낸다**(아래). 정본 프리팹 `@NorthLand/Prefabs/UI/TowerTargetSlot.prefab`은 `Slot`·`Img_Bg`·`Img_Icon`만 갖고 `TowerMergeTargetSlot._name`은 **비워두는 것이 정상**이다(컴포넌트는 이름 칸을 가진 변종을 위해 선택 슬롯으로 남겨 뒀다).
+  - **겉모습은 배치 팔레트 칸과 같은 계보다** — 프리팹은 `TowerButton.prefab`을 복제해 `Button`·`TowerButtonView`·`TowerLockOverlay`·**배너 서브트리**를 떼고 이 컴포넌트를 붙인 것이다. 같은 아이콘을 같은 테두리로 보여주되 **누를 수는 없는** 칸이다.
   - 팔레트의 `TowerButtonView`를 그대로 쓰지 않는 이유: `SetLocked`·해제 연출이 배치 팔레트의 **해금** 개념과 한 몸이고 정보 패널에는 잠금이 없다. (원본 프리팹의 `TowerLockOverlay`는 `m_IsActive: 0`이라 남겨둬도 조용하지만, 배선할 슬롯이 늘고 의도가 흐려진다.)
-  - 상세 스탯·코스트는 **호버 툴팁**이 맡는다 — `TowerTooltipSource`를 런타임 부착해 재사용하므로 칸 프리팹에 툴팁 배선이 없다(§8.2 후보 버튼·`TowerSelectPanelView`와 같은 선례). 칸 안에 `Raycast Target`이 켜진 `Image`가 하나 있어야 호버가 잡히는데, 복제 원본의 `Slot/Img_Bg`가 이미 그래서 `Button`을 떼도 유지된다.
+  - ⚠ **아이콘 전용은 "이름을 못 보여준다"가 아니라 "이름을 툴팁으로 옮겼다"다.** 아이콘이 비슷한 2·3차 타워가 늘면 칸만 보고는 구분이 어려우므로, **`TowerAsset.Icon`이 서로 구별되게 저작돼 있어야 한다는 전제가 이 결정에 딸려 온다**(`TowerAddGuide.md` §3.5 `Icon` 항목). 구분이 실제로 안 되기 시작하면 그때 이름 칸을 가진 변종 프리팹으로 바꾸면 되고, 코드는 이미 그 경로를 받는다.
+  - 상세 스탯·코스트·**이름**은 **호버 툴팁**이 맡는다 — `TowerTooltipSource`를 런타임 부착해 재사용하므로 칸 프리팹에 툴팁 배선이 없다(§8.2 후보 버튼·`TowerSelectPanelView`와 같은 선례). 칸 안에 `Raycast Target`이 켜진 `Image`가 하나 있어야 호버가 잡히는데, 복제 원본의 `Slot/Img_Bg`가 이미 그래서 `Button`을 떼도 유지된다.
     - **레시피를 함께 넘긴다**(`Init(result, recipe)`, #445) — 여기 뜨는 타워는 합성으로만 얻으므로 자원 코스트가 비어 있고, 툴팁이 낼 수 있는 유일한 코스트가 "무슨 타워 몇 개"다. 이 블록의 존재 이유가 "이 타워로 무엇을 만들 수 있나"인데 **무엇이 더 필요한지**를 안 보여주면 반쪽이다(표기 규칙은 §8.2 후보 버튼과 같다).
+    - ⚠ `TowerInfoUI`가 `Set(result.Icon, TowerDisplayName.Of(result))`에서 **이름을 계속 넘기는 이유**: 정본 칸은 그 값을 버리지만 그 호출이 `EnsureData`로 `result.Data`를 채워 **툴팁이 이름·역할·설명 키를 읽게** 한다. "안 쓰는 인자"로 보고 지우면 툴팁이 `TowerID`로 떨어진다.
   - **클릭 동작은 없다**(의도). 우측 패널의 최종 결정권은 스위처 하나라는 §8.1 계약을 건드리지 않으려면, 칸이 패널을 갈아치우는 경로를 만들지 않는 게 맞다.
+  - ⚠ **칸 프리팹은 별도 저장소(`NorthLand-Imported`) 소속이다** — 미동기 환경에서는 `_mergeSlotPrefab` 참조가 풀려 블록이 조용히 사라진다. `TowerInfoUI.HasMergeSlotWiring`이 **1회 경고**를 남겨 "배선 누락"과 "미동기"를 구분해 주고, 동기화 계약은 `SystemMap.md` §4에 등재돼 있다(#445, Imported `85fd857d3` 이상).
 - **표시 순서 = 등급 → 표시 이름**(도감 `LoadData`와 같은 규칙 → 두 화면의 순서가 일치). **정렬은 뷰가 한다** — 이름 정렬이 로케일 의존이라, 로케일을 모르는 색인이 미리 정해두면 언어를 바꿀 때 어긋난다.
+  - ⚠ 합성 패널(§8.2)의 후보 버튼은 아직 `Resources.LoadAll` 순서라 **같은 기능의 두 블록이 순서 규칙이 다르다**(§5 ⚠). 버튼 쪽에 정렬을 넣을 때 `TowerInfoUI.CompareByRarityThenName`을 그대로 쓸 것.
+- **가시성 필터가 생기면 색인이 아니라 도메인 쪽에 둔다**(선결 합의). 정보 패널은 지금 코디네이터 파사드를 우회해 static 색인을 직접 부른다 — 읽기 전용이고 판정이 없으므로 무해하지만, GDD §5.8이 TBD로 남긴 족보가 확정되며 "무엇을 보여줄 것인가"에 조건이 붙는 순간(미발견 레시피 숨김, `UnlockWave` 연동 등) 그 조건을 색인에 넣으면 합성 패널·도감·정보 패널 **세 곳이 각자 필터를 갖게 된다**. 그때 필터는 `TowerMergeCoordinator`(또는 도감이 가질 발견 상태)가 소유하고 색인은 순수 조회로 남긴다.
 - **밤에도 뜬다**. §10 게이팅은 **실행**에 걸리는 것이고 이건 조작이 아니라 정보다 — 밤에 감추면 다음 낮 계획을 세울 수 없다.
 - **표시 여부 판정은 `childCount`가 아니라 뷰가 추적하는 행 리스트로 한다.** `Destroy`가 프레임 끝에 반영되므로, 같은 프레임에 비우고 다시 채우는 이 경로에서 `_mergeContent.childCount`는 방금 지운 행까지 세어 "표시할 게 0인데 블록이 켜진" 상태를 만든다(#153이 남긴 `childCount > 0` 규약을 이때 교체했다).
 
@@ -492,16 +498,17 @@
 
 겉모습을 배치 팔레트와 같게 맞추는 것이 전제다. 팔레트의 Scroll View를 인포 패널로 복사해 두고 시작한다.
 
-1. **칸 프리팹**: `Assets/Imported/@NorthLand/Prefabs/UI/TowerButton.prefab`을 복제한다(예: `TowerMergeTargetSlot.prefab`).
+1. **칸 프리팹**: `Assets/Imported/@NorthLand/Prefabs/UI/TowerButton.prefab`을 복제한다(정본 이름: `TowerTargetSlot.prefab`).
    - 루트에서 **`Button` 컴포넌트 제거**(누를 수 없는 칸). `interactable = false`로 대신하지 말 것 — 원본 `Transition`이 `ColorTint`라 칸이 회색으로 죽는다.
-   - 루트에서 **`TowerButtonView` 제거** → **`TowerMergeTargetSlot` 추가**. `_icon` → `Slot/Img_Icon`, `_name` → `Banner/Txt_Name`.
+   - 루트에서 **`TowerButtonView` 제거** → **`TowerMergeTargetSlot` 추가**. `_icon` → `Slot/Img_Icon`. **`_name`은 배선하지 않는다**(아이콘 전용 — §8.5).
+   - **배너 서브트리 삭제**(`Banner`·`Img_Banner`·`Txt_Name`) — 이름은 호버 툴팁이 내므로 칸에 이름 자리를 두지 않는다. 남겨두면 칸 높이가 팔레트 버튼만큼 커져 정보 패널을 밀어낸다.
    - **`TowerLockOverlay` 자식 삭제**(정보 패널에 해금 개념이 없다). 원본이 `m_IsActive: 0`이라 남겨도 보이지는 않지만 의도를 흐린다.
    - `Slot/Img_Bg`의 **`Raycast Target`은 켜진 채로 둔다** — 이게 호버 툴팁을 잡는 유일한 그래픽이다(`Button`을 떼도 남는다).
    - 툴팁 감지기(`TowerTooltipSource`)는 **런타임 부착**이라 프리팹에 넣지 않는다.
-2. **`TowerInfoUI` 인스펙터 배선**: `_mergeContainer`(블록 루트) → `_mergeContent`(복사해 온 Scroll View의 Content) → `_mergeSlotPrefab`(1의 프리팹). **`_mergeSlotPrefab`이 비면 블록이 아예 뜨지 않는다**(조용히 빈 칸이 남는 것보다 낫다).
+2. **`TowerInfoUI` 인스펙터 배선**: `_mergeContainer`(블록 루트) → `_mergeContent`(복사해 온 Scroll View의 Content) → `_mergeSlotPrefab`(1의 프리팹). 배선이 비면 블록이 뜨지 않고, `HasMergeSlotWiring`이 **경고를 1회** 남긴다(무엇이 null인지 + Imported 동기화 확인 안내) — 조용히 접으면 배선 누락과 저장소 미동기가 같은 증상으로 보인다.
 3. 칸이 여러 개일 수 있다(예: `archer_tower`는 다수 레시피의 재료) → 복사해 온 Scroll View가 그대로 흡수하므로 Content의 Layout Group만 원본 설정을 유지하면 된다.
 
-⚠ 칸 프리팹을 `Assets/Imported/@NorthLand/` 아래 만들면 **별도 저장소(`NorthLand-Imported`) 커밋이 함께 필요하다**(RewardCard 프리팹과 같은 축, WL-160).
+⚠ 칸 프리팹은 `Assets/Imported/@NorthLand/` 아래에 있어 **별도 저장소(`NorthLand-Imported`) 커밋이 함께 필요하다**(RewardCard 프리팹과 같은 축, WL-160). 정본은 `@NorthLand/Prefabs/UI/TowerTargetSlot.prefab`이고 동기화 계약은 `SystemMap.md` §4에 등재돼 있다 — **Imported `85fd857d3`(타워 타겟 슬롯 프리펩 추가) 이상**, 커밋 순서는 Imported 선행(WL-040).
 
 **4. 그 외**
 - `MouseManager`(기존, 코드만 확장)·`DayNightManager`(낮/밤 게이팅) 별도 배선 불필요.
