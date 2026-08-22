@@ -843,11 +843,16 @@
 
 ## 4. 팀 계약 (위반 = 🔴 후보)
 
-1. **입력 단일 창구**: 포인터/키보드 입력은 MouseManager만 읽는다. 게임플레이 코드의
-   `Mouse.current`/`Keyboard.current` 직접 폴링 금지. 단, 씬 UI의 ESC는 씬별 단일 소유자만 직접 읽는다:
+1. **입력 단일 창구**: 포인터 입력은 MouseManager만 읽는다. **키보드 단축키(눌린 순간 1회)는
+   `KeyboardManager`가 읽고, 기능 쪽이 `Bind(Key, KeyModifier, handler)`로 등록한다**(#444) —
+   창구가 둘인 이유는 모델이 다르기 때문이다(포인터는 히트 해석, 단축키는 키→커맨드 디스패치).
+   게임플레이 코드의 `Mouse.current`/`Keyboard.current` 직접 폴링은 그대로 금지다. 예외 둘:
+   **연속 입력**(카메라 WASD·줌 — 매 프레임 `isPressed`를 읽어 "눌린 순간 1회" 모델에 맞지 않는다,
+   WL-023)과 MouseManager가 읽는 **수식키(Shift)**(단축키가 아니라 클릭의 해석을 바꾸는 값이라
+   클릭을 읽는 곳에서 함께 읽어야 한다). 그리고 씬 UI의 ESC는 씬별 단일 소유자만 직접 읽는다:
    `GameScene`은 `SettingUI`, `TitleScene`은 `MainMenuUI`가 소유한다. `SettingUI`는
    `GameManager.Instance`가 없는 씬에서 ESC를 처리하지 않는다. 같은 씬에 두 번째 ESC 소비처가 필요해지면 중앙 Cancel 라우터로
-   이관하고 우선순위를 먼저 확정한다. 클릭 반응은 ISelectable, 그룹 선택 참여는
+   이관하고 우선순위를 먼저 확정한다(그 라우터가 `KeyboardManager`인지는 미정 — ESC는 우선순위 스택이 필요해 단순 바인딩과 다르다). 클릭 반응은 ISelectable, 그룹 선택 참여는
    IGroupSelectable 마커, 배치는 PlacementRequest로 참여. 스킬 타겟팅·드래그 사각형 선택(#261)도
    MouseManager 상태 추가로 구현했다 — 새 상호작용은 모드를 늘리고 **통지만** 하며, 집합·표시의
    소유는 소비처에 둔다. (Docs/Core/MouseManager.md)
