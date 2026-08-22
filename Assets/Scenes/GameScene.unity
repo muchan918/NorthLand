@@ -800,6 +800,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 78707c5ac976b044192922877d0e910d, type: 2}
   - {fileID: 11400000, guid: 9c0943bf1c97e5e488bee70890538755, type: 2}
   - {fileID: 11400000, guid: 83e6017eeec05c84e9811d226c89e19c, type: 2}
+  runBootstrapper: {fileID: 1384901249}
 --- !u!114 &111725158
 MonoBehaviour:
   m_ObjectHideFlags: 0
