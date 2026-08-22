@@ -47,6 +47,8 @@ public sealed class MonsterSpawnWaveProvider :
     // 최종 번호를 넘어선 라운드도 true로 수렴시켜, 데이터 없는 밤이 무한 반복되지 않게 한다.
     public bool IsFinalWave(int waveNumber) => FinalWaveNumber > 0 && waveNumber >= FinalWaveNumber;
 
+    private readonly List<WaveMonsterCount> cachedBossComposition = new();
+
     private void Awake()
     {
         BuildWaveOrder();
@@ -106,10 +108,10 @@ public sealed class MonsterSpawnWaveProvider :
         entries = cachedEntries;
         return cachedEntries.Count > 0;
     }
-
-    public bool TryGetWaveComposition(int waveNumber,out IReadOnlyList<WaveMonsterCount> composition)
+    public bool TryGetWaveComposition(int waveNumber, out IReadOnlyList<WaveMonsterCount> composition)
     {
         cachedComposition.Clear();
+        cachedBossComposition.Clear();
 
         if (!TryGetWaveAsset(waveNumber, out MonsterWaveAsset wave))
         {
@@ -119,21 +121,23 @@ public sealed class MonsterSpawnWaveProvider :
 
         foreach (MonsterWaveGroup group in wave.Groups)
         {
-            if (!TryResolveGroup(waveNumber,wave,group,out GameObject monsterPrefab,out int spawnCount))
+            if (!TryResolveGroup(waveNumber, wave, group, out GameObject monsterPrefab, out int spawnCount))
             {
                 continue;
             }
 
             Enemy enemy = monsterPrefab.GetComponentInChildren<Enemy>(true);
             EnemyAsset asset = enemy != null ? enemy.Asset : null;
+            WaveMonsterCount count = new WaveMonsterCount(asset, spawnCount);
 
-            cachedComposition.Add(new WaveMonsterCount(asset, spawnCount));
+            (IsBossPrefab(monsterPrefab) ? cachedBossComposition : cachedComposition).Add(count);
         }
+
+        cachedComposition.AddRange(cachedBossComposition);
 
         composition = cachedComposition;
         return cachedComposition.Count > 0;
     }
-
     private void CollectSpawnPrefabs(int waveNumber,MonsterWaveAsset wave)
     {
         foreach (MonsterWaveGroup group in wave.Groups)
