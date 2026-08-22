@@ -98,6 +98,10 @@ public class KeyboardManager : MonoBehaviour
         DontDestroyOnLoad(go);
     }
 
+    /// ⚠ **씬에 배치하지 말 것.** 펌프는 <see cref="Bootstrap"/>이 스스로 띄운다. 그래도 누군가 얹었을
+    /// 때 단축키가 통째로 죽지 않도록, 씬 인스턴스도 여기서 `DontDestroyOnLoad`로 끌어올린다 —
+    /// `Bootstrap`은 플레이 세션당 **1회만** 돌기 때문에, 씬 인스턴스가 `Instance`를 선점한 뒤 씬 전환에
+    /// 파괴되면 다시 띄워 줄 사람이 없다(`MouseManager.Awake`와 같은 처리).
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -106,6 +110,7 @@ public class KeyboardManager : MonoBehaviour
             return;
         }
         Instance = this;
+        DontDestroyOnLoad(gameObject);
     }
 
     private void OnDestroy()
