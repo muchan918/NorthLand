@@ -317,7 +317,7 @@ public sealed class MonsterSpawnWaveProvider :
             masterSeed = waveNumber;
         }
 
-        int waveSeed = RunSeedDeriver.Derive(masterSeed,$"MonsterSpawn.Wave.{waveNumber}");
+        int waveSeed = RunSeedDeriver.Derive(masterSeed,RunSeedDeriver.MonsterSpawnWaveTag(waveNumber));
 
         return new System.Random(waveSeed);
     }
