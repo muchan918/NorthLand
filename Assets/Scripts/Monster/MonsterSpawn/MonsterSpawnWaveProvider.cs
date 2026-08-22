@@ -208,6 +208,8 @@ public sealed class MonsterSpawnWaveProvider :
 
             currentIndex = batchEnd;
 
+            currentStartDelay += (batchCount - 1) * intraBatchJitter;
+
             if (currentIndex < prefabs.Count)
             {
                 currentStartDelay += RandomRange(random,minSpawnInterval,maxSpawnInterval);
