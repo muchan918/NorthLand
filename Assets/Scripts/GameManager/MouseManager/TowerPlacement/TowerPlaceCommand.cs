@@ -13,17 +13,13 @@ using UnityEngine;
 ///
 /// 합성 결과 타워도 이 커맨드로 만들어지지만 히스토리에 오르지 않는다 —
 /// `TowerMergeCommand.AdoptResult`가 편입해 합성 전체가 **한 번에** 되돌아가게 한다.
-public class TowerPlaceCommand : IReversibleCommand
+///
+/// **상태 기계와 비용 환원은 `ReversibleCommandBase`가 갖는다**(#444) — 되돌릴 수 있는 조작이
+/// 경영까지 셋이 되면서 승격한 자리다. 여기 남은 것은 "타워 배치를 되돌린다는 게 무슨 뜻인가"뿐이다.
+public class TowerPlaceCommand : ReversibleCommandBase
 {
-    private enum State { Pending, Executed, Confirmed, Committed, Undone }
-
     private readonly GameObject _placed;
-    private readonly IReadOnlyList<ResourceCost> _paid; // 실제로 차감된 비용. 무료 배치면 null
-    private readonly ManagementController _management;  // null이면 무료 씬 — 환원할 것도 없다
-    private readonly float _tileSize;                   // 되돌리기 연출의 모든 길이 기준(한 칸)
-    private State _state = State.Pending;
-
-    public bool IsConfirmed => _state == State.Confirmed;
+    private readonly float _tileSize; // 되돌리기 연출의 모든 길이 기준(한 칸)
 
     /// 되돌릴 때 소멸 연출을 이 커맨드가 **직접** 재생하는가. 합성이 결과로 편입하면 false로 내린다 —
     /// 합성 되돌리기는 "가루가 재료 자리로 돌아간다"는 하나의 연출(Rewind)이라, 결과 타워가 자기 몫으로
@@ -37,39 +33,28 @@ public class TowerPlaceCommand : IReversibleCommand
 
     public TowerPlaceCommand(GameObject placed, IReadOnlyList<ResourceCost> paid,
         ManagementController management, float tileSize)
+        : base(management, paid) // 지불한 만큼 100% 환원하는 것은 기반 클래스가 한다
     {
         _placed = placed;
-        _paid = paid;
-        _management = management;
         _tileSize = tileSize;
     }
 
     /// 배치 결과를 인수한다. **부작용이 없다** — 배치는 이미 끝나 있다.
-    public bool Execute()
-    {
-        if (_state != State.Pending || _placed == null) return false;
-        _state = State.Executed;
-        return true;
-    }
+    protected override bool OnExecute() => _placed != null;
 
-    public void Confirm()
+    /// ⚠ **파괴할 소프트 소모물이 없다.** 배치는 합성과 달리 "임시로 치워둔 것"이 없어 `Commit`에서
+    /// 할 일이 없다 — 의미가 있는 것은 오직 "이 뒤로 Undo가 무시된다"이고, 그 판정은 기반 클래스가 한다.
+    /// (그래서 `OnCommit`을 재정의하지 않는다.)
+    protected override bool OnUndo(bool wasConfirmed)
     {
-        if (_state != State.Executed) return;
-        _state = State.Confirmed;
-    }
-
-    /// ⚠ **파괴할 소프트 소모물이 없다 — 상태 전이만 한다.** 배치는 합성과 달리 "임시로 치워둔 것"이
-    /// 없기 때문이다. 여기서 의미가 있는 것은 오직 "이 뒤로 Undo가 무시된다"이다.
-    public void Commit()
-    {
-        if (_state != State.Confirmed) return;
-        _state = State.Committed;
-    }
-
-    public void Undo()
-    {
-        if (_state != State.Executed && _state != State.Confirmed) return;
-        _state = State.Undone;
+        // 히스토리 되돌리기(`Confirmed`)에서만 선택을 푼다. 방금 배치한 타워가 선택 중이면 인포 패널·
+        // 사거리 원이 파괴된 타워를 붙들고 남는다(WL-086 계열). **진행 중 세션의 취소(`Executed`)에서는
+        // 풀지 않는다** — 그 경로는 합성 취소가 타는 길이고, 재료 선택을 함께 날릴 이유가 없다.
+        //
+        // 이 판단이 요청 진입점(`UndoRequest`)이 아니라 커맨드에 있는 이유: **무엇이 파괴되는지 아는 쪽이
+        // 커맨드다.** 진입점에서 무조건 풀면 건물 업그레이드를 되돌릴 때(#444) 방금 올린 건물의 패널이
+        // 닫혀 되돌아간 레벨을 볼 수 없다(`ResidentSelectionCoordinator`의 "주민이었을 때만 푼다"와 같은 판단).
+        if (wasConfirmed) MouseManager.Instance?.ClearSelection();
 
         if (_placed != null)
         {
@@ -92,8 +77,8 @@ public class TowerPlaceCommand : IReversibleCommand
             Object.Destroy(_placed);
         }
 
-        // 지불한 만큼 100% 환원한다. 커맨드가 **실지불 비용**을 들고 있으므로 합성 결과 타워도
-        // ExtraCost만 정확히 돌아간다(재료 원가는 재료가 되살아나는 것으로 갚아진다).
-        if (_management != null) _management.Grant(_paid);
+        // 대상이 이미 사라졌어도 환원은 한다(true) — 플레이어가 낸 값은 조작이 성립했던 순간의 사실이고,
+        // 그 뒤에 타워가 어떤 경로로 없어졌는지와 무관하다.
+        return true;
     }
 }
