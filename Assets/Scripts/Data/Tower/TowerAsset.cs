@@ -388,6 +388,12 @@ public class TowerAsset : ScriptableObject
     /// (`StatusEffectHandler`의 대상 기준 게이트) 그중 먼저 걸린 것이 만료될 때까지 유지되므로,
     /// 체류 시간을 늘리는 기여는 가장 긴 항이 대표한다.
     /// `Effects`는 `[SerializeReference]`라 rename·삭제로 항목이 null이 될 수 있어 건너뛴다.
+    ///
+    /// ⚠ **`Effects`가 어느 축에서 발화하는지는 구분하지 않는다.** 이 리스트는 공격·디버프 오라·착탄
+    /// 구역이 함께 쓰므로(위 `Effects` 필드 주석), "오라로만 스턴을 거는데 공격도 하는" 타워가 생기면
+    /// 명중은 등속 통과 그대로인데 `AttackInterval` 상한만 완화된다. **지금은 성립하지 않는 전제다** —
+    /// 스턴원은 `soda_tower` 하나이고 그 스턴은 명중 경로이며, 스턴 타워를 더 만들 계획이 없다(#441).
+    /// 그 전제가 깨지는 날 축을 갈라야 한다(`Effects`를 명중용·오라용으로 분리하는 작업이라 범위가 크다).
     NorthLand.Combat.StunStatus LongestStun()
     {
         if (Effects == null) return null;

@@ -151,7 +151,11 @@ namespace NorthLand.Combat
                  "지속/(지속+창)이 되므로, 같은 스턴 타워를 여러 기 깔았을 때의 천장을 이 값이 정한다. " +
                  "0이면 천장이 사라져 대수만큼 봉인이 길어진다 — 그 타워가 대상을 스스로 죽이지 못하면 " +
                  "적이 전진하지 못해 밤이 끝나지 않을 수 있다.")]
-        public float ImmunityWindow = 0.4f;
+        // ⚠ **음수 금지.** `ApplySlow`의 "미지정" 센티널이 `-1f`라(StatusEffectHandler) 음수를 적으면
+        //    "창 없음"이 아니라 **핸들러 폴백(1.4초)으로 흐른다** — 창을 없애려던 의도와 정반대로
+        //    가동률이 내려간다. `TowerAsset.OnValidate`의 창 경계 검사도 상한만 보므로 음수는 통과시킨다.
+        //    `SlowStatus.Multiplier`의 [Range]와 같은 축의 방어다.
+        [Min(0f)] public float ImmunityWindow = 0.4f;
 
         public override EffectKind Kind => EffectKind.Stun;
 
