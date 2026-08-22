@@ -10,7 +10,7 @@
 
 ## 1. 원칙
 
-1. **입력은 여기서만 읽는다.** 다른 코드는 `Mouse.current`/`Keyboard.current`를 직접 폴링하지 않는다(예외: 카메라 조작).
+1. **포인터 입력은 여기서만 읽는다.** 다른 코드는 `Mouse.current`를 직접 폴링하지 않는다. **키보드 단축키는 형제 매니저 `KeyboardManager`가 갖는다**(#444, `Assets/Scripts/GameManager/KeyboardManager/`) — 단축키를 원하는 쪽이 `Bind(Key, KeyModifier, handler)`로 등록하므로 그쪽도 도메인을 모른다(원칙 2를 공유한다). 예외 둘: **카메라 조작**(WASD처럼 매 프레임 연속으로 읽는 입력이라 "눌린 순간 한 번" 디스패치 모델에 맞지 않는다)과 **이 매니저가 읽는 수식키(Shift)** — 수식키는 단축키가 아니라 *클릭의 해석을 바꾸는 값*이라 클릭을 읽는 곳에서 함께 읽어야 한다.
 2. **매니저는 도메인을 모른다.** "타워인지 주민인지"를 묻지 않고, 인터페이스(`ISelectable`/`IGroupSelectable`/`IHoverable`) 유무만 본다. 해석은 통지를 받는 쪽이 한다.
 3. **상태를 소유하지 않는다.** 단일 선택 1개를 빼면 선택 집합·하이라이트·패널은 전부 구독자 소유다.
 
@@ -24,6 +24,7 @@
 | 월드 레이캐스트와 히트 해석 | 선택 집합의 소유·해석 → 각 코디네이터 |
 | 상호작용 모드 관리 | 하이라이트 색·연출 → `OutlineInteractionDriver` 등 |
 | 선택·호버·드래그 **통지** | 패널을 무엇으로 채울지 → UI |
+| — | 키보드 단축키 → `KeyboardManager`(#444) |
 
 ## 3. 모드
 
@@ -216,5 +217,6 @@
 | `../MouseHover/` | 툴팁 뷰와 `IHoverable` 어댑터 |
 | `Helper/` | 검증용 테스트 컴포넌트(실물로 교체 예정) |
 
+- **키보드 단축키는 이 폴더가 아니다** — `../KeyboardManager/`(#444). 바인딩 목록은 static이고 펌프는 자가 부팅하므로 씬 배선이 없다. 등록은 기능 쪽에서 한다(첫 사례: `UndoRequest`가 Ctrl+Z를 등록).
 - 레이어: `Ground`(배치 표면), `Selectable`(선택 후보)
 - 테스트 씬: `Assets/Personal/n0wst4ndup/MouseManager/scenes/MouseEventTest.unity`
