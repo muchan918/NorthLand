@@ -205,6 +205,11 @@ archer_tower,towers.archer.name,1,1,towers.archer.role,towers.archer.desc
 **무엇을** 인스펙터 위에서부터:
 
 - [ ] `TowerPrefab` / `GhostPrefab` — 3.3·3.4에서 만든 것
+- [ ] `Icon` — 타워 선택 패널 버튼 · 합성 후보 버튼 · 정보 패널 "합성 가능" 칸 · 호버 툴팁 헤더가
+      **전부 이 한 장을 그린다**(#445). 비우면 예외도 경고도 없이 **테두리 안이 빈 칸**으로 나온다 —
+      미할당 SO를 흰 사각형으로 그리지 않고 슬롯을 끄는 규약(`TowerButtonView.Set`)이라 조용하다.
+      이름은 배너에 남으므로 "미기입"과 "원래 없음"이 구분되지 않는다(구 WL-184). 합성 전용 결과
+      타워도 예외가 아니다([§7](#7-합성-결과-타워일-때--델타만)) — 후보 버튼이 아이콘으로 뜬다
 - [ ] `Cost` — 배치 비용(자원 SO + 수량, 여러 줄 가능)
 - [ ] `Attack` — `AttackDamage` / `AttackRange` / `AttackInterval` / `ProjectilePrefab` /
       **`Flight`**(줄 오른쪽 드롭다운에서 `Homing` 또는 `Ballistic` 선택 → 그 안에 `Speed`·`ArcHeight`)
@@ -434,9 +439,12 @@ unity-cli editor refresh --compile
 1. `TowerRecipe` SO 생성 — `Assets/Resources/ScriptableObjects/TowerRecipes/`
    (`Create > Scriptable Objects > TowerRecipe`). `Materials`(재료 SO + 개수) · `Result`(결과 SO) ·
    `ExtraCost`(합성 추가 비용)를 채운다.
-2. **씬의 합성 패널에 등록** — `TowerMergePanelView`의 `_recipes` 배열
-   ([TowerMergePanelView.cs:26](../../Assets/Scripts/UI/TowerPanel/TowerMergePanelView.cs)).
-   3.6과 같은 이유로, 등록 안 하면 후보 버튼이 안 뜬다.
+2. **씬 등록은 없다 — 폴더에 넣으면 후보에 오른다.** 후보 버튼은 `TowerRecipeCatalog.All`
+   (=`Resources.LoadAll<TowerRecipe>("ScriptableObjects/TowerRecipes")`, lazy 1회)을 훑어 레시피마다
+   하나씩 미리 생성된다([TowerMergePanelView](../../Assets/Scripts/UI/TowerPanel/TowerMergePanelView.cs)).
+   구 인스펙터 배열 `TowerRecipe[] _recipes`는 폐기됐다 — 3.6과 달리 씬 배선이 필요 없고, 대신
+   **위 폴더 밖에 두면 영영 안 뜬다.**
+   ⚠ 버튼 순서는 `Resources.LoadAll` 순서라 **비결정적**이다(`TowerMerge.md` §5).
 3. `InheritEffects` — 켜면 재료가 갖고 있던 효과의 **종류만** 결과 타워가 물려받는다(수치는 결과 SO에
    적힌 값). 결과 SO의 `Effects`에 그 종류가 **미리 정의돼 있어야** 켤 수치가 있다.
    저장 시 `TowerRecipe.OnValidate`가 재료↔결과 불일치를 경고한다.
@@ -451,8 +459,9 @@ unity-cli editor refresh --compile
 
 ## 8. 낡아서 믿으면 안 되는 것
 
-- **[StringTable.md](../Tools/StringTable.md) §2·§4** — "테이블 `NorthLand_default` 1개, 키 1개"라고
-  적혀 있지만 실제로는 `NorthLand_Towers` 포함 6개다. **§5 신규 키 추가 절차만 유효.**
+- **[StringTable.md](../Tools/StringTable.md) §4** — 테이블 분리 제안표(`UI_Common`/`UI_Village` 등)는
+  **채택되지 않았다**(그 절 안에 경고가 붙어 있다). §2 현재 상태(컬렉션 7종·키 수)와 §5 신규 키 추가
+  절차는 유효하다 — §2 키 수는 #445에서 실측 갱신했다.
 - **`haste_tower.asset` · `lightning_tower.asset`** — 미마이그레이션 SO. 복제 금지([3.5](#35-so-수치-기입)).
 - **`archer_tower.asset`의 프리팹 참조** — `ArcherTower`가 아니라 **`RollyShooter`**를 물고 있다.
   이름으로 프리팹을 찾으면 헷갈리는 자리다.
@@ -466,3 +475,4 @@ unity-cli editor refresh --compile
 |---|---|
 | 초판 (#274) | `TowerRedesign.md` §11(제안 시제·4행 표)을 이관해 실측 절차서로 재작성. 7단계 체크리스트·`OnValidate` 경고 역인덱스·증상 역인덱스·확장점 3개 신설 |
 | 2차 (#300) | 부품 재고를 실측치로 정정 — 액션 3종 → **5종**(`BeamAction`·`RampAction`), 비행 2종 → **4종**(`Straight`·`Boomerang`). #298·#300에서 늘어난 분이 §1에 반영돼 있지 않았다. §1 조립표에 빔·램프 3행 추가. §3.5 체크리스트에 `Beam`·`Ramp` 항목 추가(⚠ `DecaySeconds=0`은 "영구"가 아니라 "웨이브 동안 유지"). §4① `OnValidate` 역인덱스에 산탄·부메랑·빔·램프 경고 7행 추가. §6에 **"새 액션이 정말 필요한가"** 경고 신설 — #300은 타워 3종을 액션 1개로 만들었고(트리거·수치로 갈림) 단일 인페르노는 액션 추가 0이다. 스탯을 바꾸는 거동은 액션보다 원장을 먼저 보라는 지침과, `OnWaveEnd`를 구현하지 않으면 `NightOnly` 액션이 낮에 상태를 정리할 기회가 없다는 경고 추가 |
+| 3차 (#445) | §3.5 체크리스트에 **`Icon`** 항목 추가 — 구 WL-184가 "절차에 Icon 단계가 없어 신규 타워마다 누락이 반복된다"로 열려 있었고, #445에서 소비처가 넷(팔레트 버튼·합성 후보 버튼·정보 패널 "합성 가능" 칸·툴팁 헤더)으로 늘어 빈 칸의 비용이 커졌다. §7 2번 항목 정정 — "씬의 합성 패널 `_recipes` 배열에 등록"은 **폐기된 절차**다(지금은 `TowerRecipeCatalog.All` 폴더 스캔이라 씬 배선이 없고, 대신 폴더 밖 레시피는 영영 안 뜬다). §8의 StringTable.md 경고도 정정 — 그쪽 §2는 7개 컬렉션으로 갱신돼 이제 유효하다 |

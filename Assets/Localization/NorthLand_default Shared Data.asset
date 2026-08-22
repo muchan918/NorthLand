@@ -279,6 +279,10 @@ MonoBehaviour:
     m_Key: game.tower.info.merge
     m_Metadata:
       m_Items: []
+  - m_Id: 15883900982124544
+    m_Key: game.merge.materials
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
