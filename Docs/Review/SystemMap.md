@@ -206,6 +206,17 @@
   중복하던 것을 #318에서 이쪽으로 통일했다. ⚠ **파생이라 데이터 축이 갈리면 조용히 틀린다** —
   `EnemyType`은 스탯 블록 선택·근접/원거리 공격 경로 선택까지 겸하는 필드라, 원거리 보스가 들어오면
   `EnemyType.Ranged`가 되어 `IsBoss`가 false가 된다(WL-176). authored 플래그로 분리하는 것이 해법
+- `Enemy.IsSuicideBomber` (bool, #453) / `EnemyAsset.SelfDestruct`(`Enabled`/`Damage`) — 자폭병 계약.
+  켜면 그 적은 **본진(`PlayerBase`)만 조준하고 닿는 순간 1회 확정 피해를 주고 죽는다.**
+  `EnemyType`에 값을 늘리지 않은 이유는 WL-176과 같다 — 그 필드가 스탯 블록·공격 경로 선택을
+  겸하므로 자폭을 직교 축으로 뺐다(자폭병도 `Melee` 스탯 블록을 쓴다).
+  ⚠ **자폭 사망은 `Enemy.Killed`를 발행하지 않는다** — 자폭은 처치가 아니라 누출이므로, 발행하면
+  직전에 때린 타워가 킬스택(#300)을 얻어 본진을 얻어맞은 대가로 타워가 성장한다. 경로 완주
+  (`HandleRouteCompleted`)가 `Die`를 우회하는 것과 같은 갈림이고, 연출·디스폰 뒤처리만
+  `BeginDeathSequence`로 공유한다. ⚠ **자폭 피해에는 웨이브 HP 배율이 곱하지 않는다**(규약 ④ 예산의
+  전제, `CombatBalance.md` §4.2). ⚠ **병사가 자폭병을 저지하지 못한다**(의도 — 조준 후보에서 제외).
+  본진 외 대상을 후보로 남기면 `AttackDamage`(자폭병은 미사용 0)로 병사 앞에 영구 정지해 밤이
+  `childCount == 0`에 닿지 못한다
 - `Enemy.MarkForExecute(float thresholdRatio, float duration, bool debugLog = false)` (#318) —
   처형 표식 부여. `thresholdRatio`는 MaxHp 대비 **비율**(0~1). 재적용은 **갱신**이다(임계·지속 모두
   덮어쓴다 — `StatusEffectHandler.ApplyOrRefresh`와 같은 semantics). 표식이 사는 동안 `TakeDamage`가

@@ -7,3 +7,4 @@ red_grummy,enemies.grummy.red.name,Melee,enemies.grummy.red.role,enemies.grummy.
 blue_grummy,enemies.grummy.blue.name,Melee,enemies.grummy.blue.role,enemies.grummy.blue.desc
 flying_bat,enemies.bat.name,Melee,enemies.bat.role,enemies.bat.desc
 tank,enemies.tank.name,Boss,enemies.tank.role,enemies.tank.desc
+bomb_grummy,enemies.grummy.bomb.name,Melee,enemies.grummy.bomb.role,enemies.grummy.bomb.desc

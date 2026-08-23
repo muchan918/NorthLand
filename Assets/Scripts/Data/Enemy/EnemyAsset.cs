@@ -21,6 +21,14 @@ public class EnemyAsset : ScriptableObject
     public RangedFields Ranged;
     public BossFields Boss;
 
+    // 자폭(#453). **EnemyType 축과 직교한다** — 자폭병도 스탯은 자기 EnemyType의 블록(현재 Melee)을
+    // 그대로 쓰고, "본진에 닿으면 터진다"는 성질만 여기서 얹는다.
+    //
+    // EnemyType에 값을 늘리지 않은 이유: 그 필드는 스탯 블록 선택과 근접/원거리 공격 경로 선택을
+    // 겸하고 있어서(WL-176) 값을 하나 더하면 스탯 블록·EnemyAssetEditor·TableImporter·CSV 파싱이
+    // 함께 갈라진다. 자폭은 그 갈림 어디에도 새 분기를 요구하지 않는다.
+    public SelfDestructFields SelfDestruct;
+
         // Melee/Ranged/Boss 공통 기초 전투 스탯. Combat/EnemyData.cs(SUNGSOO)의
         // maxHp/attackDamage/attackRange/attackInterval과 의미 대응되도록 필드명을 맞춘다
         // (실제 Combat 마이그레이션은 아직 미착수, WL-001).
@@ -46,6 +54,19 @@ public class EnemyAsset : ScriptableObject
         public CombatFields Stat;
         public GameObject ProjectilePrefab;
         public float ProjectileSpeed;
+    }
+
+    // 자폭 저작 필드(#453). Enabled를 끄면 일반 근접 몬스터와 완전히 같으므로,
+    // 기존 EnemyAsset 8종은 이 블록이 직렬화에 없어도(기본값 false/0) 거동이 바뀌지 않는다.
+    [System.Serializable]
+    public class SelfDestructFields
+    {
+        [Tooltip("본진에 닿는 순간 자폭한다. 켜면 이 몬스터는 본진 외의 대상을 조준하지 않는다.")]
+        public bool Enabled;
+
+        [Tooltip("자폭 1회로 본진에 주는 확정 피해. 웨이브 HP 배율의 영향을 받지 않는다 — " +
+                 "규약 ④의 자폭 위험 예산(웨이브당 총량 ≤ 본진 HP×0.5)이 성립하는 근거다.")]
+        public float Damage;
     }
 
     [System.Serializable]
