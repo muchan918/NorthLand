@@ -507,13 +507,16 @@ namespace NorthLand.Combat
 
             // 자폭병(#453)은 평타 경로를 타지 않는다 — 본진에 닿는 순간 1회 확정 피해를 주고 스스로 죽는다.
             //
-            // 본진이 아닌 대상에 대해 **실패**를 돌려주는 이유: FindTarget이 이미 본진만 후보로 남기므로
-            // 여기 오는 target은 정상 경로에서 항상 PlayerBase다. 그래도 공개 메서드라 밖에서 임의 대상이
-            // 들어올 수 있고, 그때 자폭이 터지면 "병사에게 달려가 터지는 자폭병"이 조용히 생긴다
-            // (규약 ④의 자폭 위험 예산은 본진 피해만 센다).
+            // 대상과 사망 상태를 **둘 다** 막는다. 정상 경로에서는 둘 다 도달 불가다(FindTarget이 본진만
+            // 후보로 남기고, Update가 isDying에서 먼저 return한다). 그런데 TryAttack은 IAttacker 공개
+            // 계약이라 밖에서 임의로 불릴 수 있고, 그때 각각 이렇게 깨진다:
+            //  · 대상 미검사 → "병사에게 달려가 터지는 자폭병"(규약 ④의 예산은 본진 피해만 센다)
+            //  · 사망 미검사 → Detonate가 피해를 먼저 주고 SelfDestruct에서야 isDying을 보므로
+            //                  **이미 터진 자폭병이 본진을 두 번 때린다**
+            // 보스 BT가 자폭 패턴을 쓰기 시작하면 그때 실제 호출 경로가 생기므로 두 방어를 같은 층위에 둔다.
             if (IsSuicideBomber)
             {
-                if (!(target is PlayerBase))
+                if (isDying || !(target is IBaseStructure))
                 {
                     return false;
                 }
@@ -582,14 +585,20 @@ namespace NorthLand.Combat
 
         // 사거리 내에서 가장 가까운 아군 대상(유닛/본진)을 타겟으로 선정.
         //
-        // ⚠ **자폭병(#453)은 본진만 후보로 남긴다.** 저작(레이어 마스크)이 아니라 코드로 못 박는 이유는
-        // 둘이다. ① "본진에서만 터진다"는 규약 ④(자폭 위험 예산)의 전제라 프리팹 인스펙터에서
-        // 조용히 뒤집혀선 안 된다. ② 병사를 후보로 남기면 `Update`가 `IsStopped = hasTarget`으로
-        // 자폭병을 병사 앞에 세우는데, 자폭병의 `AttackDamage`는 쓰이지 않는 값(0)이라 **병사를 못 죽이고
-        // 영원히 멈춰 선다** — 그 밤은 `monsterParent.childCount == 0`에 닿지 못해 소프트락이 된다.
+        // ⚠ **자폭병(#453)은 본진만 후보로 남긴다.** 근거는 하나다: **규약 ④의 자폭 위험 예산은 본진
+        // 피해만 센다**(`CombatBalance.md` §4.2). 웨이브당 자폭 총량을 본진 HP의 절반으로 묶어 난이도를
+        // 설계했으므로, 자폭이 병사에게도 터지면 그 예산이 세는 곳이 둘로 갈려 상한의 의미가 사라진다.
+        // 저작(레이어 마스크)이 아니라 코드로 못 박는 것도 그래서다 — 예산의 전제가 프리팹 인스펙터에서
+        // 조용히 뒤집혀선 안 된다.
         //
         // 대가: 병사가 자폭병을 저지하지 못한다. 이것은 의도다 — 자폭병의 해답은 감속·광역이라는
-        // `CombatBalance.md` §4.2의 설계와 같은 방향이다.
+        // §4.2의 설계와 같은 방향이다.
+        //
+        // 부수 효과로 소프트락도 함께 막힌다: 병사를 후보로 남기면 `Update`가 `IsStopped = hasTarget`으로
+        // 자폭병을 병사 앞에 세우는데, 자폭병의 `AttackDamage`는 쓰이지 않는 값(0)이라 병사를 못 죽이고
+        // 영원히 멈춰 서고, 그 밤은 `monsterParent.childCount == 0`에 닿지 못한다.
+        // ⚠ 이건 **결정의 근거가 아니라 결과**다. 근거로 읽으면 "그럼 자폭 피해를 병사에게도 주면
+        // 되지 않나"로 쉽게 뒤집히는데, 그렇게 하면 위의 예산이 깨진다.
         IDamageable FindTarget()
         {
             int count = Physics.OverlapSphereNonAlloc(
@@ -607,7 +616,7 @@ namespace NorthLand.Combat
                 if (damageable != null
                     && damageable.Faction != Faction
                     && !damageable.IsDead
-                    && (!baseOnly || damageable is PlayerBase))
+                    && (!baseOnly || damageable is IBaseStructure))
                 {
                     float sqrDistance = (hit.transform.position - transform.position).sqrMagnitude;
                     if (sqrDistance < closestSqrDistance)
