@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace NorthLand.Combat
@@ -28,6 +29,11 @@ namespace NorthLand.Combat
         // 마지막으로 조립된 SO. **정체성이 바뀌었는지**를 판정하는 근거다(아래 OnInitialize 주석).
         [NonSerialized] TowerAsset boundAsset;
 
+        // 원장에 밀 modifier 묶음. 스택이 바뀔 때마다 도는 경로라 매번 할당하지 않는다.
+        // ⚠ 필드 초기화자를 쓰지 않는다 — `[SerializeReference]`로 되살아나는 객체는 초기화자가
+        //   돌지 않을 수 있어, 다른 액션들과 같이 `OnInitialize`에서 `??=`로 할당한다.
+        [NonSerialized] List<TowerStatModifier> pushScratch;
+
         // ⚠ **`Always`여야 한다.** `NightOnly`면 낮에 Tick이 돌지 않아 감쇠 타이머가 멈추고,
         // 전날 밤에 쌓은 최고 스택이 다음 밤 시작까지 그대로 남는다. `Always`로 두면 낮 동안
         // 자연히 비워지므로 **밤 종료 훅이 아예 필요 없다** — 액션이 DayNightManager를 직접 폴링하는
@@ -40,7 +46,8 @@ namespace NorthLand.Combat
         /// 현재 스택. 정보 패널·디버그용.
         public int Stacks => stacks;
 
-        /// 현재 실효 배율(스택 0이면 1).
+        /// 현재 실효 배율(스택 0이면 1). **주 축(`Ramp.Stat`)만이다** — 둘째 축은
+        /// `RampFields.SecondaryMultiplier`가 같은 스택으로 따로 환산한다.
         public float Multiplier => Authored ? fields.Profile.Multiplier(stacks) : 1f;
 
         bool Authored => fields?.Profile != null && fields.Profile.IsAuthored;
@@ -48,6 +55,7 @@ namespace NorthLand.Combat
         protected override void OnInitialize(TowerAsset asset)
         {
             fields = asset.Ramp;
+            pushScratch ??= new List<TowerStatModifier>(2);
 
             // ⚠ **같은 SO면 스택을 유지한다.** 합성 커맨드의 Release/Reoccupy가 OnDisable/OnEnable
             // 왕복을 쓰므로(Tower.cs의 Build 주석) 여기서 0으로 밀면 롤백된 타워의 성장이 증발한다.
@@ -123,7 +131,9 @@ namespace NorthLand.Combat
             if (!Authored) return null;
 
             return TowerStatsFormatter.BuildRampLine(
-                fields.Stat, stacks, fields.Profile.MaxStacks, fields.Profile.Multiplier(stacks));
+                fields.Stat, stacks, fields.Profile.MaxStacks, fields.Profile.Multiplier(stacks),
+                fields.SecondaryStat,
+                fields.HasSecondary ? fields.SecondaryMultiplier(stacks) : 1f);
         }
 
         // ── 스택 ───────────────────────────────────────────────────────────
@@ -140,6 +150,10 @@ namespace NorthLand.Combat
 
         // 원장은 **소스 단위 교체** semantics라(TowerStats.Apply) 스택이 바뀔 때마다 현재 총량을
         // 그대로 다시 밀면 된다 — 증분을 누적 관리할 필요가 없다.
+        //
+        // 둘째 축이 있으면 **같은 소스에 modifier 2개**를 얹는다. 원장이 소스당 묶음을 들고 있어
+        // (`TowerStats.Source.Modifiers`) 별도 소스키를 채번할 필요가 없다 — 소스를 나누면 회수도
+        // 두 번 해야 하고 `Dispose`/`OnWaveEnd`가 하나를 흘릴 여지가 생긴다.
         void PushStacks()
         {
             if (Owner == null) return;
@@ -150,9 +164,18 @@ namespace NorthLand.Combat
                 return;
             }
 
+            // 스택이 바뀔 때마다 도는 경로라 리스트를 재사용한다(TowerStats.singleScratch와 같은 이유).
+            pushScratch.Clear();
+            pushScratch.Add(new TowerStatModifier(
+                fields.Stat, TowerModifierMode.Multiplier, fields.Profile.Multiplier(stacks)));
+
+            if (fields.HasSecondary)
+                pushScratch.Add(new TowerStatModifier(
+                    fields.SecondaryStat, TowerModifierMode.Multiplier, fields.SecondaryMultiplier(stacks)));
+
             Owner.Stats.Apply(
                 SourceId,
-                new TowerStatModifier(fields.Stat, TowerModifierMode.Multiplier, fields.Profile.Multiplier(stacks)),
+                pushScratch,
                 0f,           // 지속형 — 만료는 이 액션의 감쇠가 관리한다
                 Time.time);
         }

@@ -461,8 +461,12 @@
 - **`RampAction`**(`TowerAction` 파생, `NorthLand.Combat`, #300) — 전투 실적으로 자기 타워의 원장에 소스를
   하나 얹는 액션. 트리거는 SO(`TowerAsset.Ramp.Trigger`)가 고른다: `Hit`=`Projectile.DamageDealt` 구독 /
   `Kill`=`Enemy.Killed` 구독(둘 다 `source == Owner`만 센다). `ActivePhase = Always`(낮에도 감쇠가 돌아야
-  다음 밤이 0에서 시작한다). 공개 읽기: `Stacks` / `Multiplier`.
-  ⚠ **타워당 1개까지** — `TowerAction.SourceId`가 `호스트 ID ^ 액션 타입명`이라 둘이면 원장 슬롯이 충돌한다
+  다음 밤이 0에서 시작한다). 공개 읽기: `Stacks` / `Multiplier`(**주 축만**).
+  ⚠ **타워당 1개까지** — `TowerAction.SourceId`가 `호스트 ID ^ 액션 타입명`이라 둘이면 원장 슬롯이 충돌한다.
+  단 **한 액션이 두 스탯을 올리는 것은 된다**(#441 후속): `Ramp.SecondaryStat`/`SecondaryPerStack`을
+  저작하면 같은 `SourceId`에 modifier 2개를 얹는다(원장이 소스당 묶음을 들고 있어 채번 확장이 필요 없다).
+  스택 카운터는 하나이므로 **트리거·상한·감쇠는 두 축이 공유한다** — 축별로 다른 속도를 주려면
+  `Ramp`를 리스트로 바꿔야 하고 그건 단일 카운터 구조를 깨는 별도 작업이다
 - **`Tower.AcquireTarget()`**(`IDamageable`, `NorthLand.Combat`, #336 → #387) — 사거리 안에서 **조준 정책이 고른 1위**.
   **"이 타워가 지금 누구를 겨누는가"의 단일 출처**다. 예전에는 공격 액션과 포탑 조준 연출이 각자
   `OverlapSphere`를 돌렸는데, `TowerAction.Origin`이 `Owner.transform`이라 원점·반경·마스크·판정 기준이
@@ -965,13 +969,16 @@
 - CSV POCO는 PascalCase 프로퍼티(CsvHelper), SO는 CreateAssetMenu
 - **타워 밸런싱 규약(#326)**: 정본은 [CombatBalance.md](../Core/CombatBalance.md), 저작 절차는
   [TowerAddGuide.md §3.5](../Core/TowerAddGuide.md).
-  ① **`공격 간격(초) ≤ 사거리(타일) ÷ 3`** (1타일 = 6유닛) — 어기면 적이 사거리를 지나는 동안 발사가
-  1~2발에 그쳐 쿨다운 위상에 따라 화력이 ±50% 이상 튄다.
+  ① **`공격 간격(초) ≤ 사거리(타일) ÷ 3 + 스턴지속`** (1타일 = 6유닛) — 어기면 적이 사거리를 지나는 동안
+  발사가 1~2발에 그쳐 쿨다운 위상에 따라 화력이 ±50% 이상 튄다. **스턴 항(#441)**: 스턴 타워는 맞을 때마다
+  대상을 멈춰 "등속 통과"라는 유도 전제를 스스로 깨므로 체류가 늘어난다. 같은 식이 경계 둘을 더 준다 —
+  `간격 > 스턴지속`(어기면 대상이 전진하지 못해 밤이 끝나지 않는다) · `면역창 ≤ 간격 − 스턴지속`
+  (어기면 피해는 그대로인데 CC만 조용히 절반으로 떨어진다).
   ② **합성 결과 타워의 1회 통과 킬 수 > 재료 타워 킬 수의 합** (상한 재료 합 × 1.3) — 아니면 합성이
-  순손실이라 아무도 안 만든다. #326 이전에 2차 `Sniper`가 3차 `killstack`(재료가 스나이퍼)보다 강했다.
+  순손실이라 아무도 안 만든다. #326 이전에 2차 `Sniper`가 3차 `killstack`(재료가 스나이퍼)보다 강했다
+  (`killstack`은 #441에서 직접배치 1차로 내려갔다 — 이 예시는 당시 족보 기준이다).
   ③ 화력 단위는 DPS가 아니라 **1회 통과 킬 수**이고, 티어별 밴드(0.1킬 = 1눈금)에서 고른다.
-  ✅ **①은 `TowerAsset.OnValidate`가 강제한다**(`TowerAsset.cs:158-177` — `AttackInterval > AttackRange / 18`이면
-  저장 시 경고. 18 = 타일 6유닛 × 계수 3).
+  ✅ **①은 `TowerAsset.OnValidate`가 강제한다**(경계 3종 모두 저장 시 경고. 18 = 타일 6유닛 × 계수 3).
   ⚠ **②·③은 코드가 잡지 못한다**(WL-169) — 재료 타워들의 킬 수 합을 알아야 해서 단일 SO 검사로는
   불가능하다. **신규 타워 PR에서 눈으로 확인할 것.**
 - 테스트: XxxTest.cs MonoBehaviour + 개인 테스트 씬 Play 확인 (유닛 테스트 없음)

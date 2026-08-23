@@ -15,17 +15,15 @@ MonoBehaviour:
   TowerID: soda_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: 11821cec09aec2147a7c1035fbbc8668, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: 47a1f592ba98e2447bb40b61de36868a, type: 3}
-  Icon: {fileID: 21300000, guid: 7b71f20bc2a7a144fadb23a0730dbb82, type: 3}
+  Icon: {fileID: 21300000, guid: 6ac9d80bfdf1b104f9d9ea0cdf1caa61, type: 3}
   PlacementYaw: 45
-  Cost:
-  - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-    Amount: 40
-  Rarity: 0
-  UnlockWave: 5
+  Cost: []
+  Rarity: 1
+  UnlockWave: 1
   Attack:
-    AttackDamage: 20
+    AttackDamage: 30
     AttackRange: 27
-    AttackInterval: 1.5
+    AttackInterval: 2.2
     ProjectilePrefab: {fileID: 1162392375372998, guid: c2da60c3896a09d42811362601158f7d, type: 3}
     Flight:
       rid: 3470829504553025637
@@ -60,6 +58,7 @@ MonoBehaviour:
       MaxStacks: 0
       StackInterval: 0
       DecaySeconds: 0
+    VisualStages: []
   GroundZone:
     ZonePrefab: {fileID: 0}
     Radius: 0
@@ -84,6 +83,7 @@ MonoBehaviour:
       type: {class: StunStatus, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
         Duration: 0.7
+        ImmunityWindow: 0.4
     - rid: 3470829504553025637
       type: {class: HomingFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:

@@ -15,7 +15,7 @@ MonoBehaviour:
   TowerID: haste_tower
   TowerPrefab: {fileID: 527708244005276318, guid: b8dd447b76ed929439c677e7e946362a, type: 3}
   GhostPrefab: {fileID: 527708244005276318, guid: 176674a10a91cf948b2304f59bba8820, type: 3}
-  Icon: {fileID: 21300000, guid: 8954e3458341ad94e97f3675170dc612, type: 3}
+  Icon: {fileID: 21300000, guid: 4297993ae431f4e4c8b063c900b616ca, type: 3}
   PlacementYaw: 0
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
