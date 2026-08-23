@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 18d3199209d9413458b5415fe779643c, type: 3}
+  m_Name: SfxBank
+  m_EditorClassIdentifier: Assembly-CSharp::SfxBank
+  buttonClick:
+    Clip: {fileID: 8300000, guid: 94442f25403b64f4b9476b1697693286, type: 3}
+    Volume: 0.8
+  panelOpen:
+    Clip: {fileID: 8300000, guid: eade9a9bf2c9eb14883703c9fe916312, type: 3}
+    Volume: 1
+  towerInstall:
+    Clip: {fileID: 8300000, guid: dc36546b84bc06b40baee8485ac62acf, type: 3}
+    Volume: 1
+  rejected:
+    Clip: {fileID: 8300000, guid: 3cc14d4ead345bd4788c6cf80e934cbd, type: 3}
+    Volume: 0.4
+  buildingUpgrade:
+    Clip: {fileID: 8300000, guid: c712d1267de8cf240b6d60c8fcf300c0, type: 3}
+    Volume: 0.4
+  residentIncreased:
+    Clip: {fileID: 8300000, guid: b5c64e6e157d55545ac61f1a85dd6a5f, type: 3}
+    Volume: 1
+  undo:
+    Clip: {fileID: 8300000, guid: a50b3e41b8ccb854fbafd972cefabccc, type: 3}
+    Volume: 1
+  redo:
+    Clip: {fileID: 8300000, guid: 7e19cf98fc5c49e4b87fdfa232045a73, type: 3}
+    Volume: 0.5

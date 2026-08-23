@@ -55,6 +55,13 @@ public class AudioManager : MonoBehaviour
     // 2D 원샷 전용. 풀이 아니라 소스 1개 + PlayOneShot이라 동시재생 상한이 없다(§PlaySfx 주석).
     private AudioSource sfxSource;
 
+    // 겹치면 안 되는 원샷 전용 소스(§PlaySfxExclusive). PlayOneShot이 아니라 clip + Play()라 Stop()으로
+    // 끊을 수 있고, 볼륨을 매 프레임 다시 곱할 수 있다(ResidentVoice가 같은 이유로 같은 방식을 쓴다).
+    private AudioSource sfxExclusiveSource;
+
+    // 위 소스가 지금 재생 중인 소리의 재생 배율. 매 프레임 실효 볼륨과 다시 곱하려면 기억해야 한다.
+    private float exclusiveScale = 1f;
+
     private float fadeDuration;
     private float fadeProgress = 1f;
 
@@ -147,6 +154,7 @@ public class AudioManager : MonoBehaviour
         }
 
         ApplyBgmVolume();
+        ApplyExclusiveSfxVolume();
     }
 
     // ── 볼륨 ────────────────────────────────────────────────
@@ -257,6 +265,53 @@ public class AudioManager : MonoBehaviour
         sfxSource.PlayOneShot(clip, volume);
     }
 
+    /// <summary>
+    /// 겹치지 않는 2D 효과음을 재생한다. **이미 이 경로로 울리고 있는 소리는 끊기고 처음부터 다시 난다.**
+    ///
+    /// <see cref="PlaySfx"/>가 못 하는 일이라 따로 났다 — 그쪽은 <c>PlayOneShot</c>이라 한 번 쏜 소리를
+    /// 지목해 멈출 수단이 없고 동시재생 상한도 없다. 길거나(수 초) 연타 가능한 버튼에 물린 소리는
+    /// 그대로 두면 여러 벌이 겹쳐 쌓인다(주민 증가음이 9.5초라 실제로 그렇게 된다).
+    ///
+    /// 부수 효과로 <b>재생 중 슬라이더 조작이 즉시 반영된다</b> — 볼륨을 굽지 않고 <see cref="Update"/>에서
+    /// 매 프레임 다시 곱하기 때문이다(<c>ResidentVoice</c>와 같은 성질).
+    ///
+    /// ⚠️ **소스가 하나뿐이라 이 경로의 소리들끼리도 서로를 끊는다.** 지금 소비처가 하나라 충분하지만,
+    /// 둘 이상이 동시에 울려야 하는 상황이 생기면 소리별 소스로 갈라야 한다.
+    /// </summary>
+    public void PlaySfxExclusive(AudioClip clip, float volumeScale = 1f)
+    {
+        if (clip == null || sfxExclusiveSource == null)
+        {
+            return;
+        }
+
+        exclusiveScale = Mathf.Max(volumeScale, 0f);
+
+        // 음소거·볼륨 0이면 재생을 생략한다(PlaySfx와 같은 방침). 이미 울리고 있던 소리는 끊는다 —
+        // "새 요청이 오면 직전 것을 대체한다"가 이 경로의 계약이고, 들리지 않는 요청도 요청이다.
+        sfxExclusiveSource.Stop();
+
+        if (GetEffectiveVolume(AudioChannel.Sfx) * exclusiveScale <= 0f)
+        {
+            return;
+        }
+
+        sfxExclusiveSource.clip = clip;
+        sfxExclusiveSource.volume = GetEffectiveVolume(AudioChannel.Sfx) * exclusiveScale;
+        sfxExclusiveSource.Play();
+    }
+
+    // 재생 중에도 설정 볼륨을 따라오게 한다. 재생 중이 아니면 건드릴 것이 없다.
+    private void ApplyExclusiveSfxVolume()
+    {
+        if (sfxExclusiveSource == null || !sfxExclusiveSource.isPlaying)
+        {
+            return;
+        }
+
+        sfxExclusiveSource.volume = GetEffectiveVolume(AudioChannel.Sfx) * exclusiveScale;
+    }
+
     // ── BGM ────────────────────────────────────────────────
 
     /// <summary>
@@ -352,6 +407,9 @@ public class AudioManager : MonoBehaviour
         // 원샷은 PlayOneShot이 볼륨을 인자로 받으므로 소스 자체는 1.0으로 둔다.
         sfxSource = CreateSource(loop: false);
         sfxSource.volume = 1f;
+
+        // 이쪽은 PlayOneShot이 아니라 소스의 volume을 직접 쓰므로 0으로 두고 재생 시점에 채운다.
+        sfxExclusiveSource = CreateSource(loop: false);
     }
 
     private AudioSource CreateSource(bool loop)
