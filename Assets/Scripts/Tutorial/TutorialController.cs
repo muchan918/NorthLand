@@ -286,17 +286,27 @@ public class TutorialController : MonoBehaviour
     // 정리해야 하는 것은 튜토리얼이 끝나는 경로뿐이다(ClearStepRules).
     private void ApplyStepRules(TutorialStepAsset step)
     {
-        SetStepRules(step.FreeTowerPlacement, step.RestrictTowerPanelTo, step.FreeBuildingUpgrade, step.UpgradeCap);
+        SetStepRules(
+            step.FreeTowerPlacement,
+            step.RestrictTowerPanelTo,
+            step.FreeManagementCost,
+            step.UpgradeCap,
+            step.VillagerCap);
     }
 
     // 튜토리얼이 끝나거나 꺼질 때 원래대로 되돌린다. 빠뜨리면 정식 플레이에서도 타워·업그레이드가
     // 공짜이거나 패널이 한 종류로 잠긴 채 남는다.
     private void ClearStepRules()
     {
-        SetStepRules(false, null, false, 0);
+        SetStepRules(false, null, false, 0, 0);
     }
 
-    private void SetStepRules(bool freePlacement, TowerAsset restrictTo, bool freeUpgrade, int upgradeCap)
+    private void SetStepRules(
+        bool freePlacement,
+        TowerAsset restrictTo,
+        bool freeManagementCost,
+        int upgradeCap,
+        int villagerCap)
     {
         // 무료 스위치를 먼저 세운다 — RestrictTo가 버튼을 다시 그리면서 이 값을 읽기 때문에,
         // 순서가 반대면 버튼이 옛 자원 게이트로 한 번 그려진다.
@@ -326,12 +336,13 @@ public class TutorialController : MonoBehaviour
 
         if (management != null)
         {
-            management.FreeUpgrade = freeUpgrade;
+            management.FreeManagementCost = freeManagementCost;
             management.UpgradeCap = upgradeCap;
+            management.VillagerCap = villagerCap;
         }
-        else if (freeUpgrade || upgradeCap > 0)
+        else if (freeManagementCost || upgradeCap > 0 || villagerCap > 0)
         {
-            Debug.LogWarning($"[{nameof(TutorialController)}] 씬에서 ManagementController를 찾지 못해 업그레이드 규칙을 걸 수 없다.", this);
+            Debug.LogWarning($"[{nameof(TutorialController)}] 씬에서 ManagementController를 찾지 못해 경영 규칙을 걸 수 없다.", this);
         }
     }
 

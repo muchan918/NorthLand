@@ -68,11 +68,13 @@ public class TutorialStepAsset : ScriptableObject
     private TowerAsset restrictTowerPanelTo;
 
     [Header("경영 규칙 — 이 단계 동안만 적용된다")]
-    // 켜면 이 단계 동안 건물 업그레이드가 자원을 소모하지 않는다(ManagementController.FreeUpgrade).
-    // 타워 무료 배치와 같은 취지 — 자원이 모자라 단계가 막히는 것을 피한다.
-    [Tooltip("켜면 이 단계 동안 건물 업그레이드에 자원을 받지 않는다.")]
+    // 켜면 이 단계 동안 경영 조작(건물 업그레이드·주민 증축)이 자원을 소모하지 않는다
+    // (ManagementController.FreeManagementCost). 타워 무료 배치와 같은 취지 —
+    // 자원이 모자라 단계가 막히는 것을 피한다.
+    [Tooltip("켜면 이 단계 동안 건물 업그레이드·주민 증축에 자원을 받지 않는다.")]
+    [FormerlySerializedAs("freeBuildingUpgrade")]
     [SerializeField]
-    private bool freeBuildingUpgrade;
+    private bool freeManagementCost;
 
     // 무료로 열어 두면 한 건물만 계속 올릴 수 있다 — 이 상한이 그것을 막는다.
     // ⚠ 완료 조건이 요구하는 레벨보다 낮게 잡으면 그 단계를 영영 끝낼 수 없다.
@@ -80,6 +82,12 @@ public class TutorialStepAsset : ScriptableObject
     [Min(0)]
     [SerializeField]
     private int upgradeCap;
+
+    // 무료로 열어 두면 증축을 계속 누를 수 있다 — castle.asset의 증축 레벨이 8개다.
+    [Tooltip("이 단계 동안 늘릴 수 있는 최대 추가 주민 수. 0이면 제한 없음.")]
+    [Min(0)]
+    [SerializeField]
+    private int villagerCap;
 
     [Header("완료 조건 — 비우면 팝업 확인만으로 넘어간다")]
     [SerializeReference]
@@ -112,9 +120,11 @@ public class TutorialStepAsset : ScriptableObject
 
     public TowerAsset RestrictTowerPanelTo => restrictTowerPanelTo;
 
-    public bool FreeBuildingUpgrade => freeBuildingUpgrade;
+    public bool FreeManagementCost => freeManagementCost;
 
     public int UpgradeCap => upgradeCap;
+
+    public int VillagerCap => villagerCap;
 
     public TutorialCondition Completion => completion;
 }
