@@ -183,7 +183,7 @@ archer_tower,towers.archer.name,1,1,towers.archer.role,towers.archer.desc
 >
 > | | 항목 | 강제 |
 > |---|---|---|
-> | ① | `공격 간격(초) ≤ 사거리(타일) ÷ 3` | ✅ **`OnValidate` 경고**(`TowerAsset.cs:158-177`) |
+> | ① | `공격 간격(초) ≤ 사거리(타일) ÷ 3 + 스턴지속` | ✅ **`OnValidate` 경고** |
 > | ② | 합성 결과 킬 수 > 재료 킬 수의 합 | ❌ 사람이 확인 |
 > | ③ | 티어 밴드에서 눈금 선택 | ❌ 사람이 확인 |
 >
@@ -197,10 +197,16 @@ archer_tower,towers.archer.name,1,1,towers.archer.role,towers.archer.desc
 > 그쳐 **쿨다운 위상에 따라 쏘거나 안 쏘거나** 한다(정수 오차 ±50% 이상).
 > 이건 저장할 때 경고가 뜨므로 잊어도 잡힌다.
 >
+> ⚠ **스턴을 거는 타워면 상한에 스턴 지속이 더해진다**(#441) — 맞을 때마다 대상이 멈춰 체류가 스스로
+> 늘어나므로 규약의 "등속 통과" 전제가 깨진다. 대신 경계가 둘 더 생기고 **셋 다 `OnValidate`가 잡는다**:
+> `간격 > 스턴지속`(어기면 대상이 전진하지 못해 밤이 끝나지 않는다) · `면역창 ≤ 간격 − 스턴지속`
+> (어기면 피해는 그대로인데 CC만 조용히 절반으로 떨어진다). 유도는
+> [CombatBalance.md §2](CombatBalance.md).
+>
 > **4. 합성 결과 타워라면 규약 ②를 확인한다**(②) — 재료 타워 킬 수의 합보다 강해야 한다. 아니면
 > 합성이 순손실이라 아무도 안 만든다. 상한은 재료 합 × 1.3.
 > ⚠ **여기가 가장 조용히 깨진다** — #326 이전에 2차 `Sniper`가 3차 `killstack`(재료가 스나이퍼)보다
-> 강했는데 아무 신호도 없었다.
+> 강했는데 아무 신호도 없었다. (`killstack`은 #441에서 직접배치 1차로 내려갔다 — 이 예시는 당시 족보 기준이다.)
 
 **무엇을** 인스펙터 위에서부터:
 
@@ -231,6 +237,10 @@ archer_tower,towers.archer.name,1,1,towers.archer.role,towers.archer.desc
 - [ ] `Ramp` — 타워 전체가 성장할 거면 `Stat`(무엇이 오르는가) · `Trigger`(`Hit`/`Kill`) ·
       `Profile`(`PerStack`·`MaxStacks`·`DecaySeconds`). ⚠ `DecaySeconds = 0`은 "영구"가 아니라
       "웨이브 동안 유지"다 — 성장은 웨이브 종료에 일괄 초기화된다
+- [ ] `Ramp.SecondaryStat` / `SecondaryPerStack` — **한 램프로 두 스탯을 함께 올릴 거면**(#441 후속).
+      `SecondaryPerStack = 0`이 미저작이라 안 쓰면 기존 단일 축 거동 그대로다. ⚠ **스택 카운터는
+      하나다** — 트리거·상한·감쇠는 `Profile`이 단독으로 정하므로 축마다 성장 속도를 달리할 수 없다.
+      두 축에 **같은 스탯**을 적으면 원장이 배율을 합산해 의도의 두 배가 된다(경고 있음)
 - [ ] `Attack.BurstCount` / `BurstInterval` — 한 사이클에 **시간차로** 여러 발을 쏠 거면(#336).
       산탄(`PelletCount`)과 **다른 축이다** — 산탄은 한 순간에 부채꼴로, 연발은 같은 조준으로 시간을 두고
       나간다. 그래서 착탄 지점이 갈리고 착탄 구역이 발수만큼 생긴다. 기본값 1 = 기존 거동
@@ -306,6 +316,8 @@ SO를 저장하면 아래 조합을 경고한다. **전부 "예외도 없이 조
 | `BeamAction이 있는데 Beam 수치가 비었습니다` (`MaxTargets`·`TickInterval` 경고도 동일) | [3.5](#35-so-수치-기입) `Beam` |
 | `RampAction이 있는데 Ramp 수치가 비었습니다` (역방향 경고도 동일) | [3.5](#35-so-수치-기입) `Ramp` |
 | `Ramp.Trigger=Hit인데 프리팹에 AttackAction이 없습니다` | 명중 통지(`Projectile.DamageDealt`)는 **투사체 공격만** 발행한다 — 빔 타워면 `Trigger=Kill` 또는 `Beam.LockRamp`를 쓴다 |
+| `Ramp의 두 축이 모두 X입니다` | [3.5](#35-so-수치-기입) `Ramp.SecondaryStat` — 같은 축에 배율 modifier 2개는 원장이 **보너스를 합산**하므로 의도의 두 배 가까이 오른다 |
+| `Ramp.SecondaryPerStack을 적었는데 Ramp.Profile이 비었습니다` | [3.5](#35-so-수치-기입) `Ramp.Profile` — 스택 카운터가 주 축 수치에 달려 있어 둘째 축도 함께 죽는다 |
 | `Beam.LockRamp를 적었는데 BeamAction이 없습니다` / `StackInterval이 0 이하입니다` | [3.5](#35-so-수치-기입) `Beam.LockRamp` |
 | `BurstCount(n)>1인데 BurstInterval이 0입니다` | [3.5](#35-so-수치-기입) `Attack.BurstInterval` — 시간차가 없으면 산탄과 같아지고 착탄 구역도 한 점에 겹친다(#336) |
 | `BurstCount를 적었는데 프리팹에 AttackAction이 없습니다` | [3.3](#33-타워-프리팹) `Actions` |

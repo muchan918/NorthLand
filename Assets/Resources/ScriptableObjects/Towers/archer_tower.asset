@@ -15,12 +15,13 @@ MonoBehaviour:
   TowerID: archer_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: af8de5afe47137043ad4ec48d2323017, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: 5d9bff6eeac419349bde17bbdae0e99c, type: 3}
-  Icon: {fileID: -848206362, guid: 83579f1da1853ea47bacd9e3e796fcd1, type: 3}
+  Icon: {fileID: 1221788990, guid: ddd66e4999b98fb44940b7615d889646, type: 3}
   PlacementYaw: 45
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
     Amount: 20
   Rarity: 0
+  UnlockWave: 1
   Attack:
     AttackDamage: 18
     AttackRange: 18
@@ -59,6 +60,7 @@ MonoBehaviour:
       MaxStacks: 0
       StackInterval: 0
       DecaySeconds: 0
+    VisualStages: []
   GroundZone:
     ZonePrefab: {fileID: 0}
     Radius: 0

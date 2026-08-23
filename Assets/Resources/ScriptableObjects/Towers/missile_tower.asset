@@ -15,7 +15,7 @@ MonoBehaviour:
   TowerID: missile_tower
   TowerPrefab: {fileID: 4442612599947703802, guid: 4c793250efbddf3488ab65a1d8db6478, type: 3}
   GhostPrefab: {fileID: 1359696496414130033, guid: 0bc1f90d631402240aae8427311a2ce3, type: 3}
-  Icon: {fileID: -1684098954, guid: 1dd2dfaa42ac3c84d9360f30d9cc8adf, type: 3}
+  Icon: {fileID: 124867671, guid: ea9658ba805cfd9449f60e2383281262, type: 3}
   PlacementYaw: 0
   Cost: []
   Rarity: 1

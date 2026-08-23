@@ -15,10 +15,11 @@ MonoBehaviour:
   TowerID: triple_shoot_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: 32f20ff8123df644db927f0b6ddf86a8, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: 3a45e3ede25a4e04dbe0f760784d4c40, type: 3}
-  Icon: {fileID: -1482791652, guid: 83579f1da1853ea47bacd9e3e796fcd1, type: 3}
+  Icon: {fileID: 1369614873, guid: ddd66e4999b98fb44940b7615d889646, type: 3}
   PlacementYaw: 45
   Cost: []
   Rarity: 1
+  UnlockWave: 1
   Attack:
     AttackDamage: 20
     AttackRange: 17
@@ -57,6 +58,7 @@ MonoBehaviour:
       MaxStacks: 0
       StackInterval: 0
       DecaySeconds: 0
+    VisualStages: []
   GroundZone:
     ZonePrefab: {fileID: 0}
     Radius: 0
