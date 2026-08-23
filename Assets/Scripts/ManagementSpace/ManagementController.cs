@@ -58,6 +58,12 @@ public class ManagementController : MonoBehaviour
 
         /// <summary>이 건물에서 주민 1명이 빠졌다(<see cref="UnassignVillager"/>) — <b>그 건물의</b> 출입 포인트에서 1명이 걸어 나온다(#341, Resident.md §3.2).</summary>
         VillagerUnassigned,
+
+        /// <summary>이 건물에서 자원을 교환했다(<see cref="TryExchange"/>). 어떤 offer였는지는 싣지 않는다.</summary>
+        ///
+        /// ⚠ 새 값은 <b>반드시 맨 끝에</b> 더한다 — BuildingActionCondition이 이 enum을 정수 인덱스로
+        ///   직렬화하므로, 중간에 끼우면 기존 단계 에셋이 다른 행동을 가리키게 된다.
+        Exchanged,
     }
 
     /// <summary>
@@ -780,6 +786,7 @@ public class ManagementController : MonoBehaviour
         _wallet.Add(gainKind, gained);
         Debug.Log($"[경영] 교환: {payKind} -{offer.PayAmount} → {gainKind} +{gained}");
         OnChanged?.Invoke();
+        OnBuildingAction?.Invoke(building, BuildingAction.Exchanged);
         return true;
     }
 
