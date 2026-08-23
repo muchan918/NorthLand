@@ -54,6 +54,33 @@ public class TutorialStepAsset : ScriptableObject
     [SerializeField]
     private bool pauseGameDuringStep;
 
+    [Header("전투 규칙 — 이 단계 동안만 적용된다")]
+    // 켜면 이 단계 동안 타워를 무료로 놓는다(TowerPlacer.FreePlacement). 자원이 모자라 단계가
+    // 막히는 것을 피하려는 용도이고, 단계를 벗어나면 컨트롤러가 되돌린다.
+    [Tooltip("켜면 이 단계 동안 타워 배치 비용을 받지 않는다.")]
+    [SerializeField]
+    private bool freeTowerPlacement;
+
+    // 지정하면 타워 패널에서 그 타워만 고를 수 있다(TowerSelectPanelView.RestrictTo).
+    // "아처 3개를 지으세요" 같은 단계에서 다른 타워로 새는 것을 막는다.
+    [Tooltip("지정하면 타워 패널에서 이 타워만 고를 수 있다. 비우면 제한 없음.")]
+    [SerializeField]
+    private TowerAsset restrictTowerPanelTo;
+
+    [Header("경영 규칙 — 이 단계 동안만 적용된다")]
+    // 켜면 이 단계 동안 건물 업그레이드가 자원을 소모하지 않는다(ManagementController.FreeUpgrade).
+    // 타워 무료 배치와 같은 취지 — 자원이 모자라 단계가 막히는 것을 피한다.
+    [Tooltip("켜면 이 단계 동안 건물 업그레이드에 자원을 받지 않는다.")]
+    [SerializeField]
+    private bool freeBuildingUpgrade;
+
+    // 무료로 열어 두면 한 건물만 계속 올릴 수 있다 — 이 상한이 그것을 막는다.
+    // ⚠ 완료 조건이 요구하는 레벨보다 낮게 잡으면 그 단계를 영영 끝낼 수 없다.
+    [Tooltip("이 단계 동안 올릴 수 있는 최대 건물 레벨. 0이면 제한 없음. 완료 조건이 요구하는 레벨과 맞출 것.")]
+    [Min(0)]
+    [SerializeField]
+    private int upgradeCap;
+
     [Header("완료 조건 — 비우면 팝업 확인만으로 넘어간다")]
     [SerializeReference]
     private TutorialCondition completion;
@@ -80,6 +107,14 @@ public class TutorialStepAsset : ScriptableObject
     public Vector2Int HighlightCell => highlightCell;
 
     public bool PauseGameDuringStep => pauseGameDuringStep;
+
+    public bool FreeTowerPlacement => freeTowerPlacement;
+
+    public TowerAsset RestrictTowerPanelTo => restrictTowerPanelTo;
+
+    public bool FreeBuildingUpgrade => freeBuildingUpgrade;
+
+    public int UpgradeCap => upgradeCap;
 
     public TutorialCondition Completion => completion;
 }

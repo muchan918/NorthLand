@@ -193,10 +193,19 @@ public class TowerPlacer : MonoBehaviour
     }
 
     // ── 진입점 ─────────────────────────────────────────────────────────────────────
+    /// [튜토리얼·디버그용] 켜면 이후 시작하는 배치가 비용을 지불하지 않는다.
+    /// 무료화 메커니즘은 아래 5인자 오버로드에 cost=null을 넘기는 것 하나뿐이고(F4 디버그 패널이
+    /// DebugTowerSection.Place에서 쓰는 그 경로다), 이 스위치는 같은 경로를 정식 타워 패널에도 열어 줄 뿐이다.
+    /// 되돌리기도 정합하다 — TowerPlaceCommand의 지불 기록이 비어 있으므로 Undo 환원도 0이 된다.
+    ///
+    /// ⚠ 타워 패널(TowerSelectPanelView)의 자원 게이트는 **별개 축**이다. 이것만 켜고 패널이 모르면
+    ///   자원이 모자랄 때 버튼이 회색이라 배치를 시작조차 못 한다 — 패널이 이 값을 함께 본다.
+    public bool FreePlacement { get; set; }
+
     /// 더미 데이터 + 인스펙터 프리팹으로 배치 시작. UI 버튼 OnClick에 연결(현재 테스트 경로).
-    /// 비용은 so.Cost, 확정 콜백 없음(일반 타워 배치).
+    /// 비용은 so.Cost(FreePlacement면 무료), 확정 콜백 없음(일반 타워 배치).
     public bool BeginTowerPlacement(TowerAsset so)
-        => BeginTowerPlacement(so, so != null ? so.Cost : null, null, null, PlacementOwner.Placer);
+        => BeginTowerPlacement(so, so != null && !FreePlacement ? so.Cost : null, null, null, PlacementOwner.Placer);
 
     /// 비용·확정 콜백을 주입하는 오버로드. 합성(#195)이 결과 타워를 결과 코스트(ExtraCost)로 배치하고,
     /// 배치 확정 직후 onConfirmed(결과 커맨드 편입)를 실행하는 데 쓴다. 배치 코어는 단일인자 경로와 동일.

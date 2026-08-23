@@ -10,6 +10,9 @@ public class TutorialContext
     private TowerSelectPanelView _towerPanel;
     private CameraController2 _camera;
     private MonsterSpawn _monsterSpawn;
+    private TowerPlacer _towerPlacer;
+    private TowerFusionController _towerFusion;
+    private BuildingShortcutBar _shortcutBar;
 
     // ManagementController에는 static Instance가 없다(DayNightManager와 다르다).
     // 씬에 하나뿐이므로 처음 요청될 때 찾아서 캐시한다.
@@ -80,6 +83,48 @@ public class TutorialContext
             }
 
             return _monsterSpawn;
+        }
+    }
+
+    // 배치기에도 static Instance가 없다. 튜토리얼이 무료 배치 스위치를 걸 때 필요하다.
+    public TowerPlacer TowerPlacer
+    {
+        get
+        {
+            if (_towerPlacer == null)
+            {
+                _towerPlacer = Object.FindFirstObjectByType<TowerPlacer>();
+            }
+
+            return _towerPlacer;
+        }
+    }
+
+    // 합성 실행부에도 static Instance가 없다. 합성 완료를 감시하는 조건이 필요로 한다.
+    public TowerFusionController TowerFusion
+    {
+        get
+        {
+            if (_towerFusion == null)
+            {
+                _towerFusion = Object.FindFirstObjectByType<TowerFusionController>();
+            }
+
+            return _towerFusion;
+        }
+    }
+
+    // 바로가기 바에도 static Instance가 없다. 바로가기 사용을 감시하는 조건이 필요로 한다.
+    public BuildingShortcutBar ShortcutBar
+    {
+        get
+        {
+            if (_shortcutBar == null)
+            {
+                _shortcutBar = Object.FindFirstObjectByType<BuildingShortcutBar>();
+            }
+
+            return _shortcutBar;
         }
     }
 

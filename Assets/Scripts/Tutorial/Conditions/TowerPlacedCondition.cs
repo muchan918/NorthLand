@@ -14,6 +14,10 @@ public class TowerPlacedCondition : TutorialCondition
     [SerializeField]
     private int count = 1;
 
+    [Tooltip("특정 타워만 세려면 지정한다. 비우면 아무 타워나 센다.")]
+    [SerializeField]
+    private TowerAsset targetTower;
+
     // 시작 시점의 타워 수. 이 값보다 count만큼 늘어나면 충족이다.
     // Tower.ActiveChanged는 철거·합성·되돌리기로도 발화하므로 '증가'만 본다.
     private int _baseline;
@@ -21,7 +25,7 @@ public class TowerPlacedCondition : TutorialCondition
     public override void Begin(TutorialContext context)
     {
         // 조건 객체는 에셋에 저장되므로 이전 플레이의 값이 남아 있다 — 반드시 여기서 다시 잡는다.
-        _baseline = Tower.Active.Count;
+        _baseline = CountMatching();
 
         Tower.ActiveChanged += OnActiveChanged;
 
@@ -36,9 +40,33 @@ public class TowerPlacedCondition : TutorialCondition
 
     private void OnActiveChanged()
     {
-        if (Tower.Active.Count - _baseline >= count)
+        if (CountMatching() - _baseline >= count)
         {
             Fire();
         }
+    }
+
+    // baseline과 현재 개수가 **같은 필터를 통과해야** 증가분이 맞는다 —
+    // 한쪽만 걸러내면 다른 타워를 놓았을 때 차이가 음수로 벌어지거나 즉시 충족된다.
+    private int CountMatching()
+    {
+        if (targetTower == null)
+        {
+            return Tower.Active.Count;
+        }
+
+        int matched = 0;
+
+        for (int i = 0; i < Tower.Active.Count; i++)
+        {
+            Tower tower = Tower.Active[i];
+
+            if (tower != null && tower.Asset == targetTower)
+            {
+                matched++;
+            }
+        }
+
+        return matched;
     }
 }

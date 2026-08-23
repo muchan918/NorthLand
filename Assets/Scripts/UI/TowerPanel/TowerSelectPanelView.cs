@@ -29,6 +29,7 @@ public class TowerSelectPanelView : MonoBehaviour
     private ManagementController _management; // 자원 조회용(소비처는 컨트롤러 경유 — WL-017). null이면 permissive.
     private DayNightManager _dayNight;        // 해금 웨이브 조회용. null이면(테스트 씬) 전부 해금으로 본다.
     private readonly List<(Button button, TowerAsset tower)> _buttons = new(); // 버튼별 갱신용
+    private TowerAsset _restrictedTo;         // [튜토리얼용] 이것만 고를 수 있다. null이면 제한 없음.
 
     private void Awake()
     {
@@ -115,6 +116,18 @@ public class TowerSelectPanelView : MonoBehaviour
     }
 
     /// <summary>해금 여부와 보유 자원을 버튼에 반영한다. (자원 변동·낮 시작 시 재호출)</summary>
+    /// <summary>
+    /// [튜토리얼용] 이 타워 하나만 고를 수 있게 제한한다. null을 넘기면 제한이 풀린다.<br/>
+    /// 배치 비용 면제(<see cref="TowerPlacer.FreePlacement"/>)와는 <b>별개 축</b>이라, 무료로 짓게
+    /// 하려면 둘 다 걸어야 한다. 무료 스위치를 먼저 세우고 이 메서드를 부를 것 —
+    /// 여기서 <see cref="RefreshButtons"/>가 돌기 때문에 순서가 반대면 버튼이 옛 자원 게이트로 한 번 그려진다.
+    /// </summary>
+    public void RestrictTo(TowerAsset tower)
+    {
+        _restrictedTo = tower;
+        RefreshButtons();
+    }
+
     private void RefreshButtons()
     {
         foreach ((Button button, TowerAsset tower) in _buttons)
@@ -131,18 +144,31 @@ public class TowerSelectPanelView : MonoBehaviour
     private bool IsUnlocked(TowerAsset tower)
         => _dayNight == null || _dayNight.CurrentWave >= tower.UnlockWave;
 
+    /// 살 수 있는가. 무료 배치(<see cref="TowerPlacer.FreePlacement"/>) 중이면 자원을 보지 않는다 —
+    /// 그 스위치는 TowerPlacer 안에서만 비용을 0으로 만들기 때문에, 여기서 같이 보지 않으면
+    /// 자원이 모자랄 때 버튼이 회색이라 무료 배치를 **시작조차 못 한다**.
+    private bool CanAfford(TowerAsset tower)
+        => (_towerPlacer != null && _towerPlacer.FreePlacement)
+           || _management == null
+           || _management.CanAfford(tower.Cost);
+
+    /// [튜토리얼용] 제한에 걸리지 않았는가. 제한이 없으면 항상 true.
+    private bool IsAllowed(TowerAsset tower)
+        => _restrictedTo == null || tower == _restrictedTo;
+
     private void RefreshButton(Button button, TowerAsset tower)
     {
         if (button == null) return;
 
         bool unlocked = IsUnlocked(tower);
 
-        // 자물쇠는 해금 여부만 본다 — 자원 부족까지 자물쇠로 보이면 두 상태가 구별되지 않는다.
+        // 자물쇠는 해금 여부만 본다 — 자원 부족이나 튜토리얼 제한까지 자물쇠로 보이면
+        // "다음 웨이브에 열린다"로 잘못 읽히고 세 상태가 구별되지 않는다.
         var view = button.GetComponent<TowerButtonView>();
         if (view != null) view.SetLocked(!unlocked);
 
-        // interactable은 둘의 AND. 해금만으로 덮어쓰면 자원 게이트가 죽는다.
-        button.interactable = unlocked && (_management == null || _management.CanAfford(tower.Cost));
+        // interactable은 셋의 AND. 하나로 덮어쓰면 나머지 게이트가 죽는다.
+        button.interactable = unlocked && CanAfford(tower) && IsAllowed(tower);
     }
 
     private void HandleClick(TowerAsset tower)
@@ -161,9 +187,16 @@ public class TowerSelectPanelView : MonoBehaviour
         }
 
         // 방어: interactable 우회로 클릭돼도 자원 부족이면 배치 진입 차단.
-        if (_management != null && !_management.CanAfford(tower.Cost))
+        if (!CanAfford(tower))
         {
             Debug.Log($"[타워선택패널] 자원이 부족해 '{tower.TowerID}'를 배치할 수 없습니다.");
+            return;
+        }
+
+        // 방어: interactable 우회로 클릭돼도 튜토리얼 제한 중이면 배치 진입 차단.
+        if (!IsAllowed(tower))
+        {
+            Debug.Log($"[타워선택패널] 지금은 '{_restrictedTo.TowerID}'만 배치할 수 있습니다.");
             return;
         }
 

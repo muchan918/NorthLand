@@ -17,13 +17,17 @@ MonoBehaviour:
     \uC5F4\uB9BD\uB2C8\uB2E4.\r\n\uC0DD\uC0B0 \uAC74\uBB3C\uC744 \uC5C5\uADF8\uB808\uC774\uB4DC\uD558\uBA74
     \uC8FC\uBBFC 1\uBA85\uC774 \uB9CC\uB4DC\uB294 \uC790\uC6D0\uB7C9\uC774 \uB298\uC5B4\uB0A9\uB2C8\uB2E4.\r\n\uC8FC\uBBFC\uC744
     \uB354 \uB298\uB9AC\uC9C0 \uC54A\uC544\uB3C4 \uC0DD\uC0B0\uB7C9\uC744 \uC62C\uB9B4
-    \uC218 \uC788\uC2B5\uB2C8\uB2E4."
+    \uC218 \uC788\uC2B5\uB2C8\uB2E4.\n\uC5F0\uC2B5\uC744 \uC704\uD574 \uC774\uBC88\uC5D0\uB294
+    \uC790\uC6D0 \uC5C6\uC774 \uC5C5\uADF8\uB808\uC774\uB4DC\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4."
   popupImage: {fileID: 0}
   bubbleText: "\uBE44\uC2A4\uCF13 \uD558\uC6B0\uC2A4 \uD074\uB9AD\uD558\uC138\uC694"
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
   pauseGameDuringStep: 0
+  freeTowerPlacement: 0
+  restrictTowerPanelTo: {fileID: 0}
+  freeBuildingUpgrade: 0
   completion:
     rid: 3470829977900417129
   references:

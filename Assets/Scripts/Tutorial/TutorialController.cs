@@ -86,6 +86,9 @@ public class TutorialController : MonoBehaviour
 
         // 멈춘 채로 꺼지면 게임이 영구 정지한다.
         ResumeGameIfPaused();
+
+        // 무료 배치·패널 제한을 남긴 채 꺼지면 정식 플레이에서도 그대로 걸려 있다.
+        ClearStepRules();
     }
 
     private void Start()
@@ -117,6 +120,7 @@ public class TutorialController : MonoBehaviour
     {
         EndActiveCondition();
         ResumeGameIfPaused();
+        ClearStepRules();
         _phase = Phase.Idle;
         _index = -1;
         overlay.HideAll();
@@ -152,6 +156,7 @@ public class TutorialController : MonoBehaviour
             // 팝업 구간은 팝업 자체가 전체화면 입력을 막는다 — 딤이 겹칠 이유가 없다.
             overlay.HideDim();
             ApplyPause(step);
+            ApplyStepRules(step);
             overlay.ShowPopup(step.PopupTitle, step.PopupBody, step.PopupImage);
             return;
         }
@@ -189,6 +194,7 @@ public class TutorialController : MonoBehaviour
         // 팝업에서 이미 걸어 뒀으면 그대로 유지된다(PauseGame은 두 번 불러도 안전하다).
         // 팝업이 없는 단계는 여기가 첫 진입점이다.
         ApplyPause(step);
+        ApplyStepRules(step);
 
         // 말풍선을 Begin보다 먼저 띄운다 — 조건이 Begin 도중에 충족되면 그 자리에서 다음 단계까지
         // 진입한 뒤 여기로 돌아오므로, 뒤에 두면 지나간 단계의 말풍선이 새 단계 위에 켜진다.
@@ -271,6 +277,62 @@ public class TutorialController : MonoBehaviour
         overlay.HideBubble();
         overlay.HideDim();
         Advance();
+    }
+
+    // 이 단계의 조작 규칙(타워 무료 배치·패널 제한·건물 무료 업그레이드)을 건다.
+    //
+    // '내가 걸었는지'를 따로 추적하지 않는 것은 의도적이다 — 셋 다 튜토리얼 전용이라 다른 주인이
+    // 없고, 단계에 들어갈 때마다 그 단계의 값으로 덮어쓰므로 단계 사이에 새지 않는다.
+    // 정리해야 하는 것은 튜토리얼이 끝나는 경로뿐이다(ClearStepRules).
+    private void ApplyStepRules(TutorialStepAsset step)
+    {
+        SetStepRules(step.FreeTowerPlacement, step.RestrictTowerPanelTo, step.FreeBuildingUpgrade, step.UpgradeCap);
+    }
+
+    // 튜토리얼이 끝나거나 꺼질 때 원래대로 되돌린다. 빠뜨리면 정식 플레이에서도 타워·업그레이드가
+    // 공짜이거나 패널이 한 종류로 잠긴 채 남는다.
+    private void ClearStepRules()
+    {
+        SetStepRules(false, null, false, 0);
+    }
+
+    private void SetStepRules(bool freePlacement, TowerAsset restrictTo, bool freeUpgrade, int upgradeCap)
+    {
+        // 무료 스위치를 먼저 세운다 — RestrictTo가 버튼을 다시 그리면서 이 값을 읽기 때문에,
+        // 순서가 반대면 버튼이 옛 자원 게이트로 한 번 그려진다.
+        TowerPlacer placer = _context.TowerPlacer;
+
+        if (placer != null)
+        {
+            placer.FreePlacement = freePlacement;
+        }
+        else if (freePlacement)
+        {
+            Debug.LogWarning($"[{nameof(TutorialController)}] 씬에서 TowerPlacer를 찾지 못해 무료 배치를 걸 수 없다.", this);
+        }
+
+        TowerSelectPanelView panel = _context.TowerPanel;
+
+        if (panel != null)
+        {
+            panel.RestrictTo(restrictTo);
+        }
+        else if (restrictTo != null)
+        {
+            Debug.LogWarning($"[{nameof(TutorialController)}] 씬에서 타워 패널을 찾지 못해 제한을 걸 수 없다.", this);
+        }
+
+        ManagementController management = _context.Management;
+
+        if (management != null)
+        {
+            management.FreeUpgrade = freeUpgrade;
+            management.UpgradeCap = upgradeCap;
+        }
+        else if (freeUpgrade || upgradeCap > 0)
+        {
+            Debug.LogWarning($"[{nameof(TutorialController)}] 씬에서 ManagementController를 찾지 못해 업그레이드 규칙을 걸 수 없다.", this);
+        }
     }
 
     private void ApplyPause(TutorialStepAsset step)

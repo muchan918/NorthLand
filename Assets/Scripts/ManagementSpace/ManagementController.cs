@@ -171,6 +171,65 @@ public class ManagementController : MonoBehaviour
     // ── 비용 소비 게이트웨이 (소비처는 지갑에 직접 접근하지 않고 컨트롤러 경유 — WL-017) ──
     /// <summary>Cost 리스트를 감당할 수 있는지 판정한다. null/빈 리스트는 무료(true).<br/>
     /// 자원 해석에 실패하면(삭제·미배선 SO) 감당 불가로 본다 — 근거는 <see cref="TryAggregateCost"/>(WL-176).</summary>
+    /// <summary>
+    /// [튜토리얼용] 켜면 건물 업그레이드가 자원을 소모하지 않는다.<br/>
+    /// 생산 라인(<see cref="TryUpgrade"/>)과 업그레이드 전용 건물(<see cref="TryUpgradeBuilding"/>) 둘 다에 걸린다.
+    /// 주민 증축·교환은 포함하지 않는다 — 필요해지면 그 자리에도 <see cref="EffectiveCost"/>를 끼우면 된다.
+    /// </summary>
+    public bool FreeUpgrade
+    {
+        get => _freeUpgrade;
+        set
+        {
+            if (_freeUpgrade == value)
+            {
+                return;
+            }
+
+            _freeUpgrade = value;
+
+            // 이 값이 바뀌면 CanUpgrade의 답이 뒤집힌다 — 열려 있는 건물 정보 패널의 업그레이드 버튼이
+            // 다시 그려지지 않으면 무료로 켠 직후에도 회색으로 남는다(BuildingInfoUI가 OnChanged로 갱신한다).
+            OnChanged?.Invoke();
+        }
+    }
+
+    private bool _freeUpgrade;
+
+    /// <summary>
+    /// [튜토리얼용] 이 레벨을 넘겨 올릴 수 없다. 0이면 제한 없음.<br/>
+    /// <see cref="FreeUpgrade"/>로 비용이 사라진 단계에서 한 건물만 계속 올리는 것을 막는다.<br/>
+    /// <br/>
+    /// ⚠ 그 단계의 완료 조건이 요구하는 레벨보다 낮게 잡으면 <b>단계를 영영 끝낼 수 없다</b>
+    ///   (예: AllProductionLinesUpgradedCondition의 Required Level과 맞출 것).
+    /// </summary>
+    public int UpgradeCap
+    {
+        get => _upgradeCap;
+        set
+        {
+            if (_upgradeCap == value)
+            {
+                return;
+            }
+
+            _upgradeCap = value;
+
+            // FreeUpgrade와 같은 이유 — 이 값이 바뀌면 CanUpgrade의 답과 "Lv 현재/최대" 표시가 뒤집히는데,
+            // 열려 있는 건물 정보 패널은 OnChanged로만 다시 그린다.
+            OnChanged?.Invoke();
+        }
+    }
+
+    private int _upgradeCap;
+
+    /// 무료 중이면 비용을 통째로 지운다. <b>감당 판정·실제 차감·되돌리기 환원이 같은 값을 봐야</b>
+    /// "버튼은 켜졌는데 눌러도 안 되는"(CanUpgrade 누락)·"안 낸 자원이 Ctrl+Z로 환불되는"
+    /// (PushSpendUndo 누락) 어긋남이 생기지 않는다.
+    /// null은 CanAfford가 무료로 취급하고, TrySpend는 빈 집계라 아무것도 쓰지 않고 성공한다.
+    private IReadOnlyList<ResourceCost> EffectiveCost(IReadOnlyList<ResourceCost> cost)
+        => FreeUpgrade ? null : cost;
+
     public bool CanAfford(IReadOnlyList<ResourceCost> costs)
     {
         if (costs == null || costs.Count == 0) return true; // 무료 — 매 프레임 조회 시 할당 회피
@@ -318,15 +377,20 @@ public class ManagementController : MonoBehaviour
     private int EffectiveMaxLevel(IReadOnlyList<BuildingAsset.UpgradeStep> levels, bool ignoreGate = false)
     {
         if (levels == null) return 0;
-        if (ignoreGate) return levels.Count;
+        if (ignoreGate) return Capped(levels.Count);
 
         int castle = CastleLevel;
         for (int i = 0; i < levels.Count; i++)
         {
-            if (levels[i] == null || levels[i].RequiredCastleLevel > castle) return i;
+            if (levels[i] == null || levels[i].RequiredCastleLevel > castle) return Capped(i);
         }
-        return levels.Count;
+        return Capped(levels.Count);
     }
+
+    // 튜토리얼 상한을 씌운다. 가능 판정(CanUpgrade)·실행 가드(TryUpgrade)·표시(LineMaxLevel)·
+    // 미리보기(LineUpgradeCost)가 전부 EffectiveMaxLevel을 지나므로, 여기 한 곳이면 넷이 같이 맞는다.
+    // Can/Try에만 걸면 패널은 "Lv 1/6"인데 버튼만 회색이라 이유가 화면에 드러나지 않는다.
+    private int Capped(int max) => _upgradeCap > 0 ? Mathf.Min(max, _upgradeCap) : max;
 
     // 잠긴 다음 레벨이 요구하는 본진 레벨(잠기지 않았거나 진짜 최대면 0) — 표시부의 "본진 Lv n 필요" 안내용.
     private int RequiredCastleLevelAt(IReadOnlyList<BuildingAsset.UpgradeStep> levels, int current, int effectiveMax)
@@ -361,7 +425,7 @@ public class ManagementController : MonoBehaviour
         if (!IsDay || !IsValidLine(index)) return false;
         List<BuildingAsset.UpgradeLevel> levels = _lineUpgradeLevels[index];
         int next = _level[index];
-        return next < EffectiveMaxLevel(levels) && CanAfford(levels[next].Cost);
+        return next < EffectiveMaxLevel(levels) && CanAfford(EffectiveCost(levels[next].Cost));
     }
 
     // 건물 SO가 몇 번 라인인지. 생산 라인(업그레이드 대상)이 아니면 -1.
@@ -427,7 +491,7 @@ public class ManagementController : MonoBehaviour
         if (!IsDay || !IsValidUpgrade(index)) return false;
         IReadOnlyList<BuildingAsset.UpgradeStep> levels = _upgradeLevelTables[index];
         int next = _upgradeLevel[index];
-        return next < UpgradeBuildingMaxLevel(index) && CanAfford(levels[next].Cost);
+        return next < UpgradeBuildingMaxLevel(index) && CanAfford(EffectiveCost(levels[next].Cost));
     }
 
     /// <summary>
@@ -460,7 +524,8 @@ public class ManagementController : MonoBehaviour
             return false;
         }
 
-        if (!TrySpend(levels[next].Cost))
+        IReadOnlyList<ResourceCost> paid = EffectiveCost(levels[next].Cost);
+        if (!TrySpend(paid))
         {
             Debug.Log($"[경영] {_upgradeBuildingRefs[index].BuildingID}: 자원이 부족해 업그레이드할 수 없습니다.");
             return false;
@@ -472,7 +537,7 @@ public class ManagementController : MonoBehaviour
         // 되돌리기 등록(#444). 이전 레벨로 되맞추는 일은 세이브 복원 API가 그대로 해 준다.
         int previousLevel = next;
         string buildingId = UpgradeBuildingId(index);
-        PushSpendUndo(levels[previousLevel].Cost,
+        PushSpendUndo(paid,
             () => TryRevertUpgradeBuilding(buildingId, index, previousLevel),
             $"{_upgradeBuildingRefs[index].BuildingID} 업그레이드");
         OnChanged?.Invoke();
@@ -931,7 +996,8 @@ public class ManagementController : MonoBehaviour
         }
 
         BuildingAsset.UpgradeLevel target = levels[next];
-        if (!TrySpend(target.Cost))
+        IReadOnlyList<ResourceCost> paid = EffectiveCost(target.Cost);
+        if (!TrySpend(paid))
         {
             Debug.Log($"[경영] {LineDisplayName(index)}: 자원이 부족해 업그레이드할 수 없습니다.");
             return false;
@@ -945,7 +1011,7 @@ public class ManagementController : MonoBehaviour
         // **되돌리는 시점의 값**을 읽어 그대로 유지한다 — 그 사이 주민을 넣거나 뺐을 수 있다.
         int previousLevel = next;
         string buildingId = LineBuildingId(index);
-        PushSpendUndo(target.Cost,
+        PushSpendUndo(paid,
             () => TryRevertProductionLine(buildingId, index, previousLevel),
             $"{LineDisplayName(index)} 업그레이드");
         OnChanged?.Invoke();
