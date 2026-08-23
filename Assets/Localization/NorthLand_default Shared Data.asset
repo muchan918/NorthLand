@@ -283,6 +283,10 @@ MonoBehaviour:
     m_Key: game.merge.materials
     m_Metadata:
       m_Items: []
+  - m_Id: 16108541106614272
+    m_Key: settings.language.prompt
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
