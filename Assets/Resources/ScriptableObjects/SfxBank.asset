@@ -31,8 +31,8 @@ MonoBehaviour:
     Clip: {fileID: 8300000, guid: b5c64e6e157d55545ac61f1a85dd6a5f, type: 3}
     Volume: 1
   undo:
-    Clip: {fileID: 8300000, guid: a50b3e41b8ccb854fbafd972cefabccc, type: 3}
+    Clip: {fileID: 8300000, guid: 7e19cf98fc5c49e4b87fdfa232045a73, type: 3}
     Volume: 1
   redo:
-    Clip: {fileID: 8300000, guid: 7e19cf98fc5c49e4b87fdfa232045a73, type: 3}
+    Clip: {fileID: 0}
     Volume: 0.5
