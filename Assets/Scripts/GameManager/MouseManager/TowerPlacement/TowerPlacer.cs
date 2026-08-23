@@ -271,6 +271,7 @@ public class TowerPlacer : MonoBehaviour
             Snap = SnapToFootprintCenter,
             CanPlaceAt = CanPlaceFootprint,
             OnConfirmed = PlaceTower,
+            OnRejected = Sfx.Rejected,
             OnEnded = EndPlacement,
             KeepPlacingAfterConfirm = keepPlacing,
         });
@@ -381,7 +382,9 @@ public class TowerPlacer : MonoBehaviour
 
         foreach ((Vector3 _, BattleTile tile) in _footprint)
         {
-            if (!IsBuildable(tile)) return;
+            // 여기 도달하면 CanPlaceFootprint를 통과한 뒤 상태가 바뀐 것이다(방어). 플레이어에게는
+            // 유효해 보이는 자리를 클릭했는데 아무 일도 안 난 상황이므로 거절음까지 내 준다.
+            if (!IsBuildable(tile)) { Sfx.Rejected(); return; }
         }
 
         // 자원 차감(경영 게이트웨이 경유 — TowerPlacement.md §8). 성공 시에만 생성·점유한다.
@@ -390,6 +393,7 @@ public class TowerPlacer : MonoBehaviour
         {
             // CanPlaceFootprint가 이미 자원 부족을 걸러 여기 도달은 드묾(방어) — 조용한 실패 방지.
             Debug.Log("[TowerPlacer] 자원이 부족해 배치를 취소합니다.");
+            Sfx.Rejected();
             return;
         }
 
@@ -400,6 +404,10 @@ public class TowerPlacer : MonoBehaviour
 
             return;
         }
+
+        // 설치 성공음. **합성 결과 배치도 이 경로를 지나므로**(TowerFusionController가 결과 타워를
+        // BeginTowerPlacement로 놓는다) 합성 완료음을 따로 낼 필요가 없다 — 여기 한 곳이 둘을 덮는다.
+        Sfx.TowerInstalled();
 
         // 되돌리기 커맨드(#281). 배치는 이미 끝났고 이 커맨드는 그 결과를 **인수**한다 —
         // 실패해도 배치 자체는 정상이고 "되돌릴 수 없다"만 잃으므로 경고로 드러내고 진행한다.

@@ -657,6 +657,10 @@ public class MouseManager : MonoBehaviour
         if (!RaycastMask(screenPos, _placementMask, out var hit))
         {
             if (_ghost.activeSelf) _ghost.SetActive(false);
+
+            // 맵 밖·하늘 클릭도 거절이다. 여기서 조용히 빠지면 "배치 모드인데 눌러도 아무 반응이 없는"
+            // 구간이 화면 대부분을 차지한다 — 무효 타일 클릭과 플레이어가 겪는 일이 같으므로 같이 낸다.
+            if (!overUI && Mouse.current.leftButton.wasPressedThisFrame) _request.OnRejected?.Invoke();
             return;
         }
 
@@ -667,10 +671,18 @@ public class MouseManager : MonoBehaviour
         bool valid = _request.CanPlaceAt(hit);
         // TODO(하이라이트/연출 미확정): 고스트를 유효=초록/무효=빨강 등으로 표시
 
-        if (!overUI && valid && Mouse.current.leftButton.wasPressedThisFrame)
+        if (!overUI && Mouse.current.leftButton.wasPressedThisFrame)
         {
-            _request.OnConfirmed(hit, pos);
-            if (!_request.KeepPlacingAfterConfirm) CancelPlacement();
+            // UI 위 클릭은 여기 오지 않는다 — 그건 버튼을 누른 것이지 배치를 시도한 것이 아니다(그쪽은 클릭음).
+            if (!valid)
+            {
+                _request.OnRejected?.Invoke();
+            }
+            else
+            {
+                _request.OnConfirmed(hit, pos);
+                if (!_request.KeepPlacingAfterConfirm) CancelPlacement();
+            }
         }
     }
 

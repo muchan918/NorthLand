@@ -60,13 +60,18 @@ public class TowerFusionController : MonoBehaviour
         if (!TowerFusionMatcher.TryResolve(towerIds, required, out var consumeIndices))
         {
             Debug.Log("[TowerFusion] 재료가 부족해 합성할 수 없습니다.");
+            Sfx.Rejected();
             return false;
         }
 
         // 4. 코스트 확인 (관리 시스템이 있을 때만)
+        //    ⚠ 후보 버튼의 표시 조건은 `TowerMergeCoordinator.CanMerge` = **재료 매칭뿐**이라 코스트는 보지 않는다.
+        //    즉 자원이 모자라도 버튼은 떠 있고, 눌러도 여기서 반려된다 — 유일하게 자주 도달하는 실패 경로다.
+        //    거절음이 없으면 "눌리는 버튼인데 눌러도 아무 일이 없다"로 보인다.
         if (_management != null && !_management.CanAfford(recipe.ExtraCost))
         {
             Debug.Log("[TowerFusion] 합성 코스트가 부족합니다.");
+            Sfx.Rejected();
             return false;
         }
 

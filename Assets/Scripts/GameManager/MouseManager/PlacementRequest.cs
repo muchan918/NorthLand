@@ -14,6 +14,11 @@ public class PlacementRequest
     public Quaternion GhostRotation = Quaternion.identity;
     public Func<RaycastHit, bool> CanPlaceAt; // 배치 가능 여부 (그리드/검증 시스템이 제공)
     public Action<RaycastHit, Vector3> OnConfirmed; // (히트, 스냅 위치) 확정 시 실제 배치 수행
+    // 놓을 수 없는 곳을 클릭했을 때 호출된다 — 거절 피드백(효과음 등)용. 선택(null 허용).
+    // 이게 없으면 무효 클릭이 **아무 신호도 내지 않고 삼켜져** 플레이어에게는 클릭이 안 먹은 것처럼 보인다.
+    // "왜 안 놓이는지"(도로·용암·점유·자원 부족)는 요청 측이 알지만, "거절됐다"는 사실은 매니저만 아는
+    // 정보라 여기서 낸다. 사유별로 다른 반응이 필요해지면 인자를 붙인다(지금은 소비처가 소리 하나뿐).
+    public Action OnRejected;
     public Action OnEnded; // 배치 모드 종료(취소 또는 확정 후 복귀) 시 호출 — 프리뷰/고스트 부가물 정리용. 선택(null 허용)
     public bool KeepPlacingAfterConfirm; // 연속 배치 여부 (TBD)
 }

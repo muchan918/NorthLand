@@ -89,6 +89,10 @@ public class TowerMergePanelView : MonoBehaviour
             // 호버 시 소모될 재료 타워만 핑크 아웃라인(#213 §5.3). 버튼 프리팹을 편집하지 않고 런타임 부착한다.
             button.gameObject.AddComponent<TowerMergeCandidateHover>().Init(_coordinator, captured);
 
+            // 합성 결과는 설치음(성공) 또는 거절음(재료·코스트 부족)으로 스스로 답한다 —
+            // 공용 클릭음까지 나면 두 소리가 겹쳐 들린다. 위와 같은 런타임 부착 방식으로 뺀다.
+            UiClickSfxIgnore.ApplyTo(button);
+
             button.gameObject.SetActive(false); // 기본 숨김 — 매칭 시 켠다
             _candidates.Add((button, recipe));
         }
