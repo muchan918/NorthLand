@@ -14844,16 +14844,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TutorialController
   overlay: {fileID: 1048151149}
   steps:
-  - {fileID: 11400000, guid: 9d6128b93f765924680e3c115d3aef92, type: 2}
-  - {fileID: 11400000, guid: 2631a4bf9c358144d8f7415d83ea7854, type: 2}
-  - {fileID: 11400000, guid: b15db63674cfc464fbf9d8d528abacbc, type: 2}
   - {fileID: 11400000, guid: f973092073f4ace4d95601011ed88267, type: 2}
   - {fileID: 11400000, guid: 8096b01c58ca0cd4b825fec14e661825, type: 2}
   - {fileID: 11400000, guid: d2791ded24a342f47a3a5289bc14b633, type: 2}
   - {fileID: 11400000, guid: 8bf57dd7e0d98444f85ae7eedc601fb7, type: 2}
   - {fileID: 11400000, guid: 7f4ad99db6ba8704fb97e2fc5b802dd0, type: 2}
   - {fileID: 11400000, guid: 750aa240cb51b904a90c1e261a0046aa, type: 2}
+  - {fileID: 11400000, guid: 9d6128b93f765924680e3c115d3aef92, type: 2}
+  - {fileID: 11400000, guid: 2631a4bf9c358144d8f7415d83ea7854, type: 2}
+  - {fileID: 11400000, guid: b15db63674cfc464fbf9d8d528abacbc, type: 2}
+  - {fileID: 11400000, guid: 4fda381e9a44a17478b3f2587efd4913, type: 2}
+  - {fileID: 11400000, guid: e0534bd2577db5d42b2850e88aa9af24, type: 2}
+  - {fileID: 11400000, guid: bee85314aa5ab494996699eb3eaa3290, type: 2}
+  - {fileID: 11400000, guid: 172226fdf99b4474c8519e78cba95d92, type: 2}
   startOnPlay: 1
+  debugMode: 1
+  debugSteps:
+  - {fileID: 11400000, guid: 4fda381e9a44a17478b3f2587efd4913, type: 2}
+  - {fileID: 11400000, guid: e0534bd2577db5d42b2850e88aa9af24, type: 2}
+  - {fileID: 11400000, guid: bee85314aa5ab494996699eb3eaa3290, type: 2}
+  - {fileID: 11400000, guid: 172226fdf99b4474c8519e78cba95d92, type: 2}
 --- !u!4 &1906456309
 Transform:
   m_ObjectHideFlags: 0

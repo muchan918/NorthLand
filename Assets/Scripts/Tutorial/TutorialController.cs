@@ -17,6 +17,16 @@ public class TutorialController : MonoBehaviour
     [SerializeField]
     private bool startOnPlay = true;
 
+    // 뒤쪽 단계를 고칠 때마다 앞 단계를 전부 통과하지 않아도 되게 하는 스위치.
+    // 순서를 확인하려는 것이 아니라 '이 단계 하나가 도는가'를 보려는 용도다.
+    [Tooltip("[에디터 테스트용] 켜면 Steps 대신 Debug Steps만 진행한다. 빌드 전에 끌 것.")]
+    [SerializeField]
+    private bool debugMode;
+
+    [Tooltip("[에디터 테스트용] Debug Mode일 때 진행할 단계. Steps와 같은 규칙으로 등록 순서대로 돈다.")]
+    [SerializeField]
+    private List<TutorialStepAsset> debugSteps = new List<TutorialStepAsset>();
+
     private enum Phase
     {
         Idle,    // 돌고 있지 않다
@@ -29,6 +39,11 @@ public class TutorialController : MonoBehaviour
 
     private TutorialContext _context;
     private TutorialCondition _active;
+
+    // 이번 실행이 진행할 단계 목록. StartTutorial에서 한 번 확정하고 이후 바뀌지 않는다 —
+    // 진행 도중 debugMode를 뒤집으면 _index가 다른 리스트를 가리켜 엉뚱한 단계로 뛴다
+    // (MonsterSpawnWaveProvider.isTutorialRun과 같은 규칙).
+    private List<TutorialStepAsset> _activeSteps;
 
     // 지금 이 컨트롤러가 게임을 멈춰 뒀는가. 해제를 빠뜨리면 게임이 영구 정지하므로
     // '내가 걸었는지'를 직접 들고 있다가 모든 이탈 경로에서 되돌린다.
@@ -84,6 +99,16 @@ public class TutorialController : MonoBehaviour
 
     public void StartTutorial()
     {
+        _activeSteps = debugMode ? debugSteps : steps;
+
+        // 단계가 통째로 안 보이는 것을 '버그'로 오해하기 쉬운 자리라 켜져 있으면 반드시 알린다.
+        if (debugMode)
+        {
+            Debug.LogWarning(
+                $"[{nameof(TutorialController)}] 디버그 모드 — Steps 대신 Debug Steps {_activeSteps.Count}개만 진행한다.",
+                this);
+        }
+
         _index = -1;
         Advance();
     }
@@ -102,19 +127,19 @@ public class TutorialController : MonoBehaviour
     {
         _index++;
 
-        while (_index < steps.Count && steps[_index] == null)
+        while (_index < _activeSteps.Count && _activeSteps[_index] == null)
         {
             _index++;
         }
 
-        if (_index >= steps.Count)
+        if (_index >= _activeSteps.Count)
         {
             Debug.Log("[Tutorial] 모든 단계를 마쳤다.");
             StopTutorial();
             return;
         }
 
-        EnterStep(steps[_index]);
+        EnterStep(_activeSteps[_index]);
     }
 
     private void EnterStep(TutorialStepAsset step)
@@ -144,7 +169,7 @@ public class TutorialController : MonoBehaviour
         }
 
         overlay.HidePopup();
-        BeginAction(steps[_index]);
+        BeginAction(_activeSteps[_index]);
     }
 
     private void BeginAction(TutorialStepAsset step)
