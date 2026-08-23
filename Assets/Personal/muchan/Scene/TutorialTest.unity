@@ -14869,9 +14869,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 5d1d1f1346f310549998bd0474c1f16f, type: 2}
   startOnPlay: 1
   debugMode: 0
-  debugSteps:
-  - {fileID: 11400000, guid: 5eccda031e295294e9867f8f522cc1d1, type: 2}
-  - {fileID: 11400000, guid: 5d1d1f1346f310549998bd0474c1f16f, type: 2}
+  debugSteps: []
 --- !u!4 &1906456309
 Transform:
   m_ObjectHideFlags: 0
