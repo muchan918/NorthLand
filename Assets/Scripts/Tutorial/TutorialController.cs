@@ -291,14 +291,15 @@ public class TutorialController : MonoBehaviour
             step.RestrictTowerPanelTo,
             step.FreeManagementCost,
             step.UpgradeCap,
-            step.VillagerCap);
+            step.VillagerCap,
+            step.UpgradeAllowList);
     }
 
     // 튜토리얼이 끝나거나 꺼질 때 원래대로 되돌린다. 빠뜨리면 정식 플레이에서도 타워·업그레이드가
     // 공짜이거나 패널이 한 종류로 잠긴 채 남는다.
     private void ClearStepRules()
     {
-        SetStepRules(false, null, false, 0, 0);
+        SetStepRules(false, null, false, 0, 0, null);
     }
 
     private void SetStepRules(
@@ -306,7 +307,8 @@ public class TutorialController : MonoBehaviour
         TowerAsset restrictTo,
         bool freeManagementCost,
         int upgradeCap,
-        int villagerCap)
+        int villagerCap,
+        IReadOnlyList<BuildingAsset> upgradeAllowList)
     {
         // 무료 스위치를 먼저 세운다 — RestrictTo가 버튼을 다시 그리면서 이 값을 읽기 때문에,
         // 순서가 반대면 버튼이 옛 자원 게이트로 한 번 그려진다.
@@ -339,6 +341,7 @@ public class TutorialController : MonoBehaviour
             management.FreeManagementCost = freeManagementCost;
             management.UpgradeCap = upgradeCap;
             management.VillagerCap = villagerCap;
+            management.UpgradeAllowList = upgradeAllowList;
         }
         else if (freeManagementCost || upgradeCap > 0 || villagerCap > 0)
         {

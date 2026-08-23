@@ -249,6 +249,52 @@ public class ManagementController : MonoBehaviour
 
     private int _villagerCap;
 
+    /// <summary>
+    /// [튜토리얼용] 여기 담긴 건물만 업그레이드할 수 있다. 비우면 제한 없음.<br/>
+    /// <see cref="UpgradeCap"/>이 '얼마나'를 막는다면 이쪽은 '무엇을'을 막는다 —
+    /// 무료 구간에서 안내한 건물이 아닌 곳(캐슬·마법 연구소 등)으로 무료 업그레이드가 새는 것을 막는다.<br/>
+    /// <br/>
+    /// ⚠ 이게 없으면 앞 단계에서 뒤 단계의 대상을 미리 올려버릴 수 있고, 그러면 뒤 단계가
+    ///   상한에 걸려 Upgraded 통지가 영영 오지 않아 <b>진행이 막힌다</b>.
+    /// </summary>
+    public IReadOnlyList<BuildingAsset> UpgradeAllowList
+    {
+        get => _upgradeAllowList;
+        set
+        {
+            if (ReferenceEquals(_upgradeAllowList, value))
+            {
+                return;
+            }
+
+            _upgradeAllowList = value;
+
+            // CanUpgrade의 답이 뒤집힌다 — 열려 있는 패널은 OnChanged로만 다시 그린다.
+            OnChanged?.Invoke();
+        }
+    }
+
+    private IReadOnlyList<BuildingAsset> _upgradeAllowList;
+
+    // 목록이 비어 있으면 제한 없음. 담겨 있으면 그 안에 든 건물만 통과한다.
+    private bool IsUpgradeAllowed(BuildingAsset building)
+    {
+        if (_upgradeAllowList == null || _upgradeAllowList.Count == 0)
+        {
+            return true;
+        }
+
+        for (int i = 0; i < _upgradeAllowList.Count; i++)
+        {
+            if (_upgradeAllowList[i] == building)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// 무료 중이면 비용을 통째로 지운다. <b>감당 판정·실제 차감·되돌리기 환원이 같은 값을 봐야</b>
     /// "버튼은 켜졌는데 눌러도 안 되는"(CanUpgrade 누락)·"안 낸 자원이 Ctrl+Z로 환불되는"
     /// (PushSpendUndo 누락) 어긋남이 생기지 않는다.
@@ -457,7 +503,9 @@ public class ManagementController : MonoBehaviour
         if (!IsDay || !IsValidLine(index)) return false;
         List<BuildingAsset.UpgradeLevel> levels = _lineUpgradeLevels[index];
         int next = _level[index];
-        return next < EffectiveMaxLevel(levels) && CanAfford(EffectiveCost(levels[next].Cost));
+        return IsUpgradeAllowed(_lineBuildings[index])
+               && next < EffectiveMaxLevel(levels)
+               && CanAfford(EffectiveCost(levels[next].Cost));
     }
 
     // 건물 SO가 몇 번 라인인지. 생산 라인(업그레이드 대상)이 아니면 -1.
@@ -523,7 +571,9 @@ public class ManagementController : MonoBehaviour
         if (!IsDay || !IsValidUpgrade(index)) return false;
         IReadOnlyList<BuildingAsset.UpgradeStep> levels = _upgradeLevelTables[index];
         int next = _upgradeLevel[index];
-        return next < UpgradeBuildingMaxLevel(index) && CanAfford(EffectiveCost(levels[next].Cost));
+        return IsUpgradeAllowed(_upgradeBuildingRefs[index])
+               && next < UpgradeBuildingMaxLevel(index)
+               && CanAfford(EffectiveCost(levels[next].Cost));
     }
 
     /// <summary>
@@ -540,6 +590,12 @@ public class ManagementController : MonoBehaviour
         }
         if (!IsValidUpgrade(index))
         {
+            return false;
+        }
+
+        if (!IsUpgradeAllowed(_upgradeBuildingRefs[index]))
+        {
+            Debug.Log($"[경영] {_upgradeBuildingRefs[index].BuildingID}: 지금은 업그레이드할 수 없습니다.");
             return false;
         }
 
@@ -1019,6 +1075,12 @@ public class ManagementController : MonoBehaviour
         }
         if (!IsValidLine(index))
         {
+            return false;
+        }
+
+        if (!IsUpgradeAllowed(_lineBuildings[index]))
+        {
+            Debug.Log($"[경영] {LineDisplayName(index)}: 지금은 업그레이드할 수 없습니다.");
             return false;
         }
 

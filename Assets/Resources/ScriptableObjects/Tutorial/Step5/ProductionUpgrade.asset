@@ -24,8 +24,13 @@ MonoBehaviour:
   pauseGameDuringStep: 0
   freeTowerPlacement: 0
   restrictTowerPanelTo: {fileID: 0}
-  freeBuildingUpgrade: 1
+  freeManagementCost: 1
   upgradeCap: 1
+  villagerCap: 0
+  upgradeAllowList:
+  - {fileID: 11400000, guid: ba79754af9105604892d30cae1799110, type: 2}
+  - {fileID: 11400000, guid: 8268c334119ef524ea770b364abf1fd5, type: 2}
+  - {fileID: 11400000, guid: 639db89c157d46343837e79b6259f345, type: 2}
   completion:
     rid: 3470829977900417133
   references:

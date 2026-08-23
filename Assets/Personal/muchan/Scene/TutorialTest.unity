@@ -14857,13 +14857,14 @@ MonoBehaviour:
   - {fileID: 11400000, guid: e0534bd2577db5d42b2850e88aa9af24, type: 2}
   - {fileID: 11400000, guid: 77593dd74f9a36c42a794e74af25fe9d, type: 2}
   - {fileID: 11400000, guid: 172226fdf99b4474c8519e78cba95d92, type: 2}
+  - {fileID: 11400000, guid: 34b2852b12edc184ca58bc831b50135d, type: 2}
+  - {fileID: 11400000, guid: e650d75cf77241448a74ab35bf498838, type: 2}
   - {fileID: 11400000, guid: bc70e8778bca7f443bd5271060cc062f, type: 2}
   - {fileID: 11400000, guid: f8b3a8d990b360d45a54be978c108b87, type: 2}
   startOnPlay: 1
   debugMode: 1
   debugSteps:
-  - {fileID: 11400000, guid: 34b2852b12edc184ca58bc831b50135d, type: 2}
-  - {fileID: 11400000, guid: e650d75cf77241448a74ab35bf498838, type: 2}
+  - {fileID: 11400000, guid: 36e07b3b8060fd240ad288ce8e521cad, type: 2}
 --- !u!4 &1906456309
 Transform:
   m_ObjectHideFlags: 0

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -89,6 +90,13 @@ public class TutorialStepAsset : ScriptableObject
     [SerializeField]
     private int villagerCap;
 
+    // Upgrade Cap이 '얼마나'를 막는다면 이쪽은 '무엇을'을 막는다.
+    // ⚠ 비워 두면 무료 구간에서 다음 단계의 대상까지 미리 올려버릴 수 있고, 그러면 그 단계가
+    //   상한에 걸려 Upgraded 통지가 오지 않아 진행이 막힌다.
+    [Tooltip("이 단계 동안 업그레이드할 수 있는 건물. 비우면 제한 없음.")]
+    [SerializeField]
+    private List<BuildingAsset> upgradeAllowList = new List<BuildingAsset>();
+
     [Header("완료 조건 — 비우면 팝업 확인만으로 넘어간다")]
     [SerializeReference]
     private TutorialCondition completion;
@@ -125,6 +133,8 @@ public class TutorialStepAsset : ScriptableObject
     public int UpgradeCap => upgradeCap;
 
     public int VillagerCap => villagerCap;
+
+    public IReadOnlyList<BuildingAsset> UpgradeAllowList => upgradeAllowList;
 
     public TutorialCondition Completion => completion;
 }
