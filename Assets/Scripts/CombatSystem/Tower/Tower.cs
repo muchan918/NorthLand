@@ -528,6 +528,13 @@ namespace NorthLand.Combat
             // 오라 전용 타워에 조작을 띄우면 눌러도 아무 일이 없고, 빔 타워는 자체 탐색을 쓴다(WL-178).
             // 안 되는 조작을 보여주는 쪽이 아예 없는 것보다 나쁘다.
             TowerInfoUI.Instance.ShowInfo(data.Data, BuildStatsText(), Has<AttackAction>() ? this : null);
+
+            // 패널이 켜지는 쪽이 아니라 클릭한 이 자리에서 낸다(BuildingInfo.ShowOnly와 같은 규약).
+            // 위 두 개의 조기 반환(에셋·데이터 누락)을 통과한 뒤이므로 패널이 실제로 열린 경우만 울린다.
+            // 박스·Shift 다중 선택은 이 경로를 타지 않아(MouseManager는 그쪽에서 Select를 부르지 않는다)
+            // 타워를 여러 개 훑어도 소리가 겹쳐 쌓이지 않는다.
+            Sfx.PanelOpen();
+
             ShowRangeCircle();
         }
 

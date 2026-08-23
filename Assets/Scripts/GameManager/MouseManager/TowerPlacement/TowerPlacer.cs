@@ -271,6 +271,8 @@ public class TowerPlacer : MonoBehaviour
             Snap = SnapToFootprintCenter,
             CanPlaceAt = CanPlaceFootprint,
             OnConfirmed = PlaceTower,
+            OnRejected = Sfx.Rejected,
+            OnSurfaceHoverChanged = SetPreviewVisible,
             OnEnded = EndPlacement,
             KeepPlacingAfterConfirm = keepPlacing,
         });
@@ -338,7 +340,12 @@ public class TowerPlacer : MonoBehaviour
         if (_rangeCircle != null)
         {
             _rangeCircle.transform.position = result;
-            _rangeCircle.Show(); // 커서가 유효 타일 위에 온 첫 스냅부터 표시(원점 잔상 방지)
+
+            // 커서가 유효 타일 위에 온 첫 스냅부터 표시(원점 잔상 방지).
+            // ⚠ 앵커가 없으면(배치 마스크는 맞혔지만 BattleTile이 아닌 표면) 놓을 자리가 없으므로 숨긴다 —
+            //   무조건 Show하면 타일 아닌 곳에서 원이 커서를 따라다닌다.
+            if (anchor != null) _rangeCircle.Show();
+            else _rangeCircle.Hide();
         }
         UpdateCellHighlights();
         return result;
@@ -381,7 +388,9 @@ public class TowerPlacer : MonoBehaviour
 
         foreach ((Vector3 _, BattleTile tile) in _footprint)
         {
-            if (!IsBuildable(tile)) return;
+            // 여기 도달하면 CanPlaceFootprint를 통과한 뒤 상태가 바뀐 것이다(방어). 플레이어에게는
+            // 유효해 보이는 자리를 클릭했는데 아무 일도 안 난 상황이므로 거절음까지 내 준다.
+            if (!IsBuildable(tile)) { Sfx.Rejected(); return; }
         }
 
         // 자원 차감(경영 게이트웨이 경유 — TowerPlacement.md §8). 성공 시에만 생성·점유한다.
@@ -390,6 +399,7 @@ public class TowerPlacer : MonoBehaviour
         {
             // CanPlaceFootprint가 이미 자원 부족을 걸러 여기 도달은 드묾(방어) — 조용한 실패 방지.
             Debug.Log("[TowerPlacer] 자원이 부족해 배치를 취소합니다.");
+            Sfx.Rejected();
             return;
         }
 
@@ -400,6 +410,10 @@ public class TowerPlacer : MonoBehaviour
 
             return;
         }
+
+        // 설치 성공음. **합성 결과 배치도 이 경로를 지나므로**(TowerFusionController가 결과 타워를
+        // BeginTowerPlacement로 놓는다) 합성 완료음을 따로 낼 필요가 없다 — 여기 한 곳이 둘을 덮는다.
+        Sfx.TowerInstalled();
 
         // 되돌리기 커맨드(#281). 배치는 이미 끝났고 이 커맨드는 그 결과를 **인수**한다 —
         // 실패해도 배치 자체는 정상이고 "되돌릴 수 없다"만 잃으므로 경고로 드러내고 진행한다.
@@ -511,17 +525,53 @@ public class TowerPlacer : MonoBehaviour
             Destroy(q.GetComponent<Collider>()); // 배치 레이캐스트를 방해하지 않도록 콜라이더 제거
             // 회전은 UpdateCellHighlights가 매 프레임 그리드 축에 맞춘다(여기선 앵커를 아직 모른다).
             q.transform.localScale = Vector3.one * (tileSize * 0.9f);
+
+            // 꺼진 채로 만든다 — 사거리 원을 Hide로 시작하는 것과 같은 이유다. 배치 버튼은 UI 위에 있어
+            // 클릭한 프레임의 커서는 타일 위가 아니고, 첫 스냅 전까지 위치가 갱신되지 않아 **월드 원점에
+            // 쿼드가 그대로 보인다.** 첫 스냅의 UpdateCellHighlights가 위치를 잡으면서 켠다.
+            q.SetActive(false);
+
             _cellHighlights.Add(q);
         }
     }
 
+    /// 배치 미리보기(풋프린트 하이라이트 + 사거리 원)를 한꺼번에 켜고 끈다.
+    /// <see cref="PlacementRequest.OnSurfaceHoverChanged"/>가 부른다 — 커서가 타일 밖으로 나가면
+    /// <c>Snap</c>이 아예 호출되지 않아서, 이 통지가 없으면 **마지막 타일 자리에 그대로 잔류한다.**
+    private void SetPreviewVisible(bool visible)
+    {
+        // **켜는 일은 여기서 하지 않는다.** 표면 위에서는 Snap이 매 프레임 돌면서
+        // UpdateCellHighlights로 필요한 쿼드만 켜고 사거리 원도 앵커 유무에 따라 켜고 끈다 —
+        // 그쪽이 풋프린트 크기와 앵커를 아는 유일한 자리다. 여기서 한 번 더 켜면 Snap 뒤에 실행되면서
+        // 여분 쿼드까지 되살려 옛 자리에 남긴다(호출 순서: Snap → 이 콜백).
+        if (visible) return;
+
+        if (_rangeCircle != null) _rangeCircle.Hide();
+
+        foreach (GameObject q in _cellHighlights)
+        {
+            if (q != null) q.SetActive(false);
+        }
+    }
+
     // _footprint(스냅에서 계산됨)를 그대로 사용해 각 셀 하이라이트를 배치·색칠한다.
+    // 풋프린트보다 많이 만들어 둔 여분(앵커가 없어 _footprint가 비는 경우 포함)은 꺼 둔다 —
+    // 켠 채로 두면 위치를 갱신받지 못한 쿼드가 옛 자리에 남는다.
     private void UpdateCellHighlights()
     {
+        for (int i = _footprint.Count; i < _cellHighlights.Count; i++)
+        {
+            GameObject spare = _cellHighlights[i];
+            if (spare != null && spare.activeSelf) spare.SetActive(false);
+        }
+
         for (int i = 0; i < _footprint.Count && i < _cellHighlights.Count; i++)
         {
             (Vector3 pos, BattleTile tile) = _footprint[i];
             GameObject q = _cellHighlights[i];
+            // 표면을 벗어났다 돌아오면 SetPreviewVisible(false)가 꺼 둔 상태다 — 위치를 잡는 이 자리에서
+            // 되살린다(켜는 주체를 한 곳에 모아 두면 "켜졌는데 위치가 옛날"이 생길 수 없다).
+            if (!q.activeSelf) q.SetActive(true);
             // 하이라이트 표시 y를 타일 윗면(앵커)에 맞춘다 — 타워 배치 y와 일치. 타일 없으면 풋프린트 y 폴백.
             // (탐지용 RebuildFootprint/TileAt은 루트 y 유지 — 앵커가 콜라이더 위쪽일 때 OverlapSphere 놓침 방지)
             float topY = tile != null ? tile.AnchorPosition.y : pos.y;

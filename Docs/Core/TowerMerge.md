@@ -207,7 +207,9 @@
 - **상단 Vertical Scroll View — 선택 리스트**: 선택된 재료 타워를 **선택 순서대로** 한 행씩. 집합 변경 시 즉시 갱신. 행 라벨 = `tower.Asset.TowerID` → `TowerData.NameKey` → 로컬라이즈(`NorthLand_Towers`, `LocalizationHelper.Get`). (행별 제거 버튼은 선택.)
 - **하단 Horizontal Scroll View — 후보 버튼**: **레시피(카탈로그)마다 버튼 1개를 미리 생성해 담아두고 기본 `SetActive(false)`**. 매칭되는 레시피의 버튼만 `SetActive(true)`.
   - 활성 판정 = `_coordinator.CanMerge(recipe)`(= `TowerFusionMatcher.CanFuse(group.Towers, recipe)`). (매칭 규칙 재구현 금지 — §6 단일 출처.)
-  - `ExtraCost` 감당 여부(`ManagementController.CanAfford(recipe.ExtraCost)`)는 (선택) `interactable`/딤 표시로 구분하되, **최종 검증은 실행부(`TryFuse`)가 한다**(방어). #183 완료기준은 매칭 기반 `SetActive`까지 — 현 구현은 `SetActive`만.
+  - **표시(재료)와 활성(코스트)을 가른다** — `SetActive` = `CanMerge`(재료 매칭), `interactable` = `_coordinator.CanAffordMerge(recipe)`(#406, WL-209). 예전에는 표시 조건이 재료뿐이라 **자원이 모자라도 버튼이 눌렸고 눌러도 조용히 반려**됐다. 거절음이 붙은 뒤에도 재료 부족과 코스트 부족이 같은 클립을 공유해 사유를 구분할 수 없었다 — 회색 표시가 그 자리를 대신한다. **최종 검증은 여전히 실행부(`TryFuse` 4단계)가 한다**(방어): 그룹이 판정과 클릭 사이에 바뀔 수 있다.
+    - 판정 경로는 `뷰 → 코디네이터(CanAffordMerge) → 실행부(TowerFusionController.CanAfford) → ManagementController.CanAfford`다. **뷰가 경영 시스템을 직접 부르지 않는다**(팀 계약 #6 · §8 파사드), 그리고 코스트 규칙(`recipe.ExtraCost`)을 아는 실행부가 답해야 `TryFuse`와 식이 갈리지 않는다.
+    - 경영이 없는 씬(테스트)에서는 무료라 항상 활성이다.
   - **버튼 표시 = 결과 타워(`recipe.Result`) 아이콘 + 이름**(#445). 둘 다 프리팹(`TowerButton.prefab` — 배치 팔레트와 같은 것)의 `TowerButtonView.Set(Sprite, string)` 슬롯에 채운다. 이름은 `TowerDisplayName.Of`(단일 출처, §8.5), 아이콘은 `TowerAsset.Icon`(미할당이면 슬롯 off — 흰 사각형보다 빈 칸이 낫다는 `ResourceAsset` 계보 규약).
     - 도입 시엔 `GetComponentInChildren<TMP_Text>()`로 **라벨만** 채웠다(아이콘 필드가 없던 시절 규약). `TowerAsset.Icon`이 생기고 실사용 타워 19종이 전부 채워진 뒤에도 이 경로가 남아, 후보 버튼은 테두리 안이 빈 칸이라 무슨 타워인지 그림으로 알 수 없었다.
     - `SetLocked`는 부르지 않는다 — 합성 후보에는 **해금** 개념이 없다. 원본 프리팹의 `TowerLockOverlay`는 `m_IsActive: 0`이라 그대로 조용하다(§8.5 `TowerMergeTargetSlot`이 같은 이유로 그 컴포넌트를 떼어낸 것과 같은 판단).
@@ -217,6 +219,7 @@
     - ⚠ **표시하는 것은 레시피의 요구량이지 "지금 선택한 것 중 무엇이 소모되는가"가 아니다.** 후보 버튼은 매칭될 때만 켜지므로 둘이 실질적으로 같고, 실제 소모 대상은 핑크 프리뷰(§8.4)가 월드에서 가리킨다.
   - **onClick → `_coordinator.RequestMerge(recipe)`**(코디네이터가 그룹을 물려 `TryFuse(recipe, group)` 호출). 버튼이 자기 `TowerRecipe`를 클로저로 물음.
   - **갱신 시점 = 그룹이 바뀔 때마다** 전 버튼 재판정 — `_coordinator.OnGroupChanged` 구독(패널이 활성일 때. 코디네이터는 내부적으로 `TowerMergeGroup.OnChanged`를 이 이벤트로 포워딩). 패널은 `OnEnable`에서도 현재 상태로 1회 동기화.
+    - **자원이 바뀔 때도 후보만 다시 칠한다** — `_coordinator.OnAffordabilityChanged`(실행부가 `ManagementController.OnChanged`를 받아 파사드로 다시 냄). 패널이 열린 채 자원이 변하는 경로가 실제로 있다: **되돌리기(Ctrl+Z)의 자원 환불**. 이게 없으면 "자원은 충분한데 버튼이 회색"이 되어, 클릭해도 `interactable=false`라 거절음조차 나지 않는다. 선택 리스트는 그대로이므로 행 재생성 없이 `RefreshCandidates`만 돈다.
   - **UX 트레이드오프(경미)**: `SetActive` 방식은 비매칭 버튼이 사라져 스크롤뷰가 리플로우된다(선택 변경마다 버튼이 튀어나왔다 사라짐). 이슈가 택한 방식이라 유지하되, 튐이 거슬리면 '전체 표시 + `interactable`로 회색' 대안 고려. 또 **여분 허용 시 실제 소모될 재료가 무엇인지**(선택 순서 index로 결정)는 리스트에 표시되지 않음 — 후속 폴리시(호버 시 소모 대상 하이라이트).
 
 > **주의**: 이 하단 후보 버튼 영역은 **배치 팔레트(`TowerSelectPanelView`, 새 타워 건설 선택)와 다르다.** 합성 패널은 이미 배치된 타워들의 조합 결과를 보여준다. 골격은 `TowerSelectPanelView`를 참고 모델로 삼되(버튼 동적 생성·조건부 활성·클릭 시 배치 진입), 대상이 `List<TowerRecipe>` + 매칭 여부 + `TryFuse`로 바뀐다.

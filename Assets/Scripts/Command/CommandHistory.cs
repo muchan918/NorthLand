@@ -89,9 +89,13 @@ public static class CommandHistory
     }
 
     /// 가장 최근 조작을 되돌린다. 밤이거나 스택이 비었으면 아무 일도 하지 않는다.
-    public static void Undo()
+    ///
+    /// **반환값 = 실제로 되돌렸는가.** 호출부가 피드백(효과음 등)을 붙일 때 `CanUndo`를 다시 검사하지
+    /// 않게 하려고 낸다 — 같은 조건을 두 곳에 두면 조용히 어긋난다(`UndoRequest` 주석과 같은 취지).
+    /// 이 클래스는 연출을 모른다: 무슨 소리를 낼지는 요청 진입점이 정한다.
+    public static bool Undo()
     {
-        if (!CanUndo) return;
+        if (!CanUndo) return false;
 
         int last = _stack.Count - 1;
         IReversibleCommand command = _stack[last];
@@ -99,6 +103,8 @@ public static class CommandHistory
         command.Undo();
 
         OnChanged?.Invoke();
+
+        return true;
     }
 
     /// 히스토리 전체를 확정하고 비운다(밤 진입). 이 뒤로는 되돌릴 수 없다.

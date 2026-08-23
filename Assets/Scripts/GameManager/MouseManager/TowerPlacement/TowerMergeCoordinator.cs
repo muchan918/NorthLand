@@ -49,6 +49,17 @@ public class TowerMergeCoordinator : MonoBehaviour
     public event Action OnGroupChanged;
     public bool CanMerge(TowerRecipe recipe) => TowerFusionMatcher.CanFuse(_group.Towers, recipe);
 
+    /// 이 레시피의 추가 코스트를 감당할 수 있는가. **후보 버튼의 활성 여부**가 이 값이다(WL-209) —
+    /// 예전에는 표시 조건이 재료 매칭뿐이라 자원이 모자라도 버튼이 눌렸고, 눌러도 조용히 반려됐다.
+    ///
+    /// 판정은 실행부가 한다(<see cref="TowerFusionController.CanAfford"/>) — 뷰가 경영 시스템을 직접
+    /// 부르지 않게 하려고 파사드로 한 번 더 감싼다(팀 계약 #6 · TowerMerge.md §8).
+    public bool CanAffordMerge(TowerRecipe recipe) => _controller == null || _controller.CanAfford(recipe);
+
+    /// 자원이 바뀌어 <see cref="CanAffordMerge"/>의 답이 달라졌을 수 있다. 뷰가 후보 버튼을 다시 칠한다.
+    /// 패널이 열린 채 자원이 변하는 경로가 실제로 있다 — 되돌리기(Ctrl+Z)의 자원 환불.
+    public event Action OnAffordabilityChanged;
+
     /// 후보 버튼 **호버** → 이 진입점(#213 §5.3). 그 레시피가 실제로 소모할 재료 타워만 핑크로 바꾼다.
     /// 포함 매칭이라 선택 집합에 여분 타워가 있을 수 있으므로 **소모 대상만** 칠하고 여분은 초록을 유지한다.
     /// 판정은 실행부와 같은 출처(TowerFusionMatcher)를 쓰고, 인덱스가 어긋나지 않도록
@@ -160,6 +171,9 @@ public class TowerMergeCoordinator : MonoBehaviour
         Tower.ActiveChanged += HandleActiveChanged; // 외부 파괴(철거·사망) 시 stale 방어(WL-076b)
         _group.OnChanged += HandleGroupChanged;
 
+        // 자원 변동을 뷰에 그대로 흘려보낸다(WL-209). 실행부가 경영 통지를 받고, 여기서 파사드로 다시 낸다.
+        if (_controller != null) _controller.OnAffordabilityChanged += RaiseAffordabilityChanged;
+
         if (_mergePanel != null)
         {
             _mergePanel.SetActive(false); // 초기 숨김
@@ -185,7 +199,11 @@ public class TowerMergeCoordinator : MonoBehaviour
         }
         Tower.ActiveChanged -= HandleActiveChanged;
         _group.OnChanged -= HandleGroupChanged;
+
+        if (_controller != null) _controller.OnAffordabilityChanged -= RaiseAffordabilityChanged;
     }
+
+    private void RaiseAffordabilityChanged() => OnAffordabilityChanged?.Invoke();
 
     // ── 입력 핸들러 ───────────────────────────────────────────────────
     // 평클릭(추가키 없음)·Esc·빈 곳: MouseManager.OnPrimarySelect가 _selected 중복 제거와 무관하게 항상 발행.
