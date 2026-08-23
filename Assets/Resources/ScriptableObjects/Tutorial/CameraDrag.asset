@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
+  m_Name: CameraDrag
+  m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
+  popupTitle: "\uB9C8\uC6B0\uC2A4\uB85C \uD654\uBA74 \uC774\uB3D9"
+  popupBody: "\uB9C8\uC6B0\uC2A4 \uC624\uB978\uCABD \uBC84\uD2BC\uC744 \uB204\uB978
+    \uCC44 \uB04C\uBA74 \uD654\uBA74\uC774 \uB530\uB77C \uC6C0\uC9C1\uC785\uB2C8\uB2E4.\n\uBA3C
+    \uACF3\uC73C\uB85C \uD55C\uBC88\uC5D0 \uC774\uB3D9\uD560 \uB54C \uD3B8\uB9AC\uD569\uB2C8\uB2E4."
+  popupImage: {fileID: 0}
+  bubbleText: "\uB9C8\uC6B0\uC2A4 \uC624\uB978\uCABD \uBC84\uD2BC\uC73C\uB85C \uD654\uBA74\uC744
+    \uB04C\uC5B4 \uBCF4\uC138\uC694"
+  highlightMode: 0
+  highlightAnchorId: 
+  highlightCell: {x: 0, y: 0}
+  completion:
+    rid: 3470829977900417123
+  references:
+    version: 2
+    RefIds:
+    - rid: 3470829977900417123
+      type: {class: CameraMovedCondition, ns: , asm: Assembly-CSharp}
+      data:
+        panSource: 2
+        requiredPanDistance: 200
+        zoomDirection: 0
+        requiredZoomChange: 0

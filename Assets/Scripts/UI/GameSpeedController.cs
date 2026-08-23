@@ -9,7 +9,8 @@ public enum GamePauseReason
     Reward,
     Settings,
     ResultDecided,
-    Cutscene
+    Cutscene,
+    Tutorial
 }
 
 public class GameSpeedController : MonoBehaviour

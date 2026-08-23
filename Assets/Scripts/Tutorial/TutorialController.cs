@@ -30,6 +30,10 @@ public class TutorialController : MonoBehaviour
     private TutorialContext _context;
     private TutorialCondition _active;
 
+    // 지금 이 컨트롤러가 게임을 멈춰 뒀는가. 해제를 빠뜨리면 게임이 영구 정지하므로
+    // '내가 걸었는지'를 직접 들고 있다가 모든 이탈 경로에서 되돌린다.
+    private bool _pausedByStep;
+
     public bool IsRunning => _phase != Phase.Idle;
 
     private void Awake()
@@ -64,11 +68,15 @@ public class TutorialController : MonoBehaviour
 
         // 감시를 남긴 채 꺼지면 죽은 구독이 된다. 다만 다시 켜도 이어서 진행되지는 않는다.
         EndActiveCondition();
+
+        // 멈춘 채로 꺼지면 게임이 영구 정지한다.
+        ResumeGameIfPaused();
     }
 
     private void Start()
     {
-        if (startOnPlay)
+        // startOnPlay는 에디터 테스트용 임시 스위치다. 실제 진입은 TutorialMode가 결정한다.
+        if (startOnPlay || TutorialMode.IsActive)
         {
             StartTutorial();
         }
@@ -83,6 +91,7 @@ public class TutorialController : MonoBehaviour
     public void StopTutorial()
     {
         EndActiveCondition();
+        ResumeGameIfPaused();
         _phase = Phase.Idle;
         _index = -1;
         overlay.HideAll();
@@ -114,6 +123,10 @@ public class TutorialController : MonoBehaviour
         {
             _phase = Phase.Popup;
             overlay.HideBubble();
+
+            // 팝업 구간은 팝업 자체가 전체화면 입력을 막는다 — 딤이 겹칠 이유가 없다.
+            overlay.HideDim();
+            ApplyPause(step);
             overlay.ShowPopup(step.PopupTitle, step.PopupBody, step.PopupImage);
             return;
         }
@@ -148,6 +161,10 @@ public class TutorialController : MonoBehaviour
         _phase = Phase.Action;
         _active = condition;
 
+        // 팝업에서 이미 걸어 뒀으면 그대로 유지된다(PauseGame은 두 번 불러도 안전하다).
+        // 팝업이 없는 단계는 여기가 첫 진입점이다.
+        ApplyPause(step);
+
         // 말풍선을 Begin보다 먼저 띄운다 — 조건이 Begin 도중에 충족되면 그 자리에서 다음 단계까지
         // 진입한 뒤 여기로 돌아오므로, 뒤에 두면 지나간 단계의 말풍선이 새 단계 위에 켜진다.
         // 먼저 띄워 두면 그 경로의 HideBubble이 정상적으로 걷어 간다.
@@ -156,9 +173,65 @@ public class TutorialController : MonoBehaviour
             overlay.ShowBubble(step.BubbleText);
         }
 
+        ApplyHighlight(step);
+
         // 구독을 Begin보다 먼저 건다 — 조건이 Begin 도중에 충족될 수도 있다.
         _active.Satisfied += OnConditionSatisfied;
         _active.Begin(_context);
+    }
+
+    // 이 단계에서 어디만 클릭 가능하게 둘지 오버레이에 알린다.
+    // 지목에 실패하면 딤을 띄우지 않는다 — 아무것도 못 누르는 상태로 가두는 것이 최악이다.
+    private void ApplyHighlight(TutorialStepAsset step)
+    {
+        if (step.HighlightMode == TutorialHighlightMode.UiAnchor)
+        {
+            if (TutorialAnchor.TryGet(step.HighlightAnchorId, out RectTransform rect))
+            {
+                overlay.ShowDimForUi(rect);
+
+                return;
+            }
+
+            Debug.LogWarning(
+                $"[{nameof(TutorialController)}] 앵커 '{step.HighlightAnchorId}'를 찾지 못해 강조를 건너뛴다.",
+                this);
+        }
+        else if (step.HighlightMode == TutorialHighlightMode.GridCell)
+        {
+            CombatSpace.CombatMapTileSpawner spawner = _context.TileSpawner;
+
+            if (spawner != null
+                && spawner.TryGetTileView(step.HighlightCell, out CombatSpace.CombatMapTileView tileView)
+                && tileView != null
+                && tileView.gameObject.activeInHierarchy)
+            {
+                var renderer = tileView.GetComponent<Renderer>();
+
+                if (renderer != null)
+                {
+                    overlay.ShowDimForWorld(renderer.bounds);
+
+                    return;
+                }
+
+                // Renderer가 없으면 셀 크기로 박스를 만든다.
+                float size = spawner.TileSize;
+
+                overlay.ShowDimForWorld(new Bounds(
+                    spawner.GridToWorldPosition(step.HighlightCell),
+                    new Vector3(size, size, size)));
+
+                return;
+            }
+
+            // 타일이 꺼져 있는 것은 정상 상태다 — 웨이브 공개 연출(CombatMapRevealController)이 껐을 수 있다.
+            Debug.LogWarning(
+                $"[{nameof(TutorialController)}] 타일 {step.HighlightCell}을 강조할 수 없어 건너뛴다.",
+                this);
+        }
+
+        overlay.HideDim();
     }
 
     private void OnConditionSatisfied()
@@ -169,8 +242,56 @@ public class TutorialController : MonoBehaviour
         }
 
         EndActiveCondition();
+        ResumeGameIfPaused();
         overlay.HideBubble();
+        overlay.HideDim();
         Advance();
+    }
+
+    private void ApplyPause(TutorialStepAsset step)
+    {
+        if (step.PauseGameDuringStep)
+        {
+            PauseGame();
+        }
+        else
+        {
+            ResumeGameIfPaused();
+        }
+    }
+
+    private void PauseGame()
+    {
+        if (_pausedByStep)
+        {
+            return;
+        }
+
+        var speed = GameSpeedController.Instance;
+
+        if (speed == null)
+        {
+            Debug.LogWarning($"[{nameof(TutorialController)}] GameSpeedController가 없어 이 단계에서 게임을 멈출 수 없다.", this);
+
+            return;
+        }
+
+        speed.SetPaused(GamePauseReason.Tutorial, true);
+        _pausedByStep = true;
+    }
+
+    // 내가 걸어 둔 정지만 되돌린다. 두 번 불러도 안전하다.
+    private void ResumeGameIfPaused()
+    {
+        if (!_pausedByStep)
+        {
+            return;
+        }
+
+        _pausedByStep = false;
+
+        // 컨트롤러가 파괴되는 순서에 따라 Instance가 먼저 사라질 수 있다.
+        GameSpeedController.Instance?.SetPaused(GamePauseReason.Tutorial, false);
     }
 
     // 지금 걸려 있는 감시를 푼다. 두 번 불러도 안전하다.

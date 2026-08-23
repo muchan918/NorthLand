@@ -24,6 +24,15 @@ public sealed class MonsterSpawnWaveProvider :
     [SerializeField]
     private List<MonsterWaveAsset> waves = new List<MonsterWaveAsset>();
 
+    [Header("Tutorial Waves")]
+    [Tooltip("튜토리얼 모드에서만 사용하는 웨이브. 정상 게임 진행에는 관여하지 않는다.")]
+    [SerializeField]
+    private List<MonsterWaveAsset> tutorialWaves = new List<MonsterWaveAsset>();
+
+    [Tooltip("[에디터 테스트용] 켜면 이 씬을 항상 튜토리얼 모드로 시작한다. 타이틀 화면이 붙으면 끈다.")]
+    [SerializeField]
+    private bool forceTutorialMode;
+
     [Header("Seed")]
     [Tooltip("몬스터 스폰 랜덤에 사용할 마스터 시드를 제공하는 RunBootstrapper")]
     [SerializeField]
@@ -45,12 +54,23 @@ public sealed class MonsterSpawnWaveProvider :
 
     // 이 웨이브를 클리어하면 게임이 끝나는가(승리 판정용). 웨이브 미등록(0)이면 판정하지 않는다.
     // 최종 번호를 넘어선 라운드도 true로 수렴시켜, 데이터 없는 밤이 무한 반복되지 않게 한다.
-    public bool IsFinalWave(int waveNumber) => FinalWaveNumber > 0 && waveNumber >= FinalWaveNumber;
+    // 튜토리얼 웨이브는 게임 승리에 관여하지 않는다. 마지막 튜토리얼 웨이브를 깨도
+    // WaveCompletionCoordinator가 승리 화면을 띄우지 않게 여기서 막는다.
+    // FinalWaveNumber를 0으로 두는 방식은 쓰지 않는다 — NextWavePreviewView가
+    // "등록된 웨이브가 없습니다" 에러를 계속 찍는다.
+    public bool IsFinalWave(int waveNumber) =>
+        !isTutorialRun && FinalWaveNumber > 0 && waveNumber >= FinalWaveNumber;
 
     private readonly List<WaveMonsterCount> cachedBossComposition = new();
 
+    // 이번 실행이 튜토리얼인지. Awake에서 한 번 확정하고 이후 바뀌지 않는다 —
+    // 웨이브 순서가 이미 만들어진 뒤에 모드가 뒤집히면 진행 번호와 리스트가 어긋난다.
+    private bool isTutorialRun;
+
     private void Awake()
     {
+        isTutorialRun = forceTutorialMode || TutorialMode.IsActive;
+
         BuildWaveOrder();
     }
 
@@ -254,11 +274,17 @@ public sealed class MonsterSpawnWaveProvider :
     {
         orderedWaves.Clear();
 
-        foreach (MonsterWaveAsset wave in waves)
+        List<MonsterWaveAsset> source = isTutorialRun ? tutorialWaves : waves;
+
+        foreach (MonsterWaveAsset wave in source)
         {
             if (wave == null)
             {
-                Debug.LogWarning("waves 리스트에 비어 있는 슬롯이 있어 건너뜁니다.", this);
+                Debug.LogWarning(
+                    isTutorialRun
+                        ? "tutorialWaves 리스트에 비어 있는 슬롯이 있어 건너뜁니다."
+                        : "waves 리스트에 비어 있는 슬롯이 있어 건너뜁니다.",
+                    this);
 
                 continue;
             }
