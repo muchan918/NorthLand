@@ -939,6 +939,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 83e6017eeec05c84e9811d226c89e19c, type: 2}
   tutorialWaves:
   - {fileID: 11400000, guid: 1c9287c3fab27464b9615862883773f1, type: 2}
+  - {fileID: 11400000, guid: eeca155a2506e114fa5c67206a374b5e, type: 2}
   forceTutorialMode: 1
   runBootstrapper: {fileID: 0}
 --- !u!114 &111725158
@@ -14864,7 +14865,8 @@ MonoBehaviour:
   startOnPlay: 1
   debugMode: 1
   debugSteps:
-  - {fileID: 11400000, guid: 18830b9b69e19554888a68348195f12f, type: 2}
+  - {fileID: 11400000, guid: 5eccda031e295294e9867f8f522cc1d1, type: 2}
+  - {fileID: 11400000, guid: 5d1d1f1346f310549998bd0474c1f16f, type: 2}
 --- !u!4 &1906456309
 Transform:
   m_ObjectHideFlags: 0
