@@ -87,6 +87,10 @@ public class MouseManager : MonoBehaviour
     private SkillTargetRequest _skillRequest;
     private GameObject _ghost;
 
+    // 지금 커서가 배치 표면 위인가(= 고스트와 요청 측 미리보기가 보이는가). 상태가 **바뀔 때만**
+    // 요청에 알리려고 기억한다 — 매 프레임 통지하면 요청 측이 멱등성을 지켜야 하는 부담이 생긴다.
+    private bool _placementPreviewVisible;
+
     // ── 좌클릭 제스처 상태 ──────────────────────────────────────────
     // 누른 순간에는 클릭인지 드래그인지 알 수 없으므로(#261), 선택 확정을 **뗄 때**로 미루고
     // 누를 때는 시작점만 기록한다. UI 위에서 시작한 제스처는 아예 채택하지 않는다(_pressActive=false).
@@ -222,6 +226,9 @@ public class MouseManager : MonoBehaviour
         //   전까지 고스트가 **월드 원점에 그대로 보인다**(1프레임이 아니라 그 사이 내내).
         //   첫 유효 위치를 잡은 뒤에 UpdatePlacement가 켠다.
         _ghost.SetActive(false);
+
+        // 고스트와 같은 이유로 요청 측 미리보기도 숨김에서 시작한다(첫 스냅 전에는 놓을 자리가 없다).
+        _placementPreviewVisible = false;
 
         SetMode(Mode.Placement);
     }
@@ -656,7 +663,10 @@ public class MouseManager : MonoBehaviour
         // "갱신 없이 보이는" 상태가 만들어질 수 없게 한다.
         if (!RaycastMask(screenPos, _placementMask, out var hit))
         {
-            if (_ghost.activeSelf) _ghost.SetActive(false);
+            // 고스트와 **요청 측 미리보기를 함께** 내린다. 예전에는 고스트만 껐고, 그 결과 풋프린트
+            // 하이라이트와 사거리 원이 마지막 타일에 남았다 — 아래 return 때문에 요청 측은 이 프레임에
+            // 아무 호출도 받지 못한다(Snap은 표면을 맞혔을 때만 돈다).
+            SetPlacementPreviewVisible(false);
 
             // 맵 밖·하늘 클릭도 거절이다. 여기서 조용히 빠지면 "배치 모드인데 눌러도 아무 반응이 없는"
             // 구간이 화면 대부분을 차지한다 — 무효 타일 클릭과 플레이어가 겪는 일이 같으므로 같이 낸다.
@@ -666,7 +676,10 @@ public class MouseManager : MonoBehaviour
 
         Vector3 pos = _request.Snap != null ? _request.Snap(hit) : hit.point; // 스냅은 요청이 결정(그리드 스냅)
         _ghost.transform.position = pos;
-        if (!_ghost.activeSelf) _ghost.SetActive(true);   // 위치를 잡은 뒤에 켠다(원점 노출 방지)
+
+        // 위치를 잡은 뒤에 켠다(원점 노출 방지). 요청 측 미리보기도 같은 이유로 Snap 뒤에 켠다 —
+        // Snap이 이미 이번 프레임 위치로 갱신해 두었으므로 한 프레임도 옛 자리에 보이지 않는다.
+        SetPlacementPreviewVisible(true);
 
         bool valid = _request.CanPlaceAt(hit);
         // TODO(하이라이트/연출 미확정): 고스트를 유효=초록/무효=빨강 등으로 표시
@@ -684,6 +697,25 @@ public class MouseManager : MonoBehaviour
                 if (!_request.KeepPlacingAfterConfirm) CancelPlacement();
             }
         }
+    }
+
+    /// 고스트와 요청 측 미리보기의 표시를 한 번에 맞춘다. **둘을 따로 켜고 끄면 반드시 어긋난다** —
+    /// 실제로 고스트만 숨기던 시절 풋프린트 하이라이트와 사거리 원이 마지막 타일에 잔류했다.
+    /// 상태가 바뀔 때만 요청에 통지한다.
+    private void SetPlacementPreviewVisible(bool visible)
+    {
+        if (_ghost != null && _ghost.activeSelf != visible)
+        {
+            _ghost.SetActive(visible);
+        }
+
+        if (_placementPreviewVisible == visible)
+        {
+            return;
+        }
+
+        _placementPreviewVisible = visible;
+        _request?.OnSurfaceHoverChanged?.Invoke(visible);
     }
 
     // ── SkillTargeting: 스킬 범위 지정 (요구사항 ③, #103) ─────────
