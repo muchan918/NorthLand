@@ -15,10 +15,11 @@ MonoBehaviour:
   TowerID: twin_missile_tower
   TowerPrefab: {fileID: 8779696363942934093, guid: 11635e84c4458d04691979c2fd5a0c74, type: 3}
   GhostPrefab: {fileID: 3221768034370273521, guid: acfc2c92126da434ea4b350da2ca7e61, type: 3}
-  Icon: {fileID: 1745323104, guid: 1dd2dfaa42ac3c84d9360f30d9cc8adf, type: 3}
+  Icon: {fileID: 844629026, guid: ea9658ba805cfd9449f60e2383281262, type: 3}
   PlacementYaw: 0
   Cost: []
   Rarity: 2
+  UnlockWave: 1
   Attack:
     AttackDamage: 18
     AttackRange: 30
@@ -57,6 +58,7 @@ MonoBehaviour:
       MaxStacks: 0
       StackInterval: 0
       DecaySeconds: 0
+    VisualStages: []
   GroundZone:
     ZonePrefab: {fileID: 109944, guid: 2ff0199b19f96fd489a4e259a670d9b5, type: 3}
     Radius: 3

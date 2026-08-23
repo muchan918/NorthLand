@@ -15,10 +15,11 @@ MonoBehaviour:
   TowerID: gatling_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: fc8cae31ccc3652479febc65cbf3e558, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: 42cd2c767e149584392896cc66892ff3, type: 3}
-  Icon: {fileID: -1864095761, guid: e5fe0d4a97ba2c447ab9719193e3a0dd, type: 3}
+  Icon: {fileID: 111859086, guid: d44a095802c7baa4fa1dd5d9cdd606c4, type: 3}
   PlacementYaw: 45
   Cost: []
   Rarity: 1
+  UnlockWave: 1
   Attack:
     AttackDamage: 15
     AttackRange: 12.8
@@ -57,6 +58,7 @@ MonoBehaviour:
       MaxStacks: 0
       StackInterval: 0
       DecaySeconds: 0
+    VisualStages: []
   GroundZone:
     ZonePrefab: {fileID: 0}
     Radius: 0
