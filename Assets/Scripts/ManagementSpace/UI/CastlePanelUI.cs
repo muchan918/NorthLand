@@ -85,13 +85,17 @@ public class CastlePanelUI : MonoBehaviour
         }
         Instance = this;
 
+        // 이 둘은 결과음(팡파레·업그레이드)이나 거절음을 스스로 내므로 공용 클릭음에서 뺀다 —
+        // 그러지 않으면 누를 때 클릭음, 뗄 때 결과음이 나서 두 소리가 겹쳐 들린다.
         if (_addVillagerButton != null)
         {
             _addVillagerButton.onClick.AddListener(HandleAddVillagerClicked);
+            UiClickSfxIgnore.ApplyTo(_addVillagerButton);
         }
         if (_upgradeButton != null)
         {
             _upgradeButton.onClick.AddListener(HandleUpgradeClicked);
+            UiClickSfxIgnore.ApplyTo(_upgradeButton);
         }
         if (_closeButton != null)
         {
@@ -171,7 +175,21 @@ public class CastlePanelUI : MonoBehaviour
         {
             return;
         }
-        _controller.TryIncreaseVillagers(_building);
+
+        // 소리는 여기서 가른다 — 컨트롤러는 연출을 모르는 자리이고(OnBuildingAction 주석), 반환값이
+        // 성공/실패를 이미 알려주므로 이벤트를 새로 낼 필요가 없다.
+        //
+        // ⚠ 버튼은 **최대 도달일 때만** 비활성화된다(Refresh) — 자원이 모자란 상태에서도 눌린다.
+        //   그 경로가 여태 Debug.Log만 남기고 조용히 반려돼 있었으므로 거절음까지 함께 붙인다.
+        if (_controller.TryIncreaseVillagers(_building))
+        {
+            // 클립이 9.5초라 원샷으로 두면 연타 시 여러 벌이 겹친다 → 전용 소스로 끊고 처음부터 다시 낸다.
+            Sfx.ResidentIncreased();
+        }
+        else
+        {
+            Sfx.Rejected();
+        }
     }
 
     private void HandleUpgradeClicked()
@@ -182,7 +200,16 @@ public class CastlePanelUI : MonoBehaviour
         {
             return;
         }
-        _controller.TryUpgradeBuilding(_upgradeIndex);
+
+        // 주민 증가와 같은 규약으로 반환값에서 소리를 가른다(BuildingInfoUI도 동일).
+        if (_controller.TryUpgradeBuilding(_upgradeIndex))
+        {
+            Sfx.BuildingUpgraded();
+        }
+        else
+        {
+            Sfx.Rejected();
+        }
     }
 
     private void Refresh()
