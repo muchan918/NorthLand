@@ -109,6 +109,12 @@ Application.persistentDataPath/
 타일 버프, `Tower.Build`가 일반 배치와 같은 경로로 적용된다. 복원 불가능한 Run 세이브는 실패 반복을
 막기 위해 삭제하고 타이틀로 돌아간다. 게임오버 또는 최종 승리로 Run이 끝난 경우에도 Run 세이브를 삭제한다.
 
+⚠ **경영 복원 API(`ManagementController.TryRestoreProductionLine` / `TryRestoreUpgradeBuilding` /
+`TryRestoreBonusVillagers`)는 세이브 전용이 아니다** — 되돌리기(#444)가 "이전 값으로 되맞추는 수단"으로
+같은 API를 쓴다(`Docs/ManagementArea/BuildingUpgrade.md` §10). 되돌리기 전용 감소 경로를 새로 만들지 않은
+의도적 선택이므로, **이 API의 시그니처·검증 규칙을 바꾸면 되돌리기가 함께 깨진다.** 특히 "비용을 차감하지
+않고 페이즈 게이트를 타지 않는다"는 성질이 양쪽 모두의 전제다.
+
 ## 6. 파일 IO
 
 `SaveFileStore`가 JSON 문자열의 파일 IO만 담당한다.

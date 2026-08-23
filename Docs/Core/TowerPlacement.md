@@ -1,6 +1,6 @@
 # 전투 공간 타워 배치 — 기능 명세
 
-> **상태**: 배치 코어 · **SO 게이트웨이 · 자원 차감 · 타일 버프 · 등장 연출 구현 + 플레이 검증 완료**(2026-08-01) · **되돌리기 구현**(#281, 2026-08-03) · 낮 전용 게이팅만 미구현(§8)
+> **상태**: 배치 코어 · **SO 게이트웨이 · 자원 차감 · 타일 버프 · 등장 연출 구현 + 플레이 검증 완료**(2026-08-01) · **되돌리기 구현**(#281, 2026-08-03 · #444에서 경영 조작까지 확장, 2026-08-22) · 낮 전용 게이팅만 미구현(§8)
 > **소유**: n0wst4ndup(배치 흐름·게이트웨이·프리뷰·연출) · SUNGSOO(타워 프리팹) · muchan(타워 데이터·자원·페이즈 게이팅) · KSJ(타일 버프)
 > **구현 파일**:
 > - `Assets/Scripts/GameManager/MouseManager/TowerPlacement/BattleTile.cs` (타일 마커)
@@ -260,7 +260,7 @@ bool BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost,
 | --- | --- | --- |
 | **자원 차감** | ✅ 구현 | `ManagementController.CanAfford`(검증) / `TrySpend`(확정). 비용 출처 = `TowerAsset.Cost`. 컨트롤러가 씬에 없으면 **무료 배치**(경영 없는 테스트 씬 지원) |
 | **낮 전용 게이팅** | ❌ 미구현 | `TowerPlacer` 진입에 `DayNightManager.CurrentPhase` 확인이 없다. 완화만 존재 — `PhasePanelSwitcher.ShowNight`가 밤 진입 시 진행 중 배치를 취소한다. 합성 실행부 축은 **WL-077**(muchan) |
-| **되돌리기**(#281) | ✅ 구현 | 확정 시 `TowerPlaceCommand`를 `CommandHistory`에 올린다(LIFO 20). 되돌리면 타워를 파괴하고 `ManagementController.Grant`로 **실지불 비용을 100% 환원**한다. `OnDayToNight`에 히스토리 전체가 `Commit`돼 되돌리기 불가로 확정된다 |
+| **되돌리기**(#281 → #444) | ✅ 구현 | 확정 시 `TowerPlaceCommand`를 `CommandHistory`에 올린다(LIFO 20). 되돌리면 타워를 파괴하고 `ManagementController.Grant`로 **실지불 비용을 100% 환원**한다. `OnDayToNight`에 히스토리 전체가 `Commit`돼 되돌리기 불가로 확정된다. **#444**: 상태 기계·비용 환원이 공통 기반 `ReversibleCommandBase`로 올라가고 **경영 조작(건물 업그레이드 · 주민 증축)이 같은 스택에 합류**했다 — 되돌리기 요청은 버튼·Ctrl+Z 모두 `UndoRequest.Submit()`을 지나며, 파괴되는 대상이 있어 선택을 푸는 일은 `TowerPlaceCommand.OnUndo`가 **확정본일 때만** 한다(요청 진입점에서 무조건 풀면 건물 패널이 닫힌다) |
 
 > 자원은 `ResourceWallet`에 직접 접근하지 않고 **반드시 `ManagementController` 경유**다(WL-017). `TrySpend`는 원자적 — 전부 감당 가능할 때만 전부 차감한다. 환원(`Grant`)은 그 대칭짝이며, 인자는 반드시 **커맨드가 들고 있는 실지불 비용**이어야 한다(임의 수량 지급 금지 — 팀 계약 #3·#6).
 

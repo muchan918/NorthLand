@@ -30,7 +30,7 @@
 
 - **좌클릭이 아니라 우클릭 드래그다** — 좌클릭은 `MouseManager`의 선택 입력이라, 드래그 시작 지점의 오브젝트가 선택/해제되던 부작용을 피한 선택이다.
 - ⚠ 우클릭은 배치·스킬 조준 모드에서 **취소**로도 쓰인다(`MouseManager`). 그 모드 중 드래그하면 취소와 카메라 이동이 함께 일어난다(WL-073).
-- ⚠ 이동·줌 입력을 `Mouse`/`Keyboard.current`로 **직접 폴링**한다 — `MouseManager`의 '입력 단일 창구' 계약 밖이다(WL-023).
+- ⚠ 이동·줌 입력을 `Mouse`/`Keyboard.current`로 **직접 폴링**한다 — `MouseManager`의 '입력 단일 창구' 계약 밖이다(WL-023). `KeyboardManager`(#444)가 생긴 뒤에도 **여기로 옮기지 않는다**: 그쪽은 "눌린 순간 한 번" 단축키 디스패치이고, WASD·줌은 매 프레임 `isPressed`를 읽는 연속 입력이라 모델이 다르다(`MouseManager.md` §1 원칙 1의 예외 항목).
 - 시간은 `unscaledDeltaTime` — 배속·일시정지와 무관하게 카메라는 같은 속도로 움직인다.
 
 ## 3. 줌 — `ZoomMouseWheel`

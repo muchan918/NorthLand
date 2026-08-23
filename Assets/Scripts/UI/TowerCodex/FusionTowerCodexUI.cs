@@ -73,7 +73,7 @@ namespace NorthLand.UI
                 if (rarityCompare != 0)
                     return rarityCompare;
 
-                return string.CompareOrdinal(GetTowerName(left), GetTowerName(right));
+                return string.CompareOrdinal(TowerDisplayName.Of(left), TowerDisplayName.Of(right));
             });
         }
 
@@ -115,7 +115,7 @@ namespace NorthLand.UI
 
                 FusionTowerEntry entry = Instantiate(entryPrefab, content);
 
-                entry.Initialize(tower, GetTowerName(tower), SelectTower);
+                entry.Initialize(tower, TowerDisplayName.Of(tower), SelectTower);
             }
         }
 
@@ -164,7 +164,7 @@ namespace NorthLand.UI
             }
 
             if (selectedTowerNameText != null)
-                selectedTowerNameText.text = GetTowerName(tower);
+                selectedTowerNameText.text = TowerDisplayName.Of(tower);
 
             if (selectedRecipeText == null)
                 return;
@@ -213,7 +213,7 @@ namespace NorthLand.UI
                 {
                     builder.Append("\n+ \n");
                 }
-                builder.Append(GetTowerName(material.Key));
+                builder.Append(TowerDisplayName.Of(material.Key));
 
                 if (material.Value > 1)
                 {
@@ -225,31 +225,6 @@ namespace NorthLand.UI
                 first = false;
             }
             return builder.ToString();
-        }
-
-        private static string GetTowerName(TowerAsset tower)
-        {
-            if (tower == null)
-                return "정보 없음";
-
-            if (string.IsNullOrWhiteSpace(tower.TowerID))
-                return tower.name;
-
-            TowerTable towerTable = DataTableManager.Get<TowerTable>("TowerTable");
-
-            if (towerTable == null)
-                return tower.TowerID;
-
-            TowerData data = towerTable.Get(tower.TowerID);
-
-            if (data == null || string.IsNullOrWhiteSpace(data.NameKey))
-            {
-                return tower.TowerID;
-            }
-
-            string localizedName = LocalizationHelper.Get(LocalizationHelper.k_TowersTable, data.NameKey);
-
-            return string.IsNullOrWhiteSpace(localizedName) ? tower.TowerID : localizedName;
         }
 
         private void ClearSelectedView()
