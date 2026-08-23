@@ -306,6 +306,10 @@ MonoBehaviour:
     m_Localized: Materials
     m_Metadata:
       m_Items: []
+  - m_Id: 16108541106614272
+    m_Localized: Please select a language.
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:
