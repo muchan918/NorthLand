@@ -428,7 +428,7 @@ sourceId = 쏜 쪽의 GetInstanceID() ^ (int)EffectKind
 
 | 축 | 부품·저작 위치 | 트리거 | 적용 | 대상이 바뀌면 |
 |---|---|---|---|---|
-| **원장형** | `RampAction` + `TowerAsset.Ramp` | `Hit`(명중) / `Kill`(처치) | `Owner.Stats`에 소스 1개 | 유지된다(타워 단위) |
+| **원장형** | `RampAction` + `TowerAsset.Ramp` | `Hit`(명중) / `Kill`(처치) | `Owner.Stats`에 소스 1개(축 1~2개) | 유지된다(타워 단위) |
 | **대상별** | `BeamAction` + `Beam.LockRamp` | 같은 대상을 잠근 경과 시간 | 그 대상의 피해에만 곱 | **0에서 다시 시작** |
 
 **왜 하나로 합치지 않는가.** 원장은 타워 단위다. 대상별 램프를 원장에 넣으면 ① 목표를 바꿔도 배율이
@@ -577,13 +577,27 @@ MonoBehaviour가 아닌 순수 C#. `Time.time`을 직접 읽지 않고 `now`를 
 > ⚠ **타워당 원장형 램프는 1개까지다.** `SourceId`가 `호스트 ID ^ 액션 타입명`이라 한 타워에
 > `RampAction`이 둘이면 원장 슬롯을 서로 덮어쓴다(`TowerAsset.OnValidate`가 같은 타입 중복을 경고한다).
 > "명중 + 처치 동시 성장" 타워를 만들려면 채번 규약 확장이 선행돼야 한다.
+>
+> **단, 한 램프가 두 스탯을 올리는 것은 채번 확장 없이 된다.** 원장이 소스당 modifier **묶음**을
+> 들고 있어(`TowerStats.Source.Modifiers`) `RampAction`이 같은 `SourceId`에 modifier 2개를 얹으면
+> 그만이다 — `Ramp.SecondaryStat`/`SecondaryPerStack`이 그 경로다(§5.3). 제약이 걸리는 것은
+> **트리거가 둘일 때**이고(스택 카운터가 액션에 하나뿐이다) 스탯이 둘일 때는 아니다.
+> 소스를 나누지 않는 것도 의도다 — 나누면 `Dispose`·`OnWaveEnd`가 회수를 두 번 해야 해서
+> 하나를 흘릴 여지가 생긴다.
 
 ### 5.3 원장 축 커버리지
 
 - 공격 타워: 3축 전부
 - 오라 타워: 반경(=AttackRange 축) + DoT 데미지(AttackDamage) + DoT 틱 간격(AttackSpeed)
-- 원장형 램프(#300): `TowerAsset.Ramp.Stat`으로 3축 중 하나를 고른다 — 명중 램프는 AttackSpeed,
-  처치 램프는 AttackDamage를 기본 상정. **대상별 램프(`Beam.LockRamp`)는 원장을 거치지 않는다**(§3.10)
+- 원장형 램프(#300): `TowerAsset.Ramp.Stat`으로 축을 고른다 — 명중 램프는 AttackSpeed,
+  처치 램프는 AttackDamage를 기본 상정. **축을 하나 더 얹을 수 있다**(#441 후속):
+  `Ramp.SecondaryStat` + `SecondaryPerStack`을 저작하면 같은 스택이 두 스탯을 함께 올린다
+  (`SecondaryPerStack == 0`이 미저작이라 기존 타워는 단일 축 그대로다). **스택 카운터·트리거·상한·
+  감쇠는 `Profile`이 단독으로 정한다** — 축마다 성장 속도를 달리하려면 `Ramp`를 리스트로 바꿔야 하고,
+  그러면 `RampAction`의 단일 카운터 구조가 무너진다. 두 축이 **같은 스탯이면** 원장이 배율 보너스를
+  합산해(§5.1 합성 규칙) 의도의 두 배가 되므로 `OnValidate`가 경고한다.
+  현재 사용처는 `rampup_tower`(공속 +8%/스택 · 피해 +5%/스택)뿐이다.
+  **대상별 램프(`Beam.LockRamp`)는 원장을 거치지 않는다**(§3.10)
 - **미연결 2건**:
   ① 디버프 오라의 재스캔 주기(`Interval`) — 원장을 안 거친다. 재스캔이 잦아져도 DoT는 이미 대상이
      소유해 피해가 늘지 않기 때문. 독 타워에서 "공속"의 의미를 갖는 축은 `TickInterval`이다.
@@ -606,9 +620,26 @@ ApplyOrRefresh / ApplySlow → StatusEffectHandler
 
 **스턴에는 가동률 상한이 있다**([StatusEffectHandler.cs:48-58](../../Assets/Scripts/CombatSystem/StatusEffect/StatusEffectHandler.cs)).
 스턴 축은 `minMoveSpeed` 하한 클램프를 우회해 완전 정지를 만들므로, 클램프가 막던 소프트락을 핸들러가
-대신 막는다 — ① 스턴 중 재적용 무시 ② 종료 후 면역 창(`stunImmunityWindow`). 판정은 **소스가 아니라
+대신 막는다 — ① 스턴 중 재적용 무시 ② 종료 후 면역 창. 판정은 **소스가 아니라
 대상 기준**이다(소스 기준이면 서로 다른 스턴원 2개가 번갈아 걸어 영구 정지가 만들어진다).
 현재 `Projectile.StunEffectId`가 static이라 **모든 소다 타워가 단일 소스를 공유**한다.
+
+#### 두 규칙의 역할이 갈렸다 (#441)
+
+**면역 창은 이제 저작 값이다** — `StunStatus.ImmunityWindow`(기본 0.4)가 소유하고, `ApplySlow`가
+선택 인자로 받아 **부여 시점에 확정해 `EndStun`까지 들고 간다.** 만료 시점에 조회하면 그 사이 다른
+부여자가 값을 바꿨을 때 어느 스턴의 규칙인지가 흐려진다. `StatusEffectHandler.stunImmunityWindow`
+필드는 폴백으로만 남는다 — 스턴을 거는 유일한 경로가 `StunStatus`이므로 실제 플레이에서는 쓰이지 않는다.
+CC 가동률 상한이 코드 기본값에 갇혀 있던 문제(WL-026)가 이걸로 풀린다.
+
+| | 담당 | 근거 |
+|---|---|---|
+| **1기 가동률** | 공격 간격 | `간격 > 스턴지속`이면 매 발이 새 스턴이 되고 가동률 = 지속/간격. 이 하한은 `TowerAsset.OnValidate`가 지킨다([CombatBalance.md §2](CombatBalance.md) 규약 ① CC 항) |
+| **다기(多機) 천장** | 면역 창 | 대상당 상한 = `지속/(지속+창)`. 소다 0.7/0.4면 64% — 2기째 기여가 0이던 문제(WL-141)가 풀리면서도 완전 봉인은 막힌다 |
+
+⚠ **규칙 ①은 지우면 안 된다.** 밤 종료 조건이 몬스터 전멸이므로(`MonsterSpawn`) 영구 정지는 곧
+밤이 끝나지 않는 것이다. 면역 창을 0으로 두는 것도 같은 방향의 위험인데, 그 타워가 대상을 스스로
+죽이지 못할 때(딜을 걷어낸 순수 유틸 스턴 타워) 드러난다.
 
 > ⚠ **이 static이 상한의 근거는 아니다.** 게이트 `CanStunNow()`([:148](../../Assets/Scripts/CombatSystem/StatusEffect/StatusEffectHandler.cs))는
 > `!stunActive && Time.time >= stunImmuneUntil`이고 두 값 모두 **핸들러(대상) 인스턴스 필드**이며,

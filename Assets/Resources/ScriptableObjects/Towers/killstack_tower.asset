@@ -17,13 +17,15 @@ MonoBehaviour:
   GhostPrefab: {fileID: 6801833135963741600, guid: 03bc07acd71da4b46862037d92106a8f, type: 3}
   Icon: {fileID: 21300000, guid: f9fcbfb14b3522b4c9a17fe65d4c58aa, type: 3}
   PlacementYaw: 90
-  Cost: []
-  Rarity: 1
-  UnlockWave: 1
+  Cost:
+  - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
+    Amount: 40
+  Rarity: 0
+  UnlockWave: 5
   Attack:
-    AttackDamage: 20
-    AttackRange: 30
-    AttackInterval: 1.6
+    AttackDamage: 14
+    AttackRange: 20
+    AttackInterval: 1.1
     ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
     Flight:
       rid: 3470829504553025640
@@ -66,12 +68,12 @@ MonoBehaviour:
     Interval: 0
   Ramp:
     Stat: 0
-    Trigger: 1
+    Trigger: 0
     Profile:
-      PerStack: 0.15
+      PerStack: 0.08
       MaxStacks: 8
       StackInterval: 0
-      DecaySeconds: 0
+      DecaySeconds: 2
   Effects: []
   references:
     version: 2
