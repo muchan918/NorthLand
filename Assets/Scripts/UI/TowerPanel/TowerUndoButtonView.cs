@@ -39,6 +39,9 @@ public class TowerUndoButtonView : MonoBehaviour
 
         _button.onClick.RemoveAllListeners();
         _button.onClick.AddListener(HandleClick);
+
+        // 되돌리기음·거절음은 UndoRequest가 낸다 — 공용 클릭음까지 겹치지 않게 뺀다.
+        UiClickSfxIgnore.ApplyTo(_button);
     }
 
     private void Start()

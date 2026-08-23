@@ -32,9 +32,22 @@ public static class UndoRequest
         if (MouseManager.Instance != null && MouseManager.Instance.IsPlacing)
         {
             MouseManager.Instance.CancelPlacement();
+
+            // 플레이어 입장에서는 이것도 "되돌아갔다"이다 — 요청이 무언가를 물렀으면 같은 소리를 낸다.
+            Sfx.Undone();
             return;
         }
 
-        CommandHistory.Undo();
+        // 밤·빈 스택 판정은 여전히 히스토리가 갖는다 — 반환값만 받아 쓴다(조건을 두 벌로 만들지 않는다).
+        // ⚠ 되돌리기 **버튼**은 CanUndo일 때만 눌리지만 **Ctrl+Z는 언제든 눌린다** — 되돌릴 것이 없을 때
+        //   아무 반응도 없으면 단축키가 먹지 않는 것처럼 보인다.
+        if (CommandHistory.Undo())
+        {
+            Sfx.Undone();
+        }
+        else
+        {
+            Sfx.Rejected();
+        }
     }
 }
