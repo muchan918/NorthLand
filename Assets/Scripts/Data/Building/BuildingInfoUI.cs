@@ -127,8 +127,9 @@ public class BuildingInfoUI : MonoBehaviour
         {
             return;
         }
-        // 소리는 반환값으로 가른다(CastlePanelUI와 같은 규약) — 컨트롤러는 연출을 모르는 자리이고,
-        // 성공/실패를 이미 bool로 알려주므로 이벤트를 새로 낼 필요가 없다.
+        // **성공음은 여기서 내지 않는다**(WL-208). 컨트롤러가 OnBuildingAction으로 알리고 씬 큐가
+        // 구독한다 — 업그레이드 진입점이 늘어도(예: `Test/BuildingsUpgradeHelper`) 소리가 따라온다.
+        // 실패는 이벤트로 오지 않으므로 거절음만 호출부 몫이다.
         // ⚠ 자원이 모자라도 버튼이 눌린다 — 그 경로가 여태 로그만 남기고 조용히 반려돼 있었다.
         if (_lineIndex >= 0)
         {
@@ -142,11 +143,7 @@ public class BuildingInfoUI : MonoBehaviour
 
     private static void PlayUpgradeFeedback(bool upgraded)
     {
-        if (upgraded)
-        {
-            Sfx.BuildingUpgraded();
-        }
-        else
+        if (!upgraded)
         {
             Sfx.Rejected();
         }

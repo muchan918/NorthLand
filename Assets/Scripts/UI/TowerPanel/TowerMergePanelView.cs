@@ -33,6 +33,10 @@ public class TowerMergePanelView : MonoBehaviour
         if (_coordinator != null)
         {
             _coordinator.OnGroupChanged += Refresh;
+
+            // 자원이 바뀌면 후보 버튼의 활성 여부가 달라진다(WL-209). 선택 리스트는 그대로이므로
+            // 행 재생성 없이 후보만 다시 칠한다 — 되돌리기 환불처럼 패널이 열린 채 자원이 변할 수 있다.
+            _coordinator.OnAffordabilityChanged += RefreshCandidates;
         }
         Refresh(); // 활성화 시점의 현재 선택 상태로 동기화(코디네이터가 켠 직후)
     }
@@ -42,6 +46,7 @@ public class TowerMergePanelView : MonoBehaviour
         if (_coordinator != null)
         {
             _coordinator.OnGroupChanged -= Refresh;
+            _coordinator.OnAffordabilityChanged -= RefreshCandidates;
         }
     }
 
@@ -128,12 +133,21 @@ public class TowerMergePanelView : MonoBehaviour
     private void RefreshCandidates()
     {
         if (_coordinator == null) return;
-        // 매칭되는 레시피의 버튼만 켠다(포함 매칭 — TowerFusionMatcher 단일 출처, 재구현 금지).
+
+        // 표시(재료)와 활성(코스트)을 **가른다**(WL-209).
+        //   · 재료가 안 맞으면 아예 숨긴다 — 만들 수 없는 조합을 보여줄 이유가 없다.
+        //   · 재료는 맞는데 자원이 모자라면 **회색으로 보여준다** — 예전에는 그냥 눌렸고 눌러도 조용히
+        //     반려돼서, 자원을 더 모아야 하는지 타워를 더 놓아야 하는지 구분할 수 없었다.
+        // 매칭 규칙은 TowerFusionMatcher 단일 출처, 코스트 판정은 실행부가 답한다(재구현 금지).
         foreach (var (button, recipe) in _candidates)
         {
             if (button == null) continue;
 
-            button.gameObject.SetActive(_coordinator.CanMerge(recipe));
+            bool matched = _coordinator.CanMerge(recipe);
+            button.gameObject.SetActive(matched);
+
+            // 숨긴 버튼의 interactable은 의미가 없다 — 다시 켜질 때 이 자리에서 함께 정해진다.
+            if (matched) button.interactable = _coordinator.CanAffordMerge(recipe);
         }
     }
 }

@@ -21,6 +21,34 @@ public class TowerFusionController : MonoBehaviour
         if (_management == null) _management = FindFirstObjectByType<ManagementController>();
     }
 
+    /// 자원이 바뀔 때마다 발생한다 — 후보 버튼의 **활성 여부**가 코스트에 걸려 있어서(WL-209),
+    /// 패널이 열린 채 자원이 변하면(되돌리기 환불 등) 표시가 낡는다. 경영이 없는 씬에서는 발생하지 않는다.
+    public event System.Action OnAffordabilityChanged;
+
+    /// 이 레시피의 **추가 코스트를 감당할 수 있는가.** 경영이 없는 씬(테스트)에서는 무료라 항상 true.
+    ///
+    /// <see cref="TryFuse"/> 4단계와 **같은 식**이어야 한다 — 버튼 표시와 실행 판정이 갈리면
+    /// "눌리는데 반려되는" 상태가 되돌아온다. 그래서 코스트 규칙(<c>recipe.ExtraCost</c>)을 아는
+    /// 이 클래스가 답하고, 코디네이터·뷰는 결과만 받는다(자원 판정은 경영 시스템 몫 — 팀 계약 #6).
+    public bool CanAfford(TowerRecipe recipe)
+    {
+        if (recipe == null) return false;
+
+        return _management == null || _management.CanAfford(recipe.ExtraCost);
+    }
+
+    private void OnEnable()
+    {
+        if (_management != null) _management.OnChanged += RaiseAffordabilityChanged;
+    }
+
+    private void OnDisable()
+    {
+        if (_management != null) _management.OnChanged -= RaiseAffordabilityChanged;
+    }
+
+    private void RaiseAffordabilityChanged() => OnAffordabilityChanged?.Invoke();
+
     /// 후보 버튼 onClick → 코디네이터(RequestMerge)를 거쳐 호출된다. group은 현재 선택 집합.
     /// **반환값 = 결과 타워 배치가 실제로 시작됐는가.** 재료·코스트 부족으로 조용히 반려되는 경로가 있으니
     /// 호출부가 "배치 동안 유지"할 상태를 걸어두려면 이 값을 봐야 한다.

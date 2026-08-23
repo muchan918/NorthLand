@@ -40,6 +40,9 @@ public class InGameCue : SoundCue
     // DayNightManager.Instance가 이미 갈아치워졌거나 null일 수 있다.
     private DayNightManager subscribed;
 
+    // 건물 사건(업그레이드·주민 증축) 통지의 발신자. 위와 같은 이유로 구독한 인스턴스를 붙잡아 둔다.
+    private ManagementController subscribedManagement;
+
     private void Start()
     {
         DayNightManager dayNight = DayNightManager.Instance;
@@ -51,6 +54,22 @@ public class InGameCue : SoundCue
 
             subscribed.OnDayToNight += HandleDayToNight;
             subscribed.OnNightToDay += HandleNightToDay;
+        }
+
+        // 건물 사건은 **컨트롤러의 통지**로 받는다(WL-208). 예전에는 패널 버튼 핸들러에서 직접 소리를
+        // 냈는데, 같은 사건의 파티클은 이미 이 이벤트를 구독하고 있어(`BuildingFeedback`) 트리거가 두 벌로
+        // 갈려 있었다 — 진입점이 늘면 파티클만 따라오고 소리는 조용히 빠진다(실제로 `BuildingsUpgradeHelper`가
+        // 그런 경로였다). 이 씬 큐가 "언제 무엇을 틀지"를 정하는 자리이므로 구독도 여기에 둔다.
+        //
+        // 씬 로드는 모든 오브젝트를 만든 뒤 Start를 돌리므로 여기서 탐색해도 안전하다(`BuildingFeedback`과 같은 근거).
+        // 경영이 없는 씬(타이틀·전투 테스트)에서는 조용히 건너뛴다.
+        ManagementController management = FindFirstObjectByType<ManagementController>();
+
+        if (management != null)
+        {
+            subscribedManagement = management;
+
+            subscribedManagement.OnBuildingAction += HandleBuildingAction;
         }
 
         // 초기 1회. ⚠ 세이브 복원(RunSaveManager도 Start에서 돈다)과 순서가 보장되지 않는다 —
@@ -68,6 +87,13 @@ public class InGameCue : SoundCue
 
     private void OnDestroy()
     {
+        if (subscribedManagement != null)
+        {
+            subscribedManagement.OnBuildingAction -= HandleBuildingAction;
+
+            subscribedManagement = null;
+        }
+
         if (subscribed == null)
         {
             return;
@@ -77,6 +103,27 @@ public class InGameCue : SoundCue
         subscribed.OnNightToDay -= HandleNightToDay;
 
         subscribed = null;
+    }
+
+    /// <summary>
+    /// 건물에 플레이어 행동이 반영됐을 때의 **성공음**. 실패(자원 부족 등)는 이 이벤트로 오지 않으므로
+    /// 거절음은 여전히 버튼 핸들러가 낸다 — 컨트롤러는 성공만 알린다.
+    ///
+    /// 아직 소리가 없는 행동(주민 배치·해제)은 그냥 지나간다. 소리를 늘릴 땐 여기 분기만 추가하면 되고
+    /// 호출부는 건드리지 않는다 — <see cref="BuildingFeedback"/>가 파티클을 늘리는 방식과 같다.
+    /// </summary>
+    private void HandleBuildingAction(BuildingAsset building, ManagementController.BuildingAction action)
+    {
+        switch (action)
+        {
+            case ManagementController.BuildingAction.Upgraded:
+                Sfx.BuildingUpgraded();
+                break;
+
+            case ManagementController.BuildingAction.VillagerIncreased:
+                Sfx.ResidentIncreased();
+                break;
+        }
     }
 
     // 전환 스팅어는 **전환 순간에만** 울린다 — Start의 초기 1회는 PlayDay/PlayNight를 직접 부른다.

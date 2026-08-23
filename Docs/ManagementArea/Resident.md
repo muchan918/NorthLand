@@ -343,7 +343,7 @@ Hide/Unhide는 **팔다리를 스케일로 줄여 몸통에 집어넣는** 방�
 | R4 | **수다** | 인사 성립 → 서로 마주 봄 (§7.1) | 화자 `Talking_1~3` 교대 / 청자 `Idle` | `Talking_1` `Talking_2` `Talking_3` | ✅ | **구현됨** — 목소리 포함(§11.16) |
 | R5 | **춤** | **산책 중** 아주 낮은 확률 + 주변에 사람 없음 (§11.6) | `Dance` | `Marshies_Happy_Dance` | ✅ | **구현됨** |
 | R6 | **앉기** | 빈 `ResidentSitPoint`가 근처에 있음 | `Sit_Enter`→`Sit_Idle`→`Sit_Exit` | Mixamo `Sitting Down` / `Sitting Idle` / `Standing Up` | ❌ | 확정 |
-| R7 | **놀람** | **대화 상대가 사라짐** (배치·드래그) | `Surprised` | `Surprised` (1.50초) | ✅ | **구현됨** — 단 발동 경로 미착수(§11.10) |
+| R7 | **놀람** | **대화 상대가 사라짐** (배치·드래그) | `Surprised` | `Surprised` (1.50초) | ✅ | **구현됨** — 목소리 포함(§11.16). 단 발동 경로 미착수(§11.10) |
 | R8 | **귀가** | 밤 전환 → 가장 가까운 출입 포인트 (§3.3) | **`Run`** (속도 2배) | `Running` (1.10초) | ✅ | **구현됨** |
 | R9 | **등장** | 아침 (§3.3) · 배치 −1은 미구현 | `Walk` + 퇴장 유예 | 〃 R2 | ✅ | **구현됨**(아침만) |
 | R10 | **들려서 따라오기** | 드래그 중 (§8) | **TBD** — 매달림/웅크림 | `Marshies_Idle_1` (임시 전용) | ❌ | 조건만 확정 — **드래그 자체는 동작**(§11.15)하나 들린 그림이 없어 그냥 사라진다 |
@@ -1640,14 +1640,19 @@ OK path=Assets/Behavior/ResidentBehavior.asset nodes=15 linkedAgents=9
 
 ### 11.16 주민 목소리 — 화면 좌표로 감쇠한다
 
-수다·웃음·인사·귀가에 목소리를 붙였다. 클립은 `Assets/Imported/@NorthLand/Sound/Resident/`의 **8본**이다.
+수다·웃음·놀람·인사·귀가에 목소리를 붙였다. 클립은 `Assets/Imported/@NorthLand/Sound/Resident/`의 **9본**이다.
 
 | 애니메이터 상태 | 행위 | 클립 | 방식 |
 |---|---|---|---|
 | `Talking_1~3` | R4 수다 | `Talk_1~3` | 그 상태에 있는 **내내 반복** |
 | `Laughing` | R12 웃음 | `Laugh` | 진입 시 1회 |
+| `Surprised` | R7 놀람 | `Suprised` | 진입 시 1회 |
 | `Wave` | R3 인사 · 작별 | **`Hi` 또는 `Bye`** | 진입 시 1회 — 아래 참조 |
 | `Run` | R8 귀가 | `Night_1~2` | 집에 닿을 때까지 **반복** |
+
+> ⚠ **클립 파일명이 `ResidentVoice_Suprised.wav`로 오타다**(`Surprised`가 맞다). 애니메이터 상태 이름은
+> `Surprised`로 정상이라 코드는 그쪽을 쓴다 — 파일명과 상태 이름이 다르니 grep으로 짝을 찾을 때 주의.
+> 파일을 고치려면 Unity에서 **rename**해야 GUID가 유지된다(탐색기에서 바꾸면 프리팹 배선이 끊긴다).
 
 > ⚠ **`Wave` 하나를 인사와 작별이 공유한다 — 상태만으로는 구분되지 않는다.** `ResidentConverseAction`의
 > `UpdateFarewell`이 *"인사 클립을 그대로 다시 쓴다"*(주석 원문)고 되어 있어, 만났을 때와 헤어질 때가

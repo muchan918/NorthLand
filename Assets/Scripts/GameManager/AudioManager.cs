@@ -301,6 +301,30 @@ public class AudioManager : MonoBehaviour
         sfxExclusiveSource.Play();
     }
 
+    /// <summary>
+    /// <see cref="PlaySfxExclusive"/>로 울리고 있는 소리를 즉시 멈춘다.
+    ///
+    /// **씬 전환에 반드시 필요하다.** 이 매니저는 <c>DontDestroyOnLoad</c>라 씬을 넘어 살아남고,
+    /// 이 경로는 <c>PlayOneShot</c>이 아니라 <c>clip</c> + <c>Play()</c>라 **소스가 살아 있는 한 계속
+    /// 울린다.** 주민 증가 팡파레가 9.5초짜리라, 재생 중 타이틀로 돌아가면 BGM은 페이드아웃되는데
+    /// 팡파레만 타이틀 화면에서 끝까지 이어진다 — WL-180이 BGM에서 낸 사고와 형태가 같다.
+    ///
+    /// BGM과 같은 방식으로 닫는다: 정지 주체를 **씬 쪽 큐**(<see cref="SoundCue"/>)에 둔다.
+    /// 타이틀 복귀 경로가 넷이라 어느 하나를 고치는 것으로는 닫히지 않기 때문이다.
+    /// </summary>
+    public void StopSfxExclusive()
+    {
+        if (sfxExclusiveSource == null)
+        {
+            return;
+        }
+
+        sfxExclusiveSource.Stop();
+
+        // 클립 참조를 남기지 않는다 — 다음 씬까지 들고 있을 이유가 없다(BGM StopBgm과 같은 처리).
+        sfxExclusiveSource.clip = null;
+    }
+
     // 재생 중에도 설정 볼륨을 따라오게 한다. 재생 중이 아니면 건드릴 것이 없다.
     private void ApplyExclusiveSfxVolume()
     {

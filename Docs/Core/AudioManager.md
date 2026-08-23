@@ -223,6 +223,11 @@ SoundCue        (씬 오브젝트 — 큐를 모아두는 자리)
 > ⚠️ 빈 클립을 `PlayBgm`에 넘기는 것으로는 안 된다 — 매니저가 조용히 무시해 **직전 트랙이 살아남는다.**
 > "아무것도 틀지 않는다"는 `StopBgm`으로만 표현된다.
 
+**같은 계약이 긴 SFX에도 적용된다.** `SoundCue.Awake`가 `AudioManager.StopSfxExclusive()`를 부른다 —
+`PlaySfxExclusive`는 씬을 넘어 계속 울리는데(§6), 정지를 전환 경로마다 붙이면 경로가 넷이라 어느 하나를
+고치는 것으로 닫히지 않는다. 큐가 이미 씬마다 하나씩 있으므로 거기 얹으면 경로 수와 무관해진다(WL-205).
+⚠ 파생 큐가 `Awake`를 선언하면 이것이 불리지 않는다 — 지금 두 큐는 `Start`만 쓴다.
+
 새 씬을 추가한다면 `SoundCue` 자식 큐를 함께 두거나, 그 씬이 직전 BGM을 이어받는 것이 의도임을
 명시해야 한다.
 
@@ -288,8 +293,8 @@ AudioManager.PlaySfx  또는  PlaySfxExclusive
 | `PanelOpen` | `BuildingInfo.ShowOnly` / `Tower.OnSelected` | **패널이 켜질 때가 아니라 클릭할 때** |
 | `TowerInstalled` | `TowerPlacer.PlaceTower` | 합성 결과 배치도 같은 경로를 지나 함께 덮인다 |
 | `Rejected` | `TowerPlacer`(배치 반려) · `TowerFusionController`(재료·코스트 부족) · `CastlePanelUI`(주민 증가·본진 업그레이드 실패) · `BuildingInfoUI`(업그레이드 실패) | 지금은 클립 하나를 넷이 공유 |
-| `BuildingUpgraded` | `BuildingInfoUI.HandleUpgradeClicked` · `CastlePanelUI.HandleUpgradeClicked` | 생산 라인·업그레이드 전용 건물이 같은 소리 |
-| `ResidentIncreased` | `CastlePanelUI.HandleAddVillagerClicked` | `PlaySfxExclusive` — 클립이 9.5초라 연타 시 겹침 |
+| `BuildingUpgraded` | `InGameCue.HandleBuildingAction` (`OnBuildingAction` 구독) | 생산 라인·업그레이드 전용 건물이 같은 소리 |
+| `ResidentIncreased` | 〃 | `PlaySfxExclusive` — 클립이 9.5초라 연타 시 겹침 |
 | `Undone` | `UndoRequest.Submit` | 되돌리기 버튼과 **Ctrl+Z가 같은 진입점**이라 한 곳에서 난다 |
 | `Redone` | *(아직 없음)* | 다시 실행 기능이 없다 — 클립만 뱅크에 꽂아둔 상태 |
 
@@ -306,10 +311,19 @@ AudioManager.PlaySfx  또는  PlaySfxExclusive
 > 프리팹·씬 병합 충돌을 만들지 않고("`TowerMergeCandidateHover` 런타임 부착"과 같은 선례), 무엇보다
 > "이 버튼은 자기 소리를 낸다"는 사실이 한 자리에 모인다.
 
-**업그레이드·주민 증가는 `Try*`의 반환값으로 성공/실패를 가른다.** 컨트롤러는 연출을 모르는 자리라
-(`OnBuildingAction` 주석) 이벤트를 새로 내지 않았고, `bool`이 이미 답을 준다.
-⚠ **두 버튼 모두 자원이 모자라도 눌린다**(비활성화는 최대 레벨 도달에만 걸린다) — 그 경로가 여태
-`Debug.Log`만 남기고 조용히 반려돼 있었고, 지금은 거절음이 난다.
+**건물 사건의 성공음은 호출부가 아니라 `ManagementController.OnBuildingAction` 구독에서 난다**(WL-208).
+같은 사건의 파티클이 이미 그 이벤트를 구독하고 있어(`BuildingFeedback`), 소리만 버튼 핸들러에 손으로
+배선하면 트리거가 두 벌로 갈린다 — 진입점이 하나 늘 때 파티클은 자동으로 따라오고 소리만 조용히 빠진다
+(실제로 `Test/BuildingsUpgradeHelper`가 그런 경로였다). 구독은 씬 큐(`InGameCue`)에 둔다. "이 씬에서 언제
+무엇을 틀지"를 정하는 자리이고, 이미 `DayNightManager`를 같은 패턴으로 구독하고 있다.
+
+**실패는 여전히 호출부 몫이다** — 컨트롤러는 성공만 알린다. 그래서 버튼 핸들러에는 `Sfx.Rejected()`만
+남는다. ⚠ **두 버튼 모두 자원이 모자라도 눌린다**(비활성화는 최대 레벨 도달에만 걸린다) — 그 경로가
+여태 `Debug.Log`만 남기고 조용히 반려돼 있었다.
+
+> 소리를 늘릴 땐 `InGameCue.HandleBuildingAction`의 분기만 추가한다(호출부는 건드리지 않는다) —
+> `BuildingFeedback`가 파티클을 늘리는 방식과 같다. 아직 소리가 없는 `VillagerAssigned`/`VillagerUnassigned`는
+> 그냥 지나간다.
 
 **⚠ 패널 오픈음을 `OnEnable`에 걸면 안 된다.** 두 가지가 오발한다 — ① `CastlePanelUI`·`StorePanelUI` 등은
 씬 로드 시 **켜진 채로 시작**했다가 `Awake`에서 스스로 닫힌다(`Instance` 등록 때문에 꺼둘 수 없다),
@@ -360,6 +374,7 @@ void StopBgm(float fadeSeconds = 1f);
 
 void PlaySfx(AudioClip clip, float volumeScale = 1f);           // 2D 원샷. 볼륨 0·음소거면 재생 생략
 void PlaySfxExclusive(AudioClip clip, float volumeScale = 1f);  // 2D 전용 소스. 직전 것을 끊고 처음부터
+void StopSfxExclusive();                                        // 위 소리를 즉시 정지(씬 전환용, §5.1)
 ```
 
 공용 효과음은 위를 직접 부르지 않고 `Sfx`를 거친다(§5.4):
@@ -384,6 +399,10 @@ Sfx.ResidentIncreased();  // ← 이것만 PlaySfxExclusive로 나간다
 있고**(연타에 겹치지 않는다) **볼륨을 매 프레임 다시 곱한다**(재생 중 슬라이더가 반영된다). 대가는
 ⚠ **소스가 하나뿐이라 이 경로의 소리들끼리도 서로를 끊는다**는 것이다 — 지금 소비처가 하나라 충분하고,
 둘 이상이 동시에 울려야 하면 소리별 소스로 갈라야 한다.
+
+> ⚠️ **이 경로는 씬을 넘어 계속 울린다.** 소스가 살아 있는 한 재생이 이어지므로, 정지 주체를 두지 않으면
+> 9.5초짜리 팡파레가 타이틀 복귀 뒤에도 끝까지 들린다 — WL-180이 BGM에서 낸 사고와 형태가 같다.
+> 그래서 `SoundCue.Awake`가 `StopSfxExclusive()`를 부른다(§5.1). 짧은 원샷(`PlaySfx`)은 대상이 아니다.
 
 - 설정 패널(#346)은 `Get*`으로 슬라이더 초기값을 읽고, `Set*`으로 밀고, `OnAudioSettingsChanged`로
   코드 쪽 변경을 따라온다.

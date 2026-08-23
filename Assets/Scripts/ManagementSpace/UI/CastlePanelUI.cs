@@ -176,17 +176,13 @@ public class CastlePanelUI : MonoBehaviour
             return;
         }
 
-        // 소리는 여기서 가른다 — 컨트롤러는 연출을 모르는 자리이고(OnBuildingAction 주석), 반환값이
-        // 성공/실패를 이미 알려주므로 이벤트를 새로 낼 필요가 없다.
+        // **성공음은 여기서 내지 않는다**(WL-208). 컨트롤러가 OnBuildingAction으로 알리고 씬 큐가
+        // 구독한다 — 그래야 증축 진입점이 늘어도 소리가 따라온다(파티클이 이미 그 구조다).
+        // 실패는 이벤트로 오지 않으므로 거절음만 호출부 몫으로 남는다.
         //
         // ⚠ 버튼은 **최대 도달일 때만** 비활성화된다(Refresh) — 자원이 모자란 상태에서도 눌린다.
-        //   그 경로가 여태 Debug.Log만 남기고 조용히 반려돼 있었으므로 거절음까지 함께 붙인다.
-        if (_controller.TryIncreaseVillagers(_building))
-        {
-            // 클립이 9.5초라 원샷으로 두면 연타 시 여러 벌이 겹친다 → 전용 소스로 끊고 처음부터 다시 낸다.
-            Sfx.ResidentIncreased();
-        }
-        else
+        //   그 경로가 여태 Debug.Log만 남기고 조용히 반려돼 있었다.
+        if (!_controller.TryIncreaseVillagers(_building))
         {
             Sfx.Rejected();
         }
@@ -201,12 +197,8 @@ public class CastlePanelUI : MonoBehaviour
             return;
         }
 
-        // 주민 증가와 같은 규약으로 반환값에서 소리를 가른다(BuildingInfoUI도 동일).
-        if (_controller.TryUpgradeBuilding(_upgradeIndex))
-        {
-            Sfx.BuildingUpgraded();
-        }
-        else
+        // 주민 증가와 같은 규약 — 성공음은 OnBuildingAction 구독자(씬 큐)가 내고 여기는 거절음만(WL-208).
+        if (!_controller.TryUpgradeBuilding(_upgradeIndex))
         {
             Sfx.Rejected();
         }

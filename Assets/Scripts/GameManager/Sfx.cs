@@ -23,10 +23,32 @@ public static class Sfx
     // 경고도 이 플래그 덕에 1회만 나간다 — 없으면 콘솔이 클릭 수만큼 같은 줄로 덮인다.
     private static bool loadAttempted;
 
+    /// <summary>
+    /// 플레이 진입마다 정적 캐시를 비운다.
+    ///
+    /// 지금은 프로젝트 설정이 도메인 리로드를 켜 둬서(`EditorSettings.m_EnterPlayModeOptions: 0`)
+    /// 정적 필드가 자동으로 초기화되지만, **속도 때문에 Domain Reload를 끄는 순간 무증상이 아니게 된다**
+    /// — <see cref="loadAttempted"/>가 <c>true</c>인 채로 두 번째 플레이 세션에 들어가고, 그 사이 뱅크가
+    /// 언로드됐다면 다시 집어올 기회가 없다. 증상은 "두 번째 플레이부터 효과음만 안 남"이라 원인에서 멀다.
+    ///
+    /// 리로드가 켜져 있을 때는 아무 일도 하지 않는 두 줄이므로 비용이 없다.
+    /// <c>SubsystemRegistration</c>은 씬 로드보다 앞이라 첫 소비처보다 항상 먼저 돈다
+    /// (<c>UndoRequest.RegisterShortcut</c>이 같은 시점을 쓴다).
+    /// </summary>
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics()
+    {
+        bank = null;
+        loadAttempted = false;
+    }
+
     private static SfxBank Bank
     {
         get
         {
+            // ⚠ `bank != null`을 조건에 더하지 말 것. 뱅크 에셋이 아예 없는 프로젝트에서는 영영
+            //   null이라 매 호출마다 Resources.Load와 경고가 반복된다 — 이 플래그의 존재 이유가 그것이다.
+            //   정적 캐시가 세션을 넘어 남는 문제는 아래 ResetStatics가 담당한다.
             if (loadAttempted)
             {
                 return bank;
