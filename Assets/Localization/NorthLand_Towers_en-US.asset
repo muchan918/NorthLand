@@ -218,12 +218,13 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 6166220632662016
-    m_Localized: Scaling Rapid-Fire
+    m_Localized: Scaling Rate & Damage
     m_Metadata:
       m_Items: []
   - m_Id: 6166220632662017
-    m_Localized: Each hit makes it fire faster, up to +80%. Stacks decay one step
-      every 2s without a hit, and reset when the wave ends.
+    m_Localized: Each hit makes it fire faster and hit harder — up to +80% fire rate
+      and +30% damage. Stacks decay one step every 2s without a hit, and reset when
+      the wave ends.
     m_Metadata:
       m_Items: []
   - m_Id: 6203434620067840

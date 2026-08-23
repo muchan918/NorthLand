@@ -428,7 +428,7 @@ sourceId = 쏜 쪽의 GetInstanceID() ^ (int)EffectKind
 
 | 축 | 부품·저작 위치 | 트리거 | 적용 | 대상이 바뀌면 |
 |---|---|---|---|---|
-| **원장형** | `RampAction` + `TowerAsset.Ramp` | `Hit`(명중) / `Kill`(처치) | `Owner.Stats`에 소스 1개 | 유지된다(타워 단위) |
+| **원장형** | `RampAction` + `TowerAsset.Ramp` | `Hit`(명중) / `Kill`(처치) | `Owner.Stats`에 소스 1개(축 1~2개) | 유지된다(타워 단위) |
 | **대상별** | `BeamAction` + `Beam.LockRamp` | 같은 대상을 잠근 경과 시간 | 그 대상의 피해에만 곱 | **0에서 다시 시작** |
 
 **왜 하나로 합치지 않는가.** 원장은 타워 단위다. 대상별 램프를 원장에 넣으면 ① 목표를 바꿔도 배율이
@@ -577,13 +577,27 @@ MonoBehaviour가 아닌 순수 C#. `Time.time`을 직접 읽지 않고 `now`를 
 > ⚠ **타워당 원장형 램프는 1개까지다.** `SourceId`가 `호스트 ID ^ 액션 타입명`이라 한 타워에
 > `RampAction`이 둘이면 원장 슬롯을 서로 덮어쓴다(`TowerAsset.OnValidate`가 같은 타입 중복을 경고한다).
 > "명중 + 처치 동시 성장" 타워를 만들려면 채번 규약 확장이 선행돼야 한다.
+>
+> **단, 한 램프가 두 스탯을 올리는 것은 채번 확장 없이 된다.** 원장이 소스당 modifier **묶음**을
+> 들고 있어(`TowerStats.Source.Modifiers`) `RampAction`이 같은 `SourceId`에 modifier 2개를 얹으면
+> 그만이다 — `Ramp.SecondaryStat`/`SecondaryPerStack`이 그 경로다(§5.3). 제약이 걸리는 것은
+> **트리거가 둘일 때**이고(스택 카운터가 액션에 하나뿐이다) 스탯이 둘일 때는 아니다.
+> 소스를 나누지 않는 것도 의도다 — 나누면 `Dispose`·`OnWaveEnd`가 회수를 두 번 해야 해서
+> 하나를 흘릴 여지가 생긴다.
 
 ### 5.3 원장 축 커버리지
 
 - 공격 타워: 3축 전부
 - 오라 타워: 반경(=AttackRange 축) + DoT 데미지(AttackDamage) + DoT 틱 간격(AttackSpeed)
-- 원장형 램프(#300): `TowerAsset.Ramp.Stat`으로 3축 중 하나를 고른다 — 명중 램프는 AttackSpeed,
-  처치 램프는 AttackDamage를 기본 상정. **대상별 램프(`Beam.LockRamp`)는 원장을 거치지 않는다**(§3.10)
+- 원장형 램프(#300): `TowerAsset.Ramp.Stat`으로 축을 고른다 — 명중 램프는 AttackSpeed,
+  처치 램프는 AttackDamage를 기본 상정. **축을 하나 더 얹을 수 있다**(#441 후속):
+  `Ramp.SecondaryStat` + `SecondaryPerStack`을 저작하면 같은 스택이 두 스탯을 함께 올린다
+  (`SecondaryPerStack == 0`이 미저작이라 기존 타워는 단일 축 그대로다). **스택 카운터·트리거·상한·
+  감쇠는 `Profile`이 단독으로 정한다** — 축마다 성장 속도를 달리하려면 `Ramp`를 리스트로 바꿔야 하고,
+  그러면 `RampAction`의 단일 카운터 구조가 무너진다. 두 축이 **같은 스탯이면** 원장이 배율 보너스를
+  합산해(§5.1 합성 규칙) 의도의 두 배가 되므로 `OnValidate`가 경고한다.
+  현재 사용처는 `rampup_tower`(공속 +8%/스택 · 피해 +5%/스택)뿐이다.
+  **대상별 램프(`Beam.LockRamp`)는 원장을 거치지 않는다**(§3.10)
 - **미연결 2건**:
   ① 디버프 오라의 재스캔 주기(`Interval`) — 원장을 안 거친다. 재스캔이 잦아져도 DoT는 이미 대상이
      소유해 피해가 늘지 않기 때문. 독 타워에서 "공속"의 의미를 갖는 축은 `TickInterval`이다.

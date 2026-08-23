@@ -380,6 +380,22 @@ public class TowerAsset : ScriptableObject
             Debug.LogWarning($"[TowerAsset] {name}: Ramp.Trigger=Hit인데 프리팹에 AttackAction이 없습니다 " +
                              "— 명중 통지는 투사체 공격에서만 발행되므로 스택이 영영 쌓이지 않습니다. " +
                              "빔 타워라면 대상별 램프를 쓰거나 Trigger=Kill로 바꾸세요.", this);
+
+        // ── 둘째 축 검사 ──────────────────────────────────────────────────
+        //
+        // 같은 축에 배율 modifier를 두 개 얹으면 원장이 **보너스를 합산**하므로(`TowerStats.Recompute`)
+        // ×1.8이 아니라 ×2.6이 된다. 저작자 의도는 거의 확실히 "한 축을 두 번"이 아니라 오기다.
+        if (Ramp != null && Ramp.HasSecondary && Ramp.SecondaryStat == Ramp.Stat)
+            Debug.LogWarning($"[TowerAsset] {name}: Ramp의 두 축이 모두 {Ramp.Stat}입니다 — 원장이 배율 " +
+                             "보너스를 합산하므로 의도한 배율의 두 배 가까이 오릅니다. 둘째 축을 다른 " +
+                             "스탯으로 바꾸거나 SecondaryPerStack을 0으로 두세요.", this);
+
+        // 둘째 축만 적고 주 축 수치를 비우면 램프 자체가 미저작이라(`Profile.IsAuthored`)
+        // `RampAction`이 구독조차 하지 않는다 — 둘째 축도 함께 죽는다.
+        if (Ramp != null && Ramp.HasSecondary && !rampAuthored)
+            Debug.LogWarning($"[TowerAsset] {name}: Ramp.SecondaryPerStack을 적었는데 Ramp.Profile이 " +
+                             "비었습니다(PerStack 0 또는 MaxStacks 0) — 스택 카운터가 주 축 수치에 " +
+                             "달려 있어 둘째 축도 함께 동작하지 않습니다.", this);
     }
 
     /// 이 타워가 명중으로 거는 스턴 중 **지속이 가장 긴 것**. 스턴을 걸지 않으면 null.
@@ -571,6 +587,29 @@ public class TowerAsset : ScriptableObject
         public NorthLand.Combat.RampTrigger Trigger = NorthLand.Combat.RampTrigger.Hit;
 
         public NorthLand.Combat.RampProfile Profile = new NorthLand.Combat.RampProfile();
+
+        // ── 둘째 축(#441 후속) ─────────────────────────────────────────────
+        //
+        // **스택 카운터는 하나다.** 같은 명중 1회가 두 스탯을 함께 올리며, 트리거·상한·감쇠는
+        // `Profile`이 단독으로 정한다 — 축마다 다른 속도로 자라게 하려면 `Ramp`를 리스트로 바꿔야
+        // 하고, 그러면 `RampAction`의 단일 스택 카운터 구조가 무너진다(별도 이슈 규모).
+        //
+        // ⚠ `SecondaryPerStack == 0`이 **미저작**이다(`RampProfile.IsAuthored`와 같은 관례).
+        //   그래서 이 두 필드를 추가해도 기존 SO는 전부 단일 축 거동을 유지한다 — 직렬화가
+        //   가산이라 `SecondaryStat`은 기본값 0(AttackDamage)으로 읽히지만 배율이 0이라 무동작이다.
+        [Tooltip("같은 스택을 얹을 둘째 스탯. 아래 SecondaryPerStack이 0이면 무시된다(단일 축).")]
+        public NorthLand.Combat.TowerStat SecondaryStat = NorthLand.Combat.TowerStat.AttackDamage;
+
+        [Tooltip("둘째 축의 스택당 보너스. 0 = 둘째 축 없음(기존 거동). 0.04 = 스택당 +4%.")]
+        public float SecondaryPerStack;
+
+        /// 둘째 축이 실제로 동작하는가. 스택 상한·감쇠는 `Profile`이 공유하므로 여기서는
+        /// 배율만 본다 — `Profile.IsAuthored`가 이미 거짓이면 램프 자체가 무동작이다.
+        public bool HasSecondary => SecondaryPerStack != 0f;
+
+        /// 둘째 축의 실효 배율. 스택 환산은 `Profile`의 상한을 그대로 쓴다(카운터 공유).
+        public float SecondaryMultiplier(int stacks)
+            => Profile == null ? 1f : 1f + Profile.Clamp(stacks) * SecondaryPerStack;
     }
 }
 

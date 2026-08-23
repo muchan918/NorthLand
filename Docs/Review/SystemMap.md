@@ -450,8 +450,12 @@
 - **`RampAction`**(`TowerAction` 파생, `NorthLand.Combat`, #300) — 전투 실적으로 자기 타워의 원장에 소스를
   하나 얹는 액션. 트리거는 SO(`TowerAsset.Ramp.Trigger`)가 고른다: `Hit`=`Projectile.DamageDealt` 구독 /
   `Kill`=`Enemy.Killed` 구독(둘 다 `source == Owner`만 센다). `ActivePhase = Always`(낮에도 감쇠가 돌아야
-  다음 밤이 0에서 시작한다). 공개 읽기: `Stacks` / `Multiplier`.
-  ⚠ **타워당 1개까지** — `TowerAction.SourceId`가 `호스트 ID ^ 액션 타입명`이라 둘이면 원장 슬롯이 충돌한다
+  다음 밤이 0에서 시작한다). 공개 읽기: `Stacks` / `Multiplier`(**주 축만**).
+  ⚠ **타워당 1개까지** — `TowerAction.SourceId`가 `호스트 ID ^ 액션 타입명`이라 둘이면 원장 슬롯이 충돌한다.
+  단 **한 액션이 두 스탯을 올리는 것은 된다**(#441 후속): `Ramp.SecondaryStat`/`SecondaryPerStack`을
+  저작하면 같은 `SourceId`에 modifier 2개를 얹는다(원장이 소스당 묶음을 들고 있어 채번 확장이 필요 없다).
+  스택 카운터는 하나이므로 **트리거·상한·감쇠는 두 축이 공유한다** — 축별로 다른 속도를 주려면
+  `Ramp`를 리스트로 바꿔야 하고 그건 단일 카운터 구조를 깨는 별도 작업이다
 - **`Tower.AcquireTarget()`**(`IDamageable`, `NorthLand.Combat`, #336 → #387) — 사거리 안에서 **조준 정책이 고른 1위**.
   **"이 타워가 지금 누구를 겨누는가"의 단일 출처**다. 예전에는 공격 액션과 포탑 조준 연출이 각자
   `OverlapSphere`를 돌렸는데, `TowerAction.Origin`이 `Owner.transform`이라 원점·반경·마스크·판정 기준이

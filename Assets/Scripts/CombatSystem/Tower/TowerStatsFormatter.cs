@@ -43,10 +43,19 @@ namespace NorthLand.Combat
         /// ⚠ 정보 패널은 **선택 시점 스냅샷**이라 이 줄은 실시간으로 갱신되지 않는다. 그래서 현재
         /// 값만 쓰지 않고 상한을 함께 낸다 — 플레이어가 "이 타워가 어디까지 자라는가"를 알 수 있어야
         /// 한 장면의 숫자가 전부인 것으로 오해하지 않는다.
-        public static string BuildRampLine(TowerStat stat, int stacks, int maxStacks, float multiplier)
-            => maxStacks > 0
-                ? $"Ramp({stat}): {stacks}/{maxStacks} ×{multiplier:0.##}"
-                : null;
+        /// 둘째 축(`secondaryStat`/`secondaryMultiplier`)은 배율이 1이면 생략한다 — 단일 축 타워의
+        /// 표기를 바꾸지 않기 위해서다. 축이 둘일 때 스택은 공유하므로 한 번만 낸다.
+        public static string BuildRampLine(TowerStat stat, int stacks, int maxStacks, float multiplier,
+                                           TowerStat secondaryStat = default, float secondaryMultiplier = 1f)
+        {
+            if (maxStacks <= 0) return null;
+
+            string line = $"Ramp({stat}): {stacks}/{maxStacks} ×{multiplier:0.##}";
+
+            return secondaryMultiplier != 1f
+                ? $"{line} · {secondaryStat} ×{secondaryMultiplier:0.##}"
+                : line;
+        }
 
         /// 조준 방식의 표시명(#387). 정책은 키만 알고, 로케일 해석은 여기서 한다.
         ///
