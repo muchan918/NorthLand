@@ -17,13 +17,12 @@ namespace NorthLand.UI
         [SerializeField]
         private PlayerSlotView[] slotViews;
 
-        [SerializeField]
-        private GameObject slotPanel;
-
         private CancellationTokenSource refreshCancellation;
 
         private bool isProcessingSlot;
 
+        [SerializeField]
+        private MainMenuUI mainMenuUI;
         /// <summary>
         /// 슬롯 버튼에서 0, 1, 2를 전달한다.
         /// 빈 슬롯이면 생성하고, 기존 슬롯이면 불러온다.
@@ -259,14 +258,14 @@ namespace NorthLand.UI
 
         private void CloseSlotPanel()
         {
-            if (slotPanel == null)
+            if (mainMenuUI == null)
             {
-                Debug.LogWarning("[PlayerSlotSelectionUI] 슬롯 패널이 연결되지 않았습니다.",this);
+                Debug.LogWarning("[PlayerSlotSelectionUI] MainMenuUI가 연결되지 않았습니다.",this);
 
                 return;
             }
 
-            slotPanel.SetActive(false);
+            mainMenuUI.OnClickCloseSavePanel();
         }
 
         private async UniTaskVoid DeleteSlotAsync(int slotIndex)
