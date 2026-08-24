@@ -29,6 +29,9 @@ public class TowerButtonView : MonoBehaviour
     Color _normalIconColor = Color.white;
     bool _iconColorCached;
     Button _button;
+    // 배선 유실 경고는 **세션당 1회**다(TowerInfoUI._mergeWiringWarned와 같은 규약이지만 static인 이유:
+    // 그쪽은 패널 1개인데 이쪽은 타워 수만큼 칸이 생겨, 인스턴스 플래그면 같은 경고가 칸마다 쏟아진다).
+    static bool s_bannerWiringWarned;
     // 선택 가능 여부의 **요청값**. 해제 연출이 도는 동안 적용을 미루므로 요청과 적용을 분리해 들고 있는다.
     bool _requestedSelectable = true;
 
@@ -139,14 +142,16 @@ public class TowerButtonView : MonoBehaviour
         _iconColorCached = true;
     }
 
-    /// <summary>아이콘만 채운다. 이름 배너는 끈다(배치 팔레트 — 이름은 호버 툴팁이 낸다, #470).</summary>
-    public void Set(Sprite icon) => Set(icon, null);
-
     /// <summary>
-    /// 아이콘과 이름을 채운다. <paramref name="displayName"/>이 비면 이름 배너를 통째로 끄고
-    /// 그만큼 칸 높이를 줄인다 — 라벨만 비우면 빈 배너가 칸 아래에 그대로 남는다.
+    /// 아이콘을 채우고 이름 배너를 끈다 — <b>칸은 아이콘 전용이고 이름은 호버 툴팁이 낸다</b>(#470).
+    /// 배치 팔레트는 <see cref="TowerTooltipSource"/>, 합성 후보는 <c>TowerMergeCandidateHover</c>가 담당한다.
+    ///
+    /// <para><b>이름을 받는 오버로드를 두지 않는다</b>: <see cref="HideNameBanner"/>가 칸 높이를 파괴적으로
+    /// 감산하고 되돌리는 경로가 없다. 이름을 받는 진입점을 남겨두면, 이미 한 번 아이콘 전용으로 채워진
+    /// 칸에 그걸 부르는 순간 배너가 돌아오지 않고 높이만 깎인 채 남는다 — 에러 없이. 이름이 필요한
+    /// 화면이 생기면 그때 원래 높이를 캐시하는 <c>SetNameBannerVisible(bool)</c> 대칭 API로 만들 것.</para>
     /// </summary>
-    public void Set(Sprite icon, string displayName)
+    public void Set(Sprite icon)
     {
         if (_icon != null)
         {
@@ -155,16 +160,7 @@ public class TowerButtonView : MonoBehaviour
             _icon.sprite = icon;
         }
 
-        if (string.IsNullOrEmpty(displayName))
-        {
-            HideNameBanner();
-            return;
-        }
-
-        if (_name != null)
-        {
-            _name.text = displayName;
-        }
+        HideNameBanner();
     }
 
     // 배너를 끄면 세로 레이아웃이 배너 몫(배너 높이 + 간격)을 빈칸으로 들고 있게 된다 —
@@ -174,7 +170,20 @@ public class TowerButtonView : MonoBehaviour
     {
         if (_nameBanner == null)
         {
-            if (_name != null) _name.text = string.Empty;
+            // `_name`은 배선됐는데 `_nameBanner`가 비어 있으면 **배선 유실**이다 — 정본 프리팹은 둘 다
+            // 배선하고, 배너 자체가 없는 변종이면 그 자식인 라벨도 없어 둘 다 null이다. 프리팹이 별
+            // 저장소(NorthLand-Imported)에 있어 미동기 환경에서 이 조합이 나오는데, 컴파일도 통하고
+            // 콘솔도 조용해서 "왜 내 화면만 칸이 삐져나오나"로만 보인다(#445가 겪은 경로).
+            if (_name != null)
+            {
+                if (!s_bannerWiringWarned)
+                {
+                    s_bannerWiringWarned = true;
+                    Debug.LogWarning($"[타워버튼] _nameBanner 미배선 — 이름 배너를 끄지 못해 칸이 커진 채로 남습니다. " +
+                                     $"NorthLand-Imported의 TowerButton.prefab 동기화를 확인하세요(4e41e3227 이상). ({name})", this);
+                }
+                _name.text = string.Empty;
+            }
             return;
         }
         if (!_nameBanner.activeSelf) return;   // 이미 끈 칸에 두 번 적용해 높이를 두 번 깎지 않는다
