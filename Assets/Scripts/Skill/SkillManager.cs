@@ -91,6 +91,13 @@ public class SkillManager : MonoBehaviour
     public float RechargeRemaining =>
         charges >= MaxCharges ? 0f : Mathf.Max(effectiveCooldown - rechargeTimer, 0f);
 
+    // 다음 1발까지의 진행률(0~1). 쿨다운 원형 게이지의 fillAmount로 그대로 쓴다 —
+    // 0에서 시작해 1로 차오르고, 다 차면 충전이 1발 늘면서 다시 0부터 돈다.
+    // 만충이면 RechargeRemaining이 0이라 자연히 1이 나온다: 꽉 찬 링 = 더 기다릴 것이 없는 상태.
+    // effectiveCooldown이 private이라 UI가 대신 BaseCooldown으로 나누면 마법 연구소 배율이 빠져 게이지가 틀어진다.
+    public float RechargeProgress01 =>
+        effectiveCooldown <= 0f ? 1f : 1f - RechargeRemaining / effectiveCooldown;
+
     // 추가시전(#319) 보상이 레벨을 밀어넣는다. 최대가 줄어드는 경우(0레벨 복원 등) 보유분도
     // 같이 깎아 최대를 넘는 상태가 남지 않게 한다.
     public void SetBonusCharges(int value)

@@ -13,6 +13,7 @@ namespace NorthLand.Core
         public const int CurrentVersion = 2;
 
         public const string CombatMapTag = "CombatMap";
+        public static string MonsterSpawnWaveTag(int waveNumber) =>FormattableString.Invariant($"MonsterSpawn.Wave.{waveNumber}");
 
         public static int Derive(int masterSeed,string systemTag)
         {

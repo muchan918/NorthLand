@@ -147,6 +147,16 @@ namespace NorthLand.Combat
     {
         public float Duration = 0.7f;
 
+        [Tooltip("스턴이 끝난 뒤 이 시간 동안 재스턴을 받지 않는다(초). 대상당 스턴 가동률 상한이 " +
+                 "지속/(지속+창)이 되므로, 같은 스턴 타워를 여러 기 깔았을 때의 천장을 이 값이 정한다. " +
+                 "0이면 천장이 사라져 대수만큼 봉인이 길어진다 — 그 타워가 대상을 스스로 죽이지 못하면 " +
+                 "적이 전진하지 못해 밤이 끝나지 않을 수 있다.")]
+        // ⚠ **음수 금지.** `ApplySlow`의 "미지정" 센티널이 `-1f`라(StatusEffectHandler) 음수를 적으면
+        //    "창 없음"이 아니라 **핸들러 폴백(1.4초)으로 흐른다** — 창을 없애려던 의도와 정반대로
+        //    가동률이 내려간다. `TowerAsset.OnValidate`의 창 경계 검사도 상한만 보므로 음수는 통과시킨다.
+        //    `SlowStatus.Multiplier`의 [Range]와 같은 축의 방어다.
+        [Min(0f)] public float ImmunityWindow = 0.4f;
+
         public override EffectKind Kind => EffectKind.Stun;
 
         // ⚠ **소스 키를 무시하고 공유 static ID를 쓴다.**
@@ -164,7 +174,7 @@ namespace NorthLand.Combat
 
             // 배율 0을 넘기면 핸들러가 속도 축이 아니라 스턴 축(IMovementAgent.AddStun)으로 보낸다 —
             // 속도 축은 minMoveSpeed 하한 클램프가 있어 배율 0으로도 멈추지 않고 서행한다.
-            Resolve(target)?.ApplySlow(SharedEffectId, 0f, Duration);
+            Resolve(target)?.ApplySlow(SharedEffectId, 0f, Duration, ImmunityWindow);
         }
 
         public override string Describe(TowerStats stats)

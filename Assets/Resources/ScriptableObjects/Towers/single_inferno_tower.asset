@@ -15,10 +15,11 @@ MonoBehaviour:
   TowerID: single_inferno_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: 1eb442e5b5aa7d845968f5e64dc42fd5, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: a99b7685e434fed48ad917a81a4382ec, type: 3}
-  Icon: {fileID: 0}
+  Icon: {fileID: 21300000, guid: 8fd8085d2648ee64b9c1df34370a0af8, type: 3}
   PlacementYaw: 0
   Cost: []
   Rarity: 2
+  UnlockWave: 1
   Attack:
     AttackDamage: 0
     AttackRange: 0
@@ -30,6 +31,8 @@ MonoBehaviour:
     SpreadAngle: 0
     BurstCount: 1
     BurstInterval: 0
+  Targeting:
+    rid: -2
   Impact: 0
   SplashRadius: 0
   ChainRadius: 0
@@ -55,6 +58,19 @@ MonoBehaviour:
       MaxStacks: 8
       StackInterval: 0.42
       DecaySeconds: 0
+    VisualStages:
+    - Label: "1\uB2E8\uACC4 \uC870\uC900 \uC2DC\uC791"
+      FromProgress: 0
+      Width: 0.3
+      Color: {r: 0.45, g: 0.75, b: 1, a: 0.85}
+    - Label: "2\uB2E8\uACC4 \uAC00\uC5F4"
+      FromProgress: 0.35
+      Width: 0.55
+      Color: {r: 1, g: 0.85, b: 0.35, a: 0.95}
+    - Label: "3\uB2E8\uACC4 \uCD5C\uB300"
+      FromProgress: 0.7
+      Width: 0.95
+      Color: {r: 1, g: 0.35, b: 0.15, a: 1}
   GroundZone:
     ZonePrefab: {fileID: 0}
     Radius: 0

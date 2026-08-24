@@ -120,10 +120,11 @@ archer_tower,towers.archer.name,1,1,towers.archer.role,towers.archer.desc
 | Collider | ✅ | 클릭 선택용. 레이어가 `MouseManager._selectableMask`에 포함돼야 한다 |
 | **`Actions` 리스트** | ✅ | **이 타워가 무엇을 하는지의 정본.** 인스펙터 `+`로 `Attack Action`(공격) / `Buff Aura Action`(아군 강화) / `Debuff Aura Action`(적 약화) / `Beam Action`(다중 잠금 지속딜) / `Ramp Action`(자가 성장)을 담는다. **여러 개 담아도 된다** — 하이브리드가 그렇게 만들어진다(성장 타워 = 공격 + 성장) |
 | `enemyLayerMask` | 공격 타워면 ✅ | 대상 탐색 레이어 |
-| `firePoint` | 선택 | 발사 위치. 비우면 타워 루트에서 나간다 |
+| `firePoint` | 선택 (**빔 타워는 사실상 필수**) | 발사 위치. 비우면 타워 루트에서 나간다 — 빔은 그게 **바닥에서 뻗는 것**으로 보인다. 모델 꼭대기(발광부 등)에 빈 노드를 만들어 물릴 것. 사거리 판정은 이 값과 무관하다(§3.3 함정 ⑧) |
 | `data`(TowerAsset) | 선택 | 채우면 3.5의 SO와 **같은 것**이어야 한다(다르면 경고 후 배치된 쪽으로 재조립) |
 | `TowerAnimationVisual` | 모델에 Animator가 있으면 ✅ | **연출 전용.** 모델 팩 컨트롤러는 파라미터가 전부 Trigger라 **누가 켜주지 않으면 영원히 Idle만 돈다.** 발사는 `fireState`(상태 직접 재생, 연사에 권장) 또는 `fireTrigger`. ⚠ **발사 클립이 루프면 정지 경로를 반드시 저작할 것** — 아래 함정 ④ |
 | `TowerTurretAim` | 포탑 마디가 있으면 선택 | **연출 전용**(선회). 다만 `turret`을 물려야 `TargetLost`가 발행된다 — 그 신호가 위 정지 경로의 **유일한 출처**다 |
+| `TowerReloadVisual` | 탄약 모형이 보이는 모델이면 선택 | **연출 전용.** 발사 시 `ammoVisual`을 끄고 `reappearDelay` 뒤에 다시 켠다(캐터펄트 팔에 얹힌 돌, 포신 위 사탕 등). ⚠ **애니메이션 클립이 그 노드를 키잉하면 Animator가 이긴다** — 아래 함정 ⑦ |
 
 **확인** 3.5에서 SO에 이 프리팹을 물리고 저장하면 `OnValidate`가 액션↔수치 짝을 검사한다.
 연출 컴포넌트 배선은 `Awake`가 검사해 콘솔 경고로 알린다(Animator 없음 / `turret` 미할당 / 루프 발사 클립 + 정지 경로 없음).
@@ -138,6 +139,28 @@ archer_tower,towers.archer.name,1,1,towers.archer.role,towers.archer.desc
 하나를 소다·화염아처·스나이퍼·킬스택 4종이 함께 물고 있어, 그 프리팹이나 그것이 참조하는 벤더 FBX를
 건드리면 4종이 함께 흔들린다. 벤더 팩 재임포트가 메시를 같은 GUID로 덮어쓰는 일이 실제로 있으므로
 (2026-08-18 `Bullet00.FBX` 28320→25024), **공용 탄환은 팩 밖(`@NorthLand`)으로 복제해 소유하는 쪽이 안전하다.**
+
+⑥ **`reloadDelay`가 공격 간격보다 크면 장전 모션이 한 번도 재생되지 않는다.** `HandleFired`가 매 발사마다
+직전 예약을 `CancelInvoke`하고 다시 잡으므로, 지연이 간격보다 길면 예약이 도달하기 전에 항상 취소된다.
+원래는 공속 버프로 간격이 줄었을 때 장전이 밀려 쌓이는 것을 막는 안전장치인데, 지연을 크게 잡으면 같은
+코드가 장전을 완전히 죽인다. **증상이 무증상이다** — 예외도 경고도 없이 "모션이 안 나온다"뿐이다.
+실측 2건: 소다 `reloadDelay 4` / 간격 1.5, 스나이퍼 `3` / 간격 2.0 — 둘 다 0.25·0.5로 고쳤다.
+값은 **발사 클립이 끝나는 지점**부터 시작해 보고, 연출이 간격에 빡빡한 타워만 `간격 − 장전길이`로 역산한다.
+⚠ **`reloadDelay = 0`은 "즉시"가 아니라 "장전 모션 없음"이다** — 양수여야 재생된다.
+
+⑦ **탄약 모형을 클립이 키잉하면 `TowerReloadVisual`과 싸운다.** 모델 팩이 발사 클립에서 탄약 노드의
+`m_IsActive`·위치를 직접 애니메이션하는 경우가 있다(FattyPoly 캐터펄트: `Catapult_Fire`가 `Bullet`의
+`m_IsActive`를 1→0으로, `LocalPosition.y`를 0.60→1.64로 키잉해 **탄을 직접 날린다**). 그 노드를 `ammoVisual`로
+잡으면 Animator가 매 프레임 덮어써서 `SetActive`가 클립 재생 중에는 무효가 되고, 커브가 없는 클립
+(`Catapult_Idle`) 구간에서만 살아남아 거동이 뒤죽박죽이 된다.
+→ **클립이 키잉하지 않는 한 단계 아래 자식을 `ammoVisual`로 잡는다.** 부모는 클립이 시키는 대로 날아가고
+그 안의 메시가 꺼져 있어 화면엔 안 보이므로, 날아가는 것은 실제 투사체 프리팹 하나만 남는다.
+클립이 어느 경로를 키잉하는지는 `AnimationUtility.GetCurveBindings`로 확인할 것.
+
+⑧ **빔의 사거리 판정 원점은 `firePoint`가 아니라 타워 루트다.** `BeamAction.MaintainLocks`가 일부러 루트를
+쓴다 — 포신 높이에서 구형 판정하면 지상 적 기준 수평 도달거리가 그 높이만큼 줄어 바닥에 그리는 사거리
+원(`DisplayRange`)과 실제 도달 범위가 어긋난다. 즉 `firePoint`를 올려도 **사거리는 변하지 않는다**(연출만).
+
 각 액션의 동작은 [Tower.md](Tower.md) §3.5.
 
 ### 3.4 고스트 프리팹
@@ -160,7 +183,7 @@ archer_tower,towers.archer.name,1,1,towers.archer.role,towers.archer.desc
 >
 > | | 항목 | 강제 |
 > |---|---|---|
-> | ① | `공격 간격(초) ≤ 사거리(타일) ÷ 3` | ✅ **`OnValidate` 경고**(`TowerAsset.cs:158-177`) |
+> | ① | `공격 간격(초) ≤ 사거리(타일) ÷ 3 + 스턴지속` | ✅ **`OnValidate` 경고** |
 > | ② | 합성 결과 킬 수 > 재료 킬 수의 합 | ❌ 사람이 확인 |
 > | ③ | 티어 밴드에서 눈금 선택 | ❌ 사람이 확인 |
 >
@@ -174,14 +197,25 @@ archer_tower,towers.archer.name,1,1,towers.archer.role,towers.archer.desc
 > 그쳐 **쿨다운 위상에 따라 쏘거나 안 쏘거나** 한다(정수 오차 ±50% 이상).
 > 이건 저장할 때 경고가 뜨므로 잊어도 잡힌다.
 >
+> ⚠ **스턴을 거는 타워면 상한에 스턴 지속이 더해진다**(#441) — 맞을 때마다 대상이 멈춰 체류가 스스로
+> 늘어나므로 규약의 "등속 통과" 전제가 깨진다. 대신 경계가 둘 더 생기고 **셋 다 `OnValidate`가 잡는다**:
+> `간격 > 스턴지속`(어기면 대상이 전진하지 못해 밤이 끝나지 않는다) · `면역창 ≤ 간격 − 스턴지속`
+> (어기면 피해는 그대로인데 CC만 조용히 절반으로 떨어진다). 유도는
+> [CombatBalance.md §2](CombatBalance.md).
+>
 > **4. 합성 결과 타워라면 규약 ②를 확인한다**(②) — 재료 타워 킬 수의 합보다 강해야 한다. 아니면
 > 합성이 순손실이라 아무도 안 만든다. 상한은 재료 합 × 1.3.
 > ⚠ **여기가 가장 조용히 깨진다** — #326 이전에 2차 `Sniper`가 3차 `killstack`(재료가 스나이퍼)보다
-> 강했는데 아무 신호도 없었다.
+> 강했는데 아무 신호도 없었다. (`killstack`은 #441에서 직접배치 1차로 내려갔다 — 이 예시는 당시 족보 기준이다.)
 
 **무엇을** 인스펙터 위에서부터:
 
 - [ ] `TowerPrefab` / `GhostPrefab` — 3.3·3.4에서 만든 것
+- [ ] `Icon` — 타워 선택 패널 버튼 · 합성 후보 버튼 · 정보 패널 "합성 가능" 칸 · 호버 툴팁 헤더가
+      **전부 이 한 장을 그린다**(#445). 비우면 예외도 경고도 없이 **테두리 안이 빈 칸**으로 나온다 —
+      미할당 SO를 흰 사각형으로 그리지 않고 슬롯을 끄는 규약(`TowerButtonView.Set`)이라 조용하다.
+      이름은 배너에 남으므로 "미기입"과 "원래 없음"이 구분되지 않는다(구 WL-184). 합성 전용 결과
+      타워도 예외가 아니다([§7](#7-합성-결과-타워일-때--델타만)) — 후보 버튼이 아이콘으로 뜬다
 - [ ] `Cost` — 배치 비용(자원 SO + 수량, 여러 줄 가능)
 - [ ] `Attack` — `AttackDamage` / `AttackRange` / `AttackInterval` / `ProjectilePrefab` /
       **`Flight`**(줄 오른쪽 드롭다운에서 `Homing` 또는 `Ballistic` 선택 → 그 안에 `Speed`·`ArcHeight`)
@@ -190,9 +224,23 @@ archer_tower,towers.archer.name,1,1,towers.archer.role,towers.archer.desc
 - [ ] `Beam` — `Range` / `MaxTargets` / `TickInterval` / `DamagePerTick`, 그리고 대상별 성장을 줄 거면
       `LockRamp`(`PerStack`·`MaxStacks`·`StackInterval`). **`MaxTargets`와 `LockRamp`만으로 멀티/단일
       인페르노가 갈린다** — 액션은 같다
+- [ ] `Beam.VisualStages` — 램프가 오르는 것을 빔 굵기·색으로 보여줄 거면 저작한다(`Label` / `FromProgress`
+      / `Width` / `Color`). **비우면 단색 기본 연출**이라 균일 지속딜 타워는 그대로 두면 된다.
+      **연속 보간이 아니라 단계인 이유**: 굵기를 연속으로 키우면 프레임당 변화가 미세해 "세지고 있다"가
+      읽히지 않는다 — 전환 순간이 사건이 되어야 눈에 걸린다.
+      ⚠ **최고 단계 문턱을 1.0 근처에 두지 말 것.** 진행도는 `달성 스택 ÷ MaxStacks`인데, 적 체류 시간이
+      `MaxStacks × StackInterval`보다 짧으면 만렙에 **도달하지 못한다**(`single_inferno`: 체류 3.33초 <
+      만렙 3.36초 → 진행도 0.88에서 멈춤, `CombatBalance.md` §3.2). 문턱이 그보다 높으면 그 단계가 화면에
+      영원히 안 나온다. 저작 전에 `체류 ÷ StackInterval`로 실제 도달 스택을 계산해 볼 것.
+      ⚠ 연출 값을 **프리팹 컴포넌트가 아니라 이 SO에 두는 것이 계약이다** — 프리팹에 두면 Imported가
+      본 저장소 스크립트를 참조해 머지 순서가 모델과 반대가 된다(`SystemMap.md` §2, WL-196)
 - [ ] `Ramp` — 타워 전체가 성장할 거면 `Stat`(무엇이 오르는가) · `Trigger`(`Hit`/`Kill`) ·
       `Profile`(`PerStack`·`MaxStacks`·`DecaySeconds`). ⚠ `DecaySeconds = 0`은 "영구"가 아니라
       "웨이브 동안 유지"다 — 성장은 웨이브 종료에 일괄 초기화된다
+- [ ] `Ramp.SecondaryStat` / `SecondaryPerStack` — **한 램프로 두 스탯을 함께 올릴 거면**(#441 후속).
+      `SecondaryPerStack = 0`이 미저작이라 안 쓰면 기존 단일 축 거동 그대로다. ⚠ **스택 카운터는
+      하나다** — 트리거·상한·감쇠는 `Profile`이 단독으로 정하므로 축마다 성장 속도를 달리할 수 없다.
+      두 축에 **같은 스탯**을 적으면 원장이 배율을 합산해 의도의 두 배가 된다(경고 있음)
 - [ ] `Attack.BurstCount` / `BurstInterval` — 한 사이클에 **시간차로** 여러 발을 쏠 거면(#336).
       산탄(`PelletCount`)과 **다른 축이다** — 산탄은 한 순간에 부채꼴로, 연발은 같은 조준으로 시간을 두고
       나간다. 그래서 착탄 지점이 갈리고 착탄 구역이 발수만큼 생긴다. 기본값 1 = 기존 거동
@@ -268,6 +316,8 @@ SO를 저장하면 아래 조합을 경고한다. **전부 "예외도 없이 조
 | `BeamAction이 있는데 Beam 수치가 비었습니다` (`MaxTargets`·`TickInterval` 경고도 동일) | [3.5](#35-so-수치-기입) `Beam` |
 | `RampAction이 있는데 Ramp 수치가 비었습니다` (역방향 경고도 동일) | [3.5](#35-so-수치-기입) `Ramp` |
 | `Ramp.Trigger=Hit인데 프리팹에 AttackAction이 없습니다` | 명중 통지(`Projectile.DamageDealt`)는 **투사체 공격만** 발행한다 — 빔 타워면 `Trigger=Kill` 또는 `Beam.LockRamp`를 쓴다 |
+| `Ramp의 두 축이 모두 X입니다` | [3.5](#35-so-수치-기입) `Ramp.SecondaryStat` — 같은 축에 배율 modifier 2개는 원장이 **보너스를 합산**하므로 의도의 두 배 가까이 오른다 |
+| `Ramp.SecondaryPerStack을 적었는데 Ramp.Profile이 비었습니다` | [3.5](#35-so-수치-기입) `Ramp.Profile` — 스택 카운터가 주 축 수치에 달려 있어 둘째 축도 함께 죽는다 |
 | `Beam.LockRamp를 적었는데 BeamAction이 없습니다` / `StackInterval이 0 이하입니다` | [3.5](#35-so-수치-기입) `Beam.LockRamp` |
 | `BurstCount(n)>1인데 BurstInterval이 0입니다` | [3.5](#35-so-수치-기입) `Attack.BurstInterval` — 시간차가 없으면 산탄과 같아지고 착탄 구역도 한 점에 겹친다(#336) |
 | `BurstCount를 적었는데 프리팹에 AttackAction이 없습니다` | [3.3](#33-타워-프리팹) `Actions` |
@@ -401,9 +451,12 @@ unity-cli editor refresh --compile
 1. `TowerRecipe` SO 생성 — `Assets/Resources/ScriptableObjects/TowerRecipes/`
    (`Create > Scriptable Objects > TowerRecipe`). `Materials`(재료 SO + 개수) · `Result`(결과 SO) ·
    `ExtraCost`(합성 추가 비용)를 채운다.
-2. **씬의 합성 패널에 등록** — `TowerMergePanelView`의 `_recipes` 배열
-   ([TowerMergePanelView.cs:26](../../Assets/Scripts/UI/TowerPanel/TowerMergePanelView.cs)).
-   3.6과 같은 이유로, 등록 안 하면 후보 버튼이 안 뜬다.
+2. **씬 등록은 없다 — 폴더에 넣으면 후보에 오른다.** 후보 버튼은 `TowerRecipeCatalog.All`
+   (=`Resources.LoadAll<TowerRecipe>("ScriptableObjects/TowerRecipes")`, lazy 1회)을 훑어 레시피마다
+   하나씩 미리 생성된다([TowerMergePanelView](../../Assets/Scripts/UI/TowerPanel/TowerMergePanelView.cs)).
+   구 인스펙터 배열 `TowerRecipe[] _recipes`는 폐기됐다 — 3.6과 달리 씬 배선이 필요 없고, 대신
+   **위 폴더 밖에 두면 영영 안 뜬다.**
+   ⚠ 버튼 순서는 `Resources.LoadAll` 순서라 **비결정적**이다(`TowerMerge.md` §5).
 3. `InheritEffects` — 켜면 재료가 갖고 있던 효과의 **종류만** 결과 타워가 물려받는다(수치는 결과 SO에
    적힌 값). 결과 SO의 `Effects`에 그 종류가 **미리 정의돼 있어야** 켤 수치가 있다.
    저장 시 `TowerRecipe.OnValidate`가 재료↔결과 불일치를 경고한다.
@@ -418,8 +471,9 @@ unity-cli editor refresh --compile
 
 ## 8. 낡아서 믿으면 안 되는 것
 
-- **[StringTable.md](../Tools/StringTable.md) §2·§4** — "테이블 `NorthLand_default` 1개, 키 1개"라고
-  적혀 있지만 실제로는 `NorthLand_Towers` 포함 6개다. **§5 신규 키 추가 절차만 유효.**
+- **[StringTable.md](../Tools/StringTable.md) §4** — 테이블 분리 제안표(`UI_Common`/`UI_Village` 등)는
+  **채택되지 않았다**(그 절 안에 경고가 붙어 있다). §2 현재 상태(컬렉션 7종·키 수)와 §5 신규 키 추가
+  절차는 유효하다 — §2 키 수는 #445에서 실측 갱신했다.
 - **`haste_tower.asset` · `lightning_tower.asset`** — 미마이그레이션 SO. 복제 금지([3.5](#35-so-수치-기입)).
 - **`archer_tower.asset`의 프리팹 참조** — `ArcherTower`가 아니라 **`RollyShooter`**를 물고 있다.
   이름으로 프리팹을 찾으면 헷갈리는 자리다.
@@ -433,3 +487,4 @@ unity-cli editor refresh --compile
 |---|---|
 | 초판 (#274) | `TowerRedesign.md` §11(제안 시제·4행 표)을 이관해 실측 절차서로 재작성. 7단계 체크리스트·`OnValidate` 경고 역인덱스·증상 역인덱스·확장점 3개 신설 |
 | 2차 (#300) | 부품 재고를 실측치로 정정 — 액션 3종 → **5종**(`BeamAction`·`RampAction`), 비행 2종 → **4종**(`Straight`·`Boomerang`). #298·#300에서 늘어난 분이 §1에 반영돼 있지 않았다. §1 조립표에 빔·램프 3행 추가. §3.5 체크리스트에 `Beam`·`Ramp` 항목 추가(⚠ `DecaySeconds=0`은 "영구"가 아니라 "웨이브 동안 유지"). §4① `OnValidate` 역인덱스에 산탄·부메랑·빔·램프 경고 7행 추가. §6에 **"새 액션이 정말 필요한가"** 경고 신설 — #300은 타워 3종을 액션 1개로 만들었고(트리거·수치로 갈림) 단일 인페르노는 액션 추가 0이다. 스탯을 바꾸는 거동은 액션보다 원장을 먼저 보라는 지침과, `OnWaveEnd`를 구현하지 않으면 `NightOnly` 액션이 낮에 상태를 정리할 기회가 없다는 경고 추가 |
+| 3차 (#445) | §3.5 체크리스트에 **`Icon`** 항목 추가 — 구 WL-184가 "절차에 Icon 단계가 없어 신규 타워마다 누락이 반복된다"로 열려 있었고, #445에서 소비처가 넷(팔레트 버튼·합성 후보 버튼·정보 패널 "합성 가능" 칸·툴팁 헤더)으로 늘어 빈 칸의 비용이 커졌다. §7 2번 항목 정정 — "씬의 합성 패널 `_recipes` 배열에 등록"은 **폐기된 절차**다(지금은 `TowerRecipeCatalog.All` 폴더 스캔이라 씬 배선이 없고, 대신 폴더 밖 레시피는 영영 안 뜬다). §8의 StringTable.md 경고도 정정 — 그쪽 §2는 7개 컬렉션으로 갱신돼 이제 유효하다 |

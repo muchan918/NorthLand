@@ -15,11 +15,15 @@ MonoBehaviour:
   TowerID: choco_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: a660ddd374f31434ea5166bfff8b4850, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: 4605832d26ef29a49969945c4b0556cd, type: 3}
+  Icon: {fileID: 592541246, guid: e973ebffd90e44145821a55a0dd3123b, type: 3}
+  PlacementYaw: 0
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
     Amount: 20
   - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
     Amount: 5
+  Rarity: 0
+  UnlockWave: 4
   Attack:
     AttackDamage: 0
     AttackRange: 0
@@ -29,6 +33,10 @@ MonoBehaviour:
       rid: -2
     PelletCount: 1
     SpreadAngle: 0
+    BurstCount: 1
+    BurstInterval: 0
+  Targeting:
+    rid: -2
   Impact: 0
   SplashRadius: 0
   ChainRadius: 0
@@ -49,6 +57,27 @@ MonoBehaviour:
     MaxTargets: 1
     TickInterval: 1
     DamagePerTick: 0
+    LockRamp:
+      PerStack: 0
+      MaxStacks: 0
+      StackInterval: 0
+      DecaySeconds: 0
+    VisualStages: []
+  GroundZone:
+    ZonePrefab: {fileID: 0}
+    Radius: 0
+    Duration: 0
+    Interval: 0
+  Ramp:
+    Stat: 2
+    Trigger: 0
+    Profile:
+      PerStack: 0
+      MaxStacks: 0
+      StackInterval: 0
+      DecaySeconds: 0
+    SecondaryStat: 0
+    SecondaryPerStack: 0
   Effects:
   - rid: 3470829504553025631
   references:

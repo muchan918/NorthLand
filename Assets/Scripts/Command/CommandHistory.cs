@@ -74,8 +74,13 @@ public static class CommandHistory
 
         // 상한 초과분은 **버리는 게 아니라 Commit한다.** 그냥 목록에서 빼면 합성 재료가 비활성
         // (소프트 소모) 상태로 씬에 영원히 남는다 — 소프트 소모의 짝이 사라지는 자리다.
+        //
+        // 밀려나는 순간에 **로그를 남긴다**(#444). 경영 조작까지 이 스택을 공유하게 되면서 낮 한 판의
+        // 조작 수가 늘었고, 조용히 확정하면 "아까 그 타워가 왜 안 되돌아가는지"에 단서가 하나도 없다
+        // (이 프로젝트엔 테스트 스위트가 없어 콘솔이 유일한 진단 경로다).
         while (_stack.Count > k_MaxDepth)
         {
+            Debug.Log($"[되돌리기] 히스토리 상한({k_MaxDepth}) 초과 — 가장 오래된 조작을 확정했습니다.");
             _stack[0].Commit();
             _stack.RemoveAt(0);
         }
@@ -84,9 +89,13 @@ public static class CommandHistory
     }
 
     /// 가장 최근 조작을 되돌린다. 밤이거나 스택이 비었으면 아무 일도 하지 않는다.
-    public static void Undo()
+    ///
+    /// **반환값 = 실제로 되돌렸는가.** 호출부가 피드백(효과음 등)을 붙일 때 `CanUndo`를 다시 검사하지
+    /// 않게 하려고 낸다 — 같은 조건을 두 곳에 두면 조용히 어긋난다(`UndoRequest` 주석과 같은 취지).
+    /// 이 클래스는 연출을 모른다: 무슨 소리를 낼지는 요청 진입점이 정한다.
+    public static bool Undo()
     {
-        if (!CanUndo) return;
+        if (!CanUndo) return false;
 
         int last = _stack.Count - 1;
         IReversibleCommand command = _stack[last];
@@ -94,6 +103,8 @@ public static class CommandHistory
         command.Undo();
 
         OnChanged?.Invoke();
+
+        return true;
     }
 
     /// 히스토리 전체를 확정하고 비운다(밤 진입). 이 뒤로는 되돌릴 수 없다.

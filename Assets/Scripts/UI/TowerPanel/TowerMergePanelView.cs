@@ -33,6 +33,10 @@ public class TowerMergePanelView : MonoBehaviour
         if (_coordinator != null)
         {
             _coordinator.OnGroupChanged += Refresh;
+
+            // 자원이 바뀌면 후보 버튼의 활성 여부가 달라진다(WL-209). 선택 리스트는 그대로이므로
+            // 행 재생성 없이 후보만 다시 칠한다 — 되돌리기 환불처럼 패널이 열린 채 자원이 변할 수 있다.
+            _coordinator.OnAffordabilityChanged += RefreshCandidates;
         }
         Refresh(); // 활성화 시점의 현재 선택 상태로 동기화(코디네이터가 켠 직후)
     }
@@ -42,6 +46,7 @@ public class TowerMergePanelView : MonoBehaviour
         if (_coordinator != null)
         {
             _coordinator.OnGroupChanged -= Refresh;
+            _coordinator.OnAffordabilityChanged -= RefreshCandidates;
         }
     }
 
@@ -61,22 +66,37 @@ public class TowerMergePanelView : MonoBehaviour
         {
             if (recipe == null) continue;
 
-            // 결과 타워의 런타임 Data(에셋에 저장 안 됨)를 채워 라벨을 로컬라이즈할 수 있게 한다(채움 규약).
-            if (recipe.Result != null && recipe.Result.Data == null)
-            {
-                recipe.Result.Data = DataTableManager.Get<TowerTable>("TowerTable")?.Get(recipe.Result.TowerID);
-            }
+            // 결과 타워의 런타임 Data(에셋에 저장 안 됨)를 채워 라벨·툴팁이 키를 읽을 수 있게 한다(채움 규약).
+            TowerDisplayName.EnsureData(recipe.Result);
 
             var button = Instantiate(_candidateButtonPrefab, _candidateContent);
 
-            var label = button.GetComponentInChildren<TMP_Text>();
-            if (label != null) label.text = recipe.Result != null ? LocalizedTowerName(recipe.Result) : recipe.name;
+            string displayName = recipe.Result != null ? TowerDisplayName.Of(recipe.Result) : recipe.name;
+
+            // 아이콘·이름은 프리팹(= 배치 팔레트와 같은 `TowerButton.prefab`)의 TowerButtonView 슬롯에 채운다.
+            // 라벨만 채우고 아이콘을 비워두면 테두리 안이 빈 칸으로 남아 후보가 무슨 타워인지 그림으로 알 수 없다(#445).
+            // `SetLocked`는 부르지 않는다 — 합성 후보에는 해금 개념이 없고, 프리팹의 TowerLockOverlay는
+            // `m_IsActive: 0`이라 그대로 조용하다(TowerMerge.md §8.5의 같은 판단).
+            var view = button.GetComponent<TowerButtonView>();
+            if (view != null)
+            {
+                view.Set(recipe.Result != null ? recipe.Result.Icon : null, displayName);
+            }
+            else
+            {
+                var label = button.GetComponentInChildren<TMP_Text>();
+                if (label != null) label.text = displayName;
+            }
 
             var captured = recipe; // 클로저 캡처(루프 변수 캡처 함정 회피)
             button.onClick.AddListener(() => { if (_coordinator != null) _coordinator.RequestMerge(captured); });
 
             // 호버 시 소모될 재료 타워만 핑크 아웃라인(#213 §5.3). 버튼 프리팹을 편집하지 않고 런타임 부착한다.
             button.gameObject.AddComponent<TowerMergeCandidateHover>().Init(_coordinator, captured);
+
+            // 합성 결과는 설치음(성공) 또는 거절음(재료·코스트 부족)으로 스스로 답한다 —
+            // 공용 클릭음까지 나면 두 소리가 겹쳐 들린다. 위와 같은 런타임 부착 방식으로 뺀다.
+            UiClickSfxIgnore.ApplyTo(button);
 
             button.gameObject.SetActive(false); // 기본 숨김 — 매칭 시 켠다
             _candidates.Add((button, recipe));
@@ -105,7 +125,7 @@ public class TowerMergePanelView : MonoBehaviour
 
             var row = Instantiate(_selectedRowPrefab, _selectedListContent);
             var text = row.GetComponentInChildren<TMP_Text>();
-            if (text != null) text.text = LocalizedTowerName(tower.Asset);
+            if (text != null) text.text = TowerDisplayName.Of(tower.Asset);
             _rows.Add(row);
         }
     }
@@ -113,25 +133,21 @@ public class TowerMergePanelView : MonoBehaviour
     private void RefreshCandidates()
     {
         if (_coordinator == null) return;
-        // 매칭되는 레시피의 버튼만 켠다(포함 매칭 — TowerFusionMatcher 단일 출처, 재구현 금지).
+
+        // 표시(재료)와 활성(코스트)을 **가른다**(WL-209).
+        //   · 재료가 안 맞으면 아예 숨긴다 — 만들 수 없는 조합을 보여줄 이유가 없다.
+        //   · 재료는 맞는데 자원이 모자라면 **회색으로 보여준다** — 예전에는 그냥 눌렸고 눌러도 조용히
+        //     반려돼서, 자원을 더 모아야 하는지 타워를 더 놓아야 하는지 구분할 수 없었다.
+        // 매칭 규칙은 TowerFusionMatcher 단일 출처, 코스트 판정은 실행부가 답한다(재구현 금지).
         foreach (var (button, recipe) in _candidates)
         {
             if (button == null) continue;
 
-            button.gameObject.SetActive(_coordinator.CanMerge(recipe));
-        }
-    }
+            bool matched = _coordinator.CanMerge(recipe);
+            button.gameObject.SetActive(matched);
 
-    // TowerID → TowerData.NameKey → NorthLand_Towers 로컬라이즈. Data/NameKey 없으면 TowerID 폴백.
-    private static string LocalizedTowerName(TowerAsset asset)
-    {
-        if (asset == null) return "?";
-
-        var data = asset.Data;
-        if (data != null && !string.IsNullOrEmpty(data.NameKey))
-        {
-            return LocalizationHelper.Get(LocalizationHelper.k_TowersTable, data.NameKey);
+            // 숨긴 버튼의 interactable은 의미가 없다 — 다시 켜질 때 이 자리에서 함께 정해진다.
+            if (matched) button.interactable = _coordinator.CanAffordMerge(recipe);
         }
-        return asset.TowerID;
     }
 }

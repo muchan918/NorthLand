@@ -40,6 +40,15 @@ public class TowerAsset : ScriptableObject
     [Tooltip("타워 등급: 일반 0, 희귀 1, 전설 2")]
     public TowerRarity Rarity;
 
+    // 타워 선택 패널에서 이 타워가 열리는 웨이브(#424). 여기 두는 이유는 `Icon`과 같다 —
+    // 표기·저작 값의 소스를 SO 한 곳에 둔다. 씬 인스펙터의 타워 목록에 병렬 배열로 두면
+    // 순서가 어긋나는 순간 조용히 엉키고(WL-076 축), TowerTable.csv는 로컬라이즈 키와
+    // 그리드 크기 전용이라 여기가 맞다.
+    [Header("해금")]
+    [Tooltip("이 웨이브 번호 이상에서 해금된다. 1 = 처음부터 열림(기본).")]
+    [Min(1)]
+    public int UnlockWave = 1;
+
     // ── 평탄 스키마 (#274 Phase 1) ──────────────────────────────────────────────
     // 타입별 래퍼(Single/Area/Chain/Magic)를 풀어 한 층으로 편다. 타입별 필드가 7개뿐이라
     // 그룹 클래스 없이도 읽을 만하고, 안 쓰는 타워에서 값이 0이어도 아무도 안 읽으므로 무해하다.
@@ -110,13 +119,21 @@ public class TowerAsset : ScriptableObject
     /// WL-056의 "오라 반경 단일 출처" 성질을 유지하면서 구 `TowerType` 분기만 걷어낸 것이다.
     /// 구 `MagicRadius`는 `MagicEffectType`으로 Buff/Debuff를 골랐는데, 오라를 둘 다 가진 타워를
     /// 표현할 수 없었다. 최댓값을 쓰면 공격+오라 하이브리드 타워도 자연히 커버된다.
-    public float PreviewRadius => Mathf.Max(
-        Mathf.Max(
-            Attack != null ? Attack.AttackRange : 0f,
-            Beam != null ? Beam.Range : 0f),
-        Mathf.Max(
-            BuffAura != null ? BuffAura.Radius : 0f,
-            DebuffAura != null ? DebuffAura.Radius : 0f));
+    public float PreviewRadius => Mathf.Max(AttackSideRadius, AuraSideRadius);
+
+    /// `TowerStat.AttackRange` 축이 붙는 쪽 기본값(공격·빔).
+    ///
+    /// 두 축을 따로 노출하는 이유: 프리뷰가 타일 버프를 얹을 때 **어느 축의 modifier를 쓸지** 갈라야 한다.
+    /// 합친 값 하나만 들고 있으면 배치 프리뷰 원과 배치 후 실제 반경이 어긋난다(오라 타워는 사거리 축
+    /// modifier를 받지 않으므로, 사거리 축을 그냥 얹으면 프리뷰만 부풀어 보인다).
+    public float AttackSideRadius => Mathf.Max(
+        Attack != null ? Attack.AttackRange : 0f,
+        Beam != null ? Beam.Range : 0f);
+
+    /// `TowerStat.AuraRadius` 축이 붙는 쪽 기본값(버프·디버프 오라).
+    public float AuraSideRadius => Mathf.Max(
+        BuffAura != null ? BuffAura.Radius : 0f,
+        DebuffAura != null ? DebuffAura.Radius : 0f);
 
 #if UNITY_EDITOR
     // 저작 실수를 **저장하는 순간** 드러낸다(WL-130 해소).
@@ -210,14 +227,45 @@ public class TowerAsset : ScriptableObject
         // ⚠ 18 = 타일 6유닛 × 규약 계수 3. 타일 크기가 바뀌면 이 상수도 함께 바뀐다 —
         //   `OnValidate`는 씬 없이도 돌아 CombatMapGenerator.Settings를 참조할 수 없으므로
         //   단일 출처(WL-034)를 쓰지 못하고 여기 상수로 둔다.
+        // ⚠ **CC 항**(#441). 규약의 유도는 "적이 사거리를 **등속으로** 통과한다"를 전제하는데,
+        //   스턴 타워는 자기가 그 전제를 깬다 — 맞을 때마다 대상이 멈춰 체류 시간이 스스로 늘어난다.
+        //     체류 = 통과시간 + 스턴지속 × 발수     →     발수 = 통과시간 / (간격 − 스턴지속)
+        //   통과시간은 규약이 전제한 `사거리/6`초(속도 10)이므로, 3발 보장 조건이 한 항만 늘어난다:
+        //     간격 ≤ 사거리/18 + 스턴지속
+        //   예: 소다(사거리 27 · 스턴 0.7) → 상한 2.2초, 그 간격에서 4.5/(2.2−0.7) = 3.0발.
+        //   이 항이 없으면 CC 타워는 "규약을 어기는 예외"로 관리해야 하는데, 그러면 규약이 지켜지는지
+        //   자체를 검사할 수 없게 된다. 항을 세워 두면 새 CC 타워도 같은 식으로 검사된다.
         if (hasAttack && attackAuthored && Attack.AttackRange > 0f && Attack.AttackInterval > 0f)
         {
-            float intervalLimit = Attack.AttackRange / 18f;
+            var stun = LongestStun();
+            float stunDuration = stun != null ? stun.Duration : 0f;
+            float intervalLimit = Attack.AttackRange / 18f + stunDuration;
+
             if (Attack.AttackInterval > intervalLimit + 0.0001f)
                 Debug.LogWarning($"[TowerAsset] {name}: AttackInterval({Attack.AttackInterval})이 밸런싱 규약 " +
-                                 $"상한({intervalLimit:0.###})을 넘습니다 — 사거리 {Attack.AttackRange / 6f:0.##}타일에서 " +
-                                 "적이 지나가는 동안 발사가 5발 미만이라 쿨다운 위상에 따라 화력이 튑니다. " +
+                                 $"상한({intervalLimit:0.###})을 넘습니다 — 사거리 {Attack.AttackRange / 6f:0.##}타일" +
+                                 (stunDuration > 0f ? $" · 스턴 {stunDuration:0.##}초" : "") +
+                                 "에서 적이 지나가는 동안 발사가 3발 미만이라 쿨다운 위상에 따라 화력이 튑니다. " +
                                  "간격을 줄이고 발당 피해를 그만큼 올리세요(Docs/Core/CombatBalance.md §2).", this);
+
+            // 위 식의 **하한**. 간격이 스턴 지속보다 짧으면 스턴이 끊기는 구간이 사실상 사라져
+            // (`StatusEffectHandler`의 규칙 ①이 스턴 중 명중을 버리므로 만료 직후 바로 재스턴된다)
+            // 대상이 전진하지 못한다. 밤 종료 조건이 몬스터 전멸이라 딜 공급이 없으면 밤이 끝나지 않는다.
+            if (stunDuration > 0f && Attack.AttackInterval <= stunDuration)
+                Debug.LogWarning($"[TowerAsset] {name}: AttackInterval({Attack.AttackInterval})이 스턴 지속" +
+                                 $"({stunDuration:0.##}초)보다 짧거나 같습니다 — 대상이 사실상 계속 정지 상태가 되어 " +
+                                 "전진하지 못합니다. 간격을 스턴 지속보다 길게 두세요.", this);
+
+            // 같은 식의 나머지 경계. 면역 창이 `간격 − 스턴지속`보다 길면 **다음 발이 창 안에 들어와**
+            // 스턴이 걸리지 않는다 — 피해는 그대로 들어가고 CC만 조용히 절반 이하로 떨어지므로
+            // 저작자가 알아채기 어렵다. 창은 다기(多機) 상한을 위한 값이지, 1기의 발사를 버리는
+            // 장치가 아니다(StatusEffectHandler의 규칙 ②).
+            if (stun != null && stunDuration > 0f && Attack.AttackInterval > stunDuration &&
+                stun.ImmunityWindow > Attack.AttackInterval - stunDuration + 0.0001f)
+                Debug.LogWarning($"[TowerAsset] {name}: StunStatus.ImmunityWindow({stun.ImmunityWindow})이 " +
+                                 $"간격−스턴지속({Attack.AttackInterval - stunDuration:0.###})보다 깁니다 — " +
+                                 "다음 발이 면역 창 안에 들어와 스턴이 걸리지 않는 발사가 생깁니다. " +
+                                 "창을 줄이거나 간격을 늘리세요.", this);
         }
 
         // ── 명중 방식 ↔ 그 방식이 요구하는 수치 ─────────────────────────────
@@ -332,6 +380,48 @@ public class TowerAsset : ScriptableObject
             Debug.LogWarning($"[TowerAsset] {name}: Ramp.Trigger=Hit인데 프리팹에 AttackAction이 없습니다 " +
                              "— 명중 통지는 투사체 공격에서만 발행되므로 스택이 영영 쌓이지 않습니다. " +
                              "빔 타워라면 대상별 램프를 쓰거나 Trigger=Kill로 바꾸세요.", this);
+
+        // ── 둘째 축 검사 ──────────────────────────────────────────────────
+        //
+        // 같은 축에 배율 modifier를 두 개 얹으면 원장이 **보너스를 합산**하므로(`TowerStats.Recompute`)
+        // ×1.8이 아니라 ×2.6이 된다. 저작자 의도는 거의 확실히 "한 축을 두 번"이 아니라 오기다.
+        if (Ramp != null && Ramp.HasSecondary && Ramp.SecondaryStat == Ramp.Stat)
+            Debug.LogWarning($"[TowerAsset] {name}: Ramp의 두 축이 모두 {Ramp.Stat}입니다 — 원장이 배율 " +
+                             "보너스를 합산하므로 의도한 배율의 두 배 가까이 오릅니다. 둘째 축을 다른 " +
+                             "스탯으로 바꾸거나 SecondaryPerStack을 0으로 두세요.", this);
+
+        // 둘째 축만 적고 주 축 수치를 비우면 램프 자체가 미저작이라(`Profile.IsAuthored`)
+        // `RampAction`이 구독조차 하지 않는다 — 둘째 축도 함께 죽는다.
+        if (Ramp != null && Ramp.HasSecondary && !rampAuthored)
+            Debug.LogWarning($"[TowerAsset] {name}: Ramp.SecondaryPerStack을 적었는데 Ramp.Profile이 " +
+                             "비었습니다(PerStack 0 또는 MaxStacks 0) — 스택 카운터가 주 축 수치에 " +
+                             "달려 있어 둘째 축도 함께 동작하지 않습니다.", this);
+    }
+
+    /// 이 타워가 명중으로 거는 스턴 중 **지속이 가장 긴 것**. 스턴을 걸지 않으면 null.
+    ///
+    /// 규약 ①의 CC 항이 쓰는 값이다. 최댓값을 쓰는 이유: 대상은 스턴을 하나만 갖고
+    /// (`StatusEffectHandler`의 대상 기준 게이트) 그중 먼저 걸린 것이 만료될 때까지 유지되므로,
+    /// 체류 시간을 늘리는 기여는 가장 긴 항이 대표한다.
+    /// `Effects`는 `[SerializeReference]`라 rename·삭제로 항목이 null이 될 수 있어 건너뛴다.
+    ///
+    /// ⚠ **`Effects`가 어느 축에서 발화하는지는 구분하지 않는다.** 이 리스트는 공격·디버프 오라·착탄
+    /// 구역이 함께 쓰므로(위 `Effects` 필드 주석), "오라로만 스턴을 거는데 공격도 하는" 타워가 생기면
+    /// 명중은 등속 통과 그대로인데 `AttackInterval` 상한만 완화된다. **지금은 성립하지 않는 전제다** —
+    /// 스턴원은 `soda_tower` 하나이고 그 스턴은 명중 경로이며, 스턴 타워를 더 만들 계획이 없다(#441).
+    /// 그 전제가 깨지는 날 축을 갈라야 한다(`Effects`를 명중용·오라용으로 분리하는 작업이라 범위가 크다).
+    NorthLand.Combat.StunStatus LongestStun()
+    {
+        if (Effects == null) return null;
+
+        NorthLand.Combat.StunStatus longest = null;
+        for (int i = 0; i < Effects.Count; i++)
+        {
+            if (Effects[i] is NorthLand.Combat.StunStatus stun &&
+                (longest == null || stun.Duration > longest.Duration))
+                longest = stun;
+        }
+        return longest;
     }
 #endif
 
@@ -445,6 +535,44 @@ public class TowerAsset : ScriptableObject
         [Tooltip("같은 대상을 계속 잠글수록 피해가 오르는 램프. StackInterval초마다 한 단계씩 오르고, " +
                  "대상이 죽거나 사거리를 벗어나면 0에서 다시 시작한다. 비워두면 균일 지속딜(기존 거동).")]
         public NorthLand.Combat.RampProfile LockRamp;
+
+        // 램프 진행도에 따른 빔 겉모습(#426). **프리팹 컴포넌트가 아니라 여기 있는 이유가 두 가지다.**
+        //
+        // ① 액션 규칙 ① — "액션은 수치를 갖지 않는다. 전부 TowerAsset에서 읽는다." 굵기·색도 수치이므로
+        //    같은 규칙을 받는다. `Icon`·`ProjectilePrefab`·`PlacementYaw`가 이미 같은 성격으로 이 SO에 있다.
+        // ② **저장소 교차 참조 제거(WL-196)** — 이 값을 프리팹에 두면 Imported 프리팹이 본 저장소의
+        //    MonoBehaviour를 참조하게 되어, 다른 에셋과 **반대 방향**의 머지 순서(본 저장소 선행)가
+        //    필요해진다. Imported만 먼저 받으면 Missing Script가 되고 재직렬화 시 배선이 조용히 날아간다.
+        //    SO에 두면 참조가 본 저장소 → Imported 한 방향으로만 흘러 기존 규칙(Imported 선행)이 그대로
+        //    성립하고, 이 연출을 본 저장소 diff만으로 검토할 수 있다.
+        [Tooltip("램프 진행도별 빔 굵기·색. 비워두면 단색 기본 연출(기존 거동). " +
+                 "낮은 문턱부터 순서대로 저작할 것.")]
+        public List<BeamStage> VisualStages = new List<BeamStage>();
+    }
+
+    /// 빔 연출 한 구간. 램프 진행도(0~1)가 이 문턱 이상이면 이 겉모습으로 그린다.
+    ///
+    /// **연속 보간이 아니라 단계인 이유**: 램프가 오르고 있다는 것을 플레이어가 알아채야 하는 연출이다.
+    /// 굵기를 연속으로 키우면 프레임당 변화가 미세해 "세지고 있다"가 읽히지 않는다 — 전환 순간이
+    /// 사건이 되어야 눈에 걸린다(COC 인페르노가 같은 이유로 단계형이다).
+    ///
+    /// ⚠ **최고 단계 문턱을 1.0에 붙이지 말 것.** `single_inferno`는 만렙까지 3.36초가 걸리는데 적 체류가
+    /// 3.33초라 마지막 스택에 도달하지 못한다(CombatBalance.md §3.2). 문턱이 1.0 근처면 그 단계가
+    /// 화면에 영원히 안 나온다.
+    [System.Serializable]
+    public class BeamStage
+    {
+        [Tooltip("에디터에서 알아보기 위한 이름. 런타임에는 쓰지 않는다.")]
+        public string Label;
+
+        [Tooltip("이 단계가 시작되는 진행도(0~1). 진행도 이하 중 **가장 높은** 문턱의 단계가 쓰인다.")]
+        [Range(0f, 1f)] public float FromProgress;
+
+        [Tooltip("빔 굵기(월드 단위).")]
+        public float Width = 0.5f;
+
+        [Tooltip("빔 색.")]
+        [ColorUsage(true, true)] public Color Color = Color.white;
     }
 
     // 성장(램프업) 저작 묶음(#300). 계기와 축은 여기서, 수치는 공용 부품 `RampProfile`이 소유한다 —
@@ -459,6 +587,29 @@ public class TowerAsset : ScriptableObject
         public NorthLand.Combat.RampTrigger Trigger = NorthLand.Combat.RampTrigger.Hit;
 
         public NorthLand.Combat.RampProfile Profile = new NorthLand.Combat.RampProfile();
+
+        // ── 둘째 축(#441 후속) ─────────────────────────────────────────────
+        //
+        // **스택 카운터는 하나다.** 같은 명중 1회가 두 스탯을 함께 올리며, 트리거·상한·감쇠는
+        // `Profile`이 단독으로 정한다 — 축마다 다른 속도로 자라게 하려면 `Ramp`를 리스트로 바꿔야
+        // 하고, 그러면 `RampAction`의 단일 스택 카운터 구조가 무너진다(별도 이슈 규모).
+        //
+        // ⚠ `SecondaryPerStack == 0`이 **미저작**이다(`RampProfile.IsAuthored`와 같은 관례).
+        //   그래서 이 두 필드를 추가해도 기존 SO는 전부 단일 축 거동을 유지한다 — 직렬화가
+        //   가산이라 `SecondaryStat`은 기본값 0(AttackDamage)으로 읽히지만 배율이 0이라 무동작이다.
+        [Tooltip("같은 스택을 얹을 둘째 스탯. 아래 SecondaryPerStack이 0이면 무시된다(단일 축).")]
+        public NorthLand.Combat.TowerStat SecondaryStat = NorthLand.Combat.TowerStat.AttackDamage;
+
+        [Tooltip("둘째 축의 스택당 보너스. 0 = 둘째 축 없음(기존 거동). 0.04 = 스택당 +4%.")]
+        public float SecondaryPerStack;
+
+        /// 둘째 축이 실제로 동작하는가. 스택 상한·감쇠는 `Profile`이 공유하므로 여기서는
+        /// 배율만 본다 — `Profile.IsAuthored`가 이미 거짓이면 램프 자체가 무동작이다.
+        public bool HasSecondary => SecondaryPerStack != 0f;
+
+        /// 둘째 축의 실효 배율. 스택 환산은 `Profile`의 상한을 그대로 쓴다(카운터 공유).
+        public float SecondaryMultiplier(int stacks)
+            => Profile == null ? 1f : 1f + Profile.Clamp(stacks) * SecondaryPerStack;
     }
 }
 

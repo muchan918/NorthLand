@@ -1,19 +1,41 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 // 하나의 웨이브에 사용할 몬스터 구성과 생성 간격.
-// 이 에셋은 "몇 번째 웨이브인가"를 스스로 갖지 않는다 — 진행 순서는 전적으로
-// MonsterSpawnWaveProvider.waves 리스트의 등록 순서(1-base)가 결정한다(#294).
+// 이 에셋은 "몇 번째 웨이브인가"를 스스로 갖지 않는다.
+// 진행 순서는 MonsterSpawnWaveProvider.waves 리스트 등록 순서가 결정한다.
 [CreateAssetMenu(
     fileName = "MonsterWave",
     menuName = "Monster/Wave")]
 public sealed class MonsterWaveAsset : ScriptableObject
 {
     [Header("Wave")]
+    [FormerlySerializedAs("spawnInterval")]
+    [Tooltip("각 스폰 배치 사이의 최소 대기 시간(초)")]
     [Min(0f)]
     [SerializeField]
-    private float spawnInterval = 1f;
+    private float minSpawnInterval = 0.3f;
+
+    [Tooltip("각 스폰 배치 사이의 최대 대기 시간(초)")]
+    [Min(0f)]
+    [SerializeField]
+    private float maxSpawnInterval = 0.7f;
+
+    [Tooltip("한 배치에 동시에 생성할 수 있는 최대 몬스터 수. 실제 수량은 매 배치마다 1~이 값 사이에서 무작위로 결정됩니다.")]
+    [Min(1)]
+    [SerializeField]
+    private int spawnCountPerBatch = 3;
+
+    [Tooltip("같은 배치의 몬스터 사이 생성 간격(초)")]
+    [Min(0f)]
+    [SerializeField]
+    private float intraBatchJitter = 0.15f;
+
+    [Tooltip("일반 몬스터의 생성 순서를 무작위로 섞을지 여부")]
+    [SerializeField]
+    private bool randomizeSpawnOrder = true;
 
     [Header("Monsters")]
     [SerializeField]
@@ -23,7 +45,11 @@ public sealed class MonsterWaveAsset : ScriptableObject
     [SerializeField]
     private WaveRewardPool rewardPool;
 
-    public float SpawnInterval => spawnInterval;
+    public float MinSpawnInterval => minSpawnInterval;
+    public float MaxSpawnInterval => maxSpawnInterval;
+    public int SpawnCountPerBatch => spawnCountPerBatch;
+    public float IntraBatchJitter => intraBatchJitter;
+    public bool RandomizeSpawnOrder => randomizeSpawnOrder;
     public List<MonsterWaveGroup> Groups => groups;
 
     public WaveRewardPool RewardPool => rewardPool;
@@ -41,7 +67,6 @@ public sealed class MonsterWaveGroup
     [SerializeField]
     private int count = 1;
 
-    public GameObject MonsterPrefab =>monsterPrefab;
-
-    public int Count =>count;
+    public GameObject MonsterPrefab => monsterPrefab;
+    public int Count => count;
 }

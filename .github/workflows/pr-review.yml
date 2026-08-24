@@ -10,7 +10,10 @@ concurrency:
 
 jobs:
   review:
-    if: github.event.pull_request.draft == false
+    # fork PR은 시크릿을 받지 못해 리뷰 스텝이 어차피 실패한다(GITHUB_TOKEN도 read-only).
+    # 실패 대신 스킵시켜 Actions 탭을 깨끗하게 유지한다.
+    # pull_request_target으로 바꾸면 시크릿이 fork 코드에 노출되므로 절대 금지.
+    if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 35
     permissions:
@@ -353,7 +356,7 @@ jobs:
             --allowedTools "Read,Glob,Grep,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh issue view:*),Bash(gh pr comment:*),Bash(git log:*),Bash(git show:*),Bash(git diff:*),mcp__github_comment__update_claude_comment"
             --max-turns 50
             --model ${{ github.event.action == 'synchronize' && (vars.PR_REVIEW_MODEL_DELTA || 'sonnet') || (vars.PR_REVIEW_MODEL || 'opus') }}
-            --append-system-prompt "너는 NorthLand 프로젝트(4인 팀 Unity 타워 디펜스+마을 경영)를 기술적으로 리드하는 시니어 게임 개발자다. 리뷰의 존재 이유는 규칙 위반 찾기가 아니라, 4명이 병렬로 만드는 시스템들이 하나의 게임으로 매끄럽게 통합되도록 지금 방향을 잡아주는 것이다. 모든 출력은 한국어. 사실 주장(파일:라인, API 시그니처, GDD 조항)은 반드시 도구로 직접 확인한 것만 쓴다. 세부 결함은 확신 있는 것만 지적하되, 아키텍처·통합 방향 제시는 근거를 명시하면 확신이 100%가 아니어도 낸다 — 단 '제안'임을 명시한다."
+            --append-system-prompt "너는 NorthLand 프로젝트(4인 팀 Unity 타워 디펜스+마을 경영)를 기술적으로 리드하는 시니어 게임 개발자다. 리뷰의 존재 이유는 규칙 위반 찾기가 아니라, 4명이 병렬로 만드는 시스템들이 하나의 게임으로 매끄럽게 통합되도록 지금 방향을 잡아주는 것이다. 모든 출력은 한국어. 사실 주장(파일:라인, API 시그니처, GDD 조항)은 반드시 도구로 직접 확인한 것만 쓴다. 세부 결함은 확신 있는 것만 지적하되, 아키텍처·통합 방향 제시는 근거를 명시하면 확신이 100%가 아니어도 낸다 — 단 '제안'임을 명시한다. Assets/Imported/의 벤더 코드는 본문을 인용하지 마라 — 파일 경로·타입명·메서드 시그니처까지만 언급하고 코드 블록으로 붙여넣지 않는다. 저장소가 퍼블릭이라 코멘트가 공개된다."
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
@@ -395,7 +398,7 @@ jobs:
             --allowedTools "Read,Glob,Grep,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh issue view:*),Bash(gh pr comment:*),Bash(git log:*),Bash(git show:*),Bash(git diff:*),mcp__github_comment__update_claude_comment"
             --max-turns 50
             --model ${{ github.event.action == 'synchronize' && (vars.PR_REVIEW_MODEL_DELTA || 'sonnet') || (vars.PR_REVIEW_MODEL || 'opus') }}
-            --append-system-prompt "너는 NorthLand 프로젝트(4인 팀 Unity 타워 디펜스+마을 경영)를 기술적으로 리드하는 시니어 게임 개발자다. 리뷰의 존재 이유는 규칙 위반 찾기가 아니라, 4명이 병렬로 만드는 시스템들이 하나의 게임으로 매끄럽게 통합되도록 지금 방향을 잡아주는 것이다. 모든 출력은 한국어. 사실 주장(파일:라인, API 시그니처, GDD 조항)은 반드시 도구로 직접 확인한 것만 쓴다. 세부 결함은 확신 있는 것만 지적하되, 아키텍처·통합 방향 제시는 근거를 명시하면 확신이 100%가 아니어도 낸다 — 단 '제안'임을 명시한다."
+            --append-system-prompt "너는 NorthLand 프로젝트(4인 팀 Unity 타워 디펜스+마을 경영)를 기술적으로 리드하는 시니어 게임 개발자다. 리뷰의 존재 이유는 규칙 위반 찾기가 아니라, 4명이 병렬로 만드는 시스템들이 하나의 게임으로 매끄럽게 통합되도록 지금 방향을 잡아주는 것이다. 모든 출력은 한국어. 사실 주장(파일:라인, API 시그니처, GDD 조항)은 반드시 도구로 직접 확인한 것만 쓴다. 세부 결함은 확신 있는 것만 지적하되, 아키텍처·통합 방향 제시는 근거를 명시하면 확신이 100%가 아니어도 낸다 — 단 '제안'임을 명시한다. Assets/Imported/의 벤더 코드는 본문을 인용하지 마라 — 파일 경로·타입명·메서드 시그니처까지만 언급하고 코드 블록으로 붙여넣지 않는다. 저장소가 퍼블릭이라 코멘트가 공개된다."
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}

@@ -24,9 +24,10 @@ namespace NorthLand.Combat
 
         public override TowerActivePhase ActivePhase => TowerActivePhase.Always;
 
-        // 디버프 오라와 같은 원장 축(사거리)을 쓴다. 기본값만 SO의 BuffAura.Radius로 다르다.
+        // 디버프 오라와 같은 원장 축(AuraRadius)을 쓴다. 기본값만 SO의 BuffAura.Radius로 다르다.
+        // 이 축이 공격 사거리와 갈려 있는 이유는 DebuffAuraAction.Radius 주석에 있다.
         public float Radius =>
-            aura == null ? 0f : Owner.Stats.Evaluate(TowerStat.AttackRange, aura.Radius);
+            aura == null ? 0f : Owner.Stats.Evaluate(TowerStat.AuraRadius, aura.Radius);
 
         // 선택 사거리 원은 오라 반경을 그린다(디버프 오라와 동일 규칙).
         public override float DisplayRange => Radius;

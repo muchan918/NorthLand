@@ -1,6 +1,6 @@
 # 전투 공간 타워 배치 — 기능 명세
 
-> **상태**: 배치 코어 · **SO 게이트웨이 · 자원 차감 · 타일 버프 · 등장 연출 구현 + 플레이 검증 완료**(2026-08-01) · **되돌리기 구현**(#281, 2026-08-03) · 낮 전용 게이팅만 미구현(§8)
+> **상태**: 배치 코어 · **SO 게이트웨이 · 자원 차감 · 타일 버프 · 등장 연출 구현 + 플레이 검증 완료**(2026-08-01) · **되돌리기 구현**(#281, 2026-08-03 · #444에서 경영 조작까지 확장, 2026-08-22) · 낮 전용 게이팅만 미구현(§8)
 > **소유**: n0wst4ndup(배치 흐름·게이트웨이·프리뷰·연출) · SUNGSOO(타워 프리팹) · muchan(타워 데이터·자원·페이즈 게이팅) · KSJ(타일 버프)
 > **구현 파일**:
 > - `Assets/Scripts/GameManager/MouseManager/TowerPlacement/BattleTile.cs` (타일 마커)
@@ -216,10 +216,22 @@ bool BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost,
 - `Func<RaycastHit, bool> CanPlaceAt`
 - `Action<RaycastHit, Vector3> OnConfirmed`
 - `Action OnEnded` — 취소/확정 복귀 시 프리뷰 정리(선택, null 허용)
+- `Action OnRejected` — **놓을 수 없는 곳을 좌클릭**했을 때(무효 타일 + 맵 밖·하늘). 없으면 무효 클릭이 아무 신호도 없이 삼켜져 "클릭이 안 먹은 것"처럼 보인다. 현재 소비처는 거절 효과음
+- `Action<bool> OnSurfaceHoverChanged` — **커서가 배치 표면 위인지 바뀔 때**(고스트를 켜고 끄는 것과 같은 타이밍). 아래 계약 참고
+
+> ⚠️ **표면을 벗어나면 `Snap`이 아예 호출되지 않는다.** 매니저는 자기 고스트만 숨길 수 있고 요청이 따로
+> 띄운 프리뷰(풋프린트 하이라이트·사거리 원)는 모른다. 그래서 예전에는 커서를 타일 밖으로 빼면
+> **고스트만 사라지고 하이라이트·사거리 원이 마지막 타일에 그대로 남았다.** `OnSurfaceHoverChanged`가
+> 그 구멍을 메운다 — 매니저는 고스트와 이 통지를 **같은 자리에서 함께** 처리하므로 둘이 어긋날 수 없다.
+>
+> 통지는 **상태가 바뀔 때만** 간다(매 프레임 아님). `TowerPlacer`는 `false`만 처리한다 — 켜는 일은
+> 표면 위에서 매 프레임 도는 `Snap`이 하고(풋프린트 크기·앵커 유무를 아는 유일한 자리), 콜백은 `Snap`
+> **뒤에** 실행되므로 거기서 또 켜면 여분 쿼드까지 되살아나 옛 자리에 남는다.
 
 **흐름** (Idle/Placement 2상태, 새 상태 없음):
 - 진입: 패널/버튼 → `BeginTowerPlacement(so)` → `StartPlacement` → `MouseManager.BeginPlacement`.
 - 매 프레임(Placement): 레이캐스트 → `Snap(hit)`(풋프린트 중심) + 프리뷰 갱신 → 고스트 이동 → `CanPlaceAt(hit)`.
+- 표면을 벗어난 프레임: 고스트 + 요청 프리뷰를 **함께** 숨긴다(`OnSurfaceHoverChanged(false)`), 좌클릭이면 `OnRejected`.
 - 확정(좌클릭·유효): `OnConfirmed(hit, pos)` → 아래 확정 순서 → (`keepPlacing=false`면) Idle 복귀.
 - 취소(우클릭) / 확정 복귀: `OnEnded` → 프리뷰 정리 → 종료 통지.
 
@@ -260,7 +272,7 @@ bool BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost,
 | --- | --- | --- |
 | **자원 차감** | ✅ 구현 | `ManagementController.CanAfford`(검증) / `TrySpend`(확정). 비용 출처 = `TowerAsset.Cost`. 컨트롤러가 씬에 없으면 **무료 배치**(경영 없는 테스트 씬 지원) |
 | **낮 전용 게이팅** | ❌ 미구현 | `TowerPlacer` 진입에 `DayNightManager.CurrentPhase` 확인이 없다. 완화만 존재 — `PhasePanelSwitcher.ShowNight`가 밤 진입 시 진행 중 배치를 취소한다. 합성 실행부 축은 **WL-077**(muchan) |
-| **되돌리기**(#281) | ✅ 구현 | 확정 시 `TowerPlaceCommand`를 `CommandHistory`에 올린다(LIFO 20). 되돌리면 타워를 파괴하고 `ManagementController.Grant`로 **실지불 비용을 100% 환원**한다. `OnDayToNight`에 히스토리 전체가 `Commit`돼 되돌리기 불가로 확정된다 |
+| **되돌리기**(#281 → #444) | ✅ 구현 | 확정 시 `TowerPlaceCommand`를 `CommandHistory`에 올린다(LIFO 20). 되돌리면 타워를 파괴하고 `ManagementController.Grant`로 **실지불 비용을 100% 환원**한다. `OnDayToNight`에 히스토리 전체가 `Commit`돼 되돌리기 불가로 확정된다. **#444**: 상태 기계·비용 환원이 공통 기반 `ReversibleCommandBase`로 올라가고 **경영 조작(건물 업그레이드 · 주민 증축)이 같은 스택에 합류**했다 — 되돌리기 요청은 버튼·Ctrl+Z 모두 `UndoRequest.Submit()`을 지나며, 파괴되는 대상이 있어 선택을 푸는 일은 `TowerPlaceCommand.OnUndo`가 **확정본일 때만** 한다(요청 진입점에서 무조건 풀면 건물 패널이 닫힌다) |
 
 > 자원은 `ResourceWallet`에 직접 접근하지 않고 **반드시 `ManagementController` 경유**다(WL-017). `TrySpend`는 원자적 — 전부 감당 가능할 때만 전부 차감한다. 환원(`Grant`)은 그 대칭짝이며, 인자는 반드시 **커맨드가 들고 있는 실지불 비용**이어야 한다(임의 수량 지급 금지 — 팀 계약 #3·#6).
 
@@ -275,6 +287,8 @@ bool BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost,
 배치 중 고스트 위치에 `RangeCircle`(공용 컴포넌트)로 **채움 + 굵은 외곽선** 원을 표시한다. `rangeFillColor`(반투명) / `rangeColor`(외곽선).
 
 - 첫 스냅 전에는 `Hide()` — 그러지 않으면 맵 원점(0,0)에 원이 노출된다.
+- **커서가 배치 표면을 벗어나면 숨긴다**(`OnSurfaceHoverChanged(false)`). 고스트만 숨기던 시절 이 원이 마지막 타일에 잔류했다.
+- **앵커가 없으면(배치 마스크는 맞혔지만 `BattleTile`이 아닌 표면) 숨긴다.** 무조건 `Show`하면 놓을 수 없는 곳에서 원이 커서를 따라다닌다.
 - 반경은 **타일 버프를 반영한 프리뷰 값**이다: `(기본사거리 + Flat) × (1 + Percentage/100)`. 앵커가 바뀐 프레임에만 재계산한다.
 - 같은 반지름이면 `RangeCircle`이 지오메트리 재생성을 생략한다.
 
@@ -283,6 +297,15 @@ bool BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost,
 ### 9.2 풋프린트 셀 하이라이트 (구현)
 
 풋프린트 각 셀에 바닥에 눕힌 반투명 쿼드를 **유효=`validCellColor`(초록) / 무효=`invalidCellColor`(빨강)** 로 표시한다. 표시 y는 타일 윗면 + 0.03(z-파이팅 방지). 고스트 자체의 유효/무효 색은 이 하이라이트로 대체돼 별도 불필요.
+
+**표시/숨김의 주체가 갈려 있다** — 잔상 버그가 전부 이 경계에서 났다:
+
+| 상황 | 처리 |
+|---|---|
+| 생성 직후(첫 스냅 전) | **꺼진 채로 만든다**. 사거리 원을 `Hide`로 시작하는 것과 같은 이유 — 배치 버튼이 UI 위에 있어 클릭한 프레임의 커서는 타일 위가 아니고, 첫 스냅 전까지 위치가 갱신되지 않아 **월드 원점에 쿼드가 보인다** |
+| 표면 위 | `UpdateCellHighlights`가 매 프레임 위치를 잡으면서 **켠다**. 켜는 주체가 위치를 잡는 주체와 같아야 "켜졌는데 위치가 옛날"이 생기지 않는다 |
+| 풋프린트보다 많은 여분(앵커 없음 → `_footprint`가 빔 포함) | 같은 함수가 **끈다**. 켠 채로 두면 위치를 갱신받지 못한 쿼드가 옛 자리에 남는다 |
+| 표면을 벗어남 | `OnSurfaceHoverChanged(false)`가 **전부 끈다**(§7). 이때는 `Snap`이 아예 돌지 않아 위 경로가 작동하지 않는다 |
 
 ### 9.3 등장 연출 (`TowerSpawnEffect`) — #264
 

@@ -72,6 +72,9 @@ public class BuildingInfoUI : MonoBehaviour
         if (_upgradeButton != null)
         {
             _upgradeButton.onClick.AddListener(HandleUpgradeClicked);
+
+            // 업그레이드음·거절음을 스스로 내므로 공용 클릭음에서 뺀다(CastlePanelUI와 같은 이유).
+            UiClickSfxIgnore.ApplyTo(_upgradeButton);
         }
         HideInfo(); // Instance 등록 후 숨기므로 안전
     }
@@ -124,13 +127,25 @@ public class BuildingInfoUI : MonoBehaviour
         {
             return;
         }
+        // **성공음은 여기서 내지 않는다**(WL-208). 컨트롤러가 OnBuildingAction으로 알리고 씬 큐가
+        // 구독한다 — 업그레이드 진입점이 늘어도(예: `Test/BuildingsUpgradeHelper`) 소리가 따라온다.
+        // 실패는 이벤트로 오지 않으므로 거절음만 호출부 몫이다.
+        // ⚠ 자원이 모자라도 버튼이 눌린다 — 그 경로가 여태 로그만 남기고 조용히 반려돼 있었다.
         if (_lineIndex >= 0)
         {
-            _controller.TryUpgrade(_lineIndex);            // 생산 라인: 주민당량 업그레이드
+            PlayUpgradeFeedback(_controller.TryUpgrade(_lineIndex));            // 생산 라인: 주민당량 업그레이드
         }
         else if (_upgradeIndex >= 0)
         {
-            _controller.TryUpgradeBuilding(_upgradeIndex); // 마법 연구소 등: 레벨 업그레이드(마나석)
+            PlayUpgradeFeedback(_controller.TryUpgradeBuilding(_upgradeIndex)); // 마법 연구소 등: 레벨 업그레이드(마나석)
+        }
+    }
+
+    private static void PlayUpgradeFeedback(bool upgraded)
+    {
+        if (!upgraded)
+        {
+            Sfx.Rejected();
         }
     }
 

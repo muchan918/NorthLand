@@ -15,13 +15,14 @@ MonoBehaviour:
   TowerID: rampup_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: 22f90d4dfb6e7b84088c84393944b9af, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: 17f7b303891c39a48b5a798c7cf7bb6e, type: 3}
-  Icon: {fileID: 0}
+  Icon: {fileID: 1274478764, guid: d44a095802c7baa4fa1dd5d9cdd606c4, type: 3}
   PlacementYaw: 45
   Cost: []
   Rarity: 1
+  UnlockWave: 1
   Attack:
     AttackDamage: 20
-    AttackRange: 18
+    AttackRange: 25
     AttackInterval: 0.8
     ProjectilePrefab: {fileID: 1796010324365560, guid: 71eb331b713d7274b9be930b15c1a48b, type: 3}
     Flight:
@@ -57,6 +58,7 @@ MonoBehaviour:
       MaxStacks: 0
       StackInterval: 0
       DecaySeconds: 0
+    VisualStages: []
   GroundZone:
     ZonePrefab: {fileID: 0}
     Radius: 0
@@ -70,6 +72,8 @@ MonoBehaviour:
       MaxStacks: 10
       StackInterval: 0
       DecaySeconds: 2
+    SecondaryStat: 0
+    SecondaryPerStack: 0.05
   Effects: []
   references:
     version: 2

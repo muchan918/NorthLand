@@ -6,6 +6,7 @@ using UnityEngine;
 /// |---|---|---|
 /// | `Talking_1~3` (R4 수다) | 수다 클립 | 그 상태에 있는 내내 반복 |
 /// | `Laughing` (R12 웃음) | 웃음 클립 | 진입 시 1회 |
+/// | `Surprised` (R7 놀람) | 놀람 클립 | 진입 시 1회 |
 /// | `Wave` (R3 인사 · 작별) | **Hi 또는 Bye** | 진입 시 1회 — 대화 단계로 가른다 |
 /// | `Run` (R8 귀가) | 밤 클립 | 집에 닿을 때까지 반복 |
 ///
@@ -42,6 +43,9 @@ public class ResidentVoice : MonoBehaviour
     /// 웃음 상태 이름. 〃 `ResidentBehaviorGraphBuilder.LaughState`.
     private const string k_LaughState = "Laughing";
 
+    /// 놀람 상태 이름(R7). 〃 `ResidentBehaviorGraphBuilder.SurprisedState`.
+    private const string k_SurprisedState = "Surprised";
+
     /// 인사 상태 이름. 〃 `ResidentBehaviorGraphBuilder.GreetState`.
     /// **인사와 작별이 이 상태 하나를 공유한다** — 아래 <see cref="PickGreetingClip"/> 참고.
     private const string k_WaveState = "Wave";
@@ -56,6 +60,9 @@ public class ResidentVoice : MonoBehaviour
 
     [Tooltip("웃음(R12) 1회 재생용.")]
     [SerializeField] private AudioClip laughClip;
+
+    [Tooltip("놀람(R7) 1회 재생용. 대화 상대가 사라졌을 때 등 Surprised 상태에 들어오는 순간 재생한다.")]
+    [SerializeField] private AudioClip surprisedClip;
 
     [Tooltip("만났을 때의 인사(R3). Wave 상태 + 대화 단계가 Greeting일 때.")]
     [SerializeField] private AudioClip hiClip;
@@ -84,6 +91,7 @@ public class ResidentVoice : MonoBehaviour
 
     private int[] talkHashes;
     private int laughHash;
+    private int surprisedHash;
     private int waveHash;
     private int runHash;
 
@@ -128,6 +136,7 @@ public class ResidentVoice : MonoBehaviour
         }
 
         laughHash = Animator.StringToHash(k_LaughState);
+        surprisedHash = Animator.StringToHash(k_SurprisedState);
         waveHash = Animator.StringToHash(k_WaveState);
         runHash = Animator.StringToHash(k_RunState);
     }
@@ -174,10 +183,14 @@ public class ResidentVoice : MonoBehaviour
             return;
         }
 
-        // 1회성(웃음·인사)은 상태에 **들어온 순간에만**, 반복(수다·귀가)은 그 상태에 있는 내내.
+        // 1회성(웃음·놀람·인사)은 상태에 **들어온 순간에만**, 반복(수다·귀가)은 그 상태에 있는 내내.
         if (state == laughHash)
         {
             if (entered) Play(laughClip);
+        }
+        else if (state == surprisedHash)
+        {
+            if (entered) Play(surprisedClip);
         }
         else if (state == waveHash)
         {

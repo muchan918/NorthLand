@@ -12,7 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 08366b238e4880d4898b6b244413a4a1, type: 3}
   m_Name: MonsterWave 3
   m_EditorClassIdentifier: Assembly-CSharp::MonsterWaveAsset
-  spawnInterval: 1
+  minSpawnInterval: 0.3
+  maxSpawnInterval: 0.7
+  spawnCountPerBatch: 3
+  intraBatchJitter: 0.15
+  randomizeSpawnOrder: 1
   groups:
   - monsterPrefab: {fileID: 7321704587212441968, guid: fd343a3c8af5dee4998407a8dd41a05d, type: 3}
     count: 5

@@ -10,7 +10,9 @@
 > - `Assets/Scripts/CombatSystem/Tower/Tower.cs` — `Asset` 읽기 접근자
 > **구현 파일 — 커맨드 패턴(#263)**:
 > - `Assets/Scripts/Command/IReversibleCommand.cs` — Execute/Confirm/Commit/Undo **4단 계약**(#281에서 중립 위치로 이전)
+> - `Assets/Scripts/Command/ReversibleCommandBase.cs` — 4단 상태 기계 + 비용 환원 **공통 기반**(#444에서 승격)
 > - `Assets/Scripts/Command/CommandHistory.cs` — 되돌리기 LIFO 히스토리(#281)
+> - `Assets/Scripts/Command/UndoRequest.cs` — 되돌리기 요청 단일 진입점(버튼 · Ctrl+Z 공용, #444)
 > - `Assets/Scripts/GameManager/MouseManager/TowerPlacement/TowerMergeCommand.cs` — 재료 소프트 소모·확정·원복
 > - `Assets/Scripts/GameManager/MouseManager/TowerPlacement/TowerFootprint.cs` — `Release()`/`Reoccupy()`(점유만 임시 해제)
 > **구현 파일 — 선택·패널 UI(#183)**:
@@ -82,11 +84,15 @@
 | 매칭 규칙 | `TowerFusionMatcher` | 레거시(Fusion). 순수 static, `TryResolve`/`BuildRequired`/`CanFuse` |
 | 레시피 | `TowerRecipe` (SO) | 레거시(접두 없음). `Materials`/`Result`/`ExtraCost` |
 | 재료 집합(선택 상태) | `TowerMergeGroup` | 순수 C#·코디네이터 소유. `Towers`/`Add`/`Remove`/`Clear`/`Prune`/`OnChanged`. 구 `TowerWallet` 대체 |
-| 되돌릴 수 있는 조작 | `IReversibleCommand` | `Execute`/`Confirm`/`Commit`/`Undo` **4단**(#263→#281). 구현체는 합성·배치 둘 |
-| 되돌리기 히스토리 | `CommandHistory` | LIFO 20. `Confirm`이 등록 시점, 밤 진입에 일괄 `Commit`(#281) |
+| 되돌릴 수 있는 조작 | `IReversibleCommand` | `Execute`/`Confirm`/`Commit`/`Undo` **4단**(#263→#281). 구현체는 합성·배치·**경영**(#444) 셋이고, 상태 기계는 `ReversibleCommandBase`가 공유한다 |
+| 되돌리기 히스토리 | `CommandHistory` | LIFO 20. `Confirm`이 등록 시점, 밤 진입에 일괄 `Commit`(#281). **#444로 경영 조작도 이 스택을 쓴다** — 합성과 건물 업그레이드가 한 순서에 섞인다 |
 | 재료 소모 트랜잭션 | `TowerMergeCommand` | 소프트 소모(타일 `Release`+비활성화) → `Confirm`=세션 성공(재료는 살아 있다) → `Commit`=밤에 진짜 파괴 / `Undo`=결과 회수+재료 원복 |
 | 선택 코디네이터 | `TowerMergeCoordinator` | 그룹 소유·게이팅·패널 권위·실행 오케스트레이션(파사드: `SelectedTowers`/`OnGroupChanged`/`CanMerge`/`RequestMerge`) |
 | 합성 패널 뷰 | `TowerMergePanelView` | 선택 리스트 + 후보 버튼. 코디네이터만 참조 |
+| 레시피 카탈로그 | `TowerRecipeCatalog` | `All` = `Resources.LoadAll<TowerRecipe>("ScriptableObjects/TowerRecipes")`(lazy 1회) |
+| 재료→결과 역방향 색인 | `TowerMergeTargetIndex` | 순수 static. `RecipesUsing(towerId)` — 정보 패널 "상위 타워" 블록용(§8.5) |
+| 상위 타워 행 뷰 | `TowerMergeTargetSlot` | 아이콘+이름 2슬롯. 툴팁은 `TowerTooltipSource` 런타임 부착 |
+| 타워 표시 이름 | `TowerDisplayName` | `Of`/`EnsureData`. 합성 패널·도감·정보 패널·툴팁 공용 단일 출처(§8.5) |
 | 그룹 선택 자격 마커 | `IGroupSelectable`(도메인 중립) + `TowerGroupSelectable`(타워 구현) | MouseManager가 마커만 소비 → 타워 개념 없이 제네릭 |
 | 결과·재료 타워 정의 | `TowerAsset` (SO) | 결과도 일반 타워 |
 | 배치 타워의 원본 SO 조회 | `Tower.Asset` | 읽기 전용 |
@@ -134,8 +140,9 @@
 
 - **`TowerRecipe`(SO)**: `List<MaterialEntry> Materials`(재료 `TowerAsset`+`Count`, multiset) / `TowerAsset Result` / `List<ResourceCost> ExtraCost`(합성 추가 자원/마나석). CSV 미경유 인스펙터 손입력.
 - **결과 타워**: 별도 특수 타입이 아니라 일반 `TowerAsset`. 신규 결과 타워는 `TowerTable.csv` 행 + SO + 프리팹/고스트/스탯을 추가(§13 콘텐츠).
-- **레시피 카탈로그(전체 열거)**: #183 후보 버튼 패널이 순회·매칭하려면 전체 레시피 목록이 필요하다. **출처 = 패널의 인스펙터 직렬화 배열 `[SerializeField] TowerRecipe[] _recipes`**(구현 결정). 후보에 넣을 `TowerRecipe` SO를 인스펙터에 등록한다(예시 SO는 `Assets/Resources/ScriptableObjects/TowerRecipes/` — SO 정본 트리). `Resources.LoadAll<TowerRecipe>` 자동 열거 대안도 있으나, 등록 대상을 명시 통제하려고 인스펙터 배열을 택함(WL-076(a) 관련).
-  - **버튼 순서** = 인스펙터 배열 순서(작성자가 직접 통제 → 결정적, F6 충족).
+- **레시피 카탈로그(전체 열거)**: #183 후보 버튼 패널이 순회·매칭하려면 전체 레시피 목록이 필요하다. **출처 = `TowerRecipeCatalog.All`** = `Resources.LoadAll<TowerRecipe>("ScriptableObjects/TowerRecipes")`(lazy 1회 캐시). 폴더에 SO를 넣으면 자동으로 후보에 들어간다 — 레시피가 13종으로 늘면서 인스펙터 등록 누락이 반복돼(등록을 잊은 SO가 조용히 후보에서 빠진다) 자동 열거로 바뀌었다.
+  - ~~**출처 = 패널의 인스펙터 직렬화 배열 `[SerializeField] TowerRecipe[] _recipes`**~~ — 폐기(등록 대상 명시 통제 < 누락 방지). WL-076(a) 축.
+  - ⚠ **버튼 순서가 비결정적이 됐다** — `Resources.LoadAll`은 순서를 보장하지 않으므로, 인스펙터 배열이 제공했던 결정적 순서(F6)의 근거가 사라졌다. **미해소**: 후보 버튼은 아직 정렬하지 않는다. §8.5의 상위 타워 행은 뷰에서 (등급 → 표시 이름)으로 정렬하므로 영향받지 않는다 — 후보 버튼도 같은 규칙으로 맞추는 것이 남은 일이다.
 
 ---
 
@@ -200,10 +207,19 @@
 - **상단 Vertical Scroll View — 선택 리스트**: 선택된 재료 타워를 **선택 순서대로** 한 행씩. 집합 변경 시 즉시 갱신. 행 라벨 = `tower.Asset.TowerID` → `TowerData.NameKey` → 로컬라이즈(`NorthLand_Towers`, `LocalizationHelper.Get`). (행별 제거 버튼은 선택.)
 - **하단 Horizontal Scroll View — 후보 버튼**: **레시피(카탈로그)마다 버튼 1개를 미리 생성해 담아두고 기본 `SetActive(false)`**. 매칭되는 레시피의 버튼만 `SetActive(true)`.
   - 활성 판정 = `_coordinator.CanMerge(recipe)`(= `TowerFusionMatcher.CanFuse(group.Towers, recipe)`). (매칭 규칙 재구현 금지 — §6 단일 출처.)
-  - `ExtraCost` 감당 여부(`ManagementController.CanAfford(recipe.ExtraCost)`)는 (선택) `interactable`/딤 표시로 구분하되, **최종 검증은 실행부(`TryFuse`)가 한다**(방어). #183 완료기준은 매칭 기반 `SetActive`까지 — 현 구현은 `SetActive`만.
-  - 버튼 표시 = 결과 타워(`recipe.Result`) 이름(→ `Result.TowerID` → `NameKey` 로컬라이즈, Data/NameKey 없으면 TowerID 폴백). 아이콘 필드가 생기면 교체.
+  - **표시(재료)와 활성(코스트)을 가른다** — `SetActive` = `CanMerge`(재료 매칭), `interactable` = `_coordinator.CanAffordMerge(recipe)`(#406, WL-209). 예전에는 표시 조건이 재료뿐이라 **자원이 모자라도 버튼이 눌렸고 눌러도 조용히 반려**됐다. 거절음이 붙은 뒤에도 재료 부족과 코스트 부족이 같은 클립을 공유해 사유를 구분할 수 없었다 — 회색 표시가 그 자리를 대신한다. **최종 검증은 여전히 실행부(`TryFuse` 4단계)가 한다**(방어): 그룹이 판정과 클릭 사이에 바뀔 수 있다.
+    - 판정 경로는 `뷰 → 코디네이터(CanAffordMerge) → 실행부(TowerFusionController.CanAfford) → ManagementController.CanAfford`다. **뷰가 경영 시스템을 직접 부르지 않는다**(팀 계약 #6 · §8 파사드), 그리고 코스트 규칙(`recipe.ExtraCost`)을 아는 실행부가 답해야 `TryFuse`와 식이 갈리지 않는다.
+    - 경영이 없는 씬(테스트)에서는 무료라 항상 활성이다.
+  - **버튼 표시 = 결과 타워(`recipe.Result`) 아이콘 + 이름**(#445). 둘 다 프리팹(`TowerButton.prefab` — 배치 팔레트와 같은 것)의 `TowerButtonView.Set(Sprite, string)` 슬롯에 채운다. 이름은 `TowerDisplayName.Of`(단일 출처, §8.5), 아이콘은 `TowerAsset.Icon`(미할당이면 슬롯 off — 흰 사각형보다 빈 칸이 낫다는 `ResourceAsset` 계보 규약).
+    - 도입 시엔 `GetComponentInChildren<TMP_Text>()`로 **라벨만** 채웠다(아이콘 필드가 없던 시절 규약). `TowerAsset.Icon`이 생기고 실사용 타워 19종이 전부 채워진 뒤에도 이 경로가 남아, 후보 버튼은 테두리 안이 빈 칸이라 무슨 타워인지 그림으로 알 수 없었다.
+    - `SetLocked`는 부르지 않는다 — 합성 후보에는 **해금** 개념이 없다. 원본 프리팹의 `TowerLockOverlay`는 `m_IsActive: 0`이라 그대로 조용하다(§8.5 `TowerMergeTargetSlot`이 같은 이유로 그 컴포넌트를 떼어낸 것과 같은 판단).
+  - **호버 툴팁의 코스트 슬롯 = 소모될 재료 타워**(#445, `TowerMergeCandidateHover` → `TowerTooltipView.Show(..., recipe)`). 배치 팔레트 버튼은 그 자리에 **자원**을 노란 줄로 내지만, 합성은 **자원이 아니라 타워가 나간다** — 결과 SO의 `Cost`는 지불되지 않으므로(§9: `TryFuse`는 `ExtraCost`로 배치를 연다) 그걸 그대로 그리면 합성 전용 타워는 `Cost`가 비어 있어 노란 줄이 통째로 사라지고 합성이 "공짜"로 보인다.
+    - 표기 = `재료`(로컬라이즈 키 `game.merge.materials`, `NorthLand_default`) 다음 `타워명 x수량` 줄 나열, 이어서 `ExtraCost`가 있으면 자원 줄. 라벨을 붙이는 이유는 이 슬롯이 평소 자원을 그리는 자리라 라벨이 없으면 타워 이름이 자원명으로 읽히기 때문이다.
+    - **재료 집계는 `TowerFusionMatcher.BuildRequired`** — §6 단일 출처. 여기서 다시 세면 "툴팁엔 2개인데 실제로는 3개를 먹는" 어긋남이 생긴다.
+    - ⚠ **표시하는 것은 레시피의 요구량이지 "지금 선택한 것 중 무엇이 소모되는가"가 아니다.** 후보 버튼은 매칭될 때만 켜지므로 둘이 실질적으로 같고, 실제 소모 대상은 핑크 프리뷰(§8.4)가 월드에서 가리킨다.
   - **onClick → `_coordinator.RequestMerge(recipe)`**(코디네이터가 그룹을 물려 `TryFuse(recipe, group)` 호출). 버튼이 자기 `TowerRecipe`를 클로저로 물음.
   - **갱신 시점 = 그룹이 바뀔 때마다** 전 버튼 재판정 — `_coordinator.OnGroupChanged` 구독(패널이 활성일 때. 코디네이터는 내부적으로 `TowerMergeGroup.OnChanged`를 이 이벤트로 포워딩). 패널은 `OnEnable`에서도 현재 상태로 1회 동기화.
+    - **자원이 바뀔 때도 후보만 다시 칠한다** — `_coordinator.OnAffordabilityChanged`(실행부가 `ManagementController.OnChanged`를 받아 파사드로 다시 냄). 패널이 열린 채 자원이 변하는 경로가 실제로 있다: **되돌리기(Ctrl+Z)의 자원 환불**. 이게 없으면 "자원은 충분한데 버튼이 회색"이 되어, 클릭해도 `interactable=false`라 거절음조차 나지 않는다. 선택 리스트는 그대로이므로 행 재생성 없이 `RefreshCandidates`만 돈다.
   - **UX 트레이드오프(경미)**: `SetActive` 방식은 비매칭 버튼이 사라져 스크롤뷰가 리플로우된다(선택 변경마다 버튼이 튀어나왔다 사라짐). 이슈가 택한 방식이라 유지하되, 튐이 거슬리면 '전체 표시 + `interactable`로 회색' 대안 고려. 또 **여분 허용 시 실제 소모될 재료가 무엇인지**(선택 순서 index로 결정)는 리스트에 표시되지 않음 — 후속 폴리시(호버 시 소모 대상 하이라이트).
 
 > **주의**: 이 하단 후보 버튼 영역은 **배치 팔레트(`TowerSelectPanelView`, 새 타워 건설 선택)와 다르다.** 합성 패널은 이미 배치된 타워들의 조합 결과를 보여준다. 골격은 `TowerSelectPanelView`를 참고 모델로 삼되(버튼 동적 생성·조건부 활성·클릭 시 배치 진입), 대상이 `List<TowerRecipe>` + 매칭 여부 + `TryFuse`로 바뀐다.
@@ -216,6 +232,32 @@
 - 색 규약은 `InteractionOutline.md`(#213): 그룹 재료 = 초록, **그 레시피가 실제로 소모할 재료 = 핑크**.
 - 핑크는 후보 버튼 **호버 동안만** 켜진다. 예전에는 클릭 후 배치가 끝날 때까지 고정하는 잠금(`_previewCommitted`)이 있었는데, 클릭 순간 커서가 버튼을 벗어나며 "무엇이 소모되는지"가 사라지는 것을 막기 위한 것이었다. **#263이 소모를 클릭 시점으로 앞당기면서 칠할 대상 자체가 그 순간 없어져 잠금이 목적을 잃었다** — 무엇이 소모됐는지는 재료가 비워진 자리가 말해준다. 상세는 `InteractionOutline.md` §5.3.
 - 소모→배치 구간의 시각적 공백은 연출(#265)이 채운다 — **구현됨, §9.2**. 재료가 있던 자리에 흰 입자가 떠 있으므로, 핑크 고정이 하던 "무엇을 소모했는지가 배치 내내 보인다"를 그대로 이어받는다.
+
+### 8.5 재료 → 상위 타워 역방향 표시 (구현됨)
+
+타워 **1개**를 선택하면(§8.1의 `count == 1` 분기 = `TowerInfoUI`) 그 타워를 재료로 쓰는 **상위 타워 목록**을 정보 패널 하단 "합성 후보" 블록에 띄운다. 자리(`_mergeContainer`/`_mergeContent`)는 #153에서 미리 잡아둔 것이고, 여기서 채우는 로직이 붙었다.
+
+**왜 필요한가**: 합성 패널(§8.2)은 2개 이상 선택해야 열리므로, 플레이어가 **먼저 조합을 알아야** 재료를 모을 수 있다. 도감(`FusionTowerCodexUI`)이 그 역할을 하지만 "결과 → 필요한 재료" 방향이라, 손에 든 타워에서 출발할 수 없다.
+
+- **조회 방향이 셋이다**: 선택 집합→레시피(`TowerFusionMatcher.CanFuse`, 합성 패널) / 결과→재료(`FusionTowerCodexUI.recipeByResult`, 도감) / **재료→결과(`TowerMergeTargetIndex`, 이 절)**.
+- **색인 = `TowerMergeTargetIndex.RecipesUsing(towerId)`**(순수 static, lazy 1회 구축). 재료 집계는 **`TowerFusionMatcher.BuildRequired`를 쓴다** — §6 단일 출처. 재료 판정을 두 벌로 구현하면 "정보 패널엔 상위 타워로 뜨는데 실제로는 재료로 안 걸리는" 어긋남이 생긴다.
+  - `Result`가 없는 레시피는 색인에서 제외한다(행을 그릴 결과 타워가 없다 = 저작 실수).
+- **칸 = 결과 타워 아이콘 하나**(`TowerMergeTargetSlot`). **이름 칸은 의도적으로 없다** — 정보 패널은 폭이 좁아 이름 배너까지 넣으면 칸이 커져 한 줄에 몇 개 안 들어가고 블록이 패널을 통째로 밀어낸다. **이름은 호버 툴팁이 낸다**(아래). 정본 프리팹 `@NorthLand/Prefabs/UI/TowerTargetSlot.prefab`은 `Slot`·`Img_Bg`·`Img_Icon`만 갖고 `TowerMergeTargetSlot._name`은 **비워두는 것이 정상**이다(컴포넌트는 이름 칸을 가진 변종을 위해 선택 슬롯으로 남겨 뒀다).
+  - **겉모습은 배치 팔레트 칸과 같은 계보다** — 프리팹은 `TowerButton.prefab`을 복제해 `Button`·`TowerButtonView`·`TowerLockOverlay`·**배너 서브트리**를 떼고 이 컴포넌트를 붙인 것이다. 같은 아이콘을 같은 테두리로 보여주되 **누를 수는 없는** 칸이다.
+  - 팔레트의 `TowerButtonView`를 그대로 쓰지 않는 이유: `SetLocked`·해제 연출이 배치 팔레트의 **해금** 개념과 한 몸이고 정보 패널에는 잠금이 없다. (원본 프리팹의 `TowerLockOverlay`는 `m_IsActive: 0`이라 남겨둬도 조용하지만, 배선할 슬롯이 늘고 의도가 흐려진다.)
+  - ⚠ **아이콘 전용은 "이름을 못 보여준다"가 아니라 "이름을 툴팁으로 옮겼다"다.** 아이콘이 비슷한 2·3차 타워가 늘면 칸만 보고는 구분이 어려우므로, **`TowerAsset.Icon`이 서로 구별되게 저작돼 있어야 한다는 전제가 이 결정에 딸려 온다**(`TowerAddGuide.md` §3.5 `Icon` 항목). 구분이 실제로 안 되기 시작하면 그때 이름 칸을 가진 변종 프리팹으로 바꾸면 되고, 코드는 이미 그 경로를 받는다.
+  - 상세 스탯·코스트·**이름**은 **호버 툴팁**이 맡는다 — `TowerTooltipSource`를 런타임 부착해 재사용하므로 칸 프리팹에 툴팁 배선이 없다(§8.2 후보 버튼·`TowerSelectPanelView`와 같은 선례). 칸 안에 `Raycast Target`이 켜진 `Image`가 하나 있어야 호버가 잡히는데, 복제 원본의 `Slot/Img_Bg`가 이미 그래서 `Button`을 떼도 유지된다.
+    - **레시피를 함께 넘긴다**(`Init(result, recipe)`, #445) — 여기 뜨는 타워는 합성으로만 얻으므로 자원 코스트가 비어 있고, 툴팁이 낼 수 있는 유일한 코스트가 "무슨 타워 몇 개"다. 이 블록의 존재 이유가 "이 타워로 무엇을 만들 수 있나"인데 **무엇이 더 필요한지**를 안 보여주면 반쪽이다(표기 규칙은 §8.2 후보 버튼과 같다).
+    - ⚠ `TowerInfoUI`가 `Set(result.Icon, TowerDisplayName.Of(result))`에서 **이름을 계속 넘기는 이유**: 정본 칸은 그 값을 버리지만 그 호출이 `EnsureData`로 `result.Data`를 채워 **툴팁이 이름·역할·설명 키를 읽게** 한다. "안 쓰는 인자"로 보고 지우면 툴팁이 `TowerID`로 떨어진다.
+  - **클릭 동작은 없다**(의도). 우측 패널의 최종 결정권은 스위처 하나라는 §8.1 계약을 건드리지 않으려면, 칸이 패널을 갈아치우는 경로를 만들지 않는 게 맞다.
+  - ⚠ **칸 프리팹은 별도 저장소(`NorthLand-Imported`) 소속이다** — 미동기 환경에서는 `_mergeSlotPrefab` 참조가 풀려 블록이 조용히 사라진다. `TowerInfoUI.HasMergeSlotWiring`이 **1회 경고**를 남겨 "배선 누락"과 "미동기"를 구분해 주고, 동기화 계약은 `SystemMap.md` §4에 등재돼 있다(#445, Imported `85fd857d3` 이상).
+- **표시 순서 = 등급 → 표시 이름**(도감 `LoadData`와 같은 규칙 → 두 화면의 순서가 일치). **정렬은 뷰가 한다** — 이름 정렬이 로케일 의존이라, 로케일을 모르는 색인이 미리 정해두면 언어를 바꿀 때 어긋난다.
+  - ⚠ 합성 패널(§8.2)의 후보 버튼은 아직 `Resources.LoadAll` 순서라 **같은 기능의 두 블록이 순서 규칙이 다르다**(§5 ⚠). 버튼 쪽에 정렬을 넣을 때 `TowerInfoUI.CompareByRarityThenName`을 그대로 쓸 것.
+- **가시성 필터가 생기면 색인이 아니라 도메인 쪽에 둔다**(선결 합의). 정보 패널은 지금 코디네이터 파사드를 우회해 static 색인을 직접 부른다 — 읽기 전용이고 판정이 없으므로 무해하지만, GDD §5.8이 TBD로 남긴 족보가 확정되며 "무엇을 보여줄 것인가"에 조건이 붙는 순간(미발견 레시피 숨김, `UnlockWave` 연동 등) 그 조건을 색인에 넣으면 합성 패널·도감·정보 패널 **세 곳이 각자 필터를 갖게 된다**. 그때 필터는 `TowerMergeCoordinator`(또는 도감이 가질 발견 상태)가 소유하고 색인은 순수 조회로 남긴다.
+- **밤에도 뜬다**. §10 게이팅은 **실행**에 걸리는 것이고 이건 조작이 아니라 정보다 — 밤에 감추면 다음 낮 계획을 세울 수 없다.
+- **표시 여부 판정은 `childCount`가 아니라 뷰가 추적하는 행 리스트로 한다.** `Destroy`가 프레임 끝에 반영되므로, 같은 프레임에 비우고 다시 채우는 이 경로에서 `_mergeContent.childCount`는 방금 지운 행까지 세어 "표시할 게 0인데 블록이 켜진" 상태를 만든다(#153이 남긴 `childCount > 0` 규약을 이때 교체했다).
+
+**표시 이름 단일 출처(`TowerDisplayName`)**: 같은 해석 규칙(`TowerID` → `NameKey` → `NorthLand_Towers`)이 합성 패널·도감·정보 패널·툴팁 4곳에 필요한데 구현이 갈려 있었다 — 도감은 `TowerID`가 비면 SO 파일명으로 내려갔지만 합성 패널은 `"?"`만 냈고, `TowerAsset.Data`(런타임 전용, 에셋 미직렬화) 채움 책임도 호출부마다 달랐다. 이름은 플레이어가 타워를 식별하는 유일한 수단이라 폴백이 갈리면 같은 타워가 화면마다 다르게 불린다 → `TowerDisplayName.Of` / `.EnsureData` 하나로 수렴.
 
 ---
 
@@ -323,9 +365,11 @@
 
 재조립 동안 재료 스케일은 `VfxScaleHold`가 배타 점유하며, 어떤 경로로 끊겨도(씬 전환·취소·예외) 연출 호스트의 `OnDestroy`가 원복한다 — **안 보이는 타워가 최악의 실패 모드**라는 판단은 등장 연출과 같다.
 
-### 9.3 확정한 합성 되돌리기 — #281
+### 9.3 확정한 합성 되돌리기 — #281 (→ #444)
 
-배치 세션이 성공으로 끝나도 합성은 **밤 전까지 되돌릴 수 있다.** 되돌리기 버튼(`TowerUndoButtonView`, 페이즈 패널 밖에 상시 배치 — 밤엔 비활성)이 `CommandHistory.Undo()`를 부르고, 히스토리 최상단이 이 합성이면 결과 타워가 회수되고 재료가 복원된다.
+배치 세션이 성공으로 끝나도 합성은 **밤 전까지 되돌릴 수 있다.** 되돌리기 버튼(`TowerUndoButtonView`, 페이즈 패널 밖에 상시 배치 — 밤엔 비활성)과 **Ctrl+Z**가 모두 `UndoRequest.Submit()`을 지나 `CommandHistory.Undo()`를 부르고, 히스토리 최상단이 이 합성이면 결과 타워가 회수되고 재료가 복원된다.
+
+⚠ **#444로 스택에 경영 조작(건물 업그레이드·주민 증축)이 함께 쌓인다.** "최상단이 이 합성인가"는 이제 타워 조작만 세어 판단할 수 없다 — 합성 뒤에 건물을 올렸다면 Ctrl+Z 한 번은 그 건물을 되돌린다. 상태 기계도 `ReversibleCommandBase`로 올라갔으므로 아래 계약은 `TowerMergeCommand.OnUndo(wasConfirmed)`가 지킨다(`wasConfirmed=false`면 ③만 도는 #263의 취소 경로다).
 
 **되돌리기 순서 — 네 단계 전부가 계약이다:**
 
@@ -333,7 +377,7 @@
 ① TowerDissolveEffect.Play([결과 타워], TileSize, DissolveMode.Rewind)
      ← 결과 타워가 **아직 살아 있는 동안**. Play의 시각 사본 복제가 동기로 끝나므로
        바로 아래에서 Destroy해도 안전하다
-② _result.Undo()      결과 타워: TowerFootprint.Release() → Destroy → ExtraCost 환원(Grant)
+② _result.Undo()      결과 타워: 선택 해제 → TowerFootprint.Release() → Destroy → ExtraCost 환원(Grant)
 ③ RestoreMaterials()  재료: Reoccupy() → SetActive(true)
 ④ effect.RestoreTo(재료들)  가루의 목적지 등록 + 같은 프레임에 스케일 0으로 잡기
 ```
@@ -345,6 +389,8 @@
 - **밤에는 불가능하다.** `OnDayToNight`에 히스토리 전체가 `Commit`되어 재료가 진짜로 파괴되고 스택이 비워진다.
 
 **LIFO여야 하는 이유**는 편의가 아니다. `A 배치(tile1) → A+B 합성 → C를 (비워진) tile1에 배치` 상태에서 합성을 먼저 되돌리면 A가 tile1을 되찾지 못하고 위의 불변식 ②가 발동해 **A가 타일 없는 타워가 된다.** LIFO가 C를 먼저 되돌리게 강제해 이 경로를 원천 차단한다 — LIFO 자체가 유효성 검사다. ⚠ 낮 중 타워 철거·사망처럼 히스토리를 거치지 않고 대상이 사라지는 경로가 생기면 이 불변식이 깨진다.
+
+같은 논지가 경영 축에도 그대로 적용된다(#444) — 본진 레벨이 하위 건물의 실질 Max를 정하므로 본진을 먼저 되돌리면 하위 건물이 상한을 넘은 레벨로 남고, LIFO가 그것을 막는다. 상세는 `Docs/ManagementArea/BuildingUpgrade.md` §10.
 
 ---
 
@@ -366,7 +412,7 @@
 | 재료 집합 저장(이음매) | **`TowerMergeGroup`**(순수 C#, 코디네이터 소유) | 실행부·매칭이 소비, `OnChanged` 단일 통지 |
 | 매칭 규칙 | **`TowerFusionMatcher`**(순수) | 버튼 활성·실행 공유 단일 출처 |
 | 합성 실행(검증·배치·소모) | **`TowerFusionController`**(muchan) | `TryFuse(recipe, group)`. 진행 중 커맨드 1개를 배치 콜백으로 물고 있다 |
-| 재료 소모의 되돌리기 | **`TowerMergeCommand`**(#263) | 소프트 소모/확정/원복. `TowerMergeGroup`을 모른다(집합 정리는 `Prune`이 담당) |
+| 재료 소모의 되돌리기 | **`TowerMergeCommand`**(#263) | 소프트 소모/확정/원복. `TowerMergeGroup`을 모른다(집합 정리는 `Prune`이 한다). 상태 기계·비용 환원은 `ReversibleCommandBase`(#444)에 있다 |
 | 결과 고스트 배치·타일 검증·점유 | **`TowerPlacer`** / `TowerFootprint` | TowerPlacement.md. `TowerFootprint`가 `Release`/`Reoccupy`로 임시 해제도 담당(#263) |
 | 자원(ExtraCost) 지불 | **`ManagementController`** | `CanAfford`/`TrySpend`, WL-017 |
 | 소모 연출(화이트아웃·폭발·부유·수렴·재조립) | **`TowerDissolveEffect`**(#265, n0wst4ndup, #281에서 개명) | 시각 전용·논블로킹. **도메인 무지** — `Transform` 목록과 타일 한 칸 크기만 받는다. 등장 연출과 부품(`GrainSwarm`·`VfxScaleHold`)·시간 축을 공유. §9.2 |
@@ -406,7 +452,7 @@
 
 - **[구현 PR] SystemMap 갱신 필수**: #183은 MouseManager 공개 선택 계약(그룹 토글 이벤트·빈 곳 클리어 신호)과 신규 코디네이터/마커를 추가하므로, 구현 PR에서 `SystemMap.md`(§1 TowerFusion 행·§2 API·§3 접점 — MouseManager·TowerFusion 인근)를 같이 갱신한다.
 - **추가 선택 키 = Shift**(§7.2): WL-073(우클릭 이중 점유) 회피 겸. 재조정 시 이 문서·구현 동시 수정.
-- **레시피 카탈로그 출처 = 패널 인스펙터 배열 `TowerRecipe[] _recipes`**(§5, WL-076(a)): 후보 레시피 SO를 인스펙터에 등록. 순서 = 배열 순서(결정적). 예시 SO 2종은 `Assets/Resources/ScriptableObjects/TowerRecipes/`.
+- ~~**레시피 카탈로그 출처 = 패널 인스펙터 배열 `TowerRecipe[] _recipes`**~~ → **변경됨**: `TowerRecipeCatalog.All`(`Resources.LoadAll`, §5). 폴더 투입만으로 후보에 오른다. **남은 것은 순서** — `Resources.LoadAll`이 비결정적이라 후보 버튼 순서의 F6 근거가 사라졌다(§5 ⚠). §8.5가 쓰는 (등급 → 표시 이름) 정렬을 후보 버튼에도 적용하는 것이 해소책.
 - **stale 버튼 방어**(§10, WL-076(b) 해소): `TowerMergeGroup.Prune(predicate)` + 코디네이터가 `Tower.ActiveChanged` 구독해 **`Tower.Active` 멤버십 기준**으로 호출(OnDisable 시점 가짜-null 미형성 문제 회피).
 - ~~**결과 배치·소모 타이밍(F2 결정)**~~ → **해소(#263)**. 커맨드 패턴을 도입해 소모를 클릭 시점으로 앞당겼다: 소프트 소모(타일 `Release` + 비활성화) → 확정 시 `Commit`(진짜 `Destroy`) / 취소 시 `Undo`(재활성화 + `Reoccupy`). **재료가 점유했던 타일에 결과를 놓을 수 있다.** 흐름은 §9로 교체됨. 남은 선택지(취소 시 선택 집합까지 복원)는 §14 확장 여지로 이월.
 - **낮/밤 실행 게이팅**(§10, WL-077 phase): 코디네이터 `RequestMerge`/입력 핸들러가 낮 게이팅 → UI 경로 밤 실행 차단. 실행부 `TryFuse` 자체 방어 게이팅은 미추가(옵션, muchan 협의).
@@ -451,9 +497,25 @@
   - **후보 버튼 프리팹**(Button + 자식 TMP_Text) = `_candidateButtonPrefab`(기존 `TowerSelectPanelView` 버튼 재사용 가능).
   - `_coordinator` → 1의 코디네이터.
 
+**3-b. 정보 패널 "상위 타워" 블록 (§8.5)** — `TowerInfoUI`가 있는 인포 패널 쪽
+
+겉모습을 배치 팔레트와 같게 맞추는 것이 전제다. 팔레트의 Scroll View를 인포 패널로 복사해 두고 시작한다.
+
+1. **칸 프리팹**: `Assets/Imported/@NorthLand/Prefabs/UI/TowerButton.prefab`을 복제한다(정본 이름: `TowerTargetSlot.prefab`).
+   - 루트에서 **`Button` 컴포넌트 제거**(누를 수 없는 칸). `interactable = false`로 대신하지 말 것 — 원본 `Transition`이 `ColorTint`라 칸이 회색으로 죽는다.
+   - 루트에서 **`TowerButtonView` 제거** → **`TowerMergeTargetSlot` 추가**. `_icon` → `Slot/Img_Icon`. **`_name`은 배선하지 않는다**(아이콘 전용 — §8.5).
+   - **배너 서브트리 삭제**(`Banner`·`Img_Banner`·`Txt_Name`) — 이름은 호버 툴팁이 내므로 칸에 이름 자리를 두지 않는다. 남겨두면 칸 높이가 팔레트 버튼만큼 커져 정보 패널을 밀어낸다.
+   - **`TowerLockOverlay` 자식 삭제**(정보 패널에 해금 개념이 없다). 원본이 `m_IsActive: 0`이라 남겨도 보이지는 않지만 의도를 흐린다.
+   - `Slot/Img_Bg`의 **`Raycast Target`은 켜진 채로 둔다** — 이게 호버 툴팁을 잡는 유일한 그래픽이다(`Button`을 떼도 남는다).
+   - 툴팁 감지기(`TowerTooltipSource`)는 **런타임 부착**이라 프리팹에 넣지 않는다.
+2. **`TowerInfoUI` 인스펙터 배선**: `_mergeContainer`(블록 루트) → `_mergeContent`(복사해 온 Scroll View의 Content) → `_mergeSlotPrefab`(1의 프리팹). 배선이 비면 블록이 뜨지 않고, `HasMergeSlotWiring`이 **경고를 1회** 남긴다(무엇이 null인지 + Imported 동기화 확인 안내) — 조용히 접으면 배선 누락과 저장소 미동기가 같은 증상으로 보인다.
+3. 칸이 여러 개일 수 있다(예: `archer_tower`는 다수 레시피의 재료) → 복사해 온 Scroll View가 그대로 흡수하므로 Content의 Layout Group만 원본 설정을 유지하면 된다.
+
+⚠ 칸 프리팹은 `Assets/Imported/@NorthLand/` 아래에 있어 **별도 저장소(`NorthLand-Imported`) 커밋이 함께 필요하다**(RewardCard 프리팹과 같은 축, WL-160). 정본은 `@NorthLand/Prefabs/UI/TowerTargetSlot.prefab`이고 동기화 계약은 `SystemMap.md` §4에 등재돼 있다 — **Imported `85fd857d3`(타워 타겟 슬롯 프리펩 추가) 이상**, 커밋 순서는 Imported 선행(WL-040).
+
 **4. 그 외**
-- `TowerInfoUI`(기존 씬 싱글톤)·`MouseManager`(기존, 코드만 확장)·`DayNightManager`(낮/밤 게이팅) 별도 배선 불필요.
-- 레시피는 패널 `TowerMergePanelView`의 인스펙터 배열 `_recipes`에 **등록해야 후보로 뜬다**. 예시 SO 2종 `Recipe_Example_Gatling`(archer×2+cannon×1→gatling)·`Recipe_Example_Sniper`(archer×1+cannon×1→Sniper)는 `Assets/Resources/ScriptableObjects/TowerRecipes/`. **`Recipe_Example_Sniper`는 새로 추가된 SO라 `_recipes`에 손수 넣어야** "다중 후보 동시 활성"이 검증된다(archer×2+cannon×1 선택 시 두 버튼 동시 활성).
+- `MouseManager`(기존, 코드만 확장)·`DayNightManager`(낮/밤 게이팅) 별도 배선 불필요.
+- 레시피는 `Assets/Resources/ScriptableObjects/TowerRecipes/`에 **SO를 넣으면 자동으로** 후보에 오른다(`TowerRecipeCatalog.All`, §5) — 인스펙터 등록 단계는 없어졌다. 현재 13종이 들어 있다.
 - **레이어**: 타워 콜라이더가 `MouseManager._selectableMask`에 포함돼야 Shift 클릭이 마커를 잡는다(기존 타워 단일 선택이 동작 중이면 이미 충족).
 
 **검증 체크리스트(Play)**: 타워 1개=인포 / Shift 2개=인포 숨김+합성 패널(리스트 순서대로) / archer 2개 → `Recipe_Example_ArcherToGatling` 버튼 활성 → 클릭 → 고스트 배치·확정 → archer 2개 소멸+gatling 생성 / Shift로 1개로 축소=인포 복귀, 빈 곳 클릭=해제 / Shift+건물=무시 / 밤 전환=선택·패널 리셋.

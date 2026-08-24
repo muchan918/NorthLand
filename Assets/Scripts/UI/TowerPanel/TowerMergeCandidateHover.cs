@@ -36,7 +36,7 @@ public class TowerMergeCandidateHover : MonoBehaviour, IPointerEnterHandler, IPo
         string inherit = NorthLand.Combat.TowerStatsFormatter.BuildInheritLine(
             _coordinator.PreviewInheritedKinds(_recipe));
 
-        TowerTooltipView.EnsureExists().Show(_recipe.Result, transform as RectTransform, inherit);
+        TowerTooltipView.EnsureExists().Show(_recipe.Result, transform as RectTransform, inherit, _recipe);
     }
 
     public void OnPointerExit(PointerEventData eventData)

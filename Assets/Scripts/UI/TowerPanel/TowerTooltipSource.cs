@@ -14,10 +14,17 @@ public class TowerTooltipSource : MonoBehaviour, IPointerEnterHandler, IPointerE
 {
     private TowerAsset _tower;
 
+    // 이 타워를 **합성으로** 얻는 레시피(배치 팔레트 버튼처럼 합성과 무관한 칸이면 null). 코스트 슬롯이
+    // 자원 대신 재료 타워를 내야 하는지를 이 값이 가른다 — 합성으로만 얻는 타워는 자원 코스트가 비어 있어서
+    // 넘기지 않으면 툴팁의 노란 줄이 통째로 빈다(#445).
+    private TowerRecipe _recipe;
+
     /// <summary>버튼이 대표하는 TowerAsset을 주입한다. 패널이 이미 <c>tower.Data</c>를 채운 뒤 호출한다.</summary>
-    public void Init(TowerAsset tower)
+    /// <param name="recipe">이 타워를 만드는 합성 레시피(합성 후보 칸만 넘긴다). 넘기면 코스트 슬롯이 재료 타워를 낸다.</param>
+    public void Init(TowerAsset tower, TowerRecipe recipe = null)
     {
         _tower = tower;
+        _recipe = recipe;
     }
 
     public void OnPointerEnter(PointerEventData eventData)
@@ -25,7 +32,7 @@ public class TowerTooltipSource : MonoBehaviour, IPointerEnterHandler, IPointerE
         if (_tower == null) return;
         // 뷰는 씬에 미리 없어도 EnsureExists가 자체 생성한다(씬 배치 불필요).
         // 자기 버튼(UI RectTransform)을 앵커로 넘겨 툴팁이 이 버튼 위에 뜨게 한다.
-        TowerTooltipView.EnsureExists().Show(_tower, transform as RectTransform);
+        TowerTooltipView.EnsureExists().Show(_tower, transform as RectTransform, null, _recipe);
     }
 
     public void OnPointerExit(PointerEventData eventData)

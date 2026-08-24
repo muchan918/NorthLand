@@ -2,12 +2,20 @@ using System.Collections.Generic;
 
 namespace NorthLand.Combat
 {
-    // 타워 스탯 3축. CombatSpace.TileBuffStat과 1:1 대응하며, 그 변환은 Tower.ApplyTileBuff 한 곳에만 둔다.
+    // 타워 스탯 4축. CombatSpace.TileBuffStat과 1:1 대응하며, 그 변환은 Tower.ApplyTileBuff 한 곳에만 둔다.
+    //
+    // AuraRadius를 AttackRange와 **나눠 둔 이유**: 사거리 축을 공유하던 동안 사거리 버프 타일의 flat
+    // 증가분이 오라 반경에 그대로 실려, 기본 반경이 작은 오라 타워가 훨씬 큰 이득을 봤다
+    // (flame_field 9.6 → 30.6, 지름 3.2배 = 화면 면적 10배). 축이 갈려야 타일이
+    // "공격 사거리 +n칸 / 오라 반경 +m칸"을 따로 약속할 수 있다.
     public enum TowerStat
     {
         AttackDamage,
         AttackRange,
         AttackSpeed,
+
+        // 새 항목은 **뒤에만** 추가한다 — SO에 int로 직렬화돼 있어 중간 삽입은 기존 저작을 조용히 밀어낸다.
+        AuraRadius,
     }
 
     // 합성 방식.
@@ -49,7 +57,9 @@ namespace NorthLand.Combat
     // 씬 없이 EditMode 테스트로 합성 규칙을 검증할 수 있게 하기 위함이다.
     public sealed class TowerStats
     {
-        const int StatCount = 3;
+        // 축 수는 enum에서 파생시킨다 — 손으로 맞추면 축을 추가한 사람이 여기를 잊는 순간
+        // Evaluate가 IndexOutOfRange로 죽는다(원인이 증상에서 멀다).
+        static readonly int StatCount = System.Enum.GetValues(typeof(TowerStat)).Length;
 
         sealed class Source
         {

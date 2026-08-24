@@ -15,29 +15,30 @@ using NorthLand.Combat;
 ///
 /// #281로 실제 파괴 시점이 **배치 확정 → 밤 진입**으로 밀렸다. 그 사이 구간(`Confirmed`)에서는
 /// 재료가 비활성인 채 되살아날 수 있는 상태로 대기한다 — 되돌리기가 노리는 창이 정확히 이 구간이다.
-public class TowerMergeCommand : IReversibleCommand
+///
+/// 상태 기계는 `ReversibleCommandBase`가 갖는다(#444).
+public class TowerMergeCommand : ReversibleCommandBase
 {
-    private enum State { Pending, Executed, Confirmed, Committed, Undone }
-
     private readonly List<Tower> _materials;
     private readonly float _tileSize; // 되돌리기 연출(Rewind)의 모든 길이 기준(한 칸)
-    private State _state = State.Pending;
 
     // 합성 결과 타워의 배치 커맨드. 확정 콜백에서 편입된다(AdoptResult).
     // 되돌리기가 "재료 복원"만이 아니라 "결과 회수 + 재료 복원"이려면 결과를 붙들고 있어야 한다.
     private TowerPlaceCommand _result;
 
-    public bool IsConfirmed => _state == State.Confirmed;
-
+    /// 기반 클래스에 환원할 비용을 주지 않는다(null) — **합성 자체는 자원을 내지 않는다.**
+    /// 재료 원가는 재료가 되살아나는 것으로 갚아지고, 결과 배치에 든 ExtraCost는 편입된
+    /// <see cref="_result"/>가 자기 몫으로 환원한다(그래서 두 번 돌려주지 않는다).
     public TowerMergeCommand(List<Tower> materials, float tileSize)
+        : base(null, null)
     {
         _materials = materials;
         _tileSize = tileSize;
     }
 
-    public bool Execute()
+    protected override bool OnExecute()
     {
-        if (_state != State.Pending || _materials == null || _materials.Count == 0) return false;
+        if (_materials == null || _materials.Count == 0) return false;
 
         int consumed = 0;
         foreach (Tower tower in _materials)
@@ -70,7 +71,6 @@ public class TowerMergeCommand : IReversibleCommand
                 "나머지는 이미 사라진 상태입니다.");
         }
 
-        _state = State.Executed;
         return true;
     }
 
@@ -89,20 +89,13 @@ public class TowerMergeCommand : IReversibleCommand
     }
 
     /// 배치가 확정됐다. **재료를 파괴하지 않는다** — 밤까지는 되돌릴 수 있어야 하기 때문이다(#281).
-    public void Confirm()
-    {
-        if (_state != State.Executed) return;
-        _state = State.Confirmed;
-        _result?.Confirm();
-    }
+    protected override void OnConfirm() => _result?.Confirm();
 
-    public void Commit()
+    /// ⚠ `Executed`(배치 진행 중)에서는 여기까지 오지 않는다 — 밤 진입 시 진행 중인 세션은
+    ///    `PhasePanelSwitcher.ShowNight`의 배치 취소가 `Undo`로 끝내므로, 먼저 파괴하면 그 취소가
+    ///    되살릴 재료를 잃는다. 그 가드는 기반 클래스의 `Commit`이 갖고 있다.
+    protected override void OnCommit()
     {
-        // ⚠ `Executed`(배치 진행 중)에서는 확정하지 않는다. 밤 진입 시 진행 중인 세션은
-        //    `PhasePanelSwitcher.ShowNight`의 배치 취소가 `Undo`로 끝내므로, 여기서 먼저 파괴하면
-        //    그 취소가 되살릴 재료를 잃는다. 확정 대상은 `Confirm`을 지난 것뿐이다.
-        if (_state != State.Confirmed) return;
-        _state = State.Committed;
         _result?.Commit();
 
         foreach (Tower tower in _materials)
@@ -112,21 +105,17 @@ public class TowerMergeCommand : IReversibleCommand
         }
     }
 
-    public void Undo()
+    protected override bool OnUndo(bool wasConfirmed)
     {
-        // `Executed` = 배치 세션이 취소로 끝났다(#263의 원래 경로). 결과 타워는 아직 없으므로
+        // 확정 전 = 배치 세션이 취소로 끝났다(#263의 원래 경로). 결과 타워는 아직 없으므로
         // 재료만 되살리면 끝이다.
-        if (_state == State.Executed)
+        if (!wasConfirmed)
         {
-            _state = State.Undone;
             RestoreMaterials();
-            return;
+            return true;
         }
 
-        // `Confirmed` = 되돌리기 버튼(#281). 결과를 회수하고 재료를 되살린다.
-        if (_state != State.Confirmed) return;
-        _state = State.Undone;
-
+        // 확정 후 = 되돌리기 버튼·단축키(#281). 결과를 회수하고 재료를 되살린다.
         // ① 연출을 결과 타워가 **아직 살아 있는 동안** 건다 — Play가 시각 사본을 동기로 뜬다.
         TowerDissolveEffect effect = TowerDissolveEffect.Play(
             new[] { _result?.Placed },
@@ -145,6 +134,7 @@ public class TowerMergeCommand : IReversibleCommand
         // ④ 되살아난 재료를 가루의 목적지로 등록하고 **같은 프레임에** 숨긴다 — ③이 SetActive(true)를
         //    걸었으므로 렌더 전에 잡지 않으면 원본 크기 타워가 한 프레임 번쩍인다(Reassemble과 같은 규율).
         effect.RestoreTo(CollectMaterialTransforms());
+        return true;
     }
 
     private List<Transform> CollectMaterialTransforms()

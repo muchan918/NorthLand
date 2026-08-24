@@ -15,10 +15,11 @@ MonoBehaviour:
   TowerID: Sniper_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: 28d6e50d7aad3d24eb3da6b519f7e3e0, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: 02bd685941e50c74a861dd02e3773db9, type: 3}
-  Icon: {fileID: 0}
+  Icon: {fileID: 21300000, guid: b87f97a3687e32349afa3fd64328c241, type: 3}
   PlacementYaw: 45
   Cost: []
   Rarity: 1
+  UnlockWave: 1
   Attack:
     AttackDamage: 31
     AttackRange: 36
@@ -30,6 +31,8 @@ MonoBehaviour:
     SpreadAngle: 0
     BurstCount: 1
     BurstInterval: 0
+  Targeting:
+    rid: -2
   Impact: 0
   SplashRadius: 0
   ChainRadius: 0
@@ -55,6 +58,7 @@ MonoBehaviour:
       MaxStacks: 0
       StackInterval: 0
       DecaySeconds: 0
+    VisualStages: []
   GroundZone:
     ZonePrefab: {fileID: 0}
     Radius: 0
@@ -72,6 +76,8 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
     - rid: 3470829504553025640
       type: {class: HomingFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
