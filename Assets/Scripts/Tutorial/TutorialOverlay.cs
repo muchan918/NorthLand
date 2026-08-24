@@ -24,6 +24,10 @@ public class TutorialOverlay : MonoBehaviour
     [SerializeField]
     private Button confirmButton;
 
+    [Header("건너뛰기 (선택)")]
+    [SerializeField]
+    private Button skipButton;
+
     [Header("말풍선")]
     [SerializeField]
     private GameObject bubbleRoot;
@@ -46,6 +50,8 @@ public class TutorialOverlay : MonoBehaviour
     // 팝업의 확인이 눌렸다. 다음에 무엇을 할지는 구독자(컨트롤러)가 정한다.
     public event Action PopupConfirmed;
 
+    public event Action SkipRequested;
+
     private void Awake()
     {
         // 배선 누락을 raw NRE 대신 어느 필드가 비었는지로 알린다 — 이 오버레이는 씬에서 손으로
@@ -57,6 +63,11 @@ public class TutorialOverlay : MonoBehaviour
         }
 
         confirmButton.onClick.AddListener(OnConfirmClicked);
+
+        if (skipButton != null)
+        {
+            skipButton.onClick.AddListener(OnSkipClicked);
+        }
 
         // 딤은 선택 기능이다 — 배선되지 않았으면 강조 요청을 조용히 무시한다.
         if (HasDim)
@@ -78,6 +89,11 @@ public class TutorialOverlay : MonoBehaviour
         if (confirmButton != null)
         {
             confirmButton.onClick.RemoveListener(OnConfirmClicked);
+        }
+
+        if (skipButton != null)
+        {
+            skipButton.onClick.RemoveListener(OnSkipClicked);
         }
     }
 
@@ -279,5 +295,10 @@ public class TutorialOverlay : MonoBehaviour
     private void OnConfirmClicked()
     {
         PopupConfirmed?.Invoke();
+    }
+
+    private void OnSkipClicked()
+    {
+        SkipRequested?.Invoke();
     }
 }
