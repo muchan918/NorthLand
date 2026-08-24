@@ -71,27 +71,18 @@ public class TowerMergePanelView : MonoBehaviour
 
             var button = Instantiate(_candidateButtonPrefab, _candidateContent);
 
-            string displayName = recipe.Result != null ? TowerDisplayName.Of(recipe.Result) : recipe.name;
-
-            // 아이콘·이름은 프리팹(= 배치 팔레트와 같은 `TowerButton.prefab`)의 TowerButtonView 슬롯에 채운다.
-            // 라벨만 채우고 아이콘을 비워두면 테두리 안이 빈 칸으로 남아 후보가 무슨 타워인지 그림으로 알 수 없다(#445).
-            // `SetLocked`는 부르지 않는다 — 합성 후보에는 해금 개념이 없고, 프리팹의 TowerLockOverlay는
-            // `m_IsActive: 0`이라 그대로 조용하다(TowerMerge.md §8.5의 같은 판단).
+            // 아이콘만 채운다 — 이름 배너는 끈다(배치 팔레트와 같은 판단, #470). 이름·재료·계승 효과는
+            // 바로 아래에서 붙이는 TowerMergeCandidateHover의 호버 툴팁이 이미 낸다(#213 §5.3) — 라벨을
+            // 남겨두면 툴팁과 완전히 중복된다. `SetLocked`는 부르지 않는다 — 합성 후보에는 해금 개념이
+            // 없고, 프리팹의 TowerLockOverlay는 `m_IsActive: 0`이라 그대로 조용하다(TowerMerge.md §8.5의 같은 판단).
             var view = button.GetComponent<TowerButtonView>();
-            if (view != null)
-            {
-                view.Set(recipe.Result != null ? recipe.Result.Icon : null, displayName);
-            }
-            else
-            {
-                var label = button.GetComponentInChildren<TMP_Text>();
-                if (label != null) label.text = displayName;
-            }
+            if (view != null) view.Set(recipe.Result != null ? recipe.Result.Icon : null);
 
             var captured = recipe; // 클로저 캡처(루프 변수 캡처 함정 회피)
             button.onClick.AddListener(() => { if (_coordinator != null) _coordinator.RequestMerge(captured); });
 
-            // 호버 시 소모될 재료 타워만 핑크 아웃라인(#213 §5.3). 버튼 프리팹을 편집하지 않고 런타임 부착한다.
+            // 호버 시 소모될 재료 타워만 핑크 아웃라인 + 결과 타워 툴팁(#213 §5.3). 버튼 프리팹을 편집하지
+            // 않고 런타임 부착한다.
             button.gameObject.AddComponent<TowerMergeCandidateHover>().Init(_coordinator, captured);
 
             // 합성 결과는 설치음(성공) 또는 거절음(재료·코스트 부족)으로 스스로 답한다 —
