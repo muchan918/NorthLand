@@ -20,6 +20,12 @@ public class ResidentAgent : MonoBehaviour
     // 임의 클립 재생(PlayState)은 반대로 상태 이름을 전부 노드가 지정한다.
     private const string IdleState = "Idle";
 
+    // 들려 있는 동안 유지하는 자세(§8.1 R10). 위 IdleState와 같은 자격으로 상수가 된다 —
+    // 노드가 고르는 임의 클립과 달리 **드래그 경로가 강제하는** 자세라 고를 여지가 없고,
+    // 들 때와 놓을 때 두 곳에서 같은 이름을 대야 한다. 문자열이 흩어지면 오타가 나도
+    // 컨트롤러가 조용히 무시한다(전이가 없는 고립 상태라 진입 실패가 눈에 띄지 않는다).
+    private const string CarriedState = "Sitting";
+
     // 오프메시 복구를 시도할 최대 거리(<see cref="EnsureOnNavMesh"/>). 주민 반경(0.6)의 몇 배 정도면
     // 밀려나 벗어난 경우를 덮는다. 더 키우면 벽 너머로 끌어올려 순간이동처럼 보인다.
     private const float OffMeshRecoverDistance = 2f;
@@ -387,6 +393,16 @@ public class ResidentAgent : MonoBehaviour
         SetMoving(false);
         animator.CrossFadeInFixedTime(IdleState, Mathf.Max(0f, fadeSeconds));
     }
+
+    // 들려 올라간 자세로 들어간다(§8 드래그 R10). Idle/Walk 축을 벗어나므로 복귀는
+    // ReturnToLocomotion이 맡는다 — 임의 클립과 같은 규약이고, 이 상태에도 나가는 전이가 없다.
+    //
+    // 클립은 앉은 자세를 유지하는 루프(`Marshies_Sitting`, 2.60초)다. 들고 있는 시간에 상한이 없으므로
+    // 1회 재생 클립을 쓰면 도중에 자세가 풀린다.
+    public bool EnterCarriedPose(float fadeSeconds) => PlayState(CarriedState, fadeSeconds);
+
+    // 들린 자세에 실제로 도착했는가. 낙하 연출이 "자세가 물린 뒤에" 시작해야 할 때 쓴다.
+    public bool IsInCarriedPose => IsInState(CarriedState);
 
     // 현재 상태의 재생 진행도(1 = 1회 재생 완료). 루프 클립이면 1을 넘어 계속 증가한다 —
     // 수다 클립(루프)의 "한 바퀴 돌았다"도 이 값으로 잡힌다.
