@@ -11,7 +11,25 @@ namespace NorthLand.Core
     {
         public static SaveMigrationChain Create()
         {
-            return new SaveMigrationChain(PlayerSaveFormat.OldestSupportedVersion,PlayerSaveFormat.CurrentVersion,new Dictionary<int, Func<JToken, JToken>>());
+            return new SaveMigrationChain(
+                PlayerSaveFormat.OldestSupportedVersion,
+                PlayerSaveFormat.CurrentVersion,
+                new Dictionary<int, Func<JToken, JToken>>
+                {
+                    { 1, MigrateV1ToV2 }
+                });
+        }
+
+        private static JToken MigrateV1ToV2(JToken sourceData)
+        {
+            JToken migratedData = sourceData.DeepClone();
+
+            if (migratedData is JObject playerData)
+            {
+                playerData["tutorialCompleted"] = false;
+            }
+
+            return migratedData;
         }
     }
 }
