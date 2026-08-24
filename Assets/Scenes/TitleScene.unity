@@ -916,6 +916,10 @@ PrefabInstance:
       propertyPath: settingbutton
       value: 
       objectReference: {fileID: 2089697466}
+    - target: {fileID: 6925977610862801934, guid: d827c8325f3dcb945bf7e85066dd5149, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -6834,6 +6838,7 @@ MonoBehaviour:
   - {fileID: 1844329255}
   - {fileID: 1487356419}
   - {fileID: 721705210}
+  slotPanel: {fileID: 2120354191}
 --- !u!4 &2071808116
 Transform:
   m_ObjectHideFlags: 0

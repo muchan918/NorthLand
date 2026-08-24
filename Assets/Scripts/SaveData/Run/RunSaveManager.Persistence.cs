@@ -294,62 +294,6 @@ namespace NorthLand.Core
             }
         }
 
-        /// <summary>
-        /// 세이브 파일을 읽고 역직렬화한 뒤,
-        /// RunBootstrapper가 저장 시드로 월드를 생성할 수 있도록 데이터를 선주입한다.
-        /// 반드시 RunBootstrapper.Start보다 먼저 호출해야 한다.
-        /// </summary>
-        //private bool TryPrepareRestoreFromFile()
-        //{
-        //    pendingRestoreData = null;
-
-        //    if (serializer == null || fileStore == null)
-        //    {
-        //        Debug.LogError("[Load] 저장 시스템이 초기화되지 않았습니다.",this);
-
-        //        return false;
-        //    }
-
-        //    if (runBootstrapper == null)
-        //    {
-        //        Debug.LogError("[Load] RunBootstrapper가 연결되지 않았습니다.",this);
-
-        //        return false;
-        //    }
-
-        //    if (!fileStore.TryRead(out string json,out string readError))
-        //    {
-        //        Debug.LogError($"[Load] {readError}",this);
-
-        //        return false;
-        //    }
-
-        //    if (!serializer.TryDeserialize(json,out RunData data,out string deserializeError))
-        //    {
-        //        Debug.LogError($"[Load] {deserializeError}",this);
-
-        //        return false;
-        //    }
-
-        //    // 이 시점부터 자동 저장을 억제한다.
-        //    isRestoring = true;
-        //    suppressNextDayStartSave = true;
-
-        //    if (!runBootstrapper.TryPrepareRestore(data))
-        //    {
-        //        isRestoring = false;
-        //        suppressNextDayStartSave = false;
-
-        //        return false;
-        //    }
-
-        //    pendingRestoreData = data;
-
-        //    Debug.Log("[Load] 세이브 파일 읽기와 시드 복원 준비가 완료됐습니다.",this);
-
-        //    return true;
-        //}
-
         private bool TryPrepareRestore(RunData data)
         {
             pendingRestoreData = null;

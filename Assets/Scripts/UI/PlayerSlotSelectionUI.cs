@@ -3,6 +3,9 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Localization;
 using UnityEngine.Localization.Settings;
+using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 
 namespace NorthLand.UI
 {
@@ -13,6 +16,11 @@ namespace NorthLand.UI
 
         [SerializeField]
         private PlayerSlotView[] slotViews;
+
+        [SerializeField]
+        private GameObject slotPanel;
+
+        private CancellationTokenSource refreshCancellation;
 
         /// <summary>
         /// 슬롯 버튼에서 0, 1, 2를 전달한다.
@@ -62,9 +70,10 @@ namespace NorthLand.UI
                 return;
             }
 
-            RefreshAllSlots();
+            // TrySelectSlot 또는 TryCreateAndSelectSlot 안에서
+            // CurrentSlotIndex 갱신과 SelectedSlotChanged 발생이 이미 완료된다.
+            CloseSlotPanel();
         }
-
         private void ClearError()
         {
             if (errorText != null)
@@ -72,6 +81,7 @@ namespace NorthLand.UI
                 errorText.text = string.Empty;
             }
         }
+
 
         private void ShowError(string message)
         {
@@ -92,13 +102,30 @@ namespace NorthLand.UI
         {
             LocalizationSettings.SelectedLocaleChanged += HandleSelectedLocaleChanged;
 
+            PlayerSaveService playerSaveService = PlayerSaveService.Instance;
+
+            if (playerSaveService != null)
+            {
+                playerSaveService.SelectedSlotChanged += HandleSelectedSlotChanged;
+            }
+
             RefreshAllSlots();
         }
 
-       private void OnDisable()
+        private void OnDisable()
         {
-            LocalizationSettings.SelectedLocaleChanged -=
-                HandleSelectedLocaleChanged;
+            LocalizationSettings.SelectedLocaleChanged -= HandleSelectedLocaleChanged;
+
+            PlayerSaveService playerSaveService = PlayerSaveService.Instance;
+
+            if (playerSaveService != null)
+            {
+                playerSaveService.SelectedSlotChanged -= HandleSelectedSlotChanged;
+            }
+
+            refreshCancellation?.Cancel();
+            refreshCancellation?.Dispose();
+            refreshCancellation = null;
         }
 
         private void HandleSelectedLocaleChanged(Locale locale)
@@ -106,42 +133,73 @@ namespace NorthLand.UI
             RefreshAllSlots();
         }
 
+        private void HandleSelectedSlotChanged()
+        {
+            RefreshAllSlots();
+        }
+
         private void RefreshAllSlots()
         {
-            PlayerSaveService service = PlayerSaveService.Instance;
+            refreshCancellation?.Cancel();
+            refreshCancellation?.Dispose();
 
-            if (service == null || slotViews == null)
+            refreshCancellation =CancellationTokenSource.CreateLinkedTokenSource(this.GetCancellationTokenOnDestroy());
+
+            RefreshAllSlotsAsync(refreshCancellation.Token).Forget();
+        }
+
+        private async UniTaskVoid RefreshAllSlotsAsync(CancellationToken cancellationToken)
+        {
+            try
             {
-                return;
-            }
+                PlayerSaveService service = PlayerSaveService.Instance;
 
-            foreach (PlayerSlotView slotView in slotViews)
+                if (service == null || slotViews == null)
+                {
+                    return;
+                }
+
+                foreach (PlayerSlotView slotView in slotViews)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    if (slotView == null)
+                    {
+                        continue;
+                    }
+
+                    int slotIndex = slotView.SlotIndex;
+
+                    bool isSelected =service.HasSelectedSlot &&service.CurrentSlotIndex == slotIndex;
+
+                    if (!service.SlotExists(slotIndex))
+                    {
+                        slotView.ShowEmpty(isSelected);
+                        continue;
+                    }
+
+                    SaveResult<PlayerData> result =await service.GetSlotDataAsync(slotIndex,cancellationToken);
+
+                    if (result.Success)
+                    {
+                        slotView.ShowData(result.Value,isSelected);
+                    }
+                    else
+                    {
+                        slotView.ShowCorrupted(isSelected);
+
+                        Debug.LogWarning($"[PlayerSlotSelectionUI] 슬롯 {slotIndex + 1}을 읽을 수 없습니다: {result.Error}",this);
+                    }
+                }
+            }
+            catch (OperationCanceledException)
             {
-                if (slotView == null)
-                {
-                    continue;
-                }
-
-                int slotIndex = slotView.SlotIndex;
-
-                bool isSelected = service.HasSelectedSlot && service.CurrentSlotIndex == slotIndex;
-
-                if (!service.SlotExists(slotIndex))
-                {
-                    slotView.ShowEmpty(isSelected);
-                    continue;
-                }
-                if (service.TryGetSlotData(slotIndex,out PlayerData data,out _))
-                {
-                    slotView.ShowData(data, isSelected);
-                }
-                else
-                {
-                    slotView.ShowCorrupted(isSelected);
-                }
+                // 새 갱신 시작, UI 비활성화 또는 파괴에 따른 정상 취소
             }
-
-
+            catch (Exception exception)
+            {
+                Debug.LogException(exception, this);
+            }
         }
 
         /// <summary>
@@ -173,6 +231,18 @@ namespace NorthLand.UI
             }
 
             RefreshAllSlots();
+        }
+
+        private void CloseSlotPanel()
+        {
+            if (slotPanel == null)
+            {
+                Debug.LogWarning("[PlayerSlotSelectionUI] 슬롯 패널이 연결되지 않았습니다.",this);
+
+                return;
+            }
+
+            slotPanel.SetActive(false);
         }
     }
 }

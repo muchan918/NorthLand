@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 
 namespace NorthLand.Core
 {
@@ -169,6 +171,18 @@ namespace NorthLand.Core
             }
 
             return true;
+        }
+
+        public async UniTask<SaveResult<PlayerData>> LoadSlotAsync(int slotIndex,CancellationToken cancellationToken)
+        {
+            if (!IsValidSlotIndex(slotIndex))
+            {
+                return SaveResult<PlayerData>.Failed("올바르지 않은 슬롯 번호입니다.");
+            }
+
+            var store = new PlayerDataStore(GetSlotPath(slotIndex));
+
+            return await store.LoadAsync(cancellationToken);
         }
 
 

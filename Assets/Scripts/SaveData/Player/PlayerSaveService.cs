@@ -289,5 +289,14 @@ namespace NorthLand.Core
                 throw;
             }
         }
+        public UniTask<SaveResult<PlayerData>> GetSlotDataAsync(int slotIndex,CancellationToken cancellationToken)
+        {
+            if (slotManager == null)
+            {
+                return UniTask.FromResult(SaveResult<PlayerData>.Failed("플레이어 슬롯 시스템이 준비되지 않았습니다."));
+            }
+
+            return slotManager.LoadSlotAsync(slotIndex,cancellationToken);
+        }
     }
 }

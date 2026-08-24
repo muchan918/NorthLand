@@ -186,54 +186,6 @@ namespace NorthLand.UI
             return fileStore.Exists;
         }
 
-        //private bool HasLoadableSave(out string error)
-        //{
-        //    PlayerSaveService playerSaveService = PlayerSaveService.Instance;
-
-        //    if (playerSaveService == null)
-        //    {
-        //        error = "플레이어 저장 시스템이 준비되지 않았습니다.";
-
-        //        return false;
-        //    }
-
-        //    if (!playerSaveService.HasSelectedSlot)
-        //    {
-        //        // 슬롯 미선택은 타이틀 진입 직후의 정상 상태다.
-        //        error = string.Empty;
-        //        return false;
-        //    }
-
-        //    var fileStore = new SaveFileStore(playerSaveService.CurrentSlotPath);
-
-        //    if (!fileStore.Exists)
-        //    {
-        //        error = null;
-        //        return false;
-        //    }
-
-        //    if (!fileStore.TryRead(out string json,out error))
-        //    {
-        //        return false;
-        //    }
-
-        //    var serializer = new SaveSerializer();
-
-        //    if (!serializer.TryDeserialize(json,out RunData data,out error))
-        //    {
-        //        return false;
-        //    }
-
-        //    if (data == null)
-        //    {
-        //        error = "세이브 RunData가 비어 있습니다.";
-        //        return false;
-        //    }
-
-        //    error = null;
-        //    return true;
-        //}
-
         public void OnClickContinue()
         {
             ContinueAsync().Forget();

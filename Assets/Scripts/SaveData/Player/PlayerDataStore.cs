@@ -198,5 +198,21 @@ namespace NorthLand.Core
 
             return await fileStore.WriteAsync(json,cancellationToken);
         }
+
+        public async UniTask<SaveResult<PlayerData>> LoadAsync(CancellationToken cancellationToken)
+        {
+            return await UniTask.RunOnThreadPool(() =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    if (!TryLoad(out PlayerData data,out string error))
+                    {
+                        return SaveResult<PlayerData>.Failed(error);
+                    }
+
+                    return SaveResult<PlayerData>.Succeeded(data);
+                },
+                cancellationToken: cancellationToken);
+        }
     }
 }

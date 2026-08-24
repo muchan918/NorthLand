@@ -61,19 +61,6 @@ namespace NorthLand.Core
         }
 
         /// <summary>
-        /// 기존 Run 세이브를 이어서 플레이하기 위해 게임 씬을 로드한다.
-        /// 실제 파일 읽기와 복원은 RunSaveManager가 담당한다.
-        /// </summary>
-        //public void LoadContinue()
-        //{
-        //    pendingContinue = true;
-        //    pendingMasterSeed = null;
-
-        //    SceneManager.LoadScene(GameScene);
-        //}
-
-
-        /// <summary>
         /// 미리 준비된 이어하기 데이터가 있을 때 게임 씬을 로드한다.
         /// 파일 읽기와 역직렬화는 타이틀 화면에서 완료되어 있어야 한다.
         /// </summary>
@@ -90,18 +77,6 @@ namespace NorthLand.Core
             SceneManager.LoadScene(GameScene);
             return true;
         }
-
-        /// <summary>
-        /// 이어하기 요청을 한 번만 소비한다.
-        /// </summary>
-        //public bool TryConsumeContinueRequest()
-        //{
-        //    if (!pendingContinue)
-        //        return false;
-
-        //    pendingContinue = false;
-        //    return true;
-        //}
 
         public void LoadManageSpaceWithSeed(int masterSeed)
         {
