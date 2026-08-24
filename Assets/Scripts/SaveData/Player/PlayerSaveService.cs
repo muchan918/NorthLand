@@ -100,8 +100,7 @@ namespace NorthLand.Core
                 {
                     CurrentPlayerData = result.Value;
 
-                    // 다음 마이그레이션 단계 전까지는 기존 동기 API 유지
-                    TryMigrateLegacyRunSave();
+                    await MigrateLegacyRunSaveAsync(cancellationToken);
 
                     SelectedSlotChanged?.Invoke();
                     return;
@@ -329,7 +328,7 @@ namespace NorthLand.Core
                 return SaveResult.Failed("플레이어 슬롯을 초기화하는 중입니다.");
             }
 
-            SaveResult<PlayerData> result =await slotManager.CreateAndSelectSlotAsync(slotIndex,cancellationToken);
+            SaveResult<PlayerData> result = await slotManager.CreateAndSelectSlotAsync(slotIndex,cancellationToken);
 
             if (!result.Success)
             {
@@ -338,21 +337,22 @@ namespace NorthLand.Core
 
             CurrentPlayerData = result.Value;
 
-            TryMigrateLegacyRunSave();
+            await MigrateLegacyRunSaveAsync(cancellationToken);
+
             SaveSelectedSlot(slotIndex);
             SelectedSlotChanged?.Invoke();
 
             return SaveResult.Succeeded();
         }
 
-        public async UniTask<SaveResult>SelectSlotAsync(int slotIndex,CancellationToken cancellationToken)
+        public async UniTask<SaveResult> SelectSlotAsync(int slotIndex,CancellationToken cancellationToken)
         {
             if (!isInitialized)
             {
                 return SaveResult.Failed("플레이어 슬롯을 초기화하는 중입니다.");
             }
 
-            SaveResult<PlayerData> result =await slotManager.SelectSlotAsync(slotIndex,cancellationToken);
+            SaveResult<PlayerData> result = await slotManager.SelectSlotAsync(slotIndex,cancellationToken);
 
             if (!result.Success)
             {
@@ -361,7 +361,8 @@ namespace NorthLand.Core
 
             CurrentPlayerData = result.Value;
 
-            TryMigrateLegacyRunSave();
+            await MigrateLegacyRunSaveAsync(cancellationToken);
+
             SaveSelectedSlot(slotIndex);
             SelectedSlotChanged?.Invoke();
 
@@ -405,6 +406,38 @@ namespace NorthLand.Core
             }
 
             return SaveResult.Succeeded();
+        }
+
+        private async UniTask MigrateLegacyRunSaveAsync(CancellationToken cancellationToken)
+        {
+            if (!HasSelectedSlot)
+            {
+                return;
+            }
+
+            if (legacyRunSaveLocationMigrator == null)
+            {
+                Debug.LogWarning("[PlayerSaveService] 구버전 Run 세이브 이전 시스템이 준비되지 않았습니다.",this);
+
+                return;
+            }
+
+            string targetSlotPath = CurrentSlotPath;
+            int targetSlotIndex = CurrentSlotIndex;
+
+            SaveResult<bool> result = await legacyRunSaveLocationMigrator.MigrateAsync(targetSlotPath,cancellationToken);
+
+            if (!result.Success)
+            {
+                Debug.LogWarning($"[PlayerSaveService] 구버전 Run 세이브 이전 실패: {result.Error}",this);
+
+                return;
+            }
+
+            if (result.Value)
+            {
+                Debug.Log($"[PlayerSaveService] 구버전 Run 세이브를 슬롯 {targetSlotIndex + 1}로 이전했습니다.",this);
+            }
         }
     }
 }

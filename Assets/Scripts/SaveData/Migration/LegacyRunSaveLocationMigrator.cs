@@ -1,11 +1,9 @@
 using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 
 namespace NorthLand.Core
 {
-    /// <summary>
-    /// 슬롯 도입 전 루트의 run-save.json을
-    /// 현재 선택된 슬롯 폴더로 이전한다.
-    /// </summary>
     public sealed class LegacyRunSaveLocationMigrator
     {
         private readonly SaveFileStore legacyStore;
@@ -28,22 +26,19 @@ namespace NorthLand.Core
             if (string.IsNullOrWhiteSpace(targetSlotPath))
             {
                 error = "이전할 슬롯 경로가 비어 있습니다.";
+
                 return false;
             }
 
-            // 기존 루트 세이브가 없으면 할 일이 없다.
             if (!legacyStore.Exists)
             {
                 return true;
             }
 
-            var targetStore =
-                new SaveFileStore(targetSlotPath);
+            var targetStore = new SaveFileStore(targetSlotPath);
 
-            // 슬롯의 새 저장 파일을 덮어쓰지 않는다.
             if (targetStore.Exists)
             {
-                // 현재 슬롯의 저장을 우선하며 기존 파일은 보존한다.
                 return true;
             }
 
@@ -52,12 +47,11 @@ namespace NorthLand.Core
                 return false;
             }
 
-            if (!targetStore.TryWrite(json, out error))
+            if (!targetStore.TryWrite(json,out error))
             {
                 return false;
             }
 
-            // 새 위치 저장이 성공한 뒤 기존 파일을 삭제한다.
             if (!legacyStore.TryDelete(out error))
             {
                 return false;
@@ -65,6 +59,32 @@ namespace NorthLand.Core
 
             migrated = true;
             return true;
+        }
+
+        public async UniTask<SaveResult<bool>> MigrateAsync(string targetSlotPath,CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(targetSlotPath))
+            {
+                return SaveResult<bool>.Failed("이전할 슬롯 경로가 비어 있습니다.");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return await UniTask.RunOnThreadPool(() =>
+                {
+                    if (!TryMigrate(
+                            targetSlotPath,
+                            out bool migrated,
+                            out string error))
+                    {
+                        return SaveResult<bool>.Failed(
+                            error);
+                    }
+
+                    return SaveResult<bool>.Succeeded(
+                        migrated);
+                },
+                cancellationToken:CancellationToken.None);
         }
     }
 }

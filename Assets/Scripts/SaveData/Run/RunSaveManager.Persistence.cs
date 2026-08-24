@@ -204,24 +204,34 @@ namespace NorthLand.Core
 
             cancellationToken.ThrowIfCancellationRequested();
 
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
             // Unity 객체 접근 구간이므로 메인 스레드에서 실행한다.
             if (!TryCaptureRunData(out RunData data))
             {
                 return SaveResult.Failed("Run 상태 수집에 실패했습니다.");
             }
 
+            long captureMilliseconds = stopwatch.ElapsedMilliseconds;
+
             string json;
 
             try
             {
-                // 우선 1단계에서는 직렬화를 메인 스레드에 유지한다.
-                // 실제 프레임 병목을 측정한 뒤 별도로 ThreadPool 이동을 고려한다.
+                // 직렬화도 현재는 메인 스레드에서 실행한다.
                 json = serializer.Serialize(data);
             }
             catch (Exception exception)
             {
                 return SaveResult.Failed($"JSON 직렬화에 실패했습니다: {exception.Message}");
             }
+
+            stopwatch.Stop();
+
+            long totalMilliseconds = stopwatch.ElapsedMilliseconds;
+            long serializationMilliseconds = totalMilliseconds - captureMilliseconds;
+
+            Debug.Log($"[Save Performance] 상태 수집: {captureMilliseconds}ms,직렬화: {serializationMilliseconds}ms, 합계: {totalMilliseconds}ms,타워 수: {data.Towers.Count}",this);
 
             SaveResult writeResult = await fileStore.WriteAsync(json, cancellationToken);
 
