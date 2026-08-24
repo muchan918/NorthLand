@@ -1,4 +1,6 @@
+using Cysharp.Threading.Tasks;
 using System;
+using System.Threading;
 using UnityEngine;
 
 namespace NorthLand.Core
@@ -255,5 +257,37 @@ namespace NorthLand.Core
             }
         }
 
+        public async UniTask<SaveResult> UpdateLastPlayedAtAsync(CancellationToken cancellationToken)
+        {
+            if (!HasSelectedSlot || CurrentPlayerData == null)
+            {
+                return SaveResult.Failed("선택된 플레이어 세이브 슬롯이 없습니다.");
+            }
+
+            PlayerData playerData = CurrentPlayerData;
+            long previousTime = playerData.lastPlayedAt;
+
+            playerData.UpdateLastPlayedAt();
+
+            var store = new PlayerDataStore(CurrentSlotPath);
+
+            try
+            {
+                SaveResult result =await store.SaveAsync(playerData,cancellationToken);
+
+                if (!result.Success)
+                {
+                    playerData.lastPlayedAt = previousTime;
+                    return result;
+                }
+
+                return SaveResult.Succeeded();
+            }
+            catch (OperationCanceledException)
+            {
+                playerData.lastPlayedAt = previousTime;
+                throw;
+            }
+        }
     }
 }

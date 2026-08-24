@@ -238,11 +238,15 @@ namespace NorthLand.Core
             {
                 Debug.LogWarning("[Save] 플레이어 저장 시스템이 없어 업데이트 시간을 기록하지 못했습니다.",this);
             }
-            else if (!playerSaveService.TryUpdateLastPlayedAt(out string playerSaveError))
+            else
             {
-                Debug.LogWarning($"[Save] 플레이어 업데이트 시간 기록 실패: {playerSaveError}",this);
-            }
+                SaveResult playerResult = await playerSaveService.UpdateLastPlayedAtAsync(cancellationToken);
 
+                if (!playerResult.Success)
+                {
+                    Debug.LogWarning($"[Save] 플레이어 업데이트 시간 기록 실패: " +playerResult.Error,this);
+                }
+            }
             Debug.Log($"[Save] 저장 완료: {fileStore.SavePath}", this);
 
             return SaveResult.Succeeded();

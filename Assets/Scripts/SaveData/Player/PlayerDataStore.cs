@@ -1,6 +1,8 @@
-using System;
+using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System;
+using System.Threading;
 
 namespace NorthLand.Core
 {
@@ -171,6 +173,30 @@ namespace NorthLand.Core
         public bool TryDelete(out string error)
         {
             return fileStore.TryDelete(out error);
+        }
+        public async UniTask<SaveResult> SaveAsync(PlayerData data,CancellationToken cancellationToken)
+        {
+            if (data == null)
+            {
+                return SaveResult.Failed("저장할 플레이어 데이터가 없습니다.");
+            }
+
+            string json;
+
+            try
+            {
+                json = serializer.Serialize(data);
+            }
+            catch (JsonException exception)
+            {
+                return SaveResult.Failed($"플레이어 데이터 직렬화에 실패했습니다: {exception.Message}");
+            }
+            catch (ArgumentException exception)
+            {
+                return SaveResult.Failed($"플레이어 데이터 직렬화에 실패했습니다: {exception.Message}");
+            }
+
+            return await fileStore.WriteAsync(json,cancellationToken);
         }
     }
 }
