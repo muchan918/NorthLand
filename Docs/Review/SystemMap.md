@@ -216,7 +216,24 @@
   보스 여부가 필요한 곳은 자체 비교를 쓰지 말고 이걸 쓸 것 — `Enemy.Awake`의 BT 배선이 같은 비교를
   중복하던 것을 #318에서 이쪽으로 통일했다. ⚠ **파생이라 데이터 축이 갈리면 조용히 틀린다** —
   `EnemyType`은 스탯 블록 선택·근접/원거리 공격 경로 선택까지 겸하는 필드라, 원거리 보스가 들어오면
-  `EnemyType.Ranged`가 되어 `IsBoss`가 false가 된다(WL-176). authored 플래그로 분리하는 것이 해법
+  `EnemyType.Ranged`가 되어 `IsBoss`가 false가 된다(WL-207). authored 플래그로 분리하는 것이 해법
+- `Enemy.IsSuicideBomber` (bool, #453) / `EnemyAsset.SelfDestruct`(`Enabled`/`Damage`) — 자폭병 계약.
+  켜면 그 적은 **본진만 조준하고 닿는 순간 1회 확정 피해를 주고 죽는다.**
+  본진 판정은 구체 타입이 아니라 역할 마커 **`IBaseStructure`**(값 없는 `IDamageable` 파생, `PlayerBase`가
+  구현)로 한다 — 조준 필터 방식이 미합의(§5 레이어 vs 태그)인 축에 런타임 타입 검사를 세 번째 방식으로
+  얹으면, 부성문·파괴 가능 방벽처럼 본진 역할이 늘어날 때 자폭병이 그것을 조용히 무시한다.
+  **본진 역할을 추가하는 쪽은 이 마커만 붙이면 되고 필터를 고칠 필요가 없다.**
+  `EnemyType`에 값을 늘리지 않은 이유는 WL-207과 같다 — 그 필드가 스탯 블록·공격 경로 선택을
+  겸하므로 자폭을 직교 축으로 뺐다(자폭병도 `Melee` 스탯 블록을 쓴다).
+  ⚠ **자폭 사망은 `Enemy.Killed`를 발행하지 않는다** — 자폭은 처치가 아니라 누출이므로, 발행하면
+  직전에 때린 타워가 킬스택(#300)을 얻어 본진을 얻어맞은 대가로 타워가 성장한다. 경로 완주
+  (`HandleRouteCompleted`)가 `Die`를 우회하는 것과 같은 갈림이고, 연출·디스폰 뒤처리만
+  `BeginDeathSequence`로 공유한다. ⚠ **자폭 피해에는 웨이브 HP 배율이 곱하지 않는다**(규약 ④ 예산의
+  전제, `CombatBalance.md` §4.2). ⚠ **병사가 자폭병을 저지하지 못한다**(의도 — 조준 후보에서 제외).
+  근거는 **예산이 본진 피해만 센다**는 것 하나다 — 자폭이 병사에게도 터지면 예산이 세는 곳이 둘로
+  갈려 상한의 의미가 사라진다. 병사 앞 영구 정지로 밤이 `childCount == 0`에 닿지 못하는 소프트락이
+  함께 막히는 것은 **결과이지 근거가 아니다**(근거로 읽으면 "자폭 피해를 병사에게도 주면 된다"로
+  뒤집히고, 그러면 예산이 깨진다)
 - `Enemy.MarkForExecute(float thresholdRatio, float duration, bool debugLog = false)` (#318) —
   처형 표식 부여. `thresholdRatio`는 MaxHp 대비 **비율**(0~1). 재적용은 **갱신**이다(임계·지속 모두
   덮어쓴다 — `StatusEffectHandler.ApplyOrRefresh`와 같은 semantics). 표식이 사는 동안 `TakeDamage`가
