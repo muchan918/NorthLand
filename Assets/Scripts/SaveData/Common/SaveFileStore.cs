@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 
 namespace NorthLand.Core
 {
@@ -116,6 +118,35 @@ namespace NorthLand.Core
                 return false;
             }
         }
+
+        public async UniTask<SaveResult> WriteAsync(string json,CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return SaveResult.Failed("저장할 JSON이 비어 있습니다.");
+            }
+
+            try
+            {
+                return await UniTask.RunOnThreadPool(() =>
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        if (!TryWrite(json, out string error))
+                        {
+                            return SaveResult.Failed(error);
+                        }
+
+                        return SaveResult.Succeeded();
+                    },
+                    cancellationToken: cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+        }
+
         /// <summary>
         /// 현재 Run 세이브와 남아 있는 임시 파일을 삭제한다.
         /// 파일이 이미 없어도 성공으로 처리한다.

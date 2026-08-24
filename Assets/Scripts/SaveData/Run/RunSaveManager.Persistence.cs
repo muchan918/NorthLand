@@ -1,5 +1,7 @@
 using System;
 using UnityEngine;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 
 namespace NorthLand.Core
 {
@@ -21,6 +23,9 @@ namespace NorthLand.Core
         /// 현재 세이브 파일이 존재하는지 반환한다.
         /// </summary>
         public bool HasSave =>fileStore != null && fileStore.Exists;
+
+        private bool isSaving;
+        private bool savePending;
 
         private void Awake()
         {
@@ -183,6 +188,106 @@ namespace NorthLand.Core
             return true;
         }
 
+        private async UniTask<SaveResult> SaveOnceAsync(CancellationToken cancellationToken)
+        {
+            if (isRestoring)
+            {
+                return SaveResult.Failed("복원 중에는 저장할 수 없습니다.");
+            }
+
+            if (serializer == null || fileStore == null)
+            {
+                return SaveResult.Failed("저장 시스템이 초기화되지 않았습니다.");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            // Unity 객체 접근 구간이므로 메인 스레드에서 실행한다.
+            if (!TryCaptureRunData(out RunData data))
+            {
+                return SaveResult.Failed("Run 상태 수집에 실패했습니다.");
+            }
+
+            string json;
+
+            try
+            {
+                // 우선 1단계에서는 직렬화를 메인 스레드에 유지한다.
+                // 실제 프레임 병목을 측정한 뒤 별도로 ThreadPool 이동을 고려한다.
+                json = serializer.Serialize(data);
+            }
+            catch (Exception exception)
+            {
+                return SaveResult.Failed($"JSON 직렬화에 실패했습니다: {exception.Message}");
+            }
+
+            SaveResult writeResult = await fileStore.WriteAsync(json, cancellationToken);
+
+            if (!writeResult.Success)
+            {
+                return writeResult;
+            }
+
+            // UniTask는 기본적으로 호출한 PlayerLoop로 돌아오지만,
+            // 향후 WriteAsync 구현이 바뀌어도 안전하게 메인 스레드를 보장한다.
+            await UniTask.SwitchToMainThread(cancellationToken);
+
+            PlayerSaveService playerSaveService = PlayerSaveService.Instance;
+
+            if (playerSaveService == null)
+            {
+                Debug.LogWarning("[Save] 플레이어 저장 시스템이 없어 업데이트 시간을 기록하지 못했습니다.",this);
+            }
+            else if (!playerSaveService.TryUpdateLastPlayedAt(out string playerSaveError))
+            {
+                Debug.LogWarning($"[Save] 플레이어 업데이트 시간 기록 실패: {playerSaveError}",this);
+            }
+
+            Debug.Log($"[Save] 저장 완료: {fileStore.SavePath}", this);
+
+            return SaveResult.Succeeded();
+        }
+
+        public async UniTask<SaveResult> SaveNowAsync(CancellationToken cancellationToken)
+        {
+            // 현재는 낮 시작 자동 저장만 사용한다.
+            // 수동 저장이나 저장 후 씬 전환을 추가할 경우,
+            // 중복 요청도 실제 파일 기록 완료까지 기다리도록 변경해야 한다.
+            if (isSaving)
+            {
+                savePending = true;
+
+                // 현재 요청은 실행 중인 저장 이후 한 번 더 저장될 예정이다.
+                return SaveResult.Succeeded();
+            }
+
+            isSaving = true;
+
+            SaveResult lastResult = SaveResult.Succeeded();
+
+            try
+            {
+                do
+                {
+                    savePending = false;
+
+                    lastResult = await SaveOnceAsync(cancellationToken);
+
+                    if (!lastResult.Success)
+                    {
+                        return lastResult;
+                    }
+                }
+                while (savePending);
+
+                return lastResult;
+            }
+            finally
+            {
+                isSaving = false;
+            }
+        }
+
         /// <summary>
         /// 세이브 파일을 읽고 역직렬화한 뒤,
         /// RunBootstrapper가 저장 시드로 월드를 생성할 수 있도록 데이터를 선주입한다.
@@ -257,8 +362,30 @@ namespace NorthLand.Core
                 return;
             }
 
-            TrySaveNow();
+            SaveFromDayStartAsync().Forget();
         }
+
+        private async UniTaskVoid SaveFromDayStartAsync()
+        {
+            try
+            {
+                SaveResult result = await SaveNowAsync(this.GetCancellationTokenOnDestroy());
+
+                if (!result.Success)
+                {
+                    Debug.LogError($"[Save] {result.Error}", this);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // 씬 종료 또는 오브젝트 파괴에 따른 정상 취소
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception, this);
+            }
+        }
+
 
         private void OnDestroy()
         {
