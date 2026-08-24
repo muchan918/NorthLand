@@ -131,65 +131,6 @@ namespace NorthLand.Core
 
             Debug.Log("[Load] 전체 Run 상태 복원이 완료됐습니다.",this);
         }
-
-        /// <summary>
-        /// 현재 낮 시작 상태를 수집하고 단일 Run 세이브 파일에 기록한다.
-        /// 수동 저장과 낮 시작 자동 저장이 공통으로 사용하는 진입점이다.
-        /// </summary>
-        public bool TrySaveNow()
-        {
-            if (isRestoring)
-            {
-                Debug.LogWarning("[Save] 복원 중에는 저장할 수 없습니다.",this);
-
-                return false;
-            }
-
-            if (serializer == null || fileStore == null)
-            {
-                Debug.LogError("[Save] 저장 시스템이 초기화되지 않았습니다.",this);
-
-                return false;
-            }
-
-            if (!TryCaptureRunData(out RunData data))
-                return false;
-
-            string json;
-
-            try
-            {
-                json = serializer.Serialize(data);
-            }
-            catch (Exception exception)
-            {
-                Debug.LogError($"[Save] JSON 직렬화에 실패했습니다: {exception.Message}",this);
-
-                return false;
-            }
-
-            if (!fileStore.TryWrite(json, out string error))
-            {
-                Debug.LogError($"[Save] {error}", this);
-                return false;
-            }
-
-            PlayerSaveService playerSaveService = PlayerSaveService.Instance;
-
-            if (playerSaveService == null)
-            {
-                Debug.LogWarning("[Save] 플레이어 저장 시스템이 없어 업데이트 시간을 기록하지 못했습니다.",this);
-            }
-            else if (!playerSaveService.TryUpdateLastPlayedAt(out string playerSaveError))
-            {
-                Debug.LogWarning($"[Save] 플레이어 업데이트 시간 기록 실패: {playerSaveError}",this);
-            }
-
-            Debug.Log($"[Save] 저장 완료: {fileStore.SavePath}",this);
-
-            return true;
-        }
-
         private async UniTask<SaveResult> SaveOnceAsync(CancellationToken cancellationToken)
         {
             if (isRestoring)
@@ -204,15 +145,11 @@ namespace NorthLand.Core
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
             // Unity 객체 접근 구간이므로 메인 스레드에서 실행한다.
             if (!TryCaptureRunData(out RunData data))
             {
                 return SaveResult.Failed("Run 상태 수집에 실패했습니다.");
             }
-
-            long captureMilliseconds = stopwatch.ElapsedMilliseconds;
 
             string json;
 
@@ -225,13 +162,6 @@ namespace NorthLand.Core
             {
                 return SaveResult.Failed($"JSON 직렬화에 실패했습니다: {exception.Message}");
             }
-
-            stopwatch.Stop();
-
-            long totalMilliseconds = stopwatch.ElapsedMilliseconds;
-            long serializationMilliseconds = totalMilliseconds - captureMilliseconds;
-
-            Debug.Log($"[Save Performance] 상태 수집: {captureMilliseconds}ms,직렬화: {serializationMilliseconds}ms, 합계: {totalMilliseconds}ms,타워 수: {data.Towers.Count}",this);
 
             SaveResult writeResult = await fileStore.WriteAsync(json, cancellationToken);
 
