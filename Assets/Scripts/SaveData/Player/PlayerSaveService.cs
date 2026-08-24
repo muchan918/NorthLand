@@ -162,11 +162,12 @@ namespace NorthLand.Core
 
             playerData.UpdateLastPlayedAt();
 
-            var store = new PlayerDataStore(CurrentSlotPath);
-
             try
             {
-                SaveResult result =await store.SaveAsync(playerData,cancellationToken);
+                SaveResult result = await slotManager.SaveSlotAsync(
+                    CurrentSlotIndex,
+                    playerData,
+                    cancellationToken);
 
                 if (!result.Success)
                 {

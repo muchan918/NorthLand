@@ -160,7 +160,7 @@ namespace NorthLand.Core
                 return false;
             }
 
-            // 정상적인 구버전 평면 JSON을 새 봉투 형식으로 다시 저장
+            // 정상적인 구버전 평면 JSON을 새 봉투 형식으로 다시 저장한다.
             if (needsRewrite &&
                 !TrySave(data, out error))
             {
@@ -170,6 +170,7 @@ namespace NorthLand.Core
 
             return true;
         }
+
         public bool TryDelete(out string error)
         {
             return fileStore.TryDelete(out error);
