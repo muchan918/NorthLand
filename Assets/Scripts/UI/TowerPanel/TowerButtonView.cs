@@ -185,9 +185,18 @@ public class TowerButtonView : MonoBehaviour
         var rootLayout = GetComponent<LayoutElement>();
         if (rootLayout == null || bannerLayout == null) return;
 
+        // LayoutElement는 인스펙터 체크박스가 꺼진 항목에 **-1**을 돌려준다 — 그대로 더하면
+        // spacing이 양수인 만큼 shrink가 양수가 되어(-1 + 4 = 3) 아래 가드를 통과하고 엉뚱한 값을 깎는다.
+        // 음수를 먼저 0으로 잘라내고, 배너 높이가 저작돼 있지 않으면(0) 축소를 건너뛰며 소리를 낸다.
+        float bannerHeight = Mathf.Max(0f, bannerLayout.preferredHeight, bannerLayout.minHeight);
+        if (bannerHeight <= 0f)
+        {
+            Debug.LogWarning($"[타워버튼] 이름 배너에 LayoutElement 높이가 저작되지 않아 칸 높이를 줄이지 못했습니다 — 배너 자리가 빈칸으로 남습니다({name}).", this);
+            return;
+        }
+
         var group = GetComponent<VerticalLayoutGroup>();
-        float shrink = Mathf.Max(bannerLayout.preferredHeight, bannerLayout.minHeight)
-                       + (group != null ? group.spacing : 0f);
+        float shrink = bannerHeight + (group != null ? group.spacing : 0f);
         if (shrink <= 0f) return;
 
         if (rootLayout.minHeight > 0f) rootLayout.minHeight -= shrink;

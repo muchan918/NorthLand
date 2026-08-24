@@ -90,7 +90,7 @@ public class TowerSelectPanelView : MonoBehaviour
 
         // 아이콘만 채운다 — 이름 배너는 끈다(#470). 이름·코스트·스탯은 바로 아래에서 붙이는 호버
         // 툴팁이 낸다(합성 정보 패널의 아이콘 전용 칸과 같은 판단 — TowerMerge.md §8.5).
-        // 합성 후보 버튼은 툴팁이 없어 라벨이 유일한 식별 수단이므로 그쪽은 이름을 계속 넘긴다(#445).
+        // 합성 후보 버튼도 같은 규약이다(그쪽은 TowerMergeCandidateHover가 툴팁을 낸다).
         var view = button.GetComponent<TowerButtonView>();
         if (view != null) view.Set(tower.Icon);
 
