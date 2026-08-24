@@ -274,19 +274,11 @@ namespace NorthLand.Core
         {
             if (fileStore == null)
             {
-                PlayerSaveService playerSaveService = PlayerSaveService.Instance;
-
-                if (playerSaveService == null || !playerSaveService.HasSelectedSlot)
-                {
-                    Debug.LogWarning(
-                        "[Save] 선택된 슬롯이 없어 기존 Run 삭제를 건너뜁니다. GameScene 직접 실행 테스트로 간주합니다.",
-                        this);
-                    return true;
-                }
-
-                // GameScene 직접 실행에서는 RunSaveManager.Awake보다 늦은
-                // PlayerSaveService.Start에서 마지막 슬롯이 복원될 수 있다.
-                fileStore = new SaveFileStore(playerSaveService.CurrentSlotPath);
+                Debug.LogWarning(
+                    "[Save] GameScene 직접 실행 상태에서는 기존 Run을 안전하게 식별할 수 없습니다. " +
+                    "타이틀에서 슬롯을 선택한 뒤 튜토리얼 다시 보기를 실행해주세요.",
+                    this);
+                return false;
             }
 
             if (!fileStore.TryDelete(out string error))
