@@ -10,31 +10,31 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a74f92989bd134045976226b2e15c7c7, type: 3}
-  m_Name: soda_tower
+  m_Name: soda_cannon_tower
   m_EditorClassIdentifier: Assembly-CSharp::TowerAsset
-  TowerID: soda_tower
-  TowerPrefab: {fileID: 6801833135963741600, guid: 11821cec09aec2147a7c1035fbbc8668, type: 3}
-  GhostPrefab: {fileID: 6801833135963741600, guid: 47a1f592ba98e2447bb40b61de36868a, type: 3}
+  TowerID: soda_cannon_tower
+  TowerPrefab: {fileID: 6801833135963741600, guid: e1ed27c1d6fcf2b41ac54d9236f5b0f7, type: 3}
+  GhostPrefab: {fileID: 6801833135963741600, guid: 1ddc4f4d9f7b1b942a87d33e8fd0db37, type: 3}
   Icon: {fileID: 21300000, guid: 6ac9d80bfdf1b104f9d9ea0cdf1caa61, type: 3}
   PlacementYaw: 45
   Cost: []
-  Rarity: 1
+  Rarity: 2
   UnlockWave: 1
   Attack:
-    AttackDamage: 30
+    AttackDamage: 24
     AttackRange: 27
-    AttackInterval: 2.2
-    ProjectilePrefab: {fileID: 1162392375372998, guid: c2da60c3896a09d42811362601158f7d, type: 3}
+    AttackInterval: 2.5
+    ProjectilePrefab: {fileID: 1162392375372998, guid: 899178ed5d6bed64687bc9aa18612058, type: 3}
     Flight:
-      rid: 3470829504553025637
+      rid: 1498367711936249967
     PelletCount: 1
     SpreadAngle: 0
     BurstCount: 1
     BurstInterval: 0
   Targeting:
     rid: -2
-  Impact: 0
-  SplashRadius: 0
+  Impact: 1
+  SplashRadius: 5
   ChainRadius: 0
   MaxChainTargets: 0
   ChainDamageFalloff: 0
@@ -81,13 +81,13 @@ MonoBehaviour:
     RefIds:
     - rid: -2
       type: {class: , ns: , asm: }
+    - rid: 1498367711936249967
+      type: {class: BallisticFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
+      data:
+        Speed: 40
+        ArcHeight: 15
     - rid: 3470829504553025630
       type: {class: StunStatus, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
-        Duration: 0.7
+        Duration: 1
         ImmunityWindow: 0.4
-    - rid: 3470829504553025637
-      type: {class: HomingFlight, ns: NorthLand.Combat, asm: Assembly-CSharp}
-      data:
-        Speed: 80
-        ArcHeight: 8

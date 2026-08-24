@@ -267,6 +267,18 @@ MonoBehaviour:
     m_Key: towers.normal
     m_Metadata:
       m_Items: []
+  - m_Id: 12633126944284672
+    m_Key: towers.soda_cannon.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12633126977839104
+    m_Key: towers.soda_cannon.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12633126977839105
+    m_Key: towers.soda_cannon.desc
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
