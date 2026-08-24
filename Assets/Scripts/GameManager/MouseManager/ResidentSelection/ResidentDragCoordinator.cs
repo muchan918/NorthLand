@@ -64,6 +64,7 @@ public class ResidentDragCoordinator : MonoBehaviour
     private int _retryCountdown;
     private bool _warnedNoMouseManager;
     private bool _warnedNoSpawner;
+    private bool _warnedStranded;
 
     /// 지금 들고 있는 인원. 이후 커서 옆 표시나 거절 피드백이 붙을 자리다.
     public int CarriedCount => _carried.Count;
@@ -208,9 +209,26 @@ public class ResidentDragCoordinator : MonoBehaviour
     /// 착지가 끝났다. **되돌리는 호출은 여기 하나뿐이다** — 연출은 스포너를 직접 부르지 않는다.
     private void HandleLanded(Resident resident, Vector3 landing)
     {
-        if (_spawner == null) return;   // 씬이 갈렸다. 되돌릴 주체가 없다.
+        if (_spawner == null)
+        {
+            WarnStranded();
+            return;
+        }
 
         _spawner.ReleaseCarried(resident, landing);
+    }
+
+    /// 스포너 없이 손을 놓았다 — 그 주민은 `IsCarried` · `NavMeshAgent` 비활성 · BT 정지인 채로 굳는다.
+    ///
+    /// **이 시스템에서 유일하게 스스로 빠져나오지 못하는 상태다.** 도달 조건이 좁아(드래그 도중 스포너
+    /// 파괴) 실제로 보기 어렵지만, 조용하면 "주민 하나가 안 움직인다"의 원인을 짚을 단서가 0이 된다.
+    private void WarnStranded()
+    {
+        if (_warnedStranded) return;
+
+        _warnedStranded = true;
+        Debug.LogWarning("[주민 드래그] ResidentSpawner가 사라져 들고 있던 주민을 되돌리지 못했습니다. " +
+                         "그 주민은 이동·행동이 멈춘 채 남습니다.");
     }
 
     // ── 들기 ──────────────────────────────────────────────────────────
@@ -308,6 +326,7 @@ public class ResidentDragCoordinator : MonoBehaviour
         // 되돌릴 주체가 사라졌다(씬 전환 등). 들었던 자리로 되돌리는 것조차 스포너를 거쳐야 하므로 목록만 놓는다.
         if (_spawner == null)
         {
+            WarnStranded();
             _carried.Clear();
             _visual.Clear();
             return;

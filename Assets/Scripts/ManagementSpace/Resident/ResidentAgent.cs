@@ -55,6 +55,9 @@ public class ResidentAgent : MonoBehaviour
 
     private static readonly int IsMovingHash = Animator.StringToHash("IsMoving");
 
+    // 이미 경고한 상태 이름. 개체가 아니라 컨트롤러의 문제라 주민 30명이 각자 경고할 이유가 없다.
+    private static readonly HashSet<string> s_warnedMissingStates = new HashSet<string>();
+
     private void Awake()
     {
         navAgent = GetComponent<NavMeshAgent>();
@@ -373,11 +376,37 @@ public class ResidentAgent : MonoBehaviour
             return false;
         }
 
+        int stateHash = Animator.StringToHash(stateName);
+
+        // ⚠ **없는 상태를 요청하면 Unity가 조용히 무시한다.** 전이 없는 고립 상태라 진입 실패가 화면에
+        //   드러나지도 않는다 — 주민이 선 자세 그대로 있을 뿐이다. 컨트롤러는 별도 저장소
+        //   (`Assets/Imported`)에 있어서 스크립트만 받고 자산을 못 받은 사람에게 실제로 일어난다(WL-160).
+        //   여기서 잡아 주지 않으면 연출 버그로 오인해 엉뚱한 수치를 튜닝하게 된다.
+        if (!animator.HasState(0, stateHash))
+        {
+            WarnMissingState(stateName);
+            return false;
+        }
+
         // 컨트롤러가 Idle/Walk 밖으로 나갔다. 복귀 시 SetBool이 캐시 때문에 생략되면 돌아올 길이 없다.
         locomotionDirty = true;
 
-        animator.CrossFadeInFixedTime(stateName, Mathf.Max(0f, fadeSeconds));
+        animator.CrossFadeInFixedTime(stateHash, Mathf.Max(0f, fadeSeconds));
         return true;
+    }
+
+    // 없는 상태는 **이름당 한 번만** 경고한다. 매 프레임 도는 호출부(수다 순환 등)가 있어 그대로 두면
+    // 콘솔이 같은 줄로 덮이고, 그러면 정작 다른 에러가 묻힌다.
+    private static void WarnMissingState(string stateName)
+    {
+        if (!s_warnedMissingStates.Add(stateName))
+        {
+            return;
+        }
+
+        Debug.LogWarning(
+            $"[주민] 애니메이터 컨트롤러에 '{stateName}' 상태가 없어 해당 동작이 재생되지 않습니다. " +
+            "Resident.controller는 Assets/Imported 저장소에 있으니 그쪽 커밋을 함께 받았는지 확인하세요.");
     }
 
     // 유휴/걷기 축으로 돌아온다. PlayState로 물린 상태에는 나가는 전이가 없으므로 이 호출이 유일한 복귀 경로다.
