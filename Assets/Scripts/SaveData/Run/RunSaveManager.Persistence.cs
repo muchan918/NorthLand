@@ -245,6 +245,12 @@ namespace NorthLand.Core
         /// </summary>
         private void HandleDayStart()
         {
+            if (TutorialMode.IsActive)
+            {
+                Debug.Log("[Save] 튜토리얼 중에는 낮 시작 자동 저장을 건너뜁니다.", this);
+                return;
+            }
+
             if (isRestoring)
                 return;
 
@@ -258,6 +264,28 @@ namespace NorthLand.Core
             }
 
             TrySaveNow();
+        }
+
+        /// <summary>
+        /// 현재 슬롯의 Run 세이브를 삭제한다.
+        /// 새 튜토리얼 시작처럼 기존 진행을 명시적으로 초기화하는 경로에서 사용한다.
+        /// </summary>
+        public bool TryDeleteCurrentRun()
+        {
+            if (fileStore == null)
+            {
+                Debug.LogError("[Save] 세이브 삭제 시스템이 초기화되지 않았습니다.", this);
+                return false;
+            }
+
+            if (!fileStore.TryDelete(out string error))
+            {
+                Debug.LogError($"[Save] Run 세이브 삭제에 실패했습니다: {error}", this);
+                return false;
+            }
+
+            Debug.Log("[Save] 새 튜토리얼 시작을 위해 기존 Run 세이브를 삭제했습니다.", this);
+            return true;
         }
 
         private void OnDestroy()

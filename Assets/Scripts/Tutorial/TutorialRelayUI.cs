@@ -16,6 +16,9 @@ public class TutorialRelayUI : MonoBehaviour
     [SerializeField]
     private Button cancelButton;
 
+    [SerializeField]
+    private RunSaveManager runSaveManager;
+
     private bool _pausedByPopup;
 
     private void Awake()
@@ -62,6 +65,7 @@ public class TutorialRelayUI : MonoBehaviour
         if (popupRoot == null) { LogMissing(nameof(popupRoot)); valid = false; }
         if (confirmButton == null) { LogMissing(nameof(confirmButton)); valid = false; }
         if (cancelButton == null) { LogMissing(nameof(cancelButton)); valid = false; }
+        if (runSaveManager == null) { LogMissing(nameof(runSaveManager)); valid = false; }
 
         return valid;
     }
@@ -96,6 +100,12 @@ public class TutorialRelayUI : MonoBehaviour
         if (sceneManager == null)
         {
             Debug.LogError($"[{nameof(TutorialRelayUI)}] GameSceneManager 인스턴스를 찾을 수 없습니다.", this);
+            return;
+        }
+
+        if (!runSaveManager.TryDeleteCurrentRun())
+        {
+            Debug.LogError($"[{nameof(TutorialRelayUI)}] 기존 Run을 초기화하지 못해 튜토리얼을 시작하지 않습니다.", this);
             return;
         }
 

@@ -5010,6 +5010,10 @@ PrefabInstance:
       propertyPath: confirmButton
       value: 
       objectReference: {fileID: 1581991417}
+    - target: {fileID: 5941201484626724187, guid: a5138b220cb5f4049a4461c792bd053b, type: 3}
+      propertyPath: runSaveManager
+      value: 
+      objectReference: {fileID: 27708747}
     - target: {fileID: 8375383204361182847, guid: a5138b220cb5f4049a4461c792bd053b, type: 3}
       propertyPath: m_Pivot.x
       value: 1
@@ -13181,6 +13185,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 5236193169772626758}
     m_Modifications:
+    - target: {fileID: 4908911351374936150, guid: eb1d6fcb0f7735845a14601e22aa066b, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 600
+      objectReference: {fileID: 0}
     - target: {fileID: 5063975392056729922, guid: eb1d6fcb0f7735845a14601e22aa066b, type: 3}
       propertyPath: m_Name
       value: TutorialRelayPopup
@@ -13268,6 +13276,13 @@ PrefabInstance:
     - target: {fileID: 6912180975235291478, guid: eb1d6fcb0f7735845a14601e22aa066b, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9166198412609646620, guid: eb1d6fcb0f7735845a14601e22aa066b, type: 3}
+      propertyPath: m_text
+      value: "\uD29C\uD1A0\uB9AC\uC5BC\uC744 \uC2DC\uC791\uD558\uBA74 \uD604\uC7AC
+        \uC9C4\uD589 \uC911\uC778 \uAC8C\uC784\uC774 \uCD08\uAE30\uD654\uB418\uBA70
+        \uBCF5\uAD6C\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.\n\uD29C\uD1A0\uB9AC\uC5BC\uC744
+        \uC2DC\uC791\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?"
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

@@ -43,6 +43,7 @@ public class TutorialController : MonoBehaviour
 
     private TutorialContext _context;
     private TutorialCondition _active;
+    private int? _masterSeedAfterTutorial;
 
     // 이번 실행이 진행할 단계 목록. StartTutorial에서 한 번 확정하고 이후 바뀌지 않는다 —
     // 진행 도중 debugMode를 뒤집으면 _index가 다른 리스트를 가리켜 엉뚱한 단계로 뛴다
@@ -57,9 +58,17 @@ public class TutorialController : MonoBehaviour
 
     private void Awake()
     {
-        // 일반 모드에서는 아래에서 이 컴포넌트를 끈다. enabled=false가 즉시 OnDisable을 호출하므로
-        // 정리 경로가 사용하는 Context를 그보다 먼저 준비해야 한다.
+        // 일반 모드에서도 비활성화 전에 초기 상태를 일관되게 준비한다.
         _context = new TutorialContext();
+
+        GameSceneManager sceneManager = GameSceneManager.Instance;
+
+        if (TutorialMode.IsActive &&
+            sceneManager != null &&
+            sceneManager.TryConsumeTutorialReturnMasterSeed(out int masterSeed))
+        {
+            _masterSeedAfterTutorial = masterSeed;
+        }
 
         if (tutorialRoot == null)
         {
@@ -342,6 +351,12 @@ public class TutorialController : MonoBehaviour
             TutorialMode.Exit();
             Debug.LogError($"[{nameof(TutorialController)}] GameSceneManager 인스턴스를 찾을 수 없습니다.", this);
 
+            return;
+        }
+
+        if (_masterSeedAfterTutorial.HasValue)
+        {
+            sceneManager.LoadManageSpaceWithSeed(_masterSeedAfterTutorial.Value);
             return;
         }
 

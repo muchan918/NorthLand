@@ -15,6 +15,9 @@ namespace NorthLand.Core
 
         private int? pendingMasterSeed;
 
+        // 최초 시드 시작이 튜토리얼을 거칠 때, 본 게임에 다시 전달할 시드.
+        private int? tutorialReturnMasterSeed;
+
         private bool pendingContinue;
 
         public static bool IsTitleScene => SceneManager.GetActiveScene().name == TitleScene;
@@ -48,6 +51,7 @@ namespace NorthLand.Core
         public void LoadMainMenu()
         {
             TutorialMode.Exit();
+            tutorialReturnMasterSeed = null;
             SceneManager.LoadScene(TitleScene);
         }
 
@@ -58,6 +62,7 @@ namespace NorthLand.Core
             TutorialMode.Exit();
             pendingContinue = false;
             pendingMasterSeed = null;
+            tutorialReturnMasterSeed = null;
 
             SceneManager.LoadScene(GameScene);
         }
@@ -67,6 +72,7 @@ namespace NorthLand.Core
             TutorialMode.Enter();
             pendingContinue = false;
             pendingMasterSeed = null;
+            tutorialReturnMasterSeed = null;
 
             SceneManager.LoadScene(GameScene);
         }
@@ -80,6 +86,7 @@ namespace NorthLand.Core
             TutorialMode.Exit();
             pendingContinue = true;
             pendingMasterSeed = null;
+            tutorialReturnMasterSeed = null;
 
             SceneManager.LoadScene(GameScene);
         }
@@ -101,6 +108,7 @@ namespace NorthLand.Core
             TutorialMode.Exit();
             pendingContinue = false;
             pendingMasterSeed = masterSeed;
+            tutorialReturnMasterSeed = null;
 
             SceneManager.LoadScene(GameScene);
         }
@@ -110,9 +118,24 @@ namespace NorthLand.Core
             TutorialMode.Enter();
             pendingContinue = false;
             pendingMasterSeed = masterSeed;
+            tutorialReturnMasterSeed = masterSeed;
 
             SceneManager.LoadScene(GameScene);
         }
+
+        public bool TryConsumeTutorialReturnMasterSeed(out int masterSeed)
+        {
+            if (!tutorialReturnMasterSeed.HasValue)
+            {
+                masterSeed = 0;
+                return false;
+            }
+
+            masterSeed = tutorialReturnMasterSeed.Value;
+            tutorialReturnMasterSeed = null;
+            return true;
+        }
+
         public bool TryConsumePendingMasterSeed(out int masterSeed)
         {
             if (!pendingMasterSeed.HasValue)
