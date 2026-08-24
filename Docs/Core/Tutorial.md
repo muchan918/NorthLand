@@ -93,7 +93,7 @@ protected void Fire();
 | `TutorialCanvas` | Canvas `sortingOrder = 600`. 보상(500) 위, 설정(700) 아래 — [UIZOrder.md](UIZOrder.md) §3 |
 | └ `Popup` | 화면 전체를 덮고 `Raycast Target`을 **켠다**. 팝업이 떠 있는 동안 뒤쪽 입력이 막히는 건 이 덕분이다 |
 | └ `Bubble` | `Raycast Target`을 **반드시 끈다**(자식 텍스트도). 안 끄면 말풍선 뒤 오브젝트가 클릭되지 않는다 |
-| `TutorialController` | `Overlay` 슬롯 + 단계 리스트 + `startOnPlay` 스위치 |
+| `TutorialController` | `Overlay` 슬롯 + 단계 리스트 + `startOnPlay` 스위치 + `Debug Mode`/`Debug Steps`([§2.4](#24-단계-하나만-떼어내-돌려보기)) |
 
 작업용 씬은 `Assets/Personal/muchan/Scene/TutorialTest.unity`(GameScene 복사본)다. 정본 반영은 [SceneWorkflow.md](SceneWorkflow.md) §4를 따른다.
 
@@ -171,7 +171,11 @@ public class TowerPlacedCondition : TutorialCondition
 
 **`TutorialContext`에는 "씬을 뒤져야 찾을 수 있는 것"만 담는다.** `static Instance`가 있거나 이벤트 자체가 `static`이면 조건이 직접 쓴다. 새로 담을 게 생기면 `TutorialContext`에 프로퍼티 한 줄을 추가한다 — 그 파일 외에는 안 고친다.
 
-> **타이머 금지.** 완료 판정은 각 시스템이 이미 가진 이벤트를 구독해서 한다. 몇 초 기다렸다 넘기는 조건은 만들지 않는다(#271 요구사항).
+> **행동 단계에 타이머 금지.** 플레이어가 무언가를 하기를 기다리는 단계의 완료 판정은 각 시스템이 이미 가진 이벤트를 구독해서 한다. 시간으로 넘기면 아무것도 하지 않아도 통과되므로 그 단계의 학습이 사라진다(#271 요구사항).
+>
+> **예외 — 연출 간격.** 팝업도 말풍선도 없이 다음 안내가 뜨는 시점만 미루는 단계는 `DelayCondition`으로 시간을 쓴다. 가르치는 것이 없으므로 위 근거가 적용되지 않는다. 예: 낮→밤 전환 직후 몬스터가 걸어 나오는 것을 잠깐 보여준 뒤 스킬 안내를 띄우는 간격.
+>
+> 판별 기준은 하나다 — **말풍선이 있으면 타이머를 쓰지 않는다.**
 
 #### 아직 이벤트가 없는 것
 
@@ -200,6 +204,21 @@ if (targetBuilding != null && building != targetBuilding)
 ```
 
 **기존 단계는 그 칸이 비어 있으므로 동작이 그대로다.** 메서드를 새로 만들지 않는다.
+
+### 2.4 단계 하나만 떼어내 돌려보기
+
+뒤쪽 단계를 고칠 때마다 앞 단계를 전부 통과하는 것은 비용이다. `TutorialController`의
+**`Debug Mode`를 켜면 `Steps` 대신 `Debug Steps`만 진행한다.** 보고 싶은 단계 에셋을 그 리스트에
+넣으면 그것부터 시작한다.
+
+- 진행할 리스트는 `StartTutorial`에서 **한 번 확정한다.** 진행 도중 스위치를 뒤집으면 인덱스가
+  다른 리스트를 가리켜 엉뚱한 단계로 뛰기 때문이다(`MonsterSpawnWaveProvider.isTutorialRun`과 같은 규칙).
+- 켜져 있으면 시작 시 콘솔에 경고를 남긴다 — 단계가 통째로 안 보이는 것을 버그로 오해하기 쉬운 자리다.
+- **`Steps`는 건드리지 않는다.** 정식 순서는 그대로 남으므로 스위치만 끄면 원래대로 돌아온다.
+
+⚠ 게임의 다른 상태를 만들어 주지는 않는다. 밤 단계를 이 방식으로 띄우면 시작은 낮이므로
+`SkillUsedCondition`처럼 밤을 요구하는 조건(`SkillManager.CanCast`)은 충족되지 않는다 —
+필요한 앞 단계(예: `DayEnd`)를 `Debug Steps`에 같이 넣어야 한다.
 
 ---
 
@@ -282,6 +301,7 @@ Unity는 **단일 필드**의 managed reference에는 타입 선택 UI를 그리
 | 행동해도 단계가 안 넘어간다 | `Completion`이 비었거나, 조건이 대상을 못 찾았다(콘솔에 경고가 찍힌다) |
 | 시작하자마자 단계를 통과해버린다 | 조건이 상태를 `Begin`에서 초기화하지 않는다 |
 | 말풍선 뒤 오브젝트가 클릭되지 않는다 | `Bubble`(또는 자식 텍스트)의 `Raycast Target`이 켜져 있다 |
+| 등록한 단계가 통째로 안 뜬다 | `Debug Mode`가 켜져 있다 — `Debug Steps`만 돈다([§2.4](#24-단계-하나만-떼어내-돌려보기)). 시작 시 콘솔에 경고가 찍힌다 |
 | 이전 단계의 조건이 또 발화한다 | `End`에서 구독을 안 풀었다 |
 | 단계 에셋의 조건이 통째로 비어 있다 | 조건 클래스 이름을 바꿨다([§3.2](#32-반드시-지킬-것)) |
 | 1일차 낮 신호를 놓친다 | `DayNightManager.OnDayStart`는 `Start()`에서 한 프레임 지연 후 최초 발행된다 |
