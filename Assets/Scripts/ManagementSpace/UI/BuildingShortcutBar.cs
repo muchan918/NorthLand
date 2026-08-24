@@ -13,6 +13,12 @@ public class BuildingShortcutBar : MonoBehaviour
         public Button button;
     }
 
+    /// 바로가기 버튼으로 건물에 갔다. 인자는 그 건물의 SO(초점에 건물이 없으면 null).
+    ///
+    /// Focus가 부르는 MouseManager.SelectExternally는 OnPrimarySelect로 흘러가 **건물을 직접 클릭한 것과
+    /// 똑같이 보인다**. "바로가기를 썼다"를 구분해야 하는 소비처(튜토리얼의 조작 학습 판정)는 이 통지를 봐야 한다.
+    public event Action<BuildingAsset> Focused;
+
     [SerializeField] private Entry[] _entries;
     [SerializeField] private CameraController2 _camera;
 
@@ -115,6 +121,8 @@ public class BuildingShortcutBar : MonoBehaviour
 
         if (entry.focus.ZoomSize > 0f) _camera.ZoomTo(entry.focus.ZoomSize);
         if (entry.focus.Building != null) MouseManager.Instance?.SelectExternally(entry.focus.Building);
+
+        Focused?.Invoke(entry.focus.Building != null ? entry.focus.Building.Asset : null);
     }
 
     // 커서 위치는 MouseManager 경유로 얻는다 — Mouse.current 직접 폴링 금지(입력 단일 창구 계약).

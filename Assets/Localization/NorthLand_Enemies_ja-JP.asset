@@ -106,6 +106,18 @@ MonoBehaviour:
     m_Localized: BOSS
     m_Metadata:
       m_Items: []
+  - m_Id: 12468187189456896
+    m_Localized: "\u81EA\u7206\u30B0\u30E9\u30DF\u30FC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12468187311091712
+    m_Localized: "\u81EA\u7206\u30E2\u30F3\u30B9\u30BF\u30FC"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12468187311091713
+    m_Localized: "\u672C\u9663\u306B\u89E6\u308C\u308B\u3068\u81EA\u7206\u3057\u5927\u30C0\u30E1\u30FC\u30B8\u3092\u4E0E\u3048\u308B"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

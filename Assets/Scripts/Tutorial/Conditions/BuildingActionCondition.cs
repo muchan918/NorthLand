@@ -11,6 +11,13 @@ public class BuildingActionCondition : TutorialCondition
     private ManagementController.BuildingAction action =
         ManagementController.BuildingAction.VillagerAssigned;
 
+    // ⚠ Upgraded는 생산 라인(ManagementController.TryUpgrade)과 업그레이드 전용 건물
+    //    (TryUpgradeBuilding — 마법 연구소·본진) 양쪽에서 발행된다. 대상을 비워두면
+    //    "나무꾼의 집을 업그레이드하세요" 단계가 마법 연구소를 올려도 통과한다.
+    [Tooltip("특정 건물만 인정하려면 지정한다. 비우면 아무 건물이나 인정한다.")]
+    [SerializeField]
+    private BuildingAsset targetBuilding;
+
     private ManagementController _management;
 
     public override void Begin(TutorialContext context)
@@ -39,9 +46,16 @@ public class BuildingActionCondition : TutorialCondition
 
     private void OnBuildingAction(BuildingAsset building, ManagementController.BuildingAction happened)
     {
-        if (happened == action)
+        if (happened != action)
         {
-            Fire();
+            return;
         }
+
+        if (targetBuilding != null && building != targetBuilding)
+        {
+            return;
+        }
+
+        Fire();
     }
 }

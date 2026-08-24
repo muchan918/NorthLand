@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
+  m_Name: VillagerIncrease
+  m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
+  popupTitle: "\uC8FC\uBBFC \uB298\uB9AC\uAE30"
+  popupBody: "\uBCF8\uC9C4\uC5D0\uC11C \uC790\uC6D0\uC744 \uB4E4\uC5EC \uB9C8\uC744
+    \uC8FC\uBBFC \uC218\uB97C \uB298\uB9B4 \uC218 \uC788\uC2B5\uB2C8\uB2E4.\r\n\uC8FC\uBBFC\uC774
+    \uB298\uBA74 \uC0DD\uC0B0 \uAC74\uBB3C\uC5D0 \uB354 \uBC30\uCE58\uD560 \uC218
+    \uC788\uC5B4 \uD558\uB8E8 \uC0DD\uC0B0\uB7C9\uC774 \uD568\uAED8 \uC62C\uB77C\uAC11\uB2C8\uB2E4.\r\n\uC5F0\uC2B5\uC744
+    \uC704\uD574 \uC774\uBC88\uC5D0\uB294 \uC790\uC6D0 \uC5C6\uC774 \uB298\uB9B4
+    \uC218 \uC788\uC2B5\uB2C8\uB2E4."
+  popupImage: {fileID: 0}
+  bubbleText: "\uBC14\uB85C\uAC00\uAE30 \uBC14\uC5D0\uC11C \uCE90\uC2AC\uC744 \uB20C\uB7EC
+    \uC8FC\uBBFC\uC744 1\uBA85 \uB298\uB9AC\uC138\uC694"
+  highlightMode: 0
+  highlightAnchorId: 
+  highlightCell: {x: 0, y: 0}
+  pauseGameDuringStep: 0
+  freeTowerPlacement: 0
+  restrictTowerPanelTo: {fileID: 0}
+  freeManagementCost: 1
+  upgradeCap: 0
+  villagerCap: 1
+  completion:
+    rid: 3470829977900417135
+  references:
+    version: 2
+    RefIds:
+    - rid: 3470829977900417135
+      type: {class: BuildingActionCondition, ns: , asm: Assembly-CSharp}
+      data:
+        action: 1
+        targetBuilding: {fileID: 11400000, guid: 53d4ac52df4a48f40bb1add6df6fd5ba, type: 2}

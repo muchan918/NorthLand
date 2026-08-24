@@ -107,6 +107,18 @@ MonoBehaviour:
     m_Localized: BOSS
     m_Metadata:
       m_Items: []
+  - m_Id: 12468187189456896
+    m_Localized: Bomb Grummy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12468187311091712
+    m_Localized: Bomber
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12468187311091713
+    m_Localized: Detonates on contact with the base, dealing heavy damage
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []
