@@ -27,6 +27,9 @@ namespace NorthLand.Core
         private bool isSaving;
         private bool savePending;
 
+        private bool runEnded;
+        private GameResult runEndResult;
+
         private void Awake()
         {
             serializer = new SaveSerializer();
@@ -133,6 +136,11 @@ namespace NorthLand.Core
         }
         private async UniTask<SaveResult> SaveOnceAsync(CancellationToken cancellationToken)
         {
+            if (runEnded)
+            {
+                return SaveResult.Failed("종료된 Run은 저장할 수 없습니다.");
+            }
+
             if (isRestoring)
             {
                 return SaveResult.Failed("복원 중에는 저장할 수 없습니다.");
@@ -196,6 +204,11 @@ namespace NorthLand.Core
 
         private async UniTask<SaveResult> SaveNowAsync(CancellationToken cancellationToken)
         {
+            if (runEnded)
+            {
+                return SaveResult.Failed("종료된 Run은 저장할 수 없습니다.");
+            }
+
             // 낮 시작 이벤트가 저장 중 다시 발생하면
             // 현재 저장 완료 후 최신 상태를 한 번 더 저장한다.
             if (isSaving)
@@ -229,6 +242,11 @@ namespace NorthLand.Core
             finally
             {
                 isSaving = false;
+
+                if (runEnded)
+                {
+                    TryDeleteEndedRunSave(runEndResult);
+                }
             }
         }
 
@@ -328,8 +346,27 @@ namespace NorthLand.Core
         private void HandleResultDecided(GameResult result)
         {
             if (result == GameResult.Playing)
+            {
                 return;
+            }
 
+            runEnded = true;
+            runEndResult = result;
+
+            // 종료 후 추가 저장 반복을 막는다.
+            savePending = false;
+
+            // 저장 중이면 SaveNowAsync의 finally가 마지막에 삭제한다.
+            if (isSaving)
+            {
+                return;
+            }
+
+            TryDeleteEndedRunSave(result);
+        }
+
+        private void TryDeleteEndedRunSave(GameResult result)
+        {
             if (fileStore == null)
             {
                 Debug.LogError("[Save] 세이브 삭제 시스템이 초기화되지 않았습니다.",this);
