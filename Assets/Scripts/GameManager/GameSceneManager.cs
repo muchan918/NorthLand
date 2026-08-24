@@ -60,19 +60,19 @@ namespace NorthLand.Core
             SceneManager.LoadScene(GameScene);
         }
 
-        /// <summary>
-        /// 미리 준비된 이어하기 데이터가 있을 때 게임 씬을 로드한다.
-        /// 파일 읽기와 역직렬화는 타이틀 화면에서 완료되어 있어야 한다.
-        /// </summary>
-        public bool TryLoadContinue(out string error)
+        public bool TryLoadContinue(RunData data,out string error)
         {
             error = null;
 
-            if (!pendingContinue || pendingContinueData == null)
+            if (data == null)
             {
-                error = "이어하기 데이터가 준비되지 않았습니다.";
+                error = "이어하기 RunData가 없습니다.";
                 return false;
             }
+
+            pendingContinueData = data;
+            pendingContinue = true;
+            pendingMasterSeed = null;
 
             SceneManager.LoadScene(GameScene);
             return true;
@@ -96,23 +96,6 @@ namespace NorthLand.Core
 
             masterSeed = pendingMasterSeed.Value;
 
-            pendingMasterSeed = null;
-
-            return true;
-        }
-
-        public bool TryPrepareContinue(RunData data,out string error)
-        {
-            error = null;
-
-            if (data == null)
-            {
-                error = "이어하기 RunData가 없습니다.";
-                return false;
-            }
-
-            pendingContinueData = data;
-            pendingContinue = true;
             pendingMasterSeed = null;
 
             return true;

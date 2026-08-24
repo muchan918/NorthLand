@@ -85,6 +85,18 @@ Application.persistentDataPath/
 슬롯 생성·선택·삭제가 성공하면 `PlayerSaveService.SelectedSlotChanged`가 발행된다. 마지막 선택 슬롯은
 `GameSettingsService.TrySetLastSelectedSlotIndex`를 통해 공통 설정에 기록한다.
 
+### 4.1 이어하기 씬 핸드오프
+
+1. 타이틀의 `MainMenuUI`는 `RunSaveLoader.LoadAsync`로 선택 슬롯의 파일 읽기·버전 판별·마이그레이션·역직렬화를 완료한다.
+2. 로드가 성공한 `RunData`는 `GameSceneManager.TryLoadContinue(RunData, out string)`에 전달한다. 이 호출이 일회성 데이터를 등록하고 게임 씬을 여는 일을 한 번에 수행한다.
+3. `GameSceneManager`는 `DontDestroyOnLoad` 수명 동안 이 데이터를 일시 보관한다.
+4. 게임 씬의 `RunSaveManager`가 `TryConsumeContinueData`로 데이터를 한 번만 소비해 런타임 상태를 복원한다.
+5. 소비 성공 시 `GameSceneManager`는 이어하기 플래그와 `RunData` 참조를 즉시 제거한다.
+
+`GameSceneManager`의 보관은 씬 경계를 넘기 위한 **일회성 전달 책임**이다. 파일 IO, JSON 구조, 버전 호환성 및
+마이그레이션은 `RunSaveLoader`/`SaveSerializer`가 소유하고, 실제 게임 상태 적용은 `RunSaveManager`가 소유한다.
+새 게임 또는 직접 입력 시드로 진입하면 남아 있는 이어하기 데이터는 폐기한다.
+
 ## 5. Run 저장과 복원
 
 ### 저장

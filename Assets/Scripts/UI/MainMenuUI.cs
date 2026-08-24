@@ -345,13 +345,7 @@ namespace NorthLand.UI
                     return;
                 }
 
-                if (!sceneManager.TryPrepareContinue(loadResult.Value,out string prepareError))
-                {
-                    HideContinueButton(prepareError);
-                    return;
-                }
-
-                if (!sceneManager.TryLoadContinue(out string loadError))
+                if (!sceneManager.TryLoadContinue(loadResult.Value,out string loadError))
                 {
                     HideContinueButton(loadError);
                 }
