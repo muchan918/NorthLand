@@ -3,6 +3,8 @@ using UnityEngine;
 using NorthLand.Core;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
+using System;
+using Cysharp.Threading.Tasks;
 
 namespace NorthLand.UI
 {
@@ -167,86 +169,74 @@ namespace NorthLand.UI
                 return;
             }
 
-            bool canContinue = HasLoadableSave(out string error);
-
-            continueButton.gameObject.SetActive(canContinue);
-
-            if (!canContinue &&!string.IsNullOrEmpty(error))
-            {
-                Debug.LogWarning($"[MainMenuUI] 이어하기 숨김: {error}",this);
-            }
+            continueButton.gameObject.SetActive(HasSaveFile());
         }
 
-        private bool HasLoadableSave(out string error)
+        private bool HasSaveFile()
         {
             PlayerSaveService playerSaveService = PlayerSaveService.Instance;
 
-            if (playerSaveService == null)
-            {
-                error = "플레이어 저장 시스템이 준비되지 않았습니다.";
-
-                return false;
-            }
-
-            if (!playerSaveService.HasSelectedSlot)
-            {
-                // 슬롯 미선택은 타이틀 진입 직후의 정상 상태다.
-                error = string.Empty;
-                return false;
-            }
-
-            var fileStore = new SaveFileStore(playerSaveService.CurrentSlotPath);
-
-            if (!fileStore.Exists)
-            {
-                error = null;
-                return false;
-            }
-
-            if (!fileStore.TryRead(out string json,out error))
+            if (playerSaveService == null || !playerSaveService.HasSelectedSlot)
             {
                 return false;
             }
 
-            var serializer = new SaveSerializer();
+            var fileStore =new SaveFileStore(playerSaveService.CurrentSlotPath);
 
-            if (!serializer.TryDeserialize(json,out RunData data,out error))
-            {
-                return false;
-            }
-
-            if (data == null)
-            {
-                error = "세이브 RunData가 비어 있습니다.";
-                return false;
-            }
-
-            error = null;
-            return true;
+            return fileStore.Exists;
         }
+
+        //private bool HasLoadableSave(out string error)
+        //{
+        //    PlayerSaveService playerSaveService = PlayerSaveService.Instance;
+
+        //    if (playerSaveService == null)
+        //    {
+        //        error = "플레이어 저장 시스템이 준비되지 않았습니다.";
+
+        //        return false;
+        //    }
+
+        //    if (!playerSaveService.HasSelectedSlot)
+        //    {
+        //        // 슬롯 미선택은 타이틀 진입 직후의 정상 상태다.
+        //        error = string.Empty;
+        //        return false;
+        //    }
+
+        //    var fileStore = new SaveFileStore(playerSaveService.CurrentSlotPath);
+
+        //    if (!fileStore.Exists)
+        //    {
+        //        error = null;
+        //        return false;
+        //    }
+
+        //    if (!fileStore.TryRead(out string json,out error))
+        //    {
+        //        return false;
+        //    }
+
+        //    var serializer = new SaveSerializer();
+
+        //    if (!serializer.TryDeserialize(json,out RunData data,out error))
+        //    {
+        //        return false;
+        //    }
+
+        //    if (data == null)
+        //    {
+        //        error = "세이브 RunData가 비어 있습니다.";
+        //        return false;
+        //    }
+
+        //    error = null;
+        //    return true;
+        //}
 
         public void OnClickContinue()
         {
-            // 타이틀이 열린 뒤 파일이 삭제·손상됐을 가능성도 다시 확인한다.
-            if (!HasLoadableSave(out string error))
-            {
-                if (continueButton != null)
-                    continueButton.gameObject.SetActive(false);
-
-                if (!string.IsNullOrEmpty(error))
-                {
-                    Debug.LogWarning($"[MainMenuUI] 이어하기를 시작할 수 없습니다: {error}", this);
-                }
-
-                return;
-            }
-
-            if (!TryGetSceneManager(out GameSceneManager sceneManager))
-            {
-                return;
-            }
-
-            sceneManager.LoadContinue();
+            ContinueAsync().Forget();
         }
 
         private void OnEnable()
@@ -327,6 +317,88 @@ namespace NorthLand.UI
             }
 
             return false;
+        }
+        private async UniTaskVoid ContinueAsync()
+        {
+            if (continueButton != null)
+            {
+                continueButton.interactable = false;
+            }
+
+            try
+            {
+                PlayerSaveService playerSaveService = PlayerSaveService.Instance;
+
+                if (playerSaveService == null || !playerSaveService.HasSelectedSlot)
+                {
+                    HideContinueButton("선택된 플레이어 슬롯이 없습니다.");
+
+                    return;
+                }
+
+                if (!TryGetSceneManager(out GameSceneManager sceneManager))
+                {
+                    return;
+                }
+
+                var fileStore = new SaveFileStore(playerSaveService.CurrentSlotPath);
+
+                SaveResult<string> readResult = await fileStore.ReadAsync(this.GetCancellationTokenOnDestroy());
+
+                if (!readResult.Success)
+                {
+                    HideContinueButton(readResult.Error);
+                    return;
+                }
+
+                var serializer = new SaveSerializer();
+
+                if (!serializer.TryDeserialize(readResult.Value,out RunData data,out string deserializeError))
+                {
+                    HideContinueButton(deserializeError);
+                    return;
+                }
+
+                if (!sceneManager.TryPrepareContinue(data,out string prepareError))
+                {
+                    HideContinueButton(prepareError);
+                    return;
+                }
+
+                if (!sceneManager.TryLoadContinue(out string loadError))
+                {
+                    HideContinueButton(loadError);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // 타이틀 화면이 닫히면서 발생한 정상 취소
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception, this);
+
+                HideContinueButton("이어하기 준비 중 오류가 발생했습니다.");
+            }
+            finally
+            {
+                if (continueButton != null)
+                {
+                    continueButton.interactable = true;
+                }
+            }
+        }
+        private void HideContinueButton(string error)
+        {
+            if (continueButton != null)
+            {
+                continueButton.gameObject.SetActive(false);
+            }
+
+            if (!string.IsNullOrEmpty(error))
+            {
+                Debug.LogWarning($"[MainMenuUI] 이어하기를 시작할 수 없습니다: {error}",this);
+            }
         }
     }
 }

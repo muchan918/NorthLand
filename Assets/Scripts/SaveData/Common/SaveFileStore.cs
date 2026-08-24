@@ -147,6 +147,29 @@ namespace NorthLand.Core
             }
         }
 
+        public async UniTask<SaveResult<string>> ReadAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                return await UniTask.RunOnThreadPool(() =>
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        if (!TryRead(out string json, out string error))
+                        {
+                            return SaveResult<string>.Failed(error);
+                        }
+
+                        return SaveResult<string>.Succeeded(json);
+                    },
+                    cancellationToken: cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+        }
+
         /// <summary>
         /// 현재 Run 세이브와 남아 있는 임시 파일을 삭제한다.
         /// 파일이 이미 없어도 성공으로 처리한다.

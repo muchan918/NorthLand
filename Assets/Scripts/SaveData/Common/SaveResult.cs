@@ -21,4 +21,28 @@ namespace NorthLand.Core
             return new SaveResult(false, error);
         }
     }
+
+    public readonly struct SaveResult<T>
+    {
+        public bool Success { get; }
+        public T Value { get; }
+        public string Error { get; }
+
+        private SaveResult(bool success, T value, string error)
+        {
+            Success = success;
+            Value = value;
+            Error = error;
+        }
+
+        public static SaveResult<T> Succeeded(T value)
+        {
+            return new SaveResult<T>(true, value, null);
+        }
+
+        public static SaveResult<T> Failed(string error)
+        {
+            return new SaveResult<T>(false,default,error);
+        }
+    }
 }
