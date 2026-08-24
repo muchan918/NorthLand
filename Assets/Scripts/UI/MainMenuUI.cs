@@ -4,6 +4,7 @@ using NorthLand.Core;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 
 namespace NorthLand.UI
@@ -31,9 +32,13 @@ namespace NorthLand.UI
         [SerializeField]
         private GameObject savePanel;
 
+        private RunSaveLoader runSaveLoader;
+        private CancellationTokenSource continueRefreshCts;
+
         private void Awake()
         {
-            RefreshContinueButton();
+            runSaveLoader = new RunSaveLoader();
+            RefreshContinueButtonAsync().Forget();
         }
 
         // 랜덤 시드로 시작
@@ -160,7 +165,7 @@ namespace NorthLand.UI
         /// <summary>
         /// 정상적으로 읽을 수 있는 세이브가 있을 때만 이어하기 버튼을 표시한다.
         /// </summary>
-        private void RefreshContinueButton()
+        private async UniTaskVoid RefreshContinueButtonAsync()
         {
             if (continueButton == null)
             {
@@ -169,21 +174,58 @@ namespace NorthLand.UI
                 return;
             }
 
-            continueButton.gameObject.SetActive(HasSaveFile());
-        }
+            continueButton.gameObject.SetActive(false);
 
-        private bool HasSaveFile()
-        {
+            continueRefreshCts?.Cancel();
+            continueRefreshCts?.Dispose();
+            continueRefreshCts = null;
+
             PlayerSaveService playerSaveService = PlayerSaveService.Instance;
 
             if (playerSaveService == null || !playerSaveService.HasSelectedSlot)
             {
-                return false;
+                return;
             }
 
-            var fileStore =new SaveFileStore(playerSaveService.CurrentSlotPath);
+            CancellationTokenSource refreshCts =
+                CancellationTokenSource.CreateLinkedTokenSource(
+                this.GetCancellationTokenOnDestroy());
+            continueRefreshCts = refreshCts;
 
-            return fileStore.Exists;
+            string slotPath = playerSaveService.CurrentSlotPath;
+
+            try
+            {
+                SaveResult<RunData> result = await runSaveLoader.LoadAsync(
+                    slotPath,
+                    refreshCts.Token);
+
+                if (playerSaveService.HasSelectedSlot &&
+                    playerSaveService.CurrentSlotPath == slotPath)
+                {
+                    continueButton.gameObject.SetActive(result.Success);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // 슬롯 변경 또는 타이틀 화면 종료에 따른 정상 취소
+            }
+            finally
+            {
+                if (ReferenceEquals(continueRefreshCts,refreshCts))
+                {
+                    continueRefreshCts = null;
+                }
+
+                refreshCts.Dispose();
+            }
+        }
+
+        private void OnDestroy()
+        {
+            continueRefreshCts?.Cancel();
+            continueRefreshCts?.Dispose();
+            continueRefreshCts = null;
         }
 
         public void OnClickContinue()
@@ -213,7 +255,7 @@ namespace NorthLand.UI
 
         private void HandleSelectedSlotChanged()
         {
-            RefreshContinueButton();
+            RefreshContinueButtonAsync().Forget();
         }
 
         private void ToggleSavePanel()
@@ -293,25 +335,17 @@ namespace NorthLand.UI
                     return;
                 }
 
-                var fileStore = new SaveFileStore(playerSaveService.CurrentSlotPath);
+                SaveResult<RunData> loadResult = await runSaveLoader.LoadAsync(
+                    playerSaveService.CurrentSlotPath,
+                    this.GetCancellationTokenOnDestroy());
 
-                SaveResult<string> readResult = await fileStore.ReadAsync(this.GetCancellationTokenOnDestroy());
-
-                if (!readResult.Success)
+                if (!loadResult.Success)
                 {
-                    HideContinueButton(readResult.Error);
+                    HideContinueButton(loadResult.Error);
                     return;
                 }
 
-                var serializer = new SaveSerializer();
-
-                if (!serializer.TryDeserialize(readResult.Value,out RunData data,out string deserializeError))
-                {
-                    HideContinueButton(deserializeError);
-                    return;
-                }
-
-                if (!sceneManager.TryPrepareContinue(data,out string prepareError))
+                if (!sceneManager.TryPrepareContinue(loadResult.Value,out string prepareError))
                 {
                     HideContinueButton(prepareError);
                     return;
