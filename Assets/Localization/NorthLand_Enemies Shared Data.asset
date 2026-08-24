@@ -103,6 +103,18 @@ MonoBehaviour:
     m_Key: enemies.system.boss
     m_Metadata:
       m_Items: []
+  - m_Id: 12468187189456896
+    m_Key: enemies.grummy.bomb.name
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12468187311091712
+    m_Key: enemies.grummy.bomb.role
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12468187311091713
+    m_Key: enemies.grummy.bomb.desc
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

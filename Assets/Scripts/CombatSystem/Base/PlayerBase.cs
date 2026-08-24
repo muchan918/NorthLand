@@ -4,7 +4,9 @@ using UnityEngine;
 
 namespace NorthLand.Combat
 {
-    public class PlayerBase : MonoBehaviour, IDamageable
+    // IBaseStructure(#453)는 값 없는 역할 마커다 — 자폭병이 "본진"을 알아보는 유일한 축이며,
+    // 구체 타입 검사를 대신한다. 본진 역할이 늘어나면(부성문·방벽 등) 그쪽에도 이 마커만 붙인다.
+    public class PlayerBase : MonoBehaviour, IBaseStructure
     {
         [SerializeField] float maxHp = 200f;
 

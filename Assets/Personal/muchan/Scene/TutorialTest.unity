@@ -324,7 +324,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -937,6 +937,11 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 78707c5ac976b044192922877d0e910d, type: 2}
   - {fileID: 11400000, guid: 9c0943bf1c97e5e488bee70890538755, type: 2}
   - {fileID: 11400000, guid: 83e6017eeec05c84e9811d226c89e19c, type: 2}
+  tutorialWaves:
+  - {fileID: 11400000, guid: 1c9287c3fab27464b9615862883773f1, type: 2}
+  - {fileID: 11400000, guid: eeca155a2506e114fa5c67206a374b5e, type: 2}
+  forceTutorialMode: 1
+  runBootstrapper: {fileID: 0}
 --- !u!114 &111725158
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6922,7 +6927,7 @@ Transform:
   m_GameObject: {fileID: 863015836}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: -100, y: 0, z: -150}
+  m_LocalPosition: {x: -100, y: 0, z: -300}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -7913,7 +7918,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -8248,6 +8253,7 @@ RectTransform:
   m_LocalScale: {x: 0, y: 0, z: 0}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 2017695241}
   - {fileID: 1926416546}
   - {fileID: 1007550660}
   m_Father: {fileID: 0}
@@ -8276,6 +8282,9 @@ MonoBehaviour:
   confirmButton: {fileID: 634297906}
   bubbleRoot: {fileID: 1007550659}
   bubbleText: {fileID: 22091295}
+  dim: {fileID: 2017695242}
+  hole: {fileID: 1396680421}
+  holePadding: {x: 16, y: 16}
 --- !u!1 &1051704679
 GameObject:
   m_ObjectHideFlags: 0
@@ -11712,6 +11721,50 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1395927279}
   m_Mesh: {fileID: 717966895204937146, guid: ec3863caae7e9ad4ea47cfdd60c32a92, type: 3}
+--- !u!1 &1396680420
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1396680421}
+  - component: {fileID: 1396680423}
+  m_Layer: 5
+  m_Name: hole
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1396680421
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1396680420}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2017695241}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 300, y: 300}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &1396680423
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1396680420}
+  m_CullTransparentMesh: 1
 --- !u!1 &1397079614
 GameObject:
   m_ObjectHideFlags: 0
@@ -12402,7 +12455,7 @@ Transform:
   m_GameObject: {fileID: 1459800173}
   serializedVersion: 2
   m_LocalRotation: {x: 0.37686962, y: 0.16043001, z: -0.06645229, w: 0.90984374}
-  m_LocalPosition: {x: -140.60002, y: 463.6, z: -338.04306}
+  m_LocalPosition: {x: -140.60002, y: 463.6, z: -488.04306}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -14770,6 +14823,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1906456309}
   - component: {fileID: 1906456308}
+  - component: {fileID: 1906456310}
   m_Layer: 0
   m_Name: TutorialController
   m_TagString: Untagged
@@ -14791,10 +14845,31 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TutorialController
   overlay: {fileID: 1048151149}
   steps:
-  - {fileID: 11400000, guid: 6da64bf630062994aa627c04b42bc6ea, type: 2}
-  - {fileID: 11400000, guid: 7170043e993bfc34292996fd444f75b2, type: 2}
+  - {fileID: 11400000, guid: f973092073f4ace4d95601011ed88267, type: 2}
+  - {fileID: 11400000, guid: 8096b01c58ca0cd4b825fec14e661825, type: 2}
+  - {fileID: 11400000, guid: d2791ded24a342f47a3a5289bc14b633, type: 2}
+  - {fileID: 11400000, guid: 8bf57dd7e0d98444f85ae7eedc601fb7, type: 2}
+  - {fileID: 11400000, guid: 7f4ad99db6ba8704fb97e2fc5b802dd0, type: 2}
+  - {fileID: 11400000, guid: 750aa240cb51b904a90c1e261a0046aa, type: 2}
   - {fileID: 11400000, guid: 9d6128b93f765924680e3c115d3aef92, type: 2}
+  - {fileID: 11400000, guid: 2631a4bf9c358144d8f7415d83ea7854, type: 2}
+  - {fileID: 11400000, guid: b15db63674cfc464fbf9d8d528abacbc, type: 2}
+  - {fileID: 11400000, guid: 4fda381e9a44a17478b3f2587efd4913, type: 2}
+  - {fileID: 11400000, guid: e0534bd2577db5d42b2850e88aa9af24, type: 2}
+  - {fileID: 11400000, guid: 77593dd74f9a36c42a794e74af25fe9d, type: 2}
+  - {fileID: 11400000, guid: 172226fdf99b4474c8519e78cba95d92, type: 2}
+  - {fileID: 11400000, guid: 34b2852b12edc184ca58bc831b50135d, type: 2}
+  - {fileID: 11400000, guid: e650d75cf77241448a74ab35bf498838, type: 2}
+  - {fileID: 11400000, guid: 36e07b3b8060fd240ad288ce8e521cad, type: 2}
+  - {fileID: 11400000, guid: 1db4bfa5ea7164349a57fe3062445797, type: 2}
+  - {fileID: 11400000, guid: 18830b9b69e19554888a68348195f12f, type: 2}
+  - {fileID: 11400000, guid: bc70e8778bca7f443bd5271060cc062f, type: 2}
+  - {fileID: 11400000, guid: f8b3a8d990b360d45a54be978c108b87, type: 2}
+  - {fileID: 11400000, guid: 5eccda031e295294e9867f8f522cc1d1, type: 2}
+  - {fileID: 11400000, guid: 5d1d1f1346f310549998bd0474c1f16f, type: 2}
   startOnPlay: 1
+  debugMode: 0
+  debugSteps: []
 --- !u!4 &1906456309
 Transform:
   m_ObjectHideFlags: 0
@@ -14810,6 +14885,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1906456310
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1906456307}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f55ae15f6bfbc441bb0e7c1d2657536, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TutorialSafety
+  invincibleBelowHp: 70
 --- !u!1 &1909950348
 GameObject:
   m_ObjectHideFlags: 0
@@ -15684,6 +15772,83 @@ CanvasRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2014508884}
+  m_CullTransparentMesh: 1
+--- !u!1 &2017695240
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2017695241}
+  - component: {fileID: 2017695243}
+  - component: {fileID: 2017695242}
+  m_Layer: 5
+  m_Name: Dim
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &2017695241
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2017695240}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1396680421}
+  m_Father: {fileID: 1048151148}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &2017695242
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2017695240}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c2496f33d53b664b9ab547d0d935134, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RaycastHoleTest
+  m_Material: {fileID: 0}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+  hole: {fileID: 1396680421}
+--- !u!222 &2017695243
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2017695240}
   m_CullTransparentMesh: 1
 --- !u!1 &2040829057
 GameObject:
@@ -21431,6 +21596,7 @@ GameObject:
   - component: {fileID: 2856934565975618207}
   - component: {fileID: 6262796507066623699}
   - component: {fileID: 9140323519560391690}
+  - component: {fileID: 9140323519560391691}
   m_Layer: 0
   m_Name: TowerPanel
   m_TagString: Untagged
@@ -22906,6 +23072,7 @@ MonoBehaviour:
   _targetingNextButton: {fileID: 2120798516}
   _mergeContainer: {fileID: 220826457}
   _mergeContent: {fileID: 1981345575}
+  _mergeSlotPrefab: {fileID: 0}
 --- !u!114 &4327673452858127138
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -30450,6 +30617,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 36cb766809e8efb4dad1693768e399db, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BuffTileIconPreview
+--- !u!114 &9140323519560391691
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3541417598832098768}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1f7540f0d7cec8e4b8448bb7c0673dca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TutorialAnchor
+  id: tower_panel
 --- !u!114 &9144133786247706868
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -34,6 +34,12 @@ public class EnemyAssetEditor : Editor
                 break;
         }
 
+        // 자폭(#453)은 EnemyType 축과 직교하므로 위 switch **밖에서** 항상 그린다.
+        // switch 안에 넣으면 타입별 블록 3곳에 같은 줄을 복제해야 하고, 새 EnemyType이
+        // 추가될 때 조용히 빠진다(그러면 저작할 수 없는 필드가 된다).
+        EditorGUILayout.Space();
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("SelfDestruct"), true);
+
         serializedObject.ApplyModifiedProperties();
     }
 }

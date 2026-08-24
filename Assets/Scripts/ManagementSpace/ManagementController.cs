@@ -58,6 +58,12 @@ public class ManagementController : MonoBehaviour
 
         /// <summary>이 건물에서 주민 1명이 빠졌다(<see cref="UnassignVillager"/>) — <b>그 건물의</b> 출입 포인트에서 1명이 걸어 나온다(#341, Resident.md §3.2).</summary>
         VillagerUnassigned,
+
+        /// <summary>이 건물에서 자원을 교환했다(<see cref="TryExchange"/>). 어떤 offer였는지는 싣지 않는다.</summary>
+        ///
+        /// ⚠ 새 값은 <b>반드시 맨 끝에</b> 더한다 — BuildingActionCondition이 이 enum을 정수 인덱스로
+        ///   직렬화하므로, 중간에 끼우면 기존 단계 에셋이 다른 행동을 가리키게 된다.
+        Exchanged,
     }
 
     /// <summary>
@@ -171,6 +177,137 @@ public class ManagementController : MonoBehaviour
     // ── 비용 소비 게이트웨이 (소비처는 지갑에 직접 접근하지 않고 컨트롤러 경유 — WL-017) ──
     /// <summary>Cost 리스트를 감당할 수 있는지 판정한다. null/빈 리스트는 무료(true).<br/>
     /// 자원 해석에 실패하면(삭제·미배선 SO) 감당 불가로 본다 — 근거는 <see cref="TryAggregateCost"/>(WL-176).</summary>
+    /// <summary>
+    /// [튜토리얼용] 켜면 경영 조작이 자원을 소모하지 않는다.<br/>
+    /// 생산 라인(<see cref="TryUpgrade"/>) · 업그레이드 전용 건물(<see cref="TryUpgradeBuilding"/>) ·
+    /// 주민 증축(<see cref="TryIncreaseVillagers"/>)에 걸린다.<br/>
+    /// 교환(<see cref="TryExchange"/>)은 빠진다 — 비용을 ResourceCost 리스트가 아니라 (자원 종류, 수량)
+    /// 한 쌍으로 들고 있어 <see cref="EffectiveCost"/>가 걸릴 자리가 없다.
+    /// </summary>
+    public bool FreeManagementCost
+    {
+        get => _freeUpgrade;
+        set
+        {
+            if (_freeUpgrade == value)
+            {
+                return;
+            }
+
+            _freeUpgrade = value;
+
+            // 이 값이 바뀌면 CanUpgrade의 답이 뒤집힌다 — 열려 있는 건물 정보 패널의 업그레이드 버튼이
+            // 다시 그려지지 않으면 무료로 켠 직후에도 회색으로 남는다(BuildingInfoUI가 OnChanged로 갱신한다).
+            OnChanged?.Invoke();
+        }
+    }
+
+    private bool _freeUpgrade;
+
+    /// <summary>
+    /// [튜토리얼용] 이 레벨을 넘겨 올릴 수 없다. 0이면 제한 없음.<br/>
+    /// <see cref="FreeManagementCost"/>로 비용이 사라진 단계에서 한 건물만 계속 올리는 것을 막는다.<br/>
+    /// <br/>
+    /// ⚠ 그 단계의 완료 조건이 요구하는 레벨보다 낮게 잡으면 <b>단계를 영영 끝낼 수 없다</b>
+    ///   (예: AllProductionLinesUpgradedCondition의 Required Level과 맞출 것).
+    /// </summary>
+    public int UpgradeCap
+    {
+        get => _upgradeCap;
+        set
+        {
+            if (_upgradeCap == value)
+            {
+                return;
+            }
+
+            _upgradeCap = value;
+
+            // FreeUpgrade와 같은 이유 — 이 값이 바뀌면 CanUpgrade의 답과 "Lv 현재/최대" 표시가 뒤집히는데,
+            // 열려 있는 건물 정보 패널은 OnChanged로만 다시 그린다.
+            OnChanged?.Invoke();
+        }
+    }
+
+    private int _upgradeCap;
+
+    /// <summary>
+    /// [튜토리얼용] 주민을 이 인원까지만 늘릴 수 있다(보너스 기준). 0이면 제한 없음.<br/>
+    /// 무료로 열어 둔 단계에서 증축을 계속 눌러 주민이 불어나는 것을 막는다 —
+    /// castle.asset의 증축 레벨이 8개라 상한이 없으면 그만큼 누를 수 있다.
+    /// </summary>
+    public int VillagerCap
+    {
+        get => _villagerCap;
+        set
+        {
+            if (_villagerCap == value)
+            {
+                return;
+            }
+
+            _villagerCap = value;
+
+            // NextVillagerCost의 답이 뒤집힌다 — 본진 패널은 OnChanged로만 다시 그린다.
+            OnChanged?.Invoke();
+        }
+    }
+
+    private int _villagerCap;
+
+    /// <summary>
+    /// [튜토리얼용] 여기 담긴 건물만 업그레이드할 수 있다. 비우면 제한 없음.<br/>
+    /// <see cref="UpgradeCap"/>이 '얼마나'를 막는다면 이쪽은 '무엇을'을 막는다 —
+    /// 무료 구간에서 안내한 건물이 아닌 곳(캐슬·마법 연구소 등)으로 무료 업그레이드가 새는 것을 막는다.<br/>
+    /// <br/>
+    /// ⚠ 이게 없으면 앞 단계에서 뒤 단계의 대상을 미리 올려버릴 수 있고, 그러면 뒤 단계가
+    ///   상한에 걸려 Upgraded 통지가 영영 오지 않아 <b>진행이 막힌다</b>.
+    /// </summary>
+    public IReadOnlyList<BuildingAsset> UpgradeAllowList
+    {
+        get => _upgradeAllowList;
+        set
+        {
+            if (ReferenceEquals(_upgradeAllowList, value))
+            {
+                return;
+            }
+
+            _upgradeAllowList = value;
+
+            // CanUpgrade의 답이 뒤집힌다 — 열려 있는 패널은 OnChanged로만 다시 그린다.
+            OnChanged?.Invoke();
+        }
+    }
+
+    private IReadOnlyList<BuildingAsset> _upgradeAllowList;
+
+    // 목록이 비어 있으면 제한 없음. 담겨 있으면 그 안에 든 건물만 통과한다.
+    private bool IsUpgradeAllowed(BuildingAsset building)
+    {
+        if (_upgradeAllowList == null || _upgradeAllowList.Count == 0)
+        {
+            return true;
+        }
+
+        for (int i = 0; i < _upgradeAllowList.Count; i++)
+        {
+            if (_upgradeAllowList[i] == building)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// 무료 중이면 비용을 통째로 지운다. <b>감당 판정·실제 차감·되돌리기 환원이 같은 값을 봐야</b>
+    /// "버튼은 켜졌는데 눌러도 안 되는"(CanUpgrade 누락)·"안 낸 자원이 Ctrl+Z로 환불되는"
+    /// (PushSpendUndo 누락) 어긋남이 생기지 않는다.
+    /// null은 CanAfford가 무료로 취급하고, TrySpend는 빈 집계라 아무것도 쓰지 않고 성공한다.
+    private IReadOnlyList<ResourceCost> EffectiveCost(IReadOnlyList<ResourceCost> cost)
+        => FreeManagementCost ? null : cost;
+
     public bool CanAfford(IReadOnlyList<ResourceCost> costs)
     {
         if (costs == null || costs.Count == 0) return true; // 무료 — 매 프레임 조회 시 할당 회피
@@ -318,15 +455,26 @@ public class ManagementController : MonoBehaviour
     private int EffectiveMaxLevel(IReadOnlyList<BuildingAsset.UpgradeStep> levels, bool ignoreGate = false)
     {
         if (levels == null) return 0;
-        if (ignoreGate) return levels.Count;
+        if (ignoreGate) return Capped(levels.Count);
 
         int castle = CastleLevel;
         for (int i = 0; i < levels.Count; i++)
         {
-            if (levels[i] == null || levels[i].RequiredCastleLevel > castle) return i;
+            if (levels[i] == null || levels[i].RequiredCastleLevel > castle) return Capped(i);
         }
-        return levels.Count;
+        return Capped(levels.Count);
     }
+
+    // 튜토리얼 상한을 씌운다. 가능 판정(CanUpgrade)·실행 가드(TryUpgrade)·표시(LineMaxLevel)·
+    // 미리보기(LineUpgradeCost)가 전부 EffectiveMaxLevel을 지나므로, 여기 한 곳이면 넷이 같이 맞는다.
+    // Can/Try에만 걸면 패널은 "Lv 1/6"인데 버튼만 회색이라 이유가 화면에 드러나지 않는다.
+    private int Capped(int max) => _upgradeCap > 0 ? Mathf.Min(max, _upgradeCap) : max;
+
+    // 주민 증축 쪽 상한. 레벨 개수를 깎으면 NextVillagerCost가 null을 내고,
+    // 본진 패널이 그것을 '최대'로 읽어 버튼을 알아서 비활성화한다(UpgradeCap이 EffectiveMaxLevel을 통해
+    // 표시까지 함께 맞추는 것과 같은 구조).
+    private int EffectiveVillagerLevelCount(List<BuildingAsset.VillagerGrowthLevel> levels)
+        => _villagerCap > 0 ? Mathf.Min(levels.Count, _villagerCap) : levels.Count;
 
     // 잠긴 다음 레벨이 요구하는 본진 레벨(잠기지 않았거나 진짜 최대면 0) — 표시부의 "본진 Lv n 필요" 안내용.
     private int RequiredCastleLevelAt(IReadOnlyList<BuildingAsset.UpgradeStep> levels, int current, int effectiveMax)
@@ -361,7 +509,9 @@ public class ManagementController : MonoBehaviour
         if (!IsDay || !IsValidLine(index)) return false;
         List<BuildingAsset.UpgradeLevel> levels = _lineUpgradeLevels[index];
         int next = _level[index];
-        return next < EffectiveMaxLevel(levels) && CanAfford(levels[next].Cost);
+        return IsUpgradeAllowed(_lineBuildings[index])
+               && next < EffectiveMaxLevel(levels)
+               && CanAfford(EffectiveCost(levels[next].Cost));
     }
 
     // 건물 SO가 몇 번 라인인지. 생산 라인(업그레이드 대상)이 아니면 -1.
@@ -427,7 +577,9 @@ public class ManagementController : MonoBehaviour
         if (!IsDay || !IsValidUpgrade(index)) return false;
         IReadOnlyList<BuildingAsset.UpgradeStep> levels = _upgradeLevelTables[index];
         int next = _upgradeLevel[index];
-        return next < UpgradeBuildingMaxLevel(index) && CanAfford(levels[next].Cost);
+        return IsUpgradeAllowed(_upgradeBuildingRefs[index])
+               && next < UpgradeBuildingMaxLevel(index)
+               && CanAfford(EffectiveCost(levels[next].Cost));
     }
 
     /// <summary>
@@ -447,6 +599,12 @@ public class ManagementController : MonoBehaviour
             return false;
         }
 
+        if (!IsUpgradeAllowed(_upgradeBuildingRefs[index]))
+        {
+            Debug.Log($"[경영] {_upgradeBuildingRefs[index].BuildingID}: 지금은 업그레이드할 수 없습니다.");
+            return false;
+        }
+
         IReadOnlyList<BuildingAsset.UpgradeStep> levels = _upgradeLevelTables[index];
         int next = _upgradeLevel[index];
         if (next >= UpgradeBuildingMaxLevel(index))
@@ -460,7 +618,8 @@ public class ManagementController : MonoBehaviour
             return false;
         }
 
-        if (!TrySpend(levels[next].Cost))
+        IReadOnlyList<ResourceCost> paid = EffectiveCost(levels[next].Cost);
+        if (!TrySpend(paid))
         {
             Debug.Log($"[경영] {_upgradeBuildingRefs[index].BuildingID}: 자원이 부족해 업그레이드할 수 없습니다.");
             return false;
@@ -472,7 +631,7 @@ public class ManagementController : MonoBehaviour
         // 되돌리기 등록(#444). 이전 레벨로 되맞추는 일은 세이브 복원 API가 그대로 해 준다.
         int previousLevel = next;
         string buildingId = UpgradeBuildingId(index);
-        PushSpendUndo(levels[previousLevel].Cost,
+        PushSpendUndo(paid,
             () => TryRevertUpgradeBuilding(buildingId, index, previousLevel),
             $"{_upgradeBuildingRefs[index].BuildingID} 업그레이드");
         OnChanged?.Invoke();
@@ -507,10 +666,14 @@ public class ManagementController : MonoBehaviour
     public int VillagerGrowthCount => _bonusVillagers;
 
     /// <summary>다음 회차 주민 증가 비용. 행을 모두 소진했거나 테이블이 없으면 null(표시부는 "MAX" 처리).</summary>
+    /// ⚠ 반환하는 것은 <b>실제 비용</b>이다 — 무료 여부를 여기서 지우면 안 된다.
+    /// null은 "더 늘릴 수 없다"는 신호로 쓰이고(본진 패널이 버튼을 '최대'로 바꾼다),
+    /// 무료라고 null을 내면 최대에 도달한 것으로 오독된다. 무료 처리는 CanIncreaseVillagers·
+    /// TryIncreaseVillagers가 EffectiveCost로 따로 한다.
     public IReadOnlyList<ResourceCost> NextVillagerCost(BuildingAsset building)
     {
         List<BuildingAsset.VillagerGrowthLevel> levels = VillagerLevels(building);
-        if (levels == null || _bonusVillagers >= levels.Count) return null;
+        if (levels == null || _bonusVillagers >= EffectiveVillagerLevelCount(levels)) return null;
 
         BuildingAsset.VillagerGrowthLevel next = levels[_bonusVillagers];
         return next?.Cost;
@@ -520,8 +683,10 @@ public class ManagementController : MonoBehaviour
     public bool CanIncreaseVillagers(BuildingAsset building)
     {
         if (!IsDay) return false;
+        // cost != null은 '아직 늘릴 여지가 있는가'이고, 감당 판정은 무료 여부를 태워서 본다.
+        // 둘을 한 값으로 합치면 무료일 때 '최대 도달'로 오독된다(NextVillagerCost 주석 참고).
         IReadOnlyList<ResourceCost> cost = NextVillagerCost(building);
-        return cost != null && CanAfford(cost);
+        return cost != null && CanAfford(EffectiveCost(cost));
     }
 
     /// <summary>
@@ -545,14 +710,15 @@ public class ManagementController : MonoBehaviour
         {
             return false;
         }
-        if (_bonusVillagers >= levels.Count)
+        if (_bonusVillagers >= EffectiveVillagerLevelCount(levels))
         {
             Debug.Log($"[경영] 주민 수가 이미 최대입니다. ({MaxVillagers}명)");
             return false;
         }
 
         BuildingAsset.VillagerGrowthLevel target = levels[_bonusVillagers];
-        if (target == null || !TrySpend(target.Cost))
+        IReadOnlyList<ResourceCost> paid = target != null ? EffectiveCost(target.Cost) : null;
+        if (target == null || !TrySpend(paid))
         {
             Debug.Log($"[경영] 자원이 부족해 주민을 늘릴 수 없습니다. ({_bonusVillagers + 1}회차)");
             return false;
@@ -564,7 +730,7 @@ public class ManagementController : MonoBehaviour
         // 되돌리기 등록(#444). 상한을 내리는 조작이라 되돌리기가 배치까지 볼 수 있어야 한다 —
         // 규칙은 RevertVillagerGrowth 참고.
         int previousBonus = _bonusVillagers - 1;
-        PushSpendUndo(target.Cost, () => RevertVillagerGrowth(previousBonus),
+        PushSpendUndo(paid, () => RevertVillagerGrowth(previousBonus),
             $"{building.BuildingID} 주민 증축");
         OnChanged?.Invoke();
         OnBuildingAction?.Invoke(building, BuildingAction.VillagerIncreased);
@@ -620,6 +786,7 @@ public class ManagementController : MonoBehaviour
         _wallet.Add(gainKind, gained);
         Debug.Log($"[경영] 교환: {payKind} -{offer.PayAmount} → {gainKind} +{gained}");
         OnChanged?.Invoke();
+        OnBuildingAction?.Invoke(building, BuildingAction.Exchanged);
         return true;
     }
 
@@ -918,6 +1085,12 @@ public class ManagementController : MonoBehaviour
             return false;
         }
 
+        if (!IsUpgradeAllowed(_lineBuildings[index]))
+        {
+            Debug.Log($"[경영] {LineDisplayName(index)}: 지금은 업그레이드할 수 없습니다.");
+            return false;
+        }
+
         List<BuildingAsset.UpgradeLevel> levels = _lineUpgradeLevels[index];
         int next = _level[index];
         if (next >= EffectiveMaxLevel(levels))
@@ -931,7 +1104,8 @@ public class ManagementController : MonoBehaviour
         }
 
         BuildingAsset.UpgradeLevel target = levels[next];
-        if (!TrySpend(target.Cost))
+        IReadOnlyList<ResourceCost> paid = EffectiveCost(target.Cost);
+        if (!TrySpend(paid))
         {
             Debug.Log($"[경영] {LineDisplayName(index)}: 자원이 부족해 업그레이드할 수 없습니다.");
             return false;
@@ -945,7 +1119,7 @@ public class ManagementController : MonoBehaviour
         // **되돌리는 시점의 값**을 읽어 그대로 유지한다 — 그 사이 주민을 넣거나 뺐을 수 있다.
         int previousLevel = next;
         string buildingId = LineBuildingId(index);
-        PushSpendUndo(target.Cost,
+        PushSpendUndo(paid,
             () => TryRevertProductionLine(buildingId, index, previousLevel),
             $"{LineDisplayName(index)} 업그레이드");
         OnChanged?.Invoke();

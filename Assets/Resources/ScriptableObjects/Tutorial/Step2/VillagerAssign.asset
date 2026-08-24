@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
+  m_Name: VillagerAssign
+  m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
+  popupTitle: "\uC8FC\uBBFC \uBC30\uCE58"
+  popupBody: "\uB9C8\uC744\uC5D0\uB294 \uC8FC\uBBFC\uC774 \uC788\uC2B5\uB2C8\uB2E4.
+    \uC8FC\uBBFC\uC744 \uC0DD\uC0B0 \uAC74\uBB3C\uC5D0 \uBC30\uCE58\uD558\uBA74 \uB2E4\uC74C
+    \uB0AE\uC5D0 \uADF8 \uAC74\uBB3C\uC758 \uC790\uC6D0\uC744 \uC0DD\uC0B0\uD569\uB2C8\uB2E4."
+  popupImage: {fileID: 0}
+  bubbleText: "\uC8FC\uBBFC 2\uBA85\uC744 \uBAA8\uB450 \uC0DD\uC0B0 \uAC74\uBB3C\uC5D0
+    \uBC30\uCE58\uD558\uC138\uC694"
+  highlightMode: 0
+  highlightAnchorId: 
+  highlightCell: {x: 0, y: 0}
+  completion:
+    rid: 3470829977900417121
+  references:
+    version: 2
+    RefIds:
+    - rid: 3470829977900417121
+      type: {class: AllVillagersAssignedCondition, ns: , asm: Assembly-CSharp}
+      data: 

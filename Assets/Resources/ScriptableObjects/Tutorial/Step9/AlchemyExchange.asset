@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
+  m_Name: AlchemyExchange
+  m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
+  popupTitle: "\uC790\uC6D0 \uAD50\uD658"
+  popupBody: "\uC5F0\uAE08\uC220\uC0AC\uC758 \uC9D1\uC5D0\uC11C \uB9C8\uB098\uC11D\uC744
+    \uB2E4\uB978 \uC790\uC6D0\uC73C\uB85C \uBC14\uAFC0 \uC218 \uC788\uC2B5\uB2C8\uB2E4.\r\n\uB9C8\uB098\uC11D\uC740
+    \uBC24 \uC6E8\uC774\uBE0C\uB97C \uD074\uB9AC\uC5B4\uD560 \uB54C\uB9C8\uB2E4 \uBC1B\uC73C\uBBC0\uB85C,
+    \uBAA8\uC790\uB780 \uC790\uC6D0\uC744 \uBA54\uC6B0\uB294 \uB370 \uC4F8 \uC218
+    \uC788\uC2B5\uB2C8\uB2E4."
+  popupImage: {fileID: 0}
+  bubbleText: "\uC5F0\uAE08\uC220\uC0AC\uC758 \uC9D1\uC5D0\uC11C \uC6D0\uD558\uB294
+    \uC790\uC6D0\uC73C\uB85C \uAD50\uD658\uD574 \uBCF4\uC138\uC694"
+  highlightMode: 0
+  highlightAnchorId: 
+  highlightCell: {x: 0, y: 0}
+  pauseGameDuringStep: 0
+  freeTowerPlacement: 0
+  restrictTowerPanelTo: {fileID: 0}
+  freeManagementCost: 0
+  upgradeCap: 0
+  villagerCap: 0
+  upgradeAllowList: []
+  completion:
+    rid: 3470829977900417138
+  references:
+    version: 2
+    RefIds:
+    - rid: 3470829977900417138
+      type: {class: BuildingActionCondition, ns: , asm: Assembly-CSharp}
+      data:
+        action: 4
+        targetBuilding: {fileID: 11400000, guid: 9b886b33796460b4aa897000e19fe634, type: 2}
