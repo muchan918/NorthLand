@@ -32,6 +32,8 @@ namespace NorthLand.Core
 
         public string CurrentSlotPath => slotManager.CurrentSlotPath;
 
+        public bool IsTutorialCompleted => CurrentPlayerData != null && CurrentPlayerData.tutorialCompleted;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Bootstrap()
         {
@@ -221,6 +223,36 @@ namespace NorthLand.Core
             if (!store.TrySave(CurrentPlayerData,out error))
             {
                 CurrentPlayerData.lastPlayedAt = previousTime;
+
+                return false;
+            }
+
+            return true;
+        }
+
+        public bool TryCompleteTutorial(out string error)
+        {
+            error = null;
+
+            if (!HasSelectedSlot || CurrentPlayerData == null)
+            {
+                error = "선택된 플레이어 세이브 슬롯이 없습니다.";
+
+                return false;
+            }
+
+            if (CurrentPlayerData.tutorialCompleted)
+            {
+                return true;
+            }
+
+            CurrentPlayerData.tutorialCompleted = true;
+
+            var store = new PlayerDataStore(CurrentSlotPath);
+
+            if (!store.TrySave(CurrentPlayerData, out error))
+            {
+                CurrentPlayerData.tutorialCompleted = false;
 
                 return false;
             }

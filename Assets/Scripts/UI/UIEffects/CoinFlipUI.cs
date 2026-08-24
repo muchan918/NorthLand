@@ -1,3 +1,5 @@
+using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
@@ -67,6 +69,8 @@ public class CoinFlipUI : MonoBehaviour
 
     private async UniTaskVoid ChangePhaseAsync(DayNightManager.Phase phase)
     {
+        CancellationToken destroyToken = this.GetCancellationTokenOnDestroy();
+
         targetPhase = phase;
 
         if (isFlipping)
@@ -83,10 +87,15 @@ public class CoinFlipUI : MonoBehaviour
             {
                 await FlipOnceAsync(targetPhase);
             }
+
+            ApplyPhase(targetPhase);
+        }
+        catch (OperationCanceledException) when (destroyToken.IsCancellationRequested)
+        {
+            // 씬 전환으로 이 UI가 파괴된 정상 경로다. 파괴된 Image에 최종 상태를 적용하지 않는다.
         }
         finally
         {
-            ApplyPhase(targetPhase);
             isFlipping = false;
         }
     }
