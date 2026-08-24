@@ -150,7 +150,8 @@ namespace NorthLand.Combat
         [Tooltip("스턴이 끝난 뒤 이 시간 동안 재스턴을 받지 않는다(초). 대상당 스턴 가동률 상한이 " +
                  "지속/(지속+창)이 되므로, 같은 스턴 타워를 여러 기 깔았을 때의 천장을 이 값이 정한다. " +
                  "0이면 천장이 사라져 대수만큼 봉인이 길어진다 — 그 타워가 대상을 스스로 죽이지 못하면 " +
-                 "적이 전진하지 못해 밤이 끝나지 않을 수 있다.")]
+                 "적이 전진하지 못해 밤이 끝나지 않을 수 있다. " +
+                 "티어가 섞이면 종료 시각을 결정한(=더 긴) 스턴의 창이 적용된다.")]
         // ⚠ **음수 금지.** `ApplySlow`의 "미지정" 센티널이 `-1f`라(StatusEffectHandler) 음수를 적으면
         //    "창 없음"이 아니라 **핸들러 폴백(1.4초)으로 흐른다** — 창을 없애려던 의도와 정반대로
         //    가동률이 내려간다. `TowerAsset.OnValidate`의 창 경계 검사도 상한만 보므로 음수는 통과시킨다.
@@ -162,10 +163,11 @@ namespace NorthLand.Combat
         // ⚠ **소스 키를 무시하고 공유 static ID를 쓴다.**
         //
         // 다른 효과는 타워 인스턴스별로 채번해 여러 기가 중첩되지만, 스턴은 #274 이전부터 모든 소다
-        // 타워가 단일 슬롯(`"onhit.stun"`)을 공유해왔다. 인스턴스별로 바꿔도 영구 스턴은 나지 않지만
-        // (가동률 상한은 StatusEffectHandler의 **대상 기준** 게이트에서 나온다 — Tower.md §5.4),
-        // 밸런스가 미세하게 바뀌므로 이 리팩터링에서는 현행 동작을 그대로 보존한다.
-        // 인스턴스별 전환은 별도 이슈다(TowerRedesign.md §12 #1).
+        // 타워가 단일 슬롯(`"onhit.stun"`)을 공유해왔다. **티어별로 스턴 지속이 다른 타워가 생긴 지금은
+        // 이 공유가 정확성 요건이다** — 슬롯이 갈리면 두 스턴이 합집합으로 이어져
+        // StatusEffectHandler의 "에피소드 시작 기준 천장"이 무력화되고 봉인 시간이 대수만큼 늘어난다.
+        // (에피소드 자체는 대상당 하나로 게이트되지만, 슬롯이 둘이면 `remaining`도 둘이라 만료가 어긋난다)
+        // 인스턴스별 전환 논의(TowerRedesign.md §12 #1)는 그 천장을 어떻게 지킬지와 함께 다뤄야 한다.
         static readonly int SharedEffectId = "onhit.stun".GetHashCode();
 
         public override void Apply(IDamageable target, IAttacker source, TowerStats stats, int sourceId)
