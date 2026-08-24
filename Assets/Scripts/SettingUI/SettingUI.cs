@@ -16,7 +16,10 @@ public class SettingUI : MonoBehaviour
     [SerializeField]
     private Button settingbutton;
 
-    public bool IsOpen => settingPanel != null && settingPanel.activeSelf;
+    public bool IsOpen =>
+        isActiveAndEnabled &&
+        settingPanel != null &&
+        settingPanel.activeInHierarchy;
 
     private void Awake()
     {
@@ -177,5 +180,17 @@ public class SettingUI : MonoBehaviour
         }
 
         GameSceneManager.Instance.LoadManageSpace();
+    }
+
+    public void LoadTutorial()
+    {
+        if (GameSceneManager.Instance == null)
+        {
+            Debug.LogError($"[{nameof(SettingUI)}] GameSceneManager 인스턴스를 찾을 수 없습니다.",this);
+
+            return;
+        }
+
+        GameSceneManager.Instance.LoadTutorial();
     }
 }
