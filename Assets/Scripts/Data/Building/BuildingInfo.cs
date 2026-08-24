@@ -73,21 +73,33 @@ public class BuildingInfo : MonoBehaviour, ISelectable
     {
         HideAll(target);
 
+        // 패널이 정말로 열렸을 때만 소리를 낸다 — 배선이 빠진 씬에서 "소리는 났는데 화면은 그대로"가
+        // 되면 원인이 사운드 쪽에 있는 것처럼 보여 진단이 한 단계 멀어진다.
+        bool opened;
+
         switch (target)
         {
             case Panel.Castle:
-                if (CastlePanelUI.Instance != null) CastlePanelUI.Instance.Show(_buildingAsset);
+                opened = CastlePanelUI.Instance != null;
+                if (opened) CastlePanelUI.Instance.Show(_buildingAsset);
                 else WarnMissingPanel("본진 패널");
                 break;
             case Panel.Store:
-                if (StorePanelUI.Instance != null) StorePanelUI.Instance.Show(_buildingAsset);
+                opened = StorePanelUI.Instance != null;
+                if (opened) StorePanelUI.Instance.Show(_buildingAsset);
                 else WarnMissingPanel("상점 패널");
                 break;
             default:
-                if (BuildingInfoUI.Instance != null) BuildingInfoUI.Instance.ShowInfo(_buildingAsset);
+                opened = BuildingInfoUI.Instance != null;
+                if (opened) BuildingInfoUI.Instance.ShowInfo(_buildingAsset);
                 else WarnMissingPanel("건물 정보 패널");
                 break;
         }
+
+        // 패널 오브젝트가 켜지는 쪽이 아니라 **클릭한 이 자리**에서 낸다(근거는 Sfx.PanelOpen 주석).
+        // 같은 건물을 다시 클릭하면 MouseManager.Select의 중복 제거에 걸려 여기까지 오지 않는다 —
+        // 패널이 이미 열려 있으니 "열리는 소리"가 다시 나지 않는 편이 맞다.
+        if (opened) Sfx.PanelOpen();
     }
 
     // except로 지정한 패널만 남기고 전부 닫는다(인자 없이 부르면 전부 닫힌다).
