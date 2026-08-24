@@ -19,7 +19,7 @@ MonoBehaviour:
     \uC218 \uC788\uC2B5\uB2C8\uB2E4."
   popupImage: {fileID: 0}
   bubbleText: "\uB9C8\uC6B0\uC2A4 \uD720\uB85C \uD654\uBA74\uC744 \uD655\uB300\uD558\uAC70\uB098
-    \uCD95\uC18C\uD574\uBCF4\uC138"
+    \uCD95\uC18C\uD574\uBCF4\uC138\uC694"
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
