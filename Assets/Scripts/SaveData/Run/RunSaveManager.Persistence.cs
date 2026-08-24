@@ -194,16 +194,14 @@ namespace NorthLand.Core
             return SaveResult.Succeeded();
         }
 
-        public async UniTask<SaveResult> SaveNowAsync(CancellationToken cancellationToken)
+        private async UniTask<SaveResult> SaveNowAsync(CancellationToken cancellationToken)
         {
-            // 현재는 낮 시작 자동 저장만 사용한다.
-            // 수동 저장이나 저장 후 씬 전환을 추가할 경우,
-            // 중복 요청도 실제 파일 기록 완료까지 기다리도록 변경해야 한다.
+            // 낮 시작 이벤트가 저장 중 다시 발생하면
+            // 현재 저장 완료 후 최신 상태를 한 번 더 저장한다.
             if (isSaving)
             {
                 savePending = true;
 
-                // 현재 요청은 실행 중인 저장 이후 한 번 더 저장될 예정이다.
                 return SaveResult.Succeeded();
             }
 
