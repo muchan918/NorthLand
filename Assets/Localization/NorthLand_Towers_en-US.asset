@@ -222,9 +222,9 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 6166220632662017
-    m_Localized: Each hit makes it fire faster and hit harder — up to +80% fire rate
-      and +30% damage. Stacks decay one step every 2s without a hit, and reset when
-      the wave ends.
+    m_Localized: "Each hit makes it fire faster and hit harder \u2014 up to +80%
+      fire rate and +30% damage. Stacks decay one step every 2s without a hit, and
+      reset when the wave ends."
     m_Metadata:
       m_Items: []
   - m_Id: 6203434620067840
@@ -286,6 +286,20 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 9086890910756864
     m_Localized: Normal Tower
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12633126944284672
+    m_Localized: Soda Cannon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12633126977839104
+    m_Localized: Stuns Enemies in an Area
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12633126977839105
+    m_Localized: 'Lobs a soda bomb that stuns every enemy
+
+      caught in the blast.'
     m_Metadata:
       m_Items: []
   references:
