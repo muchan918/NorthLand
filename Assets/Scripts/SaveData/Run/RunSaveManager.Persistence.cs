@@ -274,8 +274,19 @@ namespace NorthLand.Core
         {
             if (fileStore == null)
             {
-                Debug.LogError("[Save] 세이브 삭제 시스템이 초기화되지 않았습니다.", this);
-                return false;
+                PlayerSaveService playerSaveService = PlayerSaveService.Instance;
+
+                if (playerSaveService == null || !playerSaveService.HasSelectedSlot)
+                {
+                    Debug.LogWarning(
+                        "[Save] 선택된 슬롯이 없어 기존 Run 삭제를 건너뜁니다. GameScene 직접 실행 테스트로 간주합니다.",
+                        this);
+                    return true;
+                }
+
+                // GameScene 직접 실행에서는 RunSaveManager.Awake보다 늦은
+                // PlayerSaveService.Start에서 마지막 슬롯이 복원될 수 있다.
+                fileStore = new SaveFileStore(playerSaveService.CurrentSlotPath);
             }
 
             if (!fileStore.TryDelete(out string error))
