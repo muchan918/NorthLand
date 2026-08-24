@@ -95,9 +95,26 @@ protected void Fire();
 | └ `Bubble` | `Raycast Target`을 **반드시 끈다**(자식 텍스트도). 안 끄면 말풍선 뒤 오브젝트가 클릭되지 않는다 |
 | `TutorialController` | `Overlay` 슬롯 + 단계 리스트 + `startOnPlay` 스위치 + `Debug Mode`/`Debug Steps`([§2.4](#24-단계-하나만-떼어내-돌려보기)) |
 
-작업용 씬은 `Assets/Personal/muchan/Scene/TutorialTest.unity`(GameScene 복사본)다. 정본 반영은 [SceneWorkflow.md](SceneWorkflow.md) §4를 따른다.
+튜토리얼 시스템과 22개 단계는 정본 `Assets/Scenes/GameScene.unity`에 배치돼 있다. 작업용 복사본은
+`Assets/Personal/muchan/Scene/TutorialTest2.unity`이며, 이후 정본 씬 변경은
+[SceneWorkflow.md](SceneWorkflow.md) §4를 따른다.
 
 단계 에셋은 `Assets/Resources/ScriptableObjects/Tutorial/`에 둔다.
+
+### 1.5 진입·종료 계약
+
+- `TutorialMode`는 씬을 로드하기 전에 활성화한다. 같은 `GameScene`을 사용하므로 튜토리얼 전용 씬은 없다.
+- 새로하기는 현재 슬롯의 `PlayerData.tutorialCompleted`가 `false`일 때만 튜토리얼로 진입한다.
+- 완료와 스킵은 모두 완료 상태를 슬롯별로 저장하고 일반 `GameScene`을 다시 로드한다. 저장 실패는
+  오류로 남기되 일시정지와 단계 규칙을 정리하고 본 게임 전환은 계속한다.
+- 시드 지정 새로하기가 튜토리얼을 거치면 `TutorialController`가 복귀 시드를 보관하고, 종료 후 본 게임에
+  같은 마스터 시드를 다시 전달한다.
+- `TutorialRelayUI`의 다시 보기는 경고 팝업 확인 후 현재 슬롯의 `run-save.json`을 삭제하고 튜토리얼을
+  1일차부터 시작한다. 삭제에 실패하면 현재 게임을 유지한다.
+- 튜토리얼 중 `DayNightManager.OnDayStart` 자동 저장은 건너뛴다. 튜토리얼 런은 이어하기 데이터의
+  소유자가 아니다.
+- `TutorialOverlay.SkipRequested`가 스킵 요청을 전달한다. 오버레이는 완료 기록이나 씬 전환을 직접
+  처리하지 않는다.
 
 ---
 
@@ -257,18 +274,14 @@ Unity는 **단일 필드**의 managed reference에는 타입 선택 UI를 그리
 
 ## 4. 아직 없는 것
 
-**#408은 흐름까지만 만들었다.** 아래는 전부 후속 이슈다.
+자동 진입·완료 기록·스킵·정본 씬 배치는 #479에서 구현됐다. 아래 항목은 후속 범위다.
 
 | 없는 것 | 비고 |
 |---|---|
 | 딤 · 강조 · 대상 외 입력 차단 | **팝업 구간은 이미 막힌다**(`Popup`이 전체 화면 + `Raycast Target`). 말풍선 구간이 안 막힌다 |
 | 다국어 | 지금 문구는 평문 `string`. `LocalizedString` / `LocalizeStringEvent`로 바꿔야 로케일 변경 시 갱신된다 — **`LocalizationHelper.Get()`은 지속 표시에 쓰지 않는다** |
-| 자동 실행 시점 | `startOnPlay` 체크박스가 임시 스위치다 |
-| 스킵 · 완료 기록 | 저장 자리는 `GameSettingsData`(슬롯 무관 전역) 또는 `PlayerData`(슬롯별) — [SaveSystem.md](SaveSystem.md) |
 | 팝업 구간 일시정지 | `GamePauseReason.Tutorial` 추가로 방향은 정해짐. ⚠ **`Time.timeScale = 0`이어도 `MouseManager.Update()`는 계속 돈다** — 일시정지는 입력을 막지 않는다 |
 | UI 에셋 · 연출 | 지금은 회색 박스 + 기본 텍스트. 강조 색은 기존 아웃라인(호버 노랑 · 선택 초록 · 합성 핑크)과 겹치지 않게 할 것 |
-| 실제 안내 단계 내용 | #271 |
-| 정본 `GameScene.unity` 반영 | [SceneWorkflow.md](SceneWorkflow.md) §4 |
 
 ### 차단·강조를 붙일 때 — 먼저 확인할 것
 
