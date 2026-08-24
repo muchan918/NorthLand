@@ -102,6 +102,13 @@ public class ResidentCarryVisual : MonoBehaviour
     /// 몸 크기를 덮을 정도면 된다.
     private const float NearPlaneMargin = 30f;
 
+    /// 착지점이 출발점보다 **높을 때** 튀어 오르는 속도에 곱하는 여유. 1이면 정점에서 간신히 닿아
+    /// 마지막이 느려 보이므로 조금 넘겨 내려오면서 착지하게 한다.
+    private const float RiseArcMargin = 1.25f;
+
+    /// 낙하 시간의 하한. 착지점과 출발점이 사실상 같을 때 0으로 나뉘는 것을 막는다.
+    private const float MinimumFallDuration = 0.08f;
+
     /// 커서 밑 지면을 찾을 때 높이를 훑어 내리는 간격. 촘촘할수록 정확하지만 표본 수가 는다 —
     /// 어차피 명중한 뒤 한 번 정밀화하므로 이 값이 최종 정확도를 정하지는 않는다.
     private const float GroundMarchStep = 2f;
@@ -154,6 +161,9 @@ public class ResidentCarryVisual : MonoBehaviour
     /// (<see cref="NavMesh.CalculateTriangulation"/>이 1.78ms라 매 프레임 부를 수 없다).
     private float _marchTop;
     private float _marchBottom;
+
+    /// 위 범위를 이미 쟀는가. **씬이 바뀔 때만 무효화한다**(<see cref="Clear"/>).
+    private bool _marchRangeValid;
 
     /// 흩뿌리기 각도의 시작점. 드래그마다 새로 뽑아 **같은 인원이 늘 같은 모양으로 떨어지지 않게** 한다.
     private float _scatterPhase;
@@ -217,6 +227,9 @@ public class ResidentCarryVisual : MonoBehaviour
     {
         _carried.Clear();
         _falling.Clear();
+
+        // 씬이 갈리면 NavMesh도 갈린다 — 훑을 범위를 다음 드래그에서 다시 잰다.
+        _marchRangeValid = false;
     }
 
     // ── 놓기 ──────────────────────────────────────────────────────────
@@ -281,15 +294,30 @@ public class ResidentCarryVisual : MonoBehaviour
         held.Elapsed = 0f;
         held.StoodUp = false;
 
-        // 같은 속도로 튀면 열 명이 한 몸처럼 움직인다. 개체마다 흩어 놓는다.
-        held.Velocity0 = burstUpSpeed * UnityEngine.Random.Range(0.8f, 1.2f);
+        // ⚠ **착지점이 출발점보다 높을 수 있다.** 탑 맨 아래 칸이 그렇다 — 앉은 자세의 발을 커서에
+        //   맞추려고 원점을 지면보다 SittingFootOffset만큼 낮게 두기 때문이다(UpdateCarried). 흩뿌린
+        //   지점이 옆의 높은 길에 걸릴 때도 마찬가지다.
+        //
+        //   종전에는 낙차를 Max(0.01, ...)로 잘라 그 경우를 없는 셈 쳤는데, 그러면 포물선이 출발
+        //   높이로 되돌아온 뒤 마지막 프레임에 착지점까지 순간이동한다. 눈에는 **몸이 지면 아래로
+        //   가라앉았다가 툭 튀어 오르는 것**으로 보인다(기립 크로스페이드가 겹쳐 더 도드라진다).
+        float rise = landing.y - held.FallFrom.y;
 
-        float drop = Mathf.Max(0.01f, held.FallFrom.y - landing.y);
+        // 위로 올라가야 하면 그만큼 튀어 오를 힘이 필요하다. 정확히 닿을 만큼만 주면 정점에서 멈춰
+        // 닿는 꼴이라 여유를 곱해 **내려오면서** 착지하게 한다.
+        float minimumSpeed = rise > 0f ? Mathf.Sqrt(2f * gravity * rise) * RiseArcMargin : 0f;
+
+        // 같은 속도로 튀면 열 명이 한 몸처럼 움직인다. 개체마다 흩어 놓는다.
+        held.Velocity0 = Mathf.Max(burstUpSpeed * UnityEngine.Random.Range(0.8f, 1.2f), minimumSpeed);
 
         // v0로 튀어 오른 뒤 g로 떨어져 **정확히** 착지 높이에 닿는 시각.
-        // 0.5·g·T² − v0·T − drop = 0 의 양근이다. 높이 뜬 사람일수록 오래 나는 것이 저절로 성립해,
+        // 0.5·g·T² − v0·T + rise = 0 의 큰 근이다. 높이 뜬 사람일수록 오래 나는 것이 저절로 성립해,
         // 탑이 아래부터 차례로 벗겨지듯 흩어진다.
-        held.Duration = (held.Velocity0 + Mathf.Sqrt(held.Velocity0 * held.Velocity0 + 2f * gravity * drop)) / gravity;
+        float discriminant = held.Velocity0 * held.Velocity0 - 2f * gravity * rise;
+
+        held.Duration = Mathf.Max(
+            MinimumFallDuration,
+            (held.Velocity0 + Mathf.Sqrt(Mathf.Max(0f, discriminant))) / gravity);
 
         Vector3 outward = landing - held.FallFrom;
         outward.y = 0f;
@@ -421,7 +449,7 @@ public class ResidentCarryVisual : MonoBehaviour
     private Vector3 ResolveGroundPoint()
     {
         MouseManager mouse = MouseManager.Instance;
-        Camera camera = Camera.main;
+        Camera camera = ResolveCamera();
 
         if (mouse == null || camera == null) return _lastGround;
 
@@ -504,15 +532,31 @@ public class ResidentCarryVisual : MonoBehaviour
     /// 경계라 실제 결과와 다르다 — 이 씬에서 상한을 22로 보고하는데 실제 NavMesh는 28까지 있다(실측).
     private void CaptureMarchRange(float fallbackHeight)
     {
+        // **한 씬에서 한 번만 잰다.** 이 저장소에는 런타임 재베이크가 없다 —
+        // `BuildNavMesh`/`UpdateNavMesh`/`AddNavMeshData` 호출이 `Assets/Scripts` 전체에 0건이고,
+        // 이것을 요구하던 GDD §5.3 영토 확장은 영토 시스템 삭제(#337)로 사라졌다(WL-161 종결).
+        // 즉 NavMesh는 편집 시점에 구워진 뒤 바뀌지 않으므로 드래그마다 다시 잴 근거가 없다.
+        //
+        // 드래그마다 부르면 1.78ms에 더해 정점·인덱스 배열이 매번 새로 할당된다(정점 13,514개).
+        // 집었다 놓기를 반복하는 것이 이 기능의 표준 사용법이라 모바일에서 GC로 돌아온다.
+        if (_marchRangeValid)
+        {
+            return;
+        }
+
         NavMeshTriangulation triangulation = NavMesh.CalculateTriangulation();
 
         if (triangulation.vertices == null || triangulation.vertices.Length == 0)
         {
+            // ⚠ **실패는 캐시하지 않는다.** NavMesh가 아직 준비되지 않은 순간에 한 번 걸렸다고 폴백 범위를
+            //   영구히 물고 있으면, 그 뒤로 모든 드래그가 들린 자리 ±60 밖의 층을 영영 못 짚는다.
             _marchTop = fallbackHeight + GroundMarchFallbackRange;
             _marchBottom = fallbackHeight - GroundMarchFallbackRange;
 
             return;
         }
+
+        _marchRangeValid = true;
 
         float min = float.MaxValue;
         float max = float.MinValue;
@@ -543,7 +587,7 @@ public class ResidentCarryVisual : MonoBehaviour
     {
         if (occlusionRise <= 0f) return Vector3.zero;
 
-        Camera camera = Camera.main;
+        Camera camera = ResolveCamera();
 
         if (camera == null) return Vector3.zero;
 
@@ -596,13 +640,20 @@ public class ResidentCarryVisual : MonoBehaviour
         held.ShadowModes = null;
     }
 
+    /// 입력이 실제로 쓰는 카메라. **`Camera.main`을 직접 보지 않는다** — `MouseManager`는 `SetCamera`로
+    /// 다른 카메라를 받을 수 있고, 그러면 이 연출의 커서 광선과 매니저의 드롭 판정이 서로 다른 카메라
+    /// 기준이 되어 **보고 있던 건물과 배치되는 건물이 갈린다.** 커서 좌표를 그쪽에서 받는 이상 카메라도
+    /// 같은 곳에서 받아야 짝이 맞는다.
+    private static Camera ResolveCamera() =>
+        MouseManager.Instance != null ? MouseManager.Instance.ActiveCamera : null;
+
     /// 들린 주민이 바라볼 방향(카메라 정면). 카메라가 없으면 회전에 손대지 않는다 —
     /// 기본값으로 돌려 버리면 전원이 북쪽을 보며 홱 도는 그림이 된다.
     private static bool TryResolveFacing(out Quaternion facing)
     {
         facing = Quaternion.identity;
 
-        Camera camera = Camera.main;
+        Camera camera = ResolveCamera();
 
         if (camera == null) return false;
 
