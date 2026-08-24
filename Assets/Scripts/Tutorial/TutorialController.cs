@@ -330,16 +330,13 @@ public class TutorialController : MonoBehaviour
 
         if (saveService == null)
         {
-            Debug.LogError($"[{nameof(TutorialController)}] PlayerSaveService 인스턴스를 찾을 수 없습니다.", this);
-
-            return;
+            Debug.LogError(
+                $"[{nameof(TutorialController)}] PlayerSaveService 인스턴스를 찾을 수 없어 완료 상태를 저장하지 못했습니다.",
+                this);
         }
-
-        if (!saveService.TryCompleteTutorial(out string error))
+        else if (!saveService.TryCompleteTutorial(out string error))
         {
             Debug.LogError($"[{nameof(TutorialController)}] 튜토리얼 완료 상태를 저장하지 못했습니다: {error}", this);
-
-            return;
         }
 
         StopTutorial();
