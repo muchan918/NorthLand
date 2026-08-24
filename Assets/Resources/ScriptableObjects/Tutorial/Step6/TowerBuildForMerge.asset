@@ -12,21 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
   m_Name: TowerBuildForMerge
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
-  popupTitle: "\uD0C0\uC6CC \uD569\uC131"
-  popupBody: "\uAC19\uC740 \uD0C0\uC6CC\uB97C \uC5EC\uB7EC \uAC1C \uBAA8\uC73C\uBA74
-    \uB354 \uAC15\uD55C \uD0C0\uC6CC\uB85C \uD569\uC131\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.\r\n\uD569\uC131\uD560
-    \uD0C0\uC6CC\uB4E4\uC744 \uD568\uAED8 \uC120\uD0DD\uD558\uBA74 \uB9CC\uB4E4 \uC218
-    \uC788\uB294 \uD0C0\uC6CC \uBAA9\uB85D\uC774 \uB098\uD0C0\uB0A9\uB2C8\uB2E4.\r\n\uC5F0\uC2B5\uC744
-    \uC704\uD574 \uC774\uBC88\uC5D0\uB294 \uC544\uCC98 \uD0C0\uC6CC\uB97C \uC790\uC6D0
-    \uC5C6\uC774 \uC9C0\uC744 \uC218 \uC788\uC2B5\uB2C8\uB2E4."
+  popupTitleKey: tutorial.tower.merge_intro.title
+  popupBodyKey: tutorial.tower.merge_intro.body
   popupImage: {fileID: 0}
-  bubbleText: "\uC544\uCC98 \uD0C0\uC6CC\uB97C 3\uAC1C \uBC30\uCE58\uD558\uC138\uC694"
+  bubbleTextKey: tutorial.tower.merge_intro.bubble
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
   pauseGameDuringStep: 0
   freeTowerPlacement: 1
   restrictTowerPanelTo: {fileID: 11400000, guid: 7ecd80d44165e644591aafb428cf5efe, type: 2}
+  freeManagementCost: 0
+  upgradeCap: 0
+  villagerCap: 0
+  upgradeAllowList: []
   completion:
     rid: 3470829977900417131
   references:
