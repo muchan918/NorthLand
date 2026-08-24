@@ -98,8 +98,10 @@
 - `SaveSerializer.Serialize(RunData)` / `TryDeserialize(string, out RunData, out string)` — Run 봉투 직렬화·버전 판별·마이그레이션·역직렬화 진입점.
 - `RunSaveLoader.LoadAsync(string slotPath, CancellationToken)` — 슬롯 경로의 `run-save.json` 읽기와 지원 버전 `RunData` 변환을 한 곳에서 수행한다. UI는 `SaveFileStore`와 `SaveSerializer`를 직접 조립하지 않는다.
 - `SaveFileStore.Exists` / `ReadAsync` / `WriteAsync` / `TryDelete` — 단일 세이브 파일 IO. 게임 상태나 JSON 구조는 알지 않는다. 동기 `TryRead`·`TryWrite`는 비동기 래퍼와 구버전 위치 마이그레이션의 내부 구현에서만 사용한다.
+- `SaveResult` / `SaveResult<T>` — 비동기 저장소 API의 공통 결과 계약. `Success`와 `Error`를 제공하고, 값이 있는 작업은 `Value`를 추가로 제공한다. 성공·실패 생성은 각각 `Succeeded(...)` / `Failed(string)`을 사용한다.
 - `PlayerSaveService.Instance` / `HasSelectedSlot` / `CurrentSlotPath` / `SelectedSlotChanged` — 현재 플레이어 슬롯과 Run 저장 경로를 제공하는 선행 계약.
-- `PlayerSaveService.CreateAndSelectSlotAsync` / `SelectSlotAsync` / `GetSlotDataAsync` / `DeleteSlotAsync` / `UpdateLastPlayedAtAsync` — 플레이어 슬롯 생성·조회·선택·삭제와 최근 플레이 시각 갱신의 비동기 진입점.
+- `PlayerSaveService.CreateAndSelectSlotAsync(int, CancellationToken)` / `SelectSlotAsync(int, CancellationToken)` / `DeleteSlotAsync(int, CancellationToken)` / `UpdateLastPlayedAtAsync(CancellationToken)` → `UniTask<SaveResult>` — 플레이어 슬롯 생성·선택·삭제와 최근 플레이 시각 갱신의 비동기 진입점.
+- `PlayerSaveService.GetSlotDataAsync(int, CancellationToken)` → `UniTask<SaveResult<PlayerData>>` — 슬롯 UI가 플레이어 데이터를 비동기로 조회하는 진입점.
 - `GameSettingsService.Instance` / `CurrentSettings` / `SettingsChanged` / `TrySetLocale` / `TrySetLastSelectedSlotIndex` — 플레이어 슬롯과 독립된 공통 설정 조회·변경 진입점.
 - `GameSceneManager.TryLoadContinue(RunData, out string)` — 타이틀에서 준비된 이어하기 데이터를 일회성 핸드오프로 등록하고 게임 씬을 한 번에 로드한다. 파일 IO·역직렬화는 이 API 호출 전에 끝나 있어야 하며, 별도의 준비 호출 순서 규약은 없다.
 - `GameSceneManager.TryConsumeContinueData(out RunData)` — 게임 씬에서 준비된 `RunData`를 한 번만 소비한다. 성공 시 내부 플래그와 데이터 참조를 즉시 제거하며, `RunSaveManager`가 유일한 운영 소비자다.

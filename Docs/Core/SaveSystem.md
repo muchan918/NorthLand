@@ -102,9 +102,12 @@ Application.persistentDataPath/
 ### 저장
 
 - 자동 저장 시점은 1일차를 포함한 모든 `DayNightManager.OnDayStart`다.
-- `RunSaveManager.TrySaveNow()`가 현재 상태를 수집하고 선택 슬롯의 `run-save.json`을 교체한다.
+- `DayNightManager.OnDayStart`를 받은 `RunSaveManager`가 내부 `SaveNowAsync(CancellationToken)`를 실행해 현재 상태를 수집하고 선택 슬롯의 `run-save.json`을 교체한다. 이 메서드는 자동 저장 구현 전용이므로 공개 API가 아니다.
 - 복원 중에는 자동 저장을 억제해 방금 읽은 세이브를 초기 상태로 덮어쓰지 않는다.
 - Run 저장 성공 후 `player.json`의 `lastPlayedAt`을 갱신한다.
+
+비동기 저장·로드 작업은 `SaveResult` 또는 `SaveResult<T>`로 성공 여부와 오류를 반환한다. 값이 있는 로드는
+`Value`를 함께 제공하며, 취소는 `CancellationToken`과 `OperationCanceledException`으로 성공·실패 결과와 구분한다.
 
 ### 복원
 
