@@ -197,6 +197,9 @@ namespace NorthLand.Combat
         //
         // 들어온 effectId가 아니라 `stunSource` 슬롯을 갱신한다 — 나중에 티어별로 effectId를 갈라도
         // "대상당 스턴 에피소드는 하나"라는 불변식이 유지된다(슬롯이 둘로 갈리면 합집합이 되어 천장이 사라진다).
+        // **천장을 지키는 것은 이 한 줄이다** — `HitEffect.StunStatus`가 공유 static ID를 쓰는 것은
+        // #274 이전부터의 관성일 뿐 정확성 요건이 아니다(그쪽 주석 참조). 여기를 `effectId`로 바꾸면
+        // 그 순간 슬롯이 갈려 천장이 사라진다.
         void ExtendStun(float duration, float immunityWindow)
         {
             if (!slows.TryGetValue(stunSource, out var current))

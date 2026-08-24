@@ -163,11 +163,17 @@ namespace NorthLand.Combat
         // ⚠ **소스 키를 무시하고 공유 static ID를 쓴다.**
         //
         // 다른 효과는 타워 인스턴스별로 채번해 여러 기가 중첩되지만, 스턴은 #274 이전부터 모든 소다
-        // 타워가 단일 슬롯(`"onhit.stun"`)을 공유해왔다. **티어별로 스턴 지속이 다른 타워가 생긴 지금은
-        // 이 공유가 정확성 요건이다** — 슬롯이 갈리면 두 스턴이 합집합으로 이어져
-        // StatusEffectHandler의 "에피소드 시작 기준 천장"이 무력화되고 봉인 시간이 대수만큼 늘어난다.
-        // (에피소드 자체는 대상당 하나로 게이트되지만, 슬롯이 둘이면 `remaining`도 둘이라 만료가 어긋난다)
-        // 인스턴스별 전환 논의(TowerRedesign.md §12 #1)는 그 천장을 어떻게 지킬지와 함께 다뤄야 한다.
+        // 타워가 단일 슬롯(`"onhit.stun"`)을 공유해왔다. **이 공유는 그때부터의 관성이고, 정확성
+        // 요건이 아니다.** 티어별로 스턴 지속이 갈린 지금도 "에피소드 시작 기준 천장"을 지키는 것은
+        // 공유가 아니라 `StatusEffectHandler.ExtendStun`이 **들어온 effectId가 아니라 `stunSource`
+        // 슬롯만 갱신한다는 점**이다 — 스턴 중 재적용은 `ApplySlow`가 `ExtendStun` 호출 후 즉시
+        // return해 슬롯 삽입 경로에 닿지 않고, `stunSource`는 새 에피소드에서만 대입된다.
+        // 그래서 effectId를 타워별로 갈라도 대상당 스턴 슬롯은 하나다.
+        //
+        // 인스턴스별 전환(TowerRedesign.md §12 #1)의 남은 쟁점은 **정확성이 아니라 밸런스**다 —
+        // 1기 가동률이 대수에 비례해 오르다 면역 창 천장에서 멈추는 형태로 바뀐다.
+        // ⚠ 실제로 천장을 깨는 변경은 effectId를 가르는 것이 아니라, `ExtendStun`의 `stunSource`
+        //    고정을 "불필요한 우회"로 보고 들어온 effectId로 바꾸는 것이다. 그쪽 주석과 함께 읽을 것.
         static readonly int SharedEffectId = "onhit.stun".GetHashCode();
 
         public override void Apply(IDamageable target, IAttacker source, TowerStats stats, int sourceId)

@@ -249,7 +249,8 @@ public class TowerAsset : ScriptableObject
                                  "간격을 줄이고 발당 피해를 그만큼 올리세요(Docs/Core/CombatBalance.md §2).", this);
 
             // 위 식의 **하한**. 간격이 스턴 지속보다 짧으면 스턴이 끊기는 구간이 사실상 사라져
-            // (`StatusEffectHandler`의 규칙 ①이 스턴 중 명중을 버리므로 만료 직후 바로 재스턴된다)
+            // (`StatusEffectHandler`의 규칙 ①이 재적용을 에피소드 시작 기준으로 묶어 에피소드 길이는
+            // 늘지 않지만, 간격이 더 짧으면 만료 직후 바로 다음 에피소드가 열린다)
             // 대상이 전진하지 못한다. 밤 종료 조건이 몬스터 전멸이라 딜 공급이 없으면 밤이 끝나지 않는다.
             if (stunDuration > 0f && Attack.AttackInterval <= stunDuration)
                 Debug.LogWarning($"[TowerAsset] {name}: AttackInterval({Attack.AttackInterval})이 스턴 지속" +
@@ -408,8 +409,9 @@ public class TowerAsset : ScriptableObject
     /// ⚠ **`Effects`가 어느 축에서 발화하는지는 구분하지 않는다.** 이 리스트는 공격·디버프 오라·착탄
     /// 구역이 함께 쓰므로(위 `Effects` 필드 주석), "오라로만 스턴을 거는데 공격도 하는" 타워가 생기면
     /// 명중은 등속 통과 그대로인데 `AttackInterval` 상한만 완화된다. **지금은 성립하지 않는 전제다** —
-    /// 스턴원은 `soda_tower` 하나이고 그 스턴은 명중 경로이며, 스턴 타워를 더 만들 계획이 없다(#441).
-    /// 그 전제가 깨지는 날 축을 갈라야 한다(`Effects`를 명중용·오라용으로 분리하는 작업이라 범위가 크다).
+    /// 스턴원은 `soda_tower`(0.7초)·`soda_cannon_tower`(1.0초) 2종이고 **둘 다 명중 경로**다(#478).
+    /// 스턴원이 늘어난 것 자체는 전제를 깨지 않는다 — 깨지는 것은 오라·구역으로 스턴을 거는 타워가
+    /// 생길 때이고, 그날 축을 갈라야 한다(`Effects`를 명중용·오라용으로 분리하는 작업이라 범위가 크다).
     NorthLand.Combat.StunStatus LongestStun()
     {
         if (Effects == null) return null;
