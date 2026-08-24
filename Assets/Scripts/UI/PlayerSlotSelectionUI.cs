@@ -130,11 +130,28 @@ namespace NorthLand.UI
         {
             LocalizationSettings.SelectedLocaleChanged += HandleSelectedLocaleChanged;
 
-            PlayerSaveService playerSaveService = PlayerSaveService.Instance;
+            PlayerSaveService service = PlayerSaveService.Instance;
 
-            if (playerSaveService != null)
+            if (service != null)
             {
-                playerSaveService.SelectedSlotChanged += HandleSelectedSlotChanged;
+                service.SelectedSlotChanged += HandleSelectedSlotChanged;
+
+                if (!service.IsInitialized)
+                {
+                    service.Initialized += HandlePlayerSaveInitialized;
+                }
+            }
+
+            RefreshAllSlots();
+        }
+
+        private void HandlePlayerSaveInitialized()
+        {
+            PlayerSaveService service = PlayerSaveService.Instance;
+
+            if (service != null)
+            {
+                service.Initialized -= HandlePlayerSaveInitialized;
             }
 
             RefreshAllSlots();
@@ -144,11 +161,13 @@ namespace NorthLand.UI
         {
             LocalizationSettings.SelectedLocaleChanged -= HandleSelectedLocaleChanged;
 
-            PlayerSaveService playerSaveService = PlayerSaveService.Instance;
+            PlayerSaveService service = PlayerSaveService.Instance;
 
-            if (playerSaveService != null)
+            if (service != null)
             {
-                playerSaveService.SelectedSlotChanged -= HandleSelectedSlotChanged;
+                service.SelectedSlotChanged -= HandleSelectedSlotChanged;
+
+                service.Initialized -= HandlePlayerSaveInitialized;
             }
 
             refreshCancellation?.Cancel();

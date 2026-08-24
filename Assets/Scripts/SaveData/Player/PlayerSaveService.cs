@@ -34,6 +34,11 @@ namespace NorthLand.Core
 
         public string CurrentSlotPath => slotManager.CurrentSlotPath;
 
+        private bool isInitialized;
+        public bool IsInitialized => isInitialized;
+
+        public event Action Initialized;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Bootstrap()
         {
@@ -66,8 +71,63 @@ namespace NorthLand.Core
 
         private void Start()
         {
-            RestoreSelectedSlot();
+            RestoreSelectedSlotAsync(this.GetCancellationTokenOnDestroy()).Forget();
         }
+
+        private async UniTaskVoid RestoreSelectedSlotAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                GameSettingsService settingsService = GameSettingsService.Instance;
+
+                if (settingsService == null || settingsService.CurrentSettings == null)
+                {
+                    Debug.LogWarning("[PlayerSaveService] 게임 설정을 불러오지 못해 마지막 슬롯을 복원하지 않았습니다.",this);
+
+                    return;
+                }
+
+                int slotIndex = settingsService.CurrentSettings.lastSelectedSlotIndex;
+
+                if (slotIndex < 0)
+                {
+                    return;
+                }
+
+                SaveResult<PlayerData> result = await slotManager.SelectSlotAsync(slotIndex,cancellationToken);
+
+                if (result.Success)
+                {
+                    CurrentPlayerData = result.Value;
+
+                    // 다음 마이그레이션 단계 전까지는 기존 동기 API 유지
+                    TryMigrateLegacyRunSave();
+
+                    SelectedSlotChanged?.Invoke();
+                    return;
+                }
+
+                // 저장된 슬롯이 삭제됐거나 손상된 경우
+                if (!settingsService.TrySetLastSelectedSlotIndex(-1,out string error))
+                {
+                    Debug.LogWarning($"[PlayerSaveService] 잘못된 선택 슬롯 초기화 실패: {error}",this);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // 서비스 파괴 또는 애플리케이션 종료에 따른 정상 취소
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception, this);
+            }
+            finally
+            {
+                isInitialized = true;
+                Initialized?.Invoke();
+            }
+        }
+
 
         public bool SlotExists(int slotIndex)
         {
@@ -164,43 +224,6 @@ namespace NorthLand.Core
             {
                 Debug.LogWarning($"[PlayerSaveService] 선택 슬롯 저장 실패: {error}",this);
             }
-        }
-
-        private void RestoreSelectedSlot()
-        {
-            GameSettingsService settingsService = GameSettingsService.Instance;
-
-            if (settingsService == null ||settingsService.CurrentSettings == null)
-            {
-                Debug.LogWarning("[PlayerSaveService] 게임 설정을 불러오지 못해 마지막 슬롯을 복원하지 않았습니다.",this);
-
-                return;
-            }
-
-            int slotIndex = settingsService.CurrentSettings.lastSelectedSlotIndex;
-
-            if (slotIndex < 0)
-            {
-                return;
-            }
-
-            if (slotManager.TrySelectSlot(slotIndex, out PlayerData data, out _))
-            {
-                CurrentPlayerData = data;
-
-                TryMigrateLegacyRunSave();
-
-                SelectedSlotChanged?.Invoke();
-
-                return;
-            }
-
-            // 저장된 슬롯이 삭제됐거나 잘못된 경우
-            if (!settingsService.TrySetLastSelectedSlotIndex(-1,out string error))
-            {
-                Debug.LogWarning($"[PlayerSaveService] 잘못된 선택 슬롯 초기화 실패: {error}",this);
-            }
-
         }
 
         public bool TryUpdateLastPlayedAt(out string error)
@@ -301,6 +324,11 @@ namespace NorthLand.Core
 
         public async UniTask<SaveResult> CreateAndSelectSlotAsync(int slotIndex,CancellationToken cancellationToken)
         {
+            if (!isInitialized)
+            {
+                return SaveResult.Failed("플레이어 슬롯을 초기화하는 중입니다.");
+            }
+
             SaveResult<PlayerData> result =await slotManager.CreateAndSelectSlotAsync(slotIndex,cancellationToken);
 
             if (!result.Success)
@@ -319,6 +347,11 @@ namespace NorthLand.Core
 
         public async UniTask<SaveResult>SelectSlotAsync(int slotIndex,CancellationToken cancellationToken)
         {
+            if (!isInitialized)
+            {
+                return SaveResult.Failed("플레이어 슬롯을 초기화하는 중입니다.");
+            }
+
             SaveResult<PlayerData> result =await slotManager.SelectSlotAsync(slotIndex,cancellationToken);
 
             if (!result.Success)
@@ -337,6 +370,11 @@ namespace NorthLand.Core
 
         public async UniTask<SaveResult> DeleteSlotAsync(int slotIndex,CancellationToken cancellationToken)
         {
+            if (!isInitialized)
+            {
+                return SaveResult.Failed("플레이어 슬롯을 초기화하는 중입니다.");
+            }
+
             bool wasSelected = HasSelectedSlot &&CurrentSlotIndex == slotIndex;
 
             SaveResult result = await slotManager.DeleteSlotAsync(slotIndex,cancellationToken);
