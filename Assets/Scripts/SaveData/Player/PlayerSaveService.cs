@@ -298,5 +298,75 @@ namespace NorthLand.Core
 
             return slotManager.LoadSlotAsync(slotIndex,cancellationToken);
         }
+
+        public async UniTask<SaveResult> CreateAndSelectSlotAsync(int slotIndex,CancellationToken cancellationToken)
+        {
+            SaveResult<PlayerData> result =await slotManager.CreateAndSelectSlotAsync(slotIndex,cancellationToken);
+
+            if (!result.Success)
+            {
+                return SaveResult.Failed(result.Error);
+            }
+
+            CurrentPlayerData = result.Value;
+
+            TryMigrateLegacyRunSave();
+            SaveSelectedSlot(slotIndex);
+            SelectedSlotChanged?.Invoke();
+
+            return SaveResult.Succeeded();
+        }
+
+        public async UniTask<SaveResult>SelectSlotAsync(int slotIndex,CancellationToken cancellationToken)
+        {
+            SaveResult<PlayerData> result =await slotManager.SelectSlotAsync(slotIndex,cancellationToken);
+
+            if (!result.Success)
+            {
+                return SaveResult.Failed(result.Error);
+            }
+
+            CurrentPlayerData = result.Value;
+
+            TryMigrateLegacyRunSave();
+            SaveSelectedSlot(slotIndex);
+            SelectedSlotChanged?.Invoke();
+
+            return SaveResult.Succeeded();
+        }
+
+        public async UniTask<SaveResult> DeleteSlotAsync(int slotIndex,CancellationToken cancellationToken)
+        {
+            bool wasSelected = HasSelectedSlot &&CurrentSlotIndex == slotIndex;
+
+            SaveResult result = await slotManager.DeleteSlotAsync(slotIndex,cancellationToken);
+
+            if (!result.Success)
+            {
+                return result;
+            }
+
+            if (wasSelected)
+            {
+                CurrentPlayerData = null;
+            }
+
+            GameSettingsService settingsService = GameSettingsService.Instance;
+
+            if (wasSelected && settingsService != null && settingsService.CurrentSettings != null && settingsService.CurrentSettings.lastSelectedSlotIndex == slotIndex)
+            {
+                if (!settingsService.TrySetLastSelectedSlotIndex(-1,out string settingsError))
+                {
+                    Debug.LogWarning($"[PlayerSaveService] 선택 슬롯 초기화 실패: {settingsError}",this);
+                }
+            }
+
+            if (wasSelected)
+            {
+                SelectedSlotChanged?.Invoke();
+            }
+
+            return SaveResult.Succeeded();
+        }
     }
 }
