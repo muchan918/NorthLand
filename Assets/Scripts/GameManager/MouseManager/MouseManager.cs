@@ -71,6 +71,13 @@ public class MouseManager : MonoBehaviour
     // 현재 포인터 화면 좌표. 다른 시스템(툴팁 등)이 Mouse.current를 직접 읽지 않고 여기서 얻는다(입력 단일 창구 계약).
     public Vector2 PointerPosition { get; private set; }
 
+    /// 입력 판정이 실제로 쓰는 카메라. **`Camera.main`과 같다는 보장이 없다** — `SetCamera`로 갈아 끼울 수
+    /// 있고, 지금 둘이 같은 것은 씬 로드마다 `Camera.main`을 넣어 주기 때문이지 계약이라서가 아니다.
+    ///
+    /// 커서에서 광선을 쏘는 다른 시스템은 이 값을 써야 한다. `Camera.main`을 따로 보면 그 시스템과
+    /// 드롭·선택 판정이 **서로 다른 카메라 기준**이 되어, 보고 있던 대상과 판정되는 대상이 갈린다.
+    public Camera ActiveCamera => _camera;
+
     private Mode _mode = Mode.Idle;
 
     [SerializeField] Camera _camera;
