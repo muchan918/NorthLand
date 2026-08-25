@@ -2667,7 +2667,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 415709802502914483, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: _zoomSource
-      value:
+      value: 
       objectReference: {fileID: 522335599}
     - target: {fileID: 792939803976950741, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: m_LocalPosition.y
@@ -2675,7 +2675,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2118261717743543252, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: _zoomSource
-      value:
+      value: 
       objectReference: {fileID: 522335599}
     - target: {fileID: 3995184238862392525, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: m_LocalPosition.x
@@ -2719,7 +2719,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4117600579374478185, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: _zoomSource
-      value:
+      value: 
       objectReference: {fileID: 522335599}
     - target: {fileID: 4490917737636434860, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: m_Name
@@ -2775,7 +2775,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8923883104720120110, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: _zoomSource
-      value:
+      value: 
       objectReference: {fileID: 522335599}
     - target: {fileID: 9012046073250937523, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: m_LocalPosition.y
@@ -2866,7 +2866,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -2941,7 +2941,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -3798,7 +3798,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: ffceae6f7fbbf4a4698ab3851f7a465c, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 0a9f7f94266582942994bdad926b9335, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -11441,7 +11441,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -460993406, guid: 69fa29edc4b7d7c4585061851501f7f0, type: 3}
+  m_Sprite: {fileID: 21300000, guid: ac86623e349e7da4d8aba5b0afc6f254, type: 3}
   m_Type: 3
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -14032,13 +14032,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SkillManager
   damage: 30
   radius: 6
-  cooldown: 10
+  cooldown: 15
   enemyLayerMask:
     serializedVersion: 2
     m_Bits: 128
   impactEffectPrefab: {fileID: 0}
   impactSfx: {fileID: 0}
-  _visualSet: {fileID: 11400000, guid: 5d812fdf02a86614e89e30ef71775199, type: 2}
+  _visualSet: {fileID: 0}
+  skillStarEffectPrefab: {fileID: 5671531732343113848, guid: 0ab33f3111e5a9048b79a4bd897d760e, type: 3}
+  impactDelay: 0.8
+  fullDamageRadiusRatio: 0.5
+  outerDamageMultiplier: 0.7
+  scaleStarEffectWithRadius: 1
+  starEffectScale: 4
   _magicLabAsset: {fileID: 11400000, guid: 444e1653e8434af47bb9af09e73f29e3, type: 2}
   _managementController: {fileID: 544968473}
 --- !u!4 &1716086064
@@ -15154,7 +15160,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BurnEffect
   maxLevel: 3
-  tickDamagePerLevel: 2
+  tickDamagePerLevel: 5
   tickInterval: 0.5
   duration: 3
   debugLog: 0
@@ -15171,10 +15177,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BombEffect
   maxLevel: 3
-  bombPrefab: {fileID: 8925636819348908530, guid: b4c2d3008892ecf4ba6ba30b57d958a1, type: 3}
-  damagePerLevel: 20
+  bombPrefab: {fileID: 1904690475409078082, guid: 9333820f99e1c1140b56dc9c01913d2c, type: 3}
+  explosionEffectPrefab: {fileID: 2663140773275296467, guid: c44b1c77ea9c95140900944b2b559e33, type: 3}
+  bombScale: 2
+  damagePerLevel: 30
   explosionDelay: 2
-  explosionRadius: 20
+  explosionRadius: 6
   enemyLayerMask:
     serializedVersion: 2
     m_Bits: 128
@@ -15205,10 +15213,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FieldEffect
   maxLevel: 3
-  fieldPrefab: {fileID: 4072122165077608187, guid: 4291a8d466a431a4393847e166466cad, type: 3}
-  tickDamagePerLevel: 5
+  fieldPrefab: {fileID: 3472490920769604995, guid: a935f673cbfd4b947984c63123c3bb10, type: 3}
+  tickDamagePerLevel: 3
   tickInterval: 0.5
-  duration: 3
+  duration: 5
+  loopParticlesForDuration: 1
+  fieldParticles:
+  - {fileID: 8685763405100850315, guid: a935f673cbfd4b947984c63123c3bb10, type: 3}
+  - {fileID: 4507527132203259169, guid: a935f673cbfd4b947984c63123c3bb10, type: 3}
+  - {fileID: 2561354681545253489, guid: a935f673cbfd4b947984c63123c3bb10, type: 3}
+  - {fileID: 1929146147802243390, guid: a935f673cbfd4b947984c63123c3bb10, type: 3}
+  - {fileID: 181263172273039710, guid: a935f673cbfd4b947984c63123c3bb10, type: 3}
   fieldRadius: 18
   enemyLayerMask:
     serializedVersion: 2
@@ -23564,7 +23579,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -460993406, guid: 69fa29edc4b7d7c4585061851501f7f0, type: 3}
+  m_Sprite: {fileID: 21300000, guid: ac86623e349e7da4d8aba5b0afc6f254, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -24218,7 +24233,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SkillButtonView
   _button: {fileID: 4146640221422542342}
   _skillGhostPrefab: {fileID: 1627122659657980782, guid: 8b590d985dec8554b96c873e2491f147, type: 3}
-  _castHeight: 2
+  _castHeight: 5
+  _castOffsetXZ: {x: 0, y: 0}
   _rechargeText: {fileID: 585776165}
   _chargeText: {fileID: 1209942896}
   _fillImage: {fileID: 1397079616}
