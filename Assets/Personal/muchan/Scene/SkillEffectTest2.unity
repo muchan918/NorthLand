@@ -15331,10 +15331,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BombEffect
   maxLevel: 3
-  bombPrefab: {fileID: 8925636819348908530, guid: b4c2d3008892ecf4ba6ba30b57d958a1, type: 3}
+  bombPrefab: {fileID: 1904690475409078082, guid: 9333820f99e1c1140b56dc9c01913d2c, type: 3}
+  explosionEffectPrefab: {fileID: 2663140773275296467, guid: c44b1c77ea9c95140900944b2b559e33, type: 3}
+  bombScale: 2
   damagePerLevel: 20
   explosionDelay: 2
-  explosionRadius: 20
+  explosionRadius: 6
   enemyLayerMask:
     serializedVersion: 2
     m_Bits: 128
