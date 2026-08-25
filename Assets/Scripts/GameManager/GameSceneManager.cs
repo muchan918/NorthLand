@@ -117,7 +117,7 @@ namespace NorthLand.Core
         {
             TutorialMode.Enter();
             pendingContinue = false;
-            pendingMasterSeed = masterSeed;
+            pendingMasterSeed = null;
             tutorialReturnMasterSeed = masterSeed;
 
             SceneManager.LoadScene(GameScene);

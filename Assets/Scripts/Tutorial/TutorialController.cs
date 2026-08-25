@@ -7,6 +7,11 @@ using UnityEngine;
 // 무엇을 기다리는지도 모른다(TutorialCondition의 몫) — "됐다"는 통지만 받는다.
 public class TutorialController : MonoBehaviour
 {
+    [Header("Seed")]
+    [Min(1)]
+    [SerializeField]
+    private int tutorialMasterSeed = 1234;
+
     [SerializeField]
     private GameObject tutorialRoot;
 
@@ -55,6 +60,10 @@ public class TutorialController : MonoBehaviour
     private bool _pausedByStep;
 
     public bool IsRunning => _phase != Phase.Idle;
+
+    public int TutorialMasterSeed => tutorialMasterSeed;
+
+    public bool UsesTutorialSeed => enabled && (startOnPlay || TutorialMode.IsActive);
 
     private void Awake()
     {
