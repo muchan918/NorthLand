@@ -449,11 +449,56 @@ Text (TMP)                     ← 레이아웃 행. 안 찬 글자(흰색) + Lo
 - 재개한다면 비용은 셰이더 1 + 머티리얼 1 + 컴포넌트 1이고, 인게임 튜닝값과의 **이중 관리**가
   남는 부담이다(무늬 식만 공유하고 파라미터는 각자 들고 있게 된다).
 
+#### PR 리뷰 반영 (2026-08-26)
+
+**1) 로딩 실패 시 커튼이 영원히 남는 경로 — 수정.** `RunAsync`의 `catch`가 로그만 남기고 커튼을
+그대로 뒀다. `readyTimeoutSeconds`는 **전투맵 대기 구간에만** 걸려 그 앞뒤(워밍업 · `LoadSceneAsync` ·
+`UnloadSceneAsync`)의 실패를 못 잡는다. 예를 들어 `Resources.LoadAll<TowerAsset>` 도중 에셋 참조가
+깨져 예외가 나면 플레이어는 재시작 말고는 빠져나갈 방법이 없었다.
+
+- `totalTimeoutSeconds`(기본 60초) 추가 — `LoadAsync` **전체**를 `UniTask.Timeout`으로 감싼다.
+  단계마다 타임아웃을 심는 대신 바깥에서 한 번 재는 편이 빠뜨릴 자리가 없다.
+  `readyTimeoutSeconds`(30초)보다 커야 흔한 실패에서 더 구체적인 쪽 로그가 먼저 뜬다.
+- `LoadingFlow.Recover()` 추가 — 예외든 타임아웃이든 여기로 모인다. **동기이고 await가 없다**:
+  복구 도중 또 실패하면 결국 커튼이 남기 때문에, 여기서는 연출보다 탈출이 먼저다.
+  게임 씬이 올라와 있으면 `SetActiveScene` → `LoadingScreen.HideImmediately()` → 로딩 씬 언로드.
+  게임 씬이 아예 못 올라왔으면 커튼만 걷어도 빈 화면이 남으므로 `LoadScene(GameScene)`으로
+  떨어뜨린다 — §2의 부팅 스파이크는 노출되지만 플레이는 된다.
+- 진입 즉시 `lifetimeCts.Cancel()`로 남은 진행을 끊는다. 타임아웃은 내부 태스크를 취소하지 않고
+  기다리기만 멈추므로, 안 끊으면 같은 씬을 두 번 언로드할 수 있다.
+
+**2) `SceneWorkflow.md` §1 "정본 씬 2개" 충돌 — 문서 갱신으로 해소.** §5.3-1 참고.
+
+**3) `SystemMap.md`의 `IsTitleScene` 서술이 낡음 — 갱신.** "씬 문맥이 필요하면 이 값을 쓴다"는
+서술이 이번 PR이 고친 것과 같은 버그를 유도한다. 두 판정(`IsTitleScene`/`IsGameplayScene`)이
+**서로의 부정이 아니라는 것**(로딩 중에는 둘 다 거짓)을 §2에 명시했다.
+
+**4) `CombatMapInitializer.IsInitialized`를 `SystemMap.md` §2에 등재.** 리뷰는 이 값이 이미 §2에
+있는 공개 API라고 했지만 **실제로는 등재된 적이 없었다**(§2 Run/Seed에 있던 것은
+`InitializeCombatMap(int)`/`UsedSeed`뿐). `LoadingFlow`가 준비 완료 판정 근거로 쓰면서 통합 계약이
+됐으므로 이번에 추가했다 — 초기화 시점을 옮기면 커튼이 준비 전에 걷힌다.
+
+**5) 리뷰가 제안한 WL-212는 등재하지 않는다.** 지적된 두 문서 불일치를 이 PR에서 함께 해소했으므로
+`WatchList.md`(**미해소** 항목 대장)의 조건을 만족하지 않는다.
+
+> **리뷰의 사실 오류 2건**(기록만 남긴다)
+> - `LoadingFlow.cs:296-299, 326-332, 437-472` · `LoadingScreen.cs:557-558` · `BootWarmup.cs:206-214`로
+>   인용된 위치는 **전부 파일 범위 밖**이다(각각 244 · 113 · 114줄). 지적 내용 자체는 정확하므로
+>   diff 오프셋을 파일 라인으로 적은 것으로 보인다.
+> - `CombatMapInitializer.IsInitialized`가 `SystemMap.md:94`에 등재돼 있다는 서술은 사실이 아니다(위 4번).
+>
+> 나머지 인용(`SceneWorkflow.md:19`, `SystemMap.md:83`, `LocalizationHelper.cs:45-50`,
+> `DataTableManager`의 static 생성자가 4종을 한 번에 적재, GDD에 "로딩" 언급 0건)은 재확인 결과 정확했다.
+> **`BuildingFeedback`이 4번째 사례가 아니라는 판정도 맞다** — `!IsTitleScene`을 쓰지만
+> `DontDestroyOnLoad`도 latch도 없고, `OnEnable` 1회 검사라 오히려 `IsGameplayScene`으로 바꾸면
+> 경고가 영구 소실된다(근거는 `SystemMap.md` §1 표 아래).
+
 ### 5.5 미결로 남은 것
 
 | 항목 | 상태 |
 | --- | --- |
 | 커튼 전환 연출(셀 와이프) | **보류** — 시제작 후 롤백. 확인된 제약과 재개 비용은 §5.4 말미 |
+| `marshie-run-v1.anim` 커브 리타겟 커밋 | **다른 저장소 대기** — `NorthLand-Imported`(`@NorthLand/UI/`) 쪽에서 별도 커밋이 필요하다. 이 저장소만으로는 마스코트가 안 뜬다(§5.5 마스코트 항목) |
 | TMP 글리프 프리워밍 | JP 정적 서브셋 재베이크(Phase 2 폰트 작업)와 범위가 겹쳐 함께 결정 |
 | `BuffBurnReward.asset` 고아 | 담당자 확인 대기(§3.3) |
 | Standalone 스크립팅 백엔드 | 눈으로 확인 필요(§4.3) |
@@ -489,9 +534,11 @@ Text (TMP)                     ← 레이아웃 행. 안 찬 글자(흰색) + Lo
 
 ### 5.3 ⚠ 같이 따라오는 것 — 착수 전 반드시 확인
 
-1. **`Docs/Core/SceneWorkflow.md` §1과 충돌한다.** 해당 문서는 "정본 씬은 `TitleScene`/`GameScene`
-   **두 개뿐**"이라고 명시하고, `GameSceneManager`와 Build Settings가 그 두 이름만 참조한다는 것을
-   구조적 안전장치로 삼고 있다. 로딩 씬 추가는 **이 규칙의 변경**이므로 팀 합의와 문서 갱신이 필요하다.
+1. ~~**`Docs/Core/SceneWorkflow.md` §1과 충돌한다.**~~ → **해소**(2026-08-26): 해당 문서를
+   "정본 씬 **세 개**"로 갱신하고, `LoadingScene`이 §3~§5의 **병합 절차 밖**인 이유(단일 소유자·
+   소규모라 동시 편집 문제가 성립하지 않음)를 §1-1로 명시했다. `SystemMap.md`의
+   `GameSceneManager` 행과 씬 판정 API 서술도 함께 갱신했다.
+   ⚠ **팀 계약 변경이므로 리뷰에서 확인받아야 한다** — 문서만 맞춰 둔 상태다.
 
 2. **`IsTitleScene` 경고 latch가 깨진다 — 실제 회귀다.** 아래 셋은
    `[RuntimeInitializeOnLoadMethod(AfterSceneLoad)]` + `DontDestroyOnLoad`라 **모든 씬에 상주**하며

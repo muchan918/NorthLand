@@ -105,6 +105,18 @@ namespace NorthLand.Core
             curtain.blocksRaycasts = false;
         }
 
+        /// <summary>
+        /// 커튼을 즉시 걷는다. <see cref="LoadingFlow"/>의 복구 경로 전용 —
+        /// 로딩이 실패한 상황이라 연출보다 탈출이 먼저고, 여기서는 await도 예외도 없어야 한다.
+        /// </summary>
+        public void HideImmediately()
+        {
+            if (curtain == null) return;
+
+            curtain.alpha = 0f;
+            curtain.blocksRaycasts = false;
+        }
+
         private void Apply(float value)
         {
             if (tipText != null) tipText.SetProgress(value);

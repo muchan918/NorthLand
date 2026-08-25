@@ -945,6 +945,7 @@ MonoBehaviour:
   screen: {fileID: 1841641600}
   minimumDisplaySeconds: 3.4
   readyTimeoutSeconds: 30
+  totalTimeoutSeconds: 60
 --- !u!114 &1841641600
 MonoBehaviour:
   m_ObjectHideFlags: 0

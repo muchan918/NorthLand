@@ -41,6 +41,12 @@ namespace NorthLand.Core
         [Min(1f)]
         private float readyTimeoutSeconds = 30f;
 
+        [Tooltip("로딩 전체의 상한(초). 어느 단계에서 멎든 이 시간이 지나면 복구 경로로 간다. " +
+                 "readyTimeoutSeconds보다 커야 한다 — 그래야 흔한 실패에서 더 구체적인 쪽 로그가 먼저 뜬다.")]
+        [SerializeField]
+        [Min(5f)]
+        private float totalTimeoutSeconds = 60f;
+
         private CancellationTokenSource lifetimeCts;
 
         private void Start()
@@ -62,17 +68,73 @@ namespace NorthLand.Core
         {
             try
             {
-                await LoadAsync(cancellationToken);
+                // ⚠ 상한을 바깥에 한 겹 두는 이유: LoadAsync 안에는 스스로 끝난다는 보장이 없는 대기가
+                //   여러 개다(Localization 초기화 · LoadSceneAsync · UnloadSceneAsync). readyTimeoutSeconds는
+                //   전투맵 대기 구간에만 걸려 그 앞뒤를 못 잡는다. 단계마다 타임아웃을 심는 것보다
+                //   바깥에서 한 번 재는 편이 빠뜨릴 자리가 없다.
+                //   내부 태스크는 여기서 취소하지 않는다 — Recover가 상태를 정리하면서 직접 끊는다.
+                await LoadAsync(cancellationToken)
+                    .Timeout(
+                        TimeSpan.FromSeconds(totalTimeoutSeconds),
+                        DelayType.UnscaledDeltaTime,
+                        PlayerLoopTiming.Update);
+
+                return;
             }
             catch (OperationCanceledException)
             {
                 // 씬이 먼저 내려간 정상 경로다. 조용히 끝낸다.
+                return;
+            }
+            catch (TimeoutException)
+            {
+                Debug.LogError(
+                    $"[Loading] 로딩이 {totalTimeoutSeconds:0}초 안에 끝나지 않았습니다. " +
+                    "커튼을 걷고 게임 씬으로 넘깁니다.",
+                    this);
             }
             catch (Exception exception)
             {
-                // 여기서 죽으면 커튼이 영원히 덮인 채 남는다 — 최소한 원인을 남긴다.
                 Debug.LogException(exception, this);
             }
+
+            Recover();
+        }
+
+        /// <summary>
+        /// 로딩이 실패했을 때의 탈출 경로. <b>여기서는 연출보다 탈출이 먼저다</b> — 페이드도 await도
+        /// 없이 동기로만 정리한다. 복구 도중 또 실패하면 결국 커튼이 남기 때문이다.
+        ///
+        /// 이것이 없으면 <see cref="LoadAsync"/>가 어디서 죽든 커튼이 영원히 덮인 채 남아
+        /// 플레이어가 재시작 말고는 빠져나갈 방법이 없다.
+        /// </summary>
+        private void Recover()
+        {
+            // 남아 있던 로딩 진행을 먼저 끊는다. 안 끊으면 아래 언로드와 겹쳐 같은 씬을 두 번 내린다.
+            lifetimeCts?.Cancel();
+
+            Scene gameScene = SceneManager.GetSceneByName(GameSceneManager.GameSceneName);
+
+            if (!gameScene.IsValid() || !gameScene.isLoaded)
+            {
+                // 게임 씬이 아예 못 올라온 실패다. 커튼만 걷으면 빈 화면이 남으므로 옛 경로로
+                // 떨어뜨린다 — §2의 부팅 스파이크가 그대로 노출되지만 플레이는 된다.
+                Debug.LogError(
+                    $"[Loading] '{GameSceneManager.GameSceneName}'이 적재되지 않아 " +
+                    "로딩 화면 없이 직접 진입합니다.",
+                    this);
+
+                SceneManager.LoadScene(GameSceneManager.GameSceneName);
+
+                return;
+            }
+
+            SceneManager.SetActiveScene(gameScene);
+
+            if (screen != null) screen.HideImmediately();
+
+            // 이 씬을 내리면 이 컴포넌트도 함께 파괴된다 — 이후에 아무것도 두지 않는다.
+            SceneManager.UnloadSceneAsync(gameObject.scene);
         }
 
         private async UniTask LoadAsync(CancellationToken cancellationToken)
