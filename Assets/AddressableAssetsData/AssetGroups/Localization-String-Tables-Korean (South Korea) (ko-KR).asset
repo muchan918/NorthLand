@@ -21,6 +21,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - Locale-ko-KR
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 88bfe5778dfa25741a5b1d8bfd62bab1
+    m_Address: NorthLand_Tutorial_ko-KR
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-ko-KR
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 8a383dec8622f2a4e997c9cfb426a538
     m_Address: NorthLand_Rewards_ko-KR
     m_ReadOnly: 1
