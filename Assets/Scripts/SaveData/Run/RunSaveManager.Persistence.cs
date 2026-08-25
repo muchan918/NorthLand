@@ -358,27 +358,35 @@ namespace NorthLand.Core
                 return SaveResult.Failed("현재 슬롯의 Run 세이브를 찾을 수 없습니다.");
             }
 
+            if (deleteCurrentRunRequested)
+            {
+                return SaveResult.Failed("현재 Run 삭제가 이미 진행 중입니다.");
+            }
+
             cancellationToken.ThrowIfCancellationRequested();
 
-            // 새로운 저장과 대기 저장을 차단한다.
             deleteCurrentRunRequested = true;
             savePending = false;
 
-            // 삭제 요청을 수락한 뒤에는 원자성을 위해 취소하지 않고
-            // 현재 저장이 완전히 끝날 때까지 기다린다.
-            await UniTask.WaitUntil(() => !isSaving,cancellationToken: CancellationToken.None);
+            try
+            {
+                // 삭제 요청을 수락한 뒤에는 진행 중 저장이 끝날 때까지 취소하지 않는다.
+                await UniTask.WaitUntil(() => !isSaving,
+                    cancellationToken: CancellationToken.None);
 
-            if (!fileStore.TryDelete(out string error))
+                if (!fileStore.TryDelete(out string error))
+                {
+                    return SaveResult.Failed(error);
+                }
+
+                Debug.Log("[Save] 새 튜토리얼 시작을 위해 기존 Run 세이브를 삭제했습니다.",this);
+
+                return SaveResult.Succeeded();
+            }
+            finally
             {
                 deleteCurrentRunRequested = false;
-                return SaveResult.Failed(error);
             }
-
-            Debug.Log(
-                "[Save] 새 튜토리얼 시작을 위해 기존 Run 세이브를 삭제했습니다.",
-                this);
-
-            return SaveResult.Succeeded();
         }
 
         private void OnDestroy()
