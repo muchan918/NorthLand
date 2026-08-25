@@ -2,6 +2,7 @@ using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 /// 생산라인 위 바로가기 버튼. 누르면 그 건물로 카메라를 옮기고 건물 패널을 연다.
 public class BuildingShortcutBar : MonoBehaviour
@@ -24,9 +25,7 @@ public class BuildingShortcutBar : MonoBehaviour
 
     [SerializeField] private Entry[] _entries;
     [SerializeField] private CameraController2 _camera;
-
-    // 밤에 통째로 내리는 용도. SetActive가 아닌 이유는 ApplyPhase 주석 참고.
-    [SerializeField] private CanvasGroup _group;
+    [SerializeField] private SettingUI _settingUI;
 
     [Header("툴팁")]
     [SerializeField] private GameObject _tooltipPanel;
@@ -37,62 +36,70 @@ public class BuildingShortcutBar : MonoBehaviour
 
     private void Start()
     {
-        if (_camera == null) _camera = FindFirstObjectByType<CameraController2>();
+        if (_camera == null)
+            _camera = FindFirstObjectByType<CameraController2>();
+
+        if (_settingUI == null)
+            _settingUI = FindFirstObjectByType<SettingUI>();
 
         HideTooltip();
 
         foreach (Entry entry in _entries)
         {
-            if (entry.button == null) continue;
+            if (entry.button == null)
+                continue;
 
-            // 씬에 없는 건물은 갈 곳이 없다.
             entry.button.interactable = entry.focus != null;
             entry.button.onClick.AddListener(() => Focus(entry));
         }
-
-        if (DayNightManager.Instance == null)
-        {
-            Debug.LogError("[바로가기] DayNightManager를 찾을 수 없습니다 — 밤에도 패널이 열려 있게 됩니다.", this);
-            return;
-        }
-
-        // OnDayStart는 부트스트랩(1일차)에도 오므로 낮 신호로 쓴다(PhasePanelSwitcher와 같은 구독).
-        DayNightManager.Instance.OnDayStart += ShowDay;
-        DayNightManager.Instance.OnDayToNight += ShowNight;
-
-        ApplyPhase(DayNightManager.Instance.CurrentPhase == DayNightManager.Phase.Day);
     }
 
     private void OnDestroy()
     {
         foreach (Entry entry in _entries)
         {
-            if (entry.button != null) entry.button.onClick.RemoveAllListeners();
+            if (entry.button != null)
+                entry.button.onClick.RemoveAllListeners();
         }
-
-        if (DayNightManager.Instance == null) return;
-
-        DayNightManager.Instance.OnDayStart -= ShowDay;
-        DayNightManager.Instance.OnDayToNight -= ShowNight;
     }
 
-    private void ShowDay() => ApplyPhase(true);
-
-    private void ShowNight() => ApplyPhase(false);
-
-    // 밤에는 경영 공간에 갈 수 없다 — 전투 중 카메라가 마을로 순간이동하는 것을 막는다(GDD 밤 순간이동 방지).
-    // SetActive가 아니라 CanvasGroup인 이유: 이 스크립트가 그 패널에 붙어 있어, 오브젝트를 끄면 아침에 스스로 켜지 못한다.
-    private void ApplyPhase(bool day)
+    private void Update()
     {
-        if (_group != null)
-        {
-            _group.alpha = day ? 1f : 0f;
-            _group.interactable = day;
-            _group.blocksRaycasts = day; // false면 EventTrigger의 PointerEnter 자체가 오지 않는다
-        }
+        // 설정창이 열려 있으면 숫자키 이동을 막는다.
+        if (_settingUI != null && _settingUI.IsOpen)
+            return;
 
-        // 툴팁은 UICanvas 직속이라 패널과 함께 사라지지 않는다 — 밤 전환 순간 커서가 버튼 위였으면 남는다.
-        if (!day) HideTooltip();
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard == null)
+            return;
+
+        if (keyboard.digit1Key.wasPressedThisFrame)
+            FocusEntry(0);
+        else if (keyboard.digit2Key.wasPressedThisFrame)
+            FocusEntry(1);
+        else if (keyboard.digit3Key.wasPressedThisFrame)
+            FocusEntry(2);
+        else if (keyboard.digit4Key.wasPressedThisFrame)
+            FocusEntry(3);
+        else if (keyboard.digit5Key.wasPressedThisFrame)
+            FocusEntry(4);
+        else if (keyboard.digit6Key.wasPressedThisFrame)
+            FocusEntry(5);
+        else if (keyboard.digit7Key.wasPressedThisFrame)
+            FocusEntry(6);
+    }
+
+    private void FocusEntry(int index)
+    {
+        if (index < 0 || index >= _entries.Length)
+            return;
+
+        Entry entry = _entries[index];
+
+        if (entry.focus == null)
+            return;
+
+        Focus(entry);
     }
 
     private void LateUpdate()
@@ -118,16 +125,28 @@ public class BuildingShortcutBar : MonoBehaviour
 
     private void Focus(Entry entry)
     {
-        if (entry.focus == null || _camera == null) return;
+        if (entry.focus == null || _camera == null)
+            return;
 
         _camera.MoveTo(entry.focus.FocusPosition);
 
-        if (entry.focus.ZoomSize > 0f) _camera.ZoomTo(entry.focus.ZoomSize);
-        if (entry.focus.Building != null) MouseManager.Instance?.SelectExternally(entry.focus.Building);
+        if (entry.focus.ZoomSize > 0f)
+            _camera.ZoomTo(entry.focus.ZoomSize);
 
-        Focused?.Invoke(entry.focus.Building != null ? entry.focus.Building.Asset : null);
+        if (entry.focus.Building != null)
+        {
+            // 건물 바로가기: 해당 건물을 선택하고 패널을 연다.
+            MouseManager.Instance?.SelectExternally(
+                entry.focus.Building);
+        }
+        else
+        {
+            // 배틀맵 바로가기: 현재 선택 및 패널을 닫는다.
+            MouseManager.Instance?.CancelInteractions();
+        }
+
+        Focused?.Invoke(entry.focus.Building != null? entry.focus.Building.Asset: null);
     }
-
     // 커서 위치는 MouseManager 경유로 얻는다 — Mouse.current 직접 폴링 금지(입력 단일 창구 계약).
     // _tooltipRect의 pivot이 좌상단(0,1)이라고 가정한다.
     private void FollowCursor()
