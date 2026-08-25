@@ -916,6 +916,10 @@ PrefabInstance:
       propertyPath: settingbutton
       value: 
       objectReference: {fileID: 2089697466}
+    - target: {fileID: 6925977610862801934, guid: d827c8325f3dcb945bf7e85066dd5149, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -6834,6 +6838,7 @@ MonoBehaviour:
   - {fileID: 1844329255}
   - {fileID: 1487356419}
   - {fileID: 721705210}
+  mainMenuUI: {fileID: 1229645145}
 --- !u!4 &2071808116
 Transform:
   m_ObjectHideFlags: 0
@@ -6842,12 +6847,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2071808114}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 346.69702, y: 0.00001, z: 8092.0522}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_ConstrainProportionsScale: 1
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 2120354192}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2086464995
 GameObject:
@@ -7096,6 +7101,7 @@ RectTransform:
   - {fileID: 721705209}
   - {fileID: 1906976165}
   - {fileID: 1519479737}
+  - {fileID: 2071808116}
   m_Father: {fileID: 123184261}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -7204,7 +7210,6 @@ SceneRoots:
   m_Roots:
   - {fileID: 1668140917}
   - {fileID: 520782110}
-  - {fileID: 2071808116}
   - {fileID: 1530511381}
   - {fileID: 114140444}
   - {fileID: 1229645144}

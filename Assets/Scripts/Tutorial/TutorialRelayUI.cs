@@ -1,4 +1,6 @@
+using Cysharp.Threading.Tasks;
 using NorthLand.Core;
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -20,6 +22,8 @@ public class TutorialRelayUI : MonoBehaviour
     private RunSaveManager runSaveManager;
 
     private bool _pausedByPopup;
+
+    private bool isDeletingRun;
 
     private void Awake()
     {
@@ -95,23 +99,57 @@ public class TutorialRelayUI : MonoBehaviour
 
     private void ConfirmReplay()
     {
-        GameSceneManager sceneManager = GameSceneManager.Instance;
-
-        if (sceneManager == null)
-        {
-            Debug.LogError($"[{nameof(TutorialRelayUI)}] GameSceneManager 인스턴스를 찾을 수 없습니다.", this);
-            return;
-        }
-
-        if (!runSaveManager.TryDeleteCurrentRun())
-        {
-            Debug.LogError($"[{nameof(TutorialRelayUI)}] 기존 Run을 초기화하지 못해 튜토리얼을 시작하지 않습니다.", this);
-            return;
-        }
-
-        ClosePopup();
-        sceneManager.LoadTutorial();
+        ConfirmReplayAsync().Forget();
     }
+    private async UniTaskVoid ConfirmReplayAsync()
+    {
+        if (isDeletingRun || runSaveManager == null)
+        {
+            return;
+        }
+
+        isDeletingRun = true;
+        confirmButton.interactable = false;
+
+        try
+        {
+            SaveResult result = await runSaveManager.DeleteCurrentRunAsync(this.GetCancellationTokenOnDestroy());
+
+            if (!result.Success)
+            {
+                Debug.LogError($"[{nameof(TutorialRelayUI)}] 기존 Run을 초기화하지 못했습니다: {result.Error}",this);
+
+                return;
+            }
+
+            ClosePopup();
+
+            GameSceneManager sceneManager = GameSceneManager.Instance;
+
+            if (sceneManager == null)
+            {
+                Debug.LogError($"[{nameof(TutorialRelayUI)}] GameSceneManager 인스턴스를 찾을 수 없습니다.",this);
+
+                return;
+            }
+
+            sceneManager.LoadTutorial();
+        }
+        catch (OperationCanceledException)
+        {
+            // UI 파괴에 따른 정상 취소
+        }
+        finally
+        {
+            isDeletingRun = false;
+
+            if (confirmButton != null)
+            {
+                confirmButton.interactable = true;
+            }
+        }
+    }
+
 
     private void ResumeGameIfPaused()
     {

@@ -2667,7 +2667,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 415709802502914483, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: _zoomSource
-      value: 
+      value:
       objectReference: {fileID: 522335599}
     - target: {fileID: 792939803976950741, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: m_LocalPosition.y
@@ -2675,7 +2675,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2118261717743543252, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: _zoomSource
-      value: 
+      value:
       objectReference: {fileID: 522335599}
     - target: {fileID: 3995184238862392525, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: m_LocalPosition.x
@@ -2719,7 +2719,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4117600579374478185, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: _zoomSource
-      value: 
+      value:
       objectReference: {fileID: 522335599}
     - target: {fileID: 4490917737636434860, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: m_Name
@@ -2775,7 +2775,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8923883104720120110, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: _zoomSource
-      value: 
+      value:
       objectReference: {fileID: 522335599}
     - target: {fileID: 9012046073250937523, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: m_LocalPosition.y
@@ -2866,7 +2866,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -2941,7 +2941,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -4155,7 +4155,7 @@ MonoBehaviour:
   dragSpeed: 0.3
   zoomSpeed: 10
   minZoomSize: 30
-  maxZoomSize: 150
+  maxZoomSize: 200
   zoomSmoothTime: 0.2
   minimapMoveSmoothTime: 0.15
   mainCamera: {fileID: 1459800175}
@@ -25882,7 +25882,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2098746149048670819, guid: 9d2541b4fbc1336479b46389cf1fd041, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 49.901367
+      value: 49.901123
       objectReference: {fileID: 0}
     - target: {fileID: 2098746149048670819, guid: 9d2541b4fbc1336479b46389cf1fd041, type: 3}
       propertyPath: m_AnchoredPosition.y
@@ -27096,7 +27096,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 44.000244, y: 5}
+  m_AnchoredPosition: {x: 44.000122, y: 5}
   m_SizeDelta: {x: 300, y: 85}
   m_Pivot: {x: 1, y: 1}
 --- !u!224 &7477692333638167794
