@@ -12,8 +12,17 @@ public class MonsterAnimation : MonoBehaviour
         Animator.StringToHash("IsDie");
 
     // 공격 상태의 재생속도 배수(#452). 컨트롤러의 공격 상태에 Speed Parameter로 연결한다.
-    private static readonly int AttackCadenceHash =
-        Animator.StringToHash("AttackCadence");
+    // 스윙 1회의 재생속도 배수(#452). 컨트롤러의 공격 상태에 Speed Parameter로 연결한다.
+    //
+    // 이름이 `AttackCadence`가 **아닌** 이유: 그 이름은 `BossAttackCadence`가 이미 쓰고 있고,
+    // 같은 문제("애니메이션 1주기 = 공격 1회")에 대한 답이 서로 다르다 — 그쪽은 하한 0.2로 간격이
+    // 길면 배속을 낮춰 클립을 늘리고, 이쪽은 하한 1로 잘라 원속도 1회 재생 후 Idle로 뜸을 들인다.
+    // `Tank.prefab`에는 **두 컴포넌트가 같은 오브젝트에 함께 붙어 있고** 컨트롤러에 파라미터도
+    // 있어서, 이름을 공유하면 그 프리팹의 `attackClip` 칸이 채워지는 순간 둘이 같은 float를
+    // 매 프레임 번갈아 쓴다(증상은 "보스 공격 모션 속도가 떨린다", 원인은 어느 스크립트에도 안 보인다).
+    // 이름을 가르면 그 함정이 아예 생기지 않는다 — 정책 통일은 보스 모션을 손보는 시점의 일이다.
+    private static readonly int SwingCadenceHash =
+        Animator.StringToHash("SwingCadence");
 
     // 스윙 끝을 이 시간보다 앞으로 당기지는 않는다. 클립이 전이 시간보다 짧을 때 스윙이
     // 0초로 접히는 것을 막는 하한이다.
@@ -61,6 +70,11 @@ public class MonsterAnimation : MonoBehaviour
     // 폴백 경고를 인스턴스당 1회로 묶는다. 공격마다 나면 웨이브 후반에 콘솔이 잠긴다.
     private bool warnedSwingUnavailable;
 
+    // 배속 보정을 다른 컴포넌트가 담당하는가. 켜져 있으면 스윙 폴백을 **경고하지 않는다** —
+    // 그것이 정상 저작이기 때문이다(`Tank.prefab`이 `BossAttackCadence`로 처리한다).
+    // 이 가드가 없으면 Wave 15 보스가 뜰 때마다 "Assets/Imported 미동기화" 안내가 오탐으로 나간다.
+    private bool cadenceOwnedElsewhere;
+
     private void Awake()
     {
         if (animator == null)
@@ -74,6 +88,10 @@ public class MonsterAnimation : MonoBehaviour
                 $"[{nameof(MonsterAnimation)}] Animator를 찾을 수 없습니다.",
                 gameObject);
         }
+
+        // 같은 오브젝트만 본다 — `Tank.prefab`이 두 컴포넌트를 루트에 함께 얹은 형태이고,
+        // 그것이 이 조합이 성립하는 유일한 배선이다.
+        cadenceOwnedElsewhere = GetComponent<BossAttackCadence>() != null;
     }
 
     /// 스윙 단위 제어가 가능한가. false면 호출부는 예전 경로(루프 재생 + 즉발 피해)를 쓴다 —
@@ -107,7 +125,7 @@ public class MonsterAnimation : MonoBehaviour
         float cadence = Mathf.Clamp(clipLength / attackInterval, 1f, maxCadence);
         float swingDuration = clipLength / cadence;
 
-        animator.SetFloat(AttackCadenceHash, cadence);
+        animator.SetFloat(SwingCadenceHash, cadence);
 
         // IsAttack은 SetAttackAnimation만 쓴다 — 여기서 SetBool을 직접 부르면 스윙 장부와
         // 애니메이터를 한 자리에서 묶어 두는 불변식이 선언만 남는다(리뷰 지적).
@@ -132,7 +150,7 @@ public class MonsterAnimation : MonoBehaviour
     /// 안 바뀌었다"라 원인에서 멀고, 콘솔 한 줄이면 즉시 갈린다.
     private void WarnSwingUnavailableOnce()
     {
-        if (warnedSwingUnavailable)
+        if (warnedSwingUnavailable || cadenceOwnedElsewhere)
         {
             return;
         }
