@@ -58,6 +58,9 @@ public class MonsterAnimation : MonoBehaviour
     // 남은 스윙 시간. 0이 되면 IsAttack을 내려 Idle로 돌아간다(= 다음 공격까지 뜸 들이는 구간).
     private float swingRemaining;
 
+    // 폴백 경고를 인스턴스당 1회로 묶는다. 공격마다 나면 웨이브 후반에 콘솔이 잠긴다.
+    private bool warnedSwingUnavailable;
+
     private void Awake()
     {
         if (animator == null)
@@ -92,6 +95,8 @@ public class MonsterAnimation : MonoBehaviour
 
         if (!CanScheduleSwing || attackInterval <= 0f)
         {
+            WarnSwingUnavailableOnce();
+
             SetAttackAnimation(true);
             return 0f;
         }
@@ -103,8 +108,10 @@ public class MonsterAnimation : MonoBehaviour
         float swingDuration = clipLength / cadence;
 
         animator.SetFloat(AttackCadenceHash, cadence);
-        animator.SetBool(IsMoveHash, false);
-        animator.SetBool(IsAttackHash, true);
+
+        // IsAttack은 SetAttackAnimation만 쓴다 — 여기서 SetBool을 직접 부르면 스윙 장부와
+        // 애니메이터를 한 자리에서 묶어 두는 불변식이 선언만 남는다(리뷰 지적).
+        SetAttackAnimation(true);
 
         // Idle에 머무는 시간이 전이 왕복(나가기 + 들어오기)보다 짧으면, 들어갔다 나오는 두 페이드가
         // 서로 겹쳐 스윙만 뭉개진다. 그 구간은 연속 루프가 정답이므로 타이머를 걸지 않고 켠 채로 둔다
@@ -116,6 +123,27 @@ public class MonsterAnimation : MonoBehaviour
             : 0f;
 
         return swingDuration * hitNormalizedTime;
+    }
+
+    /// 스윙 단위 제어가 불가능해 **예전 거동(루프 재생 + 즉발 피해)으로 되돌아갔다**는 사실을 드러낸다.
+    ///
+    /// 조용히 폴백하면 안 되는 이유: 공격 클립은 `Assets/Imported`(별도 저장소)의 프리팹에 배선되므로,
+    /// 그 저장소를 동기화하지 않은 환경이 **정확히 이 상태**가 된다. 증상이 "받았는데 아무것도
+    /// 안 바뀌었다"라 원인에서 멀고, 콘솔 한 줄이면 즉시 갈린다.
+    private void WarnSwingUnavailableOnce()
+    {
+        if (warnedSwingUnavailable)
+        {
+            return;
+        }
+
+        warnedSwingUnavailable = true;
+
+        Debug.LogWarning(
+            $"[{name}] 공격 클립이 없어 공격 모션을 공격속도에 맞추지 못합니다 — 루프 재생 + 즉발 피해로 " +
+            $"되돌아갑니다. 프리팹의 {nameof(MonsterAnimation)}.attackClip을 확인하세요" +
+            "(Assets/Imported 저장소 미동기화가 가장 흔한 원인).",
+            gameObject);
     }
 
     private void Update()

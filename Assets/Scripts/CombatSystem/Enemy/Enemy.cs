@@ -101,6 +101,15 @@ namespace NorthLand.Combat
             monsterStateMachine = GetComponent<MonsterStateMachine>();
             monsterAnimation = GetComponentInChildren<MonsterAnimation>();
 
+            // 없으면 스윙 스케줄링이 통째로 빠져 예전 즉발 경로로 되돌아간다 — 조용히 넘기지 않는다
+            // (:120 IMovementAgent와 같은 규칙). MonsterAnimation은 있는데 공격 클립만 비어 있는
+            // 경우는 MonsterAnimation.PlaySwing이 자기 자리에서 경고한다.
+            if (monsterAnimation == null)
+            {
+                Debug.LogWarning($"[{name}] MonsterAnimation을 찾지 못해 공격 모션 동기화가 동작하지 않습니다 " +
+                                 "— 피해가 쿨다운 만료 프레임에 즉발됩니다.", this);
+            }
+
             // 배율 미적용 상태의 최대치다. 스포너가 곧 ApplyWaveHpScale로 덮어쓴다 —
             // 스포너를 거치지 않는 경로(테스트 씬 직접 배치)는 배율 1이라 이 값이 그대로 정답이 된다.
             currentHp = MaxHp;
