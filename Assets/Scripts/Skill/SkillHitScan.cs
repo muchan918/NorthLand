@@ -16,8 +16,6 @@ public static class SkillHitScan
     // 프리팹 리셋·신규 씬에서 시전면이 몬스터보다 위로 갈 수 있다. 위쪽만 열면 그때 전 스킬이
     // 조용히 빗나간다. 시전면 아래엔 적이 없으므로 아래로 여는 대가는 없다.
     //
-    // public인 이유: 전기장 기즈모(SkillField.OnDrawGizmosSelected)가 실제 판정과 같은 모양을
-    // 그려야 한다. 기즈모가 자기 값을 따로 들면 판정과 갈려서, 눈으로 보는 범위가 거짓이 된다.
     public const float VerticalRange = 12f;
 
     // NonAlloc API는 배열만 받는다(호출마다 새 배열을 만들지 않는 것이 존재 이유). 대신 버퍼가
@@ -33,10 +31,16 @@ public static class SkillHitScan
     public static void CollectEnemies(Vector3 center, float radius, LayerMask enemyLayerMask,
                                       List<IDamageable> results)
     {
+        Vector3 vertical = Vector3.up * VerticalRange;
+        CollectEnemiesInCapsule(center - vertical, center + vertical, radius, enemyLayerMask, results);
+    }
+
+    /// 지정한 월드 캡슐 내부의 적을 모은다. 전기장은 프리팹 CapsuleCollider의 실제 형태를 넘긴다.
+    public static void CollectEnemiesInCapsule(Vector3 point0, Vector3 point1, float radius,
+                                               LayerMask enemyLayerMask, List<IDamageable> results)
+    {
         results.Clear();
         s_Seen.Clear();
-
-        Vector3 vertical = Vector3.up * VerticalRange;
 
         // 버퍼가 꽉 차면 초과분이 잘렸을 수 있다. NonAlloc은 그걸 알려주지 않으므로 키워서 다시 친다.
         // "정확히 꽉 참"일 때도 한 번 헛돌지만 결과는 같고, 감전은 연구소 Lv3+에서 반경이 27까지
@@ -44,7 +48,7 @@ public static class SkillHitScan
         int count;
         while (true)
         {
-            count = Physics.OverlapCapsuleNonAlloc(center - vertical, center + vertical, radius,
+            count = Physics.OverlapCapsuleNonAlloc(point0, point1, radius,
                                                    s_Buffer, enemyLayerMask);
             if (count < s_Buffer.Length) break;
             s_Buffer = new Collider[s_Buffer.Length * 2];

@@ -93,13 +93,6 @@ public class SkillBomb : MonoBehaviour
         Destroy(gameObject);
     }
 
-#if UNITY_EDITOR
-    void OnDrawGizmosSelected()
-    {
-        Gizmos.color = new Color(1f, 0.5f, 0f);
-        Gizmos.DrawWireSphere(transform.position, radius);
-    }
-#endif
 }
 
 // Imported 폭발 이펙트의 원본 설정을 바꾸지 않고, 모든 자식 파티클이 끝난 뒤 런타임 인스턴스만 정리한다.

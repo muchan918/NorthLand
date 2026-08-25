@@ -15367,10 +15367,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FieldEffect
   maxLevel: 3
-  fieldPrefab: {fileID: 4072122165077608187, guid: 4291a8d466a431a4393847e166466cad, type: 3}
-  tickDamagePerLevel: 5
+  fieldPrefab: {fileID: 3472490920769604995, guid: a935f673cbfd4b947984c63123c3bb10, type: 3}
+  tickDamagePerLevel: 3
   tickInterval: 0.5
-  duration: 3
+  duration: 5
+  loopParticlesForDuration: 1
+  fieldParticles:
+  - {fileID: 8685763405100850315, guid: a935f673cbfd4b947984c63123c3bb10, type: 3}
+  - {fileID: 4507527132203259169, guid: a935f673cbfd4b947984c63123c3bb10, type: 3}
+  - {fileID: 2561354681545253489, guid: a935f673cbfd4b947984c63123c3bb10, type: 3}
+  - {fileID: 1929146147802243390, guid: a935f673cbfd4b947984c63123c3bb10, type: 3}
+  - {fileID: 181263172273039710, guid: a935f673cbfd4b947984c63123c3bb10, type: 3}
   fieldRadius: 18
   enemyLayerMask:
     serializedVersion: 2
