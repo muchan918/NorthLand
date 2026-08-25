@@ -167,7 +167,31 @@ namespace NorthLand.Core
             return true;
         }
 
-        public bool TrySetCameraMoveSpeed(float keyboardMultiplier,float mouseMultiplier,out string error)
+        public bool SetCameraMoveSpeed(float keyboardMultiplier,float mouseMultiplier)
+        {
+            if (CurrentSettings == null)
+            {
+                return false;
+            }
+
+            float keyboardValue = Mathf.Clamp(keyboardMultiplier, 0.5f, 2f);
+
+            float mouseValue = Mathf.Clamp(mouseMultiplier, 0.5f, 2f);
+
+            if (Mathf.Approximately(CurrentSettings.keyboardMoveSpeedMultiplier,keyboardValue) && Mathf.Approximately(CurrentSettings.mouseMoveSpeedMultiplier,mouseValue))
+            {
+                return false;
+            }
+
+            CurrentSettings.keyboardMoveSpeedMultiplier = keyboardValue;
+
+            CurrentSettings.mouseMoveSpeedMultiplier = mouseValue;
+
+            SettingsChanged?.Invoke();
+            return true;
+        }
+
+        public bool TrySaveCurrentSettings(out string error)
         {
             error = null;
 
@@ -177,30 +201,13 @@ namespace NorthLand.Core
                 return false;
             }
 
-            float keyboardValue = Mathf.Clamp(keyboardMultiplier, 0.5f, 2f);
-            float mouseValue = Mathf.Clamp(mouseMultiplier, 0.5f, 2f);
-
-            float previousKeyboard = CurrentSettings.keyboardMoveSpeedMultiplier;
-            float previousMouse = CurrentSettings.mouseMoveSpeedMultiplier;
-
-            CurrentSettings.keyboardMoveSpeedMultiplier = keyboardValue;
-            CurrentSettings.mouseMoveSpeedMultiplier = mouseValue;
-
             if (!canSaveSettings)
             {
-                SettingsChanged?.Invoke();
-                return true;
-            }
-
-            if (!store.TrySave(CurrentSettings, out error))
-            {
-                CurrentSettings.keyboardMoveSpeedMultiplier = previousKeyboard;
-                CurrentSettings.mouseMoveSpeedMultiplier = previousMouse;
+                error = "현재 게임 설정 파일을 저장할 수 없습니다.";
                 return false;
             }
 
-            SettingsChanged?.Invoke();
-            return true;
+            return store.TrySave(CurrentSettings, out error);
         }
     }
 }

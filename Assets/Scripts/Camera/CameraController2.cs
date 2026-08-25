@@ -17,7 +17,7 @@ public class CameraController2 : MonoBehaviour
     [SerializeField] private Transform cameraTarget;
 
     [Header("Move (WASD)")]
-    [SerializeField] private float baseMoveSpeed = 15f;
+    [SerializeField] private float baseMoveSpeed = 250f;
     [SerializeField] private Vector2 xBounds = new Vector2(-40f, 40f);
     [SerializeField] private Vector2 zBounds = new Vector2(-40f, 40f);
 
@@ -25,7 +25,7 @@ public class CameraController2 : MonoBehaviour
     // 우클릭 드래그 — 좌클릭(MouseManager의 선택 입력)과 버튼을 분리해, 드래그 시작 지점의
     // 오브젝트가 선택/해제되던 부작용을 없앴다. 단 우클릭은 배치/스킬 지정 모드에서 취소로도
     // 쓰이므로(MouseManager), 그 모드 중 드래그하면 취소와 함께 카메라가 끌릴 수 있다.
-    [SerializeField] private float baseDragSpeed = 0.05f;
+    [SerializeField] private float baseDragSpeed = 0.3f;
 
     [Header("Zoom (Orthographic Size)")]
     [SerializeField] private float zoomSpeed = 2f;
@@ -289,7 +289,6 @@ public class CameraController2 : MonoBehaviour
 
         Vector3 nextPosition = cameraTarget.position + movement;
 
-        cameraTarget.position = ClampPosition(nextPosition);
         cameraTarget.position = ClampPosition(nextPosition);
 
         PublishMove(MoveSource.Keyboard, previousPosition);

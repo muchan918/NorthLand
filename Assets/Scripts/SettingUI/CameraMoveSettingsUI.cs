@@ -7,6 +7,8 @@ public sealed class CameraMoveSettingsUI : MonoBehaviour
     [SerializeField] private Slider keyboardSpeedSlider;
     [SerializeField] private Slider mouseSpeedSlider;
 
+    private bool isDirty;
+
     private void Awake()
     {
         keyboardSpeedSlider.minValue = 0.5f;
@@ -30,6 +32,8 @@ public sealed class CameraMoveSettingsUI : MonoBehaviour
         keyboardSpeedSlider.onValueChanged.RemoveListener(HandleKeyboardSpeedChanged);
 
         mouseSpeedSlider.onValueChanged.RemoveListener(HandleMouseSpeedChanged);
+
+        SaveIfDirty();
     }
 
     private void LoadCurrentValues()
@@ -54,15 +58,15 @@ public sealed class CameraMoveSettingsUI : MonoBehaviour
 
     private void HandleKeyboardSpeedChanged(float value)
     {
-        SaveCurrentValues();
+        ApplyCurrentValues();
     }
 
     private void HandleMouseSpeedChanged(float value)
     {
-        SaveCurrentValues();
+        ApplyCurrentValues();
     }
 
-    private void SaveCurrentValues()
+    private void ApplyCurrentValues()
     {
         GameSettingsService service = GameSettingsService.Instance;
 
@@ -71,14 +75,33 @@ public sealed class CameraMoveSettingsUI : MonoBehaviour
             return;
         }
 
-        if (!service.TrySetCameraMoveSpeed(
-                keyboardSpeedSlider.value,
-                mouseSpeedSlider.value,
-                out string error))
+        if (service.SetCameraMoveSpeed(keyboardSpeedSlider.value,mouseSpeedSlider.value))
         {
-            Debug.LogWarning(
-                $"카메라 이동 속도 저장 실패: {error}",
-                this);
+            isDirty = true;
         }
+    }
+
+    private void SaveIfDirty()
+    {
+        if (!isDirty)
+        {
+            return;
+        }
+
+        GameSettingsService service = GameSettingsService.Instance;
+
+        if (service == null)
+        {
+            return;
+        }
+
+        if (!service.TrySaveCurrentSettings(out string error))
+        {
+            Debug.LogWarning($"카메라 이동 속도 저장 실패: {error}",this);
+
+            return;
+        }
+
+        isDirty = false;
     }
 }
