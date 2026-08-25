@@ -179,7 +179,7 @@ public class MonsterStateMachine : MonoBehaviour
             // Attack 상태는 「교전 중 = 이동 정지」만 의미한다. 공격 모션은 여기서 켜지 않는다(#452) —
             // IsAttack을 상태 진입에 래치하면 사거리 안에 있는 동안 공격 클립이 자기 길이대로 무한
             // 반복해 공격 간격과 어긋난다(파랑 그러미는 2.57바퀴에 한 번만 실제로 때렸다).
-            // 스윙 1회의 시작·종료는 Enemy가 MonsterAnimation.PlaySwing으로 직접 지시한다 —
+            // 스윙 1회의 시작·종료는 Enemy가 RequestAttackSwing을 거쳐 지시한다 —
             // 공격 간격(AttackInterval)을 아는 쪽이 Enemy 하나뿐이다.
             case MonsterState.Attack:
                 routeMovement?.SetMoveEnabled(false);
