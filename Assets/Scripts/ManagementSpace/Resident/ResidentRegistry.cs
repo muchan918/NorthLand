@@ -48,6 +48,14 @@ public static class ResidentRegistry
     ///
     /// 대화 후보 여부(<see cref="Resident.IsAvailableForConversation"/>)를 보지 **않는다.**
     /// 이미 대화 중인 사람도 옆에 있으면 있는 것이고, 남이 보는 앞에서 혼자 춤추는 그림은 똑같이 어색하다.
+    ///
+    /// ⚠ **들려 있는 주민은 뺀다**(<see cref="Resident.IsCarried"/>). 그쪽은 몸이 화면에 남아 있어도
+    /// 공중에 매달려 커서를 따라다니는 중이라 "옆에 있는 사람"이 아니다. 종전에는 들리면 곧 비활성이라
+    /// 아래 <c>isActiveAndEnabled</c>가 저절로 걸러 줬는데, 연출이 들어오며 그 필터가 무력해졌다(§8.1).
+    ///
+    /// 이 검사가 없어도 지금 당장은 티가 안 난다 — 가림 방지 오프셋이 들린 주민을 수평으로 250유닛
+    /// 밀어내기 때문이다. 하지만 그 값은 인스펙터에서 낮출 수 있고 **아래 거리 판정은 높이를 무시하므로**,
+    /// 우연히 성립하는 안전을 계약으로 바꿔 둔다.
     public static int CountNearby(Resident self, float radius)
     {
         if (self == null || radius <= 0f)
@@ -63,7 +71,7 @@ public static class ResidentRegistry
         {
             Resident other = _residents[i];
 
-            if (other == null || other == self || !other.isActiveAndEnabled)
+            if (other == null || other == self || !other.isActiveAndEnabled || other.IsCarried)
             {
                 continue;
             }

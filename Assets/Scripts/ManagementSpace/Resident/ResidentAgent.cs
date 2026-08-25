@@ -20,6 +20,12 @@ public class ResidentAgent : MonoBehaviour
     // 임의 클립 재생(PlayState)은 반대로 상태 이름을 전부 노드가 지정한다.
     private const string IdleState = "Idle";
 
+    // 들려 있는 동안 유지하는 자세(§8.1 R10). 위 IdleState와 같은 자격으로 상수가 된다 —
+    // 노드가 고르는 임의 클립과 달리 **드래그 경로가 강제하는** 자세라 고를 여지가 없고,
+    // 들 때와 놓을 때 두 곳에서 같은 이름을 대야 한다. 문자열이 흩어지면 오타가 나도
+    // 컨트롤러가 조용히 무시한다(전이가 없는 고립 상태라 진입 실패가 눈에 띄지 않는다).
+    private const string CarriedState = "Sitting";
+
     // 오프메시 복구를 시도할 최대 거리(<see cref="EnsureOnNavMesh"/>). 주민 반경(0.6)의 몇 배 정도면
     // 밀려나 벗어난 경우를 덮는다. 더 키우면 벽 너머로 끌어올려 순간이동처럼 보인다.
     private const float OffMeshRecoverDistance = 2f;
@@ -48,6 +54,9 @@ public class ResidentAgent : MonoBehaviour
     private float baseSpeed = 1f;
 
     private static readonly int IsMovingHash = Animator.StringToHash("IsMoving");
+
+    // 이미 경고한 상태 이름. 개체가 아니라 컨트롤러의 문제라 주민 30명이 각자 경고할 이유가 없다.
+    private static readonly HashSet<string> s_warnedMissingStates = new HashSet<string>();
 
     private void Awake()
     {
@@ -367,11 +376,37 @@ public class ResidentAgent : MonoBehaviour
             return false;
         }
 
+        int stateHash = Animator.StringToHash(stateName);
+
+        // ⚠ **없는 상태를 요청하면 Unity가 조용히 무시한다.** 전이 없는 고립 상태라 진입 실패가 화면에
+        //   드러나지도 않는다 — 주민이 선 자세 그대로 있을 뿐이다. 컨트롤러는 별도 저장소
+        //   (`Assets/Imported`)에 있어서 스크립트만 받고 자산을 못 받은 사람에게 실제로 일어난다(WL-160).
+        //   여기서 잡아 주지 않으면 연출 버그로 오인해 엉뚱한 수치를 튜닝하게 된다.
+        if (!animator.HasState(0, stateHash))
+        {
+            WarnMissingState(stateName);
+            return false;
+        }
+
         // 컨트롤러가 Idle/Walk 밖으로 나갔다. 복귀 시 SetBool이 캐시 때문에 생략되면 돌아올 길이 없다.
         locomotionDirty = true;
 
-        animator.CrossFadeInFixedTime(stateName, Mathf.Max(0f, fadeSeconds));
+        animator.CrossFadeInFixedTime(stateHash, Mathf.Max(0f, fadeSeconds));
         return true;
+    }
+
+    // 없는 상태는 **이름당 한 번만** 경고한다. 매 프레임 도는 호출부(수다 순환 등)가 있어 그대로 두면
+    // 콘솔이 같은 줄로 덮이고, 그러면 정작 다른 에러가 묻힌다.
+    private static void WarnMissingState(string stateName)
+    {
+        if (!s_warnedMissingStates.Add(stateName))
+        {
+            return;
+        }
+
+        Debug.LogWarning(
+            $"[주민] 애니메이터 컨트롤러에 '{stateName}' 상태가 없어 해당 동작이 재생되지 않습니다. " +
+            "Resident.controller는 Assets/Imported 저장소에 있으니 그쪽 커밋을 함께 받았는지 확인하세요.");
     }
 
     // 유휴/걷기 축으로 돌아온다. PlayState로 물린 상태에는 나가는 전이가 없으므로 이 호출이 유일한 복귀 경로다.
@@ -387,6 +422,16 @@ public class ResidentAgent : MonoBehaviour
         SetMoving(false);
         animator.CrossFadeInFixedTime(IdleState, Mathf.Max(0f, fadeSeconds));
     }
+
+    // 들려 올라간 자세로 들어간다(§8 드래그 R10). Idle/Walk 축을 벗어나므로 복귀는
+    // ReturnToLocomotion이 맡는다 — 임의 클립과 같은 규약이고, 이 상태에도 나가는 전이가 없다.
+    //
+    // 클립은 앉은 자세를 유지하는 루프(`Marshies_Sitting`, 2.60초)다. 들고 있는 시간에 상한이 없으므로
+    // 1회 재생 클립을 쓰면 도중에 자세가 풀린다.
+    public bool EnterCarriedPose(float fadeSeconds) => PlayState(CarriedState, fadeSeconds);
+
+    // 들린 자세에 실제로 도착했는가. 낙하 연출이 "자세가 물린 뒤에" 시작해야 할 때 쓴다.
+    public bool IsInCarriedPose => IsInState(CarriedState);
 
     // 현재 상태의 재생 진행도(1 = 1회 재생 완료). 루프 클립이면 1을 넘어 계속 증가한다 —
     // 수다 클립(루프)의 "한 바퀴 돌았다"도 이 값으로 잡힌다.

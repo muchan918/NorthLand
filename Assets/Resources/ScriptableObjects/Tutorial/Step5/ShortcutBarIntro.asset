@@ -12,24 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
   m_Name: ShortcutBarIntro
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
-  popupTitle: "\uAC74\uBB3C \uBC14\uB85C\uAC00\uAE30"
-  popupBody: "\uBBF8\uB2C8\uB9F5 \uC544\uB798 \uBC14\uB85C\uAC00\uAE30 \uBC14\uC5D0\uC11C
-    \uAC74\uBB3C\uC744 \uACE0\uB974\uBA74 \uADF8 \uAC74\uBB3C\uB85C \uBC14\uB85C
-    \uC774\uB3D9\uD569\uB2C8\uB2E4.\r\n\uC774\uB3D9\uACFC \uB3D9\uC2DC\uC5D0 \uAC74\uBB3C
-    \uC815\uBCF4 \uD328\uB110\uC774 \uC5F4\uB824, \uB808\uBCA8\uACFC \uC5C5\uADF8\uB808\uC774\uB4DC
-    \uBE44\uC6A9\uC744 \uD655\uC778\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.\r\n\uC5F0\uC2B5\uC744
-    \uC704\uD574 \uC774\uBC88\uC5D0\uB294 \uC790\uC6D0 \uC5C6\uC774 \uC5C5\uADF8\uB808\uC774\uB4DC\uD560
-    \uC218 \uC788\uC2B5\uB2C8\uB2E4."
+  popupTitleKey: tutorial.shortcut.intro.title
+  popupBodyKey: tutorial.shortcut.intro.body
   popupImage: {fileID: 0}
-  bubbleText: "\uBC14\uB85C\uAC00\uAE30 \uBC14\uC5D0\uC11C \uBE44\uC2A4\uCF13 \uD558\uC6B0\uC2A4\uB97C
-    \uB204\uB974\uC138\uC694"
+  bubbleTextKey: tutorial.shortcut.intro.bubble
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
   pauseGameDuringStep: 0
   freeTowerPlacement: 0
   restrictTowerPanelTo: {fileID: 0}
-  freeBuildingUpgrade: 0
+  freeManagementCost: 0
+  upgradeCap: 0
+  villagerCap: 0
+  upgradeAllowList: []
   completion:
     rid: 3470829977900417134
   references:

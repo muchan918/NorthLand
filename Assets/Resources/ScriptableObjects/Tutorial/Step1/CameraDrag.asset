@@ -12,16 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
   m_Name: CameraDrag
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
-  popupTitle: "\uB9C8\uC6B0\uC2A4\uB85C \uD654\uBA74 \uC774\uB3D9"
-  popupBody: "\uB9C8\uC6B0\uC2A4 \uC624\uB978\uCABD \uBC84\uD2BC\uC744 \uB204\uB978
-    \uCC44 \uB04C\uBA74 \uD654\uBA74\uC774 \uB530\uB77C \uC6C0\uC9C1\uC785\uB2C8\uB2E4.\n\uBA3C
-    \uACF3\uC73C\uB85C \uD55C\uBC88\uC5D0 \uC774\uB3D9\uD560 \uB54C \uD3B8\uB9AC\uD569\uB2C8\uB2E4."
+  popupTitleKey: tutorial.camera.drag.title
+  popupBodyKey: tutorial.camera.drag.body
   popupImage: {fileID: 0}
-  bubbleText: "\uB9C8\uC6B0\uC2A4 \uC624\uB978\uCABD \uBC84\uD2BC\uC73C\uB85C \uD654\uBA74\uC744
-    \uB04C\uC5B4 \uBCF4\uC138\uC694"
+  bubbleTextKey: tutorial.camera.drag.bubble
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
+  pauseGameDuringStep: 0
+  freeTowerPlacement: 0
+  restrictTowerPanelTo: {fileID: 0}
+  freeManagementCost: 0
+  upgradeCap: 0
+  villagerCap: 0
+  upgradeAllowList: []
   completion:
     rid: 3470829977900417123
   references:

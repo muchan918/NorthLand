@@ -1,6 +1,10 @@
 using System.Collections.Generic;
+using System;
+using Cysharp.Threading.Tasks;
 using NorthLand.Core;
 using UnityEngine;
+using UnityEngine.Localization;
+using UnityEngine.Localization.Settings;
 
 // 튜토리얼 진행을 소유한다. '지금 몇 단계인지'를 아는 유일한 곳.
 // 팝업·말풍선을 어떻게 그리는지는 모른다(TutorialOverlay의 몫).
@@ -106,6 +110,7 @@ public class TutorialController : MonoBehaviour
 
         overlay.PopupConfirmed += OnPopupConfirmed;
         overlay.SkipRequested += OnSkipRequested;
+        LocalizationSettings.SelectedLocaleChanged += OnLocaleChanged;
     }
 
     private void OnDisable()
@@ -115,6 +120,8 @@ public class TutorialController : MonoBehaviour
             overlay.PopupConfirmed -= OnPopupConfirmed;
             overlay.SkipRequested -= OnSkipRequested;
         }
+
+        LocalizationSettings.SelectedLocaleChanged -= OnLocaleChanged;
 
         // 감시를 남긴 채 꺼지면 죽은 구독이 된다. 다만 다시 켜도 이어서 진행되지는 않는다.
         EndActiveCondition();
@@ -174,7 +181,7 @@ public class TutorialController : MonoBehaviour
         if (_index >= _activeSteps.Count)
         {
             Debug.Log("[Tutorial] 모든 단계를 마쳤다.");
-            CompleteTutorial();
+            CompleteTutorialAsync().Forget();
             return;
         }
 
@@ -244,6 +251,30 @@ public class TutorialController : MonoBehaviour
         // 구독을 Begin보다 먼저 건다 — 조건이 Begin 도중에 충족될 수도 있다.
         _active.Satisfied += OnConditionSatisfied;
         _active.Begin(_context);
+    }
+
+    private void OnLocaleChanged(Locale locale)
+    {
+        if (_activeSteps == null || _index < 0 || _index >= _activeSteps.Count)
+        {
+            return;
+        }
+
+        TutorialStepAsset step = _activeSteps[_index];
+
+        if (step == null)
+        {
+            return;
+        }
+
+        if (_phase == Phase.Popup)
+        {
+            overlay.ShowPopup(step.PopupTitle, step.PopupBody, step.PopupImage);
+        }
+        else if (_phase == Phase.Action && step.HasBubble)
+        {
+            overlay.ShowBubble(step.BubbleText);
+        }
     }
 
     // 이 단계에서 어디만 클릭 가능하게 둘지 오버레이에 알린다.
@@ -321,10 +352,10 @@ public class TutorialController : MonoBehaviour
             return;
         }
 
-        CompleteTutorial();
+        CompleteTutorialAsync().Forget();
     }
 
-    private void CompleteTutorial()
+    private async UniTask CompleteTutorialAsync()
     {
         PlayerSaveService saveService = PlayerSaveService.Instance;
 
@@ -334,9 +365,22 @@ public class TutorialController : MonoBehaviour
                 $"[{nameof(TutorialController)}] PlayerSaveService 인스턴스를 찾을 수 없어 완료 상태를 저장하지 못했습니다.",
                 this);
         }
-        else if (!saveService.TryCompleteTutorial(out string error))
+        else
         {
-            Debug.LogError($"[{nameof(TutorialController)}] 튜토리얼 완료 상태를 저장하지 못했습니다: {error}", this);
+            try
+            {
+                SaveResult result = await saveService.CompleteTutorialAsync(
+                    this.GetCancellationTokenOnDestroy());
+
+                if (!result.Success)
+                {
+                    Debug.LogError($"[{nameof(TutorialController)}] 튜토리얼 완료 상태를 저장하지 못했습니다: {result.Error}", this);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
         }
 
         StopTutorial();
