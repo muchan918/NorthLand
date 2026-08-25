@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System;
+using Cysharp.Threading.Tasks;
 using NorthLand.Core;
 using UnityEngine;
 using UnityEngine.Localization;
@@ -179,7 +181,7 @@ public class TutorialController : MonoBehaviour
         if (_index >= _activeSteps.Count)
         {
             Debug.Log("[Tutorial] 모든 단계를 마쳤다.");
-            CompleteTutorial();
+            CompleteTutorialAsync().Forget();
             return;
         }
 
@@ -350,10 +352,10 @@ public class TutorialController : MonoBehaviour
             return;
         }
 
-        CompleteTutorial();
+        CompleteTutorialAsync().Forget();
     }
 
-    private void CompleteTutorial()
+    private async UniTask CompleteTutorialAsync()
     {
         PlayerSaveService saveService = PlayerSaveService.Instance;
 
@@ -363,9 +365,22 @@ public class TutorialController : MonoBehaviour
                 $"[{nameof(TutorialController)}] PlayerSaveService 인스턴스를 찾을 수 없어 완료 상태를 저장하지 못했습니다.",
                 this);
         }
-        else if (!saveService.TryCompleteTutorial(out string error))
+        else
         {
-            Debug.LogError($"[{nameof(TutorialController)}] 튜토리얼 완료 상태를 저장하지 못했습니다: {error}", this);
+            try
+            {
+                SaveResult result = await saveService.CompleteTutorialAsync(
+                    this.GetCancellationTokenOnDestroy());
+
+                if (!result.Success)
+                {
+                    Debug.LogError($"[{nameof(TutorialController)}] 튜토리얼 완료 상태를 저장하지 못했습니다: {result.Error}", this);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
         }
 
         StopTutorial();

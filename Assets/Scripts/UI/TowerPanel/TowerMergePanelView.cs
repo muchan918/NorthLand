@@ -22,7 +22,9 @@ public class TowerMergePanelView : MonoBehaviour
     [SerializeField] Transform _candidateContent;
     [SerializeField] Button _candidateButtonPrefab;
 
-    private readonly List<(Button button, TowerRecipe recipe)> _candidates = new();
+    // 뷰를 함께 캐시한다 — 회색 처리와 interactable은 TowerButtonView가 함께 소유하므로(#470)
+    // 갱신마다 GetComponent를 다시 하지 않고 생성 시점에 한 번만 잡는다.
+    private readonly List<(Button button, TowerButtonView view, TowerRecipe recipe)> _candidates = new();
     private readonly List<GameObject> _rows = new();
     private bool _built;
 
@@ -71,27 +73,18 @@ public class TowerMergePanelView : MonoBehaviour
 
             var button = Instantiate(_candidateButtonPrefab, _candidateContent);
 
-            string displayName = recipe.Result != null ? TowerDisplayName.Of(recipe.Result) : recipe.name;
-
-            // 아이콘·이름은 프리팹(= 배치 팔레트와 같은 `TowerButton.prefab`)의 TowerButtonView 슬롯에 채운다.
-            // 라벨만 채우고 아이콘을 비워두면 테두리 안이 빈 칸으로 남아 후보가 무슨 타워인지 그림으로 알 수 없다(#445).
-            // `SetLocked`는 부르지 않는다 — 합성 후보에는 해금 개념이 없고, 프리팹의 TowerLockOverlay는
-            // `m_IsActive: 0`이라 그대로 조용하다(TowerMerge.md §8.5의 같은 판단).
+            // 아이콘만 채운다 — 이름 배너는 끈다(배치 팔레트와 같은 판단, #470). 이름·재료·계승 효과는
+            // 바로 아래에서 붙이는 TowerMergeCandidateHover의 호버 툴팁이 이미 낸다(#213 §5.3) — 라벨을
+            // 남겨두면 툴팁과 완전히 중복된다. `SetLocked`는 부르지 않는다 — 합성 후보에는 해금 개념이
+            // 없고, 프리팹의 TowerLockOverlay는 `m_IsActive: 0`이라 그대로 조용하다(TowerMerge.md §8.5의 같은 판단).
             var view = button.GetComponent<TowerButtonView>();
-            if (view != null)
-            {
-                view.Set(recipe.Result != null ? recipe.Result.Icon : null, displayName);
-            }
-            else
-            {
-                var label = button.GetComponentInChildren<TMP_Text>();
-                if (label != null) label.text = displayName;
-            }
+            if (view != null) view.Set(recipe.Result != null ? recipe.Result.Icon : null);
 
             var captured = recipe; // 클로저 캡처(루프 변수 캡처 함정 회피)
             button.onClick.AddListener(() => { if (_coordinator != null) _coordinator.RequestMerge(captured); });
 
-            // 호버 시 소모될 재료 타워만 핑크 아웃라인(#213 §5.3). 버튼 프리팹을 편집하지 않고 런타임 부착한다.
+            // 호버 시 소모될 재료 타워만 핑크 아웃라인 + 결과 타워 툴팁(#213 §5.3). 버튼 프리팹을 편집하지
+            // 않고 런타임 부착한다.
             button.gameObject.AddComponent<TowerMergeCandidateHover>().Init(_coordinator, captured);
 
             // 합성 결과는 설치음(성공) 또는 거절음(재료·코스트 부족)으로 스스로 답한다 —
@@ -99,7 +92,7 @@ public class TowerMergePanelView : MonoBehaviour
             UiClickSfxIgnore.ApplyTo(button);
 
             button.gameObject.SetActive(false); // 기본 숨김 — 매칭 시 켠다
-            _candidates.Add((button, recipe));
+            _candidates.Add((button, view, recipe));
         }
     }
 
@@ -139,15 +132,23 @@ public class TowerMergePanelView : MonoBehaviour
         //   · 재료는 맞는데 자원이 모자라면 **회색으로 보여준다** — 예전에는 그냥 눌렸고 눌러도 조용히
         //     반려돼서, 자원을 더 모아야 하는지 타워를 더 놓아야 하는지 구분할 수 없었다.
         // 매칭 규칙은 TowerFusionMatcher 단일 출처, 코스트 판정은 실행부가 답한다(재구현 금지).
-        foreach (var (button, recipe) in _candidates)
+        foreach (var (button, view, recipe) in _candidates)
         {
             if (button == null) continue;
 
             bool matched = _coordinator.CanMerge(recipe);
             button.gameObject.SetActive(matched);
 
-            // 숨긴 버튼의 interactable은 의미가 없다 — 다시 켜질 때 이 자리에서 함께 정해진다.
-            if (matched) button.interactable = _coordinator.CanAffordMerge(recipe);
+            // 숨긴 버튼의 표시는 의미가 없다 — 다시 켜질 때 이 자리에서 함께 정해진다.
+            if (!matched) continue;
+
+            // 회색 처리와 interactable을 **뷰가 함께 세운다**(#470). Button.interactable만 세우면
+            // 색 전이가 targetGraphic(테두리)에만 걸려 아이콘은 밝게 남고, 자원이 모자란 후보가
+            // 배치 팔레트와 다른 모습이 된다 — 같은 화면에서 "회색"이 두 뜻을 갖는다.
+            // 해금 개념이 없어 SetLocked를 부르지 않으므로 SetSelectable의 연출 지연 경로도 타지 않는다.
+            bool affordable = _coordinator.CanAffordMerge(recipe);
+            if (view != null) view.SetSelectable(affordable);
+            else button.interactable = affordable;   // 뷰 없는 프리팹 변종 폴백
         }
     }
 }

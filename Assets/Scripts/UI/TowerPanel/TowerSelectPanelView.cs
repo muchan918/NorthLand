@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,7 +7,7 @@ using UnityEngine.UI;
 /// 화면 하단 타워 선택 패널(가로 스크롤뷰) 뷰. Content에 <see cref="TowerAsset"/> 하나당 버튼을 동적으로 추가하고,
 /// 버튼 클릭 시 해당 TowerAsset의 값을 로그로 남긴다. 추후 타워 배치 툴은 <see cref="OnTowerSelected"/>를
 /// 구독해 선택된 TowerAsset으로 배치 로직을 연결하면 된다(현재는 로그만).<br/>
-/// 라벨은 지금은 <c>TowerID</c>를 표시하지만, TowerAsset에 아이콘(Sprite) 필드가 생기면 이 자리를 아이콘으로 교체하면 된다.<br/>
+/// 칸은 <b>아이콘만</b> 그린다 — 이름은 호버 툴팁(<see cref="TowerTooltipSource"/>)이 낸다(#470).<br/>
 /// 버튼 배치·스크롤 범위는 Content의 Horizontal Layout Group + Content Size Fitter가 담당하므로
 /// 이 스크립트는 좌표를 계산하지 않는다.
 /// </summary>
@@ -89,22 +88,11 @@ public class TowerSelectPanelView : MonoBehaviour
 
         var button = Instantiate(_buttonPrefab, _content);
 
-        // 아이콘·이름은 프리팹의 TowerButtonView가 소유한 슬롯에 채운다(테두리/배너 이미지와 섞이지 않게).
-        // TowerID는 내부 식별자라 표시명으로 쓰지 않는다 — Data가 없으면(테이블 행 누락) ID로 폴백한다.
-        string displayName = tower.Data != null
-            ? LocalizationHelper.Get(LocalizationHelper.k_TowersTable, tower.Data.NameKey)
-            : tower.TowerID;
-
+        // 아이콘만 채운다 — 이름 배너는 끈다(#470). 이름·코스트·스탯은 바로 아래에서 붙이는 호버
+        // 툴팁이 낸다(합성 정보 패널의 아이콘 전용 칸과 같은 판단 — TowerMerge.md §8.5).
+        // 합성 후보 버튼도 같은 규약이다(그쪽은 TowerMergeCandidateHover가 툴팁을 낸다).
         var view = button.GetComponent<TowerButtonView>();
-        if (view != null)
-        {
-            view.Set(tower.Icon, displayName);
-        }
-        else
-        {
-            var label = button.GetComponentInChildren<TMP_Text>();
-            if (label != null) label.text = displayName;
-        }
+        if (view != null) view.Set(tower.Icon);
 
         // 호버 시 타워 코스트/스탯 툴팁(#141). 버튼 프리팹 편집 없이 런타임으로 부착 —
         // tower.Data는 위에서 이미 채웠으므로 이름 조회가 가능하다.
@@ -162,13 +150,25 @@ public class TowerSelectPanelView : MonoBehaviour
 
         bool unlocked = IsUnlocked(tower);
 
-        // 자물쇠는 해금 여부만 본다 — 자원 부족이나 튜토리얼 제한까지 자물쇠로 보이면
-        // "다음 웨이브에 열린다"로 잘못 읽히고 세 상태가 구별되지 않는다.
-        var view = button.GetComponent<TowerButtonView>();
-        if (view != null) view.SetLocked(!unlocked);
+        // 셋의 AND. 하나로 덮어쓰면 나머지 게이트가 죽는다.
+        bool selectable = unlocked && CanAfford(tower) && IsAllowed(tower);
 
-        // interactable은 셋의 AND. 하나로 덮어쓰면 나머지 게이트가 죽는다.
-        button.interactable = unlocked && CanAfford(tower) && IsAllowed(tower);
+        var view = button.GetComponent<TowerButtonView>();
+        if (view != null)
+        {
+            // 자물쇠는 해금 여부만 본다 — 자원 부족이나 튜토리얼 제한까지 자물쇠로 보이면
+            // "다음 웨이브에 열린다"로 잘못 읽히고 세 상태가 구별되지 않는다.
+            view.SetLocked(!unlocked);
+
+            // 회색 처리와 interactable은 셋 전부를 보고, **뷰가 함께 소유한다**. 여기서 interactable을
+            // 따로 세우면 Button의 ColorTint가 테두리를 즉시 밝혀, 해제 연출이 끝나기도 전에
+            // 칸이 살아난 것처럼 보인다(#470).
+            view.SetSelectable(selectable);
+        }
+        else
+        {
+            button.interactable = selectable;   // 뷰 없는 프리팹 변형 폴백
+        }
     }
 
     private void HandleClick(TowerAsset tower)
