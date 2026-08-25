@@ -352,13 +352,17 @@ sealed class SkillDelayedImpact : MonoBehaviour
 {
     float timer;
     bool initialized;
+    bool impacted;
     Action<Vector3> onImpact;
+    ParticleSystem[] particles;
 
     public void Init(float delay, Action<Vector3> callback)
     {
         timer = Mathf.Max(0f, delay);
         onImpact = callback;
         initialized = true;
+        impacted = false;
+        particles = GetComponentsInChildren<ParticleSystem>(true);
 
         if (DayNightManager.Instance != null)
             DayNightManager.Instance.OnNightToDay += Cancel;
@@ -368,16 +372,36 @@ sealed class SkillDelayedImpact : MonoBehaviour
 
     void Update()
     {
+        if (impacted)
+        {
+            if (!HasAliveParticles())
+                Destroy(gameObject);
+            return;
+        }
+
         if (!initialized) return;
 
         timer -= Time.deltaTime;
         if (timer > 0f) return;
 
         initialized = false;
+        impacted = true;
         Action<Vector3> callback = onImpact;
         onImpact = null;
         callback?.Invoke(transform.position);
-        Destroy(gameObject);
+    }
+
+    bool HasAliveParticles()
+    {
+        if (particles == null || particles.Length == 0) return false;
+
+        for (int i = 0; i < particles.Length; i++)
+        {
+            if (particles[i] != null && particles[i].IsAlive(false))
+                return true;
+        }
+
+        return false;
     }
 
     void HandleResultDecided(GameResult _) => Cancel();
