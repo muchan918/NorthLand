@@ -8,17 +8,18 @@ using UnityEngine.SceneManagement;
 ///
 /// ── 지금 들어간 범위 ────────────────────────────────────────────────
 ///
-/// **연출은 아직 아무것도 정해지지 않았다**(§8.1 부양 높이 H · §8.3 흩뿌리기 · §8.5 보따리 여부). 그래서
-/// 이 단계는 **손맛이 아니라 배선만** 세운다:
-///
 /// | 조작 | 지금 일어나는 일 |
 /// |---|---|
-/// | 주민을 눌러 끌기 시작 | 대상이 **그 자리에서 사라진다**(스포너가 감춘다). 커서를 따라오지 않는다 |
-/// | 생산 건물에 놓기 | `AssignVillager`로 배치. 성공한 인원은 그대로 소멸 |
-/// | 바닥·그 밖에 놓기 | **들었던 자리에 그대로 되돌아온다**(사실상 취소) |
+/// | 주민을 눌러 끌기 시작 | 공중으로 들려 **탑처럼 쌓인 채 커서를 따라온다**(앉은 자세) — `ResidentCarryVisual` |
+/// | 생산 건물에 놓기 | `AssignVillager`로 배치. 성공한 인원은 그 자리에서 소멸(뿅) |
+/// | 바닥·그 밖에 놓기 | 탑이 **터지면서 커서 주변 NavMesh 위로 흩어져 착지**한다 |
 ///
-/// 공중 행렬(R10) · 어지러움(R11) · 착지 스냅 · 거절 피드백은 전부 이 위에 올라간다. 배치 판정과 인원 회계는
-/// 그때도 바뀌지 않으므로, 먼저 세워 두면 연출을 붙일 때 그쪽만 보면 된다.
+/// 어지러움(R11) · 거절 피드백은 아직 없다. 배치 판정과 인원 회계는 연출과 무관하게 그대로다.
+///
+/// **연출은 이 클래스가 하지 않는다.** 여기는 "누구를 들었는가 / 어디에 배치되는가"만 소유하고,
+/// 몸을 어디에 그릴지는 <see cref="ResidentCarryVisual"/>이 맡는다. 착지가 끝나면 그쪽이
+/// <see cref="ResidentCarryVisual.OnLanded"/>로 알려 오고, **되돌리는 호출은 여기서만 한다** —
+/// 연출이 스포너를 직접 부르면 인원 회계의 창구가 둘로 갈린다.
 ///
 /// ── 경계 ────────────────────────────────────────────────────────────
 ///
@@ -48,6 +49,13 @@ public class ResidentDragCoordinator : MonoBehaviour
     /// 무엇을 들지 고르는 작업 버퍼. 매 드래그 배열을 새로 만들지 않기 위한 것.
     private readonly List<ResidentSelectable> _pickBuffer = new();
 
+    /// 배치되지 못해 바닥으로 떨어질 인원. **한 번에 모아서** 연출에 넘긴다 —
+    /// 착지 지점을 고르게 흩으려면 몇 명인지를 알아야 한다.
+    private readonly List<Resident> _dropBuffer = new();
+
+    /// 들린 몸을 그리는 쪽. 같은 오브젝트에 붙어 수명을 함께한다(낙하는 드래그가 끝난 뒤에도 이어진다).
+    private ResidentCarryVisual _visual;
+
     private ManagementController _management;
     private ResidentSpawner _spawner;
 
@@ -56,6 +64,7 @@ public class ResidentDragCoordinator : MonoBehaviour
     private int _retryCountdown;
     private bool _warnedNoMouseManager;
     private bool _warnedNoSpawner;
+    private bool _warnedStranded;
 
     /// 지금 들고 있는 인원. 이후 커서 옆 표시나 거절 피드백이 붙을 자리다.
     public int CarriedCount => _carried.Count;
@@ -78,6 +87,14 @@ public class ResidentDragCoordinator : MonoBehaviour
             return;
         }
         s_instance = this;
+
+        // 연출을 같은 오브젝트에 얹는다 — 수명이 같고(드래그가 끝난 뒤에도 낙하가 이어진다),
+        // 씬을 건드리지 않는다는 이 클래스의 규칙도 그대로 따른다. 덤으로 플레이 중 인스펙터에서
+        // 부양 높이·낙하를 만질 수 있다(눈으로 맞추는 수치라 상수로 박으면 매번 도메인 리로드다).
+        _visual = GetComponent<ResidentCarryVisual>();
+        if (_visual == null) _visual = gameObject.AddComponent<ResidentCarryVisual>();
+
+        _visual.OnLanded += HandleLanded;
     }
 
     private void Start()
@@ -101,6 +118,8 @@ public class ResidentDragCoordinator : MonoBehaviour
 
         var dayNight = DayNightManager.Instance;
         if (dayNight != null && _dayNightSubscribed) dayNight.OnDayToNight -= HandleDayToNight;
+
+        if (_visual != null) _visual.OnLanded -= HandleLanded;
 
         if (s_instance == this) s_instance = null;
     }
@@ -166,6 +185,7 @@ public class ResidentDragCoordinator : MonoBehaviour
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         _carried.Clear();
+        _visual.Clear();
         _management = null;
         _spawner = null;
         _retryCountdown = 0;
@@ -174,12 +194,42 @@ public class ResidentDragCoordinator : MonoBehaviour
         _dayNightSubscribed = false;
     }
 
-    /// 밤이 되면 들고 있던 주민을 **놓지 않고 목록만 비운다.** 스포너도 같은 이벤트로 임자를 떼고, 주민은
-    /// 비활성 그대로 남아 그것이 곧 귀가가 된다(§3.3 — 밤에는 주민이 0명이다).
+    /// 밤이 되면 들고 있던 주민을 **들었던 자리에 그대로 내려놓는다** — §8.2가 정한
+    /// "드래그 중 밤 전환 → 행렬 해제 후 전원 R8 귀가"다. 내려놓으면 BT가 되살아나 밤을 읽고
+    /// 스스로 문으로 걸어간다(§3.3 — 밤에는 주민이 0명이다).
     ///
-    /// §8.2는 "드래그 중 밤 전환 → 행렬 해제 후 전원 R8 귀가"로 정해 뒀다. 지금은 들린 주민이 이미 화면에
-    /// 없으므로 걸어서 귀가할 몸이 없고, 결과(사라진다)는 같다. 공중 행렬이 들어오면 그때 문까지 걸리면 된다.
-    private void HandleDayToNight() => _carried.Clear();
+    /// **커서 자리가 아니라 들었던 자리로 돌린다.** 밤 전환은 플레이어가 놓은 것이 아니라 시간이 끊은
+    /// 것이라, 커서 밑에 떨구면 의도하지 않은 이동이 된다.
+    private void HandleDayToNight()
+    {
+        _visual.AbortAll();
+        _carried.Clear();
+    }
+
+    /// 착지가 끝났다. **되돌리는 호출은 여기 하나뿐이다** — 연출은 스포너를 직접 부르지 않는다.
+    private void HandleLanded(Resident resident, Vector3 landing)
+    {
+        if (_spawner == null)
+        {
+            WarnStranded();
+            return;
+        }
+
+        _spawner.ReleaseCarried(resident, landing);
+    }
+
+    /// 스포너 없이 손을 놓았다 — 그 주민은 `IsCarried` · `NavMeshAgent` 비활성 · BT 정지인 채로 굳는다.
+    ///
+    /// **이 시스템에서 유일하게 스스로 빠져나오지 못하는 상태다.** 도달 조건이 좁아(드래그 도중 스포너
+    /// 파괴) 실제로 보기 어렵지만, 조용하면 "주민 하나가 안 움직인다"의 원인을 짚을 단서가 0이 된다.
+    private void WarnStranded()
+    {
+        if (_warnedStranded) return;
+
+        _warnedStranded = true;
+        Debug.LogWarning("[주민 드래그] ResidentSpawner가 사라져 들고 있던 주민을 되돌리지 못했습니다. " +
+                         "그 주민은 이동·행동이 멈춘 채 남습니다.");
+    }
 
     // ── 들기 ──────────────────────────────────────────────────────────
 
@@ -213,7 +263,13 @@ public class ResidentDragCoordinator : MonoBehaviour
         {
             Resident resident = _pickBuffer[i] != null ? _pickBuffer[i].Resident : null;
 
-            if (resident != null && _spawner.TryCarry(resident)) _carried.Add(resident);
+            if (resident == null || !_spawner.TryCarry(resident)) continue;
+
+            _carried.Add(resident);
+
+            // 목록 순서가 곧 탑의 층이다(먼저 잡힌 사람이 아래). 스포너가 자리를 비켜 준 **뒤에** 올린다 —
+            // 순서를 뒤집으면 아직 켜져 있는 NavMeshAgent가 첫 프레임에 지면으로 끌어내린다.
+            _visual.Lift(resident);
         }
     }
 
@@ -262,18 +318,23 @@ public class ResidentDragCoordinator : MonoBehaviour
     /// 증발한다. 들었을 때 감춘 것은 소멸이 아니라 보관이고, 여기서 배치가 성사돼야 진짜로 없어진다.
     ///
     /// 실패는 전부 같은 결말로 모인다(바닥 · 생산 건물이 아님 · 밤 · 상한 초과 · 다중 드롭의 남는 인원) —
-    /// **들었던 자리로 되돌아온다.** 거절 피드백(흔들림·토스트)은 §8.3 미정이라 아직 없다.
+    /// **놓은 자리 주변에 흩어져 떨어진다.** 거절 피드백(흔들림·토스트)은 §8.3 미정이라 아직 없다.
     private void HandleUnitDragEnd(GameObject dropTarget)
     {
         if (_carried.Count == 0) return;
 
+        // 되돌릴 주체가 사라졌다(씬 전환 등). 들었던 자리로 되돌리는 것조차 스포너를 거쳐야 하므로 목록만 놓는다.
         if (_spawner == null)
         {
-            _carried.Clear();   // 되돌릴 주체가 사라졌다(씬 전환 등). 목록만 놓는다.
+            WarnStranded();
+            _carried.Clear();
+            _visual.Clear();
             return;
         }
 
         int lineIndex = ResolveProductionLine(dropTarget);
+
+        _dropBuffer.Clear();
 
         for (int i = 0; i < _carried.Count; i++)
         {
@@ -283,13 +344,19 @@ public class ResidentDragCoordinator : MonoBehaviour
             // 밤·인원 상한은 게이트웨이가 판정한다. 여기서 다시 세지 않는 것이 요점이다.
             if (lineIndex >= 0 && _management.AssignVillager(lineIndex))
             {
+                _visual.Consume(resident);
                 _spawner.ConsumeCarried(resident);
                 continue;
             }
 
-            _spawner.ReleaseCarried(resident);
+            _dropBuffer.Add(resident);
         }
 
+        // 남은 전원을 **한 번에** 터뜨린다 — 착지 지점을 고르게 흩으려면 몇 명인지를 알아야 한다.
+        // 놓은 자리는 연출이 커서에서 직접 푼다(경영 공간 지면에는 콜라이더가 없어 물리로 못 짚는다).
+        _visual.Burst(_dropBuffer);
+
+        _dropBuffer.Clear();
         _carried.Clear();
     }
 
@@ -316,11 +383,9 @@ public class ResidentDragCoordinator : MonoBehaviour
     {
         if (_carried.Count == 0) return;
 
-        for (int i = 0; i < _carried.Count; i++)
-        {
-            if (_carried[i] != null) _spawner.ReleaseCarried(_carried[i]);
-        }
-
+        // 들었던 자리로 돌려보낸다 — 이 경로는 앞선 드래그가 종료 통지를 못 받은 방어용이라
+        // "놓은 자리"라고 할 만한 지점이 없다.
+        _visual.AbortAll();
         _carried.Clear();
     }
 

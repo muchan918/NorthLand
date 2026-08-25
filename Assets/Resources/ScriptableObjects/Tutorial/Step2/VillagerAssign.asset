@@ -12,16 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
   m_Name: VillagerAssign
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
-  popupTitle: "\uC8FC\uBBFC \uBC30\uCE58"
-  popupBody: "\uB9C8\uC744\uC5D0\uB294 \uC8FC\uBBFC\uC774 \uC788\uC2B5\uB2C8\uB2E4.
-    \uC8FC\uBBFC\uC744 \uC0DD\uC0B0 \uAC74\uBB3C\uC5D0 \uBC30\uCE58\uD558\uBA74 \uB2E4\uC74C
-    \uB0AE\uC5D0 \uADF8 \uAC74\uBB3C\uC758 \uC790\uC6D0\uC744 \uC0DD\uC0B0\uD569\uB2C8\uB2E4."
+  popupTitleKey: tutorial.villager.assign.title
+  popupBodyKey: tutorial.villager.assign.body
   popupImage: {fileID: 0}
-  bubbleText: "\uC8FC\uBBFC 2\uBA85\uC744 \uBAA8\uB450 \uC0DD\uC0B0 \uAC74\uBB3C\uC5D0
-    \uBC30\uCE58\uD558\uC138\uC694"
+  bubbleTextKey: tutorial.villager.assign.bubble
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
+  pauseGameDuringStep: 0
+  freeTowerPlacement: 0
+  restrictTowerPanelTo: {fileID: 0}
+  freeManagementCost: 0
+  upgradeCap: 0
+  villagerCap: 0
+  upgradeAllowList: []
   completion:
     rid: 3470829977900417121
   references:

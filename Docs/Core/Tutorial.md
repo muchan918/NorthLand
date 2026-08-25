@@ -128,9 +128,14 @@ protected void Fire();
 이미 있는 조건을 다른 값으로 쓰는 경우다. 예를 들어 "건물을 업그레이드하세요"는 `BuildingActionCondition`의 값만 `Upgraded`로 바꾸면 된다.
 
 1. `Create > Tutorial > Step`으로 단계 에셋 생성
-2. 팝업 제목·본문·말풍선 문구 입력
-3. `Completion` 드롭다운에서 조건 선택 → 그 아래 나타나는 값 설정
-4. `TutorialController`의 `Steps` 리스트에 원하는 위치로 드래그
+2. `NorthLand_Tutorial` String Table에 의미 기반 키와 ko-KR/en-US/ja-JP 문구 추가
+3. 단계 에셋의 팝업 제목·본문·말풍선 슬롯에 해당 키 입력
+4. `Completion` 드롭다운에서 조건 선택 → 그 아래 나타나는 값 설정
+5. `TutorialController`의 `Steps` 리스트에 원하는 위치로 드래그
+
+키는 단계 순서가 아니라 내용으로 짓는다(예: `tutorial.camera.drag.title` / `.body` / `.bubble`).
+`tutorial.step01.*`처럼 순서를 키에 넣으면 단계 재배치 때 문구 소유권이 어긋난다. 빈 슬롯은 기존처럼 해당
+팝업·말풍선을 생략한다.
 
 **순서는 리스트의 등록 순서가 전부다.** 단계 에셋은 자기가 몇 번째인지 갖지 않는다(`MonsterWaveAsset`과 같은 규칙). 순서를 바꾸는 데 코드 수정이 필요 없어야 한다는 것이 #271의 요구사항이다.
 
@@ -282,7 +287,7 @@ Unity는 **단일 필드**의 managed reference에는 타입 선택 UI를 그리
 | 없는 것 | 비고 |
 |---|---|
 | 딤 · 강조 · 대상 외 입력 차단 | **팝업 구간은 이미 막힌다**(`Popup`이 전체 화면 + `Raycast Target`). 말풍선 구간이 안 막힌다 |
-| 다국어 | 지금 문구는 평문 `string`. `LocalizedString` / `LocalizeStringEvent`로 바꿔야 로케일 변경 시 갱신된다 — **`LocalizationHelper.Get()`은 지속 표시에 쓰지 않는다** |
+| 다국어 | `NorthLand_Tutorial`(ko-KR/en-US/ja-JP) 적용 완료. 단계 SO는 의미 기반 키를 저장하고 표시 시 현재 로케일로 조회한다. 진행 중 로케일 변경은 `TutorialController`가 현재 팝업·말풍선을 다시 그리며, 확인·스킵·재진입 팝업의 정적 문구는 `LocalizeStringEvent`가 갱신한다 |
 | 팝업 구간 일시정지 | `GamePauseReason.Tutorial` 추가로 방향은 정해짐. ⚠ **`Time.timeScale = 0`이어도 `MouseManager.Update()`는 계속 돈다** — 일시정지는 입력을 막지 않는다 |
 | UI 에셋 · 연출 | 지금은 회색 박스 + 기본 텍스트. 강조 색은 기존 아웃라인(호버 노랑 · 선택 초록 · 합성 핑크)과 겹치지 않게 할 것 |
 

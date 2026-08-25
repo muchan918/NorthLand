@@ -1,5 +1,7 @@
 using System;
 using UnityEngine;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 
 namespace NorthLand.Core
 {
@@ -22,6 +24,14 @@ namespace NorthLand.Core
         /// </summary>
         public bool HasSave =>fileStore != null && fileStore.Exists;
 
+        private bool isSaving;
+        private bool savePending;
+
+        private bool runEnded;
+        private GameResult runEndResult;
+
+        private bool deleteCurrentRunRequested;
+
         private void Awake()
         {
             serializer = new SaveSerializer();
@@ -39,13 +49,15 @@ namespace NorthLand.Core
 
             GameSceneManager sceneManager = GameSceneManager.Instance;
 
-            if (sceneManager == null || !sceneManager.TryConsumeContinueRequest())
+            if (sceneManager == null ||!sceneManager.TryConsumeContinueData(out RunData continueData))
             {
                 return;
             }
 
-            if (TryPrepareRestoreFromFile())
+            if (TryPrepareRestore(continueData))
+            {
                 return;
+            }
 
             Debug.LogError("[Load] 이어하기 준비에 실패하여 타이틀로 돌아갑니다.",this);
 
@@ -124,48 +136,58 @@ namespace NorthLand.Core
 
             Debug.Log("[Load] 전체 Run 상태 복원이 완료됐습니다.",this);
         }
-
-        /// <summary>
-        /// 현재 낮 시작 상태를 수집하고 단일 Run 세이브 파일에 기록한다.
-        /// 수동 저장과 낮 시작 자동 저장이 공통으로 사용하는 진입점이다.
-        /// </summary>
-        public bool TrySaveNow()
+        private async UniTask<SaveResult> SaveOnceAsync(CancellationToken cancellationToken)
         {
+            if (deleteCurrentRunRequested)
+            {
+                return SaveResult.Failed(
+                    "현재 Run 삭제가 요청되어 저장할 수 없습니다.");
+            }
+            if (runEnded)
+            {
+                return SaveResult.Failed("종료된 Run은 저장할 수 없습니다.");
+            }
+
             if (isRestoring)
             {
-                Debug.LogWarning("[Save] 복원 중에는 저장할 수 없습니다.",this);
-
-                return false;
+                return SaveResult.Failed("복원 중에는 저장할 수 없습니다.");
             }
 
             if (serializer == null || fileStore == null)
             {
-                Debug.LogError("[Save] 저장 시스템이 초기화되지 않았습니다.",this);
-
-                return false;
+                return SaveResult.Failed("저장 시스템이 초기화되지 않았습니다.");
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
+
+            // Unity 객체 접근 구간이므로 메인 스레드에서 실행한다.
             if (!TryCaptureRunData(out RunData data))
-                return false;
+            {
+                return SaveResult.Failed("Run 상태 수집에 실패했습니다.");
+            }
 
             string json;
 
             try
             {
+                // 직렬화도 현재는 메인 스레드에서 실행한다.
                 json = serializer.Serialize(data);
             }
             catch (Exception exception)
             {
-                Debug.LogError($"[Save] JSON 직렬화에 실패했습니다: {exception.Message}",this);
-
-                return false;
+                return SaveResult.Failed($"JSON 직렬화에 실패했습니다: {exception.Message}");
             }
 
-            if (!fileStore.TryWrite(json, out string error))
+            SaveResult writeResult = await fileStore.WriteAsync(json, cancellationToken);
+
+            if (!writeResult.Success)
             {
-                Debug.LogError($"[Save] {error}", this);
-                return false;
+                return writeResult;
             }
+
+            // UniTask는 기본적으로 호출한 PlayerLoop로 돌아오지만,
+            // 향후 WriteAsync 구현이 바뀌어도 안전하게 메인 스레드를 보장한다.
+            await UniTask.SwitchToMainThread(cancellationToken);
 
             PlayerSaveService playerSaveService = PlayerSaveService.Instance;
 
@@ -173,28 +195,79 @@ namespace NorthLand.Core
             {
                 Debug.LogWarning("[Save] 플레이어 저장 시스템이 없어 업데이트 시간을 기록하지 못했습니다.",this);
             }
-            else if (!playerSaveService.TryUpdateLastPlayedAt(out string playerSaveError))
+            else
             {
-                Debug.LogWarning($"[Save] 플레이어 업데이트 시간 기록 실패: {playerSaveError}",this);
+                SaveResult playerResult = await playerSaveService.UpdateLastPlayedAtAsync(cancellationToken);
+
+                if (!playerResult.Success)
+                {
+                    Debug.LogWarning($"[Save] 플레이어 업데이트 시간 기록 실패: " +playerResult.Error,this);
+                }
             }
+            Debug.Log($"[Save] 저장 완료: {fileStore.SavePath}", this);
 
-            Debug.Log($"[Save] 저장 완료: {fileStore.SavePath}",this);
-
-            return true;
+            return SaveResult.Succeeded();
         }
 
-        /// <summary>
-        /// 세이브 파일을 읽고 역직렬화한 뒤,
-        /// RunBootstrapper가 저장 시드로 월드를 생성할 수 있도록 데이터를 선주입한다.
-        /// 반드시 RunBootstrapper.Start보다 먼저 호출해야 한다.
-        /// </summary>
-        private bool TryPrepareRestoreFromFile()
+        private async UniTask<SaveResult> SaveNowAsync(CancellationToken cancellationToken)
+        {
+            if (deleteCurrentRunRequested)
+            {
+                return SaveResult.Failed("현재 Run 삭제가 요청되어 저장할 수 없습니다.");
+            }
+            if (runEnded)
+            {
+                return SaveResult.Failed("종료된 Run은 저장할 수 없습니다.");
+            }
+
+            // 낮 시작 이벤트가 저장 중 다시 발생하면
+            // 현재 저장 완료 후 최신 상태를 한 번 더 저장한다.
+            if (isSaving)
+            {
+                savePending = true;
+
+                return SaveResult.Succeeded();
+            }
+
+            isSaving = true;
+
+            SaveResult lastResult = SaveResult.Succeeded();
+
+            try
+            {
+                do
+                {
+                    savePending = false;
+
+                    lastResult = await SaveOnceAsync(cancellationToken);
+
+                    if (!lastResult.Success)
+                    {
+                        return lastResult;
+                    }
+                }
+                while (savePending);
+
+                return lastResult;
+            }
+            finally
+            {
+                isSaving = false;
+
+                if (runEnded)
+                {
+                    TryDeleteEndedRunSave(runEndResult);
+                }
+            }
+        }
+
+        private bool TryPrepareRestore(RunData data)
         {
             pendingRestoreData = null;
 
-            if (serializer == null || fileStore == null)
+            if (data == null)
             {
-                Debug.LogError("[Load] 저장 시스템이 초기화되지 않았습니다.",this);
+                Debug.LogError("[Load] 복원할 RunData가 없습니다.",this);
 
                 return false;
             }
@@ -206,21 +279,6 @@ namespace NorthLand.Core
                 return false;
             }
 
-            if (!fileStore.TryRead(out string json,out string readError))
-            {
-                Debug.LogError($"[Load] {readError}",this);
-
-                return false;
-            }
-
-            if (!serializer.TryDeserialize(json,out RunData data,out string deserializeError))
-            {
-                Debug.LogError($"[Load] {deserializeError}",this);
-
-                return false;
-            }
-
-            // 이 시점부터 자동 저장을 억제한다.
             isRestoring = true;
             suppressNextDayStartSave = true;
 
@@ -234,10 +292,12 @@ namespace NorthLand.Core
 
             pendingRestoreData = data;
 
-            Debug.Log("[Load] 세이브 파일 읽기와 시드 복원 준비가 완료됐습니다.",this);
+            Debug.Log("[Load] 세이브 데이터의 시드 복원 준비가 완료됐습니다.",this);
 
             return true;
         }
+
+
 
         /// <summary>
         /// 낮이 시작되면 현재 Run 상태를 자동 저장한다.
@@ -263,21 +323,42 @@ namespace NorthLand.Core
                 return;
             }
 
-            TrySaveNow();
+            SaveFromDayStartAsync().Forget();
+        }
+
+        private async UniTaskVoid SaveFromDayStartAsync()
+        {
+            try
+            {
+                SaveResult result = await SaveNowAsync(this.GetCancellationTokenOnDestroy());
+
+                if (!result.Success)
+                {
+                    Debug.LogError($"[Save] {result.Error}", this);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // 씬 종료 또는 오브젝트 파괴에 따른 정상 취소
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception, this);
+            }
         }
 
         /// <summary>
         /// 현재 슬롯의 Run 세이브를 삭제한다.
         /// 새 튜토리얼 시작처럼 기존 진행을 명시적으로 초기화하는 경로에서 사용한다.
         /// </summary>
-        public bool TryDeleteCurrentRun()
+        public async UniTask<SaveResult> DeleteCurrentRunAsync(CancellationToken cancellationToken)
         {
             PlayerSaveService playerSaveService = PlayerSaveService.Instance;
 
             if (playerSaveService == null || !playerSaveService.HasSelectedSlot)
             {
                 Debug.Log("[Save] 선택된 슬롯이 없어 삭제할 Run 세이브가 없습니다.", this);
-                return true;
+                return SaveResult.Succeeded();
             }
 
             if (fileStore == null)
@@ -285,14 +366,35 @@ namespace NorthLand.Core
                 fileStore = new SaveFileStore(playerSaveService.CurrentSlotPath);
             }
 
-            if (!fileStore.TryDelete(out string error))
+            if (deleteCurrentRunRequested)
             {
-                Debug.LogError($"[Save] Run 세이브 삭제에 실패했습니다: {error}", this);
-                return false;
+                return SaveResult.Failed("현재 Run 삭제가 이미 진행 중입니다.");
             }
 
-            Debug.Log("[Save] 새 튜토리얼 시작을 위해 기존 Run 세이브를 삭제했습니다.", this);
-            return true;
+            cancellationToken.ThrowIfCancellationRequested();
+
+            deleteCurrentRunRequested = true;
+            savePending = false;
+
+            try
+            {
+                // 삭제 요청을 수락한 뒤에는 진행 중 저장이 끝날 때까지 취소하지 않는다.
+                await UniTask.WaitUntil(() => !isSaving,
+                    cancellationToken: CancellationToken.None);
+
+                if (!fileStore.TryDelete(out string error))
+                {
+                    return SaveResult.Failed(error);
+                }
+
+                Debug.Log("[Save] 새 튜토리얼 시작을 위해 기존 Run 세이브를 삭제했습니다.",this);
+
+                return SaveResult.Succeeded();
+            }
+            finally
+            {
+                deleteCurrentRunRequested = false;
+            }
         }
 
         private void OnDestroy()
@@ -310,8 +412,27 @@ namespace NorthLand.Core
         private void HandleResultDecided(GameResult result)
         {
             if (result == GameResult.Playing)
+            {
                 return;
+            }
 
+            runEnded = true;
+            runEndResult = result;
+
+            // 종료 후 추가 저장 반복을 막는다.
+            savePending = false;
+
+            // 저장 중이면 SaveNowAsync의 finally가 마지막에 삭제한다.
+            if (isSaving)
+            {
+                return;
+            }
+
+            TryDeleteEndedRunSave(result);
+        }
+
+        private void TryDeleteEndedRunSave(GameResult result)
+        {
             if (fileStore == null)
             {
                 Debug.LogError("[Save] 세이브 삭제 시스템이 초기화되지 않았습니다.",this);

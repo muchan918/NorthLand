@@ -27,6 +27,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - Locale-ja-JP
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 45a41f49f45c0a547b20967b6ffed7d0
+    m_Address: NorthLand_Tutorial_ja-JP
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-ja-JP
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 92bc4635809872f4d832f97d489f2364
     m_Address: NorthLand_Rewards_ja-JP
     m_ReadOnly: 1

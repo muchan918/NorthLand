@@ -1,0 +1,333 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: NorthLand_Tutorial_en-US
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: en-US
+  m_SharedData: {fileID: 11400000, guid: 6598b69449f7ce74ea29ec1454e5a0b9, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 1574342656
+    m_Localized: Move the Camera with the Mouse
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1616285696
+    m_Localized: 'Hold the right mouse button and drag to move the camera.
+
+      This
+      is useful when you want to look at the management area and combat area at a
+      glance.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1620480000
+    m_Localized: Drag with the right mouse button to move the camera.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2090242048
+    m_Localized: Move the Camera
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2094436352
+    m_Localized: 'Use the W, A, S, and D keys to move the camera.
+
+      This is
+      useful when moving between the village and the combat area.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2094436353
+    m_Localized: Use the WASD keys to move the camera.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2534838272
+    m_Localized: Zoom the View
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2534838273
+    m_Localized: 'Scroll the mouse wheel to zoom in or out.
+
+      Zoom out to view
+      the village and combat area at a glance.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2534838274
+    m_Localized: Use the mouse wheel to zoom in or out.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2996211712
+    m_Localized: Assign Villagers
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2996211713
+    m_Localized: Your village has villagers. Assign villagers to production buildings
+      to produce resources the following day.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2996211714
+    m_Localized: Assign both villagers to production buildings.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3436613632
+    m_Localized: Click an empty tile in the combat area to place the tower.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3877015552
+    m_Localized: Place a Tower
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3877015553
+    m_Localized: 'Choose a tower to place from the tower panel.
+
+      Each tower
+      has a different placement cost and attack style.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3877015554
+    m_Localized: Choose a tower from the tower panel.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4334194688
+    m_Localized: End the Day
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4334194689
+    m_Localized: 'When you are ready, end the day to begin the night.
+
+      At night,
+      assigned villagers produce resources and towers automatically attack enemies.
+
+      Unassigned
+      villagers and towers will rest.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4334194690
+    m_Localized: Press End Day to proceed to night.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5269524480
+    m_Localized: Use a Skill
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5269524481
+    m_Localized: 'At night, you can attack enemies directly with skills.
+
+      Press
+      a skill button, then click a target point in the combat area to cast it there.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5269524482
+    m_Localized: Aim a skill at an enemy and use it.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6699782144
+    m_Localized: 'Upgrade Biscuit House, Choco Tree, and Sugar Farm once each.
+
+      Click
+      a closed panel to reopen the building.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7161155584
+    m_Localized: Building Shortcuts
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7161155585
+    m_Localized: 'Use the shortcut bar below the minimap to move directly to a building.
+
+      When
+      you arrive, the building information panel opens so you can check its level
+      and upgrade cost.
+
+      For practice, upgrades in this tutorial do not cost
+      resources.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7161155586
+    m_Localized: Select Biscuit House from the shortcut bar.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7609946112
+    m_Localized: Merge Towers
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7609946113
+    m_Localized: 'Collect several identical towers to merge them into a stronger
+      tower.
+
+      Select the towers to merge to see the towers that can be created.
+
+      For
+      practice, Archer Towers can be built for free this time.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7614140416
+    m_Localized: Place three Archer Towers.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8046153728
+    m_Localized: 'Drag to select three Archer Towers together. (Shift+click also
+      works.)
+
+      Choose a tower from the merge list, then click an empty tile
+      to finish.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8494944256
+    m_Localized: Assign the new villager to a production building.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8964706304
+    m_Localized: Increase Villagers
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8964706305
+    m_Localized: 'Spend resources at the Castle to increase the number of villagers.
+
+      More
+      villagers can be assigned to production buildings, increasing total production.
+
+      For
+      practice, increasing villagers is free this time.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8964706306
+    m_Localized: Select the Castle from the shortcut bar and add one villager.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9430274048
+    m_Localized: Upgrade Skills
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9430274049
+    m_Localized: 'Spend mana stones at the Magic Laboratory to upgrade skills.
+
+      Upgrades
+      increase damage and range and reduce cooldowns.
+
+      Mana stones are gained
+      each time you clear a night wave.
+
+      For practice, this upgrade is free.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9430274050
+    m_Localized: Select the Magic Laboratory from the shortcut bar and upgrade a
+      skill to level 1.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9879064576
+    m_Localized: Exchange Resources
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9879064577
+    m_Localized: 'At the Alchemist''s House, you can exchange mana stones for other
+      resources.
+
+      Mana stones are awarded each time you clear a night wave,
+      so they can be used to replenish resources you are short on.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9879064578
+    m_Localized: Exchange mana stones for a resource at the Alchemist's House.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10348826624
+    m_Localized: Upgrade the Castle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10348826625
+    m_Localized: 'Upgrading the Castle unlocks higher levels for other buildings.
+
+      Production
+      buildings and the Magic Laboratory cannot exceed the Castle''s level.
+
+      It
+      also increases the amount received when exchanging at the Alchemist''s House.
+
+      For
+      practice, this upgrade is free.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10348826626
+    m_Localized: Select the Castle from the shortcut bar and upgrade it to Lv. 2.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10818588672
+    m_Localized: The Second Night
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10818588673
+    m_Localized: 'Now you can see how your upgrades work in a real fight.
+
+      When
+      the day ends, night begins and towers automatically attack enemies.
+
+      Your
+      upgraded skills are also ready to use.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10818588674
+    m_Localized: Press End Day to proceed to night.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11737141248
+    m_Localized: First
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11737141249
+    m_Localized: "Hello\t"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11737141250
+    m_Localized: Assign a villager to a building.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12173348864
+    m_Localized: Second
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12173348865
+    m_Localized: Continue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12173348866
+    m_Localized: 'Remove a villager from a building.
+
+'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12638916608
+    m_Localized: Confirm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12638916609
+    m_Localized: Cancel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12638916610
+    m_Localized: Skip Tutorial
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12638916611
+    m_Localized: Tutorial
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12638916613
+    m_Localized: 'Starting the tutorial will delete your current game progress.
+
+      Would
+      you like to start the tutorial?'
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []
