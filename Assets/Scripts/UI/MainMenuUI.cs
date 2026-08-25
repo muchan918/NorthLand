@@ -54,7 +54,16 @@ namespace NorthLand.UI
                 return;
             }
 
-            sceneManager.LoadManageSpace();
+            PlayerSaveService saveService = PlayerSaveService.Instance;
+
+            if (saveService != null && !saveService.IsTutorialCompleted)
+            {
+                sceneManager.LoadTutorial();
+            }
+            else
+            {
+                sceneManager.LoadManageSpace();
+            }
         }
 
         // 플레이어가 입력한 시드로 시작
@@ -88,7 +97,16 @@ namespace NorthLand.UI
                 return;
             }
 
-            sceneManager.LoadManageSpaceWithSeed(masterSeed);
+            PlayerSaveService saveService = PlayerSaveService.Instance;
+
+            if (saveService != null && !saveService.IsTutorialCompleted)
+            {
+                sceneManager.LoadTutorialWithSeed(masterSeed);
+            }
+            else
+            {
+                sceneManager.LoadManageSpaceWithSeed(masterSeed);
+            }
         }
 
         private bool TryGetSceneManager(out GameSceneManager sceneManager)

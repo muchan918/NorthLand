@@ -1,4 +1,7 @@
 using System.Collections.Generic;
+using System;
+using Cysharp.Threading.Tasks;
+using NorthLand.Core;
 using UnityEngine;
 
 // 튜토리얼 진행을 소유한다. '지금 몇 단계인지'를 아는 유일한 곳.
@@ -6,6 +9,9 @@ using UnityEngine;
 // 무엇을 기다리는지도 모른다(TutorialCondition의 몫) — "됐다"는 통지만 받는다.
 public class TutorialController : MonoBehaviour
 {
+    [SerializeField]
+    private GameObject tutorialRoot;
+
     [SerializeField]
     private TutorialOverlay overlay;
 
@@ -39,6 +45,7 @@ public class TutorialController : MonoBehaviour
 
     private TutorialContext _context;
     private TutorialCondition _active;
+    private int? _masterSeedAfterTutorial;
 
     // 이번 실행이 진행할 단계 목록. StartTutorial에서 한 번 확정하고 이후 바뀌지 않는다 —
     // 진행 도중 debugMode를 뒤집으면 _index가 다른 리스트를 가리켜 엉뚱한 단계로 뛴다
@@ -53,7 +60,35 @@ public class TutorialController : MonoBehaviour
 
     private void Awake()
     {
+        // 일반 모드에서도 비활성화 전에 초기 상태를 일관되게 준비한다.
         _context = new TutorialContext();
+
+        GameSceneManager sceneManager = GameSceneManager.Instance;
+
+        if (TutorialMode.IsActive &&
+            sceneManager != null &&
+            sceneManager.TryConsumeTutorialReturnMasterSeed(out int masterSeed))
+        {
+            _masterSeedAfterTutorial = masterSeed;
+        }
+
+        if (tutorialRoot == null)
+        {
+            Debug.LogError($"[{nameof(TutorialController)}] TutorialRoot가 연결되지 않았습니다.", this);
+
+            enabled = false;
+            return;
+        }
+
+        bool shouldRun = startOnPlay || TutorialMode.IsActive;
+
+        tutorialRoot.SetActive(shouldRun);
+
+        if (!shouldRun)
+        {
+            enabled = false;
+            return;
+        }
 
         // 오버레이 없이는 팝업도 말풍선도 띄울 수 없다 — 배선 누락을 raw NRE 대신 여기서 알린다.
         if (overlay == null)
@@ -72,6 +107,7 @@ public class TutorialController : MonoBehaviour
         }
 
         overlay.PopupConfirmed += OnPopupConfirmed;
+        overlay.SkipRequested += OnSkipRequested;
     }
 
     private void OnDisable()
@@ -79,6 +115,7 @@ public class TutorialController : MonoBehaviour
         if (overlay != null)
         {
             overlay.PopupConfirmed -= OnPopupConfirmed;
+            overlay.SkipRequested -= OnSkipRequested;
         }
 
         // 감시를 남긴 채 꺼지면 죽은 구독이 된다. 다만 다시 켜도 이어서 진행되지는 않는다.
@@ -139,7 +176,7 @@ public class TutorialController : MonoBehaviour
         if (_index >= _activeSteps.Count)
         {
             Debug.Log("[Tutorial] 모든 단계를 마쳤다.");
-            StopTutorial();
+            CompleteTutorialAsync().Forget();
             return;
         }
 
@@ -277,6 +314,65 @@ public class TutorialController : MonoBehaviour
         overlay.HideBubble();
         overlay.HideDim();
         Advance();
+    }
+
+    private void OnSkipRequested()
+    {
+        if (!IsRunning)
+        {
+            return;
+        }
+
+        CompleteTutorialAsync().Forget();
+    }
+
+    private async UniTask CompleteTutorialAsync()
+    {
+        PlayerSaveService saveService = PlayerSaveService.Instance;
+
+        if (saveService == null)
+        {
+            Debug.LogError(
+                $"[{nameof(TutorialController)}] PlayerSaveService 인스턴스를 찾을 수 없어 완료 상태를 저장하지 못했습니다.",
+                this);
+        }
+        else
+        {
+            try
+            {
+                SaveResult result = await saveService.CompleteTutorialAsync(
+                    this.GetCancellationTokenOnDestroy());
+
+                if (!result.Success)
+                {
+                    Debug.LogError($"[{nameof(TutorialController)}] 튜토리얼 완료 상태를 저장하지 못했습니다: {result.Error}", this);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+        }
+
+        StopTutorial();
+
+        GameSceneManager sceneManager = GameSceneManager.Instance;
+
+        if (sceneManager == null)
+        {
+            TutorialMode.Exit();
+            Debug.LogError($"[{nameof(TutorialController)}] GameSceneManager 인스턴스를 찾을 수 없습니다.", this);
+
+            return;
+        }
+
+        if (_masterSeedAfterTutorial.HasValue)
+        {
+            sceneManager.LoadManageSpaceWithSeed(_masterSeedAfterTutorial.Value);
+            return;
+        }
+
+        sceneManager.LoadManageSpace();
     }
 
     // 이 단계의 조작 규칙(타워 무료 배치·패널 제한·건물 무료 업그레이드)을 건다.

@@ -294,6 +294,12 @@ namespace NorthLand.Core
         /// </summary>
         private void HandleDayStart()
         {
+            if (TutorialMode.IsActive)
+            {
+                Debug.Log("[Save] 튜토리얼 중에는 낮 시작 자동 저장을 건너뜁니다.", this);
+                return;
+            }
+
             if (isRestoring)
                 return;
 
@@ -330,6 +336,30 @@ namespace NorthLand.Core
             }
         }
 
+        /// <summary>
+        /// 현재 슬롯의 Run 세이브를 삭제한다.
+        /// 새 튜토리얼 시작처럼 기존 진행을 명시적으로 초기화하는 경로에서 사용한다.
+        /// </summary>
+        public bool TryDeleteCurrentRun()
+        {
+            if (fileStore == null)
+            {
+                Debug.LogWarning(
+                    "[Save] GameScene 직접 실행 상태에서는 기존 Run을 안전하게 식별할 수 없습니다. " +
+                    "타이틀에서 슬롯을 선택한 뒤 튜토리얼 다시 보기를 실행해주세요.",
+                    this);
+                return false;
+            }
+
+            if (!fileStore.TryDelete(out string error))
+            {
+                Debug.LogError($"[Save] Run 세이브 삭제에 실패했습니다: {error}", this);
+                return false;
+            }
+
+            Debug.Log("[Save] 새 튜토리얼 시작을 위해 기존 Run 세이브를 삭제했습니다.", this);
+            return true;
+        }
 
         private void OnDestroy()
         {

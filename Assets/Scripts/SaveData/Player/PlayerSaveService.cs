@@ -39,6 +39,8 @@ namespace NorthLand.Core
 
         public event Action Initialized;
 
+        public bool IsTutorialCompleted => CurrentPlayerData != null && CurrentPlayerData.tutorialCompleted;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Bootstrap()
         {
@@ -278,6 +280,41 @@ namespace NorthLand.Core
             }
 
             return SaveResult.Succeeded();
+        }
+
+        public async UniTask<SaveResult> CompleteTutorialAsync(CancellationToken cancellationToken)
+        {
+            if (!HasSelectedSlot || CurrentPlayerData == null)
+            {
+                return SaveResult.Failed("선택된 플레이어 세이브 슬롯이 없습니다.");
+            }
+
+            if (CurrentPlayerData.tutorialCompleted)
+            {
+                return SaveResult.Succeeded();
+            }
+
+            CurrentPlayerData.tutorialCompleted = true;
+
+            try
+            {
+                SaveResult result = await slotManager.SaveSlotAsync(
+                    CurrentSlotIndex,
+                    CurrentPlayerData,
+                    cancellationToken);
+
+                if (!result.Success)
+                {
+                    CurrentPlayerData.tutorialCompleted = false;
+                }
+
+                return result;
+            }
+            catch (OperationCanceledException)
+            {
+                CurrentPlayerData.tutorialCompleted = false;
+                throw;
+            }
         }
 
         private async UniTask MigrateLegacyRunSaveAsync(CancellationToken cancellationToken)

@@ -54,6 +54,7 @@ Application.persistentDataPath/
 - `playerId`: 슬롯을 식별하는 GUID 문자열
 - `createdAt`: 생성 시각(Unix seconds)
 - `lastPlayedAt`: 마지막 Run 저장 시각(Unix seconds)
+- `tutorialCompleted`: 해당 슬롯에서 튜토리얼을 한 번 이상 완료하거나 스킵했는지 여부
 
 표시 이름은 저장하지 않는다. 따라서 언어를 변경하거나 기존 슬롯을 불러와도 슬롯 이름은 현재 로케일로
 표시된다. 파일은 존재하지만 파싱 또는 검증에 실패하면 UI에서 손상 슬롯으로 표시하며, 덮어쓰지 않고
@@ -102,12 +103,16 @@ Application.persistentDataPath/
 ### 저장
 
 - 자동 저장 시점은 1일차를 포함한 모든 `DayNightManager.OnDayStart`다.
+- `TutorialMode.IsActive`인 동안에는 낮 시작 자동 저장을 건너뛴다. 튜토리얼 Run은 이어하기 세이브로 기록하지 않는다.
 - `DayNightManager.OnDayStart`를 받은 `RunSaveManager`가 내부 `SaveNowAsync(CancellationToken)`를 실행해 현재 상태를 수집하고 선택 슬롯의 `run-save.json`을 교체한다. 이 메서드는 자동 저장 구현 전용이므로 공개 API가 아니다.
 - 복원 중에는 자동 저장을 억제해 방금 읽은 세이브를 초기 상태로 덮어쓰지 않는다.
 - Run 저장 성공 후 `player.json`의 `lastPlayedAt`을 갱신한다.
 
 비동기 저장·로드 작업은 `SaveResult` 또는 `SaveResult<T>`로 성공 여부와 오류를 반환한다. 값이 있는 로드는
 `Value`를 함께 제공하며, 취소는 `CancellationToken`과 `OperationCanceledException`으로 성공·실패 결과와 구분한다.
+
+튜토리얼 다시 보기는 사용자 확인 후 `RunSaveManager.TryDeleteCurrentRun()`으로 현재 슬롯의
+`run-save.json`을 먼저 삭제한다. 삭제에 실패하면 튜토리얼로 전환하지 않는다.
 
 ### 복원
 
@@ -155,12 +160,13 @@ JSON 변환과 게임 상태 수집은 `SaveFileStore`의 책임이 아니다.
 
 | 파일 | 버전 상수 | 현재 버전 |
 | --- | --- | ---: |
-| `player.json` | `PlayerSaveFormat.CurrentVersion` | 1 |
+| `player.json` | `PlayerSaveFormat.CurrentVersion` | 2 |
 | `settings.json` | `GameSettingsFormat.CurrentVersion` | 1 |
 | `run-save.json` | `SaveFormat.CurrentVersion` | 3 |
 
 - `VersionedSaveSerializer<TData>`가 봉투의 `version`을 먼저 읽고 `data`를 나중에 변환한다.
 - `SaveMigrationChain`은 v1→v2, v2→v3처럼 인접 버전 변환을 순서대로 적용한다.
+- `player.json` v1→v2 마이그레이션은 `tutorialCompleted = false`를 추가한다.
 - 현재 빌드보다 높은 버전은 다운그레이드 손상을 막기 위해 로드를 거부한다.
 - 기존 평면 `player.json`과 `settings.json`은 정상 로드·검증 후 봉투 형식으로 다시 저장한다.
 - 스키마를 바꾸면 해당 파일의 `CurrentVersion`을 올리고 직전 버전에서 새 버전으로 가는 마이그레이션을 추가한다.

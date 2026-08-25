@@ -15,6 +15,9 @@ namespace NorthLand.Core
 
         private int? pendingMasterSeed;
 
+        // 최초 시드 시작이 튜토리얼을 거칠 때, 본 게임에 다시 전달할 시드.
+        private int? tutorialReturnMasterSeed;
+
         private bool pendingContinue;
 
         private RunData pendingContinueData;
@@ -47,15 +50,32 @@ namespace NorthLand.Core
 
 
         // 메인 메뉴로 전환한다. (게임 클리어/오버 패널의 "메인으로" 버튼 등에서 호출)
-        public void LoadMainMenu() => SceneManager.LoadScene(TitleScene);
+        public void LoadMainMenu()
+        {
+            TutorialMode.Exit();
+            tutorialReturnMasterSeed = null;
+            SceneManager.LoadScene(TitleScene);
+        }
 
         // 경영 공간(게임 본편)으로 전환한다. (메인 메뉴의 "게임 시작" 버튼에서 호출)
         // 랜덤 시드로 새 게임 시작
         public void LoadManageSpace()
         {
+            TutorialMode.Exit();
             pendingContinue = false;
             pendingContinueData = null;
             pendingMasterSeed = null;
+            tutorialReturnMasterSeed = null;
+
+            SceneManager.LoadScene(GameScene);
+        }
+
+        public void LoadTutorial()
+        {
+            TutorialMode.Enter();
+            pendingContinue = false;
+            pendingMasterSeed = null;
+            tutorialReturnMasterSeed = null;
 
             SceneManager.LoadScene(GameScene);
         }
@@ -70,9 +90,11 @@ namespace NorthLand.Core
                 return false;
             }
 
+            TutorialMode.Exit();
             pendingContinueData = data;
             pendingContinue = true;
             pendingMasterSeed = null;
+            tutorialReturnMasterSeed = null;
 
             SceneManager.LoadScene(GameScene);
             return true;
@@ -80,12 +102,38 @@ namespace NorthLand.Core
 
         public void LoadManageSpaceWithSeed(int masterSeed)
         {
+            TutorialMode.Exit();
             pendingContinue = false;
             pendingContinueData = null;
             pendingMasterSeed = masterSeed;
+            tutorialReturnMasterSeed = null;
 
             SceneManager.LoadScene(GameScene);
         }
+
+        public void LoadTutorialWithSeed(int masterSeed)
+        {
+            TutorialMode.Enter();
+            pendingContinue = false;
+            pendingMasterSeed = masterSeed;
+            tutorialReturnMasterSeed = masterSeed;
+
+            SceneManager.LoadScene(GameScene);
+        }
+
+        public bool TryConsumeTutorialReturnMasterSeed(out int masterSeed)
+        {
+            if (!tutorialReturnMasterSeed.HasValue)
+            {
+                masterSeed = 0;
+                return false;
+            }
+
+            masterSeed = tutorialReturnMasterSeed.Value;
+            tutorialReturnMasterSeed = null;
+            return true;
+        }
+
         public bool TryConsumePendingMasterSeed(out int masterSeed)
         {
             if (!pendingMasterSeed.HasValue)
