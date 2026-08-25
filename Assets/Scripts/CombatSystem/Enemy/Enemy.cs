@@ -507,9 +507,63 @@ namespace NorthLand.Combat
         /// 반격·처치 기여 집계 대상에서 빠져야 하기 때문이라 사정이 다르다).
         void Detonate(IDamageable target)
         {
+            SpawnExplosionVfx();
+            PlayExplosionSfx();
+
             target.TakeDamage(new DamageInfo(data.SelfDestruct.Damage, this));
 
             SelfDestruct();
+        }
+
+        /// 자폭 폭발음(#452). `AudioManager`의 2D 원샷을 쓴다 —
+        /// `SkillManager`의 `PlayClipAtPoint`(볼륨 제어 밖, `Docs/Core/AudioManager.md` §2)를 따라가지 않는다.
+        ///
+        /// 자기 `AudioSource`를 달지 않는 이유: 자폭병은 같은 프레임에 제거되므로 소스가 함께 죽어
+        /// 소리가 첫 프레임에 끊긴다. 파티클을 부모 없이 스폰하는 것과 같은 사정이고, 매니저의
+        /// 소스는 씬을 넘어 살아 있으므로 이 축이 아예 없다.
+        void PlayExplosionSfx()
+        {
+            AudioClip clip = data.SelfDestruct.ExplosionSfx;
+
+            // 매니저가 없는 씬(전투 테스트 등)에서는 조용히 넘긴다 — SoundCue와 같은 방침.
+            if (clip == null || AudioManager.Instance == null)
+            {
+                return;
+            }
+
+            AudioManager.Instance.PlaySfx(clip, data.SelfDestruct.ExplosionSfxVolume);
+        }
+
+        /// 자폭 폭발 파티클(#452).
+        ///
+        /// **자신의 자식으로 두지 않는다.** 자폭병은 같은 프레임에 제거되므로 자식으로 붙이면
+        /// 파티클도 함께 파괴되어 아무것도 보이지 않는다 — 증상이 "프리팹을 넣었는데 폭발이
+        /// 안 보인다"라 원인에서 멀다. 같은 이유로 위치는 스폰 시점에 값으로 복사된다.
+        ///
+        /// 스케일은 프리팹 값에 **곱한다**. 파티클은 저작된 크기가 이미 제각각이라
+        /// (FX_Bomb_Exp 17, FireSphereBlast 5) 절대값으로 덮으면 저작 의도가 사라진다.
+        void SpawnExplosionVfx()
+        {
+            GameObject prefab = data.SelfDestruct.ExplosionVfx;
+
+            if (prefab == null)
+            {
+                return;
+            }
+
+            GameObject vfx = Instantiate(prefab, hitPosition.position, Quaternion.identity);
+
+            float scale = data.SelfDestruct.ExplosionScale;
+
+            if (scale > 0f)
+            {
+                vfx.transform.localScale *= scale;
+            }
+
+            // 파티클 시스템을 훑어 최대 수명을 자동 계산하지 않는다 —
+            // ResidentSpawner.PlayDespawnEffect와 같은 규칙으로 저작값을 쓴다.
+            // 실제로 튜닝하는 값은 "얼마나 오래 보일지"이고 그건 저작자가 정하는 편이 낫다.
+            Destroy(vfx, data.SelfDestruct.ExplosionLifetime);
         }
 
         /// 자폭 사망(#453). 연출·디스폰은 `Die`와 같지만 **`Killed`를 발행하지 않는다.**
@@ -533,18 +587,29 @@ namespace NorthLand.Combat
             currentHp = 0f;
             OnHpChanged?.Invoke(currentHp, MaxHp);
 
-            BeginDeathSequence();
+            // 폭발 파티클이 있으면 사망 모션을 건너뛴다(#452) — 터진 몸이 2초에 걸쳐 천천히
+            // 쓰러지면 "펑 하고 없어진다"가 성립하지 않는다. 파티클이 없으면 예전대로 모션을
+            // 재생한다(즉시 사라지면 아무 피드백이 없어 그게 더 나쁘다).
+            BeginDeathSequence(playDeathAnimation: data.SelfDestruct.ExplosionVfx == null);
         }
 
         // 사망 연출 → 디스폰. 처치(`Die`)와 자폭(`SelfDestruct`)이 공유하는 뒤처리다.
         // 두 경로의 유일한 차이는 `Killed` 발행 여부이며, 그 차이만 호출부에 남긴다.
         // 추후 오브젝트 풀링 도입 시 이 메서드 내부만 "풀 반환"으로 교체하면 두 경로가 함께 따라온다.
-        void BeginDeathSequence()
+        void BeginDeathSequence(bool playDeathAnimation = true)
         {
             // 사망 연출 지연 동안(파괴 전까지) 보스 BT가 계속 돌지 않도록 에이전트를 끈다.
             if (behaviorAgent != null)
             {
                 behaviorAgent.enabled = false;
+            }
+
+            // 자폭 폭발(#452) — 모션 없이 즉시 제거한다. 상태 기계를 Death로 넘기지 않는 이유는
+            // destroyDelay(2초)가 그쪽에 있기 때문이다. 여기서 전이시키면 즉시 제거가 안 된다.
+            if (!playDeathAnimation)
+            {
+                Destroy(gameObject);
+                return;
             }
 
             if (monsterStateMachine != null)

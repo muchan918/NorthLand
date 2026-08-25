@@ -43,3 +43,8 @@ MonoBehaviour:
   SelfDestruct:
     Enabled: 1
     Damage: 20
+    ExplosionVfx: {fileID: 6824640950930103284, guid: d115b68b3c9aa4340b38c87fc0bd5435, type: 3}
+    ExplosionScale: 1
+    ExplosionLifetime: 5
+    ExplosionSfx: {fileID: 8300000, guid: 04bfe4b3dcbf5bb49b30a7e573e62e10, type: 3}
+    ExplosionSfxVolume: 0.6
