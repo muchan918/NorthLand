@@ -25,8 +25,9 @@ namespace NorthLand.Combat
         // 더해져 실효 간격이 늘어난다.
         float swingHitTimer;
 
-        // 공격 모션 지시 창구(#452). MonsterStateMachine과 같은 탐색 범위(자식 포함, WL-093)를 쓴다.
-        MonsterAnimation monsterAnimation;
+        // 공격 모션은 `monsterStateMachine`을 경유해 지시한다(#452) — `MonsterAnimation`을 직접 들지
+        // 않는다. 애니메이터 기록 주체와 참조 해석을 그쪽 한 컴포넌트로 모으기 위함이며,
+        // 근거는 `MonsterStateMachine.RequestAttackSwing`의 주석에 있다.
 
         /// 이 적이 **처치되어** 사라질 때 정확히 1회 발행된다. 첫 인자는 마지막으로 피해를 준 주체
         /// (모르면 null). 킬스택 성장 타워(#300)가 처치 귀속을 아는 유일한 창구다.
@@ -99,16 +100,9 @@ namespace NorthLand.Combat
         void Awake()
         {
             monsterStateMachine = GetComponent<MonsterStateMachine>();
-            monsterAnimation = GetComponentInChildren<MonsterAnimation>();
 
-            // 없으면 스윙 스케줄링이 통째로 빠져 예전 즉발 경로로 되돌아간다 — 조용히 넘기지 않는다
-            // (:120 IMovementAgent와 같은 규칙). MonsterAnimation은 있는데 공격 클립만 비어 있는
-            // 경우는 MonsterAnimation.PlaySwing이 자기 자리에서 경고한다.
-            if (monsterAnimation == null)
-            {
-                Debug.LogWarning($"[{name}] MonsterAnimation을 찾지 못해 공격 모션 동기화가 동작하지 않습니다 " +
-                                 "— 피해가 쿨다운 만료 프레임에 즉발됩니다.", this);
-            }
+            // MonsterAnimation 미발견 경고는 MonsterStateMachine.Awake가 낸다 — 참조를 해석하는
+            // 컴포넌트가 경고도 낸다(경고를 두 곳에서 내면 같은 사실이 두 줄로 찍힌다).
 
             // 배율 미적용 상태의 최대치다. 스포너가 곧 ApplyWaveHpScale로 덮어쓴다 —
             // 스포너를 거치지 않는 경로(테스트 씬 직접 배치)는 배율 1이라 이 값이 그대로 정답이 된다.
@@ -433,8 +427,8 @@ namespace NorthLand.Combat
             // 실패 사유는 투사체 프리팹 미지정 같은 저작 누락이라 재시도로 낫는 종류가 아니다.
             cooldownTimer = AttackInterval;
 
-            float windup = monsterAnimation != null
-                ? monsterAnimation.PlaySwing(AttackInterval)
+            float windup = monsterStateMachine != null
+                ? monsterStateMachine.RequestAttackSwing(AttackInterval)
                 : 0f;
 
             if (windup > 0f)
@@ -455,7 +449,7 @@ namespace NorthLand.Combat
         void CancelSwing()
         {
             swingHitTimer = 0f;
-            monsterAnimation?.SetAttackAnimation(false);
+            monsterStateMachine?.CancelAttackSwing();
         }
 
 
