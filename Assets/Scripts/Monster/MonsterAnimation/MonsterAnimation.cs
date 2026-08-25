@@ -11,7 +11,6 @@ public class MonsterAnimation : MonoBehaviour
     private static readonly int IsDieHash =
         Animator.StringToHash("IsDie");
 
-    // 공격 상태의 재생속도 배수(#452). 컨트롤러의 공격 상태에 Speed Parameter로 연결한다.
     // 스윙 1회의 재생속도 배수(#452). 컨트롤러의 공격 상태에 Speed Parameter로 연결한다.
     //
     // 이름이 `AttackCadence`가 **아닌** 이유: 그 이름은 `BossAttackCadence`가 이미 쓰고 있고,
@@ -75,6 +74,19 @@ public class MonsterAnimation : MonoBehaviour
     // 이 가드가 없으면 Wave 15 보스가 뜰 때마다 "Assets/Imported 미동기화" 안내가 오탐으로 나간다.
     private bool cadenceOwnedElsewhere;
 
+    // 컨트롤러에 SwingCadence Float가 있는가. **없으면 SetFloat을 부르지 않는다** —
+    // `Animator`는 없는 이름에 대해 **매 호출** 경고를 남기므로(EnemyAgent.cs:205가 같은 이유로
+    // 같은 가드를 둔다) 웨이브 후반이면 스윙마다 찍혀 콘솔이 죽는다.
+    //
+    // 이 축은 컨트롤러가 `Assets/Imported`(별도 저장소)에 있어 현실적으로 발생한다 —
+    // 코드만 받고 컨트롤러가 구버전이면 파라미터 이름이 없다.
+    private bool hasSwingCadenceParam;
+
+    private bool warnedNoCadenceParam;
+
+    // 「애니메이션 1주기 = 공격 1회」가 배속 상한에 걸려 깨진 것을 알린다(인스턴스당 1회).
+    private bool warnedCadenceClamped;
+
     private void Awake()
     {
         if (animator == null)
@@ -92,6 +104,29 @@ public class MonsterAnimation : MonoBehaviour
         // 같은 오브젝트만 본다 — `Tank.prefab`이 두 컴포넌트를 루트에 함께 얹은 형태이고,
         // 그것이 이 조합이 성립하는 유일한 배선이다.
         cadenceOwnedElsewhere = GetComponent<BossAttackCadence>() != null;
+
+        hasSwingCadenceParam = FindSwingCadenceParameter();
+    }
+
+    private bool FindSwingCadenceParameter()
+    {
+        // 컨트롤러가 없으면 파라미터를 물어볼 대상 자체가 없다. `parameters`는 그때 빈 배열이라
+        // 아래 루프로도 같은 결론이 나지만, 의도를 드러내려 먼저 걸러낸다.
+        if (animator == null || animator.runtimeAnimatorController == null)
+        {
+            return false;
+        }
+
+        foreach (AnimatorControllerParameter parameter in animator.parameters)
+        {
+            if (parameter.type == AnimatorControllerParameterType.Float &&
+                parameter.nameHash == SwingCadenceHash)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// 스윙 단위 제어가 가능한가. false면 호출부는 예전 경로(루프 재생 + 즉발 피해)를 쓴다 —
@@ -122,10 +157,26 @@ public class MonsterAnimation : MonoBehaviour
         float clipLength = attackClip.length;
 
         // 하한 1 — 간격이 클립보다 길 때 배속을 1 아래로 내리지 않는다(위 주석의 슬로모션 회피).
-        float cadence = Mathf.Clamp(clipLength / attackInterval, 1f, maxCadence);
+        float required = clipLength / attackInterval;
+        float cadence = Mathf.Clamp(required, 1f, maxCadence);
         float swingDuration = clipLength / cadence;
 
-        animator.SetFloat(SwingCadenceHash, cadence);
+        // 상한에 걸리면 스윙이 간격보다 길어져 **「1주기 = 1공격」이 성립하지 않는다.**
+        // 이 계약이 깨지는 경로는 밸런싱이다 — `AttackInterval`을 클립 길이/상한 아래로 내리면
+        // 여기 걸리는데, 수치를 만지는 사람은 SO만 보고 있어 프리팹 쪽 상한을 모른다.
+        if (required > maxCadence + 0.001f)
+        {
+            WarnCadenceClampedOnce(clipLength, attackInterval, required);
+        }
+
+        if (hasSwingCadenceParam)
+        {
+            animator.SetFloat(SwingCadenceHash, cadence);
+        }
+        else
+        {
+            WarnNoCadenceParamOnce();
+        }
 
         // IsAttack은 SetAttackAnimation만 쓴다 — 여기서 SetBool을 직접 부르면 스윙 장부와
         // 애니메이터를 한 자리에서 묶어 두는 불변식이 선언만 남는다(리뷰 지적).
@@ -161,6 +212,46 @@ public class MonsterAnimation : MonoBehaviour
             $"[{name}] 공격 클립이 없어 공격 모션을 공격속도에 맞추지 못합니다 — 루프 재생 + 즉발 피해로 " +
             $"되돌아갑니다. 프리팹의 {nameof(MonsterAnimation)}.attackClip을 확인하세요" +
             "(Assets/Imported 저장소 미동기화가 가장 흔한 원인).",
+            gameObject);
+    }
+
+    /// 컨트롤러에 `SwingCadence` Float가 없어 **배속 보정이 빠졌다**는 사실을 드러낸다.
+    ///
+    /// 스윙 스케줄링 자체는 계속 돈다(간격이 클립보다 길면 배속이 1이라 보정이 필요 없다) —
+    /// 실제로 어긋나는 것은 간격이 클립보다 짧은 몬스터의 스윙이 잘리는 것뿐이라, 여기서
+    /// 스케줄링을 포기하는 것보다 경고만 내고 계속 가는 편이 낫다.
+    private void WarnNoCadenceParamOnce()
+    {
+        if (warnedNoCadenceParam || cadenceOwnedElsewhere)
+        {
+            return;
+        }
+
+        warnedNoCadenceParam = true;
+
+        Debug.LogWarning(
+            $"[{name}] 애니메이터에 SwingCadence(Float) 파라미터가 없어 공격 모션 배속 보정이 빠집니다 " +
+            "— Assets/Imported 저장소를 동기화했는지 확인하세요(컨트롤러가 구버전이면 이 파라미터가 없습니다).",
+            gameObject);
+    }
+
+    /// 배속 상한(`maxCadence`)에 걸려 스윙이 공격 간격을 넘겼다 = 「1주기 = 1공격」이 깨졌다.
+    /// 조용히 두면 밸런싱이 공격 간격을 내린 순간 모션이 다시 간격과 어긋나는데, 증상이
+    /// "빠른 몬스터만 모션이 이상하다"라 원인에서 멀다.
+    private void WarnCadenceClampedOnce(float clipLength, float attackInterval, float required)
+    {
+        if (warnedCadenceClamped)
+        {
+            return;
+        }
+
+        warnedCadenceClamped = true;
+
+        Debug.LogWarning(
+            $"[{name}] 공격 간격({attackInterval:0.###}s)이 짧아 배속 상한({maxCadence:0.##})에 걸립니다 " +
+            $"— 필요 배속 {required:0.##}. 공격 모션 1주기가 공격 1회와 맞지 않습니다" +
+            $"(클립 {clipLength:0.###}s → 스윙 {clipLength / maxCadence:0.###}s). " +
+            "maxCadence를 올리거나 더 짧은 공격 클립을 쓰세요.",
             gameObject);
     }
 
