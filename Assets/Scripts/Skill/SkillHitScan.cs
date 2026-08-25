@@ -6,15 +6,14 @@ using NorthLand.Combat;
 // SkillStatsFormatter가 표기를 한 곳에 모으는 것과 같은 계보.
 public static class SkillHitScan
 {
-    // 시전면과 몬스터 부양 높이가 다르다: 시전은 y=2 평면(SkillButtonView._castHeight)인데
+    // 시전면과 몬스터 부양 높이가 다르다: 시전은 y=5 평면(SkillButtonView._castHeight)인데
     // 지상 몬스터는 타일 표면 + monsterWaypointYOffset(CombatMapTileSpawner, 코드 기본값 6f ·
     // 씬 authoring 3.2 — 값이 씬에 있어 여기서 파생할 수 없다, WL-063/WL-149),
     // 공중은 거기서 +4(FlyingMonsterMove.altitude)를 더 뜬다. 수평 반경으로 이 차이를 덮으면
     // 원반 인디케이터보다 넓게 맞으므로, 축을 나눠 수직만 연다.
     //
-    // 위아래 양쪽으로 여는 이유: _castHeight는 씬에서만 2고 스크립트 기본값은 20이라
-    // 프리팹 리셋·신규 씬에서 시전면이 몬스터보다 위로 갈 수 있다. 위쪽만 열면 그때 전 스킬이
-    // 조용히 빗나간다. 시전면 아래엔 적이 없으므로 아래로 여는 대가는 없다.
+    // 위아래 양쪽으로 열어 씬의 시전면과 지상·공중 몬스터 높이 차이를 한 판정으로 포괄한다.
+    // 시전면 아래엔 적이 없으므로 아래로 여는 대가는 없다.
     //
     public const float VerticalRange = 12f;
 

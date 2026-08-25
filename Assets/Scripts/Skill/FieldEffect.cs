@@ -15,11 +15,9 @@ public class FieldEffect : SkillEffect
     [SerializeField] bool loopParticlesForDuration;
     [SerializeField] ParticleSystem[] fieldParticles;
 
-    // 감전 반경(SkillManager 기본 6)의 60%를 의도한 값이지만 종속시키지 않고 독립 수치로 둔다 —
-    // 싱글톤 의존 없이 BombEffect.explosionRadius와 같은 패턴을 유지하고,
-    // 마법 연구소의 RadiusMultiplier가 장판까지 증폭시키는 의도치 않은 결합을 만들지 않는다.
-    [Tooltip("Field Prefab 루트에 CapsuleCollider가 없을 때만 사용하는 예비 반경")]
-    [SerializeField] float fieldRadius = 3.6f;
+    // 실제 반경의 정본은 fieldPrefab 루트의 CapsuleCollider다. 프리팹이나 Collider가 누락된
+    // 비정상 구성에서만 기존 기본 반경을 사용하며, 씬에 별도 조절값을 남기지 않는다.
+    const float FallbackFieldRadius = 3.6f;
 
     // TODO(TBD): SkillManager와 동일하게 임시 LayerMask 방식. 팀 컨벤션 확정 후 정리(Tower.cs 참고).
     [SerializeField] LayerMask enemyLayerMask;
@@ -82,10 +80,10 @@ public class FieldEffect : SkillEffect
 
     float GetAuthoredFieldRadius()
     {
-        if (fieldPrefab == null) return fieldRadius;
+        if (fieldPrefab == null) return FallbackFieldRadius;
 
         CapsuleCollider capsule = fieldPrefab.GetComponent<CapsuleCollider>();
-        if (capsule == null) return fieldRadius;
+        if (capsule == null) return FallbackFieldRadius;
 
         Vector3 scale = capsule.transform.lossyScale;
         float radiusScale = capsule.direction switch

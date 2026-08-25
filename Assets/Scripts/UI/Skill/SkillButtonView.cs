@@ -14,11 +14,9 @@ public class SkillButtonView : MonoBehaviour
     [SerializeField] GameObject _skillGhostPrefab; // 마우스를 따라다닐 범위 인디케이터
 
     [Tooltip("스킬 인디케이터·시전 지점의 고정 y. 전투맵에서 가장 낮은 도로 타일 윗면 높이에 맞춘다.")]
-    // 씬 값(GameScene의 2)과 같은 기본값을 둔다 — 기본값이 몬스터 부양 높이(6f)보다 위면
+    // 씬 값(GameScene의 5)과 같은 기본값을 둔다 — 기본값이 몬스터 부양 높이보다 위면
     // 시전면이 몬스터 위로 올라가 스킬이 전부 빗나간다(#398). 프리팹 리셋·신규 씬에서 조용히 재발할 자리다.
-    [SerializeField] float _castHeight = 2f;
-    [Tooltip("커서 기준 실제 시전 중심의 월드 X/Z 오프셋. 인디케이터와 히트 판정에 함께 적용된다.")]
-    [SerializeField] Vector2 _castOffsetXZ;
+    [SerializeField] float _castHeight = 5f;
     [Tooltip("다음 충전까지 남은 시간(초) 표시. 비워두면 표시하지 않는다.")]
     [SerializeField] TMP_Text _rechargeText;
     [Tooltip("보유 충전 수 표시(#319). 비워두면 표시하지 않는다.")]
@@ -136,12 +134,8 @@ public class SkillButtonView : MonoBehaviour
     private Vector3 SnapToCastHeight(Ray ray, RaycastHit hit)
     {
         Plane castPlane = new Plane(Vector3.up, new Vector3(0f, _castHeight, 0f));
-        Vector3 position = castPlane.Raycast(ray, out float distance)
+        return castPlane.Raycast(ray, out float distance)
             ? ray.GetPoint(distance)
             : new Vector3(hit.point.x, _castHeight, hit.point.z); // 광선이 평면과 거의 평행할 때 폴백
-
-        position.x += _castOffsetXZ.x;
-        position.z += _castOffsetXZ.y;
-        return position;
     }
 }

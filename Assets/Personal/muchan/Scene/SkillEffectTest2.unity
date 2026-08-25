@@ -15378,7 +15378,6 @@ MonoBehaviour:
   - {fileID: 2561354681545253489, guid: a935f673cbfd4b947984c63123c3bb10, type: 3}
   - {fileID: 1929146147802243390, guid: a935f673cbfd4b947984c63123c3bb10, type: 3}
   - {fileID: 181263172273039710, guid: a935f673cbfd4b947984c63123c3bb10, type: 3}
-  fieldRadius: 18
   enemyLayerMask:
     serializedVersion: 2
     m_Bits: 128
@@ -24388,7 +24387,6 @@ MonoBehaviour:
   _button: {fileID: 4146640221422542342}
   _skillGhostPrefab: {fileID: 1627122659657980782, guid: 8b590d985dec8554b96c873e2491f147, type: 3}
   _castHeight: 5
-  _castOffsetXZ: {x: 0, y: 0}
   _rechargeText: {fileID: 585776165}
   _chargeText: {fileID: 1209942896}
   _fillImage: {fileID: 1397079616}
