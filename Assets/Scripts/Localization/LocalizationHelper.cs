@@ -20,6 +20,7 @@ public static class LocalizationHelper
     public const string k_TerritoriesTable = "NorthLand_Territories";
     public const string k_RewardsTable = "NorthLand_Rewards";
     public const string k_SkillsTable = "NorthLand_Skills";
+    public const string k_TutorialTable = "NorthLand_Tutorial";
 
     /// <summary>
     /// 현재 로케일 기준으로 (테이블, 키)를 동기 해석한다. 내부적으로 로드를 강제 완료하므로

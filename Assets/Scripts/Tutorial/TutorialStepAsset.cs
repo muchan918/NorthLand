@@ -19,12 +19,14 @@ public enum TutorialHighlightMode
 public class TutorialStepAsset : ScriptableObject
 {
     [Header("팝업 — 셋 다 비우면 팝업을 건너뛴다")]
+    [FormerlySerializedAs("popupTitle")]
     [SerializeField]
-    private string popupTitle;
+    private string popupTitleKey;
 
     [TextArea(3, 6)]
+    [FormerlySerializedAs("popupBody")]
     [SerializeField]
-    private string popupBody;
+    private string popupBodyKey;
 
     // 비워두면 팝업에서 그림 영역이 숨겨진다.
     [SerializeField]
@@ -32,8 +34,9 @@ public class TutorialStepAsset : ScriptableObject
 
     [Header("말풍선 — 비우면 말풍선을 띄우지 않는다")]
     [TextArea(2, 4)]
+    [FormerlySerializedAs("bubbleText")]
     [SerializeField]
-    private string bubbleText;
+    private string bubbleTextKey;
 
     [Header("강조 — None이면 딤을 띄우지 않는다")]
     [SerializeField]
@@ -101,20 +104,25 @@ public class TutorialStepAsset : ScriptableObject
     [SerializeReference]
     private TutorialCondition completion;
 
-    public string PopupTitle => popupTitle;
+    public string PopupTitle => Localize(popupTitleKey);
 
-    public string PopupBody => popupBody;
+    public string PopupBody => Localize(popupBodyKey);
 
-    public string BubbleText => bubbleText;
+    public string BubbleText => Localize(bubbleTextKey);
 
-    public bool HasBubble => !string.IsNullOrWhiteSpace(bubbleText);
+    public bool HasBubble => !string.IsNullOrWhiteSpace(bubbleTextKey);
 
     public Sprite PopupImage => popupImage;
 
     public bool HasPopup =>
-        !string.IsNullOrWhiteSpace(popupTitle)
-        || !string.IsNullOrWhiteSpace(popupBody)
+        !string.IsNullOrWhiteSpace(popupTitleKey)
+        || !string.IsNullOrWhiteSpace(popupBodyKey)
         || popupImage != null;
+
+    private static string Localize(string key)
+        => string.IsNullOrWhiteSpace(key)
+            ? string.Empty
+            : LocalizationHelper.Get(LocalizationHelper.k_TutorialTable, key);
 
     public TutorialHighlightMode HighlightMode => highlightMode;
 

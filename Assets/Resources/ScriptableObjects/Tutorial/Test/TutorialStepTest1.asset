@@ -12,10 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
   m_Name: TutorialStepTest1
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
-  popupTitle: "\uCCAB\uBC88\uC9F8"
-  popupBody: "\uC548\uB155\t"
+  popupTitleKey: tutorial.test.one.title
+  popupBodyKey: tutorial.test.one.body
   popupImage: {fileID: 1562220908, guid: 97674d34c3046274f9cee23fa0f2aec1, type: 3}
-  bubbleText: "\uAC74\uBB3C\uC5D0 \uC8FC\uBBFC \uB123\uC5B4"
+  bubbleTextKey: tutorial.test.one.bubble
+  highlightMode: 0
+  highlightAnchorId: 
+  highlightCell: {x: 0, y: 0}
+  pauseGameDuringStep: 0
+  freeTowerPlacement: 0
+  restrictTowerPanelTo: {fileID: 0}
+  freeManagementCost: 0
+  upgradeCap: 0
+  villagerCap: 0
+  upgradeAllowList: []
   completion:
     rid: 3470829919344263262
   references:
@@ -25,3 +35,4 @@ MonoBehaviour:
       type: {class: BuildingActionCondition, ns: , asm: Assembly-CSharp}
       data:
         action: 2
+        targetBuilding: {fileID: 0}

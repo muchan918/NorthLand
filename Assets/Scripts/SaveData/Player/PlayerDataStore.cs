@@ -1,6 +1,8 @@
-using System;
+using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System;
+using System.Threading;
 
 namespace NorthLand.Core
 {
@@ -158,7 +160,7 @@ namespace NorthLand.Core
                 return false;
             }
 
-            // 정상적인 구버전 평면 JSON을 새 봉투 형식으로 다시 저장
+            // 정상적인 구버전 평면 JSON을 새 봉투 형식으로 다시 저장한다.
             if (needsRewrite &&
                 !TrySave(data, out error))
             {
@@ -168,9 +170,50 @@ namespace NorthLand.Core
 
             return true;
         }
+
         public bool TryDelete(out string error)
         {
             return fileStore.TryDelete(out error);
+        }
+        public async UniTask<SaveResult> SaveAsync(PlayerData data,CancellationToken cancellationToken)
+        {
+            if (data == null)
+            {
+                return SaveResult.Failed("저장할 플레이어 데이터가 없습니다.");
+            }
+
+            string json;
+
+            try
+            {
+                json = serializer.Serialize(data);
+            }
+            catch (JsonException exception)
+            {
+                return SaveResult.Failed($"플레이어 데이터 직렬화에 실패했습니다: {exception.Message}");
+            }
+            catch (ArgumentException exception)
+            {
+                return SaveResult.Failed($"플레이어 데이터 직렬화에 실패했습니다: {exception.Message}");
+            }
+
+            return await fileStore.WriteAsync(json,cancellationToken);
+        }
+
+        public async UniTask<SaveResult<PlayerData>> LoadAsync(CancellationToken cancellationToken)
+        {
+            return await UniTask.RunOnThreadPool(() =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    if (!TryLoad(out PlayerData data,out string error))
+                    {
+                        return SaveResult<PlayerData>.Failed(error);
+                    }
+
+                    return SaveResult<PlayerData>.Succeeded(data);
+                },
+                cancellationToken: cancellationToken);
         }
     }
 }

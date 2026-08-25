@@ -12,14 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
   m_Name: TowerPlace
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
-  popupTitle: 
-  popupBody: 
+  popupTitleKey: 
+  popupBodyKey: 
   popupImage: {fileID: 0}
-  bubbleText: "\uC804\uD22C \uC9C0\uC5ED\uC758 \uBE48 \uD0C0\uC77C\uC744 \uD074\uB9AD\uD574
-    \uBC30\uCE58\uD558\uC138\uC694"
+  bubbleTextKey: tutorial.tower.place.bubble
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
+  pauseGameDuringStep: 0
+  freeTowerPlacement: 0
+  restrictTowerPanelTo: {fileID: 0}
+  freeManagementCost: 0
+  upgradeCap: 0
+  villagerCap: 0
+  upgradeAllowList: []
   completion:
     rid: 3470829977900417120
   references:
@@ -29,3 +35,4 @@ MonoBehaviour:
       type: {class: TowerPlacedCondition, ns: , asm: Assembly-CSharp}
       data:
         count: 1
+        targetTower: {fileID: 0}

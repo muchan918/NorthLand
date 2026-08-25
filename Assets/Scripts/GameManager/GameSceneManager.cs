@@ -20,6 +20,8 @@ namespace NorthLand.Core
 
         private bool pendingContinue;
 
+        private RunData pendingContinueData;
+
         public static bool IsTitleScene => SceneManager.GetActiveScene().name == TitleScene;
 
         // 첫 씬이 로드되기 전에 Unity가 자동 호출한다. 매니저를 여기서 부팅한다.
@@ -61,6 +63,7 @@ namespace NorthLand.Core
         {
             TutorialMode.Exit();
             pendingContinue = false;
+            pendingContinueData = null;
             pendingMasterSeed = null;
             tutorialReturnMasterSeed = null;
 
@@ -71,35 +74,29 @@ namespace NorthLand.Core
         {
             TutorialMode.Enter();
             pendingContinue = false;
-            pendingMasterSeed = null;
+            pendingMasterSeed = TutorialMode.MasterSeed;
             tutorialReturnMasterSeed = null;
 
             SceneManager.LoadScene(GameScene);
         }
 
-        /// <summary>
-        /// 기존 Run 세이브를 이어서 플레이하기 위해 게임 씬을 로드한다.
-        /// 실제 파일 읽기와 복원은 RunSaveManager가 담당한다.
-        /// </summary>
-        public void LoadContinue()
+        public bool TryLoadContinue(RunData data,out string error)
         {
+            error = null;
+
+            if (data == null)
+            {
+                error = "이어하기 RunData가 없습니다.";
+                return false;
+            }
+
             TutorialMode.Exit();
+            pendingContinueData = data;
             pendingContinue = true;
             pendingMasterSeed = null;
             tutorialReturnMasterSeed = null;
 
             SceneManager.LoadScene(GameScene);
-        }
-
-        /// <summary>
-        /// 이어하기 요청을 한 번만 소비한다.
-        /// </summary>
-        public bool TryConsumeContinueRequest()
-        {
-            if (!pendingContinue)
-                return false;
-
-            pendingContinue = false;
             return true;
         }
 
@@ -107,6 +104,7 @@ namespace NorthLand.Core
         {
             TutorialMode.Exit();
             pendingContinue = false;
+            pendingContinueData = null;
             pendingMasterSeed = masterSeed;
             tutorialReturnMasterSeed = null;
 
@@ -117,7 +115,7 @@ namespace NorthLand.Core
         {
             TutorialMode.Enter();
             pendingContinue = false;
-            pendingMasterSeed = masterSeed;
+            pendingMasterSeed = TutorialMode.MasterSeed;
             tutorialReturnMasterSeed = masterSeed;
 
             SceneManager.LoadScene(GameScene);
@@ -147,6 +145,22 @@ namespace NorthLand.Core
             masterSeed = pendingMasterSeed.Value;
 
             pendingMasterSeed = null;
+
+            return true;
+        }
+
+        public bool TryConsumeContinueData(out RunData data)
+        {
+            data = null;
+
+            if (!pendingContinue || pendingContinueData == null)
+            {
+                return false;
+            }
+
+            pendingContinue = false;
+            data = pendingContinueData;
+            pendingContinueData = null;
 
             return true;
         }

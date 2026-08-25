@@ -86,19 +86,35 @@ Application.persistentDataPath/
 슬롯 생성·선택·삭제가 성공하면 `PlayerSaveService.SelectedSlotChanged`가 발행된다. 마지막 선택 슬롯은
 `GameSettingsService.TrySetLastSelectedSlotIndex`를 통해 공통 설정에 기록한다.
 
+### 4.1 이어하기 씬 핸드오프
+
+1. 타이틀의 `MainMenuUI`는 `RunSaveLoader.LoadAsync`로 선택 슬롯의 파일 읽기·버전 판별·마이그레이션·역직렬화를 완료한다.
+2. 로드가 성공한 `RunData`는 `GameSceneManager.TryLoadContinue(RunData, out string)`에 전달한다. 이 호출이 일회성 데이터를 등록하고 게임 씬을 여는 일을 한 번에 수행한다.
+3. `GameSceneManager`는 `DontDestroyOnLoad` 수명 동안 이 데이터를 일시 보관한다.
+4. 게임 씬의 `RunSaveManager`가 `TryConsumeContinueData`로 데이터를 한 번만 소비해 런타임 상태를 복원한다.
+5. 소비 성공 시 `GameSceneManager`는 이어하기 플래그와 `RunData` 참조를 즉시 제거한다.
+
+`GameSceneManager`의 보관은 씬 경계를 넘기 위한 **일회성 전달 책임**이다. 파일 IO, JSON 구조, 버전 호환성 및
+마이그레이션은 `RunSaveLoader`/`SaveSerializer`가 소유하고, 실제 게임 상태 적용은 `RunSaveManager`가 소유한다.
+새 게임 또는 직접 입력 시드로 진입하면 남아 있는 이어하기 데이터는 폐기한다.
+
 ## 5. Run 저장과 복원
 
 ### 저장
 
 - 자동 저장 시점은 1일차를 포함한 모든 `DayNightManager.OnDayStart`다.
-- `TutorialMode.IsActive`인 동안에는 낮 시작 자동 저장을 건너뛴다. 튜토리얼 런은 이어하기 세이브로
-  기록하지 않는다.
-- `RunSaveManager.TrySaveNow()`가 현재 상태를 수집하고 선택 슬롯의 `run-save.json`을 교체한다.
+- `TutorialMode.IsActive`인 동안에는 낮 시작 자동 저장을 건너뛴다. 튜토리얼 Run은 이어하기 세이브로 기록하지 않는다.
+- `DayNightManager.OnDayStart`를 받은 `RunSaveManager`가 내부 `SaveNowAsync(CancellationToken)`를 실행해 현재 상태를 수집하고 선택 슬롯의 `run-save.json`을 교체한다. 이 메서드는 자동 저장 구현 전용이므로 공개 API가 아니다.
 - 복원 중에는 자동 저장을 억제해 방금 읽은 세이브를 초기 상태로 덮어쓰지 않는다.
 - Run 저장 성공 후 `player.json`의 `lastPlayedAt`을 갱신한다.
 
-튜토리얼 다시 보기는 사용자 확인 후 `RunSaveManager.TryDeleteCurrentRun()`으로 현재 슬롯의
-`run-save.json`을 먼저 삭제한다. 삭제에 실패하면 튜토리얼로 전환하지 않는다.
+비동기 저장·로드 작업은 `SaveResult` 또는 `SaveResult<T>`로 성공 여부와 오류를 반환한다. 값이 있는 로드는
+`Value`를 함께 제공하며, 취소는 `CancellationToken`과 `OperationCanceledException`으로 성공·실패 결과와 구분한다.
+
+튜토리얼 다시 보기는 사용자 확인 후 `RunSaveManager.DeleteCurrentRunAsync(CancellationToken)`으로 현재 슬롯의
+`run-save.json`을 먼저 삭제한다. 선택 슬롯이 없으면 삭제 대상이 없는 것으로 보고 성공을 반환한다. 선택 슬롯은
+있지만 `SaveFileStore`가 초기화되지 않았다면 현재 슬롯 경로로 지연 생성한 뒤 삭제한다. 실제 파일 삭제에 실패한
+경우에만 실패를 반환하며, 호출부는 튜토리얼로 전환하지 않는다.
 
 ### 복원
 

@@ -12,12 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
   m_Name: ProductionUpgrade
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
-  popupTitle: 
-  popupBody: 
+  popupTitleKey: 
+  popupBodyKey: 
   popupImage: {fileID: 0}
-  bubbleText: "\uBE44\uC2A4\uCF13 \uD558\uC6B0\uC2A4 \xB7 \uCD08\uCF54\uB098\uBB34
-    \xB7 \uC288\uAC00 \uD31C\uC744 \uAC01\uAC01 \uD55C \uBC88\uC529 \uC5C5\uADF8\uB808\uC774\uB4DC\uD558\uC138\uC694\r\n\uD328\uB110\uC774
-    \uB2EB\uD788\uBA74 \uAC74\uBB3C\uC744 \uB2E4\uC2DC \uD074\uB9AD\uD558\uC138\uC694"
+  bubbleTextKey: tutorial.production.upgrade.bubble
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
