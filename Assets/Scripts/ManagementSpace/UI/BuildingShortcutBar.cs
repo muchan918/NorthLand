@@ -11,6 +11,9 @@ public class BuildingShortcutBar : MonoBehaviour
     {
         public BuildingFocusPoint focus;
         public Button button;
+
+        [Tooltip("건물이 없는 목적지의 로컬라이제이션 키")]
+        public string fallbackNameKey;
     }
 
     /// 바로가기 버튼으로 건물에 갔다. 인자는 그 건물의 SO(초점에 건물이 없으면 null).
@@ -102,7 +105,7 @@ public class BuildingShortcutBar : MonoBehaviour
     {
         if (_tooltipPanel == null || index < 0 || index >= _entries.Length) return;
 
-        _tooltipText.text = ResolveName(_entries[index].focus);
+        _tooltipText.text = ResolveName(_entries[index]);
         _tooltipPanel.SetActive(true);
         FollowCursor(); // 첫 프레임부터 커서에 붙어 나오도록
     }
@@ -143,15 +146,22 @@ public class BuildingShortcutBar : MonoBehaviour
 
     // 언어가 바뀌어도 맞도록 호버할 때마다 로컬라이즈를 다시 탄다.
     // 테이블 조회는 BuildingInfo.Awake가 Data에 캐시해 둔 것을 쓴다 — 여기서 또 Get 체인을 타지 않는다.
-    private static string ResolveName(BuildingFocusPoint focus)
+    private static string ResolveName(Entry entry)
     {
+        BuildingFocusPoint focus = entry.focus;
+
         BuildingAsset asset = focus != null && focus.Building != null ? focus.Building.Asset : null;
-        if (asset == null) return string.Empty;
+
+        if (asset == null)
+        {
+            return string.IsNullOrEmpty(entry.fallbackNameKey)
+                ? string.Empty
+                : LocalizationHelper.Get(LocalizationHelper.k_DefaultTable,entry.fallbackNameKey);
+        }
 
         BuildingData data = asset.Data;
 
         return data != null
-            ? LocalizationHelper.Get(LocalizationHelper.k_BuildingsTable, data.NameKey)
-            : asset.BuildingID;
+            ? LocalizationHelper.Get(LocalizationHelper.k_BuildingsTable,data.NameKey) : asset.BuildingID;
     }
 }
