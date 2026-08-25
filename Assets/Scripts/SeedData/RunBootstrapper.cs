@@ -85,10 +85,6 @@ namespace NorthLand.Core
                 // 에디터 테스트값이 최우선
                 seedData = seedContext.CreateRun(masterSeedOverride);
             }
-            else if (TryGetTutorialMasterSeed(out int tutorialMasterSeed))
-            {
-                seedData = seedContext.CreateRun(tutorialMasterSeed);
-            }
             else if (GameSceneManager.Instance != null &&GameSceneManager.Instance.TryConsumePendingMasterSeed(out int pendingSeed))
             {
                 // 플레이어가 타이틀에서 입력한 시드
@@ -103,20 +99,6 @@ namespace NorthLand.Core
             Debug.Log($"[RunSeed] Run 시드 초기화 완료 Master: {seedData.MasterSeed}\n" +
                 $"CombatMap Requested: {seedData.CombatMapRequestedSeed}\n" +
                 $"Version: {seedData.SeedVersion}",this);
-        }
-
-        private static bool TryGetTutorialMasterSeed(out int masterSeed)
-        {
-            TutorialController tutorialController = UnityEngine.Object.FindFirstObjectByType<TutorialController>();
-
-            if (tutorialController == null || !tutorialController.UsesTutorialSeed)
-            {
-                masterSeed = 0;
-                return false;
-            }
-
-            masterSeed = tutorialController.TutorialMasterSeed;
-            return true;
         }
 
         private void InitializeCombatMap()

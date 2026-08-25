@@ -68,8 +68,6 @@ Conditions/
 ```csharp
 // TutorialController
 public bool IsRunning { get; }
-public int TutorialMasterSeed { get; }
-public bool UsesTutorialSeed { get; }
 public void StartTutorial();
 public void StopTutorial();
 
@@ -95,7 +93,7 @@ protected void Fire();
 | `TutorialCanvas` | Canvas `sortingOrder = 600`. 보상(500) 위, 설정(700) 아래 — [UIZOrder.md](UIZOrder.md) §3 |
 | └ `Popup` | 화면 전체를 덮고 `Raycast Target`을 **켠다**. 팝업이 떠 있는 동안 뒤쪽 입력이 막히는 건 이 덕분이다 |
 | └ `Bubble` | `Raycast Target`을 **반드시 끈다**(자식 텍스트도). 안 끄면 말풍선 뒤 오브젝트가 클릭되지 않는다 |
-| `TutorialController` | `Overlay` 슬롯 + 단계 리스트 + `startOnPlay` 스위치 + `Tutorial Master Seed` + `Debug Mode`/`Debug Steps`([§2.4](#24-단계-하나만-떼어내-돌려보기)) |
+| `TutorialController` | `Overlay` 슬롯 + 단계 리스트 + `startOnPlay` 스위치 + `Debug Mode`/`Debug Steps`([§2.4](#24-단계-하나만-떼어내-돌려보기)) |
 
 튜토리얼 시스템과 22개 단계는 정본 `Assets/Scenes/GameScene.unity`에 배치돼 있다. 작업용 복사본은
 `Assets/Personal/muchan/Scene/TutorialTest2.unity`이며, 이후 정본 씬 변경은
@@ -109,8 +107,8 @@ protected void Fire();
 - 새로하기는 현재 슬롯의 `PlayerData.tutorialCompleted`가 `false`일 때만 튜토리얼로 진입한다.
 - 완료와 스킵은 모두 완료 상태를 슬롯별로 저장하고 일반 `GameScene`을 다시 로드한다. 저장 실패는
   오류로 남기되 일시정지와 단계 규칙을 정리하고 본 게임 전환은 계속한다.
-- 튜토리얼 맵은 `TutorialController`의 `Tutorial Master Seed`(기본값 `1234`)를 사용한다.
-  `GameScene` 직접 실행(`startOnPlay`)도 동일하며, 개발용 Inspector override가 있으면 그것을 우선한다.
+- 튜토리얼 맵은 씬 로드 전에 `TutorialMode.MasterSeed`를 `GameSceneManager`의 기존 일회성 시드
+  핸드오프에 넣어 생성한다. `RunBootstrapper`는 튜토리얼을 알지 않고 일반 시드 소비 경로를 그대로 사용한다.
 - 시드 지정 새로하기가 튜토리얼을 거치면 입력 시드는 복귀용으로만 보관하고, 종료 후 본 게임에 전달한다.
 - `TutorialRelayUI`의 다시 보기는 경고 팝업 확인 후 현재 슬롯의 `run-save.json`을 삭제하고 튜토리얼을
   1일차부터 시작한다. 선택 슬롯이 없으면 삭제할 Run이 없는 것으로 처리하며, 실제 삭제에 실패하면 현재 게임을 유지한다.
