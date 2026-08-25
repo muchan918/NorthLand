@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using NorthLand.Combat;
@@ -12,6 +13,14 @@ using NorthLand.Combat;
 /// 타일에 결과를 놓을 수 없었다(WL-077a) — 재료가 확정 후에야 사라져 타일이 그때까지 잠겨 있었다.
 public class TowerFusionController : MonoBehaviour
 {
+    /// <summary>
+    /// 합성이 끝났다. 인자는 사용된 레시피다.<br/>
+    /// 발행 시점은 재료 소모가 아니라 <b>결과 타워 배치가 확정된</b> 순간이다 —
+    /// 배치를 취소하면 아래 종료 콜백이 커맨드를 Undo해 합성 자체가 없던 일이 되므로,
+    /// 소모 시점에 알리면 "합성했다"는 통지만 남고 화면에는 아무것도 안 남는다.
+    /// </summary>
+    public event Action<TowerRecipe> Fused;
+
     [Header("연결")]
     [SerializeField] private TowerPlacer _placer;
     [SerializeField] private ManagementController _management; // 옵션. 없으면 무료(코스트 무시).
@@ -169,6 +178,9 @@ public class TowerFusionController : MonoBehaviour
                     result.ActivateEffects(inherited);
 
                 effect.ConvergeTo(placed);
+
+                // 여기가 '합성이 끝났다'의 정본 시점이다 — 커맨드가 Confirm된 뒤라 되감기지 않는다.
+                Fused?.Invoke(recipe);
             },
             () =>
             {

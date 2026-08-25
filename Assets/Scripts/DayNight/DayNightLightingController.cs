@@ -39,7 +39,6 @@ public class DayNightLightingController : MonoBehaviour
     private static readonly int[] WaterColorIds =
     {
         Shader.PropertyToID("_ColorSurface"),
-        Shader.PropertyToID("_ColorShallow"),
         Shader.PropertyToID("_ColorDeep"),
         Shader.PropertyToID("_ColorAmbient"),
         Shader.PropertyToID("_ColorFoam")

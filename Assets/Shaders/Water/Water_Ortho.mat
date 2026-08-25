@@ -70,6 +70,8 @@ Material:
     - _Distortion_Speed: 0.0001
     - _FoamAmount: 7
     - _FoamCutoff: 0.03
+    - _FoamHeightRange: 3.71
+    - _FoamSoftness: 0.1
     - _Foam_Enabled: 1
     - _Foam_Noise_Amplitude: 0.2
     - _Foam_Noise_Scale: 200

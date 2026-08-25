@@ -1,7 +1,6 @@
-// Sweet_Land WaterURP.shader 사본 (원본: Assets/Imported/Sweet_Land/Shaders/Shaders/URP_Unity6/WaterURP.shader).
-// 원본의 깊이 계산은 원근 카메라 전용(Linear01Depth + position_ss.w)이라 경영 씬의
-// 오소그래픽 카메라에서 shallow/deep/foam이 전부 깨진다. 이 사본은 깊이 계산만
-// 오소/원근 겸용으로 교체했다 — 원근에서는 원본과 동일한 결과. 벤더 원본은 수정 금지.
+// Sweet_Land WaterURP.shader 기반 NorthLand 수면 셰이더.
+// 화면 깊이 기반 shallow/deep/caustics는 사용하지 않는다. 거품은 깊이로 복원한 지형의
+// 월드 높이가 실제 수면에 가까울 때만 표시해 오소그래픽 투영의 실루엣 오검출을 막는다.
 Shader "NorthLand/WaterURP_Ortho"
 {
     Properties
@@ -12,9 +11,7 @@ Shader "NorthLand/WaterURP_Ortho"
         _ColorSurface ("Color", color) = (0.9, 0.9, 0.9, 1)
 
         [Header(Color)]
-        _ColorShallow ("Shallow", color) = (0.1, 0.1, 0.7, 1)
-        _ColorDeep ("Deep", color) = (0.1, 0.2, 0.9, 1)
-        _Depth ("Depth", float) = 1
+        _ColorDeep ("Water Color", color) = (0.1, 0.2, 0.9, 1)
 
         [Header(Normal)]
         _NormalMap ("Map", 2D) = "bump" {}
@@ -22,28 +19,25 @@ Shader "NorthLand/WaterURP_Ortho"
 
         [Header(Optics)]
         _Smoothness ("Smoothness", range(0, 1)) = 1
-        _Refraction ("Refraction", float) = 0.03
 
         [Header(Ambient)]
         _AmbientFresnel ("Fresnel", float) = 1
         _ColorAmbient ("Color", color) = (0.9, 0.9, 1)
 
-        [Header(Caustics)]
-        [Toggle] _IsCaustics ("Enable", float) = 1
-        _MaskCaustics ("Mask", 2D) = "black" {}
-
         [Header(Foam)]
         [Toggle] _IsFoam ("Enable", float) = 1
         _MaskFoam ("Mask", 2D) = "white" {}
-        _FoamAmount ("Amount", float) = 0.5
+        _FoamHeightRange ("World Height Range", float) = 1
         _FoamCutoff ("Cutoff", range(0, 1)) = 0.5
+        _FoamSoftness ("Softness", range(0.001, 1)) = 0.1
         _ColorFoam ("Color", color) = (1, 1, 1, 1)
+
     }
     SubShader
     {
         Tags
         {
-        "RenderPipline" = "Universal"
+        "RenderPipeline" = "UniversalPipeline"
         "Queue" = "Transparent-100"
         }
 
@@ -66,9 +60,10 @@ Shader "NorthLand/WaterURP_Ortho"
             struct Interpolators
             {
                 float2 uv_ws : TEXCOORD0;
-                float4 position_ss : TEXCOORD1;
-                float3 viewVector_ws : TEXCOORD2;
+                float3 viewVector_ws : TEXCOORD1;
+                float4 position_ss : TEXCOORD2;
                 float eyeDepth : TEXCOORD3;
+                float waterHeight_ws : TEXCOORD4;
                 float4 position_cs : SV_POSITION;
             };
 
@@ -76,13 +71,11 @@ Shader "NorthLand/WaterURP_Ortho"
             {
 	            float4 position_ws = mul(UNITY_MATRIX_M, attribs.position_os);
 	            float4 position_cs = mul(UNITY_MATRIX_VP, position_ws);
-	            float4 position_ss = ComputeScreenPos(position_cs);
-
 	            varyings.uv_ws = position_ws.xz;
-	            varyings.position_ss = position_ss;
 	            varyings.viewVector_ws = _WorldSpaceCameraPos - position_ws.xyz;
-	            // 물 표면의 eye depth. 원근에선 position_ss.w와 동일하지만 오소에선 w=1이라 별도 전달.
+	            varyings.position_ss = ComputeScreenPos(position_cs);
 	            varyings.eyeDepth = -TransformWorldToView(position_ws.xyz).z;
+	            varyings.waterHeight_ws = position_ws.y;
 	            varyings.position_cs = position_cs;
             }
 
@@ -91,45 +84,45 @@ Shader "NorthLand/WaterURP_Ortho"
             uniform half _SurfaceOpacity;
             uniform half3 _ColorSurface;
 
-            uniform half3 _ColorShallow;
             uniform half3 _ColorDeep;
-            uniform half _Depth;
 
             uniform sampler2D _NormalMap;
             uniform float4 _NormalMap_ST;
             uniform half _NormalStrength;
 
-            uniform half _Refraction;
             uniform half _Smoothness;
 
             uniform half _AmbientFresnel;
             uniform half3 _ColorAmbient;
 
-            uniform bool _IsCaustics;
-            uniform sampler2D _MaskCaustics;
-            uniform float4 _MaskCaustics_ST;
-
             uniform bool _IsFoam;
             uniform sampler2D _MaskFoam;
             uniform float4 _MaskFoam_ST;
-            uniform half _FoamAmount;
+            uniform half _FoamHeightRange;
             uniform half _FoamCutoff;
+            uniform half _FoamSoftness;
             uniform half3 _ColorFoam;
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
 
-            // 오소/원근 겸용 씬 eye depth. 오소 뎁스버퍼는 이미 선형이라 Linear01Depth를 쓰면 안 된다.
-            float SceneEyeDepth(float2 uv)
+            float SceneEyeDepthFromRaw(float rawDepth)
             {
-                float raw = SampleSceneDepth(uv);
                 #if UNITY_REVERSED_Z
-                    float d01 = 1.0 - raw;
+                    float depth01 = 1.0 - rawDepth;
                 #else
-                    float d01 = raw;
+                    float depth01 = rawDepth;
                 #endif
-                float orthoEye = lerp(_ProjectionParams.y, _ProjectionParams.z, d01);
-                float perspEye = LinearEyeDepth(raw, _ZBufferParams);
-                return unity_OrthoParams.w > 0.5 ? orthoEye : perspEye;
+                float orthoEyeDepth = lerp(_ProjectionParams.y, _ProjectionParams.z, depth01);
+                float perspectiveEyeDepth = LinearEyeDepth(rawDepth, _ZBufferParams);
+                return unity_OrthoParams.w > 0.5 ? orthoEyeDepth : perspectiveEyeDepth;
+            }
+
+            float3 SceneWorldPosition(float2 uv, float rawDepth)
+            {
+                #if !UNITY_REVERSED_Z
+                    rawDepth = lerp(UNITY_NEAR_CLIP_VALUE, 1.0, rawDepth);
+                #endif
+                return ComputeWorldSpacePosition(uv, rawDepth, UNITY_MATRIX_I_VP);
             }
 
             float Fresnel(float3 normal, float3 viewDir, float power)
@@ -180,25 +173,14 @@ Shader "NorthLand/WaterURP_Ortho"
             void FragmentFunction(Interpolators varyings, out half4 outColor : SV_Target)
             {
 	            half3 viewDir = normalize(varyings.viewVector_ws);
-	            float2 uv_ss = varyings.position_ss.xy / varyings.position_ss.w;
 
 	            // Calculating Normal
 	            half3 normal = SampleNormalMap(_NormalMap, varyings.uv_ws * _NormalMap_ST.xy + _Time * _NormalMap_ST.zw);
 	            normal = NormalStrength(normal, _NormalStrength);
 	            normal = TransformNormalToWS(half3(1, 0, 0), half3(0, 1, 0), half3(0, 0, 1), normal);
 
-	            // Calculating Direct Depth
-	            // 원본의 depth = sceneEye - surfaceEye + 1 의미를 보존(+1 오프셋 포함) — _Depth/_FoamAmount 값 호환.
-	            // far 스케일에서 half 정밀도가 붕괴하므로 float 사용.
-	            float depth = SceneEyeDepth(uv_ss) - varyings.eyeDepth + 1;
-	            half depthMask = saturate(depth - _Depth);
-
-	            // Calculating Refracted Depth
-	            float refDepth = SceneEyeDepth(uv_ss + normal.xz * _Refraction) - varyings.eyeDepth + 1;
-	            half refMask = saturate(refDepth - _Depth);
-
-	            // Shallow-Deep Coloring
-	            half3 waterColor = lerp(_ColorShallow, _ColorDeep, refMask);
+	            // 깊이/접촉 판정 없이 수면 전체에 동일한 기본색을 사용한다.
+	            half3 waterColor = _ColorDeep;
 
 	            // Specular Coloring
 	            half3 halfVector = normalize(_MainLightPosition.xyz + viewDir);
@@ -213,18 +195,26 @@ Shader "NorthLand/WaterURP_Ortho"
 	            half fresnel = saturate(Fresnel(normal, viewDir, _AmbientFresnel) + Fresnel(half3(0, 1, 0), viewDir, _AmbientFresnel));
 	            waterColor = lerp(waterColor, _ColorAmbient, fresnel);
 
-	            // Caustics Coloring
-	            if(_IsCaustics)
-	            {
-		            half3 causticsMask = tex2D(_MaskCaustics, varyings.uv_ws * _MaskCaustics_ST.xy + _Time.y * _MaskCaustics_ST.zw).rgb;
-		            waterColor = lerp(waterColor, half3(1, 1, 1), causticsMask * (1 - depthMask));
-	            }
-
-	            // Foam Coloring
+	            // 실제 수면 높이에 가까운 지형에만 흐르는 거품을 표시한다.
 	            if(_IsFoam)
 	            {
-		            half foamMask = tex2D(_MaskFoam, varyings.uv_ws * _MaskFoam_ST.xy + _Time.y * _MaskFoam_ST.zw).r * (1 - saturate(depth - _FoamAmount));
-		            foamMask = step(_FoamCutoff, foamMask);
+		            float2 uv_ss = varyings.position_ss.xy / varyings.position_ss.w;
+		            float rawDepth = SampleSceneDepth(uv_ss);
+		            float sceneEyeDepth = SceneEyeDepthFromRaw(rawDepth);
+		            float signedDepth = sceneEyeDepth - varyings.eyeDepth;
+		            float3 scenePosition_ws = SceneWorldPosition(uv_ss, rawDepth);
+
+		            half isBehindWater = step(1.0e-4, signedDepth);
+		            half heightMask = 1.0 - saturate(
+		                abs(scenePosition_ws.y - varyings.waterHeight_ws) / max(_FoamHeightRange, 1.0e-4h));
+		            half foamTexture = tex2D(
+		                _MaskFoam,
+		                varyings.uv_ws * _MaskFoam_ST.xy + _Time.y * _MaskFoam_ST.zw).r;
+		            half foamSignal = foamTexture * heightMask * isBehindWater;
+		            half foamMask = smoothstep(
+		                _FoamCutoff,
+		                _FoamCutoff + max(_FoamSoftness, 1.0e-3h),
+		                foamSignal);
 		            waterColor = lerp(waterColor, _ColorFoam, foamMask);
 	            }
 

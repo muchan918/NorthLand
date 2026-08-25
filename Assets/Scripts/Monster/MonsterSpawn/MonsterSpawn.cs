@@ -11,6 +11,13 @@ public class MonsterSpawn : MonoBehaviour
 {
     public event Action<int> WaveCleared;
 
+    /// <summary>
+    /// 몬스터가 실제로 스폰되어 경로까지 설정된 뒤 발생. 인자는 스폰된 몬스터다.<br/>
+    /// 검증에 실패해 파기된 프리팹은 발행하지 않는다 — 구독자가 죽은 오브젝트를 잡지 않게.<br/>
+    /// 발행처는 <see cref="SpawnPrefab"/> 한 곳이다. 웨이브 스폰과 보스 BT 소환이 모두 그곳을 지난다.
+    /// </summary>
+    public event Action<GameObject> MonsterSpawned;
+
     [Header("Common References")]
     [SerializeField] private Transform fallbackSpawnPoint;
     [SerializeField] private Transform monsterParent;
@@ -517,6 +524,8 @@ public class MonsterSpawn : MonoBehaviour
         // Enemy가 IRouteMovementAgent.RouteCompleted를 구독하여
         // 경로 끝 도달 시 몬스터 루트 오브젝트를 제거한다.
         routeMovement.SetRoute(GetSpawnRoute());
+
+        MonsterSpawned?.Invoke(monster);
 
         return monster;
     }

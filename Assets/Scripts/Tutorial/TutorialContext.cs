@@ -6,6 +6,13 @@ using UnityEngine;
 public class TutorialContext
 {
     private ManagementController _management;
+    private CombatSpace.CombatMapTileSpawner _tileSpawner;
+    private TowerSelectPanelView _towerPanel;
+    private CameraController2 _camera;
+    private MonsterSpawn _monsterSpawn;
+    private TowerPlacer _towerPlacer;
+    private TowerFusionController _towerFusion;
+    private BuildingShortcutBar _shortcutBar;
 
     // ManagementController에는 static Instance가 없다(DayNightManager와 다르다).
     // 씬에 하나뿐이므로 처음 요청될 때 찾아서 캐시한다.
@@ -19,6 +26,105 @@ public class TutorialContext
             }
 
             return _management;
+        }
+    }
+
+    // 스포너도 싱글턴이 아니다 — TowerPlacer.Awake도 같은 방식으로 찾는다.
+    // 전투 타일을 그리드 좌표로 지목할 때 필요하다.
+    public CombatSpace.CombatMapTileSpawner TileSpawner
+    {
+        get
+        {
+            if (_tileSpawner == null)
+            {
+                _tileSpawner = Object.FindFirstObjectByType<CombatSpace.CombatMapTileSpawner>();
+            }
+
+            return _tileSpawner;
+        }
+    }
+
+    // 타워 패널에도 static Instance가 없다. 타워 선택을 감시하는 조건이 필요로 한다.
+    public TowerSelectPanelView TowerPanel
+    {
+        get
+        {
+            if (_towerPanel == null)
+            {
+                _towerPanel = Object.FindFirstObjectByType<TowerSelectPanelView>();
+            }
+
+            return _towerPanel;
+        }
+    }
+
+    // CameraController2에도 static Instance가 없다. 카메라 조작을 감시하는 조건이 필요로 한다.
+    public CameraController2 Camera
+    {
+        get
+        {
+            if (_camera == null)
+            {
+                _camera = Object.FindFirstObjectByType<CameraController2>();
+            }
+
+            return _camera;
+        }
+    }
+
+    // MonsterSpawn에도 static Instance가 없다. 스폰·웨이브를 감시하는 조건이 필요로 한다.
+    public MonsterSpawn MonsterSpawn
+    {
+        get
+        {
+            if (_monsterSpawn == null)
+            {
+                _monsterSpawn = Object.FindFirstObjectByType<MonsterSpawn>();
+            }
+
+            return _monsterSpawn;
+        }
+    }
+
+    // 배치기에도 static Instance가 없다. 튜토리얼이 무료 배치 스위치를 걸 때 필요하다.
+    public TowerPlacer TowerPlacer
+    {
+        get
+        {
+            if (_towerPlacer == null)
+            {
+                _towerPlacer = Object.FindFirstObjectByType<TowerPlacer>();
+            }
+
+            return _towerPlacer;
+        }
+    }
+
+    // 합성 실행부에도 static Instance가 없다. 합성 완료를 감시하는 조건이 필요로 한다.
+    public TowerFusionController TowerFusion
+    {
+        get
+        {
+            if (_towerFusion == null)
+            {
+                _towerFusion = Object.FindFirstObjectByType<TowerFusionController>();
+            }
+
+            return _towerFusion;
+        }
+    }
+
+    // 바로가기 바에도 static Instance가 없다. 바로가기 사용을 감시하는 조건이 필요로 한다.
+    public BuildingShortcutBar ShortcutBar
+    {
+        get
+        {
+            if (_shortcutBar == null)
+            {
+                _shortcutBar = Object.FindFirstObjectByType<BuildingShortcutBar>();
+            }
+
+            return _shortcutBar;
         }
     }
 

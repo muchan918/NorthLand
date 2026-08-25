@@ -93,11 +93,28 @@ protected void Fire();
 | `TutorialCanvas` | Canvas `sortingOrder = 600`. 보상(500) 위, 설정(700) 아래 — [UIZOrder.md](UIZOrder.md) §3 |
 | └ `Popup` | 화면 전체를 덮고 `Raycast Target`을 **켠다**. 팝업이 떠 있는 동안 뒤쪽 입력이 막히는 건 이 덕분이다 |
 | └ `Bubble` | `Raycast Target`을 **반드시 끈다**(자식 텍스트도). 안 끄면 말풍선 뒤 오브젝트가 클릭되지 않는다 |
-| `TutorialController` | `Overlay` 슬롯 + 단계 리스트 + `startOnPlay` 스위치 |
+| `TutorialController` | `Overlay` 슬롯 + 단계 리스트 + `startOnPlay` 스위치 + `Debug Mode`/`Debug Steps`([§2.4](#24-단계-하나만-떼어내-돌려보기)) |
 
-작업용 씬은 `Assets/Personal/muchan/Scene/TutorialTest.unity`(GameScene 복사본)다. 정본 반영은 [SceneWorkflow.md](SceneWorkflow.md) §4를 따른다.
+튜토리얼 시스템과 22개 단계는 정본 `Assets/Scenes/GameScene.unity`에 배치돼 있다. 작업용 복사본은
+`Assets/Personal/muchan/Scene/TutorialTest2.unity`이며, 이후 정본 씬 변경은
+[SceneWorkflow.md](SceneWorkflow.md) §4를 따른다.
 
 단계 에셋은 `Assets/Resources/ScriptableObjects/Tutorial/`에 둔다.
+
+### 1.5 진입·종료 계약
+
+- `TutorialMode`는 씬을 로드하기 전에 활성화한다. 같은 `GameScene`을 사용하므로 튜토리얼 전용 씬은 없다.
+- 새로하기는 현재 슬롯의 `PlayerData.tutorialCompleted`가 `false`일 때만 튜토리얼로 진입한다.
+- 완료와 스킵은 모두 완료 상태를 슬롯별로 저장하고 일반 `GameScene`을 다시 로드한다. 저장 실패는
+  오류로 남기되 일시정지와 단계 규칙을 정리하고 본 게임 전환은 계속한다.
+- 시드 지정 새로하기가 튜토리얼을 거치면 `TutorialController`가 복귀 시드를 보관하고, 종료 후 본 게임에
+  같은 마스터 시드를 다시 전달한다.
+- `TutorialRelayUI`의 다시 보기는 경고 팝업 확인 후 현재 슬롯의 `run-save.json`을 삭제하고 튜토리얼을
+  1일차부터 시작한다. 삭제에 실패하면 현재 게임을 유지한다.
+- 튜토리얼 중 `DayNightManager.OnDayStart` 자동 저장은 건너뛴다. 튜토리얼 런은 이어하기 데이터의
+  소유자가 아니다.
+- `TutorialOverlay.SkipRequested`가 스킵 요청을 전달한다. 오버레이는 완료 기록이나 씬 전환을 직접
+  처리하지 않는다.
 
 ---
 
@@ -171,7 +188,11 @@ public class TowerPlacedCondition : TutorialCondition
 
 **`TutorialContext`에는 "씬을 뒤져야 찾을 수 있는 것"만 담는다.** `static Instance`가 있거나 이벤트 자체가 `static`이면 조건이 직접 쓴다. 새로 담을 게 생기면 `TutorialContext`에 프로퍼티 한 줄을 추가한다 — 그 파일 외에는 안 고친다.
 
-> **타이머 금지.** 완료 판정은 각 시스템이 이미 가진 이벤트를 구독해서 한다. 몇 초 기다렸다 넘기는 조건은 만들지 않는다(#271 요구사항).
+> **행동 단계에 타이머 금지.** 플레이어가 무언가를 하기를 기다리는 단계의 완료 판정은 각 시스템이 이미 가진 이벤트를 구독해서 한다. 시간으로 넘기면 아무것도 하지 않아도 통과되므로 그 단계의 학습이 사라진다(#271 요구사항).
+>
+> **예외 — 연출 간격.** 팝업도 말풍선도 없이 다음 안내가 뜨는 시점만 미루는 단계는 `DelayCondition`으로 시간을 쓴다. 가르치는 것이 없으므로 위 근거가 적용되지 않는다. 예: 낮→밤 전환 직후 몬스터가 걸어 나오는 것을 잠깐 보여준 뒤 스킬 안내를 띄우는 간격.
+>
+> 판별 기준은 하나다 — **말풍선이 있으면 타이머를 쓰지 않는다.**
 
 #### 아직 이벤트가 없는 것
 
@@ -200,6 +221,21 @@ if (targetBuilding != null && building != targetBuilding)
 ```
 
 **기존 단계는 그 칸이 비어 있으므로 동작이 그대로다.** 메서드를 새로 만들지 않는다.
+
+### 2.4 단계 하나만 떼어내 돌려보기
+
+뒤쪽 단계를 고칠 때마다 앞 단계를 전부 통과하는 것은 비용이다. `TutorialController`의
+**`Debug Mode`를 켜면 `Steps` 대신 `Debug Steps`만 진행한다.** 보고 싶은 단계 에셋을 그 리스트에
+넣으면 그것부터 시작한다.
+
+- 진행할 리스트는 `StartTutorial`에서 **한 번 확정한다.** 진행 도중 스위치를 뒤집으면 인덱스가
+  다른 리스트를 가리켜 엉뚱한 단계로 뛰기 때문이다(`MonsterSpawnWaveProvider.isTutorialRun`과 같은 규칙).
+- 켜져 있으면 시작 시 콘솔에 경고를 남긴다 — 단계가 통째로 안 보이는 것을 버그로 오해하기 쉬운 자리다.
+- **`Steps`는 건드리지 않는다.** 정식 순서는 그대로 남으므로 스위치만 끄면 원래대로 돌아온다.
+
+⚠ 게임의 다른 상태를 만들어 주지는 않는다. 밤 단계를 이 방식으로 띄우면 시작은 낮이므로
+`SkillUsedCondition`처럼 밤을 요구하는 조건(`SkillManager.CanCast`)은 충족되지 않는다 —
+필요한 앞 단계(예: `DayEnd`)를 `Debug Steps`에 같이 넣어야 한다.
 
 ---
 
@@ -238,18 +274,14 @@ Unity는 **단일 필드**의 managed reference에는 타입 선택 UI를 그리
 
 ## 4. 아직 없는 것
 
-**#408은 흐름까지만 만들었다.** 아래는 전부 후속 이슈다.
+자동 진입·완료 기록·스킵·정본 씬 배치는 #479에서 구현됐다. 아래 항목은 후속 범위다.
 
 | 없는 것 | 비고 |
 |---|---|
 | 딤 · 강조 · 대상 외 입력 차단 | **팝업 구간은 이미 막힌다**(`Popup`이 전체 화면 + `Raycast Target`). 말풍선 구간이 안 막힌다 |
 | 다국어 | 지금 문구는 평문 `string`. `LocalizedString` / `LocalizeStringEvent`로 바꿔야 로케일 변경 시 갱신된다 — **`LocalizationHelper.Get()`은 지속 표시에 쓰지 않는다** |
-| 자동 실행 시점 | `startOnPlay` 체크박스가 임시 스위치다 |
-| 스킵 · 완료 기록 | 저장 자리는 `GameSettingsData`(슬롯 무관 전역) 또는 `PlayerData`(슬롯별) — [SaveSystem.md](SaveSystem.md) |
 | 팝업 구간 일시정지 | `GamePauseReason.Tutorial` 추가로 방향은 정해짐. ⚠ **`Time.timeScale = 0`이어도 `MouseManager.Update()`는 계속 돈다** — 일시정지는 입력을 막지 않는다 |
 | UI 에셋 · 연출 | 지금은 회색 박스 + 기본 텍스트. 강조 색은 기존 아웃라인(호버 노랑 · 선택 초록 · 합성 핑크)과 겹치지 않게 할 것 |
-| 실제 안내 단계 내용 | #271 |
-| 정본 `GameScene.unity` 반영 | [SceneWorkflow.md](SceneWorkflow.md) §4 |
 
 ### 차단·강조를 붙일 때 — 먼저 확인할 것
 
@@ -282,6 +314,7 @@ Unity는 **단일 필드**의 managed reference에는 타입 선택 UI를 그리
 | 행동해도 단계가 안 넘어간다 | `Completion`이 비었거나, 조건이 대상을 못 찾았다(콘솔에 경고가 찍힌다) |
 | 시작하자마자 단계를 통과해버린다 | 조건이 상태를 `Begin`에서 초기화하지 않는다 |
 | 말풍선 뒤 오브젝트가 클릭되지 않는다 | `Bubble`(또는 자식 텍스트)의 `Raycast Target`이 켜져 있다 |
+| 등록한 단계가 통째로 안 뜬다 | `Debug Mode`가 켜져 있다 — `Debug Steps`만 돈다([§2.4](#24-단계-하나만-떼어내-돌려보기)). 시작 시 콘솔에 경고가 찍힌다 |
 | 이전 단계의 조건이 또 발화한다 | `End`에서 구독을 안 풀었다 |
 | 단계 에셋의 조건이 통째로 비어 있다 | 조건 클래스 이름을 바꿨다([§3.2](#32-반드시-지킬-것)) |
 | 1일차 낮 신호를 놓친다 | `DayNightManager.OnDayStart`는 `Start()`에서 한 프레임 지연 후 최초 발행된다 |

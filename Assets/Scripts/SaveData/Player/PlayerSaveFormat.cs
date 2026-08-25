@@ -7,6 +7,6 @@ namespace NorthLand.Core
     {
         public const int OldestSupportedVersion = 1;
 
-        public const int CurrentVersion = 1;
+        public const int CurrentVersion = 2;
     }
 }

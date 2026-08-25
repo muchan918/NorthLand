@@ -53,12 +53,20 @@ namespace NorthLand.Combat
         // ── 스턴 재적용 제한(#164) ─────────────────────────────
         // 스턴 축은 minMoveSpeed 하한 클램프를 우회해 완전 정지를 만든다. 그래서 클램프가 막고 있던
         // 소프트락을 이 클래스가 대신 막아야 한다. 규칙 두 개가 세트로 필요하다:
-        //  1) 스턴 중 재적용 무시 — 없으면 명중마다 remaining이 리셋돼 만료가 영원히 오지 않는다.
-        //     `StunStatus`가 공유 static ID를 쓰므로(HitEffect.cs) 모든 소다가 단일 소스이고, 여러 기가
-        //     균등 분산되면 명중 간격이 스턴 지속보다 짧아져 끊기지 않는다. **이 규칙은 지우면 안 된다** —
-        //     밤 종료 조건이 몬스터 전멸이라(MonsterSpawn) 영구 정지는 곧 밤이 끝나지 않는 것이다.
+        //  1) **에피소드 시작 기준 천장** — 스턴 중에 들어온 재적용은 종료 시각을
+        //     `에피소드 시작 + 이번 지속`까지만 끌어올릴 수 있다(**지금 시각 기준이 아니다**).
+        //     따라서 한 에피소드의 길이는 저작된 스턴 지속의 **최댓값**을 넘지 못하고, 같은 타워가
+        //     아무리 도배해도 후보가 계속 줄어들어 remaining이 다시 채워지지 않는다.
+        //     **이 상한은 지우면 안 된다** — 밤 종료 조건이 몬스터 전멸이라(MonsterSpawn)
+        //     영구 정지는 곧 밤이 끝나지 않는 것이다.
         //  2) 종료 후 면역 창 — 1)만으로는 만료 직후 재스턴이 가능해 가동률이 100%에 가깝다.
         // 결과적으로 최대 가동률 = 스턴 지속 / (스턴 지속 + 면역 창)이 되어 타워를 몇 기 깔든 상한이 있다.
+        //
+        // ⚠ 1)은 원래 "스턴 중 재적용 **무시**"였다. 티어별로 스턴 지속이 다른 스턴 타워가 생기면서
+        //   (1티어 0.7s / 2티어 1.0s) 그 규칙이 틀린 답을 냈다 — 둘이 거의 동시에 맞히면 먼저 도착한
+        //   1티어가 슬롯을 잡고 2티어 명중이 통째로 버려져 총 0.7초가 됐다. 상한을 "무시"가 아니라
+        //   "에피소드 시작 기준 천장"으로 표현하면 더 긴 스턴이 늦게 와도 총 1.0초가 되면서
+        //   소프트락 방어(반복 명중으로 늘어나지 않음)는 그대로 유지된다.
         //
         // ⚠ 두 규칙의 역할이 #441에서 갈렸다. **1기 기준 가동률은 공격 간격이 정한다**
         //   (`간격 > 스턴 지속`이면 매 발이 새 스턴이 되고 가동률 = 지속/간격 — TowerAsset.OnValidate가
@@ -66,7 +74,8 @@ namespace NorthLand.Combat
         //   저작한다 — 소다를 여럿 깔았을 때 기여가 0이 되지 않으면서(WL-141) 완전 봉인도 막는 손잡이다.
         //
         // 소스가 아니라 대상 기준으로 판정하는 이유: 소스 기준이면 서로 다른 스턴원 2개가 번갈아 걸어
-        // 다시 영구 정지가 만들어진다. "행동 불가"는 겹칠 이유가 없으므로 동시에 하나만 허용한다.
+        // 다시 영구 정지가 만들어진다. "행동 불가"는 겹칠 이유가 없으므로 대상당 에피소드는 하나뿐이고,
+        // 슬롯도 `stunSource` 하나만 쓴다 — 들어온 effectId가 달라도 그 슬롯을 끌어올린다.
         //
         // ⚠ **이 값은 이제 폴백이다**(#441). 부여자가 창 길이를 함께 넘기면 그 값이 이긴다 —
         // 스턴을 거는 유일한 경로인 `StunStatus`가 SO 필드로 창을 저작하게 됐으므로(WL-026: CC 가동률
@@ -77,10 +86,14 @@ namespace NorthLand.Combat
         // 이 시각 전에는 재스턴을 받지 않는다. 스턴이 끝나는 시점에 갱신된다.
         float stunImmuneUntil;
 
-        // 지금 걸린 스턴이 끝날 때 적용할 창. **부여 시점에 확정해 EndStun까지 들고 간다** —
+        // 지금 걸린 스턴이 끝날 때 적용할 창. **종료 시각을 결정한 스턴의 값**을 EndStun까지 들고 간다 —
         // 만료 시점에 조회하면 그 사이 다른 부여자가 값을 바꿨을 때 어느 스턴의 규칙인지가 흐려진다.
-        // 스턴은 대상당 하나뿐이므로(아래 게이트) 부여 시점 값이 곧 그 스턴의 규칙이다.
+        // 에피소드 도중 더 긴 스턴이 천장을 끌어올리면(규칙 1) 그 스턴의 창으로 교체된다.
         float activeStunImmunity;
+
+        // 현재 스턴 에피소드가 시작된 시각. 규칙 1의 천장(`stunEpisodeStart + duration`) 기준점이다.
+        // stunActive가 false면 의미 없다.
+        float stunEpisodeStart;
 
         // 현재 스턴을 보유한 소스. stunActive가 false면 의미 없다
         // (effectId는 해시코드라 -1 같은 센티널을 쓸 수 없다).
@@ -135,11 +148,23 @@ namespace NorthLand.Combat
             bool isStun = multiplier <= 0f;
 
             // 스턴만 게이트한다 — 감속은 하한 클램프가 받아내므로 갱신이 이어져도 소프트락되지 않는다.
-            if (isStun && !CanStunNow())
+            if (isStun)
             {
-                if (debugLog)
-                    Debug.Log($"[Status] {name}: 스턴 무시 ({(stunActive ? "이미 스턴 중" : $"면역 창 {stunImmuneUntil - Time.time:F2}s 남음")})");
-                return;
+                // 이미 스턴 중이면 새 에피소드를 열지 않고 현재 에피소드의 천장만 끌어올린다(규칙 1).
+                if (stunActive)
+                {
+                    ExtendStun(duration, immunityWindow);
+                    return;
+                }
+
+                if (Time.time < stunImmuneUntil)   // 규칙 2
+                {
+                    if (debugLog)
+                        Debug.Log($"[Status] {name}: 스턴 무시 (면역 창 {stunImmuneUntil - Time.time:F2}s 남음)");
+                    return;
+                }
+
+                stunEpisodeStart = Time.time;
             }
 
             if (slows.TryGetValue(effectId, out var s))
@@ -166,8 +191,40 @@ namespace NorthLand.Combat
             PushToMover(effectId, multiplier);
         }
 
-        // 규칙 1(스턴 중 무시) + 규칙 2(종료 후 면역 창). 위 필드 주석 참조.
-        bool CanStunNow() => !stunActive && Time.time >= stunImmuneUntil;
+        // 규칙 1. 에피소드 도중 들어온 재스턴을 처리한다 — 종료 시각을 `에피소드 시작 + duration`까지만
+        // 끌어올린다. **지금 시각 기준이 아니다**: 시작 기준이라 명중이 반복될수록 후보가 줄어들어
+        // 천장을 넘지 못하고, 에피소드 길이가 저작된 스턴 지속의 최댓값으로 묶인다.
+        //
+        // 들어온 effectId가 아니라 `stunSource` 슬롯을 갱신한다 — 나중에 티어별로 effectId를 갈라도
+        // "대상당 스턴 에피소드는 하나"라는 불변식이 유지된다(슬롯이 둘로 갈리면 합집합이 되어 천장이 사라진다).
+        // **천장을 지키는 것은 이 한 줄이다** — `HitEffect.StunStatus`가 공유 static ID를 쓰는 것은
+        // #274 이전부터의 관성일 뿐 정확성 요건이 아니다(그쪽 주석 참조). 여기를 `effectId`로 바꾸면
+        // 그 순간 슬롯이 갈려 천장이 사라진다.
+        void ExtendStun(float duration, float immunityWindow)
+        {
+            if (!slows.TryGetValue(stunSource, out var current))
+            {
+                // 도달 불가 — 에피소드와 슬롯은 함께 생기고 함께 사라진다. 그래도 어긋났다면
+                // 이 대상이 영구히 스턴 면역이 되지 않도록 에피소드를 닫는다.
+                EndStun();
+                return;
+            }
+
+            float candidate = stunEpisodeStart + duration - Time.time;
+            if (candidate <= current.remaining)
+            {
+                if (debugLog)
+                    Debug.Log($"[Status] {name}: 스턴 연장 무시 (후보 {candidate:F2}s ≤ 남은 {current.remaining:F2}s)");
+                return;
+            }
+
+            current.remaining = candidate;
+            // 창은 **종료를 결정한 스턴**의 값을 따른다 — 방금 천장을 끌어올린 그 스턴이다.
+            activeStunImmunity = immunityWindow >= 0f ? immunityWindow : stunImmunityWindow;
+
+            if (debugLog)
+                Debug.Log($"[Status] {name}: 스턴 연장 → 남은 {current.remaining:F2}s (창 {activeStunImmunity:F2}s)");
+        }
 
         // 스턴이 끝나는 모든 경로가 여기를 지나야 한다 — 만료, 감속으로 덮임, 대상 사망.
         void EndStun()
@@ -228,6 +285,7 @@ namespace NorthLand.Combat
             // 재사용체가 스턴 안 걸리는 상태로 부활한다.
             stunActive = false;
             stunImmuneUntil = 0f;
+            stunEpisodeStart = 0f;
         }
 
         void Update()
