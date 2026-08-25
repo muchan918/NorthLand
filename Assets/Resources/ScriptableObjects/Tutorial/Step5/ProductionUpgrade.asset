@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
+  m_Name: ProductionUpgrade
+  m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
+  popupTitle: 
+  popupBody: 
+  popupImage: {fileID: 0}
+  bubbleText: "\uBE44\uC2A4\uCF13 \uD558\uC6B0\uC2A4 \xB7 \uCD08\uCF54\uB098\uBB34
+    \xB7 \uC288\uAC00 \uD31C\uC744 \uAC01\uAC01 \uD55C \uBC88\uC529 \uC5C5\uADF8\uB808\uC774\uB4DC\uD558\uC138\uC694\r\n\uD328\uB110\uC774
+    \uB2EB\uD788\uBA74 \uAC74\uBB3C\uC744 \uB2E4\uC2DC \uD074\uB9AD\uD558\uC138\uC694"
+  highlightMode: 0
+  highlightAnchorId: 
+  highlightCell: {x: 0, y: 0}
+  pauseGameDuringStep: 0
+  freeTowerPlacement: 0
+  restrictTowerPanelTo: {fileID: 0}
+  freeManagementCost: 1
+  upgradeCap: 1
+  villagerCap: 0
+  upgradeAllowList:
+  - {fileID: 11400000, guid: ba79754af9105604892d30cae1799110, type: 2}
+  - {fileID: 11400000, guid: 8268c334119ef524ea770b364abf1fd5, type: 2}
+  - {fileID: 11400000, guid: 639db89c157d46343837e79b6259f345, type: 2}
+  completion:
+    rid: 3470829977900417133
+  references:
+    version: 2
+    RefIds:
+    - rid: 3470829977900417133
+      type: {class: AllProductionLinesUpgradedCondition, ns: , asm: Assembly-CSharp}
+      data:
+        requiredLevel: 1

@@ -24,6 +24,10 @@ public class TutorialOverlay : MonoBehaviour
     [SerializeField]
     private Button confirmButton;
 
+    [Header("건너뛰기 (선택)")]
+    [SerializeField]
+    private Button skipButton;
+
     [Header("말풍선")]
     [SerializeField]
     private GameObject bubbleRoot;
@@ -31,8 +35,22 @@ public class TutorialOverlay : MonoBehaviour
     [SerializeField]
     private TMP_Text bubbleText;
 
+    [Header("딤 — 강조 대상만 클릭 가능하게 만든다. 비워두면 딤 기능이 꺼진다(선택)")]
+    [SerializeField]
+    private RaycastHoleTest dim;
+
+    // 렌더링은 하지 않는다. 강조 영역의 위치·크기를 담는 사각형 정의일 뿐이다.
+    [SerializeField]
+    private RectTransform hole;
+
+    // 계산된 강조 사각형에 더할 여백. 대상에 딱 붙지 않게 인스펙터에서 튜닝한다.
+    [SerializeField]
+    private Vector2 holePadding = new Vector2(16f, 16f);
+
     // 팝업의 확인이 눌렸다. 다음에 무엇을 할지는 구독자(컨트롤러)가 정한다.
     public event Action PopupConfirmed;
+
+    public event Action SkipRequested;
 
     private void Awake()
     {
@@ -45,6 +63,23 @@ public class TutorialOverlay : MonoBehaviour
         }
 
         confirmButton.onClick.AddListener(OnConfirmClicked);
+
+        if (skipButton != null)
+        {
+            skipButton.onClick.AddListener(OnSkipClicked);
+        }
+
+        // 딤은 선택 기능이다 — 배선되지 않았으면 강조 요청을 조용히 무시한다.
+        if (HasDim)
+        {
+            dim.hole = hole;
+
+            // 홀은 부모 중심 기준으로 위치를 계산한다 — 앵커가 다른 값이면 좌표가 어긋난다.
+            hole.anchorMin = new Vector2(0.5f, 0.5f);
+            hole.anchorMax = new Vector2(0.5f, 0.5f);
+            hole.pivot = new Vector2(0.5f, 0.5f);
+        }
+
         HideAll();
     }
 
@@ -54,6 +89,11 @@ public class TutorialOverlay : MonoBehaviour
         if (confirmButton != null)
         {
             confirmButton.onClick.RemoveListener(OnConfirmClicked);
+        }
+
+        if (skipButton != null)
+        {
+            skipButton.onClick.RemoveListener(OnSkipClicked);
         }
     }
 
@@ -70,7 +110,6 @@ public class TutorialOverlay : MonoBehaviour
         if (confirmButton == null) { LogMissing(nameof(confirmButton)); ok = false; }
         if (bubbleRoot == null) { LogMissing(nameof(bubbleRoot)); ok = false; }
         if (bubbleText == null) { LogMissing(nameof(bubbleText)); ok = false; }
-
         return ok;
     }
 
@@ -111,10 +150,155 @@ public class TutorialOverlay : MonoBehaviour
     {
         HidePopup();
         HideBubble();
+        HideDim();
+    }
+
+    // 지금 무엇을 강조하고 있는가. 홀 계산 경로가 UI냐 월드냐로 갈린다.
+    private enum DimTarget
+    {
+        None,
+        Ui,
+        World
+    }
+
+    private DimTarget _dimTarget = DimTarget.None;
+    private RectTransform _dimUiTarget;
+    private Bounds _dimWorldBounds;
+
+    private bool HasDim => dim != null && hole != null;
+
+    // UI 하나만 클릭 가능하게 두고 나머지를 덮는다.
+    public void ShowDimForUi(RectTransform target)
+    {
+        if (!HasDim || target == null)
+        {
+            HideDim();
+
+            return;
+        }
+
+        _dimTarget = DimTarget.Ui;
+        _dimUiTarget = target;
+
+        dim.gameObject.SetActive(true);
+        UpdateHole();
+    }
+
+    // 월드 오브젝트(전투 타일 등)를 화면에 투영해 그 영역만 클릭 가능하게 둔다.
+    public void ShowDimForWorld(Bounds worldBounds)
+    {
+        if (!HasDim)
+        {
+            return;
+        }
+
+        _dimTarget = DimTarget.World;
+        _dimWorldBounds = worldBounds;
+
+        dim.gameObject.SetActive(true);
+        UpdateHole();
+    }
+
+    public void HideDim()
+    {
+        _dimTarget = DimTarget.None;
+        _dimUiTarget = null;
+
+        if (dim != null)
+        {
+            dim.gameObject.SetActive(false);
+        }
+    }
+
+    // 카메라 팬·줌으로 월드 대상의 화면 위치가 매 프레임 바뀐다 — 1회 계산으로는 어긋난다.
+    // 강조 대상은 항상 하나뿐이므로 매 프레임 계산해도 비용은 무시할 수 있다.
+    private void LateUpdate()
+    {
+        if (_dimTarget != DimTarget.None)
+        {
+            UpdateHole();
+        }
+    }
+
+    private void UpdateHole()
+    {
+        var parent = hole.parent as RectTransform;
+
+        if (parent == null)
+        {
+            HideDim();
+
+            return;
+        }
+
+        if (_dimTarget == DimTarget.Ui)
+        {
+            // 대상이 파괴되거나 꺼졌으면 강조를 유지할 근거가 없다.
+            if (_dimUiTarget == null)
+            {
+                HideDim();
+
+                return;
+            }
+
+            Bounds local = RectTransformUtility.CalculateRelativeRectTransformBounds(parent, _dimUiTarget);
+
+            ApplyHoleRect(local.center, local.size);
+
+            return;
+        }
+
+        Camera camera = Camera.main;
+
+        if (camera == null)
+        {
+            HideDim();
+
+            return;
+        }
+
+        // 직교 카메라가 비스듬히 보고 있으므로 8코너를 전부 투영해 화면 AABB를 잡는다.
+        Vector2 screenMin = new Vector2(float.MaxValue, float.MaxValue);
+        Vector2 screenMax = new Vector2(float.MinValue, float.MinValue);
+
+        Vector3 center = _dimWorldBounds.center;
+        Vector3 extents = _dimWorldBounds.extents;
+
+        for (int i = 0; i < 8; i++)
+        {
+            var corner = new Vector3(
+                center.x + ((i & 1) == 0 ? -extents.x : extents.x),
+                center.y + ((i & 2) == 0 ? -extents.y : extents.y),
+                center.z + ((i & 4) == 0 ? -extents.z : extents.z));
+
+            Vector3 screenPoint = camera.WorldToScreenPoint(corner);
+
+            screenMin = Vector2.Min(screenMin, screenPoint);
+            screenMax = Vector2.Max(screenMax, screenPoint);
+        }
+
+        // Screen Space - Overlay 캔버스이므로 카메라 인자는 null이어야 한다.
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, screenMin, null, out Vector2 localMin);
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, screenMax, null, out Vector2 localMax);
+
+        ApplyHoleRect(
+            (localMin + localMax) * 0.5f,
+            new Vector2(Mathf.Abs(localMax.x - localMin.x), Mathf.Abs(localMax.y - localMin.y)));
+    }
+
+    private void ApplyHoleRect(Vector2 center, Vector2 size)
+    {
+        hole.anchoredPosition = center;
+        hole.sizeDelta = size + holePadding;
     }
 
     private void OnConfirmClicked()
     {
         PopupConfirmed?.Invoke();
+    }
+
+    private void OnSkipClicked()
+    {
+        SkipRequested?.Invoke();
     }
 }

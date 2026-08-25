@@ -198,6 +198,10 @@ namespace NorthLand.Combat
         // 보스 판정(#318). EnemyType.Boss는 최종보스(ogre_king)와 중간보스(tank)를 모두 포함한다.
         public bool IsBoss => data != null && data.EnemyType == EnemyType.Boss;
 
+        /// 자폭병 술어(#453). 켜져 있으면 이 적은 **본진만 조준하고 닿는 순간 터진다**.
+        /// 저작은 `EnemyAsset.SelfDestruct`이며 EnemyType과는 직교한다(현재 자폭병도 Melee 스탯 블록을 쓴다).
+        public bool IsSuicideBomber => data != null && data.SelfDestruct != null && data.SelfDestruct.Enabled;
+
         // 체력 회복. MaxHp를 넘지 않도록 클램프하고, 이미 죽었으면 무시. HP UI에 변경을 통지한다.
         public void Heal(float amount)
         {
@@ -417,7 +421,7 @@ namespace NorthLand.Combat
         }
 
         // 같은 프레임 다중 타격에 의한 이중 사망 처리 방지
-        // 사망 처리. 추후 오브젝트 풀링 도입 시 이 메서드 내부만 "풀 반환"으로 교체하면 된다.
+        // 처치 사망. 자폭 사망은 SelfDestruct(#453)이며 Killed 발행 여부만 다르다.
         void Die()
         {
             if (isDying)
@@ -431,6 +435,54 @@ namespace NorthLand.Combat
             // 중복 발행되지 않는다. 사망 연출(destroyDelay)보다 앞이라 통지가 지연되지도 않는다.
             Killed?.Invoke(lastDamageSource, this);
 
+            BeginDeathSequence();
+        }
+
+        /// 자폭 실행(#453). 본진에 확정 피해를 주고 스스로 죽는다.
+        ///
+        /// 피해량은 `SelfDestruct.Damage` 그대로다 — **웨이브 HP 배율(`hpScale`)을 곱하지 않는다.**
+        /// 배율은 최대 HP 한 축에만 걸리는 값이고(§4.7), 자폭 피해까지 함께 커지면 웨이브당
+        /// 자폭 총량 ≤ 본진 HP×0.5로 잡아둔 규약 ④의 예산이 후반 웨이브에서 넘친다.
+        ///
+        /// `DamageInfo.Source`는 `this`다 — 실제로 이 적이 가한 피해이고, `PlayerBase.TakeDamage`는
+        /// 소스를 읽지 않으므로 부작용이 없다(보스 P1 충돌 피해가 `null`을 넘기는 것은 그쪽이
+        /// 반격·처치 기여 집계 대상에서 빠져야 하기 때문이라 사정이 다르다).
+        void Detonate(IDamageable target)
+        {
+            target.TakeDamage(new DamageInfo(data.SelfDestruct.Damage, this));
+
+            SelfDestruct();
+        }
+
+        /// 자폭 사망(#453). 연출·디스폰은 `Die`와 같지만 **`Killed`를 발행하지 않는다.**
+        ///
+        /// 자폭은 플레이어가 "죽인 것"이 아니라 "놓친 것"이다. 발행하면 자폭 직전에 이 적을 때린
+        /// 타워(`lastDamageSource`)가 킬스택(#300)을 얻어 **본진을 얻어맞은 대가로 타워가 성장한다.**
+        /// 경로 완주(`HandleRouteCompleted`)가 `Die`를 우회하는 것과 같은 갈림이다.
+        ///
+        /// HP를 0으로 확정하는 이유: `isDying`만 세우면 `IsDead`가 false로 남아 사망 연출
+        /// (destroyDelay 2초) 동안 타워 조준과 적 탐색의 `!IsDead` 필터가 이미 터진 적을 계속
+        /// 후보로 잡는다 — 증상이 "타워가 허공을 쏜다"라 원인에서 멀다.
+        void SelfDestruct()
+        {
+            if (isDying)
+            {
+                return;
+            }
+
+            isDying = true;
+
+            currentHp = 0f;
+            OnHpChanged?.Invoke(currentHp, MaxHp);
+
+            BeginDeathSequence();
+        }
+
+        // 사망 연출 → 디스폰. 처치(`Die`)와 자폭(`SelfDestruct`)이 공유하는 뒤처리다.
+        // 두 경로의 유일한 차이는 `Killed` 발행 여부이며, 그 차이만 호출부에 남긴다.
+        // 추후 오브젝트 풀링 도입 시 이 메서드 내부만 "풀 반환"으로 교체하면 두 경로가 함께 따라온다.
+        void BeginDeathSequence()
+        {
             // 사망 연출 지연 동안(파괴 전까지) 보스 BT가 계속 돌지 않도록 에이전트를 끈다.
             if (behaviorAgent != null)
             {
@@ -452,6 +504,26 @@ namespace NorthLand.Combat
         public bool TryAttack(IDamageable target)
         {
             if (target == null || target.IsDead) return false;
+
+            // 자폭병(#453)은 평타 경로를 타지 않는다 — 본진에 닿는 순간 1회 확정 피해를 주고 스스로 죽는다.
+            //
+            // 대상과 사망 상태를 **둘 다** 막는다. 정상 경로에서는 둘 다 도달 불가다(FindTarget이 본진만
+            // 후보로 남기고, Update가 isDying에서 먼저 return한다). 그런데 TryAttack은 IAttacker 공개
+            // 계약이라 밖에서 임의로 불릴 수 있고, 그때 각각 이렇게 깨진다:
+            //  · 대상 미검사 → "병사에게 달려가 터지는 자폭병"(규약 ④의 예산은 본진 피해만 센다)
+            //  · 사망 미검사 → Detonate가 피해를 먼저 주고 SelfDestruct에서야 isDying을 보므로
+            //                  **이미 터진 자폭병이 본진을 두 번 때린다**
+            // 보스 BT가 자폭 패턴을 쓰기 시작하면 그때 실제 호출 경로가 생기므로 두 방어를 같은 층위에 둔다.
+            if (IsSuicideBomber)
+            {
+                if (isDying || !(target is IBaseStructure))
+                {
+                    return false;
+                }
+
+                Detonate(target);
+                return true;
+            }
 
             // Ranged는 투사체 발사, 그 외(Melee/Boss)는 근접 즉시 데미지.
             // (#193: Boss의 BehaviorTree는 속도 가감속·HP 회복 등 상위 패턴을 담당하고,
@@ -511,7 +583,22 @@ namespace NorthLand.Combat
             Destroy(gameObject);
         }
 
-        // 사거리 내에서 가장 가까운 아군 대상(유닛/본진)을 타겟으로 선정
+        // 사거리 내에서 가장 가까운 아군 대상(유닛/본진)을 타겟으로 선정.
+        //
+        // ⚠ **자폭병(#453)은 본진만 후보로 남긴다.** 근거는 하나다: **규약 ④의 자폭 위험 예산은 본진
+        // 피해만 센다**(`CombatBalance.md` §4.2). 웨이브당 자폭 총량을 본진 HP의 절반으로 묶어 난이도를
+        // 설계했으므로, 자폭이 병사에게도 터지면 그 예산이 세는 곳이 둘로 갈려 상한의 의미가 사라진다.
+        // 저작(레이어 마스크)이 아니라 코드로 못 박는 것도 그래서다 — 예산의 전제가 프리팹 인스펙터에서
+        // 조용히 뒤집혀선 안 된다.
+        //
+        // 대가: 병사가 자폭병을 저지하지 못한다. 이것은 의도다 — 자폭병의 해답은 감속·광역이라는
+        // §4.2의 설계와 같은 방향이다.
+        //
+        // 부수 효과로 소프트락도 함께 막힌다: 병사를 후보로 남기면 `Update`가 `IsStopped = hasTarget`으로
+        // 자폭병을 병사 앞에 세우는데, 자폭병의 `AttackDamage`는 쓰이지 않는 값(0)이라 병사를 못 죽이고
+        // 영원히 멈춰 서고, 그 밤은 `monsterParent.childCount == 0`에 닿지 못한다.
+        // ⚠ 이건 **결정의 근거가 아니라 결과**다. 근거로 읽으면 "그럼 자폭 피해를 병사에게도 주면
+        // 되지 않나"로 쉽게 뒤집히는데, 그렇게 하면 위의 예산이 깨진다.
         IDamageable FindTarget()
         {
             int count = Physics.OverlapSphereNonAlloc(
@@ -520,13 +607,16 @@ namespace NorthLand.Combat
             IDamageable closest = null;
             float closestSqrDistance = float.MaxValue;
 
+            bool baseOnly = IsSuicideBomber;
+
             for (int i = 0; i < count; i++)
             {
                 var hit = hitBuffer[i];
                 var damageable = hit.GetComponentInParent<IDamageable>();
                 if (damageable != null
                     && damageable.Faction != Faction
-                    && !damageable.IsDead)
+                    && !damageable.IsDead
+                    && (!baseOnly || damageable is IBaseStructure))
                 {
                     float sqrDistance = (hit.transform.position - transform.position).sqrMagnitude;
                     if (sqrDistance < closestSqrDistance)

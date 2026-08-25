@@ -16,6 +16,8 @@ namespace NorthLand.Core
 
         public long lastPlayedAt;
 
+        public bool tutorialCompleted;
+
         public static PlayerData Create()
         {
             long currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -24,7 +26,8 @@ namespace NorthLand.Core
             {
                 playerId = Guid.NewGuid().ToString("N"),
                 createdAt = currentTime,
-                lastPlayedAt = currentTime
+                lastPlayedAt = currentTime,
+                tutorialCompleted = false
             };
         }
 

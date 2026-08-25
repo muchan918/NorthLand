@@ -56,6 +56,24 @@ public class CameraController2 : MonoBehaviour
     public float CurrentZoomSize =>
         cinemachineCamera != null ? cinemachineCamera.Lens.OrthographicSize : minZoomSize;
 
+    /// <summary>화면 이동이 어떤 조작으로 일어났는지.</summary>
+    public enum MoveSource
+    {
+        Keyboard,
+        Drag,
+        Minimap
+    }
+
+    /// <summary>
+    /// 화면이 실제로 움직였을 때 발생. 인자는 <b>출처</b>와 <b>이번 프레임 이동 거리</b>다.<br/>
+    /// <see cref="OnZoomChanged"/>와 달리 절대값이 아닌 변화량을 싣는다 — 소비처가 "어떤 조작으로
+    /// 얼마나 움직였는가"를 누적해야 하기 때문이다(튜토리얼의 조작 학습 판정).<br/>
+    /// ⚠ 발행처가 <b>셋</b>이다 — <see cref="MoveKeyboard"/>, <see cref="MoveDrag"/>,
+    /// <see cref="UpdateMinimapMove"/>. 출처를 아는 것은 이동을 실행한 쪽뿐이라 한 곳으로 모을 수 없다.
+    /// 새 이동 경로를 추가하면 <see cref="MoveSource"/>에 값을 더하고 그쪽에서도 발행해야 한다.
+    /// </summary>
+    public event Action<MoveSource, float> OnMoved;
+
     [SerializeField] private float zoomSmoothTime = 0.2f;
 
     private bool isZooming;
@@ -120,11 +138,17 @@ public class CameraController2 : MonoBehaviour
     private void LateUpdate()
     {
         UpdateTargetZoom();
+        UpdateMinimapMove();
+    }
 
+    private void UpdateMinimapMove()
+    {
         if (!isMinimapMoving || cameraTarget == null)
         {
             return;
         }
+
+        Vector3 previousPosition = cameraTarget.position;
 
         cameraTarget.position = Vector3.SmoothDamp(cameraTarget.position, minimapMoveTarget, ref minimapMoveVelocity, minimapMoveSmoothTime,
        Mathf.Infinity, Time.unscaledDeltaTime);
@@ -135,6 +159,22 @@ public class CameraController2 : MonoBehaviour
             minimapMoveVelocity = Vector3.zero;
             isMinimapMoving = false;
         }
+
+        PublishMove(MoveSource.Minimap, previousPosition);
+    }
+
+    // 이동을 적용한 직후에 부른다. 실제로 움직인 만큼만 발행한다 —
+    // ClampPosition이 경계에서 이동을 깎아내므로 입력량이 아니라 결과 거리를 재야 한다.
+    private void PublishMove(MoveSource source, Vector3 previousPosition)
+    {
+        float distance = Vector3.Distance(cameraTarget.position, previousPosition);
+
+        if (distance <= 0f)
+        {
+            return;
+        }
+
+        OnMoved?.Invoke(source, distance);
     }
 
     private void Update()
@@ -213,8 +253,11 @@ public class CameraController2 : MonoBehaviour
 
         CancelMinimapMove();
 
-        Vector3 nextPosition = cameraTarget.position + moveDirection.normalized * moveSpeed * Time.unscaledDeltaTime;
+        Vector3 previousPosition = cameraTarget.position;
+        Vector3 nextPosition = previousPosition + moveDirection.normalized * moveSpeed * Time.unscaledDeltaTime;
         cameraTarget.position = ClampPosition(nextPosition);
+
+        PublishMove(MoveSource.Keyboard, previousPosition);
     }
 
     private void MoveDrag()
@@ -253,7 +296,10 @@ public class CameraController2 : MonoBehaviour
 
         Vector3 offset = (GroundRight() * screenDelta.x + GroundForward() * screenDelta.y) * dragSpeed;
 
+        Vector3 previousDragPosition = cameraTarget.position;
         cameraTarget.position = ClampPosition(_dragStartTargetPos + offset);
+
+        PublishMove(MoveSource.Drag, previousDragPosition);
     }
 
     private void ZoomMouseWheel()
