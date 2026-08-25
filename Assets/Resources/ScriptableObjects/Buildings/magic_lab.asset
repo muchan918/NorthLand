@@ -27,7 +27,7 @@ MonoBehaviour:
         Amount: 20
       RequiredCastleLevel: 0
       DamageMultiplier: 1.2
-      RadiusMultiplier: 1.5
+      RadiusMultiplier: 1.2
       CooldownMultiplier: 0.9
       BuffDamageMultiplierScale: 1.1
       BuffAttackSpeedMultiplierScale: 1.1
@@ -38,7 +38,7 @@ MonoBehaviour:
         Amount: 40
       RequiredCastleLevel: 0
       DamageMultiplier: 1.4
-      RadiusMultiplier: 2
+      RadiusMultiplier: 1.4
       CooldownMultiplier: 0.8
       BuffDamageMultiplierScale: 1.3
       BuffAttackSpeedMultiplierScale: 1.3
@@ -49,7 +49,7 @@ MonoBehaviour:
         Amount: 60
       RequiredCastleLevel: 0
       DamageMultiplier: 1.6
-      RadiusMultiplier: 2.5
+      RadiusMultiplier: 1.6
       CooldownMultiplier: 0.7
       BuffDamageMultiplierScale: 1.6
       BuffAttackSpeedMultiplierScale: 1.6
@@ -60,7 +60,7 @@ MonoBehaviour:
         Amount: 90
       RequiredCastleLevel: 1
       DamageMultiplier: 1.8
-      RadiusMultiplier: 3.5
+      RadiusMultiplier: 1.8
       CooldownMultiplier: 0.6
       BuffDamageMultiplierScale: 1.9
       BuffAttackSpeedMultiplierScale: 1.9
@@ -71,7 +71,7 @@ MonoBehaviour:
         Amount: 130
       RequiredCastleLevel: 2
       DamageMultiplier: 2
-      RadiusMultiplier: 4.5
+      RadiusMultiplier: 2
       CooldownMultiplier: 0.55
       BuffDamageMultiplierScale: 2.2
       BuffAttackSpeedMultiplierScale: 2.2

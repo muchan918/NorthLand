@@ -47,3 +47,4 @@ MonoBehaviour:
   auraVisualPrefab: {fileID: 1568281471422469883, guid: b3c80aa23b98eff45aea982fffe5c981, type: 3}
   referenceRadius: 1.2
   yOffset: 0
+  innerColor: {r: 1, g: 0.3, b: 0.1, a: 1}

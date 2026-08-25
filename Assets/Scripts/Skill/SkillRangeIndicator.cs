@@ -20,6 +20,8 @@ public class SkillRangeIndicator : MonoBehaviour
     [SerializeField] float referenceRadius = 1f;
     [Tooltip("인디케이터를 시전 평면에서 위로 띄우는 로컬 Y 오프셋")]
     [SerializeField] float yOffset = 0.05f;
+    [Tooltip("중앙 100% 데미지 범위에 적용할 색")]
+    [SerializeField] Color innerColor = new Color(1f, 0.3f, 0.1f, 1f);
 
     void Awake()
     {
@@ -31,6 +33,16 @@ public class SkillRangeIndicator : MonoBehaviour
             return;
         }
 
+        SpawnVisual(radius, null);
+
+        // 별 낙하형을 연결한 씬에서만 중앙 100% 범위를 추가한다.
+        // 기존 즉발형을 유지하는 GameScene은 예전처럼 단일 범위만 표시한다.
+        if (SkillManager.Instance != null && SkillManager.Instance.UsesDelayedStar)
+            SpawnVisual(SkillManager.Instance.InnerRadius, innerColor);
+    }
+
+    void SpawnVisual(float radius, Color? overrideColor)
+    {
         Transform visual = Instantiate(auraVisualPrefab, transform).transform;
 
         Vector3 s = visual.localScale;
@@ -40,5 +52,13 @@ public class SkillRangeIndicator : MonoBehaviour
         float scale = radius / Mathf.Max(referenceRadius, 0.01f);
         visual.localScale = s * scale;
         visual.localPosition = new Vector3(0f, yOffset, 0f);
+
+        if (!overrideColor.HasValue) return;
+
+        foreach (ParticleSystem particle in visual.GetComponentsInChildren<ParticleSystem>(true))
+        {
+            ParticleSystem.MainModule main = particle.main;
+            main.startColor = overrideColor.Value;
+        }
     }
 }

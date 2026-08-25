@@ -14192,7 +14192,13 @@ MonoBehaviour:
     m_Bits: 128
   impactEffectPrefab: {fileID: 0}
   impactSfx: {fileID: 0}
-  _visualSet: {fileID: 11400000, guid: 5d812fdf02a86614e89e30ef71775199, type: 2}
+  _visualSet: {fileID: 0}
+  skillStarEffectPrefab: {fileID: 5671531732343113848, guid: 0ab33f3111e5a9048b79a4bd897d760e, type: 3}
+  impactDelay: 0.8
+  fullDamageRadiusRatio: 0.5
+  outerDamageMultiplier: 0.7
+  scaleStarEffectWithRadius: 1
+  starEffectScale: 4
   _magicLabAsset: {fileID: 11400000, guid: 444e1653e8434af47bb9af09e73f29e3, type: 2}
   _managementController: {fileID: 544968473}
 --- !u!4 &1716086064
