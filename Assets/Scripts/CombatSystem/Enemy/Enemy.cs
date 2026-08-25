@@ -20,6 +20,14 @@ namespace NorthLand.Combat
         float cooldownTimer;
         bool isDying;
 
+        // 스윙 중 타격까지 남은 시간(#452). 0보다 크면 「이미 휘두르는 중」이다.
+        // 쿨다운(다음 스윙까지)과는 별개의 축이다 — 둘을 한 타이머로 겸하면 와인드업이 공격 간격에
+        // 더해져 실효 간격이 늘어난다.
+        float swingHitTimer;
+
+        // 공격 모션 지시 창구(#452). MonsterStateMachine과 같은 탐색 범위(자식 포함, WL-093)를 쓴다.
+        MonsterAnimation monsterAnimation;
+
         /// 이 적이 **처치되어** 사라질 때 정확히 1회 발행된다. 첫 인자는 마지막으로 피해를 준 주체
         /// (모르면 null). 킬스택 성장 타워(#300)가 처치 귀속을 아는 유일한 창구다.
         ///
@@ -91,6 +99,7 @@ namespace NorthLand.Combat
         void Awake()
         {
             monsterStateMachine = GetComponent<MonsterStateMachine>();
+            monsterAnimation = GetComponentInChildren<MonsterAnimation>();
 
             // 배율 미적용 상태의 최대치다. 스포너가 곧 ApplyWaveHpScale로 덮어쓴다 —
             // 스포너를 거치지 않는 경로(테스트 씬 직접 배치)는 배율 1이라 이 값이 그대로 정답이 된다.
@@ -334,6 +343,7 @@ namespace NorthLand.Combat
                 }
 
                 monsterStateMachine?.SetHasTarget(false);
+                CancelSwing();
                 return;
             }
 
@@ -347,6 +357,7 @@ namespace NorthLand.Combat
             if (MovementOwnedByBehavior)
             {
                 monsterStateMachine?.SetHasTarget(false);
+                CancelSwing();
                 cooldownTimer -= Time.deltaTime;
                 return;
             }
@@ -364,6 +375,7 @@ namespace NorthLand.Combat
             if (movement != null && movement.IsStunned)
             {
                 monsterStateMachine?.SetHasTarget(false);
+                CancelSwing();
                 cooldownTimer -= Time.deltaTime;
                 return;
             }
@@ -380,15 +392,61 @@ namespace NorthLand.Combat
 
             cooldownTimer -= Time.deltaTime;
 
+            // 스윙 중이면 타격 시점만 기다린다(#452). 와인드업 사이에 대상이 죽거나 사거리에서
+            // 벗어나면 **헛스윙**이 된다 — 의도한 거동이다. 모션은 이미 나갔으므로 피해만 빈다.
+            if (swingHitTimer > 0f)
+            {
+                swingHitTimer -= Time.deltaTime;
+
+                if (swingHitTimer <= 0f)
+                {
+                    swingHitTimer = 0f;
+
+                    if (hasTarget)
+                    {
+                        TryAttack(target);
+                    }
+                }
+
+                return;
+            }
+
             if (!hasTarget || cooldownTimer > 0f)
             {
                 return;
             }
 
-            if (TryAttack(target))
+            // 쿨다운을 **스윙 시작 기준**으로 재는 것이 핵심이다(#452). 타격 기준으로 재면 실효 공격
+            // 간격이 `간격 + 와인드업`으로 늘어나 밸런싱 수치가 조용히 어긋나고, 애니메이션 1주기와
+            // 공격 1주기가 다시 갈라진다.
+            //
+            // 성공 여부와 무관하게 재는 것도 의도다. 예전에는 실패 시 매 프레임 재시도했는데,
+            // 실패 사유는 투사체 프리팹 미지정 같은 저작 누락이라 재시도로 낫는 종류가 아니다.
+            cooldownTimer = AttackInterval;
+
+            float windup = monsterAnimation != null
+                ? monsterAnimation.PlaySwing(AttackInterval)
+                : 0f;
+
+            if (windup > 0f)
             {
-                cooldownTimer = AttackInterval;
+                swingHitTimer = windup;
+                return;
             }
+
+            // 스윙 제어가 없는 프리팹(공격 클립 미지정 — 자폭병·Phantom)은 예전 즉발 경로를 그대로 쓴다.
+            TryAttack(target);
+        }
+
+        // 예약된 타격을 접는다(#452). 스턴·BT 소유권 진입·게임 종료에서 부른다.
+        //
+        // 접지 않으면 **스턴 중에 예약된 피해가 스턴이 풀린 뒤 그대로 들어간다** — #164가 막으려던
+        // 바로 그 구멍이 와인드업만큼 시간차를 두고 되살아난다. 증상이 "스턴을 걸었는데 본진이
+        // 깎였다"라 원인에서 멀다.
+        void CancelSwing()
+        {
+            swingHitTimer = 0f;
+            monsterAnimation?.SetAttackAnimation(false);
         }
 
 
