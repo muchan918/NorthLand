@@ -28,10 +28,13 @@ namespace NorthLand.Core
         private LoadingScreen screen;
 
         [Header("Timing")]
-        [Tooltip("커튼을 최소 이만큼은 보여 준다. 로딩이 빨라도 한 프레임 번쩍이지 않게 한다.")]
+        [Tooltip("커튼을 최소 이만큼은 보여 준다. 로딩이 아무리 빨라도 마스코트가 뛰는 걸 보여 주고 넘어간다. " +
+                 "marshie-run-v1 클립이 25프레임 @12fps = 2.083초/바퀴이고, 기본값 3.4초는 " +
+                 "그 1.6바퀴에 해당한다 — 한 바퀴로는 짧아 눈으로 맞춘 값이다. " +
+                 "커튼을 걷는 시간(LoadingScreen.fadeOutSeconds)은 여기에 더 얹힌다.")]
         [SerializeField]
         [Min(0f)]
-        private float minimumDisplaySeconds = 0.6f;
+        private float minimumDisplaySeconds = 3.4f;
 
         [Tooltip("전투맵 초기화 완료를 기다리는 상한(초). 넘으면 경고를 남기고 커튼을 걷는다.")]
         [SerializeField]
@@ -142,6 +145,8 @@ namespace NorthLand.Core
                 SceneManager.SetActiveScene(gameScene);
             }
 
+            // 로딩이 일찍 끝나도 여기서 기다린다 — 마스코트가 뛰는 걸 보여 주고 넘어가야 한다는
+            // 요구(#442). 게임 씬은 이미 준비돼 있으므로 이 대기는 순수한 연출 시간이다.
             float elapsed = Time.unscaledTime - startTime;
 
             if (elapsed < minimumDisplaySeconds)

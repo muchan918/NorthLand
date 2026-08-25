@@ -313,7 +313,7 @@ LoadingScene 위에 GameScene을 Additive로 열어 센 결과: **카메라 3 ·
 | 0.30–0.45 | **맵 데이터 생성**(`CombatMapData`) — *Phase 2* | 117ms(최악 5배) |
 | 0.45–0.65 | `LoadSceneAsync(GameScene, Additive)` | |
 | 0.65–0.95 | 준비 완료 대기 — *Phase 2에서 프레임 분산으로 전환* | Tier 3 223ms |
-| 0.95–1.00 | `SetActiveScene` → 페이드아웃 → `UnloadSceneAsync` | |
+| 0.95–1.00 | `SetActiveScene` → 최소 표시 시간 대기 → 페이드아웃 → `UnloadSceneAsync` | |
 
 ### 5.4 Phase 분할 — 소유자 기준
 
@@ -406,10 +406,54 @@ Text (TMP)                     ← 레이아웃 행. 안 찬 글자(흰색) + Lo
 > 군중이 목표를 넘겨 스폰된다. 복원 순서를 명시화하는 Phase 2와 같이 가야 안전하다.
 > 어차피 Phase 1에서도 이 90ms는 커튼 뒤에 있으므로, 미루는 대가는 로딩 애니메이션의 매끄러움뿐이다.
 
+#### 최소 표시 시간 · 커튼 z-order (2026-08-25, #442 2차 실측 반영)
+
+| 지적 | 처리 |
+| --- | --- |
+| 로딩이 일찍 끝나면 마스코트가 뛰는 걸 못 보고 넘어간다 | `LoadingFlow.minimumDisplaySeconds` **1.2 → 3.4초** — `marshie-run-v1` 클립이 25프레임 @12fps = **2.083초/바퀴**라 약 1.6바퀴. 한 바퀴(2.1초)로는 짧아 눈으로 맞춘 값이다 |
+| 게임 씬 UI가 커튼 **위로** 올라온다 | 로딩 `Canvas.sortingOrder` **0 → 1000**(`UILayer.LoadingCurtain`). 규약은 `Docs/Core/UIZOrder.md` §3 |
+| 씬 전환을 인게임 낮/밤 전환처럼 | **보류** — 아래 참고 |
+
+**왜 커튼이 덮이고 있었나.** `LoadingScene`은 `GameScene`을 Additive로 올린 뒤에도 살아 있는데
+(§5.1), Screen Space - Overlay Canvas는 **씬과 무관하게 `sortingOrder`로만 전역 정렬**된다.
+커튼이 `0`이면 `UICanvas`(100) · `RewardCanvas`(500) · `SettingCanvas`(700) · `ResultCanvas`(900)이
+전부 커튼 위에 그려진다. 커튼은 항상 그 표의 최상단이어야 한다.
+
+**타이밍 총합**: 최소 표시 3.4초 + 커튼 알파 페이드 0.35초 ≈ **3.75초**.
+
+| 파일 | 변경 |
+| --- | --- |
+| `LoadingFlow.cs` | `minimumDisplaySeconds` 기본값 상향 + 근거 주석 |
+| `UILayer.cs` | `LoadingCurtain = 1000` 추가 |
+| `Assets/Scenes/LoadingScene.unity` | Canvas `sortingOrder = 1000`, `minimumDisplaySeconds = 3.4` |
+
+> ⚠ 이 저장에서 `LoadingLayout`·마스코트·`Text (TMP)`의 `m_AnchorMin/Max`·`m_AnchoredPosition`·
+> `m_SizeDelta`가 0으로 바뀐 diff가 같이 난다. 셋 다 `VerticalLayoutGroup`/`ContentSizeFitter`가
+> **driven으로 잡는 값**이라 Unity가 저장하면서 비우는 것이고, 로드 시 레이아웃이 다시 계산한다
+> (강제 리빌드로 `layout=(420.73, 265.89)` · `mascot=(420.73, 180)` 복원 확인). 되돌릴 필요 없다.
+
+#### 커튼 전환 연출 — **보류**(2026-08-25)
+
+"씬 전환이 인게임 낮/밤 전환(#101)처럼 보였으면 한다"는 요청으로 **셀 와이프를 시제작했다가
+롤백했다.** 커튼은 기존 알파 페이드(0.35초) 그대로다. 재시도할 사람을 위해 확인된 사실만 남긴다.
+
+- **`DayNightTransition`을 그대로 재사용할 수 없다.** 그것은 URP 풀스크린 렌더러 피처(`PC_Renderer`·
+  `Mobile_Renderer`의 `Night Wipe`)라 **카메라 렌더 안에서** 돈다. 인게임에서 HUD를 안 덮는 것도
+  같은 이유이고, 그래서 Overlay 캔버스인 로딩 커튼에도 닿지 않는다.
+- **그 패스는 "리빌"을 못 한다.** `NightWipe.shader`는 뒤집힌 셀에 **색 그레이드를 얹을 뿐**이라
+  아래 씬을 드러내지 못한다. 커튼을 셀 단위로 걷으려면 커튼 그래픽 쪽에 **셀별 알파**가 필요하다.
+- **시제작 결과는 동작했다.** uGUI 머티리얼로 같은 무늬를 그리고(셀 임계값 식은 공유 `.hlsl`로 추출),
+  커튼 `Panel`·마스코트 `Image`는 셀에 먹히고 TMP 문구만 `CanvasGroup`으로 페이드하는 구성이었다.
+  편집 모드 프리뷰에서 우하단 → 좌상단으로 48px 셀이 지터와 함께 뒤집히고 선행 엣지가 얹히는 것까지
+  확인했다. **기술적 문제가 아니라 "기존 자산으로 가자"는 판단으로 접었다.**
+- 재개한다면 비용은 셰이더 1 + 머티리얼 1 + 컴포넌트 1이고, 인게임 튜닝값과의 **이중 관리**가
+  남는 부담이다(무늬 식만 공유하고 파라미터는 각자 들고 있게 된다).
+
 ### 5.5 미결로 남은 것
 
 | 항목 | 상태 |
 | --- | --- |
+| 커튼 전환 연출(셀 와이프) | **보류** — 시제작 후 롤백. 확인된 제약과 재개 비용은 §5.4 말미 |
 | TMP 글리프 프리워밍 | JP 정적 서브셋 재베이크(Phase 2 폰트 작업)와 범위가 겹쳐 함께 결정 |
 | `BuffBurnReward.asset` 고아 | 담당자 확인 대기(§3.3) |
 | Standalone 스크립팅 백엔드 | 눈으로 확인 필요(§4.3) |
