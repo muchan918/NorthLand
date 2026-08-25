@@ -7,6 +7,19 @@ using UnityEngine.InputSystem;
 /// 생산라인 위 바로가기 버튼. 누르면 그 건물로 카메라를 옮기고 건물 패널을 연다.
 public class BuildingShortcutBar : MonoBehaviour
 {
+    private static readonly Key[] k_ShortcutKeys =
+    {
+        Key.Digit1,
+        Key.Digit2,
+        Key.Digit3,
+        Key.Digit4,
+        Key.Digit5,
+        Key.Digit6,
+        Key.Digit7,
+        Key.Digit8,
+        Key.Digit9
+    };
+
     [Serializable]
     private struct Entry
     {
@@ -34,6 +47,9 @@ public class BuildingShortcutBar : MonoBehaviour
     [SerializeField] private Canvas _canvas;                      // 스케일 팩터 계산용
     [SerializeField] private Vector2 _cursorOffset = new(16f, -16f);
 
+    // KeyboardManager의 바인딩 목록은 static이라, 해제할 때 같은 Action 인스턴스가 필요하다.
+    private Action[] _shortcutHandlers;
+
     private void Start()
     {
         if (_camera == null)
@@ -52,10 +68,14 @@ public class BuildingShortcutBar : MonoBehaviour
             entry.button.interactable = entry.focus != null;
             entry.button.onClick.AddListener(() => Focus(entry));
         }
+
+        BindShortcuts();
     }
 
     private void OnDestroy()
     {
+        UnbindShortcuts();
+
         foreach (Entry entry in _entries)
         {
             if (entry.button != null)
@@ -63,34 +83,47 @@ public class BuildingShortcutBar : MonoBehaviour
         }
     }
 
-    private void Update()
+    private void BindShortcuts()
     {
-        // 설정창이 열려 있으면 숫자키 이동을 막는다.
-        if (_settingUI != null && _settingUI.IsOpen)
-            return;
+        int count = Mathf.Min(_entries.Length, k_ShortcutKeys.Length);
+        _shortcutHandlers = new Action[count];
 
-        Keyboard keyboard = Keyboard.current;
-        if (keyboard == null)
-            return;
+        for (int i = 0; i < count; i++)
+        {
+            int index = i;
+            Action handler = () => FocusEntry(index);
+            _shortcutHandlers[index] = handler;
 
-        if (keyboard.digit1Key.wasPressedThisFrame)
-            FocusEntry(0);
-        else if (keyboard.digit2Key.wasPressedThisFrame)
-            FocusEntry(1);
-        else if (keyboard.digit3Key.wasPressedThisFrame)
-            FocusEntry(2);
-        else if (keyboard.digit4Key.wasPressedThisFrame)
-            FocusEntry(3);
-        else if (keyboard.digit5Key.wasPressedThisFrame)
-            FocusEntry(4);
-        else if (keyboard.digit6Key.wasPressedThisFrame)
-            FocusEntry(5);
-        else if (keyboard.digit7Key.wasPressedThisFrame)
-            FocusEntry(6);
+            KeyboardManager.Bind(
+                k_ShortcutKeys[index],
+                KeyModifier.None,
+                handler,
+                $"건물 바로가기 {index + 1}");
+        }
+    }
+
+    private void UnbindShortcuts()
+    {
+        if (_shortcutHandlers == null) return;
+
+        for (int i = 0; i < _shortcutHandlers.Length; i++)
+        {
+            Action handler = _shortcutHandlers[i];
+            if (handler == null) continue;
+
+            KeyboardManager.Unbind(k_ShortcutKeys[i], KeyModifier.None, handler);
+        }
+
+        _shortcutHandlers = null;
     }
 
     private void FocusEntry(int index)
     {
+        // 설정창은 뒤 월드 입력을 막는다. 버튼 클릭은 패널의 Raycast가 담당하고,
+        // 키보드 경로는 여기서 같은 정책을 적용한다.
+        if (_settingUI != null && _settingUI.IsOpen)
+            return;
+
         if (index < 0 || index >= _entries.Length)
             return;
 
