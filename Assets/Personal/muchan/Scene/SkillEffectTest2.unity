@@ -3798,7 +3798,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: ffceae6f7fbbf4a4698ab3851f7a465c, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 0a9f7f94266582942994bdad926b9335, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -11595,7 +11595,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -460993406, guid: 69fa29edc4b7d7c4585061851501f7f0, type: 3}
+  m_Sprite: {fileID: 21300000, guid: ac86623e349e7da4d8aba5b0afc6f254, type: 3}
   m_Type: 3
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -14186,7 +14186,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SkillManager
   damage: 30
   radius: 6
-  cooldown: 10
+  cooldown: 15
   enemyLayerMask:
     serializedVersion: 2
     m_Bits: 128
@@ -15314,7 +15314,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BurnEffect
   maxLevel: 3
-  tickDamagePerLevel: 2
+  tickDamagePerLevel: 5
   tickInterval: 0.5
   duration: 3
   debugLog: 0
@@ -15334,7 +15334,7 @@ MonoBehaviour:
   bombPrefab: {fileID: 1904690475409078082, guid: 9333820f99e1c1140b56dc9c01913d2c, type: 3}
   explosionEffectPrefab: {fileID: 2663140773275296467, guid: c44b1c77ea9c95140900944b2b559e33, type: 3}
   bombScale: 2
-  damagePerLevel: 20
+  damagePerLevel: 30
   explosionDelay: 2
   explosionRadius: 6
   enemyLayerMask:
@@ -23733,7 +23733,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -460993406, guid: 69fa29edc4b7d7c4585061851501f7f0, type: 3}
+  m_Sprite: {fileID: 21300000, guid: ac86623e349e7da4d8aba5b0afc6f254, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1

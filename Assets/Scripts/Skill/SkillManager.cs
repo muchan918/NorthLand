@@ -42,9 +42,9 @@ public class SkillManager : MonoBehaviour
     [Tooltip("별 이펙트의 기본 크기 배율. 범위 강화 배율과 별도로 곱해진다")]
     [Min(0.01f)] [SerializeField] float starEffectScale = 1f;
 
-    // 마법 연구소(#205) — 레벨 비례로 기본 스탯(damage/radius/cooldown)을 배율 강화한다.
-    // 컨트롤러는 레벨(int)만 노출하고, 레벨→배율 매핑은 `_magicLabAsset.Skill.UpgradeLevels`(SO)에
-    // authoring한다 — 비용과 배율이 같은 리스트라 레벨 개수가 어긋날 수 없다(PR#216 리뷰, 씬 리스트 제거).
+    // 마법 연구소(#205) — 피해·쿨타임은 단계별 절대값, 범위는 기본 반경 배율로 강화한다.
+    // 컨트롤러는 레벨(int)만 노출하고, 레벨→수치 매핑은 `_magicLabAsset.Skill.UpgradeLevels`(SO)에
+    // authoring한다 — 비용과 수치가 같은 리스트라 레벨 개수가 어긋날 수 없다(PR#216 리뷰, 씬 리스트 제거).
     // 보상 특수효과(#169, SkillEffect.Level)와는 독립 축 — ImpactResolved 구독 흐름은 건드리지 않는다.
     [Header("마법 연구소 강화 (#205)")]
     [Tooltip("비우면 강화 없음(레벨 0 취급)")]
@@ -179,9 +179,9 @@ public class SkillManager : MonoBehaviour
             // 레벨이 테이블 크기를 넘으면(비정상 상태 — 컨트롤러가 레벨을 이 SO에서 산출하므로 실제로는
             // 발생하지 않지만) base로 되돌리지 않고 마지막 엔트리를 유지한다(PR#216 리뷰, 방어적 clamp).
             BuildingAsset.SkillUpgradeLevel scaling = levels[Mathf.Clamp(level, 1, levels.Count) - 1];
-            effectiveDamage = Scale(damage, scaling.DamageMultiplier);
+            effectiveDamage = PositiveOrFallback(scaling.DamageValue, damage);
             effectiveRadius = Scale(radius, scaling.RadiusMultiplier);
-            effectiveCooldown = Scale(cooldown, scaling.CooldownMultiplier);
+            effectiveCooldown = PositiveOrFallback(scaling.CooldownSeconds, cooldown);
         }
         else
         {
@@ -203,6 +203,7 @@ public class SkillManager : MonoBehaviour
     // 데이터나 실수로 0/음수가 들어와도 1.0(배율 없음)으로 취급해 방어한다(PR#216 리뷰) — 쿨다운 0=무한
     // 연발, 사거리 0=미적중 같은 조용한 파괴적 결과를 막는다.
     static float PositiveOr1(float multiplier) => multiplier > 0f ? multiplier : 1f;
+    static float PositiveOrFallback(float value, float fallback) => value > 0f ? value : fallback;
 
     /// 베이스 스탯에 마법 연구소 배율을 적용한다. **표시와 실효가 같은 식을 통과해야** 어긋나지 않으므로
     /// 건물 정보 패널(BuildingInfoUI)도 이 메서드로 미리보기 값을 계산한다 — 곱셈식과 0/음수 방어가

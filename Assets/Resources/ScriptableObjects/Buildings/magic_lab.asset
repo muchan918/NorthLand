@@ -26,9 +26,9 @@ MonoBehaviour:
       - Resource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
         Amount: 20
       RequiredCastleLevel: 0
-      DamageMultiplier: 1.2
+      DamageValue: 35
       RadiusMultiplier: 1.2
-      CooldownMultiplier: 0.9
+      CooldownSeconds: 14
       BuffDamageMultiplierScale: 1.1
       BuffAttackSpeedMultiplierScale: 1.1
       BuffDurationMultiplier: 1.1
@@ -37,9 +37,9 @@ MonoBehaviour:
       - Resource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
         Amount: 40
       RequiredCastleLevel: 0
-      DamageMultiplier: 1.4
+      DamageValue: 40
       RadiusMultiplier: 1.4
-      CooldownMultiplier: 0.8
+      CooldownSeconds: 13
       BuffDamageMultiplierScale: 1.3
       BuffAttackSpeedMultiplierScale: 1.3
       BuffDurationMultiplier: 1.3
@@ -48,9 +48,9 @@ MonoBehaviour:
       - Resource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
         Amount: 60
       RequiredCastleLevel: 0
-      DamageMultiplier: 1.6
+      DamageValue: 45
       RadiusMultiplier: 1.6
-      CooldownMultiplier: 0.7
+      CooldownSeconds: 12
       BuffDamageMultiplierScale: 1.6
       BuffAttackSpeedMultiplierScale: 1.6
       BuffDurationMultiplier: 1.6
@@ -59,9 +59,9 @@ MonoBehaviour:
       - Resource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
         Amount: 90
       RequiredCastleLevel: 1
-      DamageMultiplier: 1.8
+      DamageValue: 60
       RadiusMultiplier: 1.8
-      CooldownMultiplier: 0.6
+      CooldownSeconds: 10
       BuffDamageMultiplierScale: 1.9
       BuffAttackSpeedMultiplierScale: 1.9
       BuffDurationMultiplier: 1.9
@@ -70,9 +70,9 @@ MonoBehaviour:
       - Resource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
         Amount: 130
       RequiredCastleLevel: 2
-      DamageMultiplier: 2
+      DamageValue: 80
       RadiusMultiplier: 2
-      CooldownMultiplier: 0.55
+      CooldownSeconds: 8
       BuffDamageMultiplierScale: 2.2
       BuffAttackSpeedMultiplierScale: 2.2
       BuffDurationMultiplier: 2.2
