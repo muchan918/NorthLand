@@ -4986,6 +4986,75 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 590662357}
   m_CullTransparentMesh: 1
+--- !u!1001 &604071818
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 5671531732343113848, guid: 0ab33f3111e5a9048b79a4bd897d760e, type: 3}
+      propertyPath: m_Name
+      value: top_down_starfall_dot_purple
+      objectReference: {fileID: 0}
+    - target: {fileID: 8719281047650221443, guid: 0ab33f3111e5a9048b79a4bd897d760e, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8719281047650221443, guid: 0ab33f3111e5a9048b79a4bd897d760e, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8719281047650221443, guid: 0ab33f3111e5a9048b79a4bd897d760e, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8719281047650221443, guid: 0ab33f3111e5a9048b79a4bd897d760e, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 40.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 8719281047650221443, guid: 0ab33f3111e5a9048b79a4bd897d760e, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.4999993
+      objectReference: {fileID: 0}
+    - target: {fileID: 8719281047650221443, guid: 0ab33f3111e5a9048b79a4bd897d760e, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -179.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8719281047650221443, guid: 0ab33f3111e5a9048b79a4bd897d760e, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 8719281047650221443, guid: 0ab33f3111e5a9048b79a4bd897d760e, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8719281047650221443, guid: 0ab33f3111e5a9048b79a4bd897d760e, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 8719281047650221443, guid: 0ab33f3111e5a9048b79a4bd897d760e, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8719281047650221443, guid: 0ab33f3111e5a9048b79a4bd897d760e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8719281047650221443, guid: 0ab33f3111e5a9048b79a4bd897d760e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 90
+      objectReference: {fileID: 0}
+    - target: {fileID: 8719281047650221443, guid: 0ab33f3111e5a9048b79a4bd897d760e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 0ab33f3111e5a9048b79a4bd897d760e, type: 3}
 --- !u!1001 &629478334
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -24304,6 +24373,7 @@ MonoBehaviour:
   _button: {fileID: 4146640221422542342}
   _skillGhostPrefab: {fileID: 1627122659657980782, guid: 8b590d985dec8554b96c873e2491f147, type: 3}
   _castHeight: 5
+  _castOffsetXZ: {x: 0, y: 0}
   _rechargeText: {fileID: 585776165}
   _chargeText: {fileID: 1209942896}
   _fillImage: {fileID: 1397079616}
@@ -30569,3 +30639,4 @@ SceneRoots:
   - {fileID: 847527040}
   - {fileID: 1541935840}
   - {fileID: 652033959}
+  - {fileID: 604071818}
