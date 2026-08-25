@@ -12,17 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
   m_Name: CastleUpgrade
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
-  popupTitle: "\uBCF8\uC9C4 \uAC15\uD654"
-  popupBody: "\uBCF8\uC9C4\uC744 \uAC15\uD654\uD558\uBA74 \uB2E4\uB978 \uAC74\uBB3C\uC758
-    \uB354 \uB192\uC740 \uB808\uBCA8\uC774 \uC5F4\uB9BD\uB2C8\uB2E4.\r\n\uC0DD\uC0B0
-    \uAC74\uBB3C\uACFC \uB9C8\uBC95 \uC5F0\uAD6C\uC18C\uB294 \uBCF8\uC9C4 \uB808\uBCA8\uC774
-    \uBAA8\uC790\uB77C\uBA74 \uADF8 \uC704\uB85C \uC62C\uB9B4 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.\n\uB610\uD55C
-    \uC5F0\uAE08\uC220\uC0AC \uC9D1\uC5D0\uC11C \uAD50\uD658\uB418\uB294 \uC790\uC6D0\uB7C9\uC774
-    \uC99D\uAC00\uD569\uB2C8\uB2E4.\r\n\uC5F0\uC2B5\uC744 \uC704\uD574 \uC774\uBC88\uC5D0\uB294
-    \uC790\uC6D0 \uC5C6\uC774 \uAC15\uD654\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4."
+  popupTitleKey: tutorial.castle.upgrade.title
+  popupBodyKey: tutorial.castle.upgrade.body
   popupImage: {fileID: 0}
-  bubbleText: "\uBC14\uB85C\uAC00\uAE30 \uBC14\uC5D0\uC11C \uCE90\uC2AC\uC744 \uB20C\uB7EC
-    \uBCF8\uC9C4\uC744 Lv2\uB85C \uAC15\uD654\uD558\uC138\uC694"
+  bubbleTextKey: tutorial.castle.upgrade.bubble
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
