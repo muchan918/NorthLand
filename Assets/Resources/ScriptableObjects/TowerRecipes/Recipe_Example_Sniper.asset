@@ -13,9 +13,10 @@ MonoBehaviour:
   m_Name: Recipe_Example_Sniper
   m_EditorClassIdentifier: Assembly-CSharp::TowerRecipe
   Materials:
-  - Tower: {fileID: 11400000, guid: 7ecd80d44165e644591aafb428cf5efe, type: 2}
-    Count: 2
-  - Tower: {fileID: 11400000, guid: a752545bbde5030438f8995ae4ee0849, type: 2}
+  - Tower: {fileID: 11400000, guid: a644f4da55393c0449049fe2ae101343, type: 2}
     Count: 1
+  - Tower: {fileID: 11400000, guid: 0e3d45c8b208b00479eb76f74367a6be, type: 2}
+    Count: 2
   Result: {fileID: 11400000, guid: 12559c63206463b478dc0e4fbd7ea193, type: 2}
   ExtraCost: []
+  InheritEffects: 0

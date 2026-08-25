@@ -18,13 +18,13 @@ MonoBehaviour:
   Icon: {fileID: 21300000, guid: b87f97a3687e32349afa3fd64328c241, type: 3}
   PlacementYaw: 45
   Cost: []
-  Rarity: 1
+  Rarity: 2
   UnlockWave: 1
   Attack:
     AttackDamage: 31
     AttackRange: 36
     AttackInterval: 2
-    ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
+    ProjectilePrefab: {fileID: 2067684335409689053, guid: a5585602ce51aa24483177c544cf0ca3, type: 3}
     Flight:
       rid: 3470829504553025640
     PelletCount: 1
@@ -72,6 +72,8 @@ MonoBehaviour:
       MaxStacks: 0
       StackInterval: 0
       DecaySeconds: 0
+    SecondaryStat: 0
+    SecondaryPerStack: 0
   Effects: []
   references:
     version: 2
