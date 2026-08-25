@@ -44,4 +44,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea1f90be65c51cb419893c2bd49fa818, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkillRangeIndicator
-  auraVisualPrefab: {fileID: 3491630333432951405, guid: e597f6da9c222a64fa2accf52283e967, type: 3}
+  auraVisualPrefab: {fileID: 1568281471422469883, guid: b3c80aa23b98eff45aea982fffe5c981, type: 3}
+  referenceRadius: 1.2
+  yOffset: 0
