@@ -36,7 +36,7 @@
 | ManagementVfx (경영 연출: 업그레이드·줌 힌트·열기구, #138) | n0wst4ndup | `Assets/Scripts/ManagementSpace/Vfx` | 세 갈래 모두 **컨트롤러·카메라에 연출 지식을 넣지 않는다**. **행동 연출**(`BuildingFeedback`) — `ManagementController.OnBuildingAction`을 구독해 자기 건물(`BuildingAsset`)의 알림만 골라 파티클 1회 재생. **줌 힌트**(`BuildingZoomHint`) — `ZoomDrivenVisibility` 파생. 오쏘 사이즈 구간(씬 100~999)에서 상시 파티클로 상호작용 가능 건물을 안내한다. ⚠ **낮/밤을 보지 않는다**: 밤에는 `IsDay` 게이트로 상호작용이 잠기는데(WL-104) 힌트는 그대로 뜬다 — **밤에도 노출하는 것으로 결정(TBD)**, 이질감이 발현하면 `DayNightManager` 구독으로 합성한다(베이스가 `protected IsVisible`을 열어 둔 이유). **열기구**(`BalloonFlightSpawner`/`BalloonFlight`) — 스폰 지점이 화면 밖이면 타이머조차 흘리지 않고, 회수는 종료 지점 도달 또는 화면 밖 8초 유예 중 먼저다. 그래서 동시 생존 수가 플레이어 시선에 비례한다(안 따라가면 2~3대, 끝까지 따라가면 ~8대). 시간은 `Time.deltaTime` — 월드 배경이므로 배속을 따른다(WL-100). 파티클 프리팹은 `Imported/@NorthLand/Particles/Management`에 있어 미동기화 시 연출만 사라진다(WL-040) |
 | GameManager (승패 판정 · 결과 통지) | 미정(muchan918·sunjin1222 공동 편집) | `Assets/Scripts/GameManager/GameManager.cs` | 전투 씬 스코프 싱글톤. 본진 HP 0 → `TriggerGameOver()`, 최종 웨이브/보스 처치 → `TriggerVictory()`로 결과를 **최초 1회만** 확정하고(`Playing`으로는 확정 불가, 두 번째 호출은 조용히 무시) 결과 화면 표시는 `ResultUIManager`에 위임한 뒤 `OnResultDecided`를 발행한다. **이 클래스는 다른 시스템을 직접 부르지 않는다** — 시간 정지·저장 삭제·진행 중 효과 취소 같은 후속 처리는 전부 구독 측 책임이다(§2 참고). 소비처가 이미 5종이라 발행 시점·1회 계약을 모르면 중복 정리가 붙기 쉽다 |
 | GameSceneManager (씬 전환 · Run 진입 핸드오프) | 미정(muchan918·sunjin1222 공동 편집) | `Assets/Scripts/GameManager/GameSceneManager.cs` | `RuntimeInitializeOnLoadMethod(BeforeSceneLoad)`로 부팅하는 `DontDestroyOnLoad` 싱글톤(씬 배치 없음 — `AudioManager`와 같은 패턴). 씬 이름은 인덱스가 아니라 정본 상수(`TitleScene`/`GameScene`, WL-028)로 로드한다. `IsTitleScene`이 타이틀 판정의 단일 출처이며, 다른 매니저의 존재 여부로 씬을 추정하지 않는다. 새 게임·이어하기·시드 지정 진입이 전부 여기를 지난다. 타이틀에서 역직렬화가 끝난 이어하기 `RunData`와 직접 입력한 마스터 시드를 다음 게임 씬까지 **일회성 핸드오프 데이터**로 임시 보관하며, `TryConsume*` 성공 시 즉시 참조와 플래그를 지워 다음 Run에 새지 않게 한다. 파일 IO·버전 판별·역직렬화는 `RunSaveLoader`, 게임 상태 복원은 `RunSaveManager`의 책임이며 이 매니저는 세이브 내용을 해석하지 않는다. |
-| Tutorial (튜토리얼 진행·진입, #408·#479) | muchan | `Assets/Scripts/Tutorial`, `Assets/Prefabs/Tutorial`, `Assets/Scenes/GameScene.unity` | 단계 SO 22개 + 진행 컨트롤러 + 오버레이 + 완료 조건 추상화(`[SerializeReference]`)가 정본 `GameScene`에서 동작한다. `TutorialMode`를 씬 로드 전에 켜 전용 웨이브와 UI를 활성화하며, 슬롯별 `PlayerData.tutorialCompleted`가 최초 새로하기 자동 진입을 결정한다. 완료·스킵은 일반 `GameScene`을 재로드하고, 시드 지정 시작은 같은 마스터 시드를 본 게임에 다시 전달한다. `TutorialRelayUI` 다시 보기는 경고 확인 후 기존 Run을 삭제하며 튜토리얼 중 낮 시작 자동 저장은 차단한다. 딤·강조·말풍선 구간 입력 차단과 다국어는 후속 범위다. 절차·규칙 정본은 `Docs/Core/Tutorial.md` |
+| Tutorial (튜토리얼 진행·진입, #408·#479) | muchan | `Assets/Scripts/Tutorial`, `Assets/Prefabs/Tutorial`, `Assets/Scenes/GameScene.unity` | 단계 SO 22개 + 진행 컨트롤러 + 오버레이 + 완료 조건 추상화(`[SerializeReference]`)가 정본 `GameScene`에서 동작한다. `TutorialMode`를 씬 로드 전에 켜 전용 웨이브와 UI를 활성화하며, 슬롯별 `PlayerData.tutorialCompleted`가 최초 새로하기 자동 진입을 결정한다. 튜토리얼 맵은 `TutorialMode.MasterSeed`를 기존 일회성 시드 핸드오프로 전달해 생성한다. 완료·스킵은 일반 `GameScene`을 재로드하고, 시드 지정 시작의 입력값은 본 게임 복귀용으로 별도 보관한다. `TutorialRelayUI` 다시 보기는 경고 확인 후 현재 슬롯의 기존 Run을 삭제하며 슬롯이 없으면 건너뛰고, 튜토리얼 중 낮 시작 자동 저장은 차단한다. 딤·강조·말풍선 구간 입력 차단은 후속 범위다. 절차·규칙 정본은 `Docs/Core/Tutorial.md` |
 
 `OutlineInteractionDriver`·`ResidentSelectionCoordinator`·`ResidentDragCoordinator`는 런타임에 자가 부팅되는 전역 소비처다. 씬 오브젝트에 중복 부착된 인스턴스는 호스트 오브젝트를 지우지 않고 `Destroy(this)`로 중복 컴포넌트만 제거한다. 세 소비처와 `BuildingFeedback`의 누락 경고는 `GameSceneManager.IsTitleScene`일 때만 억제하며, 개인 테스트 씬에서는 진단을 유지한다.
 
@@ -45,7 +45,7 @@
 - **소유자**: sunjin1222
 - **경로**: `Assets/Scripts/SeedData`, `Assets/Scripts/SaveData/RunData.cs`
 - `RunBootstrapper`가 `[DefaultExecutionOrder(-1000)]`으로 전투맵보다 먼저 마스터 시드를 확정한다.
-- 마스터 시드 결정 우선순위는 **Inspector 개발용 override → 타이틀에서 전달된 시드 → 새 무작위 시드**다.
+- 마스터 시드 결정 우선순위는 **Inspector 개발용 override → `GameSceneManager`에서 전달된 일회성 시드 → 새 무작위 시드**다. 튜토리얼도 이 전달 경로로 `TutorialMode.MasterSeed`를 주입한다.
 - `RunSeedDeriver.Derive(masterSeed, systemTag)`는 고정 FNV-1a를 사용한다. 문자열 태그 기반이므로 시스템 추가나 호출 순서 변경이 기존 시스템 시드를 밀지 않는다.
 - 현재 태그는 `CombatMap` 하나이며(`Territory` 태그는 #337에서 삭제), 각 시스템은 하나의 `System.Random` 인스턴스를 공유하지 않는다.
 - `RunSeedData`는 마스터 시드, 파생 규칙 버전, 시스템별 요청 시드와 최종 사용 시드를 기록하고 `RunData`에 포함된다.
@@ -850,12 +850,12 @@
 ### Tutorial (튜토리얼 진행 틀)
 
 - `TutorialMode.Enter()` / `Exit()` — 같은 `GameScene`을 튜토리얼 또는 일반 모드로 진입시키는 정적 상태. `MonsterSpawnWaveProvider.Awake`가 읽으므로 반드시 씬 로드 전에 설정한다.
-- `TutorialController.IsRunning` / `StartTutorial()` / `StopTutorial()` — 진행 소유. 단계 순서는 인스펙터 `steps` 리스트의 **등록 순서가 전부**이며 단계 에셋은 자기 인덱스를 갖지 않는다(`MonsterWaveAsset`과 같은 규칙, #294). 완료·스킵 시 슬롯별 완료 상태를 저장하고 일반 `GameScene`으로 전환한다. 저장 실패는 로그로 남기되 단계 규칙 정리와 전환은 계속한다. 시드 지정 진입은 복귀 시드를 필드에 보관했다가 본 게임에 전달한다.
+- `TutorialController.IsRunning` / `StartTutorial()` / `StopTutorial()` — 진행 소유. 단계 순서는 인스펙터 `steps` 리스트의 **등록 순서가 전부**이며 단계 에셋은 자기 인덱스를 갖지 않는다(`MonsterWaveAsset`과 같은 규칙, #294). 완료·스킵 시 슬롯별 완료 상태를 저장하고 일반 `GameScene`으로 전환하며, 시드 지정 진입은 복귀 시드를 필드에 보관했다가 본 게임에 전달한다. 저장 실패는 로그로 남기되 단계 규칙 정리와 전환은 계속한다.
 - 튜토리얼 표시 문자열은 `NorthLand_Tutorial` String Table(ko-KR/en-US/ja-JP)이 소유한다. 단계 SO의 `popupTitleKey`/`popupBodyKey`/`bubbleTextKey`는 `tutorial.<의미>.title|body|bubble` 키만 저장하며, 순번을 키에 넣지 않는다. 현재 팝업·말풍선은 `SelectedLocaleChanged` 때 다시 조회하고, 정적 버튼·재진입 팝업은 `LocalizeStringEvent`로 갱신한다.
 - `TutorialCondition.Begin(TutorialContext)` / `End()` / `Satisfied` — 완료 조건 계약. **진행부는 조건이 무엇을 감시하는지 모른다** — `Satisfied`만 받는다. 완료 판정은 각 시스템의 **기존 이벤트 구독**으로만 하고 임의 타이머를 쓰지 않는다(#271). `[SerializeReference]`로 단계 에셋에 인라인 저장되므로 ⚠ **파생 클래스 이름·네임스페이스를 바꾸면 기존 단계의 조건 데이터가 소실된다.** `Begin`에서 건 구독은 `End`에서 전부 풀고, 상태를 가진 조건은 `Begin`에서 초기화한다(조건 객체가 에셋에 저장돼 이전 플레이 값이 남는다).
 - `TutorialContext.Management` / `DayNight` — 조건이 쓰는 씬 참조 주소록. **`static Instance`가 없어 씬을 뒤져야 하는 시스템만 여기 담는다**(`ManagementController`가 그 경우). `Tower.ActiveChanged`처럼 static이거나 `.Instance`가 있는 시스템은 조건이 직접 잡는다 — 새 조건이 Context를 늘리는 것은 예외적인 경우다.
 - `TutorialOverlay.ShowPopup(string, string, Sprite)` / `ShowBubble(string)` / `HidePopup()` / `HideBubble()` / `HideAll()` / `PopupConfirmed` / `SkipRequested` — 표시 전용. 단계를 모르며, 확인·스킵 클릭을 이벤트로만 알린다. **팝업 루트가 전체 화면 + `raycastTarget`이라 팝업 구간의 입력 차단이 여기 딸려 온다**; 반대로 말풍선 루트는 `raycastTarget`을 꺼야 뒤쪽 월드 클릭이 산다(`MouseManager`가 `IsPointerOverGameObject()`만 보기 때문).
-- `TutorialRelayUI` — 일반 게임의 다시 보기 버튼과 확인 팝업을 소유한다. 확인 시 현재 Run 삭제에 성공한 경우에만 `GameSceneManager.LoadTutorial()`을 호출하며, 취소·파괴 경로에서 자기가 건 `GamePauseReason.Tutorial`을 해제한다.
+- `TutorialRelayUI` — 일반 게임의 다시 보기 버튼과 확인 팝업을 소유한다. 확인 시 현재 Run 삭제에 성공한 경우에만 `GameSceneManager.LoadTutorial()`을 호출한다. 선택 슬롯이 없으면 삭제할 Run이 없는 것으로 처리하며, 취소·파괴 경로에서 자기가 건 `GamePauseReason.Tutorial`을 해제한다.
 - 새 단계·새 조건 추가 절차와 함정은 `Docs/Core/Tutorial.md`가 정본이다.
 
 ## 3. 접점 매트릭스 (왼쪽 시스템을 건드리는 PR은 오른쪽 항목을 실제 코드로 대조)

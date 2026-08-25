@@ -107,10 +107,11 @@ protected void Fire();
 - 새로하기는 현재 슬롯의 `PlayerData.tutorialCompleted`가 `false`일 때만 튜토리얼로 진입한다.
 - 완료와 스킵은 모두 완료 상태를 슬롯별로 저장하고 일반 `GameScene`을 다시 로드한다. 저장 실패는
   오류로 남기되 일시정지와 단계 규칙을 정리하고 본 게임 전환은 계속한다.
-- 시드 지정 새로하기가 튜토리얼을 거치면 `TutorialController`가 복귀 시드를 보관하고, 종료 후 본 게임에
-  같은 마스터 시드를 다시 전달한다.
+- 튜토리얼 맵은 씬 로드 전에 `TutorialMode.MasterSeed`를 `GameSceneManager`의 기존 일회성 시드
+  핸드오프에 넣어 생성한다. `RunBootstrapper`는 튜토리얼을 알지 않고 일반 시드 소비 경로를 그대로 사용한다.
+- 시드 지정 새로하기가 튜토리얼을 거치면 입력 시드는 복귀용으로만 보관하고, 종료 후 본 게임에 전달한다.
 - `TutorialRelayUI`의 다시 보기는 경고 팝업 확인 후 현재 슬롯의 `run-save.json`을 삭제하고 튜토리얼을
-  1일차부터 시작한다. 삭제에 실패하면 현재 게임을 유지한다.
+  1일차부터 시작한다. 선택 슬롯이 없으면 삭제할 Run이 없는 것으로 처리하며, 실제 삭제에 실패하면 현재 게임을 유지한다.
 - 튜토리얼 중 `DayNightManager.OnDayStart` 자동 저장은 건너뛴다. 튜토리얼 런은 이어하기 데이터의
   소유자가 아니다.
 - `TutorialOverlay.SkipRequested`가 스킵 요청을 전달한다. 오버레이는 완료 기록이나 씬 전환을 직접
