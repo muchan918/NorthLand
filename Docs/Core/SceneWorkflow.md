@@ -15,19 +15,40 @@
 그래서 씬은 **개인 복사본에서 작업 → 번호를 붙인 새 파일로 병합**하는 방식으로, 스크립트와
 다른 절차를 쓴다.
 
-- 정본 씬은 항상 `Assets/Scenes/TitleScene.unity` / `Assets/Scenes/GameScene.unity` **두 개뿐**이다.
+- 정본 씬은 `Assets/Scenes/TitleScene.unity` / `Assets/Scenes/GameScene.unity` /
+  `Assets/Scenes/LoadingScene.unity` **세 개뿐**이다.
+- 이 중 **§3~§5의 병합 절차(개인 복사본 → 번호 스냅샷 → 정본 덮어쓰기)를 따르는 것은
+  `TitleScene`/`GameScene` 둘뿐이다.** 그 절차는 여러 사람이 같은 씬을 동시에 편집하기 때문에
+  필요한 것인데, `LoadingScene`은 공동 편집 대상이 아니다(§1-1 참고).
 - `Assets/Personal/<이름>/`은 씬 작업 중에만 쓰는 임시 복사본 저장소다. 여기서 만든 씬을 정본으로
   승격하지 않는다(항상 2번 규칙의 병합 절차를 거친다).
 - **정본 파일 이름은 절대 안 바뀐다.** `GameSceneManager`(`Assets/Scripts/GameManager/
-  GameSceneManager.cs`)와 Build Settings는 항상 고정된 이름 `TitleScene`/`GameScene`만 참조한다.
+  GameSceneManager.cs`)와 Build Settings는 항상 고정된 이름 `TitleScene`/`GameScene`/`LoadingScene`만
+  참조한다.
   번호 붙은 스냅샷 파일(§4)은 그 이름 자체를 부팅 대상으로 쓰지 않는다 — 병합 확정 시 정본
   파일 이름으로 덮어써서 반영한다. 이렇게 하면 씬을 병합할 때마다 소스 코드(활성 씬 상수)를
   고치고 재컴파일할 필요가 없고, 갱신을 빠뜨려 부트 씬이 옛 버전을 가리키는 사고(WL-028,
   §6 참고)도 구조적으로 발생하지 않는다.
 
+### 1-1. `LoadingScene`이 세 번째 정본인 이유 (#442)
+
+이 문서는 오랫동안 "정본 씬 두 개뿐"이었다. `LoadingScene`(#442)이 그 규칙을 바꿨으므로 근거를
+남긴다 — **팀 계약 변경이라 리뷰에서 확인받아야 하는 항목이다.**
+
+- **왜 씬이어야 하나.** GameScene 진입 시 부팅 비용이 한 프레임에 몰린다(실측 976.77ms —
+  `Docs/Core/LoadingScene.md` §2). 이걸 가리려면 GameScene을 Additive로 올리는 동안 살아 있는
+  별도 씬이 필요하다. TitleScene 위에 얹으면 타이틀 카메라·UI·메모리가 게임 내내 남는다.
+- **왜 병합 절차 밖인가.** §3~§5는 "여러 사람이 같은 `.unity`를 동시에 건드리면 병합이 불가능하다"는
+  문제를 푸는 절차다. `LoadingScene`은 소유자가 하나(n0wst4ndup)이고 오브젝트가 10개 남짓이라
+  그 문제가 성립하지 않는다. 스냅샷 번호를 붙이지 않고 정본 파일을 직접 고친다.
+- **`Assets/Scenes/Branches/`에 `LoadingScene_N`을 만들지 않는다.** 위와 같은 이유다.
+- 이 씬이 공동 편집 대상이 되면(예: 아트가 커튼 연출을 직접 만지기 시작하면) 그때 `TitleScene`·
+  `GameScene`과 같은 병합 절차로 편입하고 이 절을 갱신한다.
+
 ## 2. 정본 위치
 
-- `Assets/Scenes/TitleScene.unity`, `Assets/Scenes/GameScene.unity` 두 파일만 정본이다.
+- `Assets/Scenes/TitleScene.unity`, `Assets/Scenes/GameScene.unity`,
+  `Assets/Scenes/LoadingScene.unity` 세 파일만 정본이다.
 - 개인 폴더(`Assets/Personal/<이름>/Scene/` 등)에 새 정본 씬을 만들지 않는다.
 - 병합용 스냅샷·브랜치 작업 씬(번호 파일)은 정본과 섞이지 않게 `Assets/Scenes/Branches/`에 모아 둔다(§4·§5) — 정리 시 폴더째 비울 수 있도록.
 

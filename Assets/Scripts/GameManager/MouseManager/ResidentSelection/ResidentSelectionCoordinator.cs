@@ -175,8 +175,10 @@ public class ResidentSelectionCoordinator : MonoBehaviour
         var mm = MouseManager.Instance;
         if (mm == null)
         {
-            // TitleScene에서는 MouseManager가 없는 것이 정상이다.
-            if (!GameSceneManager.IsTitleScene && !_warnedNoMouseManager)
+            // 타이틀·로딩 씬에는 MouseManager가 없는 것이 정상이다. "타이틀이 아니면 게임플레이"로
+            // 판단하면 로딩 씬에서 이 경고가 발화해, 정작 게임 씬에서 진짜 누락됐을 때
+            // 아래 latch에 막혀 조용해진다.
+            if (GameSceneManager.IsGameplayScene && !_warnedNoMouseManager)
             {
                 _warnedNoMouseManager = true;
                 Debug.LogWarning("[주민 선택] MouseManager가 아직 없어 주민 선택이 대기 중입니다.");
@@ -264,6 +266,11 @@ public class ResidentSelectionCoordinator : MonoBehaviour
         _management = null;
         _managementRetryCountdown = 0;
 
+        // 경고 latch는 **씬 단위**로 푼다. 세션 1회로 두면 로딩 씬처럼 MouseManager가 없는 씬을
+        // 한 번 지나는 것만으로 소진되어, 정작 게임 씬에서 진짜 누락됐을 때 아무 신호도 남지 않는다.
+        _warnedNoMouseManager = false;
+        _warnedNoManagement = false;
+
         // 씬이 바뀌면 DayNightManager 인스턴스도 갈린다 — 새 씬에서 다시 붙는다.
         _dayNightSubscribed = false;
     }
@@ -328,7 +335,7 @@ public class ResidentSelectionCoordinator : MonoBehaviour
 
         if (_management == null)
         {
-            if (!GameSceneManager.IsTitleScene && !_warnedNoManagement)
+            if (GameSceneManager.IsGameplayScene && !_warnedNoManagement)
             {
                 _warnedNoManagement = true;
                 Debug.LogWarning("[주민 선택] ManagementController가 없어 선택 인원 상한을 적용하지 않습니다.");
