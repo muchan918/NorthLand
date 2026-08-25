@@ -111,7 +111,7 @@ Application.persistentDataPath/
 비동기 저장·로드 작업은 `SaveResult` 또는 `SaveResult<T>`로 성공 여부와 오류를 반환한다. 값이 있는 로드는
 `Value`를 함께 제공하며, 취소는 `CancellationToken`과 `OperationCanceledException`으로 성공·실패 결과와 구분한다.
 
-튜토리얼 다시 보기는 사용자 확인 후 `RunSaveManager.TryDeleteCurrentRun()`으로 현재 슬롯의
+튜토리얼 다시 보기는 사용자 확인 후 `RunSaveManager.DeleteCurrentRunAsync(CancellationToken)`으로 현재 슬롯의
 `run-save.json`을 먼저 삭제한다. 삭제에 실패하면 튜토리얼로 전환하지 않는다.
 
 ### 복원

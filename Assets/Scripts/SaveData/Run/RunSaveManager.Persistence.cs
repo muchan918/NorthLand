@@ -30,6 +30,8 @@ namespace NorthLand.Core
         private bool runEnded;
         private GameResult runEndResult;
 
+        private bool deleteCurrentRunRequested;
+
         private void Awake()
         {
             serializer = new SaveSerializer();
@@ -136,6 +138,11 @@ namespace NorthLand.Core
         }
         private async UniTask<SaveResult> SaveOnceAsync(CancellationToken cancellationToken)
         {
+            if (deleteCurrentRunRequested)
+            {
+                return SaveResult.Failed(
+                    "현재 Run 삭제가 요청되어 저장할 수 없습니다.");
+            }
             if (runEnded)
             {
                 return SaveResult.Failed("종료된 Run은 저장할 수 없습니다.");
@@ -204,6 +211,10 @@ namespace NorthLand.Core
 
         private async UniTask<SaveResult> SaveNowAsync(CancellationToken cancellationToken)
         {
+            if (deleteCurrentRunRequested)
+            {
+                return SaveResult.Failed("현재 Run 삭제가 요청되어 저장할 수 없습니다.");
+            }
             if (runEnded)
             {
                 return SaveResult.Failed("종료된 Run은 저장할 수 없습니다.");
@@ -340,25 +351,34 @@ namespace NorthLand.Core
         /// 현재 슬롯의 Run 세이브를 삭제한다.
         /// 새 튜토리얼 시작처럼 기존 진행을 명시적으로 초기화하는 경로에서 사용한다.
         /// </summary>
-        public bool TryDeleteCurrentRun()
+        public async UniTask<SaveResult> DeleteCurrentRunAsync(CancellationToken cancellationToken)
         {
             if (fileStore == null)
             {
-                Debug.LogWarning(
-                    "[Save] GameScene 직접 실행 상태에서는 기존 Run을 안전하게 식별할 수 없습니다. " +
-                    "타이틀에서 슬롯을 선택한 뒤 튜토리얼 다시 보기를 실행해주세요.",
-                    this);
-                return false;
+                return SaveResult.Failed("현재 슬롯의 Run 세이브를 찾을 수 없습니다.");
             }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            // 새로운 저장과 대기 저장을 차단한다.
+            deleteCurrentRunRequested = true;
+            savePending = false;
+
+            // 삭제 요청을 수락한 뒤에는 원자성을 위해 취소하지 않고
+            // 현재 저장이 완전히 끝날 때까지 기다린다.
+            await UniTask.WaitUntil(() => !isSaving,cancellationToken: CancellationToken.None);
 
             if (!fileStore.TryDelete(out string error))
             {
-                Debug.LogError($"[Save] Run 세이브 삭제에 실패했습니다: {error}", this);
-                return false;
+                deleteCurrentRunRequested = false;
+                return SaveResult.Failed(error);
             }
 
-            Debug.Log("[Save] 새 튜토리얼 시작을 위해 기존 Run 세이브를 삭제했습니다.", this);
-            return true;
+            Debug.Log(
+                "[Save] 새 튜토리얼 시작을 위해 기존 Run 세이브를 삭제했습니다.",
+                this);
+
+            return SaveResult.Succeeded();
         }
 
         private void OnDestroy()
