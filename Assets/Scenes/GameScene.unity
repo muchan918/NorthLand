@@ -8001,7 +8001,7 @@ MonoBehaviour:
     button: {fileID: 2101116557}
     fallbackNameKey: game.shortcut.battle_map
   _camera: {fileID: 522335599}
-  _group: {fileID: 1051704685}
+  _settingUI: {fileID: 1891864976}
   _tooltipPanel: {fileID: 1238433380}
   _tooltipRect: {fileID: 1238433381}
   _tooltipText: {fileID: 271494163}
