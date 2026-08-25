@@ -166,5 +166,41 @@ namespace NorthLand.Core
             SettingsChanged?.Invoke();
             return true;
         }
+
+        public bool TrySetCameraMoveSpeed(float keyboardMultiplier,float mouseMultiplier,out string error)
+        {
+            error = null;
+
+            if (CurrentSettings == null)
+            {
+                error = "게임 설정이 준비되지 않았습니다.";
+                return false;
+            }
+
+            float keyboardValue = Mathf.Clamp(keyboardMultiplier, 0.5f, 2f);
+            float mouseValue = Mathf.Clamp(mouseMultiplier, 0.5f, 2f);
+
+            float previousKeyboard = CurrentSettings.keyboardMoveSpeedMultiplier;
+            float previousMouse = CurrentSettings.mouseMoveSpeedMultiplier;
+
+            CurrentSettings.keyboardMoveSpeedMultiplier = keyboardValue;
+            CurrentSettings.mouseMoveSpeedMultiplier = mouseValue;
+
+            if (!canSaveSettings)
+            {
+                SettingsChanged?.Invoke();
+                return true;
+            }
+
+            if (!store.TrySave(CurrentSettings, out error))
+            {
+                CurrentSettings.keyboardMoveSpeedMultiplier = previousKeyboard;
+                CurrentSettings.mouseMoveSpeedMultiplier = previousMouse;
+                return false;
+            }
+
+            SettingsChanged?.Invoke();
+            return true;
+        }
     }
 }

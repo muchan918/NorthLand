@@ -2667,7 +2667,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 415709802502914483, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: _zoomSource
-      value:
+      value: 
       objectReference: {fileID: 522335599}
     - target: {fileID: 792939803976950741, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: m_LocalPosition.y
@@ -2675,7 +2675,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2118261717743543252, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: _zoomSource
-      value:
+      value: 
       objectReference: {fileID: 522335599}
     - target: {fileID: 3995184238862392525, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: m_LocalPosition.x
@@ -2719,7 +2719,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4117600579374478185, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: _zoomSource
-      value:
+      value: 
       objectReference: {fileID: 522335599}
     - target: {fileID: 4490917737636434860, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: m_Name
@@ -2775,7 +2775,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8923883104720120110, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: _zoomSource
-      value:
+      value: 
       objectReference: {fileID: 522335599}
     - target: {fileID: 9012046073250937523, guid: ae95127764931cb49a32c2f26ef6fae0, type: 3}
       propertyPath: m_LocalPosition.y
@@ -2866,7 +2866,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -2941,7 +2941,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -4149,10 +4149,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CameraController2
   cinemachineCamera: {fileID: 1228655714}
   cameraTarget: {fileID: 863015837}
-  moveSpeed: 250
+  baseMoveSpeed: 250
   xBounds: {x: -1450, y: 1200}
   zBounds: {x: -1050, y: 550}
-  dragSpeed: 0.3
+  baseDragSpeed: 0.3
   zoomSpeed: 10
   minZoomSize: 30
   maxZoomSize: 200
@@ -16875,6 +16875,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 144619837}
     m_Modifications:
+    - target: {fileID: 2402722738985476101, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4963974573323370521, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
       propertyPath: coordinateRoot
       value: 
@@ -16922,6 +16926,10 @@ PrefabInstance:
     - target: {fileID: 7805989967329158851, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8649934953252851180, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -25819,7 +25827,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: -5, y: 5}
+  m_AnchoredPosition: {x: -5, y: 5.000122}
   m_SizeDelta: {x: 320, y: 220}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &6418855815730911753
@@ -25927,7 +25935,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2098746149048670819, guid: 9d2541b4fbc1336479b46389cf1fd041, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 49.901123
+      value: 49.901062
       objectReference: {fileID: 0}
     - target: {fileID: 2098746149048670819, guid: 9d2541b4fbc1336479b46389cf1fd041, type: 3}
       propertyPath: m_AnchoredPosition.y
@@ -27141,7 +27149,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 44.000122, y: 5}
+  m_AnchoredPosition: {x: 44.00049, y: 5.000122}
   m_SizeDelta: {x: 300, y: 85}
   m_Pivot: {x: 1, y: 1}
 --- !u!224 &7477692333638167794
