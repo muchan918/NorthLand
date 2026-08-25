@@ -272,13 +272,17 @@ namespace NorthLand.Core
         /// </summary>
         public bool TryDeleteCurrentRun()
         {
+            PlayerSaveService playerSaveService = PlayerSaveService.Instance;
+
+            if (playerSaveService == null || !playerSaveService.HasSelectedSlot)
+            {
+                Debug.Log("[Save] 선택된 슬롯이 없어 삭제할 Run 세이브가 없습니다.", this);
+                return true;
+            }
+
             if (fileStore == null)
             {
-                Debug.LogWarning(
-                    "[Save] GameScene 직접 실행 상태에서는 기존 Run을 안전하게 식별할 수 없습니다. " +
-                    "타이틀에서 슬롯을 선택한 뒤 튜토리얼 다시 보기를 실행해주세요.",
-                    this);
-                return false;
+                fileStore = new SaveFileStore(playerSaveService.CurrentSlotPath);
             }
 
             if (!fileStore.TryDelete(out string error))
