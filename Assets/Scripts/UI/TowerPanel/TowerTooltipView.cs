@@ -128,7 +128,7 @@ public class TowerTooltipView : MonoBehaviour
             // 합성 패널·정보 패널의 후보 칸에는 해금 게이트가 없어서(TowerMergePanelView.cs:78
             // "합성 후보에는 해금 개념이 없다") 버튼은 눌리는데 경고만 뜨는 어긋남이 된다.
             // 자원 대신 재료 타워를 내는 위의 BuildCost와 같은 축의 분기다(#445).
-            bool locked = recipe == null && !tower.IsUnlocked();
+            bool locked = recipe == null && !tower.IsUnlocked(DayNightManager.CurrentWaveOrMax);
             _unlockText.text = locked
                 ? NorthLand.Combat.TowerStatsFormatter.BuildUnlockWaveLine(tower.UnlockWave)
                 : string.Empty;
