@@ -310,6 +310,10 @@ MonoBehaviour:
     m_Localized: Please select a language.
     m_Metadata:
       m_Items: []
+  - m_Id: 16684889451081728
+    m_Localized: Battle Map
+    m_Metadata:
+      m_Items: []
   - m_Id: 16758548930224128
     m_Localized: Sweetening
     m_Metadata:
