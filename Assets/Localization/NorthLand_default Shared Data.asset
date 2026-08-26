@@ -287,6 +287,58 @@ MonoBehaviour:
     m_Key: settings.language.prompt
     m_Metadata:
       m_Items: []
+  - m_Id: 17044818347241472
+    m_Key: settings.category.general
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17045580481638400
+    m_Key: settings.category.graphics
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17045757330272256
+    m_Key: settings.category.sound
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17046018383753216
+    m_Key: settings.controls.keyboard_speed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17046391068635136
+    m_Key: settings.controls.mouse_speed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17046624372600832
+    m_Key: settings.graphics.screen_mode
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17046787648466944
+    m_Key: settings.graphics.resolution
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17046954615320576
+    m_Key: settings.audio.master
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17047118499360768
+    m_Key: settings.audio.bgm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17047292516839424
+    m_Key: settings.audio.sfx
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17047840792064000
+    m_Key: settings.graphics.screen_mode.fullscreen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17047899206135808
+    m_Key: settings.graphics.screen_mode.borderless
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17047987324268544
+    m_Key: settings.graphics.screen_mode.windowed
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
