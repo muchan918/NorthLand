@@ -59,23 +59,12 @@
 
 ### 3.1 영속화
 
-`LocalizationManager`의 `SelectedLocale` 선례를 따라 **`PlayerPrefs`** 를 쓴다. 슬롯과 무관한 기기 공통
-설정이고, #342가 말하는 공통 `settings.json`은 아직 코드에 존재하지 않는다 — 실제로 생기면 그때 이관한다.
+오디오 설정은 슬롯과 무관한 공통 `settings.json`에 저장한다. `AudioManager`는 시작할 때
+`GameSettingsService.CurrentSettings`에서 Master/BGM/SFX 볼륨과 음소거 상태를 읽는다.
 
-| 키 | 타입 | 기본값 |
-|---|---|---|
-| `MasterVolume` / `BgmVolume` / `SfxVolume` | float (0~1) | 1.0 / 0.5 / 0.8 |
-| `MasterMuted` / `BgmMuted` / `SfxMuted` | int (0·1) | 0 |
-
-키에 접두어가 없다 — 선례인 `SelectedLocale`과 일관적이고 지금 충돌하는 키도 없다(저장소의
-`PlayerPrefs` 사용처는 `LocalizationManager`와 여기 둘뿐). 다만 `settings.json` 이관 시 "어떤 키가 오디오
-소유인가"를 문자열로 재수집해야 하므로, 그 시점에 키 6개를 배열로 노출해 마이그레이션이 그것만 읽게
-하는 편이 낫다(§7).
-
-**쓰기는 즉시, 디스크 flush는 지연한다.** `PlayerPrefs.SetFloat`은 메모리 캐시라 슬라이더 드래그마다
-불러도 싸지만 `PlayerPrefs.Save()`는 디스크 쓰기다. `Save()`는 `OnApplicationQuit` /
-`OnApplicationPause(true)` / `OnDestroy`에서만 호출한다(dirty 플래그로 불필요한 쓰기 차단).
-로드 값은 `Mathf.Clamp01`을 거친다 — 손상된 prefs가 1을 넘는 볼륨으로 들어오는 것을 막는다.
+슬라이더나 음소거 상태가 변경되면 `SetAudioVolume` 또는 `SetAudioMuted`를 통해 메모리 설정을 갱신한다.
+실제 파일 저장은 설정 패널을 닫을 때 `GameSettingsService.TrySaveCurrentSettings()`가 담당한다.
+로드한 볼륨은 `Mathf.Clamp01`을 거친다 — 손상된 값이 1을 넘는 볼륨으로 들어오는 것을 막는다.
 
 ## 4. BGM 크로스페이드
 
@@ -114,7 +103,7 @@ source.volume = fadeWeight(0~1) × 실효 볼륨(Bgm)
 ### 4.4 부팅
 
 씬에 배치하지 않는다. `GameSceneManager`와 동일하게
-`[RuntimeInitializeOnLoadMethod(BeforeSceneLoad)]`로 자체 부팅 + `DontDestroyOnLoad`.
+`[RuntimeInitializeOnLoadMethod(AfterSceneLoad)]`로 자체 부팅 + `DontDestroyOnLoad`.
 두 씬 모두에서 필요하고, 씬에 두면 씬 파일 병합 충돌만 늘어나기 때문이다(`SceneWorkflow.md`).
 씬에 수동 배치되는 경우를 대비한 중복 파괴 가드는 `Awake`에 있다.
 
@@ -358,7 +347,7 @@ AudioManager.PlaySfx  또는  PlaySfxExclusive
 ```csharp
 public enum AudioChannel { Master, Bgm, Sfx }
 
-AudioManager.Instance                                  // BeforeSceneLoad 자체 부팅 — 항상 존재
+AudioManager.Instance                                  // AfterSceneLoad 자체 부팅
 
 float GetVolume(AudioChannel channel);
 void  SetVolume(AudioChannel channel, float value01);  // 0~1 clamp. 음소거는 건드리지 않는다
@@ -443,8 +432,6 @@ Sfx.ResidentIncreased();  // ← 이것만 PlaySfxExclusive로 나간다
 - [ ] **Vorbis quality 조정** — 현재 100%. BGM 90초 스테레오라 빌드 용량 관점에서 낮출 여지가 있으나
       청감 tradeoff라 미결(§4.5)
 - [ ] **밤 세이브와 초기 트랙 순서**(WL-182) — 밤 페이즈 복원을 여는 PR에서 §5.3의 순서 문제를 함께 닫는다
-- [ ] **`PlayerPrefs` 키 노출** — `settings.json` 이관 시 키 6개를 배열로 내보내 마이그레이션이 그것만
-      읽게 한다(§3.1)
 - [ ] **설정 패널 슬라이더·토글 UI** → #346. 패널 초기값은 `OnAudioSettingsChanged`가 아니라 `GetVolume`
       **pull**로 읽어야 한다 — 매니저의 초기 발행 시점(`Awake`)엔 구독자가 없다
 - [x] **UI 클릭 공용 사운드** — `UiClickSfx` 전역 훅 + `SfxBank`(§5.4). 풀을 기다리지 않았다 — 클릭·패널
@@ -462,7 +449,7 @@ Sfx.ResidentIncreased();  // ← 이것만 PlaySfxExclusive로 나간다
       직접 소유하므로 AudioMixer 없이도 가능하다(§2가 말한 "더킹이 필요해지면 재검토"의 첫 사례)
 - [ ] **`SFX_Castle_ResidentIncrease`의 GUID 충돌 정리**(§4.5.1) — 팩 원본의 GUID를 복사본이 가져갔다
 - [ ] **더킹·스냅샷** — 필요해지면 AudioMixer 도입을 재검토(§2)
-- [ ] **`settings.json` 이관** — #342의 슬롯 무관 공통 설정이 실제로 생기면 `PlayerPrefs`에서 옮긴다
+- [x] **`settings.json` 이관** — 오디오 볼륨과 음소거를 슬롯 무관 공통 설정 파일로 통합했다
 
 ## 8. 참고
 

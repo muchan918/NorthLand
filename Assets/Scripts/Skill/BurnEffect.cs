@@ -41,7 +41,7 @@ public class BurnEffect : SkillEffect
 
             handler.debugLog = debugLog;
             // Source: 플레이어 스킬은 IAttacker 개체가 아니라 null (SkillManager의 DamageInfo와 동일 규약).
-            handler.ApplyOrRefresh(EffectId, damagePerTick, tickInterval, duration, null);
+            handler.ApplyOrRefresh(EffectId, EffectKind.Burn, damagePerTick, tickInterval, duration, null);
 
             if (debugLog)
                 Debug.Log($"[SkillEffect] 화상 부여: 대상={targetComponent.name}, Lv{Level}, 틱당 {damagePerTick} / {tickInterval}s, 지속 {duration}s");

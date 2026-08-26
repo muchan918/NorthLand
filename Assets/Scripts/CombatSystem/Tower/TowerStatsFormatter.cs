@@ -24,6 +24,12 @@ namespace NorthLand.Combat
         public static string BuildRangeLine(float range)
             => $"{Label("game.tower.attack_range")}: {range:0.#}";
 
+        /// 해금 웨이브 한 줄(#504) — 아직 잠긴 타워의 툴팁에만 붙는다.
+        /// **해금 여부는 여기서 판단하지 않는다**(<see cref="TowerAsset.IsUnlocked"/>가 정본) —
+        /// 이 클래스는 라벨과 서식만 소유한다. 호출부가 잠긴 타워일 때만 이 줄을 요청한다.
+        public static string BuildUnlockWaveLine(int unlockWave)
+            => $"{Label("game.tower.unlock_wave")}: {unlockWave}";
+
         /// 지속 피해 한 줄. 피해가 없으면 null.
         /// **SO 원본이 아니라 실효값(원장 합성 후)을 넘길 것** — 패널 표기와 실제 효과가 어긋나면
         /// WL-079/WL-130이 지적한 "표시부와 적용부가 규칙을 각자 쓰는" 문제가 재발한다.

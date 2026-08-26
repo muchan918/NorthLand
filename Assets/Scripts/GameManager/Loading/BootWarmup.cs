@@ -27,8 +27,8 @@ namespace NorthLand.Core
         /// 상수 단일화는 별건이므로 여기서는 기존 관행을 따른다.
         private const string k_TowerFolder = "ScriptableObjects/Towers";
 
-        // 몬스터 체력바 프리팹(#447). 경로 정본은 MonsterHealthBarLayer.k_BarResourcePath와 같아야 한다.
-        private const string k_MonsterHealthBarPath = "UI/MonsterHealthBar";
+        // 몬스터 체력바 프리팹(#447). 경로 정본은 EnemyStateUILayer.k_BarResourcePath와 같아야 한다.
+        private const string k_EnemyStateUIPath = "UI/EnemyStateUI";
 
         /// 찾아 둔 공유 셰이더. 두 번째 로딩에서 <c>Shader.Find</c>를 또 때리지 않기 위한 것이며,
         /// 소비처는 각자 <c>Shader.Find</c>를 부른다(그때는 이미 로드돼 있어 싸다).
@@ -104,10 +104,10 @@ namespace NorthLand.Core
         public static void WarmSharedVisuals()
         {
             // 체력바 프리팹은 첫 몬스터가 스폰되는 프레임에 Resources.Load로 동기 적재된다
-            // (MonsterHealthBarLayer). 하필 웨이브 시작 프레임이라 눈에 띄는 자리이고,
+            // (EnemyStateUILayer). 하필 웨이브 시작 프레임이라 눈에 띄는 자리이고,
             // 씬과 무관하게 미리 끝낼 수 있는 항목이라 이 워밍업의 조건(§LoadingScene.md)에 맞는다.
             // 반환값을 버려도 Unity의 리소스 캐시에 남아 나중 Load가 웜이 된다. 멱등이다.
-            Resources.Load<NorthLand.UI.MonsterHealthBar>(k_MonsterHealthBarPath);
+            Resources.Load<NorthLand.UI.EnemyStateUI>(k_EnemyStateUIPath);
 
             s_sharedUnlit ??= Shader.Find(k_SharedUnlitShader);
 
