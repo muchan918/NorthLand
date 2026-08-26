@@ -291,6 +291,46 @@ MonoBehaviour:
     m_Key: game.shortcut.battle_map
     m_Metadata:
       m_Items: []
+  - m_Id: 16758548930224128
+    m_Key: loading.tip.sweeten
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16758549001527296
+    m_Key: loading.tip.crisp
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16758549001527297
+    m_Key: loading.tip.toast
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16758549001527298
+    m_Key: loading.tip.sugar
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16758549001527299
+    m_Key: loading.tip.syrup
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16758549001527300
+    m_Key: loading.tip.dough
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16758549001527301
+    m_Key: loading.tip.chocolate
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16758549001527302
+    m_Key: loading.tip.cream
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16758549001527303
+    m_Key: loading.tip.oven
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16758549001527304
+    m_Key: loading.tip.night
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

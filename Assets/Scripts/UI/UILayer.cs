@@ -19,4 +19,13 @@ public static class UILayer
 
     /// <summary>최상위 모달(ResultCanvas) — 게임오버·승리 결과.</summary>
     public const int Result = 900;
+
+    /// <summary>
+    /// 로딩 커튼(LoadingScene의 Canvas) — 씬 전환을 덮는 커튼. **모든 게임 UI 위**여야 한다.
+    ///
+    /// LoadingScene은 GameScene을 Additive로 올린 채 살아 있고, Screen Space - Overlay 캔버스는
+    /// 씬과 무관하게 sortingOrder로만 정렬된다. 그래서 이 값이 <see cref="Result"/>보다 낮으면
+    /// 아직 커튼이 덮여 있어야 할 구간에 게임 씬 HUD가 커튼 위로 올라온다(#442-1 실측).
+    /// </summary>
+    public const int LoadingCurtain = 1000;
 }

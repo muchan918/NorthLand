@@ -112,7 +112,9 @@ Application.persistentDataPath/
 `Value`를 함께 제공하며, 취소는 `CancellationToken`과 `OperationCanceledException`으로 성공·실패 결과와 구분한다.
 
 튜토리얼 다시 보기는 사용자 확인 후 `RunSaveManager.DeleteCurrentRunAsync(CancellationToken)`으로 현재 슬롯의
-`run-save.json`을 먼저 삭제한다. 삭제에 실패하면 튜토리얼로 전환하지 않는다.
+`run-save.json`을 먼저 삭제한다. 선택 슬롯이 없으면 삭제 대상이 없는 것으로 보고 성공을 반환한다. 선택 슬롯은
+있지만 `SaveFileStore`가 초기화되지 않았다면 현재 슬롯 경로로 지연 생성한 뒤 삭제한다. 실제 파일 삭제에 실패한
+경우에만 실패를 반환하며, 호출부는 튜토리얼로 전환하지 않는다.
 
 ### 복원
 

@@ -353,9 +353,17 @@ namespace NorthLand.Core
         /// </summary>
         public async UniTask<SaveResult> DeleteCurrentRunAsync(CancellationToken cancellationToken)
         {
+            PlayerSaveService playerSaveService = PlayerSaveService.Instance;
+
+            if (playerSaveService == null || !playerSaveService.HasSelectedSlot)
+            {
+                Debug.Log("[Save] 선택된 슬롯이 없어 삭제할 Run 세이브가 없습니다.", this);
+                return SaveResult.Succeeded();
+            }
+
             if (fileStore == null)
             {
-                return SaveResult.Failed("현재 슬롯의 Run 세이브를 찾을 수 없습니다.");
+                fileStore = new SaveFileStore(playerSaveService.CurrentSlotPath);
             }
 
             if (deleteCurrentRunRequested)

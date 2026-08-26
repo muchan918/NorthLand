@@ -8,6 +8,8 @@
 //    MonsterSpawnWaveProvider.forceTutorialMode 스위치를 쓴다.
 public static class TutorialMode
 {
+    public const int MasterSeed = 15416;
+
     public static bool IsActive { get; private set; }
 
     public static void Enter()
