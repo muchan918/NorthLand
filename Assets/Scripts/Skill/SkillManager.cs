@@ -283,8 +283,8 @@ public class SkillManager : MonoBehaviour
 
         if (!useOuterFalloff)
             ApplyImpact(position);
-        else if (impactSfx != null)
-            AudioSource.PlayClipAtPoint(impactSfx, position);
+        else
+            PlayImpactSfx(position);
     }
 
     // 임팩트 1회: 반경 내 적 전체에게 데미지 적용 + 맞은 적을 hitTargets에 수집 + 연출.
@@ -335,15 +335,23 @@ public class SkillManager : MonoBehaviour
                 go.transform.localScale *= effectiveRadius / radius;
         }
 
-        if (impactSfx != null)
-        {
-            float sfxVolume = AudioManager.Instance != null
-                ? AudioManager.Instance.GetEffectiveVolume(AudioChannel.Sfx)
-                : 1f;
+        PlayImpactSfx(position);
+    }
 
-            if (sfxVolume > 0f)
-                AudioSource.PlayClipAtPoint(impactSfx, position, sfxVolume);
-        }
+
+    private void PlayImpactSfx(Vector3 position)
+    {
+        if (impactSfx == null)
+            return;
+
+        float sfxVolume = AudioManager.Instance != null
+            ? AudioManager.Instance.GetEffectiveVolume(AudioChannel.Sfx)
+            : 1f;
+
+        if (sfxVolume <= 0f)
+            return;
+
+        AudioSource.PlayClipAtPoint(impactSfx, position, sfxVolume);
     }
 
 #if UNITY_EDITOR
@@ -428,4 +436,5 @@ sealed class SkillDelayedImpact : MonoBehaviour
         if (GameManager.Instance != null)
             GameManager.Instance.OnResultDecided -= HandleResultDecided;
     }
+
 }
