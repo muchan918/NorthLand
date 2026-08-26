@@ -21,6 +21,17 @@ public class DayNightManager : MonoBehaviour
     // 표시(UI)와 스폰 라운드 번호는 WaveCount가 아니라 항상 이 값을 쓴다.
     public int CurrentWave => WaveCount + 1;
 
+    /// <summary>
+    /// 웨이브 게이트(타워 해금 등)가 쓰는 정적 조회창. 매니저가 없는 씬(타워 테스트 씬 등)은
+    /// <see cref="int.MaxValue"/>를 내 **"웨이브 제한 없음"**으로 본다 — permissive 규약의 단일 출처다.
+    /// <br/>
+    /// 이 규약을 여기 두는 이유: 게이트를 판정하는 쪽(<see cref="TowerAsset.IsUnlocked"/>)은 데이터라
+    /// 씬을 알 필요가 없고, 규약을 호출부마다 적으면 화면별로 갈린다. <see cref="Instance"/>만 보므로
+    /// 비활성 매니저는 없는 것으로 취급되는데, 그런 오브젝트는 <see cref="OnDayStart"/>도 발행하지 않아
+    /// 어차피 웨이브가 오르지 않는다(게이트만 잠그면 영구 잠금이 된다).
+    /// </summary>
+    public static int CurrentWaveOrMax => Instance != null ? Instance.CurrentWave : int.MaxValue;
+
     // 낮이 시작되는 모든 시점(1일차 부트스트랩 포함)에 발생
     public event Action OnDayStart;
     // 낮 -> 밤 전환 시 발생

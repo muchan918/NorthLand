@@ -8,7 +8,7 @@
 
 - 플레이어 프로필 슬롯은 3개다. 내부 슬롯 인덱스는 `0`~`2`다.
 - 각 슬롯은 식별 정보(`player.json`)와 Run 진행 상태(`run-save.json`)를 독립적으로 가진다.
-- 언어와 마지막 선택 슬롯은 모든 슬롯이 공유하는 `settings.json`에 저장한다.
+- 언어, 마지막 선택 슬롯, 카메라 이동 속도, 그래픽 및 사운드 설정은 모든 슬롯이 공유하는 `settings.json`에 저장한다.
 - 슬롯 표시 이름은 저장하지 않는다. UI가 현재 로케일의 `save.slot.name` Smart String과 슬롯 번호로 조립한다.
 - 업적·해금·누적 통계는 현재 구현 범위 밖이다. 추가할 때는 슬롯 폴더의 별도 `meta.json`으로 관리한다.
 
@@ -41,6 +41,12 @@ Application.persistentDataPath/
 
 - `localeCode`: 현재 언어 코드
 - `lastSelectedSlotIndex`: 마지막 선택 슬롯. `-1`은 선택 없음
+- `keyboardMoveSpeedMultiplier`: 키보드 카메라 이동 속도 배율
+- `mouseMoveSpeedMultiplier`: 마우스 카메라 이동 속도 배율
+- `screenMode`: 화면 모드 Dropdown 인덱스
+- `resolutionIndex`: 해상도 Dropdown 인덱스
+- `masterVolume`, `bgmVolume`, `sfxVolume`: 채널별 볼륨
+- `masterMuted`, `bgmMuted`, `sfxMuted`: 채널별 음소거 상태
 - 슬롯과 무관한 게임 공통 설정만 저장한다.
 
 파일이 없으면 기본 설정을 생성해 저장한다. 기존 파일이 손상됐거나 지원하지 않는 상위 버전이면
@@ -163,12 +169,13 @@ JSON 변환과 게임 상태 수집은 `SaveFileStore`의 책임이 아니다.
 | 파일 | 버전 상수 | 현재 버전 |
 | --- | --- | ---: |
 | `player.json` | `PlayerSaveFormat.CurrentVersion` | 2 |
-| `settings.json` | `GameSettingsFormat.CurrentVersion` | 1 |
+| `settings.json` | `GameSettingsFormat.CurrentVersion` | 2 |
 | `run-save.json` | `SaveFormat.CurrentVersion` | 3 |
 
 - `VersionedSaveSerializer<TData>`가 봉투의 `version`을 먼저 읽고 `data`를 나중에 변환한다.
 - `SaveMigrationChain`은 v1→v2, v2→v3처럼 인접 버전 변환을 순서대로 적용한다.
 - `player.json` v1→v2 마이그레이션은 `tutorialCompleted = false`를 추가한다.
+- `settings.json` v1→v2 마이그레이션은 화면 모드·해상도와 Master/BGM/SFX 볼륨·음소거 기본값을 추가한다.
 - 현재 빌드보다 높은 버전은 다운그레이드 손상을 막기 위해 로드를 거부한다.
 - 기존 평면 `player.json`과 `settings.json`은 정상 로드·검증 후 봉투 형식으로 다시 저장한다.
 - 스키마를 바꾸면 해당 파일의 `CurrentVersion`을 올리고 직전 버전에서 새 버전으로 가는 마이그레이션을 추가한다.

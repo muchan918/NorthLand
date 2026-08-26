@@ -3226,6 +3226,7 @@ MonoBehaviour:
   rangeFillColor: {r: 0.2, g: 0.8, b: 1, a: 0.15}
   validCellColor: {r: 0.2, g: 1, b: 0.3, a: 0.78431374}
   invalidCellColor: {r: 1, g: 0.25, b: 0.2, a: 0.78431374}
+  buffTileIconPreview: {fileID: 0}
   tileBuffRules: {fileID: 11400000, guid: 4e66e06684a153f4b80a97f47b2debfc, type: 2}
 --- !u!1 &3048306642920148208
 GameObject:
@@ -4269,6 +4270,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BaseHealthBar
   slider: {fileID: 4555870320674400482}
+  fillImage: {fileID: 0}
+  healthSpriteSteps: []
 --- !u!1 &4366191152581851704
 GameObject:
   m_ObjectHideFlags: 0
@@ -4928,7 +4931,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 649570270374f504c89c58a0dc20369e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TowerInfoUI
-  _towerInfoText: {fileID: 8416956121826120905}
+  _nameText: {fileID: 0}
+  _roleText: {fileID: 0}
+  _descriptionText: {fileID: 0}
+  _statsContainer: {fileID: 0}
+  _statsText: {fileID: 0}
+  _targetingContainer: {fileID: 0}
+  _targetingText: {fileID: 0}
+  _targetingPrevButton: {fileID: 0}
+  _targetingNextButton: {fileID: 0}
+  _mergeContainer: {fileID: 0}
+  _mergeContent: {fileID: 0}
+  _mergeSlotPrefab: {fileID: 0}
 --- !u!1 &5029068777894292043
 GameObject:
   m_ObjectHideFlags: 0
@@ -5227,6 +5241,9 @@ MonoBehaviour:
   _button: {fileID: 3343690747677691438}
   _skillGhostPrefab: {fileID: 1627122659657980782, guid: 8b590d985dec8554b96c873e2491f147, type: 3}
   _castHeight: 2
+  _rechargeText: {fileID: 0}
+  _chargeText: {fileID: 0}
+  _fillImage: {fileID: 0}
 --- !u!1 &5196167455691813220
 GameObject:
   m_ObjectHideFlags: 0
@@ -6449,7 +6466,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ManagementPanelView
   _controller: {fileID: 0}
   _villagerPoolText: {fileID: 5529818281243014717}
-  _phaseText: {fileID: 3009520077304272280}
+  _waveText: {fileID: 3009520077304272280}
   _endDayButton: {fileID: 4392130739722662524}
   _endDayConfirmPopup: {fileID: 394374691310147204}
   _lineContainer: {fileID: 5949111143603985375}
@@ -10252,7 +10269,31 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3186144577583150656, guid: 53cbe448978caf141aede2796eb224fb, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -111.52
+      value: -102.624
+      objectReference: {fileID: 0}
+    - target: {fileID: 3490108197191303706, guid: 53cbe448978caf141aede2796eb224fb, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3490108197191303706, guid: 53cbe448978caf141aede2796eb224fb, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3490108197191303706, guid: 53cbe448978caf141aede2796eb224fb, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3490108197191303706, guid: 53cbe448978caf141aede2796eb224fb, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3490108197191303706, guid: 53cbe448978caf141aede2796eb224fb, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3490108197191303706, guid: 53cbe448978caf141aede2796eb224fb, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3795256138132068434, guid: 53cbe448978caf141aede2796eb224fb, type: 3}
       propertyPath: m_Name

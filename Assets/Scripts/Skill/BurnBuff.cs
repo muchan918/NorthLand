@@ -107,7 +107,7 @@ public class BurnBuff : SkillEffect
         handler.debugLog = debugLog;
         // Source: 스킬 계열 효과는 null 규약(SkillManager/BurnEffect와 동일). 타워를 넘기지 않는 이유는
         // 화상의 출처가 타워가 아니라 플레이어의 보상 효과이기 때문.
-        handler.ApplyOrRefresh(EffectId, damagePerTick, tickInterval, duration, null);
+        handler.ApplyOrRefresh(EffectId, EffectKind.Burn, damagePerTick, tickInterval, duration, null);
 
         if (debugLog)
             Debug.Log($"[SkillEffect] 버프 화상 부여: 대상={targetComponent.name}, Lv{Level}, 틱당 {damagePerTick}");
