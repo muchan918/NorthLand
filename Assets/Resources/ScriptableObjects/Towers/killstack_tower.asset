@@ -21,7 +21,7 @@ MonoBehaviour:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
     Amount: 40
   Rarity: 0
-  UnlockWave: 5
+  UnlockWave: 7
   Attack:
     AttackDamage: 14
     AttackRange: 20
@@ -74,6 +74,8 @@ MonoBehaviour:
       MaxStacks: 8
       StackInterval: 0
       DecaySeconds: 2
+    SecondaryStat: 0
+    SecondaryPerStack: 0
   Effects: []
   references:
     version: 2

@@ -310,6 +310,50 @@ MonoBehaviour:
     m_Localized: Please select a language.
     m_Metadata:
       m_Items: []
+  - m_Id: 16684889451081728
+    m_Localized: Battle Map
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16758548930224128
+    m_Localized: Sweetening
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16758549001527296
+    m_Localized: Getting crispy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16758549001527297
+    m_Localized: Toasting marshmallows
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16758549001527298
+    m_Localized: Sprinkling sugar
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16758549001527299
+    m_Localized: Pouring syrup
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16758549001527300
+    m_Localized: Proofing the dough
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16758549001527301
+    m_Localized: Melting chocolate
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16758549001527302
+    m_Localized: Whipping cream
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16758549001527303
+    m_Localized: Preheating the oven
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16758549001527304
+    m_Localized: Bracing for night
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

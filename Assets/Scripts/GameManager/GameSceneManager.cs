@@ -13,6 +13,13 @@ namespace NorthLand.Core
         const string TitleScene = "TitleScene";
         const string GameScene = "GameScene";
 
+        // 로딩 씬. 게임 씬 진입은 전부 여기를 지난다(§Docs/Core/LoadingScene.md).
+        // 이 씬이 게임 씬을 Additive로 올리고, 준비가 끝날 때까지 커튼을 유지한다.
+        const string LoadingScene = "LoadingScene";
+
+        /// <summary>로딩 흐름이 Additive로 올릴 대상 씬 이름. 씬 이름 상수의 단일 출처를 유지한다.</summary>
+        public static string GameSceneName => GameScene;
+
         private int? pendingMasterSeed;
 
         // 최초 시드 시작이 튜토리얼을 거칠 때, 본 게임에 다시 전달할 시드.
@@ -23,6 +30,16 @@ namespace NorthLand.Core
         private RunData pendingContinueData;
 
         public static bool IsTitleScene => SceneManager.GetActiveScene().name == TitleScene;
+
+        /// <summary>
+        /// 게임플레이 씬(<see cref="GameScene"/>)이 활성인가. 타이틀·로딩 중에는 거짓이다.
+        ///
+        /// ⚠ <b>"타이틀이 아니면 게임플레이"라고 판단하지 말 것.</b> 로딩 씬이 생기면서 그 전제가 깨졌다 —
+        /// 로딩 중에는 <see cref="IsTitleScene"/>도 거짓이지만 <c>MouseManager</c> 같은 게임 씬 구성물은
+        /// 아직 없다. 게임 씬 구성물의 존재를 기대하는 코드는 이 프로퍼티를 써야 한다.
+        /// (로딩 중 게임 씬을 Additive로 올리는 동안에도, 활성 씬을 넘기기 전까지는 거짓이다.)
+        /// </summary>
+        public static bool IsGameplayScene => SceneManager.GetActiveScene().name == GameScene;
 
         // 첫 씬이 로드되기 전에 Unity가 자동 호출한다. 매니저를 여기서 부팅한다.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -67,7 +84,7 @@ namespace NorthLand.Core
             pendingMasterSeed = null;
             tutorialReturnMasterSeed = null;
 
-            SceneManager.LoadScene(GameScene);
+            EnterGameScene();
         }
 
         public void LoadTutorial()
@@ -77,7 +94,7 @@ namespace NorthLand.Core
             pendingMasterSeed = TutorialMode.MasterSeed;
             tutorialReturnMasterSeed = null;
 
-            SceneManager.LoadScene(GameScene);
+            EnterGameScene();
         }
 
         public bool TryLoadContinue(RunData data,out string error)
@@ -96,7 +113,7 @@ namespace NorthLand.Core
             pendingMasterSeed = null;
             tutorialReturnMasterSeed = null;
 
-            SceneManager.LoadScene(GameScene);
+            EnterGameScene();
             return true;
         }
 
@@ -108,7 +125,7 @@ namespace NorthLand.Core
             pendingMasterSeed = masterSeed;
             tutorialReturnMasterSeed = null;
 
-            SceneManager.LoadScene(GameScene);
+            EnterGameScene();
         }
 
         public void LoadTutorialWithSeed(int masterSeed)
@@ -118,7 +135,32 @@ namespace NorthLand.Core
             pendingMasterSeed = TutorialMode.MasterSeed;
             tutorialReturnMasterSeed = masterSeed;
 
-            SceneManager.LoadScene(GameScene);
+            EnterGameScene();
+        }
+
+        /// <summary>
+        /// 게임 씬 진입의 단일 통로. 로딩 씬을 띄우고, 게임 씬을 Additive로 올리는 일은
+        /// 그쪽의 <c>LoadingFlow</c>가 맡는다.
+        ///
+        /// 여기서 넘기는 대기 데이터(시드·이어하기 <c>RunData</c>·튜토리얼 모드)는 전부 이 매니저가
+        /// <c>DontDestroyOnLoad</c>로 들고 있으므로, 씬이 한 단계 늘어도 전달 경로는 그대로다.
+        /// </summary>
+        private void EnterGameScene()
+        {
+            // Build Settings에 로딩 씬이 없으면 LoadScene이 예외를 던진다. 등록 전이라도 게임이
+            // 멈추지는 않게 옛 경로로 떨어뜨리고, 원인은 경고로 남긴다.
+            if (!Application.CanStreamedLevelBeLoaded(LoadingScene))
+            {
+                Debug.LogWarning(
+                    $"[Scene] '{LoadingScene}'이 Build Settings에 없어 로딩 화면을 건너뜁니다. " +
+                    "부팅 스파이크가 그대로 노출됩니다(Docs/Core/LoadingScene.md §2).");
+
+                SceneManager.LoadScene(GameScene);
+
+                return;
+            }
+
+            SceneManager.LoadScene(LoadingScene);
         }
 
         public bool TryConsumeTutorialReturnMasterSeed(out int masterSeed)

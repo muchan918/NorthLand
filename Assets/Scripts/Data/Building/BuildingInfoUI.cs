@@ -263,10 +263,10 @@ public class BuildingInfoUI : MonoBehaviour
     // %는 플레이어가 체감하는 값이 아니라 "데미지 30 → 36" 형태의 실수치로 바꿨다. 표기 규약은 생산 건물의
     // "주민당 5 → 7"(RefreshProductionLine)·보상 카드(SkillStatsFormatter)와 같다.
     //
-    // **배율은 선택된 건물에서, 베이스 스탯은 SkillManager에서** 가져온다. SkillManager가 문자열까지
+    // **강화 수치는 선택된 건물에서, 베이스 스탯은 SkillManager에서** 가져온다. SkillManager가 문자열까지
     // 만들게 하면 자기 _magicLabAsset을 기준으로 계산하므로, 두 번째 스킬 강화 건물이 생겼을 때
     // 클릭한 건물과 다른 수치를 보여주게 된다(PR#378 리뷰가 짚은 "같은 리스트를 읽어야 한다"는 축).
-    // 곱셈은 SkillManager.Scale을 그대로 태운다 — 실제 적용과 같은 식을 통과해야 표기가 어긋나지 않는다.
+    // 피해·쿨타임은 절대값, 범위는 SkillManager.Scale을 태운 배율이다 — 실제 적용과 같은 식을 통과한다.
     //
     // 인자는 '지금 누르면 도달할' 레벨(1-based)이다.
     private string UpgradeEffect(int nextLevel)
@@ -279,25 +279,25 @@ public class BuildingInfoUI : MonoBehaviour
             return string.Empty;
         }
 
-        // 현재 레벨의 배율. 미강화(Lv0)면 Scaling이 null을 주고, 그건 곧 "배율 없음 = 베이스가 현재값"이다.
+        // 미강화(Lv0)면 Scaling이 null을 주고, 그건 곧 베이스가 현재값이라는 뜻이다.
         BuildingAsset.SkillUpgradeLevel current = Scaling(nextLevel - 1);
         SkillManager skill = SkillManager.Instance;
 
         var lines = new List<string>(3);
-        AddStatLine(lines, skill.BaseDamage, DamageMult(current), DamageMult(next),
-            SkillStatsFormatter.BuildSkillDamageLine);
-        AddStatLine(lines, skill.BaseRadius, RadiusMult(current), RadiusMult(next),
+        AddAbsoluteStatLine(lines, skill.BaseDamage, DamageValue(current, skill.BaseDamage),
+            DamageValue(next, skill.BaseDamage), SkillStatsFormatter.BuildSkillDamageLine);
+        AddScaledStatLine(lines, skill.BaseRadius, RadiusMult(current), RadiusMult(next),
             SkillStatsFormatter.BuildSkillRadiusLine);
-        AddStatLine(lines, skill.BaseCooldown, CooldownMult(current), CooldownMult(next),
-            SkillStatsFormatter.BuildSkillCooldownLine);
+        AddAbsoluteStatLine(lines, skill.BaseCooldown, CooldownValue(current, skill.BaseCooldown),
+            CooldownValue(next, skill.BaseCooldown), SkillStatsFormatter.BuildSkillCooldownLine);
         return string.Join("\n", lines);
     }
 
     // 값이 변하는 스탯만 줄로 만든다. 세 줄을 무조건 채우면 그 레벨에서 안 건드리는 스탯이 "30 → 30"으로
     // 나온다 — 수치가 아직 placeholder(TBD)라 밸런싱 패스에서 한 레벨에 한 스탯만 올리는 순간 바로
     // 나타난다(PR#378 리뷰가 %표기에서 지적한 것과 같은 문제).
-    private static void AddStatLine(List<string> lines, float baseValue, float currentMultiplier,
-                                    float nextMultiplier, Func<float, float, string> build)
+    private static void AddScaledStatLine(List<string> lines, float baseValue, float currentMultiplier,
+                                          float nextMultiplier, Func<float, float, string> build)
     {
         float current = SkillManager.Scale(baseValue, currentMultiplier);
         float next = SkillManager.Scale(baseValue, nextMultiplier);
@@ -307,11 +307,24 @@ public class BuildingInfoUI : MonoBehaviour
         }
     }
 
+    private static void AddAbsoluteStatLine(List<string> lines, float baseValue, float currentValue,
+                                            float nextValue, Func<float, float, string> build)
+    {
+        float current = currentValue > 0f ? currentValue : baseValue;
+        float next = nextValue > 0f ? nextValue : baseValue;
+        if (!Mathf.Approximately(current, next))
+        {
+            lines.Add(build(current, next));
+        }
+    }
+
     // 배율 엔트리가 없으면(미강화 Lv0 · 범위 밖) 1.0 = 베이스 그대로. SkillManager.RefreshUpgrade의
     // "레벨 0/범위 밖 = 배율 1.0"과 같은 규약이다.
-    private static float DamageMult(BuildingAsset.SkillUpgradeLevel s) => s == null ? 1f : s.DamageMultiplier;
+    private static float DamageValue(BuildingAsset.SkillUpgradeLevel s, float fallback)
+        => s == null || s.DamageValue <= 0f ? fallback : s.DamageValue;
     private static float RadiusMult(BuildingAsset.SkillUpgradeLevel s) => s == null ? 1f : s.RadiusMultiplier;
-    private static float CooldownMult(BuildingAsset.SkillUpgradeLevel s) => s == null ? 1f : s.CooldownMultiplier;
+    private static float CooldownValue(BuildingAsset.SkillUpgradeLevel s, float fallback)
+        => s == null || s.CooldownSeconds <= 0f ? fallback : s.CooldownSeconds;
 
     // 레벨 n(1-based)의 배율 엔트리. 0이나 범위 밖이면 null = 강화 없음(SkillManager.RefreshUpgrade와 같은 규약).
     //

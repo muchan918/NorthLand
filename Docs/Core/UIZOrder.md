@@ -34,6 +34,7 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 
 | 우선순위 | Canvas/오버레이 | `sortingOrder` | 용도 |
 |---:|---|---:|---|
+| 월드 (3D) | `MonsterHealthBarLayer` | `40` | 몬스터 머리 위 체력바. 코드가 만드는 **World Space** Canvas 하나를 살아 있는 모든 몬스터가 공유한다. 입력을 받지 않는다 — ⚠ 아래 「World Space는 이 표의 총순서에 속하지 않는다」 참고 |
 | 월드 오버레이 | `SelectionBoxView` | `50` | 드래그 선택 사각형. 입력을 받지 않으며 HUD **아래**에 그린다 |
 | 기본 | `UICanvas` | `100` | 일반 HUD, 미니맵, 관리·타워·스킬·정보 패널 |
 | 상위 모달 | `RewardCanvas` | `500` | 보상 선택 화면 |
@@ -41,8 +42,30 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 | 설정 모달 | `SettingCanvas` | `700` | 인게임 설정 화면. 일반 HUD와 보상 화면보다 위, 결과 화면보다 아래 |
 | 최상위 모달 | `ResultCanvas` | `900` | 게임오버·승리 결과 화면 |
 | 코드 생성 오버레이 | `TowerTooltipView` | `100` (`UILayer.Hud`) | 입력을 받지 않는 툴팁. HUD 캔버스를 찾아 자식으로 붙고, 없을 때만 같은 값으로 자체 생성 |
+| 로딩 커튼 | `LoadingScene`의 `Canvas` | `1000` | 씬 전환을 덮는 커튼. **다른 씬의 Canvas지만 같은 표에 속한다** — 아래 설명 참고 |
 
 새 루트 Canvas를 추가할 때는 임의의 큰 숫자를 사용하지 않는다. 위 범주 중 하나에 포함시키고, 새 범주가 꼭 필요하면 이 표를 먼저 갱신한다.
+
+### ⚠ World Space는 이 표의 총순서에 속하지 않는다
+
+표의 나머지 항목은 전부 **Screen Space - Overlay**다(`SelectionBoxView`도 `ScreenSpaceOverlay`다 — 이름이 "월드 오버레이"라 헷갈리기 쉽다). Overlay 캔버스는 씬 지오메트리를 **전부 그린 뒤** `sortingOrder`만으로 자기들끼리 정렬된다.
+
+`MonsterHealthBarLayer`는 **World Space**라 아예 다른 축에 있다. 3D 지오메트리로 그려지므로 지형·몬스터에 가려지고(ZTest), **`sortingOrder` 값과 무관하게 모든 Overlay 캔버스 아래에 놓인다.** 즉 체력바 `40` < 선택 사각형 `50`이라는 관계는 **결론만 맞고 근거가 아니다** — 40을 600으로 바꿔도 HUD 위로 올라오지 않는다.
+
+그래서 **`40`과 `50` 사이에 Overlay 캔버스를 끼워 넣으며 "체력바보다는 위"를 기대하지 말 것.** World Space 항목의 값은 같은 World Space 캔버스가 둘 이상 생겼을 때만 의미가 있다.
+
+### 로딩 커튼이 이 표에 있는 이유
+
+`LoadingScene`은 `GameScene`을 Additive로 올린 **뒤에도 살아 있고**(`Docs/Core/LoadingScene.md` §5.1),
+Screen Space - Overlay Canvas는 씬과 무관하게 `sortingOrder` 하나로만 전역 정렬된다. 즉 커튼과
+`GameScene`의 HUD·모달이 같은 정렬 공간을 공유한다.
+
+그래서 커튼의 `sortingOrder`가 `ResultCanvas`(`900`)보다 낮으면, 아직 커튼이 덮여 있어야 할
+구간에 게임 씬 UI가 커튼 **위로** 올라온다(#442 실측 — 커튼이 `0`이던 시절의 증상).
+커튼은 항상 이 표의 최상단이어야 하며, 값은 `UILayer.LoadingCurtain`을 쓴다.
+
+`900`과 `1000` 사이에 새 범주를 끼워 넣지 않는다 — 커튼과 최상위 모달 사이에 무언가가 들어갈
+자리는 정의되어 있지 않다.
 
 `SettingCanvas`와 `ResultCanvas`는 서로 다른 `sortingOrder`를 사용한다. 두 루트 Canvas가 같은 값을 사용하면 씬 계층이나 Canvas 등록 순서에 따라 그리기 순서가 달라질 수 있기 때문이다.
 
@@ -56,6 +79,13 @@ HUD와 모달 UI의 표시 순서를 Canvas 계층의 우연한 배치에 맡기
 - **씬 병합**: 씬에 배치하지 않으므로 `GameScene` diff가 생기지 않는다.
 
 사각형은 월드 위에 그리되 HUD보다는 아래여야 하므로 `sortingOrder = 50`을 쓴다. `GraphicRaycaster`를 붙이지 않고 모든 `Graphic`의 `raycastTarget`을 끈다 — 켜져 있으면 커서가 항상 UI 위로 잡혀 게임의 모든 클릭이 죽는다.
+
+`MonsterHealthBarLayer`(#447)도 런타임에 전용 Canvas를 만드는 읽기 전용 오버레이이며, `GraphicRaycaster` 없음·`raycastTarget` 전부 off는 같다. 다른 점은 두 가지다.
+
+- **World Space다.** 바가 월드 좌표를 따라다니므로 Overlay가 아니라 World Space Canvas이고, 이 표에서 유일하게 3D 공간에 사는 항목이다.
+- **살아 있는 모든 몬스터가 이 Canvas 하나를 공유한다.** `SelectionBoxView`는 리빌드 범위를 가두려고 Canvas를 **나눴지만**, 체력바는 반대로 **합쳐야** 한다 — 몬스터마다 Canvas를 두면 Canvas끼리는 배칭되지 않아 드로우콜이 마릿수만큼 붙고(#447 이전 상태), 바가 몬스터 트랜스폼에 매달려 프리팹 루트 스케일에 끌려간다(제거 전 월드 폭 실측 3.00~10.00, 편차 3.3배). 합치면 배경·필·눈금이 전부 흰 텍스처라 **전 몬스터 합계 1 배치**가 된다.
+
+명세는 `Docs/Core/MonsterHealthBar.md`.
 
 ## 4. `UICanvas` 내부 순서
 
@@ -174,6 +204,7 @@ ESC 입력 소유권은 씬별로 하나만 둔다.
 - [x] `SettingCanvas`의 `sortingOrder`가 `700`이다.
 - [x] `ResultCanvas`의 `sortingOrder`가 `900`이다.
 - [x] `SettingCanvas`와 `ResultCanvas`가 동일한 `sortingOrder`를 사용하지 않는다.
+- [x] `LoadingScene`의 `Canvas`가 `sortingOrder = 1000`(`UILayer.LoadingCurtain`)이고 `ResultCanvas`보다 위다.
 - [x] `ResultUI`가 전체 화면 Stretch, Position `(0,0)`, Size Delta `(0,0)`, Scale `(1,1,1)`이다.
 - [x] `Minimap`이 `UICanvas` 아래에 있고 독립 전역 정렬을 사용하지 않는다.
 - [ ] `Minimap` 자식 Canvas의 `sortingOrder`가 `0`인지 확인한다.
@@ -225,6 +256,7 @@ ESC 입력 소유권은 씬별로 하나만 둔다.
 - `Assets/Scenes/GameScene.unity` — Canvas 계층과 표준 정렬값의 정본
 - `Assets/Personal/SUNJIN/Prefabs/SettingCanvas.prefab` — 설정 모달, `GuardPanel` 및 Canvas 정렬 설정
 - `Assets/Scripts/SettingUI/SettingUI.cs` — 설정 화면 표시, 입력 및 설정 일시정지 제어
+- `Assets/Scripts/UI/UILayer.cs` — §3 표준 `sortingOrder` 값의 코드 측 단일 소스
 - `Assets/Scripts/UI/GameSpeedController.cs` — 모달별 게임 일시정지 사유 관리
 - `Assets/Scripts/UI/PhasePanelSwitcher.cs` — 낮/밤 하단 패널 활성 전환
 - `Assets/Scripts/UI/TowerPanel/TowerTooltipView.cs` — 코드 생성 최상단 툴팁 오버레이
