@@ -195,6 +195,9 @@ public class TutorialController : MonoBehaviour
             _phase = Phase.Popup;
             overlay.HideBubble();
 
+            // 설명을 읽는 동안은 다음 버튼 외의 게임 조작을 모두 막는다.
+            TutorialInputGate.Apply(TutorialAction.None);
+
             // 팝업 구간은 팝업 자체가 전체화면 입력을 막는다 — 딤이 겹칠 이유가 없다.
             overlay.HideDim();
             ApplyPause(step);
@@ -232,6 +235,15 @@ public class TutorialController : MonoBehaviour
 
         _phase = Phase.Action;
         _active = condition;
+
+        if (step.RestrictActions)
+        {
+            TutorialInputGate.Apply(step.AllowedActions);
+        }
+        else
+        {
+            TutorialInputGate.Clear();
+        }
 
         // 팝업에서 이미 걸어 뒀으면 그대로 유지된다(PauseGame은 두 번 불러도 안전하다).
         // 팝업이 없는 단계는 여기가 첫 진입점이다.
@@ -424,6 +436,7 @@ public class TutorialController : MonoBehaviour
     // 공짜이거나 패널이 한 종류로 잠긴 채 남는다.
     private void ClearStepRules()
     {
+        TutorialInputGate.Clear();
         SetStepRules(false, null, false, 0, 0, null);
     }
 

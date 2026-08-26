@@ -137,6 +137,13 @@ public class CameraController2 : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (!TutorialInputGate.Allows(TutorialAction.MoveCamera))
+        {
+            isZooming = false;
+            CancelMinimapMove();
+            return;
+        }
+
         UpdateTargetZoom();
         UpdateMinimapMove();
     }
@@ -179,6 +186,13 @@ public class CameraController2 : MonoBehaviour
 
     private void Update()
     {
+        if (!TutorialInputGate.Allows(TutorialAction.MoveCamera))
+        {
+            _isDragging = false;
+            CancelMinimapMove();
+            return;
+        }
+
         bool rewardPanelOpen = waveRewardSelectionUI != null && waveRewardSelectionUI.Camerastop;
 
         bool settingPanelOpen = settingUI != null && settingUI.IsOpen;
@@ -354,6 +368,11 @@ public class CameraController2 : MonoBehaviour
 
     public void MoveTo(Vector3 worldPosition)
     {
+        if (!TutorialInputGate.Allows(TutorialAction.MoveCamera))
+        {
+            return;
+        }
+
         if (cameraTarget == null)
         {
             return;
@@ -368,6 +387,7 @@ public class CameraController2 : MonoBehaviour
     /// 지정한 오쏘 사이즈로 부드럽게 줌한다. 범위 밖 값은 clamp된다.
     public void ZoomTo(float orthographicSize)
     {
+        if (!TutorialInputGate.Allows(TutorialAction.MoveCamera)) return;
         if (cinemachineCamera == null) return;
 
         zoomTarget = Mathf.Clamp(orthographicSize, minZoomSize, maxZoomSize);
@@ -379,6 +399,11 @@ public class CameraController2 : MonoBehaviour
     Vector3 clickedWorldPosition,
     float groundY)
     {
+        if (!TutorialInputGate.Allows(TutorialAction.MoveCamera))
+        {
+            return;
+        }
+
         if (cameraTarget == null)
         {
             return;

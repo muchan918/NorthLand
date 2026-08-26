@@ -314,13 +314,14 @@ public class MouseManager : MonoBehaviour
         if ((screenPos - _pressScreenPos).sqrMagnitude >= _dragThreshold * _dragThreshold)
         {
             if (_pressDragHandle != null) BeginUnitDrag();
-            else BeginBoxSelect(screenPos);
+            else if (!TutorialInputGate.IsRestricted) BeginBoxSelect(screenPos);
         }
     }
 
     /// 누른 지점의 끌 수 있는 대상. UI 위에서 시작한 제스처는 애초에 채택하지 않으므로 함께 걸러낸다.
     private IDragHandle ResolveDragHandle(Vector2 screenPos, bool overUI)
     {
+        if (!TutorialInputGate.Allows(TutorialAction.DragResident)) return null;
         if (overUI || !RaycastMask(screenPos, _selectableMask, out var hit)) return null;
 
         hit.collider.TryGetComponent(out IDragHandle handle);
@@ -332,6 +333,19 @@ public class MouseManager : MonoBehaviour
     private void CommitClick(Vector2 screenPos, bool additive)
     {
         bool hitSelectable = RaycastMask(screenPos, _selectableMask, out var hit);
+
+        if (!TutorialInputGate.Allows(TutorialAction.SelectResident))
+        {
+            return;
+        }
+
+        // 제한 중 주민 선택 단계에서는 다른 ISelectable까지 함께 통과시키지 않는다.
+        if (TutorialInputGate.IsRestricted
+            && hitSelectable
+            && !hit.collider.TryGetComponent(out ResidentSelectable _))
+        {
+            return;
+        }
 
         if (additive)
         {
@@ -590,9 +604,24 @@ public class MouseManager : MonoBehaviour
     // 호버 대상 레이어는 선택 후보와 같다고 보고 _selectableMask를 재사용(최종 판정은 IHoverable 유무).
     private void UpdateHover(Vector2 screenPos, bool overUI)
     {
+        // 튜토리얼 제한 중에는 현재 단계의 대상만 호버시킨다. 팝업·카메라·타워 단계에서
+        // 건물 아웃라인이 안내보다 먼저 반응하지 않게 하고, 주민 단계에서는 주민만 보여 준다.
+        if (TutorialInputGate.IsRestricted
+            && !TutorialInputGate.Allows(TutorialAction.SelectResident))
+        {
+            ClearHover();
+            return;
+        }
+
         IHoverable next = null;
         if (!overUI && RaycastMask(screenPos, _selectableMask, out var hit))
-            hit.collider.TryGetComponent(out next); // 없으면 next는 null
+        {
+            if (!TutorialInputGate.IsRestricted
+                || hit.collider.TryGetComponent(out ResidentSelectable _))
+            {
+                hit.collider.TryGetComponent(out next); // 없으면 next는 null
+            }
+        }
 
         SetHover(next);
     }
@@ -693,6 +722,11 @@ public class MouseManager : MonoBehaviour
 
         if (!overUI && Mouse.current.leftButton.wasPressedThisFrame)
         {
+            if (!TutorialInputGate.Allows(TutorialAction.PlaceTower))
+            {
+                return;
+            }
+
             // UI 위 클릭은 여기 오지 않는다 — 그건 버튼을 누른 것이지 배치를 시도한 것이 아니다(그쪽은 클릭음).
             if (!valid)
             {

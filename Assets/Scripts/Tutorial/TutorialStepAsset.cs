@@ -58,6 +58,13 @@ public class TutorialStepAsset : ScriptableObject
     [SerializeField]
     private bool pauseGameDuringStep;
 
+    [Header("입력 제한 — 켜면 아래 행동만 허용한다")]
+    [SerializeField]
+    private bool restrictActions;
+
+    [SerializeField]
+    private TutorialAction allowedActions;
+
     [Header("전투 규칙 — 이 단계 동안만 적용된다")]
     // 켜면 이 단계 동안 타워를 무료로 놓는다(TowerPlacer.FreePlacement). 자원이 모자라 단계가
     // 막히는 것을 피하려는 용도이고, 단계를 벗어나면 컨트롤러가 되돌린다.
@@ -131,6 +138,10 @@ public class TutorialStepAsset : ScriptableObject
     public Vector2Int HighlightCell => highlightCell;
 
     public bool PauseGameDuringStep => pauseGameDuringStep;
+
+    public bool RestrictActions => restrictActions;
+
+    public TutorialAction AllowedActions => allowedActions;
 
     public bool FreeTowerPlacement => freeTowerPlacement;
 
