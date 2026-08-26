@@ -124,7 +124,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 966ec7210efcf8641b4f28941b8d0da0, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NorthLand.UI.MonsterHealthBar
+  m_EditorClassIdentifier: Assembly-CSharp::NorthLand.UI.EnemyStateUI
   fill: {fileID: 69016073606731758}
   ticks: {fileID: 7553617235181809459}
   topMargin: 1.2
