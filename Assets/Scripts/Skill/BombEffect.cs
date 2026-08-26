@@ -6,6 +6,8 @@ public class BombEffect : SkillEffect
 {
     [Header("폭탄 수치 (폭발 데미지 = 레벨 x 레벨당 데미지)")]
     [SerializeField] GameObject bombPrefab;
+    [SerializeField] GameObject explosionEffectPrefab;
+    [SerializeField, Min(0.01f)] float bombScale = 1f;
     [SerializeField] float damagePerLevel = 20f;
     [SerializeField] float explosionDelay = 2f;
     [SerializeField] float explosionRadius = 3f;
@@ -36,11 +38,19 @@ public class BombEffect : SkillEffect
         }
 
         var bombObject = Instantiate(bombPrefab, context.Position, Quaternion.identity);
+        bombObject.transform.localScale = bombPrefab.transform.localScale * bombScale;
 
         var bomb = bombObject.GetComponent<SkillBomb>();
         if (bomb == null) bomb = bombObject.AddComponent<SkillBomb>();
 
-        bomb.Init(damagePerLevel * Level, explosionRadius, explosionDelay, enemyLayerMask, debugLog);
+        bomb.Init(
+            damagePerLevel * Level,
+            explosionRadius,
+            explosionDelay,
+            enemyLayerMask,
+            explosionEffectPrefab,
+            bombScale,
+            debugLog);
 
         if (debugLog)
             Debug.Log($"[SkillEffect] 폭탄 설치: 위치={context.Position}, Lv{Level}, {explosionDelay}초 뒤 폭발");
