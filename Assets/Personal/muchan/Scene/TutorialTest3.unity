@@ -12047,7 +12047,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: debugMode
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: startOnPlay
@@ -12055,7 +12055,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: debugSteps.Array.size
-      value: 4
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: 'debugSteps.Array.data[0]'
