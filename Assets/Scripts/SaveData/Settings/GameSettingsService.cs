@@ -215,8 +215,9 @@ namespace NorthLand.Core
             if (CurrentSettings == null)
                 return false;
 
-            CurrentSettings.screenMode = Mathf.Clamp(screenMode, 0, 2);
-            CurrentSettings.resolutionIndex = Mathf.Clamp(resolutionIndex, 0, 2);
+            CurrentSettings.screenMode = Mathf.Clamp(screenMode,GameSettingsConstraints.MinScreenModeIndex,GameSettingsConstraints.MaxScreenModeIndex);
+
+            CurrentSettings.resolutionIndex = Mathf.Clamp(resolutionIndex,GameSettingsConstraints.MinResolutionIndex,GameSettingsConstraints.MaxResolutionIndex);
 
             SettingsChanged?.Invoke();
             return true;

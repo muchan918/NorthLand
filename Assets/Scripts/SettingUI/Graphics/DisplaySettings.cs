@@ -32,10 +32,22 @@ public class DisplaySettings : MonoBehaviour
         new(1280, 720)
     };
 
+    private void Awake()
+    {
+        if (Resolutions.Length !=
+            GameSettingsConstraints.ResolutionOptionCount)
+        {
+            Debug.LogError($"[DisplaySettings] 해상도 옵션 개수가 설정 계약과 다릅니다.Expected: {GameSettingsConstraints.ResolutionOptionCount},Actual: {Resolutions.Length}",this);
+
+            enabled = false;
+        }
+    }
     private void Start()
     {
-        if (GameSettingsService.Instance == null ||
-            GameSettingsService.Instance.CurrentSettings == null)
+        if (!enabled)
+            return;
+
+        if (GameSettingsService.Instance == null || GameSettingsService.Instance.CurrentSettings == null)
         {
             Debug.LogError("[DisplaySettings] GameSettingsService가 준비되지 않았습니다.",this);
 
@@ -45,7 +57,7 @@ public class DisplaySettings : MonoBehaviour
 
         GameSettingsData settings = GameSettingsService.Instance.CurrentSettings;
 
-        int savedMode = Mathf.Clamp(settings.screenMode, 0, 2);
+        int savedMode = Mathf.Clamp(settings.screenMode,GameSettingsConstraints.MinScreenModeIndex,GameSettingsConstraints.MaxScreenModeIndex);
         int savedResolutionIndex = Mathf.Clamp(settings.resolutionIndex,0,Resolutions.Length - 1);
 
         if (screenModeDropdown != null)
@@ -82,7 +94,7 @@ public class DisplaySettings : MonoBehaviour
 
     public void OnScreenModeChanged(int index)
     {
-        index = Mathf.Clamp(index, 0, 2);
+        index = Mathf.Clamp(index,GameSettingsConstraints.MinScreenModeIndex,GameSettingsConstraints.MaxScreenModeIndex);
 
         ApplyScreenMode(index);
 
