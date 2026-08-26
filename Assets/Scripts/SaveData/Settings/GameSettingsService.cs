@@ -166,5 +166,87 @@ namespace NorthLand.Core
             SettingsChanged?.Invoke();
             return true;
         }
+
+        public bool SetCameraMoveSpeed(float keyboardMultiplier,float mouseMultiplier)
+        {
+            if (CurrentSettings == null)
+            {
+                return false;
+            }
+
+            float keyboardValue = Mathf.Clamp(keyboardMultiplier, 0.5f, 2f);
+
+            float mouseValue = Mathf.Clamp(mouseMultiplier, 0.5f, 2f);
+
+            if (Mathf.Approximately(CurrentSettings.keyboardMoveSpeedMultiplier,keyboardValue) && Mathf.Approximately(CurrentSettings.mouseMoveSpeedMultiplier,mouseValue))
+            {
+                return false;
+            }
+
+            CurrentSettings.keyboardMoveSpeedMultiplier = keyboardValue;
+
+            CurrentSettings.mouseMoveSpeedMultiplier = mouseValue;
+
+            SettingsChanged?.Invoke();
+            return true;
+        }
+
+        public bool TrySaveCurrentSettings(out string error)
+        {
+            error = null;
+
+            if (CurrentSettings == null)
+            {
+                error = "게임 설정이 준비되지 않았습니다.";
+                return false;
+            }
+
+            if (!canSaveSettings)
+            {
+                error = "현재 게임 설정 파일을 저장할 수 없습니다.";
+                return false;
+            }
+
+            return store.TrySave(CurrentSettings, out error);
+        }
+
+        public bool SetDisplaySettings(int screenMode, int resolutionIndex)
+        {
+            if (CurrentSettings == null)
+                return false;
+
+            CurrentSettings.screenMode = Mathf.Clamp(screenMode,GameSettingsConstraints.MinScreenModeIndex,GameSettingsConstraints.MaxScreenModeIndex);
+
+            CurrentSettings.resolutionIndex = Mathf.Clamp(resolutionIndex,GameSettingsConstraints.MinResolutionIndex,GameSettingsConstraints.MaxResolutionIndex);
+
+            SettingsChanged?.Invoke();
+            return true;
+        }
+
+        public bool SetAudioVolume(float master,float bgm,float sfx)
+        {
+            if (CurrentSettings == null)
+                return false;
+
+            CurrentSettings.masterVolume = Mathf.Clamp01(master);
+            CurrentSettings.bgmVolume = Mathf.Clamp01(bgm);
+            CurrentSettings.sfxVolume = Mathf.Clamp01(sfx);
+
+            SettingsChanged?.Invoke();
+            return true;
+        }
+
+        public bool SetAudioMuted(bool master,bool bgm,bool sfx)
+        {
+            if (CurrentSettings == null)
+                return false;
+
+            CurrentSettings.masterMuted = master;
+            CurrentSettings.bgmMuted = bgm;
+            CurrentSettings.sfxMuted = sfx;
+
+            SettingsChanged?.Invoke();
+            return true;
+        }
     }
 }

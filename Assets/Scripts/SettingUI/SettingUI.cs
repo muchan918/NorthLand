@@ -16,10 +16,19 @@ public class SettingUI : MonoBehaviour
     [SerializeField]
     private Button settingbutton;
 
-    public bool IsOpen =>
-        isActiveAndEnabled &&
-        settingPanel != null &&
-        settingPanel.activeInHierarchy;
+    [Header("settingPanel")]
+    [SerializeField]
+    private GameObject GeneralPanel;
+
+    [SerializeField]
+    private GameObject GraphicsPanel;
+
+    [SerializeField]
+    private GameObject SoundPanel;
+
+
+
+    public bool IsOpen => isActiveAndEnabled &&settingPanel != null &&settingPanel.activeInHierarchy;
 
     private void Awake()
     {
@@ -41,8 +50,18 @@ public class SettingUI : MonoBehaviour
             return;
         }
 
+        if (GeneralPanel == null || GraphicsPanel == null || SoundPanel == null)
+        {
+            Debug.LogError($"[{nameof(SettingUI)}] 설정 하위 패널이 연결되지 않았습니다.",this);
+
+            return;
+        }
+
         localizationManager.OnClose();
         settingPanel.SetActive(false);
+        GeneralPanel.SetActive(false);
+        GraphicsPanel.SetActive(false);
+        SoundPanel.SetActive(false);
     }
 
     private void Update()
@@ -89,9 +108,6 @@ public class SettingUI : MonoBehaviour
         }
     }
 
-
-
-
     public void TogglePanel()
     {
         if (IsOpen)
@@ -119,6 +135,9 @@ public class SettingUI : MonoBehaviour
         MouseManager.Instance?.CancelInteractions();
         localizationManager?.OnClose();
         settingPanel.SetActive(true);
+        GeneralPanel.SetActive(true);
+        GraphicsPanel.SetActive(false);
+        SoundPanel.SetActive(false);
 
         GameSpeedController.Instance?.SetPaused(GamePauseReason.Settings,true);
     }
@@ -126,20 +145,23 @@ public class SettingUI : MonoBehaviour
     public void ClosePanel()
     {
         if (settingPanel == null)
-        {
             return;
-        }
 
         if (localizationManager != null)
-        {
             localizationManager.OnClose();
+
+        GameSettingsService settingsService = GameSettingsService.Instance;
+
+        if (settingsService != null && !settingsService.TrySaveCurrentSettings(out string error))
+        {
+            Debug.LogWarning($"게임 설정 저장 실패: {error}",this);
         }
 
         settingPanel.SetActive(false);
 
         if (GameSpeedController.Instance != null)
         {
-            GameSpeedController.Instance.SetPaused(GamePauseReason.Settings, false);
+            GameSpeedController.Instance.SetPaused(GamePauseReason.Settings,false);
         }
     }
 
@@ -180,6 +202,43 @@ public class SettingUI : MonoBehaviour
         }
 
         GameSceneManager.Instance.LoadManageSpace();
+    }
+
+    public void OpenGeneralPanel()
+    {
+        if (GeneralPanel == null || GraphicsPanel == null || SoundPanel == null)
+        {
+            Debug.LogError($"[{nameof(SettingUI)}] 패널이 연결되지 않았습니다.", this);
+            return;
+        }
+        GeneralPanel.SetActive(true);
+        GraphicsPanel.SetActive(false);
+        SoundPanel.SetActive(false);
+    }
+
+    public void OpenGraphicsPanel()
+    {
+        if (GeneralPanel == null || GraphicsPanel == null || SoundPanel == null)
+        {
+            Debug.LogError($"[{nameof(SettingUI)}] 패널이 연결되지 않았습니다.", this);
+            return;
+        }
+        GeneralPanel.SetActive(false);
+        GraphicsPanel.SetActive(true);
+        SoundPanel.SetActive(false);
+    }
+
+    public void OpenSoundPanel()
+    {
+        if (GeneralPanel == null || GraphicsPanel == null || SoundPanel == null)
+        {
+            Debug.LogError($"[{nameof(SettingUI)}] 패널이 연결되지 않았습니다.", this);
+            return;
+        }
+
+        GeneralPanel.SetActive(false);
+        GraphicsPanel.SetActive(false);
+        SoundPanel.SetActive(true);
     }
 
 }

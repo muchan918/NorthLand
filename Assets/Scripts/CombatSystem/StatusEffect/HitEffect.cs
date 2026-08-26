@@ -90,7 +90,7 @@ namespace NorthLand.Combat
             StatusEffectHandler handler = Resolve(target);
             if (handler == null) return;
 
-            handler.ApplyOrRefresh(sourceId, ScaledDamage(stats), ScaledTick(stats), Duration, source);
+            handler.ApplyOrRefresh(sourceId, Kind, ScaledDamage(stats), ScaledTick(stats), Duration, source);
         }
 
         public override string Describe(TowerStats stats)
