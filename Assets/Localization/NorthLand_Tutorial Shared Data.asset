@@ -1,0 +1,256 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: NorthLand_Tutorial Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: NorthLand_Tutorial
+  m_TableCollectionNameGuidString: 6598b69449f7ce74ea29ec1454e5a0b9
+  m_Entries:
+  - m_Id: 1574342656
+    m_Key: tutorial.camera.drag.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1616285696
+    m_Key: tutorial.camera.drag.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1620480000
+    m_Key: tutorial.camera.drag.bubble
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2090242048
+    m_Key: tutorial.camera.keyboard.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2094436352
+    m_Key: tutorial.camera.keyboard.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2094436353
+    m_Key: tutorial.camera.keyboard.bubble
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2534838272
+    m_Key: tutorial.camera.zoom.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2534838273
+    m_Key: tutorial.camera.zoom.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2534838274
+    m_Key: tutorial.camera.zoom.bubble
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2996211712
+    m_Key: tutorial.villager.assign.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2996211713
+    m_Key: tutorial.villager.assign.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2996211714
+    m_Key: tutorial.villager.assign.bubble
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3436613632
+    m_Key: tutorial.tower.place.bubble
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3877015552
+    m_Key: tutorial.tower.select.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3877015553
+    m_Key: tutorial.tower.select.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3877015554
+    m_Key: tutorial.tower.select.bubble
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4334194688
+    m_Key: tutorial.day.end.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4334194689
+    m_Key: tutorial.day.end.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4334194690
+    m_Key: tutorial.day.end.bubble
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5269524480
+    m_Key: tutorial.skill.use.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5269524481
+    m_Key: tutorial.skill.use.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5269524482
+    m_Key: tutorial.skill.use.bubble
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6699782144
+    m_Key: tutorial.production.upgrade.bubble
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7161155584
+    m_Key: tutorial.shortcut.intro.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7161155585
+    m_Key: tutorial.shortcut.intro.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7161155586
+    m_Key: tutorial.shortcut.intro.bubble
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7609946112
+    m_Key: tutorial.tower.merge_intro.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7609946113
+    m_Key: tutorial.tower.merge_intro.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7614140416
+    m_Key: tutorial.tower.merge_intro.bubble
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8046153728
+    m_Key: tutorial.tower.merge.bubble
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8494944256
+    m_Key: tutorial.villager.assign_again.bubble
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8964706304
+    m_Key: tutorial.villager.increase.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8964706305
+    m_Key: tutorial.villager.increase.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8964706306
+    m_Key: tutorial.villager.increase.bubble
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9430274048
+    m_Key: tutorial.skill.upgrade.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9430274049
+    m_Key: tutorial.skill.upgrade.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9430274050
+    m_Key: tutorial.skill.upgrade.bubble
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9879064576
+    m_Key: tutorial.alchemy.exchange.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9879064577
+    m_Key: tutorial.alchemy.exchange.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9879064578
+    m_Key: tutorial.alchemy.exchange.bubble
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10348826624
+    m_Key: tutorial.castle.upgrade.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10348826625
+    m_Key: tutorial.castle.upgrade.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10348826626
+    m_Key: tutorial.castle.upgrade.bubble
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10818588672
+    m_Key: tutorial.combat.intro.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10818588673
+    m_Key: tutorial.combat.intro.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10818588674
+    m_Key: tutorial.combat.intro.bubble
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11737141248
+    m_Key: tutorial.test.one.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11737141249
+    m_Key: tutorial.test.one.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11737141250
+    m_Key: tutorial.test.one.bubble
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12173348864
+    m_Key: tutorial.test.two.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12173348865
+    m_Key: tutorial.test.two.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12173348866
+    m_Key: tutorial.test.two.bubble
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12638916608
+    m_Key: tutorial.common.confirm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12638916609
+    m_Key: tutorial.common.cancel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12638916610
+    m_Key: tutorial.common.skip
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12638916611
+    m_Key: tutorial.relay.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12638916613
+    m_Key: tutorial.relay.body
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 3470830010189742256
+  references:
+    version: 2
+    RefIds:
+    - rid: 3470830010189742256
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1787588577083

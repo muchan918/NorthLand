@@ -12,18 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
   m_Name: SkillUse
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
-  popupTitle: "\uC2A4\uD0AC \uC0AC\uC6A9"
-  popupBody: "\uBC24\uC5D0\uB294 \uC2A4\uD0AC\uB85C \uC801\uC744 \uC9C1\uC811 \uACF5\uACA9\uD560
-    \uC218 \uC788\uC2B5\uB2C8\uB2E4.\n\uC2A4\uD0AC \uBC84\uD2BC\uC744 \uB204\uB978
-    \uB4A4 \uC804\uD22C \uC9C0\uC5ED\uC758 \uBAA9\uD45C \uC9C0\uC810\uC744 \uD074\uB9AD\uD558\uBA74
-    \uADF8 \uC790\uB9AC\uC5D0 \uC2A4\uD0AC\uC774 \uB5A8\uC5B4\uC9D1\uB2C8\uB2E4."
+  popupTitleKey: tutorial.skill.use.title
+  popupBodyKey: tutorial.skill.use.body
   popupImage: {fileID: 0}
-  bubbleText: "\uC2A4\uD0AC\uC744 \uC801\uC5D0\uAC8C \uC870\uC900\uD574 \uC0AC\uC6A9\uD574
-    \uBCF4\uC138\uC694"
+  bubbleTextKey: tutorial.skill.use.bubble
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
-  pauseGameDuringAction: 1
+  pauseGameDuringStep: 1
+  freeTowerPlacement: 0
+  restrictTowerPanelTo: {fileID: 0}
+  freeManagementCost: 0
+  upgradeCap: 0
+  villagerCap: 0
+  upgradeAllowList: []
   completion:
     rid: 3470829977900417125
   references:

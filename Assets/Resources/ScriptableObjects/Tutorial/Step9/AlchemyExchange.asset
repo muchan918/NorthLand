@@ -12,15 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
   m_Name: AlchemyExchange
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
-  popupTitle: "\uC790\uC6D0 \uAD50\uD658"
-  popupBody: "\uC5F0\uAE08\uC220\uC0AC\uC758 \uC9D1\uC5D0\uC11C \uB9C8\uB098\uC11D\uC744
-    \uB2E4\uB978 \uC790\uC6D0\uC73C\uB85C \uBC14\uAFC0 \uC218 \uC788\uC2B5\uB2C8\uB2E4.\r\n\uB9C8\uB098\uC11D\uC740
-    \uBC24 \uC6E8\uC774\uBE0C\uB97C \uD074\uB9AC\uC5B4\uD560 \uB54C\uB9C8\uB2E4 \uBC1B\uC73C\uBBC0\uB85C,
-    \uBAA8\uC790\uB780 \uC790\uC6D0\uC744 \uBA54\uC6B0\uB294 \uB370 \uC4F8 \uC218
-    \uC788\uC2B5\uB2C8\uB2E4."
+  popupTitleKey: tutorial.alchemy.exchange.title
+  popupBodyKey: tutorial.alchemy.exchange.body
   popupImage: {fileID: 0}
-  bubbleText: "\uC5F0\uAE08\uC220\uC0AC\uC758 \uC9D1\uC5D0\uC11C \uC6D0\uD558\uB294
-    \uC790\uC6D0\uC73C\uB85C \uAD50\uD658\uD574 \uBCF4\uC138\uC694"
+  bubbleTextKey: tutorial.alchemy.exchange.bubble
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}

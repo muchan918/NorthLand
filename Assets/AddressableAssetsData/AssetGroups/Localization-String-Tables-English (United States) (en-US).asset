@@ -51,6 +51,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - Locale-en-US
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8e955e9898556c94fbbbde8a6052fb76
+    m_Address: NorthLand_Tutorial_en-US
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-en-US
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: f032a9f8be31e3e46b775296caabb693
     m_Address: NorthLand_Skills_en-US
     m_ReadOnly: 1

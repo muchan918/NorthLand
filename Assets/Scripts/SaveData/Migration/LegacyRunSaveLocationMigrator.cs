@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 
 namespace NorthLand.Core
 {
@@ -65,6 +67,34 @@ namespace NorthLand.Core
 
             migrated = true;
             return true;
+        }
+
+        public async UniTask<SaveResult<bool>> MigrateAsync(string targetSlotPath,CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(targetSlotPath))
+            {
+                return SaveResult<bool>.Failed("이전할 슬롯 경로가 비어 있습니다.");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            // 대상 파일 기록과 기존 파일 삭제는 중간 취소가 허용되지 않는
+            // 하나의 이전 작업이다. 시작 전까지만 취소하고, 시작 후에는 완료한다.
+            return await UniTask.RunOnThreadPool(() =>
+                {
+                    if (!TryMigrate(
+                            targetSlotPath,
+                            out bool migrated,
+                            out string error))
+                    {
+                        return SaveResult<bool>.Failed(
+                            error);
+                    }
+
+                    return SaveResult<bool>.Succeeded(
+                        migrated);
+                },
+                cancellationToken: CancellationToken.None);
         }
     }
 }

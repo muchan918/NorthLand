@@ -92,6 +92,11 @@ public class ResidentSpawner : MonoBehaviour
     [Min(0f)]
     [SerializeField] private float exitFallbackDistance = 3f;
 
+    /// 들린 자세에서 걷는 자세로 돌아올 때의 크로스페이드(초). **보증용 값이라 인스펙터에 열지 않는다** —
+    /// 눈에 보이는 착지 연출의 기립은 <see cref="ResidentCarryVisual"/>이 그보다 먼저 시작하고, 이 값이
+    /// 쓰이는 것은 그 연출을 타지 않는 복귀(밤 전환 등)뿐이다.
+    private const float CarryExitFadeSeconds = 0.15f;
+
     /// 이 스포너가 만든 주민 전부(활성·비활성 모두). 밤에는 비활성으로 두었다가 아침에 다시 쓴다 —
     /// 매 아침 Instantiate/Destroy를 반복하면 30명 규모에서 GC가 눈에 띈다.
     private readonly List<Resident> pool = new List<Resident>();
@@ -182,9 +187,12 @@ public class ResidentSpawner : MonoBehaviour
         pendingResidents.Clear();
         pendingDoors.Clear();
 
-        // 들려 있던 주민은 **놓지 않고 임자만 뗀다.** 이미 비활성이므로 그대로 두는 것이 곧 귀가다
-        // (밤에는 주민이 0명이다 — §3.3). 되돌리면 아무도 없어야 할 마을에 한 명이 서 있게 된다.
-        // 드래그를 시작한 쪽(ResidentDragCoordinator)도 같은 이벤트로 자기 목록을 비운다.
+        // 들려 있던 주민은 **`ResidentDragCoordinator`가 같은 이벤트로 내려놓는다**(§8.2 — 행렬 해제 후
+        // 전원 R8 귀가). 여기서는 임자만 뗀다. 종전에는 들린 주민이 이미 비활성이라 그대로 두는 것이
+        // 곧 귀가였는데, 연출이 몸을 화면에 남기면서 **누군가는 반드시 내려놓아야** 하게 됐다.
+        //
+        // 두 구독자의 호출 순서는 정해져 있지 않다. 그래서 <see cref="ReleaseCarried"/>는 이 집합이
+        // 아니라 `Resident.IsCarried`로 임자를 판정한다 — 여기가 먼저 돌아도 복구가 성립한다.
         carriedResidents.Clear();
     }
 
@@ -271,6 +279,12 @@ public class ResidentSpawner : MonoBehaviour
                 continue;
             }
 
+            // 플레이어 손에 들려 있다. 여기서 뽑으면 **끌고 가던 탑에서 한 명이 증발한다.**
+            if (carriedResidents.Contains(resident))
+            {
+                continue;
+            }
+
             if (!includeEmerging && resident.IsEmerging)
             {
                 continue;
@@ -306,10 +320,11 @@ public class ResidentSpawner : MonoBehaviour
     // 그래서 <see cref="TrimCrowd"/>의 초과분은 드래그 내내 0 이하로 유지되고, **배치 성공 통지가 엉뚱한
     // 주민을 대신 거둬 가지 않는다.** 부분 실패(3명 들고 1자리)도 같은 이유로 맞아떨어진다.
 
-    /// 주민 하나를 들어 화면에서 감춘다. 이미 들고 있거나 거둘 수 없는 상태면 false.
+    /// 주민 하나를 든다. 이미 들고 있거나 거둘 수 없는 상태면 false.
     ///
-    /// 위치는 건드리지 않는다 — 바닥에 떨궜을 때 <see cref="ReleaseCarried"/>가 **들었던 그 자리**로
-    /// 되돌리는 것이 현재 규칙이다(§8.3의 흩뿌리기·부양 높이는 아직 미정이라 손대지 않는다).
+    /// **몸은 화면에 남는다.** 종전에는 여기서 감췄지만(연출이 없어 그 자리에서 사라졌다) 이제
+    /// <see cref="ResidentCarryVisual"/>이 탑으로 쌓아 커서를 따라가게 한다 — 여기서는 그 연출이
+    /// 위치를 소유할 수 있도록 **자리를 비켜 주는 일**(BT 정지 · Agent 끄기 · 상태 전이)만 한다.
     public bool TryCarry(Resident resident)
     {
         if (resident == null || !resident.gameObject.activeSelf)
@@ -328,28 +343,72 @@ public class ResidentSpawner : MonoBehaviour
             return false;
         }
 
-        // ⚠ 대화 세션을 해산시키지 않는다 — 패널 +1 소멸과 같은 규칙이다(§3.2). Resident.OnDisable이 자기
-        //   참조만 놓고, 남은 참가자가 다음 틱에 이탈을 읽어 R7 놀람을 재생한다. 이것이 §8의
-        //   "대화 중 끌어가기 → 남은 참가자는 R7 놀람"이다.
-        resident.gameObject.SetActive(false);
+        EnterCarryMode(resident);
 
         return true;
     }
 
-    /// 들고 있던 주민을 **들었던 자리 그대로** 되돌린다. 안 들고 있던 주민이면 아무 일도 하지 않는다.
-    public void ReleaseCarried(Resident resident)
+    /// 들고 있던 주민을 <paramref name="landing"/>에 내려놓는다. 안 들고 있던 주민이면 아무 일도 하지 않는다.
+    ///
+    /// 착지 지점을 **호출부가 정해서 준다** — NavMesh 위인지는 낙하 연출이 터지기 전에 이미 판정해 뒀다
+    /// (<see cref="ResidentCarryVisual.Burst"/>). 여기서 다시 고르면 눈에 보이던 도착점과 어긋난다.
+    public void ReleaseCarried(Resident resident, Vector3 landing)
     {
-        if (resident == null || !carriedResidents.Remove(resident))
+        // 임자 판정을 집합이 아니라 **주민의 상태**로 한다. 밤 전환처럼 집합이 먼저 비워지는 경로가 있어
+        // (<see cref="HandleDayToNight"/>) 집합으로 막으면 그 순간 손에 있던 주민이 복구를 못 받고
+        // 공중에 굳는다 — 이벤트 구독자 호출 순서는 정해져 있지 않다.
+        if (resident == null || !resident.IsCarried)
         {
             return;
         }
 
-        resident.gameObject.SetActive(true);
-        RestartGraph(resident);
+        carriedResidents.Remove(resident);
+
+        ExitCarryMode(resident, landing);
 
         // 드래그 도중 패널 +1이 들어왔다면 목표 인원이 그새 줄어 있다. 되돌린 지금이 초과가 드러나는
         // 시점인데 OnChanged는 이미 지나갔으므로, 여기서 한 번 맞춰 주지 않으면 다음 상태 통지까지 어긋난 채 남는다.
         TrimCrowd();
+    }
+
+    /// 들기·내려놓기의 짝. 위치 소유권을 연출에 넘기고(BT·Agent 정지) 상태를 전이한다.
+    ///
+    /// ⚠ **BT를 먼저 멈춘다.** 노드가 도는 채로 Agent를 끄면 그 틱의 이동 지시가 조용히 실패한다.
+    private static void EnterCarryMode(Resident resident)
+    {
+        // 대화 세션은 해산시키지 않는다 — 패널 +1 소멸과 같은 규칙이다(§3.2). 참조만 놓으면 남은
+        // 참가자가 다음 틱에 이탈을 읽어 R7 놀람을 재생한다. 이것이 §8의 "대화 중 끌어가기"다.
+        // 종전에는 SetActive(false)의 OnDisable이 대신했는데, 몸이 남게 되며 BeginCarry로 옮겼다.
+        resident.BeginCarry();
+
+        SetGraphEnabled(resident, false);
+
+        // 켜 둔 채로 공중에 올리면 Agent가 매 프레임 지면으로 끌어내려 탑이 서지 않는다(§8.2).
+        var navAgent = resident.GetComponent<NavMeshAgent>();
+
+        if (navAgent != null)
+        {
+            navAgent.enabled = false;
+        }
+    }
+
+    /// <see cref="EnterCarryMode"/>를 되돌린다. 위치를 먼저 잡고 소유권을 `NavMeshAgent`에 돌려준다.
+    private void ExitCarryMode(Resident resident, Vector3 landing)
+    {
+        resident.EndCarry();
+
+        // ⚠ **자리를 먼저 잡고 Agent를 켠다**(PlaceOnNavMesh가 그 순서를 지킨다). 공중에서 켜면
+        //   NavMesh를 못 찾아 isOnNavMesh가 거짓이 되고, 그 뒤의 지시가 통째로 무시돼 영영 못 움직인다.
+        PlaceOnNavMesh(resident, landing, resident.transform.forward);
+
+        // 어느 경로로 풀려나든 걷는 자세로 돌아온다는 **보증**이다. 착지 연출은 이보다 먼저 일어서기
+        // 시작하지만(<see cref="ResidentCarryVisual"/>), 그 경로를 타지 않는 복귀(밤 전환)도 있다.
+        if (resident.Agent != null)
+        {
+            resident.Agent.ReturnToLocomotion(CarryExitFadeSeconds);
+        }
+
+        RestartGraph(resident);
     }
 
     /// 들고 있던 주민이 건물로 들어갔다 — 그대로 소멸시킨다(§3.2).
@@ -362,9 +421,23 @@ public class ResidentSpawner : MonoBehaviour
     /// 플레이어가 직접 집어서 건물에 넣은 이 경로에는 설명할 것이 없다. 드래그에는 **별도 연출이 들어올
     /// 예정**이므로(§8, 미정) 그때까지 비워 둔다 — 있는 파티클을 임시로 돌려쓰면 나중에 어느 쪽 연출인지
     /// 구분이 안 된다.
+    ///
+    /// ⚠ **BT·Agent를 여기서 되살리지 않는다.** 들려 있던 자리는 공중이라, 그 상태로 `NavMeshAgent`를 켜면
+    /// "NavMesh에 붙지 못했다"는 경고가 배치 성공 때마다 콘솔에 쌓인다. 되살리는 자리는 다음 등장이다 —
+    /// <see cref="PlaceOnNavMesh"/>가 유효한 자리에 세운 뒤 Agent를, <see cref="RestartGraph"/>가 그래프를 켠다.
     public void ConsumeCarried(Resident resident)
     {
+        if (resident == null)
+        {
+            return;
+        }
+
         carriedResidents.Remove(resident);
+        resident.EndCarry();
+
+        // 연출이 몸을 화면에 남겨 두므로 감추는 것도 여기서 한다(§3.2 뿅). 종전에는 들 때 이미
+        // 비활성이라 임자만 떼면 됐다.
+        resident.gameObject.SetActive(false);
     }
 
     /// 특정 건물에 배치 변화가 생겼다. **−1만 받는다** — +1의 소멸은 <see cref="TrimCrowd"/>가 이미 처리했다.
@@ -492,7 +565,11 @@ public class ResidentSpawner : MonoBehaviour
 
             for (int i = 0; i < pool.Count; i++)
             {
-                if (pool[i] != null && pool[i].gameObject.activeSelf)
+                // ⚠ 들려 있는 주민은 **화면에 있어도 세지 않는다.** 연출이 들어오기 전에는 들면 곧
+                //   비활성이라 저절로 빠졌는데, 이제 몸이 남으므로 명시적으로 걸러야 한다. 빠뜨리면
+                //   건물 드롭이 성사되는 순간 TargetCount만 줄어 초과로 읽히고, TrimCrowd가
+                //   **엉뚱한 주민을 대신 거둬 간다**(아래 「인원 산술은 저절로 맞는다」의 전제).
+                if (pool[i] != null && pool[i].gameObject.activeSelf && !carriedResidents.Contains(pool[i]))
                 {
                     count++;
                 }
@@ -613,7 +690,22 @@ public class ResidentSpawner : MonoBehaviour
 
         if (graphAgent != null)
         {
+            // 들려 있는 동안 컴포넌트째 꺼 뒀을 수 있다(§8 carry 모드). 켜지 않으면 Restart가 통해도
+            // 그래프가 돌지 않아 주민이 그 자리에 굳는다.
+            graphAgent.enabled = true;
             graphAgent.Restart();
+        }
+    }
+
+    /// 그래프를 **끝내지 않고 멈춘다.** 들려 있는 동안 노드가 이동을 지시하지 못하게 하는 것이 목적이라,
+    /// 되살릴 때는 반드시 <see cref="RestartGraph"/>를 지나야 한다(멈춘 노드가 그대로 이어지면 안 된다).
+    private static void SetGraphEnabled(Resident resident, bool value)
+    {
+        var graphAgent = resident.GetComponent<Unity.Behavior.BehaviorGraphAgent>();
+
+        if (graphAgent != null)
+        {
+            graphAgent.enabled = value;
         }
     }
 
@@ -750,6 +842,14 @@ public class ResidentSpawner : MonoBehaviour
         // Warp는 비활성 Agent에 통하지 않는다. 켜기 전이라 transform을 직접 옮기고,
         // 활성화 시 Agent가 그 자리에서 NavMesh에 붙는다.
         resident.transform.position = target;
+
+        // 들려 있는 동안 꺼 뒀을 수 있다(§8 carry 모드). **유효한 자리에 세운 지금** 켜는 것이 요점이다 —
+        // 공중에서 켜면 NavMesh를 못 찾아 경고만 남기고 붙지 못한다. 재사용되는 주민이 반드시 지나는
+        // 길목이라, 여기 두면 등장 경로가 각자 챙기지 않아도 된다.
+        if (navAgent != null && !navAgent.enabled)
+        {
+            navAgent.enabled = true;
+        }
 
         Vector3 flat = new Vector3(facing.x, 0f, facing.z);
 

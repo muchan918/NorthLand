@@ -60,6 +60,12 @@ public class Resident : MonoBehaviour
     /// 나온 자리에서 직진할 방향(문의 +Z에 해당). 수평 단위 벡터다.
     public Vector3 EmergeForward { get; private set; } = Vector3.forward;
 
+    /// 드래그로 **들려 있는가**(§8 R10). 몸은 화면에 남아 커서를 따라오지만, 마을의 일원으로는 세지 않는다.
+    ///
+    /// 종전에는 들린 주민을 통째로 비활성화해서 이 플래그가 필요 없었다. 연출이 들어오며 **몸이 화면에
+    /// 남게 되어**(§8.1) "보이는데 참여하지는 않는" 상태가 처음 생겼고, 그것을 표현하는 것이 이 값이다.
+    public bool IsCarried { get; private set; }
+
     /// 밤에 문 앞에 도착했다(R8 귀가). **스스로 사라지지 않고 표시만 남긴다** —
     /// BT 노드가 도는 도중에 자기 GameObject를 비활성화하면 그래프가 자기 Update 위에서 꺼진다.
     /// 실제 소멸은 <see cref="ResidentSpawner"/>가 프레임 끝에 처리한다.
@@ -71,7 +77,8 @@ public class Resident : MonoBehaviour
     /// 조건을 소비처마다 나열하면 행위가 늘 때마다 모든 소비처를 고쳐야 한다.
     ///
     /// 등장 중·귀가 완료도 여기 들어온다 — **문에서 나오는 중인 주민에게 말을 걸 수 없다**(§11.11 ②·③).
-    public bool IsBusy => Conversation != null || IsDancing || IsEmerging || HasArrivedHome;
+    /// 들려 있는 주민도 마찬가지다 — 공중에 매달린 채로 길에서 말을 걸리면 안 된다(§8).
+    public bool IsBusy => Conversation != null || IsDancing || IsEmerging || HasArrivedHome || IsCarried;
 
     /// 말을 걸어도 되는 상태인가. 이후 밤·들려 있음 조건이 여기 더해진다(§3.3 · §8).
     public bool IsAvailableForConversation => !IsBusy && isActiveAndEnabled;
@@ -132,6 +139,22 @@ public class Resident : MonoBehaviour
     /// 밤에 문 앞에 도착했다. 스포너가 다음 프레임에 거둬 간다.
     public void MarkArrivedHome() => HasArrivedHome = true;
 
+    // ── 들기 (§8) ─────────────────────────────
+
+    /// 들려 올라갔다. **화면에서 사라지는 것과 같은 상태 전이다** — 몸만 남고 사교·행위 상태는 전부 놓는다.
+    ///
+    /// 종전에는 스포너가 들린 주민을 비활성화해서 <see cref="OnDisable"/>이 이 정리를 대신했다. 연출이
+    /// 들어오며 몸이 화면에 남게 되어 그 경로가 사라졌으므로, **같은 정리를 여기서 명시적으로 한다** —
+    /// 빠뜨리면 공중에 매달린 주민이 대화 상대로 잡히고, 상대는 없는 사람과 대화를 이어 간다.
+    public void BeginCarry()
+    {
+        ReleaseActivityState();
+        IsCarried = true;
+    }
+
+    /// 내려놓았다. 상태만 되돌린다 — 위치·BT·Agent 복구는 <see cref="ResidentSpawner"/>가 한다.
+    public void EndCarry() => IsCarried = false;
+
     private void Awake()
     {
         agent = GetComponent<ResidentAgent>();
@@ -147,6 +170,17 @@ public class Resident : MonoBehaviour
     {
         ResidentRegistry.Unregister(this);
 
+        ReleaseActivityState();
+
+        // 들린 채로 건물에 들어간 경로(ConsumeCarried)가 여기를 지난다. 남겨 두면 풀에서 재사용될 때
+        // 들려 있는 것으로 읽혀 대화 상대에서 영영 빠진다.
+        IsCarried = false;
+    }
+
+    /// 진행 중인 행위·사교 상태를 전부 놓는다. **비활성화와 들기가 공유한다** — 둘 다
+    /// "이 주민은 지금부터 마을의 일에 참여하지 않는다"는 같은 전이이고, 한쪽만 고치면 조용히 갈린다.
+    private void ReleaseActivityState()
+    {
         // ⚠ 세션을 해산시키지 않는다. 참조만 놓는다.
         //   여기서 세션을 끝내면 남은 참가자가 "상대가 빠졌다"를 알아차릴 근거가 사라져 R7 놀람이
         //   나오지 않는다. 세션은 나를 여전히 참가자로 들고 있고, 남은 쪽이 다음 틱에

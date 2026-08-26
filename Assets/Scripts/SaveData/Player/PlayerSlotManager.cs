@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 
 namespace NorthLand.Core
 {
@@ -15,6 +17,13 @@ namespace NorthLand.Core
         private const string SlotDirectoryPrefix = "slot-";
 
         private readonly string saveRootPath;
+
+        private readonly SemaphoreSlim[] slotLocks =
+        {
+            new SemaphoreSlim(1, 1),
+            new SemaphoreSlim(1, 1),
+            new SemaphoreSlim(1, 1)
+        };
 
         public int CurrentSlotIndex { get; private set; } = -1;
 
@@ -54,121 +63,27 @@ namespace NorthLand.Core
 
             return store.Exists;
         }
-
-        public bool TryCreateAndSelectSlot(int slotIndex,out PlayerData data,out string error)
+        public async UniTask<SaveResult<PlayerData>> LoadSlotAsync(int slotIndex,CancellationToken cancellationToken)
         {
-            data = null;
-            error = null;
-
             if (!IsValidSlotIndex(slotIndex))
             {
-                error = "올바르지 않은 슬롯 번호입니다.";
-                return false;
+                return SaveResult<PlayerData>.Failed("올바르지 않은 슬롯 번호입니다.");
             }
 
-            PlayerDataStore store = new PlayerDataStore(GetSlotPath(slotIndex));
+            SemaphoreSlim slotLock = slotLocks[slotIndex];
 
-            if (store.Exists)
-            {
-                error = "이미 사용 중인 슬롯입니다.";
-                return false;
-            }
-
-            data = PlayerData.Create();
-
-            if (!store.TrySave(data, out error))
-            {
-                data = null;
-                return false;
-            }
-
-            CurrentSlotIndex = slotIndex;
-
-            return true;
-
-        }
-
-        public bool TryLoadSlot(int slotIndex,out PlayerData data,out string error)
-        {
-            data = null;
-            error = null;
-
-            if (!IsValidSlotIndex(slotIndex))
-            {
-                error = "올바르지 않은 슬롯 번호입니다.";
-                return false;
-            }
-
-            var store = new PlayerDataStore(GetSlotPath(slotIndex));
-
-            return store.TryLoad(out data,out error);
-        }
-
-
-        public bool TrySelectSlot(int slotIndex,out PlayerData data,out string error)
-        {
-            data = null;
-            error = null;
-
-            if (!IsValidSlotIndex(slotIndex))
-            {
-                error = "올바르지 않은 슬롯 번호입니다.";
-                return false;
-            }
-
-            var store = new PlayerDataStore(GetSlotPath(slotIndex));
-
-            if (!store.TryLoad(out data, out error))
-            {
-                return false;
-            }
-
-            CurrentSlotIndex = slotIndex;
-
-            return true;
-        }
-
-        /// <summary>
-        /// 플레이어 슬롯 폴더와 내부 저장 데이터를 모두 삭제한다.
-        /// </summary>
-        public bool TryDeleteSlot(int slotIndex,out string error)
-        {
-            error = null;
-
-            if (!IsValidSlotIndex(slotIndex))
-            {
-                error = "올바르지 않은 슬롯 번호입니다.";
-                return false;
-            }
-
-            string slotPath = GetSlotPath(slotIndex);
+            await slotLock.WaitAsync(cancellationToken);
 
             try
             {
-                if (Directory.Exists(slotPath))
-                {
-                    Directory.Delete(slotPath,recursive: true);
-                }
+                var store = new PlayerDataStore(GetSlotPath(slotIndex));
+
+                return await store.LoadAsync(cancellationToken);
             }
-            catch (IOException exception)
+            finally
             {
-                error = $"슬롯 파일 삭제에 실패했습니다: " + exception.Message;
-
-                return false;
+                slotLock.Release();
             }
-            catch (UnauthorizedAccessException exception)
-            {
-                error = $"슬롯 파일에 접근할 수 없습니다: " + exception.Message;
-
-                return false;
-            }
-
-            if (CurrentSlotIndex == slotIndex)
-            {
-                CurrentSlotIndex = -1;
-            }
-
-            return true;
         }
 
 
@@ -185,6 +100,163 @@ namespace NorthLand.Core
         public static bool IsValidSlotIndex(int slotIndex)
         {
             return slotIndex >= 0 && slotIndex < SlotCount;
+        }
+        public async UniTask<SaveResult<PlayerData>>
+        CreateAndSelectSlotAsync(int slotIndex,CancellationToken cancellationToken)
+        {
+            if (!IsValidSlotIndex(slotIndex))
+            {
+                return SaveResult<PlayerData>.Failed("올바르지 않은 슬롯 번호입니다.");
+            }
+
+            SemaphoreSlim slotLock = slotLocks[slotIndex];
+
+            await slotLock.WaitAsync(cancellationToken);
+
+            try
+            {
+                var store = new PlayerDataStore(GetSlotPath(slotIndex));
+
+                if (store.Exists)
+                {
+                    return SaveResult<PlayerData>.Failed("이미 사용 중인 슬롯입니다.");
+                }
+
+                PlayerData data = PlayerData.Create();
+
+                SaveResult saveResult = await store.SaveAsync(data,cancellationToken);
+
+                if (!saveResult.Success)
+                {
+                    return SaveResult<PlayerData>.Failed(saveResult.Error);
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+
+                CurrentSlotIndex = slotIndex;
+
+                return SaveResult<PlayerData>.Succeeded(data);
+            }
+            finally
+            {
+                slotLock.Release();
+            }
+        }
+
+        public async UniTask<SaveResult<PlayerData>> SelectSlotAsync(int slotIndex,CancellationToken cancellationToken)
+        {
+            if (!IsValidSlotIndex(slotIndex))
+            {
+                return SaveResult<PlayerData>.Failed("올바르지 않은 슬롯 번호입니다.");
+            }
+
+            SemaphoreSlim slotLock = slotLocks[slotIndex];
+
+            await slotLock.WaitAsync(cancellationToken);
+
+            try
+            {
+                var store = new PlayerDataStore(GetSlotPath(slotIndex));
+
+                SaveResult<PlayerData> loadResult = await store.LoadAsync(cancellationToken);
+
+                if (!loadResult.Success)
+                {
+                    return loadResult;
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+
+                CurrentSlotIndex = slotIndex;
+
+                return loadResult;
+            }
+            finally
+            {
+                slotLock.Release();
+            }
+        }
+
+        public async UniTask<SaveResult> SaveSlotAsync(int slotIndex,PlayerData data,CancellationToken cancellationToken)
+        {
+            if (!IsValidSlotIndex(slotIndex))
+            {
+                return SaveResult.Failed("올바르지 않은 슬롯 번호입니다.");
+            }
+
+            SemaphoreSlim slotLock = slotLocks[slotIndex];
+
+            await slotLock.WaitAsync(cancellationToken);
+
+            try
+            {
+                var store = new PlayerDataStore(GetSlotPath(slotIndex));
+
+                return await store.SaveAsync(data,cancellationToken);
+            }
+            finally
+            {
+                slotLock.Release();
+            }
+        }
+
+        public async UniTask<SaveResult> DeleteSlotAsync(int slotIndex,CancellationToken cancellationToken)
+        {
+            if (!IsValidSlotIndex(slotIndex))
+            {
+                return SaveResult.Failed("올바르지 않은 슬롯 번호입니다.");
+            }
+
+            SemaphoreSlim slotLock = slotLocks[slotIndex];
+
+            await slotLock.WaitAsync(cancellationToken);
+
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                string slotPath = GetSlotPath(slotIndex);
+
+                SaveResult result = await UniTask.RunOnThreadPool(() =>
+                    {
+                        try
+                        {
+                            if (Directory.Exists(slotPath))
+                            {
+                                Directory.Delete(slotPath,recursive: true);
+                            }
+
+                            return SaveResult.Succeeded();
+                        }
+                        catch (IOException exception)
+                        {
+                            return SaveResult.Failed($"슬롯 파일 삭제에 실패했습니다: {exception.Message}");
+                        }
+                        catch (UnauthorizedAccessException exception)
+                        {
+                            return SaveResult.Failed($"슬롯 파일에 접근할 수 없습니다: {exception.Message}");
+                        }
+                    },
+                    cancellationToken: CancellationToken.None);
+
+                if (!result.Success)
+                {
+                    return result;
+                }
+
+                // 파일 삭제가 성공한 경우 메모리 상태도 반드시 맞춘다.
+                // 삭제 시작 후에는 취소 토큰으로 이 상태 갱신을 건너뛰지 않는다.
+                if (CurrentSlotIndex == slotIndex)
+                {
+                    CurrentSlotIndex = -1;
+                }
+
+                return SaveResult.Succeeded();
+            }
+            finally
+            {
+                slotLock.Release();
+            }
         }
     }
 }

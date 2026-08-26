@@ -12,17 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
   m_Name: SkillUpgrade
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
-  popupTitle: "\uC2A4\uD0AC \uAC15\uD654"
-  popupBody: "\uB9C8\uBC95 \uC5F0\uAD6C\uC18C\uC5D0\uC11C \uB9C8\uB098\uC11D\uC744
-    \uB4E4\uC5EC \uC2A4\uD0AC\uC744 \uAC15\uD654\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.\r\n\uAC15\uD654\uD558\uBA74
-    \uAC10\uC804\uC758 \uD53C\uD574\uB7C9\uACFC \uBC94\uC704\uAC00 \uCEE4\uC9C0\uACE0
-    \uC7AC\uCDA9\uC804 \uAC04\uACA9\uC774 \uC9E7\uC544\uC9D1\uB2C8\uB2E4.\r\n\uB9C8\uB098\uC11D\uC740
-    \uBC24 \uC6E8\uC774\uBE0C\uB97C \uD074\uB9AC\uC5B4\uD560 \uB54C\uB9C8\uB2E4 \uBC1B\uC2B5\uB2C8\uB2E4.\r\n\uC5F0\uC2B5\uC744
-    \uC704\uD574 \uC774\uBC88\uC5D0\uB294 \uB9C8\uB098\uC11D \uC5C6\uC774 \uAC15\uD654\uD560
-    \uC218 \uC788\uC2B5\uB2C8\uB2E4."
+  popupTitleKey: tutorial.skill.upgrade.title
+  popupBodyKey: tutorial.skill.upgrade.body
   popupImage: {fileID: 0}
-  bubbleText: "\uBC14\uB85C\uAC00\uAE30 \uBC14\uC5D0\uC11C \uB9C8\uBC95 \uC5F0\uAD6C\uC18C\uB97C
-    \uB20C\uB7EC \uC2A4\uD0AC\uC744 1\uB808\uBCA8 \uAC15\uD654\uD558\uC138\uC694"
+  bubbleTextKey: tutorial.skill.upgrade.bubble
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
