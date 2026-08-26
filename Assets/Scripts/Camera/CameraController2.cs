@@ -17,7 +17,7 @@ public class CameraController2 : MonoBehaviour
     [SerializeField] private Transform cameraTarget;
 
     [Header("Move (WASD)")]
-    [SerializeField] private float moveSpeed = 15f;
+    [SerializeField] private float baseMoveSpeed = 250f;
     [SerializeField] private Vector2 xBounds = new Vector2(-40f, 40f);
     [SerializeField] private Vector2 zBounds = new Vector2(-40f, 40f);
 
@@ -25,7 +25,7 @@ public class CameraController2 : MonoBehaviour
     // 우클릭 드래그 — 좌클릭(MouseManager의 선택 입력)과 버튼을 분리해, 드래그 시작 지점의
     // 오브젝트가 선택/해제되던 부작용을 없앴다. 단 우클릭은 배치/스킬 지정 모드에서 취소로도
     // 쓰이므로(MouseManager), 그 모드 중 드래그하면 취소와 함께 카메라가 끌릴 수 있다.
-    [SerializeField] private float dragSpeed = 0.05f;
+    [SerializeField] private float baseDragSpeed = 0.3f;
 
     [Header("Zoom (Orthographic Size)")]
     [SerializeField] private float zoomSpeed = 2f;
@@ -103,6 +103,36 @@ public class CameraController2 : MonoBehaviour
     [SerializeField]
     private GameResult gameResult;
 
+
+    private float KeyboardMoveSpeedMultiplier
+    {
+        get
+        {
+            GameSettingsService service = GameSettingsService.Instance;
+
+            if (service == null || service.CurrentSettings == null)
+            {
+                return 1f;
+            }
+
+            return Mathf.Clamp(service.CurrentSettings.keyboardMoveSpeedMultiplier,0.5f,2f);
+        }
+    }
+
+    private float MouseMoveSpeedMultiplier
+    {
+        get
+        {
+            GameSettingsService service = GameSettingsService.Instance;
+
+            if (service == null || service.CurrentSettings == null)
+            {
+                return 1f;
+            }
+
+            return Mathf.Clamp(service.CurrentSettings.mouseMoveSpeedMultiplier,0.5f,2f);
+        }
+    }
 
 
     private void Awake()
@@ -254,7 +284,11 @@ public class CameraController2 : MonoBehaviour
         CancelMinimapMove();
 
         Vector3 previousPosition = cameraTarget.position;
-        Vector3 nextPosition = previousPosition + moveDirection.normalized * moveSpeed * Time.unscaledDeltaTime;
+        float moveSpeed = baseMoveSpeed * KeyboardMoveSpeedMultiplier;
+        Vector3 movement = moveDirection.normalized * moveSpeed * Time.unscaledDeltaTime;
+
+        Vector3 nextPosition = cameraTarget.position + movement;
+
         cameraTarget.position = ClampPosition(nextPosition);
 
         PublishMove(MoveSource.Keyboard, previousPosition);
@@ -293,6 +327,8 @@ public class CameraController2 : MonoBehaviour
 
         // 드래그 반대 방향으로 카메라 이동
         Vector2 screenDelta = _dragStartScreenPos - currentScreenPos;
+
+        float dragSpeed = baseDragSpeed * MouseMoveSpeedMultiplier;
 
         Vector3 offset = (GroundRight() * screenDelta.x + GroundForward() * screenDelta.y) * dragSpeed;
 
@@ -449,4 +485,6 @@ public class CameraController2 : MonoBehaviour
         position.z = Mathf.Clamp(position.z, zBounds.x, zBounds.y);
         return position;
     }
+
+
 }

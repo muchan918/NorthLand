@@ -310,6 +310,58 @@ MonoBehaviour:
     m_Localized: Please select a language.
     m_Metadata:
       m_Items: []
+  - m_Id: 17044818347241472
+    m_Localized: General
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17045580481638400
+    m_Localized: Graphics
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17045757330272256
+    m_Localized: Audio
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17046018383753216
+    m_Localized: Keyboard Speed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17046391068635136
+    m_Localized: Mouse Speed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17046624372600832
+    m_Localized: Screen Mode
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17046787648466944
+    m_Localized: Resolution
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17046954615320576
+    m_Localized: Master
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17047118499360768
+    m_Localized: BGM
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17047292516839424
+    m_Localized: SFX
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17047840792064000
+    m_Localized: Fullscreen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17047899206135808
+    m_Localized: Borderless
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17047987324268544
+    m_Localized: Windowed
+    m_Metadata:
+      m_Items: []
   - m_Id: 16684889451081728
     m_Localized: Battle Map
     m_Metadata:

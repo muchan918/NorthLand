@@ -117,7 +117,7 @@
 
 ### Audio
 
-- `AudioManager.Instance` — `RuntimeInitializeOnLoadMethod(BeforeSceneLoad)`로 자체 부팅하므로 씬 배치·초기화 순서와 무관하게 항상 존재한다.
+- `AudioManager.Instance` — `RuntimeInitializeOnLoadMethod(AfterSceneLoad)`로 자체 부팅하며 씬에는 배치하지 않는다. 첫 씬의 `Awake` 시점에는 아직 null일 수 있으므로 소비처는 null 여부를 확인해야 한다.
 - `AudioManager.GetVolume(AudioChannel)` / `SetVolume(AudioChannel, float 0~1)` — 채널 볼륨. `SetVolume`은 음소거 상태를 **건드리지 않는다**("음소거 중 슬라이더 조작 = 자동 해제" 같은 UX 정책은 설정 패널 몫).
 - `AudioManager.IsMuted(AudioChannel)` / `SetMuted(AudioChannel, bool)` — 음소거. 볼륨 값은 보존되므로 해제하면 원래 슬라이더 위치로 돌아온다.
 - `AudioManager.GetEffectiveVolume(AudioChannel)` — 실제로 `AudioSource.volume`에 곱할 계수(`Master × 채널`, 음소거면 0). **새 재생 경로를 만드는 쪽이 반드시 곱해야 볼륨 제어를 받는다** — 믹서가 없어 이것이 유일한 연결 고리다.
