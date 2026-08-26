@@ -378,7 +378,7 @@ Boss.Stat.MoveSpeed × P1_MaxFactor × slowFactor^n  <  P1_MinSpeed
 | 공격 모션 ↔ 공격 속도 | ✅ `AttackCadence`로 1회 재생 = `AttackInterval`(2.5초) 실측 일치 |
 | 상체/하체 분리 | ✅ 걸으면서 가드·봉인·소환. 상체 레이어 weight 자동 페이드 |
 | **P1 충돌 후 보스 생존** | ✅ `P1_ArriveDistance` 5에서 경로 끝 `RouteCompleted → Destroy`를 회피하고 근접 공격으로 전환한다 |
-| 프리팹 스케일·콜라이더 | ✅ 모델 ×6(키 약 11.7) · `CapsuleCollider` height 10 / center.y 5 · `HitPosition` y 8 · `MonsterHealthBar` y 13 |
+| 프리팹 스케일·콜라이더 | ✅ 모델 ×6(키 약 11.7) · `CapsuleCollider` height 10 / center.y 5 · `HitPosition` y 8 · 체력바 높이는 **프리팹 값이 아니다** — #447 이후 렌더러 바운즈 상단에서 런타임 계산(과거 손저작 값 y 13) |
 | 패턴 VFX | ✅ 레이어별로 파티클이 모션과 함께 재생된다(`BossDesign.md` 「패턴 VFX 계약」) |
 | 디버그 서클 제거 | ✅ 4개 모두 제거(노드 60 → 51). 남은 서클은 P3 예고 원 하나뿐이며 그건 게임 요소다 |
 | 웨이브 편성 | ✅ 웨이브 7에 보스 1체 |
