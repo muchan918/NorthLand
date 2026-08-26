@@ -5,8 +5,8 @@
 /// </summary>
 public static class UILayer
 {
-    /// <summary>몬스터 체력바(MonsterHealthBarLayer) — 머리 위 월드 스페이스 바. 입력을 받지 않으며 월드 오버레이·HUD 아래에 그린다.</summary>
-    public const int MonsterHealthBar = 40;
+    /// <summary>몬스터 상태 UI(EnemyStateUILayer) — 머리 위 체력바 + 상태이상 아이콘. World Space이며 입력을 받지 않는다(§UIZOrder 「World Space는 총순서 밖」).</summary>
+    public const int EnemyStateUI = 40;
 
     /// <summary>월드 오버레이(SelectionBoxView) — 드래그 선택 사각형. 입력을 받지 않으며 HUD 아래에 그린다.</summary>
     public const int SelectionBox = 50;
