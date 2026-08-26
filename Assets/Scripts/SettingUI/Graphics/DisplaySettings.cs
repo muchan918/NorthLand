@@ -4,17 +4,12 @@ using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using NorthLand.Core;
 
 public class DisplaySettings : MonoBehaviour
 {
     [SerializeField] private TMP_Dropdown screenModeDropdown;
     [SerializeField] private TMP_Dropdown resolutionDropdown;
-
-    private const string ScreenModeKey = "ScreenMode";
-    private const string ResolutionIndexKey = "ResolutionIndex";
-    private const string ResolutionWidthKey = "ResolutionWidth";
-    private const string ResolutionHeightKey = "ResolutionHeight";
-
 
     [SerializeField] private GameObject resolutionConfirmPanel;
     [SerializeField] private TMP_Text resolutionConfirmText;
@@ -39,30 +34,39 @@ public class DisplaySettings : MonoBehaviour
 
     private void Start()
     {
+        if (GameSettingsService.Instance == null ||
+            GameSettingsService.Instance.CurrentSettings == null)
+        {
+            Debug.LogError("[DisplaySettings] GameSettingsService가 준비되지 않았습니다.",this);
+
+            enabled = false;
+            return;
+        }
+
+        GameSettingsData settings = GameSettingsService.Instance.CurrentSettings;
+
+        int savedMode = Mathf.Clamp(settings.screenMode, 0, 2);
+        int savedResolutionIndex = Mathf.Clamp(settings.resolutionIndex,0,Resolutions.Length - 1);
+
+        if (screenModeDropdown != null)
+        {
+            screenModeDropdown.SetValueWithoutNotify(savedMode);
+            screenModeDropdown.RefreshShownValue();
+        }
+
         if (resolutionDropdown != null)
         {
             resolutionDropdown.onValueChanged.AddListener(OnResolutionChanged);
-            int savedResolutionIndex = Mathf.Clamp(
-                PlayerPrefs.GetInt(ResolutionIndexKey, 0),
-                0,
-                Resolutions.Length - 1);
 
             resolutionDropdown.SetValueWithoutNotify(savedResolutionIndex);
-            resolutionDropdown.RefreshShownValue();
 
-            Vector2Int savedResolution = Resolutions[savedResolutionIndex];
-            SaveResolution(savedResolution.x, savedResolution.y);
+            resolutionDropdown.RefreshShownValue();
         }
         else
         {
-            Debug.LogWarning(
-                "[DisplaySettings] Resolution Dropdown이 연결되지 않았습니다.",
-                this);
+            Debug.LogWarning("[DisplaySettings] Resolution Dropdown이 연결되지 않았습니다.",this);
         }
 
-        int savedMode = PlayerPrefs.GetInt(ScreenModeKey, 1);
-
-        screenModeDropdown.SetValueWithoutNotify(savedMode);
         ApplyScreenMode(savedMode);
     }
 
@@ -78,10 +82,13 @@ public class DisplaySettings : MonoBehaviour
 
     public void OnScreenModeChanged(int index)
     {
+        index = Mathf.Clamp(index, 0, 2);
+
         ApplyScreenMode(index);
 
-        PlayerPrefs.SetInt(ScreenModeKey, index);
-        PlayerPrefs.Save();
+        GameSettingsData settings = GameSettingsService.Instance.CurrentSettings;
+
+        GameSettingsService.Instance.SetDisplaySettings(index,settings.resolutionIndex);
     }
 
     private void ApplyScreenMode(int index)
@@ -158,7 +165,7 @@ public class DisplaySettings : MonoBehaviour
         previousWidth = Screen.width;
         previousHeight = Screen.height;
         previousScreenMode = Screen.fullScreenMode;
-        previousResolutionIndex = PlayerPrefs.GetInt(ResolutionIndexKey, 0);
+        previousResolutionIndex = Mathf.Clamp(GameSettingsService.Instance.CurrentSettings.resolutionIndex,0,Resolutions.Length - 1);
 
         pendingResolutionIndex = index;
 
@@ -173,12 +180,9 @@ public class DisplaySettings : MonoBehaviour
     {
         CancelResolutionCountdown();
 
-        Vector2Int selected =
-            Resolutions[pendingResolutionIndex];
+        GameSettingsData settings = GameSettingsService.Instance.CurrentSettings;
 
-        PlayerPrefs.SetInt(ResolutionIndexKey,pendingResolutionIndex);
-
-        SaveResolution(selected.x, selected.y);
+        GameSettingsService.Instance.SetDisplaySettings(settings.screenMode,pendingResolutionIndex);
 
         resolutionConfirmPanel.SetActive(false);
         resolutionDropdown.interactable = true;
@@ -199,15 +203,11 @@ public class DisplaySettings : MonoBehaviour
 
     private void ApplySavedResolution(FullScreenMode mode)
     {
-        int width = PlayerPrefs.GetInt(ResolutionWidthKey, Screen.width);
-        int height = PlayerPrefs.GetInt(ResolutionHeightKey, Screen.height);
-        Screen.SetResolution(width, height, mode);
+        int index = Mathf.Clamp(GameSettingsService.Instance.CurrentSettings.resolutionIndex,0,Resolutions.Length - 1);
+
+        Vector2Int resolution = Resolutions[index];
+
+        Screen.SetResolution(resolution.x,resolution.y,mode);
     }
 
-    private static void SaveResolution(int width, int height)
-    {
-        PlayerPrefs.SetInt(ResolutionWidthKey, width);
-        PlayerPrefs.SetInt(ResolutionHeightKey, height);
-        PlayerPrefs.Save();
-    }
 }

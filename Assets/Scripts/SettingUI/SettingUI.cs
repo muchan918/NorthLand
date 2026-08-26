@@ -145,20 +145,23 @@ public class SettingUI : MonoBehaviour
     public void ClosePanel()
     {
         if (settingPanel == null)
-        {
             return;
-        }
 
         if (localizationManager != null)
-        {
             localizationManager.OnClose();
+
+        GameSettingsService settingsService = GameSettingsService.Instance;
+
+        if (settingsService != null && !settingsService.TrySaveCurrentSettings(out string error))
+        {
+            Debug.LogWarning($"게임 설정 저장 실패: {error}",this);
         }
 
         settingPanel.SetActive(false);
 
         if (GameSpeedController.Instance != null)
         {
-            GameSpeedController.Instance.SetPaused(GamePauseReason.Settings, false);
+            GameSpeedController.Instance.SetPaused(GamePauseReason.Settings,false);
         }
     }
 
