@@ -31,6 +31,13 @@ namespace NorthLand.UI
         // **모든 몬스터가 같은 값을 쓴다**(폭이 몬스터별 성질이 아니라는 것이 이 이슈의 요구사항).
         const float k_CanvasScale = 0.01f;
 
+        // 체력바는 **미니맵에 뜨면 안 된다**. 그 보장을 미니맵 카메라의 컬링 마스크에 맡기지 않고
+        // 이 레이어로 명시한다 — 마스크는 씬 직렬화 값이라 누가 Everything 기준으로 다시 만들면
+        // 조용히 뒤집히고, 증상이 "미니맵이 지저분하다"라 원인이 체력바라는 게 드러나지 않는다.
+        // `MinimapHidden`은 SystemMap §5가 "미니맵에만 감출 월드 오브젝트용"으로 정의한 레이어이며
+        // `Main Camera` 마스크에는 포함돼 있어 본 화면에는 정상 렌더된다.
+        const string k_HiddenFromMinimapLayer = "MinimapHidden";
+
         static MonsterHealthBarLayer instance;
         static MonsterHealthBar barPrefab;
         static bool prefabLoadFailed;
@@ -52,6 +59,12 @@ namespace NorthLand.UI
             Application.quitting += HandleQuitting;
 
             quitting = false;
+
+            // 도메인 리로드를 끈 환경(Enter Play Mode Options)에서는 static이 플레이 사이에 살아남는다.
+            // 한 번 실패한 상태를 들고 가면 프리팹을 고쳐 놔도 에디터를 다시 켤 때까지 체력바가 영구히
+            // 꺼진 채로 남고, LogError는 최초 1회뿐이라 원인이 보이지 않는다.
+            prefabLoadFailed = false;
+            barPrefab = null;
         }
 
         static void HandleQuitting()
@@ -102,6 +115,8 @@ namespace NorthLand.UI
             }
 
             var go = new GameObject(nameof(MonsterHealthBarLayer), typeof(RectTransform), typeof(Canvas));
+            SetLayerRecursively(go, ResolveHiddenLayer());
+
             var canvas = go.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.WorldSpace;
             canvas.sortingOrder = UILayer.MonsterHealthBar;
@@ -117,7 +132,15 @@ namespace NorthLand.UI
 
         void Attach(Enemy enemy)
         {
-            MonsterHealthBar bar = pool.Count > 0 ? pool.Pop() : Instantiate(barPrefab);
+            bool spawned = pool.Count == 0;
+            MonsterHealthBar bar = spawned ? Instantiate(barPrefab) : pool.Pop();
+
+            // 프리팹 자식은 저작 시점 레이어(보통 Default)를 들고 오므로 계층 전체를 다시 칠한다.
+            // 풀에서 꺼낸 것은 이미 칠해져 있다.
+            if (spawned)
+            {
+                SetLayerRecursively(bar.gameObject, ResolveHiddenLayer());
+            }
 
             Transform t = bar.transform;
             t.SetParent(transform, false);
@@ -195,6 +218,37 @@ namespace NorthLand.UI
                 bar.gameObject.SetActive(false);
                 live.RemoveAt(i);
                 pool.Push(bar);
+            }
+        }
+
+        /// 미니맵에서 감출 레이어. 프로젝트에 레이어가 없으면 -1이 오는데, 그때는 칠하지 않고
+        /// Default로 둔다 — 잘못된 레이어로 칠하면 본 화면에서까지 사라질 수 있어 그쪽이 더 나쁘다.
+        static int ResolveHiddenLayer()
+        {
+            int layer = LayerMask.NameToLayer(k_HiddenFromMinimapLayer);
+
+            if (layer < 0)
+            {
+                Debug.LogWarning(
+                    $"[몬스터 체력바] '{k_HiddenFromMinimapLayer}' 레이어가 없어 기본 레이어로 둡니다 — " +
+                    "미니맵 카메라 컬링 마스크에 따라 체력바가 미니맵에 그려질 수 있습니다.");
+            }
+
+            return layer;
+        }
+
+        static void SetLayerRecursively(GameObject go, int layer)
+        {
+            if (layer < 0)
+            {
+                return;
+            }
+
+            go.layer = layer;
+
+            foreach (Transform child in go.transform)
+            {
+                SetLayerRecursively(child.gameObject, layer);
             }
         }
 

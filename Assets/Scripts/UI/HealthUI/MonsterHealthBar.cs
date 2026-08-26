@@ -47,8 +47,8 @@ namespace NorthLand.UI
 
             enemy.OnHpChanged += UpdateBar;
 
-            // 스폰 시점의 MaxHp는 아직 웨이브 배율 이전 값일 수 있다. 스포너가 곧
-            // ApplyWaveHpScale로 OnHpChanged를 다시 쏘고, 그때 눈금이 실효 MaxHp로 다시 그려진다.
+            // Enemy.Spawned가 Start에서 오므로 이 MaxHp는 이미 웨이브 배율이 반영된 확정값이다
+            // (Enemy.Spawned 선언부 ①). OnHpChanged 구독은 이후의 피해·회복을 받기 위한 것이다.
             UpdateBar(enemy.CurrentHp, enemy.MaxHp);
         }
 

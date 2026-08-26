@@ -32,11 +32,19 @@ namespace NorthLand.Combat
         /// ⚠ static이므로 구독자는 **반드시 해제**할 것(죽은 구독자가 남으면 파괴된 타워를 계속 건드린다).
         public static event Action<IAttacker, Enemy> Killed;
 
-        /// 이 적이 씬에 등장한 직후 **Awake 끝에서** 1회 발행된다. 몬스터 체력바(#447)가 프리팹 종속
+        /// 이 적이 씬에 등장한 직후 **`Start`에서** 1회 발행된다. 몬스터 체력바(#447)가 프리팹 종속
         /// 없이 자신을 붙이는 창구이며, `PlayerBase.OnBaseSpawned`와 같은 idiom이다.
         ///
-        /// ⚠ 발행 시점의 `MaxHp`는 **웨이브 배율이 아직 안 곱해진 값**이다(`MonsterSpawn`이 스폰 직후
-        /// `ApplyWaveHpScale`로 덮어쓴다). 최대치가 필요한 구독자는 `OnHpChanged`를 함께 구독할 것.
+        /// **`Awake`가 아니라 `Start`인 이유가 셋이다.**
+        /// ① `MonsterSpawn`이 `Instantiate` **직후 동기로** `ApplyWaveHpScale`을 부르므로(`SpawnPrefab`),
+        ///    `Start` 시점의 `MaxHp`는 **웨이브 배율이 반영된 확정값**이다 — 구독자가 "지금 읽은 최대치는
+        ///    임시일 수 있다"를 알아야 하는 부채가 사라진다.
+        /// ② 구독자가 `RuntimeInitializeOnLoadMethod(AfterSceneLoad)`로 붙는데, 그 시점은 **첫 로드 씬의
+        ///    모든 `Awake` 이후 · `Start` 이전**이다. `Awake`에서 발행하면 첫 씬에 미리 놓여 있던 적은
+        ///    구독자가 0인 상태로 신호를 흘린다.
+        /// ③ `SpawnPrefab`의 검증 실패 경로는 `Instantiate` 뒤 `Destroy`로 끝나는데, 그 경우 `Start`가
+        ///    아예 돌지 않아 **한 프레임짜리 유령 구독**이 생기지 않는다.
+        ///
         /// ⚠ static이므로 구독자는 반드시 해제할 것.
         public static event Action<Enemy> Spawned;
 
@@ -145,9 +153,12 @@ namespace NorthLand.Combat
 
                 behaviorAgent.Graph = data.Boss.BehaviorTree;
             }
+        }
 
-            // 체력바 부착 창구(#447). 프리팹에 UI를 심는 대신 이 신호를 UI 레이어가 받아 붙인다 —
-            // PlayerBase.OnBaseSpawned와 같은 idiom이다.
+        void Start()
+        {
+            // 체력바 부착 창구(#447). 프리팹에 UI를 심는 대신 이 신호를 UI 레이어가 받아 붙인다.
+            // Awake가 아니라 여기인 이유는 Spawned 선언부의 ①②③.
             Spawned?.Invoke(this);
         }
 
