@@ -30,6 +30,10 @@ namespace NorthLand.Combat
 
         class DotState
         {
+            // 어떤 종류의 DoT인지(#502). **effectId로는 복원할 수 없어서** 따로 들고 있어야 한다 —
+            // effectId는 `HitEffect.SourceKey(baseId, kind)` = `HashCode.Combine(...)`라 되돌릴 수 없다.
+            public EffectKind kind;
+
             public float damagePerTick;
             public float tickInterval;
             public float remaining;   // 남은 지속시간(초)
@@ -100,6 +104,71 @@ namespace NorthLand.Combat
         bool stunActive;
         int stunSource;
 
+        // ── 표시용 조회(#502) ──────────────────────────────────────
+        // 상태이상 아이콘 UI가 "지금 뭐가 걸려 있나"를 읽는 유일한 창구다. 이 클래스는 효과를
+        // 소유만 하고 그리지 않으므로, 밖으로 나가는 것은 **종류 집합 하나**뿐이다.
+        //
+        // ⚠ **캐시하지 않고 매번 센다.** 항목이 많아야 서너 개라 세는 비용이 무의미한 반면,
+        //   캐시는 만료·사망·감속으로 덮임·전량 해제 네 경로에서 각각 갱신을 빠뜨릴 수 있고
+        //   그 실패는 "아이콘이 안 꺼진다"로만 보여 원인에서 멀다.
+
+        /// 종류 하나에 해당하는 비트. 비트 i = `1 << (int)EffectKind`.
+        public static int MaskOf(EffectKind kind) => 1 << (int)kind;
+
+        /// 지금 걸려 있는 상태이상 종류의 비트마스크. 아무것도 없으면 0.
+        public int ActiveKindMask
+        {
+            get
+            {
+                int mask = 0;
+
+                foreach (var kv in effects)
+                {
+                    mask |= MaskOf(kv.Value.kind);
+                }
+
+                // 감속·스턴은 배율이 종류를 정한다 — 0이면 스턴 축(AddStun), 그 위면 감속 축이다.
+                foreach (var kv in slows)
+                {
+                    mask |= MaskOf(kv.Value.multiplier <= 0f ? EffectKind.Stun : EffectKind.Slow);
+                }
+
+                return mask;
+            }
+        }
+
+        public bool Has(EffectKind kind) => (ActiveKindMask & MaskOf(kind)) != 0;
+
+        /// 이 종류가 지금 **몇 겹** 걸려 있는가(#502 스택 표시). 겹의 단위는 **소스(`effectId`)**다 —
+        /// 같은 타워가 다시 맞혀도 그건 갱신이라 늘지 않고, 다른 타워가 걸면 늘어난다.
+        ///
+        /// 왜 겹의 수가 곧 세기인가:
+        /// · DoT는 소스마다 자기 틱을 독립으로 돌리므로 겹칠수록 **초당 피해가 더해진다.**
+        /// · 감속은 `MoveSpeedComposer`가 소스별 배율을 **곱하므로** 겹칠수록 느려진다(`PushToMover` 주석).
+        /// · 스턴은 대상당 에피소드가 하나뿐이라(`stunSource` 슬롯 1개) 항상 0 또는 1이다.
+        public int CountOf(EffectKind kind)
+        {
+            int count = 0;
+
+            foreach (var kv in effects)
+            {
+                if (kv.Value.kind == kind)
+                {
+                    count++;
+                }
+            }
+
+            foreach (var kv in slows)
+            {
+                if ((kv.Value.multiplier <= 0f ? EffectKind.Stun : EffectKind.Slow) == kind)
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
         void Awake()
         {
             owner = GetComponent<IDamageable>();
@@ -111,7 +180,10 @@ namespace NorthLand.Combat
 
         // 타워가 사거리 내에서 매 Interval마다 호출.
         // 이미 있으면 남은 지속시간을 duration으로 리셋(갱신), 없으면 새로 추가한다.
-        public void ApplyOrRefresh(int effectId, float damagePerTick, float tickInterval, float duration, IAttacker source)
+        //
+        // `kind`는 피해 계산에 쓰이지 않는다 — **표시용**이다(#502의 상태이상 아이콘이 읽는
+        // `ActiveKindMask`). 호출부가 이미 아는 값이라 인자로 받는 것이 가장 싸다.
+        public void ApplyOrRefresh(int effectId, EffectKind kind, float damagePerTick, float tickInterval, float duration, IAttacker source)
         {
             if (duration <= 0f || tickInterval <= 0f) return;
 
@@ -122,11 +194,13 @@ namespace NorthLand.Combat
                 e.damagePerTick = damagePerTick;
                 e.tickInterval = tickInterval;
                 e.source = source;
+                e.kind = kind;
             }
             else
             {
                 effects[effectId] = new DotState
                 {
+                    kind = kind,
                     damagePerTick = damagePerTick,
                     tickInterval = tickInterval,
                     remaining = duration,
