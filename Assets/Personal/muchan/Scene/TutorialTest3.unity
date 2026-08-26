@@ -12055,7 +12055,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: debugSteps.Array.size
-      value: 2
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: 'debugSteps.Array.data[0]'
@@ -12068,11 +12068,11 @@ PrefabInstance:
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: 'debugSteps.Array.data[2]'
       value: 
-      objectReference: {fileID: 11400000, guid: 18830b9b69e19554888a68348195f12f, type: 2}
+      objectReference: {fileID: 11400000, guid: 5eccda031e295294e9867f8f522cc1d1, type: 2}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: 'debugSteps.Array.data[3]'
       value: 
-      objectReference: {fileID: 11400000, guid: 172226fdf99b4474c8519e78cba95d92, type: 2}
+      objectReference: {fileID: 11400000, guid: 5d1d1f1346f310549998bd0474c1f16f, type: 2}
     - target: {fileID: 8588015674922286078, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
