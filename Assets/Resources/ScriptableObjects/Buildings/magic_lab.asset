@@ -35,7 +35,7 @@ MonoBehaviour:
       BuffCooldownMultiplier: 0.9
     - Cost:
       - Resource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
-        Amount: 40
+        Amount: 30
       RequiredCastleLevel: 0
       DamageValue: 40
       RadiusMultiplier: 1.4
@@ -46,7 +46,7 @@ MonoBehaviour:
       BuffCooldownMultiplier: 0.7
     - Cost:
       - Resource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
-        Amount: 60
+        Amount: 40
       RequiredCastleLevel: 0
       DamageValue: 45
       RadiusMultiplier: 1.6
@@ -57,7 +57,7 @@ MonoBehaviour:
       BuffCooldownMultiplier: 0.5
     - Cost:
       - Resource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
-        Amount: 90
+        Amount: 50
       RequiredCastleLevel: 1
       DamageValue: 60
       RadiusMultiplier: 1.8
@@ -66,17 +66,6 @@ MonoBehaviour:
       BuffAttackSpeedMultiplierScale: 1.9
       BuffDurationMultiplier: 1.9
       BuffCooldownMultiplier: 0.45
-    - Cost:
-      - Resource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
-        Amount: 130
-      RequiredCastleLevel: 2
-      DamageValue: 80
-      RadiusMultiplier: 2
-      CooldownSeconds: 8
-      BuffDamageMultiplierScale: 2.2
-      BuffAttackSpeedMultiplierScale: 2.2
-      BuffDurationMultiplier: 2.2
-      BuffCooldownMultiplier: 0.4
   Exchange:
     PayResource: {fileID: 0}
     Offers: []
