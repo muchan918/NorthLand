@@ -22,7 +22,7 @@ MonoBehaviour:
   pauseGameDuringStep: 0
   resumeGameAfterPopup: 0
   restrictActions: 1
-  allowedActions: 1552
+  allowedActions: 1584
   minimumTowerCountBeforeEndDay: 0
   requiredTowerBeforeEndDay: {fileID: 0}
   freeTowerPlacement: 0
