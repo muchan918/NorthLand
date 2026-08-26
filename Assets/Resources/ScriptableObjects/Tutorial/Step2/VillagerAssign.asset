@@ -21,7 +21,7 @@ MonoBehaviour:
   highlightCell: {x: 0, y: 0}
   pauseGameDuringStep: 0
   restrictActions: 1
-  allowedActions: 19
+  allowedActions: 80
   freeTowerPlacement: 0
   restrictTowerPanelTo: {fileID: 0}
   freeManagementCost: 0

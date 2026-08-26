@@ -69,12 +69,11 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2996211713
-    m_Localized: Your village has villagers. Assign villagers to production buildings
-      to produce resources the following day.
+    m_Localized: Use the + button in a production building panel to assign villagers.
     m_Metadata:
       m_Items: []
   - m_Id: 2996211714
-    m_Localized: Assign both villagers to production buildings.
+    m_Localized: Assign both villagers with the + buttons.
     m_Metadata:
       m_Items: []
   - m_Id: 3436613632
@@ -326,6 +325,23 @@ MonoBehaviour:
 
       Would
       you like to start the tutorial?'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 606019064860672
+    m_Localized: Buff Tiles
+    m_Metadata:
+      m_Items: []
+  - m_Id: 606020335734784
+    m_Localized: Buff tile effect icons appear while you are placing a tower. Place
+      a tower on a buff tile to gain its stat effect.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 615170927136768
+    m_Localized: Undo
+    m_Metadata:
+      m_Items: []
+  - m_Id: 615170964885504
+    m_Localized: Use the Undo button or Ctrl+Z to cancel a misplaced tower or upgrade.
     m_Metadata:
       m_Items: []
   references:

@@ -65,6 +65,15 @@ public class TutorialStepAsset : ScriptableObject
     [SerializeField]
     private TutorialAction allowedActions;
 
+    [Tooltip("낮 종료 전에 필요한 최소 타워 수. 0이면 검사하지 않는다.")]
+    [Min(0)]
+    [SerializeField]
+    private int minimumTowerCountBeforeEndDay;
+
+    [Tooltip("낮 종료 타워 수 검사 대상을 제한한다. 비우면 모든 타워를 센다.")]
+    [SerializeField]
+    private TowerAsset requiredTowerBeforeEndDay;
+
     [Header("전투 규칙 — 이 단계 동안만 적용된다")]
     // 켜면 이 단계 동안 타워를 무료로 놓는다(TowerPlacer.FreePlacement). 자원이 모자라 단계가
     // 막히는 것을 피하려는 용도이고, 단계를 벗어나면 컨트롤러가 되돌린다.
@@ -142,6 +151,10 @@ public class TutorialStepAsset : ScriptableObject
     public bool RestrictActions => restrictActions;
 
     public TutorialAction AllowedActions => allowedActions;
+
+    public int MinimumTowerCountBeforeEndDay => minimumTowerCountBeforeEndDay;
+
+    public TowerAsset RequiredTowerBeforeEndDay => requiredTowerBeforeEndDay;
 
     public bool FreeTowerPlacement => freeTowerPlacement;
 

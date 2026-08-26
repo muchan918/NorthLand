@@ -33,6 +33,18 @@ public class ProductionLineView : MonoBehaviour
     private RowMode _mode;
     private int _lineIndex;      // Villager 모드
     private ResourceKind _kind;  // Mana 모드
+    private Selectable.Transition _plusTransition;
+    private Selectable.Transition _minusTransition;
+
+    private void Awake()
+    {
+        if (_plusButton != null) _plusTransition = _plusButton.transition;
+        if (_minusButton != null) _minusTransition = _minusButton.transition;
+    }
+
+    private void OnEnable() => TutorialInputGate.Changed += Refresh;
+
+    private void OnDisable() => TutorialInputGate.Changed -= Refresh;
 
     /// <summary>기본 자원 생산 라인(주민 배치)으로 바인딩한다(#166 Villager 모드).</summary>
     public void BindVillager(ManagementController controller, int lineIndex)
@@ -66,7 +78,7 @@ public class ProductionLineView : MonoBehaviour
             _plusButton.gameObject.SetActive(villager);
             if (villager)
             {
-                _plusButton.onClick.AddListener(() => _controller.AssignVillager(_lineIndex));
+                _plusButton.onClick.AddListener(HandleAssignVillager);
             }
         }
         if (_minusButton != null)
@@ -75,9 +87,25 @@ public class ProductionLineView : MonoBehaviour
             _minusButton.gameObject.SetActive(villager);
             if (villager)
             {
-                _minusButton.onClick.AddListener(() => _controller.UnassignVillager(_lineIndex));
+                _minusButton.onClick.AddListener(HandleUnassignVillager);
             }
         }
+    }
+
+    private void HandleAssignVillager()
+    {
+        if (!TutorialInputGate.Allows(TutorialAction.EditResidentByButton))
+            return;
+
+        _controller.AssignVillager(_lineIndex);
+    }
+
+    private void HandleUnassignVillager()
+    {
+        if (!TutorialInputGate.Allows(TutorialAction.EditResidentByButton))
+            return;
+
+        _controller.UnassignVillager(_lineIndex);
     }
 
     public void Refresh()
@@ -105,9 +133,24 @@ public class ProductionLineView : MonoBehaviour
         if (_villagerText != null) _villagerText.text = _controller.LineVillagers(_lineIndex).ToString();
         if (_expectedText != null) _expectedText.text = $"+{_controller.LineExpectedProduction(_lineIndex)}";
 
-        bool editable = _controller.IsDay; // 낮이면 배치 편집 가능(#219)
-        if (_plusButton != null) _plusButton.interactable = editable;
-        if (_minusButton != null) _minusButton.interactable = editable;
+        bool editable = _controller.IsDay;
+        bool tutorialAllowsEdit = TutorialInputGate.Allows(TutorialAction.EditResidentByButton);
+        RefreshButton(_plusButton, _plusTransition, editable, tutorialAllowsEdit);
+        RefreshButton(_minusButton, _minusTransition, editable, tutorialAllowsEdit);
+    }
+
+    private static void RefreshButton(
+        Button button,
+        Selectable.Transition originalTransition,
+        bool editable,
+        bool tutorialAllowsEdit)
+    {
+        if (button == null) return;
+
+        button.interactable = editable;
+        button.transition = editable && !tutorialAllowsEdit
+            ? Selectable.Transition.None
+            : originalTransition;
     }
 
     // 표시 전용 자원 행: 이름 + 지갑(보유량) + "+n"(다음 정산 시 수급량).

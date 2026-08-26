@@ -9,5 +9,7 @@ public enum TutorialAction
     SelectTower = 1 << 2,
     PlaceTower = 1 << 3,
     MoveCamera = 1 << 4,
-    UseBuildingShortcut = 1 << 5
+    UseBuildingShortcut = 1 << 5,
+    EditResidentByButton = 1 << 6,
+    EndDay = 1 << 7
 }

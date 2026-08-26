@@ -423,6 +423,10 @@ public class TutorialController : MonoBehaviour
     // 정리해야 하는 것은 튜토리얼이 끝나는 경로뿐이다(ClearStepRules).
     private void ApplyStepRules(TutorialStepAsset step)
     {
+        TutorialInputGate.SetEndDayTowerRequirement(
+            step.MinimumTowerCountBeforeEndDay,
+            step.RequiredTowerBeforeEndDay);
+
         SetStepRules(
             step.FreeTowerPlacement,
             step.RestrictTowerPanelTo,

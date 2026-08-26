@@ -68,14 +68,13 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2996211713
-    m_Localized: "\uB9C8\uC744\uC5D0\uB294 \uC8FC\uBBFC\uC774 \uC788\uC2B5\uB2C8\uB2E4.
-      \uC8FC\uBBFC\uC744 \uC0DD\uC0B0 \uAC74\uBB3C\uC5D0 \uBC30\uCE58\uD558\uBA74
-      \uB2E4\uC74C \uB0AE\uC5D0 \uADF8 \uAC74\uBB3C\uC758 \uC790\uC6D0\uC744 \uC0DD\uC0B0\uD569\uB2C8\uB2E4."
+    m_Localized: "\uC0DD\uC0B0 \uAC74\uBB3C \uD328\uB110\uC758 + \uBC84\uD2BC\uC744
+      \uB20C\uB7EC \uC8FC\uBBFC\uC744 \uBC30\uCE58\uD558\uC138\uC694."
     m_Metadata:
       m_Items: []
   - m_Id: 2996211714
-    m_Localized: "\uC8FC\uBBFC 2\uBA85\uC744 \uBAA8\uB450 \uC0DD\uC0B0 \uAC74\uBB3C\uC5D0
-      \uBC30\uCE58\uD558\uC138\uC694"
+    m_Localized: "+ \uBC84\uD2BC\uC73C\uB85C \uC8FC\uBBFC 2\uBA85\uC744 \uBAA8\uB450
+      \uC0DD\uC0B0 \uAC74\uBB3C\uC5D0 \uBC30\uCE58\uD558\uC138\uC694."
     m_Metadata:
       m_Items: []
   - m_Id: 3436613632
@@ -321,6 +320,27 @@ MonoBehaviour:
     m_Localized: "\uD29C\uD1A0\uB9AC\uC5BC\uC744 \uC9C4\uD589\uD558\uBA74 \uD604\uC7AC
       \uC9C4\uD589 \uC911\uC778\n\uAC8C\uC784 \uB370\uC774\uD130\uAC00 \uC0AD\uC81C\uB429\uB2C8\uB2E4.\n\uD29C\uD1A0\uB9AC\uC5BC\uC744
       \uC2DC\uC791\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 606019064860672
+    m_Localized: "\uBC84\uD504 \uD0C0\uC77C"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 606020335734784
+    m_Localized: "\uD0C0\uC6CC\uB97C \uB4E4\uBA74 \uBC84\uD504 \uD0C0\uC77C\uC5D0
+      \uD6A8\uACFC \uC544\uC774\uCF58\uC774 \uD45C\uC2DC\uB429\uB2C8\uB2E4. \uBC84\uD504
+      \uD0C0\uC77C \uC704\uC5D0 \uD0C0\uC6CC\uB97C \uBC30\uCE58\uD558\uBA74 \uD574\uB2F9
+      \uB2A5\uB825\uCE58 \uD6A8\uACFC\uB97C \uBC1B\uC744 \uC218 \uC788\uC2B5\uB2C8\uB2E4."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 615170927136768
+    m_Localized: "\uB418\uB3CC\uB9AC\uAE30"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 615170964885504
+    m_Localized: "\uC798\uBABB \uBC30\uCE58\uD55C \uD0C0\uC6CC\uB098 \uC5C5\uADF8\uB808\uC774\uB4DC\uB294
+      \uB418\uB3CC\uB9AC\uAE30 \uBC84\uD2BC \uB610\uB294 Ctrl+Z\uB85C \uCDE8\uC18C\uD560
+      \uC218 \uC788\uC2B5\uB2C8\uB2E4."
     m_Metadata:
       m_Items: []
   references:

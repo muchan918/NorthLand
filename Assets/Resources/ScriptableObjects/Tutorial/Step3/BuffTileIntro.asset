@@ -10,18 +10,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
-  m_Name: TowerPlace
+  m_Name: BuffTileIntro
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
-  popupTitleKey: 
-  popupBodyKey: 
+  popupTitleKey: tutorial.buff_tile.intro.title
+  popupBodyKey: tutorial.buff_tile.intro.body
   popupImage: {fileID: 0}
-  bubbleTextKey: tutorial.tower.place.bubble
+  bubbleTextKey: 
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
   pauseGameDuringStep: 0
   restrictActions: 1
-  allowedActions: 28
+  allowedActions: 0
   freeTowerPlacement: 0
   restrictTowerPanelTo: {fileID: 0}
   freeManagementCost: 0
@@ -29,12 +29,9 @@ MonoBehaviour:
   villagerCap: 0
   upgradeAllowList: []
   completion:
-    rid: 3470829977900417120
+    rid: -2
   references:
     version: 2
     RefIds:
-    - rid: 3470829977900417120
-      type: {class: TowerPlacedCondition, ns: , asm: Assembly-CSharp}
-      data:
-        count: 1
-        targetTower: {fileID: 0}
+    - rid: -2
+      type: {class: , ns: , asm: }
