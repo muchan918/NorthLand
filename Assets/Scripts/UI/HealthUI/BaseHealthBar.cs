@@ -3,104 +3,107 @@ using NorthLand.Combat;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class BaseHealthBar : MonoBehaviour
+namespace NorthLand.UI
 {
-    [Serializable]
-    private struct HealthSpriteStep
+    public class BaseHealthBar : MonoBehaviour
     {
-        [Range(0f, 1f)]
-        public float threshold;
-
-        public Sprite sprite;
-    }
-
-    [SerializeField] private Slider slider;
-    [SerializeField] private Image fillImage;
-
-    [Tooltip("임계값이 높은 순서로 설정합니다. 마지막 항목은 0% fallback입니다.")]
-    [SerializeField] private HealthSpriteStep[] healthSpriteSteps;
-
-    private PlayerBase playerBase;
-    private int appliedStepIndex = -1;
-
-    void Awake()
-    {
-        gameObject.SetActive(false);
-
-        if (slider == null)
+        [Serializable]
+        private struct HealthSpriteStep
         {
-            Debug.LogWarning("[BaseHealthBar] Slider 참조가 없습니다.", this);
-            return;
+            [Range(0f, 1f)]
+            public float threshold;
+
+            public Sprite sprite;
         }
 
-        if (PlayerBase.Instance != null)
-            Bind(PlayerBase.Instance);
-        else
-            PlayerBase.OnBaseSpawned += Bind;
-    }
+        [SerializeField] private Slider slider;
+        [SerializeField] private Image fillImage;
 
-    void OnDestroy()
-    {
-        PlayerBase.OnBaseSpawned -= Bind;
+        [Tooltip("임계값이 높은 순서로 설정합니다. 마지막 항목은 0% fallback입니다.")]
+        [SerializeField] private HealthSpriteStep[] healthSpriteSteps;
 
-        if (playerBase != null)
-            playerBase.OnHpChanged -= UpdateBar;
-    }
+        private PlayerBase playerBase;
+        private int appliedStepIndex = -1;
 
-    void Bind(PlayerBase pb)
-    {
-        if (playerBase != null)
-            playerBase.OnHpChanged -= UpdateBar;
-
-        playerBase = pb;
-        playerBase.OnHpChanged += UpdateBar;
-
-        gameObject.SetActive(true);
-        UpdateBar(playerBase.CurrentHp, playerBase.MaxHp);
-    }
-
-    void UpdateBar(float current, float max)
-    {
-        float ratio = max > 0f? Mathf.Clamp01(current / max): 0f;
-
-        slider.value = ratio;
-        UpdateHealthSprite(ratio);
-    }
-
-    private void UpdateHealthSprite(float ratio)
-    {
-        if (fillImage == null ||healthSpriteSteps == null ||healthSpriteSteps.Length == 0)
+        void Awake()
         {
-            return;
-        }
+            gameObject.SetActive(false);
 
-        int selectedIndex = healthSpriteSteps.Length - 1;
-
-        for (int i = 0; i < healthSpriteSteps.Length - 1; i++)
-        {
-            if (ratio > healthSpriteSteps[i].threshold)
+            if (slider == null)
             {
-                selectedIndex = i;
-                break;
+                Debug.LogWarning("[BaseHealthBar] Slider 참조가 없습니다.", this);
+                return;
             }
+
+            if (PlayerBase.Instance != null)
+                Bind(PlayerBase.Instance);
+            else
+                PlayerBase.OnBaseSpawned += Bind;
         }
 
-        if (selectedIndex == appliedStepIndex)
-            return;
-
-        Sprite selectedSprite = healthSpriteSteps[selectedIndex].sprite;
-
-        // 미할당 단계라면 현재 스프라이트를 유지한다.
-        if (selectedSprite == null)
+        void OnDestroy()
         {
-            Debug.LogWarning(
-                $"[BaseHealthBar] {selectedIndex}번 체력 단계의 Sprite가 없습니다.",
-                this);
+            PlayerBase.OnBaseSpawned -= Bind;
 
-            return;
+            if (playerBase != null)
+                playerBase.OnHpChanged -= UpdateBar;
         }
 
-        fillImage.sprite = selectedSprite;
-        appliedStepIndex = selectedIndex;
+        void Bind(PlayerBase pb)
+        {
+            if (playerBase != null)
+                playerBase.OnHpChanged -= UpdateBar;
+
+            playerBase = pb;
+            playerBase.OnHpChanged += UpdateBar;
+
+            gameObject.SetActive(true);
+            UpdateBar(playerBase.CurrentHp, playerBase.MaxHp);
+        }
+
+        void UpdateBar(float current, float max)
+        {
+            float ratio = max > 0f? Mathf.Clamp01(current / max): 0f;
+
+            slider.value = ratio;
+            UpdateHealthSprite(ratio);
+        }
+
+        private void UpdateHealthSprite(float ratio)
+        {
+            if (fillImage == null ||healthSpriteSteps == null ||healthSpriteSteps.Length == 0)
+            {
+                return;
+            }
+
+            int selectedIndex = healthSpriteSteps.Length - 1;
+
+            for (int i = 0; i < healthSpriteSteps.Length - 1; i++)
+            {
+                if (ratio > healthSpriteSteps[i].threshold)
+                {
+                    selectedIndex = i;
+                    break;
+                }
+            }
+
+            if (selectedIndex == appliedStepIndex)
+                return;
+
+            Sprite selectedSprite = healthSpriteSteps[selectedIndex].sprite;
+
+            // 미할당 단계라면 현재 스프라이트를 유지한다.
+            if (selectedSprite == null)
+            {
+                Debug.LogWarning(
+                    $"[BaseHealthBar] {selectedIndex}번 체력 단계의 Sprite가 없습니다.",
+                    this);
+
+                return;
+            }
+
+            fillImage.sprite = selectedSprite;
+            appliedStepIndex = selectedIndex;
+        }
     }
 }
