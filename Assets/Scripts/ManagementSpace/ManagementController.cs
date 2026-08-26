@@ -35,16 +35,13 @@ public class ManagementController : MonoBehaviour
     [Tooltip("웨이브 클리어(밤→낮 정산) 시 지급되는 마나석 고정량 (GDD §4.3)")]
     [SerializeField] int _manaPerWaveClear = 10;
 
-    // 값 근거는 Docs/Core/EconomyBalance.md §1.1·§2.1 (#382). 씬 오버라이드와 반드시 같은 값으로 유지할 것 —
-    // 갈리면 오버라이드가 없는 새 씬이 조용히 다른 경제로 돈다.
-    // 식량 0: 주민 증가 1차 비용이 15라 초기 지급이 있으면 낮1에 무조건 사는 것이 정답이 되어 선택이 사라진다.
-    // 철 30: 광산 Lv1도 철 20이고 전 타워가 철 ≥5를 요구하므로, 20으로 두면 낮1에 광산을 올린 순간
-    // 철이 0이 되어 타워를 한 기도 못 놓는다(건물 업그레이드에는 undo가 없다). 30이면 광산을 올려도
-    // 아처 2기(30W+10I)가 남아 W1을 넘긴다 — 4기는 여전히 나무에서 막힌다(최저 60W > 55W).
+    // 초기 자원 기본값은 씬의 직렬화 오버라이드와 반드시 같은 값으로 유지한다.
+    // V1 초기 자원 50W/10I/10F. W1에는 아처 2기 또는 아처+캐논을 선택할 수 있고,
+    // 아처 1기 설치 후 생산 건물 Lv1 업그레이드 하나를 진행할 여지도 남긴다.
     [Tooltip("게임 시작(런당 1회) 시 지급되는 초기 나무/철/식량. 마나석은 전투 보상 전용이라 제외(팀 계약 #3, 이슈 #130)")]
-    [SerializeField] int _initialWood = 55;
-    [SerializeField] int _initialIron = 30;
-    [SerializeField] int _initialFood = 0;
+    [SerializeField] int _initialWood = 50;
+    [SerializeField] int _initialIron = 10;
+    [SerializeField] int _initialFood = 10;
 
     /// <summary>상태(자원·주민 배치·페이즈)가 바뀔 때 발생. 뷰는 이걸 구독해 다시 렌더한다.</summary>
     public event Action OnChanged;
