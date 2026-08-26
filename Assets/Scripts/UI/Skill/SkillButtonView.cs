@@ -14,9 +14,9 @@ public class SkillButtonView : MonoBehaviour
     [SerializeField] GameObject _skillGhostPrefab; // 마우스를 따라다닐 범위 인디케이터
 
     [Tooltip("스킬 인디케이터·시전 지점의 고정 y. 전투맵에서 가장 낮은 도로 타일 윗면 높이에 맞춘다.")]
-    // 씬 값(GameScene의 2)과 같은 기본값을 둔다 — 기본값이 몬스터 부양 높이(6f)보다 위면
+    // 씬 값(GameScene의 5)과 같은 기본값을 둔다 — 기본값이 몬스터 부양 높이보다 위면
     // 시전면이 몬스터 위로 올라가 스킬이 전부 빗나간다(#398). 프리팹 리셋·신규 씬에서 조용히 재발할 자리다.
-    [SerializeField] float _castHeight = 2f;
+    [SerializeField] float _castHeight = 5f;
     [Tooltip("다음 충전까지 남은 시간(초) 표시. 비워두면 표시하지 않는다.")]
     [SerializeField] TMP_Text _rechargeText;
     [Tooltip("보유 충전 수 표시(#319). 비워두면 표시하지 않는다.")]

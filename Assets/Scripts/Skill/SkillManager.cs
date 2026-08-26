@@ -28,9 +28,23 @@ public class SkillManager : MonoBehaviour
     [Tooltip("마법 연구소 레벨별 착탄 이펙트. 비우거나 해당 레벨 엔트리가 없으면 impactEffectPrefab 사용")]
     [SerializeField] SkillVisualSet _visualSet;
 
-    // 마법 연구소(#205) — 레벨 비례로 기본 스탯(damage/radius/cooldown)을 배율 강화한다.
-    // 컨트롤러는 레벨(int)만 노출하고, 레벨→배율 매핑은 `_magicLabAsset.Skill.UpgradeLevels`(SO)에
-    // authoring한다 — 비용과 배율이 같은 리스트라 레벨 개수가 어긋날 수 없다(PR#216 리뷰, 씬 리스트 제거).
+    [Header("별 낙하 스킬")]
+    [Tooltip("연결하면 클릭 즉시 피해 대신 별 착탄 시 피해를 준다. 비우면 기존 즉발 방식 유지")]
+    [SerializeField] GameObject skillStarEffectPrefab;
+    [Tooltip("별 생성부터 지면 착탄까지의 시간")]
+    [Min(0f)] [SerializeField] float impactDelay = 1f;
+    [Tooltip("전체 범위 중 100% 데미지를 주는 중앙 범위 비율")]
+    [Range(0f, 1f)] [SerializeField] float fullDamageRadiusRatio = 0.5f;
+    [Tooltip("중앙 밖부터 전체 범위까지 적용할 데미지 비율")]
+    [Range(0f, 1f)] [SerializeField] float outerDamageMultiplier = 0.7f;
+    [Tooltip("연구소 범위 강화 비율만큼 별 이펙트 전체 크기도 확대")]
+    [SerializeField] bool scaleStarEffectWithRadius = true;
+    [Tooltip("별 이펙트의 기본 크기 배율. 범위 강화 배율과 별도로 곱해진다")]
+    [Min(0.01f)] [SerializeField] float starEffectScale = 1f;
+
+    // 마법 연구소(#205) — 피해·쿨타임은 단계별 절대값, 범위는 기본 반경 배율로 강화한다.
+    // 컨트롤러는 레벨(int)만 노출하고, 레벨→수치 매핑은 `_magicLabAsset.Skill.UpgradeLevels`(SO)에
+    // authoring한다 — 비용과 수치가 같은 리스트라 레벨 개수가 어긋날 수 없다(PR#216 리뷰, 씬 리스트 제거).
     // 보상 특수효과(#169, SkillEffect.Level)와는 독립 축 — ImpactResolved 구독 흐름은 건드리지 않는다.
     [Header("마법 연구소 강화 (#205)")]
     [Tooltip("비우면 강화 없음(레벨 0 취급)")]
@@ -64,6 +78,8 @@ public class SkillManager : MonoBehaviour
     SkillVisualSet.LevelVisual _currentVisual;
 
     public float Radius => effectiveRadius;
+    public float InnerRadius => effectiveRadius * fullDamageRadiusRatio;
+    public bool UsesDelayedStar => skillStarEffectPrefab != null;
 
     // 마법 연구소 배율이 **곱해지기 전**의 원본 스탯. 건물 정보 패널이 "30 → 36"처럼 강화 전후를
     // 보여주려면 배율(건물 SO 소유)과 베이스(여기 소유) 둘 다 필요한데, 배율만으로는 절대값을
@@ -163,9 +179,9 @@ public class SkillManager : MonoBehaviour
             // 레벨이 테이블 크기를 넘으면(비정상 상태 — 컨트롤러가 레벨을 이 SO에서 산출하므로 실제로는
             // 발생하지 않지만) base로 되돌리지 않고 마지막 엔트리를 유지한다(PR#216 리뷰, 방어적 clamp).
             BuildingAsset.SkillUpgradeLevel scaling = levels[Mathf.Clamp(level, 1, levels.Count) - 1];
-            effectiveDamage = Scale(damage, scaling.DamageMultiplier);
+            effectiveDamage = PositiveOrFallback(scaling.DamageValue, damage);
             effectiveRadius = Scale(radius, scaling.RadiusMultiplier);
-            effectiveCooldown = Scale(cooldown, scaling.CooldownMultiplier);
+            effectiveCooldown = PositiveOrFallback(scaling.CooldownSeconds, cooldown);
         }
         else
         {
@@ -187,6 +203,7 @@ public class SkillManager : MonoBehaviour
     // 데이터나 실수로 0/음수가 들어와도 1.0(배율 없음)으로 취급해 방어한다(PR#216 리뷰) — 쿨다운 0=무한
     // 연발, 사거리 0=미적중 같은 조용한 파괴적 결과를 막는다.
     static float PositiveOr1(float multiplier) => multiplier > 0f ? multiplier : 1f;
+    static float PositiveOrFallback(float value, float fallback) => value > 0f ? value : fallback;
 
     /// 베이스 스탯에 마법 연구소 배율을 적용한다. **표시와 실효가 같은 식을 통과해야** 어긋나지 않으므로
     /// 건물 정보 패널(BuildingInfoUI)도 이 메서드로 미리보기 값을 계산한다 — 곱셈식과 0/음수 방어가
@@ -228,35 +245,75 @@ public class SkillManager : MonoBehaviour
 
         charges--;
 
+        if (skillStarEffectPrefab != null)
+            SpawnStarEffect(position);
+        else
+            ResolveImpact(position, useOuterFalloff: false);
+
+        return true;
+    }
+
+    void SpawnStarEffect(Vector3 position)
+    {
+        GameObject star = Instantiate(skillStarEffectPrefab, position, Quaternion.identity);
+
+        star.transform.localScale *= starEffectScale;
+        if (scaleStarEffectWithRadius && radius > 0f)
+            star.transform.localScale *= effectiveRadius / radius;
+
+        SkillDelayedImpact delayed = star.GetComponent<SkillDelayedImpact>();
+        if (delayed == null)
+            delayed = star.AddComponent<SkillDelayedImpact>();
+
+        delayed.Init(impactDelay, HandleStarImpact);
+    }
+
+    void HandleStarImpact(Vector3 position) => ResolveImpact(position, useOuterFalloff: true);
+
+    void ResolveImpact(Vector3 position, bool useOuterFalloff)
+    {
+        ResolveImpactDamage(position, useOuterFalloff);
+
         var context = new SkillCastContext
         {
             Position = position,
             HitTargets = hitTargets,
         };
-
-        ResolveImpactDamage(position);
         ImpactResolved?.Invoke(context);
 
-        return true;
+        if (!useOuterFalloff)
+            ApplyImpact(position);
+        else if (impactSfx != null)
+            AudioSource.PlayClipAtPoint(impactSfx, position);
     }
 
     // 임팩트 1회: 반경 내 적 전체에게 데미지 적용 + 맞은 적을 hitTargets에 수집 + 연출.
-    void ResolveImpactDamage(Vector3 position)
+    void ResolveImpactDamage(Vector3 position, bool useOuterFalloff)
     {
         SkillHitScan.CollectEnemies(position, effectiveRadius, enemyLayerMask, hitTargets);
         int damagedCount = hitTargets.Count;
+        float innerRadiusSqr = InnerRadius * InnerRadius;
 
         // Source: 플레이어 스킬은 IAttacker 개체(타워/몬스터)가 아니라 직접 시전이라 null로 둔다.
         // 현재 DamageInfo.Source는 어디서도 역참조하지 않아 안전(StatusEffectHandler.cs 참고).
         foreach (var damageable in hitTargets)
-            damageable.TakeDamage(new DamageInfo(effectiveDamage, null));
+        {
+            float damageMultiplier = 1f;
+            if (useOuterFalloff && damageable.HitPosition != null)
+            {
+                Vector3 offset = damageable.HitPosition.position - position;
+                offset.y = 0f;
+                if (offset.sqrMagnitude > innerRadiusSqr)
+                    damageMultiplier = outerDamageMultiplier;
+            }
+
+            damageable.TakeDamage(new DamageInfo(effectiveDamage * damageMultiplier, null));
+        }
 
         hitTargets.RemoveAll(s_IsDead);   // 즉사한 적은 특수효과 대상에서 제외
 
         // 쿨다운이 있어 자주 호출되지 않으므로 로그 스팸 걱정 없이 시전마다 요약을 남긴다(테스트용).
-        Debug.Log($"[Skill] 감전 시전: 위치={position}, 적중={damagedCount}마리, 데미지={effectiveDamage}");
-
-        ApplyImpact(position);
+        Debug.Log($"[Skill] 착탄: 위치={position}, 적중={damagedCount}마리, 중앙 데미지={effectiveDamage}, 외곽 데미지={effectiveDamage * outerDamageMultiplier}, 전체 반경={effectiveRadius}, 중앙 반경={InnerRadius}");
     }
 
     // 테스트 하네스가 검증으로 소모한 충전을 되돌려 인터랙티브 테스트를 바로 이어갈 때 쓴다.
@@ -296,4 +353,79 @@ public class SkillManager : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position, radius);
     }
 #endif
+}
+
+// 별 낙하 연출의 착탄 타이머. Imported 프리팹은 수정하지 않고 런타임에 이 컴포넌트를 붙인다.
+sealed class SkillDelayedImpact : MonoBehaviour
+{
+    float timer;
+    bool initialized;
+    bool impacted;
+    Action<Vector3> onImpact;
+    ParticleSystem[] particles;
+
+    public void Init(float delay, Action<Vector3> callback)
+    {
+        timer = Mathf.Max(0f, delay);
+        onImpact = callback;
+        initialized = true;
+        impacted = false;
+        particles = GetComponentsInChildren<ParticleSystem>(true);
+
+        if (DayNightManager.Instance != null)
+            DayNightManager.Instance.OnNightToDay += Cancel;
+        if (GameManager.Instance != null)
+            GameManager.Instance.OnResultDecided += HandleResultDecided;
+    }
+
+    void Update()
+    {
+        if (impacted)
+        {
+            if (!HasAliveParticles())
+                Destroy(gameObject);
+            return;
+        }
+
+        if (!initialized) return;
+
+        timer -= Time.deltaTime;
+        if (timer > 0f) return;
+
+        initialized = false;
+        impacted = true;
+        Action<Vector3> callback = onImpact;
+        onImpact = null;
+        callback?.Invoke(transform.position);
+    }
+
+    bool HasAliveParticles()
+    {
+        if (particles == null || particles.Length == 0) return false;
+
+        for (int i = 0; i < particles.Length; i++)
+        {
+            if (particles[i] != null && particles[i].IsAlive(false))
+                return true;
+        }
+
+        return false;
+    }
+
+    void HandleResultDecided(GameResult _) => Cancel();
+
+    public void Cancel()
+    {
+        initialized = false;
+        onImpact = null;
+        Destroy(gameObject);
+    }
+
+    void OnDestroy()
+    {
+        if (DayNightManager.Instance != null)
+            DayNightManager.Instance.OnNightToDay -= Cancel;
+        if (GameManager.Instance != null)
+            GameManager.Instance.OnResultDecided -= HandleResultDecided;
+    }
 }

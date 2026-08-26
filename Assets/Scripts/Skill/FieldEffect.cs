@@ -12,11 +12,12 @@ public class FieldEffect : SkillEffect
     [SerializeField] float tickDamagePerLevel = 3f;
     [SerializeField] float tickInterval = 0.5f;
     [SerializeField] float duration = 3f;
+    [SerializeField] bool loopParticlesForDuration;
+    [SerializeField] ParticleSystem[] fieldParticles;
 
-    // 감전 반경(SkillManager 기본 6)의 60%를 의도한 값이지만 종속시키지 않고 독립 수치로 둔다 —
-    // 싱글톤 의존 없이 BombEffect.explosionRadius와 같은 패턴을 유지하고,
-    // 마법 연구소의 RadiusMultiplier가 장판까지 증폭시키는 의도치 않은 결합을 만들지 않는다.
-    [SerializeField] float fieldRadius = 3.6f;
+    // 실제 반경의 정본은 fieldPrefab 루트의 CapsuleCollider다. 프리팹이나 Collider가 누락된
+    // 비정상 구성에서만 기존 기본 반경을 사용하며, 씬에 별도 조절값을 남기지 않는다.
+    const float FallbackFieldRadius = 3.6f;
 
     // TODO(TBD): SkillManager와 동일하게 임시 LayerMask 방식. 팀 컨벤션 확정 후 정리(Tower.cs 참고).
     [SerializeField] LayerMask enemyLayerMask;
@@ -30,7 +31,7 @@ public class FieldEffect : SkillEffect
     // 반경은 레벨과 무관한 고정값이라 그대로 노출한다.
     public float GetCurrentTickDamage() => GetTickDamageAt(Level);
     public float GetTickDamageAt(int level) => tickDamagePerLevel * level;
-    public float FieldRadius => fieldRadius;
+    public float FieldRadius => GetAuthoredFieldRadius();
 
     public override string GetStatSummary()
         => SkillStatsFormatter.BuildFieldLines(GetCurrentTickDamage(), GetTickDamageAt(NextLevel), FieldRadius);
@@ -46,12 +47,73 @@ public class FieldEffect : SkillEffect
         // HitTargets를 읽지 않는다 — 장판은 착탄 시점 피격자가 아니라 위치에 결속된다.
         var fieldObject = Instantiate(fieldPrefab, context.Position, Quaternion.identity);
 
+        // Imported 이펙트는 기본적으로 비반복 재생이라 장판 판정보다 먼저 사라진다.
+        // 테스트 씬에서는 장판 수명 동안 반복시켜 시각 효과와 실제 판정 시간을 맞춘다.
+        if (loopParticlesForDuration)
+        {
+            foreach (var sourceParticle in fieldParticles)
+            {
+                var particle = FindInstantiatedParticle(sourceParticle, fieldObject.transform);
+                if (particle == null) continue;
+
+                var main = particle.main;
+                main.loop = true;
+            }
+        }
+
         var field = fieldObject.GetComponent<SkillField>();
         if (field == null) field = fieldObject.AddComponent<SkillField>();
 
-        field.Init(tickDamagePerLevel * Level, fieldRadius, duration, tickInterval, enemyLayerMask, debugLog);
+        float effectiveFieldRadius = GetAuthoredFieldRadius();
+
+        field.Init(
+            tickDamagePerLevel * Level,
+            effectiveFieldRadius,
+            duration,
+            tickInterval,
+            enemyLayerMask,
+            debugLog);
 
         if (debugLog)
-            Debug.Log($"[SkillEffect] 전기장 설치: 위치={context.Position}, Lv{Level}, 틱당 {tickDamagePerLevel * Level} / {tickInterval}s, 지속 {duration}s, 반경 {fieldRadius}");
+            Debug.Log($"[SkillEffect] 전기장 설치: 위치={context.Position}, Lv{Level}, 틱당 {tickDamagePerLevel * Level} / {tickInterval}s, 지속 {duration}s, 반경 {effectiveFieldRadius}");
+    }
+
+    float GetAuthoredFieldRadius()
+    {
+        if (fieldPrefab == null) return FallbackFieldRadius;
+
+        CapsuleCollider capsule = fieldPrefab.GetComponent<CapsuleCollider>();
+        if (capsule == null) return FallbackFieldRadius;
+
+        Vector3 scale = capsule.transform.lossyScale;
+        float radiusScale = capsule.direction switch
+        {
+            0 => Mathf.Max(Mathf.Abs(scale.y), Mathf.Abs(scale.z)),
+            2 => Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y)),
+            _ => Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z)),
+        };
+        return capsule.radius * radiusScale;
+    }
+
+    ParticleSystem FindInstantiatedParticle(ParticleSystem sourceParticle, Transform instanceRoot)
+    {
+        if (sourceParticle == null || fieldPrefab == null) return null;
+
+        Transform sourceRoot = fieldPrefab.transform;
+        Transform sourceTransform = sourceParticle.transform;
+        if (sourceTransform == sourceRoot)
+            return instanceRoot.GetComponent<ParticleSystem>();
+
+        var path = new System.Collections.Generic.Stack<string>();
+        while (sourceTransform != null && sourceTransform != sourceRoot)
+        {
+            path.Push(sourceTransform.name);
+            sourceTransform = sourceTransform.parent;
+        }
+
+        if (sourceTransform != sourceRoot) return null;
+
+        Transform instanceTransform = instanceRoot.Find(string.Join("/", path));
+        return instanceTransform != null ? instanceTransform.GetComponent<ParticleSystem>() : null;
     }
 }

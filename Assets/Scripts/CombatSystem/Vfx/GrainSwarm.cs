@@ -140,10 +140,20 @@ namespace NorthLand.Combat
             return Mathf.Clamp(Mathf.RoundToInt(characteristic * k_CountPerUnit), k_MinCount, k_MaxCount);
         }
 
-        private void EnsureAssets()
+        /// <summary>
+        /// 공유물(쿼드 메시·절차 생성 알갱이 텍스처)만 미리 만든다. 로딩 구간에서 <c>BootWarmup</c>이 부른다 —
+        /// 안 부르면 첫 합성 연출 프레임에 64×64 텍스처 생성과 GPU 업로드가 연출과 함께 터진다.
+        /// 머티리얼은 전체 페이드용이라 인스턴스 소유여야 하므로(`Dispose`에서 파괴) 여기서 만들지 않는다.
+        /// </summary>
+        public static void PrewarmShared()
         {
             if (s_quad == null) s_quad = Resources.GetBuiltinResource<Mesh>("Quad.fbx");
             if (s_grain == null) s_grain = CreateGrainTexture(64);
+        }
+
+        private void EnsureAssets()
+        {
+            PrewarmShared();
 
             if (_material == null)
             {
