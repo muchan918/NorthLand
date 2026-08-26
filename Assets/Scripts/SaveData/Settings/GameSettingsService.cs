@@ -209,5 +209,43 @@ namespace NorthLand.Core
 
             return store.TrySave(CurrentSettings, out error);
         }
+
+        public bool SetDisplaySettings(int screenMode, int resolutionIndex)
+        {
+            if (CurrentSettings == null)
+                return false;
+
+            CurrentSettings.screenMode = Mathf.Clamp(screenMode, 0, 2);
+            CurrentSettings.resolutionIndex = Mathf.Clamp(resolutionIndex, 0, 2);
+
+            SettingsChanged?.Invoke();
+            return true;
+        }
+
+        public bool SetAudioVolume(float master,float bgm,float sfx)
+        {
+            if (CurrentSettings == null)
+                return false;
+
+            CurrentSettings.masterVolume = Mathf.Clamp01(master);
+            CurrentSettings.bgmVolume = Mathf.Clamp01(bgm);
+            CurrentSettings.sfxVolume = Mathf.Clamp01(sfx);
+
+            SettingsChanged?.Invoke();
+            return true;
+        }
+
+        public bool SetAudioMuted(bool master,bool bgm,bool sfx)
+        {
+            if (CurrentSettings == null)
+                return false;
+
+            CurrentSettings.masterMuted = master;
+            CurrentSettings.bgmMuted = bgm;
+            CurrentSettings.sfxMuted = sfx;
+
+            SettingsChanged?.Invoke();
+            return true;
+        }
     }
 }
