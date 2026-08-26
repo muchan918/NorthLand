@@ -67,9 +67,14 @@ public sealed class MonsterSpawnWaveProvider :
     // 웨이브 순서가 이미 만들어진 뒤에 모드가 뒤집히면 진행 번호와 리스트가 어긋난다.
     private bool isTutorialRun;
 
+    public bool IsTutorialRun => isTutorialRun;
+
     private void Awake()
     {
-        isTutorialRun = forceTutorialMode || TutorialMode.IsActive;
+        TutorialController tutorial = FindFirstObjectByType<TutorialController>();
+        isTutorialRun = forceTutorialMode
+            || TutorialMode.IsActive
+            || (tutorial != null && tutorial.StartsOnPlay);
 
         BuildWaveOrder();
     }

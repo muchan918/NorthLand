@@ -867,10 +867,18 @@ public class ManagementController : MonoBehaviour
         _wallet.OnChanged += (_, _) => OnChanged?.Invoke();
 
         // 게임 시작 초기 자원 지급(런당 1회, 이슈 #130) — 유일 창구인 ResourceWallet.Add로만 지급한다(팀 계약 #3).
-        _wallet.Add(ResourceKind.Wood, _initialWood);
-        _wallet.Add(ResourceKind.Iron, _initialIron);
-        _wallet.Add(ResourceKind.Food, _initialFood);
-        Debug.Log($"[경영] 초기 자원 지급: Wood +{_initialWood}, Iron +{_initialIron}, Food +{_initialFood}");
+        // TutorialTest3의 startOnPlay도 실제 튜토리얼과 같은 초기값을 써야 디버그 결과가 갈리지 않는다.
+        TutorialController tutorial = FindFirstObjectByType<TutorialController>();
+        bool tutorialRun = TutorialMode.IsActive || (tutorial != null && tutorial.StartsOnPlay);
+
+        int initialWood = tutorialRun ? TutorialMode.InitialBiscuit : _initialWood;
+        int initialIron = tutorialRun ? 0 : _initialIron;
+        int initialFood = tutorialRun ? 0 : _initialFood;
+
+        _wallet.Add(ResourceKind.Wood, initialWood);
+        _wallet.Add(ResourceKind.Iron, initialIron);
+        _wallet.Add(ResourceKind.Food, initialFood);
+        Debug.Log($"[경영] 초기 자원 지급: Wood +{initialWood}, Iron +{initialIron}, Food +{initialFood}");
 
         // 생산 배율 레지스트리는 지갑과 함께 런마다 새로 만든다(패시브 생산 효과가 여기에 누적).
         _productionModifiers = new ProductionModifiers();

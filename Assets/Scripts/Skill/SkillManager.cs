@@ -52,6 +52,10 @@ public class SkillManager : MonoBehaviour
     [Tooltip("비우면 씬에서 자동 탐색")]
     [SerializeField] ManagementController _managementController;
 
+    // 실제 진입(TutorialMode)뿐 아니라 TutorialTest3의 startOnPlay 디버그 실행도 같은 규칙을
+    // 쓰도록 웨이브 공급자가 Awake에서 확정한 튜토리얼 상태를 읽는다.
+    MonsterSpawnWaveProvider _waveProvider;
+
     // 임팩트(착탄) 1회가 끝날 때마다 발행 — 보상으로 획득한 특수효과(SkillEffect)가 구독한다.
     // 컨텍스트의 HitTargets는 임팩트마다 재사용되는 버퍼라 이벤트 처리 중에만 유효.
     public event Action<SkillCastContext> ImpactResolved;
@@ -145,6 +149,7 @@ public class SkillManager : MonoBehaviour
         // 마법 연구소(#205) — 비워두면 씬에서 자동 탐색(BuildingInfoUI와 동일 관례).
         if (_managementController == null)
             _managementController = FindFirstObjectByType<ManagementController>();
+        _waveProvider = FindFirstObjectByType<MonsterSpawnWaveProvider>();
         if (_managementController != null)
             _managementController.OnChanged += RefreshUpgrade;
         RefreshUpgrade();
@@ -188,6 +193,13 @@ public class SkillManager : MonoBehaviour
             effectiveDamage = damage;
             effectiveRadius = radius;
             effectiveCooldown = cooldown;
+        }
+
+        // 튜토리얼에서는 스킬을 한 번 쓴 뒤 다음 웨이브까지 오래 기다리지 않게 재충전 시간을
+        // 3초로 고정한다. 기본값이나 마법 연구소 SO를 바꾸지 않으므로 일반 Run에는 영향이 없다.
+        if (TutorialMode.IsActive || (_waveProvider != null && _waveProvider.IsTutorialRun))
+        {
+            effectiveCooldown = TutorialMode.SkillCooldownSeconds;
         }
 
         _currentVisual = _visualSet != null ? _visualSet.Resolve(level) : null;
@@ -241,6 +253,7 @@ public class SkillManager : MonoBehaviour
     // 대기 없이 곧바로 다시 시전할 수 있다(#319).
     public bool CastAt(Vector3 position)
     {
+        if (!TutorialInputGate.Allows(TutorialAction.UseSkill)) return false;
         if (!CanCast()) return false;
 
         charges--;

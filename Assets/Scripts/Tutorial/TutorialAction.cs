@@ -11,5 +11,6 @@ public enum TutorialAction
     MoveCamera = 1 << 4,
     UseBuildingShortcut = 1 << 5,
     EditResidentByButton = 1 << 6,
-    EndDay = 1 << 7
+    EndDay = 1 << 7,
+    UseSkill = 1 << 8
 }

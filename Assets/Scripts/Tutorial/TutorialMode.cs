@@ -9,6 +9,9 @@
 public static class TutorialMode
 {
     public const int MasterSeed = 15416;
+    public const float EnemyHpScale = 0.5f;
+    public const float SkillCooldownSeconds = 3f;
+    public const int InitialBiscuit = 20;
 
     public static bool IsActive { get; private set; }
 

@@ -12046,9 +12046,33 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
+      propertyPath: debugMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: startOnPlay
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
+      propertyPath: debugSteps.Array.size
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
+      propertyPath: 'debugSteps.Array.data[0]'
+      value: 
+      objectReference: {fileID: 11400000, guid: 9d6128b93f765924680e3c115d3aef92, type: 2}
+    - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
+      propertyPath: 'debugSteps.Array.data[1]'
+      value: 
+      objectReference: {fileID: 11400000, guid: 2631a4bf9c358144d8f7415d83ea7854, type: 2}
+    - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
+      propertyPath: 'debugSteps.Array.data[2]'
+      value: 
+      objectReference: {fileID: 11400000, guid: b15db63674cfc464fbf9d8d528abacbc, type: 2}
+    - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
+      propertyPath: 'debugSteps.Array.data[3]'
+      value: 
+      objectReference: {fileID: 11400000, guid: 4fda381e9a44a17478b3f2587efd4913, type: 2}
     - target: {fileID: 8588015674922286078, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0

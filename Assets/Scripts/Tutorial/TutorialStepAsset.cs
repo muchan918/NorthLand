@@ -58,6 +58,10 @@ public class TutorialStepAsset : ScriptableObject
     [SerializeField]
     private bool pauseGameDuringStep;
 
+    [Tooltip("켜면 팝업을 닫고 행동 단계에 들어갈 때 튜토리얼 정지를 해제한다. 설명을 읽는 동안만 멈추고, 행동은 기존 시간축으로 실행해야 할 때 사용한다.")]
+    [SerializeField]
+    private bool resumeGameAfterPopup;
+
     [Header("입력 제한 — 켜면 아래 행동만 허용한다")]
     [SerializeField]
     private bool restrictActions;
@@ -147,6 +151,8 @@ public class TutorialStepAsset : ScriptableObject
     public Vector2Int HighlightCell => highlightCell;
 
     public bool PauseGameDuringStep => pauseGameDuringStep;
+
+    public bool ResumeGameAfterPopup => resumeGameAfterPopup;
 
     public bool RestrictActions => restrictActions;
 

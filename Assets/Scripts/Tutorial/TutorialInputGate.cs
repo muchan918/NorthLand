@@ -5,6 +5,7 @@ public static class TutorialInputGate
 {
     private static bool _restricted;
     private static TutorialAction _allowedActions;
+    private static TutorialAction _displayedActions;
     private static int _minimumTowerCountBeforeEndDay;
     private static TowerAsset _requiredTowerBeforeEndDay;
 
@@ -14,6 +15,10 @@ public static class TutorialInputGate
 
     public static bool Allows(TutorialAction action)
         => !_restricted || (_allowedActions & action) == action;
+
+    // 팝업이 물리적으로 입력을 막는 동안에도, 곧 사용할 버튼은 비활성 색으로 만들지 않기 위한 표시 계약.
+    public static bool AllowsForDisplay(TutorialAction action)
+        => !_restricted || (_displayedActions & action) == action;
 
     public static bool AllowsEndDay()
         => Allows(TutorialAction.EndDay) && HasRequiredTowers();
@@ -28,6 +33,15 @@ public static class TutorialInputGate
     {
         _restricted = true;
         _allowedActions = allowedActions;
+        _displayedActions = allowedActions;
+        Changed?.Invoke();
+    }
+
+    public static void ApplyPopup(TutorialAction displayedActions)
+    {
+        _restricted = true;
+        _allowedActions = TutorialAction.None;
+        _displayedActions = displayedActions;
         Changed?.Invoke();
     }
 
@@ -35,6 +49,7 @@ public static class TutorialInputGate
     {
         _restricted = false;
         _allowedActions = TutorialAction.None;
+        _displayedActions = TutorialAction.None;
         SetEndDayTowerRequirement(0, null);
         Changed?.Invoke();
     }

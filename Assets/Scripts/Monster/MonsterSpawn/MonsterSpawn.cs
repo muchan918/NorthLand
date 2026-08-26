@@ -513,13 +513,19 @@ public class MonsterSpawn : MonoBehaviour
         // ⚠ **이 오작동은 아무 신호도 내지 않는다.** `WaveHpScale`의 LogError는 배율이 0 이하일 때만 나는데
         //   여기서 나오는 값은 정상 범위인 1.0이다. 증상이 "보스가 부르는 잡몹이 좀 약하다"뿐이라
         //   원인에서 멀다 — 그래서 값이 맞는 경로가 아니라 **읽는 출처**를 고정한다.
-        if (!enemy.IsBoss)
-        {
-            DayNightManager dayNight = DayNightManager.Instance;
-            int wave = dayNight != null ? dayNight.CurrentWave : currentRound;
+        DayNightManager dayNight = DayNightManager.Instance;
+        int wave = dayNight != null ? dayNight.CurrentWave : currentRound;
+        float hpScale = enemy.IsBoss ? 1f : WaveHpScale(wave);
 
-            enemy.ApplyWaveHpScale(WaveHpScale(wave));
+        // 튜토리얼은 웨이브 구성만 바꾸는 것이 아니라, 등장하는 모든 적(보스 포함)의 체력을
+        // 일반 계산 결과의 50%로 낮춘다. Provider가 Awake에서 확정한 모드를 읽으므로
+        // 타이틀 진입(TutorialMode)과 에디터 테스트(forceTutorialMode) 양쪽이 같은 규칙을 탄다.
+        if (waveProvider != null && waveProvider.IsTutorialRun)
+        {
+            hpScale *= TutorialMode.EnemyHpScale;
         }
+
+        enemy.ApplyWaveHpScale(hpScale);
 
         // Enemy가 IRouteMovementAgent.RouteCompleted를 구독하여
         // 경로 끝 도달 시 몬스터 루트 오브젝트를 제거한다.

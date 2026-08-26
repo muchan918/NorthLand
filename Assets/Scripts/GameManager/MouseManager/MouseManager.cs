@@ -253,6 +253,8 @@ public class MouseManager : MonoBehaviour
     // 클릭한 위치를 그대로 SkillTargetRequest.OnConfirmed로 넘긴다(요구사항: SystemMap §4 계약).
     public void BeginSkillTargeting(SkillTargetRequest request)
     {
+        if (!TutorialInputGate.Allows(TutorialAction.UseSkill)) return;
+
         CancelPlacement();
         CancelSkillTargeting();
         ResetGesture();
@@ -791,6 +793,12 @@ public class MouseManager : MonoBehaviour
         // 전투 타일 위이면 시전한다. 타일 밖은 위에서 이미 고스트를 숨기고 return 했다.
         if (!overUI && Mouse.current.leftButton.wasPressedThisFrame)
         {
+            if (!TutorialInputGate.Allows(TutorialAction.UseSkill))
+            {
+                CancelSkillTargeting();
+                return;
+            }
+
             _skillRequest.OnConfirmed(pos);
             CancelSkillTargeting(); // 한 번 시전하면 조준 모드 종료(연속 시전 불필요)
         }

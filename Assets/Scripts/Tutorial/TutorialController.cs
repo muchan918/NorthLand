@@ -60,6 +60,10 @@ public class TutorialController : MonoBehaviour
 
     public bool IsRunning => _phase != Phase.Idle;
 
+    // 에디터 작업 씬에서 startOnPlay로 직접 실행하는 경우도 게임 규칙상 튜토리얼 런이다.
+    // MonsterSpawnWaveProvider가 Awake 순서와 무관하게 이 직렬화 값을 읽을 수 있게 공개한다.
+    public bool StartsOnPlay => startOnPlay;
+
     private void Awake()
     {
         // 일반 모드에서도 비활성화 전에 초기 상태를 일관되게 준비한다.
@@ -196,7 +200,8 @@ public class TutorialController : MonoBehaviour
             overlay.HideBubble();
 
             // 설명을 읽는 동안은 다음 버튼 외의 게임 조작을 모두 막는다.
-            TutorialInputGate.Apply(TutorialAction.None);
+            TutorialInputGate.ApplyPopup(
+                step.RestrictActions ? step.AllowedActions : TutorialAction.None);
 
             // 팝업 구간은 팝업 자체가 전체화면 입력을 막는다 — 딤이 겹칠 이유가 없다.
             overlay.HideDim();
@@ -245,9 +250,18 @@ public class TutorialController : MonoBehaviour
             TutorialInputGate.Clear();
         }
 
-        // 팝업에서 이미 걸어 뒀으면 그대로 유지된다(PauseGame은 두 번 불러도 안전하다).
-        // 팝업이 없는 단계는 여기가 첫 진입점이다.
-        ApplyPause(step);
+        // 스킬처럼 기존 scaled time으로 완주해야 하는 행동은 설명 팝업까지만 멈춘다.
+        // 개별 시스템을 unscaled time으로 갈라 놓지 않아 평상시 연출·피해 타이밍 계약을 보존한다.
+        if (step.ResumeGameAfterPopup)
+        {
+            ResumeGameIfPaused();
+        }
+        else
+        {
+            // 팝업에서 이미 걸어 뒀으면 그대로 유지된다(PauseGame은 두 번 불러도 안전하다).
+            // 팝업이 없는 단계는 여기가 첫 진입점이다.
+            ApplyPause(step);
+        }
         ApplyStepRules(step);
 
         // 말풍선을 Begin보다 먼저 띄운다 — 조건이 Begin 도중에 충족되면 그 자리에서 다음 단계까지
