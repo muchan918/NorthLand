@@ -259,6 +259,14 @@ MonoBehaviour:
     m_Key: tutorial.undo.body
     m_Metadata:
       m_Items: []
+  - m_Id: 759725932580864
+    m_Key: tutorial.villager.assign_again.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 759725970329600
+    m_Key: tutorial.villager.assign_again.body
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
