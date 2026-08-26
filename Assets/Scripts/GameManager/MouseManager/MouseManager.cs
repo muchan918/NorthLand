@@ -5,6 +5,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;   // 프로젝트는 신규 Input System 사용
 using UnityEngine.SceneManagement;
 using CombatSpace;               // CombatMapTileView / CombatTileType (전투 타일 판정)
+using NorthLand.Core;
 
 /// 클릭으로 선택 가능한 배치물(타워·건물 등)이 구현한다. (요구사항 ②)
 public class MouseManager : MonoBehaviour
@@ -136,7 +137,14 @@ public class MouseManager : MonoBehaviour
             Instance = this;
             DontDestroyOnLoad(gameObject);
             SceneManager.sceneLoaded += HandleSceneLoaded;
-            SetCamera(Camera.main); // 최초 부트 씬은 sceneLoaded가 이미 지나간 뒤라 한 번 직접 호출 필요
+
+            // 최초 부트 씬은 sceneLoaded가 이미 지나간 뒤라 한 번 직접 연결한다.
+            // Camera.main은 Additive 로딩 씬의 카메라를 반환할 수 있으므로 게임 씬 안에서만 찾는다.
+            Scene activeScene = SceneManager.GetActiveScene();
+            if (activeScene.name == GameSceneManager.GameSceneName)
+            {
+                SetCamera(FindMainCameraInScene(activeScene));
+            }
         }
         else
         {
@@ -154,7 +162,17 @@ public class MouseManager : MonoBehaviour
 
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        SetCamera(Camera.main);
+        if (scene.name == GameSceneManager.GameSceneName)
+        {
+            // LoadingScene과 GameScene이 잠시 함께 존재한다. 이때 Camera.main을 쓰면 로딩 카메라가
+            // 선택될 수 있으므로, 방금 로드된 GameScene의 계층에서 입력용 카메라를 직접 찾는다.
+            SetCamera(FindMainCameraInScene(scene));
+        }
+        else if (mode == LoadSceneMode.Single)
+        {
+            // 타이틀/로딩 씬으로 완전히 전환됐으면 파괴 예정인 이전 게임 카메라를 보관하지 않는다.
+            _camera = null;
+        }
 
         // 이전 씬의 선택/호버 대상은 이미 파괴됐을 수 있다. ISelectable/IHoverable은 인터페이스 타입이라
         // Unity의 파괴 감지(오버로드된 ==)가 이 타입으로는 걸리지 않으므로, 알림 호출(OnDeselected 등) 없이
@@ -164,6 +182,27 @@ public class MouseManager : MonoBehaviour
         ResetGesture();
         CancelPlacement();
         CancelSkillTargeting();
+    }
+
+    private static Camera FindMainCameraInScene(Scene scene)
+    {
+        if (!scene.IsValid() || !scene.isLoaded)
+        {
+            return null;
+        }
+
+        foreach (GameObject root in scene.GetRootGameObjects())
+        {
+            foreach (Camera camera in root.GetComponentsInChildren<Camera>(true))
+            {
+                if (camera.isActiveAndEnabled && camera.CompareTag("MainCamera"))
+                {
+                    return camera;
+                }
+            }
+        }
+
+        return null;
     }
 
     private void Update()
