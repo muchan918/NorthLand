@@ -354,6 +354,10 @@ MonoBehaviour:
     m_Localized: Bracing for night
     m_Metadata:
       m_Items: []
+  - m_Id: 17146012390469632
+    m_Localized: Fusion Info
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:
