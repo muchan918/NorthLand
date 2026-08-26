@@ -145,12 +145,16 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 채널 볼륨을 0~1로 설정한다. 음소거 상태는 건드리지 않는다 —
-    /// "음소거 중 슬라이더를 움직이면 자동 해제" 같은 UX 정책은 설정 패널(#346) 몫이다.
+    /// 채널 볼륨을 0~1로 설정한다.
+    /// 음소거 상태는 변경하지 않는다.
     /// </summary>
     public void SetVolume(AudioChannel channel, float value)
     {
         float clamped = Mathf.Clamp01(value);
+
+        if (Mathf.Approximately(volumes[(int)channel], clamped))
+            return;
+
         volumes[(int)channel] = clamped;
 
         ApplyBgmVolume();
@@ -162,13 +166,19 @@ public class AudioManager : MonoBehaviour
         {
             settingsService.SetAudioVolume(volumes[(int)AudioChannel.Master],volumes[(int)AudioChannel.Bgm],volumes[(int)AudioChannel.Sfx]);
         }
+
+        OnAudioSettingsChanged?.Invoke();
     }
 
     /// <summary>
-    /// 음소거를 켜고 끈다. 볼륨 값은 보존되므로 해제하면 원래 슬라이더 위치로 돌아온다.
+    /// 채널 음소거를 설정한다.
+    /// 기존 볼륨 값은 보존한다.
     /// </summary>
     public void SetMuted(AudioChannel channel, bool muted)
     {
+        if (mutes[(int)channel] == muted)
+            return;
+
         mutes[(int)channel] = muted;
 
         ApplyBgmVolume();
@@ -180,6 +190,8 @@ public class AudioManager : MonoBehaviour
         {
             settingsService.SetAudioMuted(mutes[(int)AudioChannel.Master],mutes[(int)AudioChannel.Bgm],mutes[(int)AudioChannel.Sfx]);
         }
+
+        OnAudioSettingsChanged?.Invoke();
     }
 
     /// <summary>
@@ -424,9 +436,9 @@ public class AudioManager : MonoBehaviour
 
         if (settingsService == null || settingsService.CurrentSettings == null)
         {
-            volumes[(int)AudioChannel.Master] = 1f;
-            volumes[(int)AudioChannel.Bgm] = 1f;
-            volumes[(int)AudioChannel.Sfx] = 1f;
+            volumes[(int)AudioChannel.Master] = DefaultMasterVolume;
+            volumes[(int)AudioChannel.Bgm] = DefaultBgmVolume;
+            volumes[(int)AudioChannel.Sfx] = DefaultSfxVolume;
 
             mutes[(int)AudioChannel.Master] = false;
             mutes[(int)AudioChannel.Bgm] = false;
