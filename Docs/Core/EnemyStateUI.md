@@ -1,12 +1,15 @@
-# 몬스터 체력바 (#447)
+# 몬스터 상태 UI — 체력바 + 상태이상 아이콘 (#447 · #502)
 
-> **정본 코드**: `Assets/Scripts/UI/HealthUI/` — `MonsterHealthBarLayer.cs`(공용 캔버스·부착),
-> `MonsterHealthBar.cs`(바 하나), `HealthBarTicks.cs`(눈금 그리기)
-> **정본 에셋**: `Assets/Resources/UI/MonsterHealthBar.prefab`(메인 저장소) — 폭·높이·테두리·색·눈금 단위를 전부 이 프리팹이 쥔다
+> **정본 코드**: `Assets/Scripts/UI/HealthUI/` — `EnemyStateUILayer.cs`(공용 캔버스·부착),
+> `EnemyStateUI.cs`(바 하나), `HealthBarTicks.cs`(눈금 그리기)
+> **정본 에셋**: `Assets/Resources/UI/EnemyStateUI.prefab`(메인 저장소) — 폭·높이·테두리·색·눈금 단위를 전부 이 프리팹이 쥔다
 > **관련**: `Docs/Core/UIZOrder.md` §3(sortingOrder `40`) · `Docs/Core/CombatBalance.md` §4.7(웨이브 HP 배율) ·
 > `Docs/Monster/Boss/BossDesign.md`(보스 전용 UI 미도입 확정) · WatchList-Archive WL-055
 
 ---
+
+> **왜 한 프리팹인가**: 아이콘은 체력바와 **같은 위치·같은 빌보드·같은 수명**을 갖는다. 따로 두면
+> 따라다니기·회수·풀링을 두 번 구현하게 된다. 그래서 프리팹 이름이 `HealthBar`가 아니라 `EnemyStateUI`다.
 
 ## 0. 30초 요약
 
@@ -15,6 +18,8 @@
 - **보스도 같은 바를 쓴다.** 전용 HP UI는 만들지 않는다(굵은 줄이 있어서 2600까지 한 폭에 들어간다).
 - 바는 **몬스터 프리팹에 없다.** `Enemy.Spawned`를 받아 런타임에 붙는다. 프리팹에는 앵커도 두지 않는다.
 - 살아 있는 모든 바가 **World Space Canvas 하나**를 공유한다 — 드로우콜 합계 1.
+- 상태이상은 **아이콘**으로 낸다(이펙트 아님). 종류별로 프리팹에 미리 배치해 두고 `SetActive`로만 켠다 — **런타임 생성 0**.
+- 표시는 5종 — 화상 · 독 · 감속 · 스턴(`EffectKind`, 핸들러가 소유) + **처형 표식**(`Enemy`가 소유, 축이 다르다).
 
 ## 1. 왜 눈금인가
 
@@ -56,8 +61,8 @@
 ## 3. 구조
 
 ```
-MonsterHealthBarLayer   (코드 생성 · World Space Canvas · sortingOrder 40 · localScale 0.01)
-└ MonsterHealthBar      (프리팹 · sizeDelta 800×120 → 월드 8.0×1.2)
+EnemyStateUILayer   (코드 생성 · World Space Canvas · sortingOrder 40 · localScale 0.01)
+└ EnemyStateUI      (프리팹 · sizeDelta 800×120 → 월드 8.0×1.2)
   ├ Border              Image  (검정 — 바깥 테두리. Inner의 인셋만큼이 테두리 두께가 된다)
   └ Inner               RectTransform (offset 가로 16 / 세로 18 = 테두리 두께)
     ├ Background        Image  (빈 구간)
@@ -66,7 +71,7 @@ MonsterHealthBarLayer   (코드 생성 · World Space Canvas · sortingOrder 40 
     └ Ticks             HealthBarTicks (눈금)
 ```
 
-⚠ **`Border`·`Inner` 아래 계층은 아트 저작 영역이다.** 코드가 아는 것은 딱 둘 — `MonsterHealthBar`의
+⚠ **`Border`·`Inner` 아래 계층은 아트 저작 영역이다.** 코드가 아는 것은 딱 둘 — `EnemyStateUI`의
 `fill`·`ticks` 참조뿐이다. 그래서 필 안에 하이라이트를 겹치든 스프라이트를 갈든 코드 수정이 필요 없고,
 반대로 **그 두 참조만 끊기지 않게** 유지하면 된다(끊기면 바가 채워지지 않거나 눈금이 안 그려진다).
 
@@ -116,18 +121,88 @@ MonsterHealthBarLayer   (코드 생성 · World Space Canvas · sortingOrder 40 
 - `SpawnPrefab`의 검증 실패 경로(`Enemy`/이동 컴포넌트 불일치 → `Destroy`)에서는 `Start`가 아예 돌지 않아
   **한 프레임짜리 유령 바**가 생기지 않는다.
 
+## 4.5 상태이상 아이콘 (#502)
+
+### 사슬
+
+```
+타워 명중 → HitEffect.Apply → StatusEffectHandler가 효과를 소유·소진
+                                        ↓  ActiveKindMask (비트마스크)
+                              EnemyStateUI.RefreshStatusIcons
+                                        ↓  마스크가 바뀐 프레임에만
+                                  아이콘 SetActive
+```
+
+### 핸들러가 종류를 들고 있어야 했던 이유
+
+`StatusEffectHandler`의 DoT 항목은 원래 `effectId`만 들고 있었다. 그런데 그 값은
+`HitEffect.SourceKey(baseId, kind)` = `HashCode.Combine(baseId, (int)kind)`라 **되돌릴 수 없다** —
+즉 UI가 "화상이냐 독이냐"를 알 방법이 원리적으로 없었다. 그래서 `DotState.kind`를 추가하고
+`ApplyOrRefresh`가 종류를 함께 받는다(호출부 3곳 모두 이미 아는 값이다).
+
+감속·스턴은 원래부터 구분 가능했다 — `slows`의 `multiplier`가 0이면 스턴 축(`AddStun`), 그 위면 감속 축이다.
+
+### `ActiveKindMask`를 캐시하지 않는 이유
+
+항목이 많아야 서너 개라 세는 비용이 무의미한 반면, 캐시는 **만료 · 대상 사망 · 감속으로 덮임 ·
+전량 해제** 네 경로에서 각각 갱신을 빠뜨릴 수 있고, 그 실패는 "아이콘이 안 꺼진다"로만 보여
+원인에서 멀다. 그래서 읽을 때마다 두 딕셔너리를 센다(`Dictionary`의 `foreach`는 구조체 열거자라 할당도 없다).
+
+### 폴링인 이유, 그리고 지연 해석
+
+이벤트 구독이 아니라 **폴링**이다. 위젯은 레이어가 매 `LateUpdate`마다 `Follow`를 부르므로 읽을 자리가
+이미 있고, 위젯이 **풀링**되는 구조라 구독/해제 수명을 하나 더 만들면 회수 시 해제를 빠뜨렸을 때
+죽은 위젯이 계속 갱신되는 종류의 버그가 생긴다.
+
+⚠ **`StatusEffectHandler`는 첫 피격 때 `AddComponent`로 붙는다.** 그래서 `Bind` 시점에 없을 수 있고,
+없는 동안 매 프레임 `GetComponent`를 때리면 몬스터 수 × 프레임만큼 헛돈다. 붙기 전까지만
+**0.25초 주기로** 존재를 확인한다 — 붙기 전에는 걸린 상태이상도 없으므로 늦게 알아채도 표시가 틀리지 않는다.
+
+⚠ **풀에서 꺼낸 위젯은 직전 몬스터의 핸들러·마스크를 들고 있다.** `Bind`와 `Release` 양쪽에서 끊는다.
+
+### 처형 표식(#318)은 축이 다르다
+
+표식은 `StatusEffectHandler`가 아니라 **`Enemy`가 필드로 직접 든다.** 원저자가 이유를 남겨놨다
+(`Enemy.executeThreshold` 주석) — 표식은 **모든 피해가 지나는 `TakeDamage`에서 읽혀야 하는데**,
+핸들러는 필요할 때 `AddComponent`로 붙는 물건이라 매 피해마다 `GetComponent` + null 가드가 붙는다.
+
+그래서 `ActiveKindMask`로는 원리적으로 안 보이고, UI가 `Enemy.HasExecuteMark`를 **따로** 읽는다.
+핸들러 조회와 독립적이라 핸들러가 아직 안 붙은 몬스터에게 표식이 걸려도 정상 표시된다.
+
+마스크에서 **비트 0~3은 `EffectKind`, 비트 4가 처형**이다. `EffectKind`에 `Execute`를 더하지 않은
+이유는 그 enum이 **타워 SO 저작(`SerializeReference`)과 `effectId` 해시에 함께 쓰이기** 때문이다 —
+표시용 값을 섞으면 타워 인스펙터 드롭다운에 "처형"이 뜨고 해시 공간도 함께 흔들린다.
+
+⚠ **보스에게는 절대 뜨지 않는다.** `ExecuteEffect`가 표식을 걸기 전에 `IsBoss`로 걸러내기 때문이며
+(GDD §5.6: 처형은 긴 HP 바를 건너뛰는 메커니즘이라 보스전의 형태를 없앤다), 이것은 UI 규칙이 아니라
+전투 규칙이다. 표식 지속은 `ExecuteEffect.markDuration` 기본 **2초**라 아이콘도 그만큼만 떴다 사라진다.
+
+### 아이콘이 겹치지 않는 이유
+
+아이콘 컨테이너(`StatusIcons`)에 `HorizontalLayoutGroup`이 붙어 있다. 꺼진 아이콘은 레이아웃에서
+빠지므로 남은 것들이 가운데로 다시 모인다 — **정렬 코드가 없다.**
+
+### 현재 아이콘은 플레이스홀더다
+
+프로젝트에 상태이상 아이콘 스프라이트가 없어서 구분되는 색 사각형으로 배선해 뒀다
+(화상 주황 · 독 보라 · 감속 하늘 · 스턴 노랑 · 처형 흰색). 코드가 아이콘에 대해 아는 것은 **켜라/꺼라뿐**이므로,
+아트가 나오면 프리팹에서 각 `Image`에 스프라이트만 꽂으면 된다.
+
 ## 5. 튜닝 지점
 
-전부 `Assets/Resources/UI/MonsterHealthBar.prefab` 안에 있다. 코드 수정 없이 만진다.
+전부 `Assets/Resources/UI/EnemyStateUI.prefab` 안에 있다. 코드 수정 없이 만진다.
 
 | 값 | 위치 | 현재 |
 |---|---|---|
 | 바 폭·높이 | 루트 `RectTransform.sizeDelta` (× 캔버스 0.01 = 월드) | 800×120 → 월드 8.0×1.2 |
 | 테두리 두께 | `Inner`의 offsetMin/offsetMax | 가로 16 / 세로 18 (캔버스 px) |
-| 머리 위 여유 | `MonsterHealthBar.topMargin` | 1.2 (월드) |
+| 머리 위 여유 | `EnemyStateUI.topMargin` | 1.2 (월드) |
 | 눈금 단위 | `HealthBarTicks.minorUnit` / `majorUnit` | 100 / 1000 |
 | 선 두께 | `HealthBarTicks.minorWidth` / `majorWidth` (캔버스 px) | 10 / 20 |
 | 선 색 | `HealthBarTicks.minorColor` / `majorColor` | 검정 a0.55 / a0.95 |
+| 아이콘 크기·간격 | `StatusIcons`의 `HorizontalLayoutGroup` + 각 아이콘 `sizeDelta` | 100×100 · 간격 12 |
+| 아이콘 종류 짝 | `EnemyStateUI.statusIcons` (kind ↔ 오브젝트) | 4종 |
+| 처형 아이콘 | `EnemyStateUI.executeIcon` (슬롯 1개, 축이 달라 배열 밖) | 1종 |
 | 빈 구간 색 | `Inner/Background`의 `Image.color` | 회색 0.32 a0.9 — **검정 눈금이 빈 구간에서도 보이려면 배경이 어두우면 안 된다**(0.08이던 값을 올린 것) |
 
 ## 6. 알려진 한계 · 미결
@@ -145,7 +220,7 @@ MonsterHealthBarLayer   (코드 생성 · World Space Canvas · sortingOrder 40 
 - **줄·테두리 자글거림 → 픽셀 스냅으로 대응했다(2026-08-26 실기 보고).** 이 프로젝트는 **MSAA와 포스트 AA가
   둘 다 꺼져 있다**(`PC_RPAsset` `m_MSAA: 1` · Main Camera `antialiasing=None`, FlatKit 픽셀레이션 피처는
   `active=False`). 그래서 몬스터가 움직일 때 바가 매 프레임 서브픽셀만큼 밀리면 얇은 눈금선과 바 테두리가
-  프레임마다 다른 픽셀에 얹혀 자글거린다. `MonsterHealthBar.SnapToPixelGrid`가 바 위치를 정수 화면 픽셀에
+  프레임마다 다른 픽셀에 얹혀 자글거린다. `EnemyStateUI.SnapToPixelGrid`가 바 위치를 정수 화면 픽셀에
   고정해 이 축을 없앤다(대가: 바가 1px 단위로 끊겨 움직인다 — 머리 위 표식이라 눈에 안 띈다).
   **줌 중에는 배율이 매 프레임 바뀌어 스냅이 무력하다** — 그 구간의 자글거림은 남는다. 근본 해결은
   카메라에 FXAA/SMAA를 켜는 것인데, 그건 게임 전체 룩에 영향을 주는 별도 결정이다.
