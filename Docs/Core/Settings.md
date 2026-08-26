@@ -17,11 +17,11 @@
 | 일반 | 언어 | `LocalizationManager` | `settings.json` |
 | 일반 | 키보드 이동 속도 | `CameraMoveSettingsUI` | `settings.json` |
 | 일반 | 마우스 이동 속도 | `CameraMoveSettingsUI` | `settings.json` |
-| 그래픽 | 화면 모드 | `DisplaySettings` | `PlayerPrefs` |
-| 그래픽 | 해상도 | `DisplaySettings` | `PlayerPrefs` |
-| 사운드 | 마스터 볼륨 | `SoundSettingsUI` → `AudioManager` | `PlayerPrefs` |
-| 사운드 | BGM 볼륨 | `SoundSettingsUI` → `AudioManager` | `PlayerPrefs` |
-| 사운드 | 효과음 볼륨 | `SoundSettingsUI` → `AudioManager` | `PlayerPrefs` |
+| 그래픽 | 화면 모드 | `DisplaySettings` | `settings.json` |
+| 그래픽 | 해상도 | `DisplaySettings` | `settings.json` |
+| 사운드 | 마스터 볼륨 | `SoundSettingsUI` → `AudioManager` | `settings.json` |
+| 사운드 | BGM 볼륨 | `SoundSettingsUI` → `AudioManager` | `settings.json` |
+| 사운드 | 효과음 볼륨 | `SoundSettingsUI` → `AudioManager` | `settings.json` |
 
 화면 밝기 설정은 제공하지 않는다. `BrightnessSettings.cs`가 남아 있더라도 현재 UI/프리팹 계약에는 포함하지 않는다.
 
@@ -49,7 +49,7 @@
 
 - 기본값은 인덱스 `1`, 테두리 없는 창이다.
 - 테두리 없는 창은 `Screen.currentResolution`의 모니터 기본 해상도로 적용한다.
-- 저장 키는 `ScreenMode`다.
+- 선택 인덱스는 `GameSettingsData.screenMode`에 반영한다.
 
 ### 3.2 해상도
 
@@ -63,18 +63,13 @@
 
 해상도를 선택하면 즉시 시험 적용하고 15초 확인 패널을 표시한다.
 
-- **유지**: 선택 인덱스와 너비·높이를 저장한다.
+- **유지**: 선택 인덱스를 `GameSettingsData.resolutionIndex`에 반영한다.
 - **되돌리기**: 변경 전 해상도와 화면 모드로 복원한다.
 - **시간 초과**: 되돌리기와 동일하게 처리한다.
 - 카운트다운은 UniTask와 unscaled time을 사용하므로 설정창으로 게임이 정지되어도 진행된다.
 
-저장 키:
-
-| 키 | 타입 | 의미 |
-|---|---|---|
-| `ResolutionIndex` | int | Dropdown 선택 인덱스 |
-| `ResolutionWidth` | int | 확정된 너비 |
-| `ResolutionHeight` | int | 확정된 높이 |
+너비와 높이는 저장하지 않는다. 고정 해상도 목록에서 `resolutionIndex`로 다시 결정한다.
+화면 모드와 확정된 해상도는 설정 패널을 닫을 때 다른 공통 설정과 함께 파일에 저장된다.
 
 ### 3.3 그래픽 UI 연결
 
@@ -103,18 +98,16 @@
 세 슬라이더 범위는 `0~1`이며 소수 값을 사용한다. `SoundSettingsUI`에는 Master/BGM/SFX Slider 세 개가
 모두 연결되어야 한다.
 
-볼륨 저장 키는 `MasterVolume`, `BgmVolume`, `SfxVolume`이다. 값은 슬라이더 변경 시 PlayerPrefs 메모리에
-즉시 기록하고, 디스크 저장은 애플리케이션 일시정지·종료 또는 `AudioManager` 파괴 시 수행한다.
-음소거 키(`MasterMuted`, `BgmMuted`, `SfxMuted`)도 매니저에 존재하지만 현재 설정 패널에는 음소거 UI가 없다.
+볼륨과 음소거 상태는 `GameSettingsData`의 `masterVolume`, `bgmVolume`, `sfxVolume`,
+`masterMuted`, `bgmMuted`, `sfxMuted`에 반영한다. 설정 패널을 닫을 때
+`GameSettingsService.TrySaveCurrentSettings()`가 `settings.json`에 저장한다. 현재 설정 패널에는 음소거 UI가 없다.
 
 새 효과음 재생 경로는 `AudioManager`를 통하거나 `GetEffectiveVolume(AudioChannel.Sfx)`를 적용해야
 사용자의 효과음 설정을 따른다. 자세한 계약은 `Docs/Core/AudioManager.md`를 따른다.
 
 ## 5. 저장 구조
 
-설정은 현재 두 저장소로 나뉜다.
-
-### 5.1 `settings.json`
+모든 슬롯 공통 설정은 `settings.json` 하나에 저장한다.
 
 `GameSettingsService`가 `Application.persistentDataPath/settings.json`을 관리한다.
 
@@ -122,19 +115,17 @@
 - `lastSelectedSlotIndex`
 - `keyboardMoveSpeedMultiplier`
 - `mouseMoveSpeedMultiplier`
+- `screenMode`
+- `resolutionIndex`
+- `masterVolume`
+- `bgmVolume`
+- `sfxVolume`
+- `masterMuted`
+- `bgmMuted`
+- `sfxMuted`
 
 카메라 이동 속도 배율 범위는 `0.5~2.0`이다. 자세한 파일 형식과 마이그레이션 규칙은
 `Docs/Core/SaveSystem.md`를 따른다.
-
-### 5.2 PlayerPrefs
-
-그래픽과 사운드는 슬롯과 무관한 기기 설정으로 PlayerPrefs에 저장한다.
-
-- 그래픽: `ScreenMode`, `ResolutionIndex`, `ResolutionWidth`, `ResolutionHeight`
-- 사운드: `MasterVolume`, `BgmVolume`, `SfxVolume`
-- 사운드 음소거 예약 키: `MasterMuted`, `BgmMuted`, `SfxMuted`
-
-설정 초기화 기능을 추가할 때는 `settings.json`과 위 PlayerPrefs 키를 모두 처리해야 한다.
 
 ## 6. 로컬라이제이션
 
@@ -194,5 +185,5 @@
 - 테두리 없는 창 모드는 모니터 기본 해상도를 사용하는 것이 원칙이다. 해상도 Dropdown의 사용 정책을
   변경하면 화면 모드 전환 동작과 함께 검증한다.
 - 고정 해상도가 대상 모니터에서 지원되지 않을 수 있으므로 독점 전체 화면은 반드시 실제 빌드로 시험한다.
-- 해상도 옵션 개수나 순서를 바꿀 때 기존 `ResolutionIndex` 저장값의 범위 검증도 함께 확인한다.
-- 그래픽/사운드와 일반 설정의 저장소가 다르므로 한쪽만 삭제해서는 전체 설정이 초기화되지 않는다.
+- 해상도 옵션 개수나 순서를 바꿀 때 기존 `resolutionIndex` 저장값의 범위 검증도 함께 확인한다.
+- 설정 초기화 기능을 추가할 때는 공통 `settings.json`을 처리한다.

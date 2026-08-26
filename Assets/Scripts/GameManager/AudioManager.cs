@@ -1,3 +1,4 @@
+using NorthLand.Core;
 using System;
 using UnityEngine;
 
@@ -26,14 +27,6 @@ public enum AudioChannel
 public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance { get; private set; }
-
-    private const string MasterVolumeKey = "MasterVolume";
-    private const string BgmVolumeKey = "BgmVolume";
-    private const string SfxVolumeKey = "SfxVolume";
-
-    private const string MasterMutedKey = "MasterMuted";
-    private const string BgmMutedKey = "BgmMuted";
-    private const string SfxMutedKey = "SfxMuted";
 
     // BGM은 배경이라 낮게 시작한다. 밸런싱 축이므로 청감 확인 후 조정 가능.
     private const float DefaultMasterVolume = 1f;
@@ -69,10 +62,6 @@ public class AudioManager : MonoBehaviour
     // 이걸 기억하지 않으면 페이드 도중 트랙을 다시 요청했을 때 나가는 쪽이 최대 볼륨으로 튄다.
     private float outgoingWeight = 1f;
 
-    // PlayerPrefs.SetFloat은 메모리 캐시라 슬라이더 드래그마다 불러도 싸지만
-    // Save()는 디스크 쓰기다. flush는 종료·포커스 상실 시점으로 미룬다.
-    private bool prefsDirty;
-
     /// <summary>
     /// 볼륨·음소거가 바뀔 때마다 발생한다. 설정 패널(#346)의 슬라이더가 코드 쪽 변경을 따라오는 용도.
     /// </summary>
@@ -84,7 +73,7 @@ public class AudioManager : MonoBehaviour
 
     // 씬에 배치하지 않는다 — 두 씬 모두에서 필요하고, 씬에 두면 씬 파일 병합 충돌만 늘어난다.
     // GameSceneManager와 동일한 부팅 패턴.
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
     {
         if (Instance != null)
@@ -111,7 +100,7 @@ public class AudioManager : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
-        LoadPrefs();
+        LoadSettings();
         CreateSources();
 
         // 이 시점엔 보통 구독자가 없다(설정 패널은 열 때 GetVolume으로 현재 값을 읽는다).
@@ -123,22 +112,8 @@ public class AudioManager : MonoBehaviour
     {
         if (Instance == this)
         {
-            FlushPrefs();
 
             Instance = null;
-        }
-    }
-
-    private void OnApplicationQuit()
-    {
-        FlushPrefs();
-    }
-
-    private void OnApplicationPause(bool paused)
-    {
-        if (paused)
-        {
-            FlushPrefs();
         }
     }
 
@@ -173,23 +148,20 @@ public class AudioManager : MonoBehaviour
     /// 채널 볼륨을 0~1로 설정한다. 음소거 상태는 건드리지 않는다 —
     /// "음소거 중 슬라이더를 움직이면 자동 해제" 같은 UX 정책은 설정 패널(#346) 몫이다.
     /// </summary>
-    public void SetVolume(AudioChannel channel, float value01)
+    public void SetVolume(AudioChannel channel, float value)
     {
-        float clamped = Mathf.Clamp01(value01);
-
-        if (Mathf.Approximately(volumes[(int)channel], clamped))
-        {
-            return;
-        }
-
+        float clamped = Mathf.Clamp01(value);
         volumes[(int)channel] = clamped;
 
-        PlayerPrefs.SetFloat(VolumeKey(channel), clamped);
-        prefsDirty = true;
-
         ApplyBgmVolume();
+        ApplyExclusiveSfxVolume();
 
-        OnAudioSettingsChanged?.Invoke();
+        GameSettingsService settingsService = GameSettingsService.Instance;
+
+        if (settingsService != null)
+        {
+            settingsService.SetAudioVolume(volumes[(int)AudioChannel.Master],volumes[(int)AudioChannel.Bgm],volumes[(int)AudioChannel.Sfx]);
+        }
     }
 
     /// <summary>
@@ -197,24 +169,22 @@ public class AudioManager : MonoBehaviour
     /// </summary>
     public void SetMuted(AudioChannel channel, bool muted)
     {
-        if (mutes[(int)channel] == muted)
-        {
-            return;
-        }
-
         mutes[(int)channel] = muted;
 
-        PlayerPrefs.SetInt(MutedKey(channel), muted ? 1 : 0);
-        prefsDirty = true;
-
         ApplyBgmVolume();
+        ApplyExclusiveSfxVolume();
 
-        OnAudioSettingsChanged?.Invoke();
+        GameSettingsService settingsService = GameSettingsService.Instance;
+
+        if (settingsService != null)
+        {
+            settingsService.SetAudioMuted(mutes[(int)AudioChannel.Master],mutes[(int)AudioChannel.Bgm],mutes[(int)AudioChannel.Sfx]);
+        }
     }
 
     /// <summary>
     /// 실제로 AudioSource.volume에 곱할 계수. 음소거면 0, 아니면 Master × 채널.
-    /// 지금은 BGM만 쓰고, SFX 재생 경로가 생기면 그쪽이 소비한다.
+    /// BGM과 SFX 재생 경로에서 실제 출력 볼륨을 계산할 때 사용한다.
     /// </summary>
     public float GetEffectiveVolume(AudioChannel channel)
     {
@@ -448,54 +418,32 @@ public class AudioManager : MonoBehaviour
         return source;
     }
 
-    // ── 영속화 ────────────────────────────────────────────────
-
-    private void LoadPrefs()
+    private void LoadSettings()
     {
-        volumes[(int)AudioChannel.Master] = LoadVolume(MasterVolumeKey, DefaultMasterVolume);
-        volumes[(int)AudioChannel.Bgm] = LoadVolume(BgmVolumeKey, DefaultBgmVolume);
-        volumes[(int)AudioChannel.Sfx] = LoadVolume(SfxVolumeKey, DefaultSfxVolume);
+        GameSettingsService settingsService = GameSettingsService.Instance;
 
-        mutes[(int)AudioChannel.Master] = PlayerPrefs.GetInt(MasterMutedKey, 0) != 0;
-        mutes[(int)AudioChannel.Bgm] = PlayerPrefs.GetInt(BgmMutedKey, 0) != 0;
-        mutes[(int)AudioChannel.Sfx] = PlayerPrefs.GetInt(SfxMutedKey, 0) != 0;
-    }
-
-    // 손상된 prefs가 1을 넘는 볼륨으로 들어오는 것을 막는다.
-    private static float LoadVolume(string key, float defaultValue)
-    {
-        return Mathf.Clamp01(PlayerPrefs.GetFloat(key, defaultValue));
-    }
-
-    private void FlushPrefs()
-    {
-        if (!prefsDirty)
+        if (settingsService == null || settingsService.CurrentSettings == null)
         {
+            volumes[(int)AudioChannel.Master] = 1f;
+            volumes[(int)AudioChannel.Bgm] = 1f;
+            volumes[(int)AudioChannel.Sfx] = 1f;
+
+            mutes[(int)AudioChannel.Master] = false;
+            mutes[(int)AudioChannel.Bgm] = false;
+            mutes[(int)AudioChannel.Sfx] = false;
             return;
         }
 
-        PlayerPrefs.Save();
+        GameSettingsData settings = settingsService.CurrentSettings;
 
-        prefsDirty = false;
-    }
+        volumes[(int)AudioChannel.Master] = Mathf.Clamp01(settings.masterVolume);
 
-    private static string VolumeKey(AudioChannel channel)
-    {
-        return channel switch
-        {
-            AudioChannel.Master => MasterVolumeKey,
-            AudioChannel.Bgm => BgmVolumeKey,
-            _ => SfxVolumeKey
-        };
-    }
+        volumes[(int)AudioChannel.Bgm] = Mathf.Clamp01(settings.bgmVolume);
 
-    private static string MutedKey(AudioChannel channel)
-    {
-        return channel switch
-        {
-            AudioChannel.Master => MasterMutedKey,
-            AudioChannel.Bgm => BgmMutedKey,
-            _ => SfxMutedKey
-        };
+        volumes[(int)AudioChannel.Sfx] = Mathf.Clamp01(settings.sfxVolume);
+
+        mutes[(int)AudioChannel.Master] = settings.masterMuted;
+        mutes[(int)AudioChannel.Bgm] = settings.bgmMuted;
+        mutes[(int)AudioChannel.Sfx] = settings.sfxMuted;
     }
 }
