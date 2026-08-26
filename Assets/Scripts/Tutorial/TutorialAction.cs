@@ -18,5 +18,6 @@ public enum TutorialAction
     IncreaseVillager = 1 << 11,
     Undo = 1 << 12,
     SelectPlacedTower = 1 << 13,
-    AlchemyExchange = 1 << 14
+    AlchemyExchange = 1 << 14,
+    MergeTower = 1 << 15
 }

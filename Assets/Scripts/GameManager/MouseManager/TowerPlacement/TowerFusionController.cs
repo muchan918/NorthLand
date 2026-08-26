@@ -67,6 +67,7 @@ public class TowerFusionController : MonoBehaviour
     /// 생기면 그때 필요한 형태로 다시 낸다.
     public bool TryFuse(TowerRecipe recipe, TowerMergeGroup group)
     {
+        if (!TutorialInputGate.Allows(TutorialAction.MergeTower)) return false;
         if (recipe == null) { Debug.LogError("[TowerFusion] recipe가 지정되지 않았습니다."); return false; }
         if (recipe.Result == null) { Debug.LogError("[TowerFusion] recipe.Result가 비어 있습니다."); return false; }
         if (group == null || _placer == null)

@@ -136,6 +136,7 @@ public class TowerMergeCoordinator : MonoBehaviour
     /// 후보 버튼 onClick → 이 진입점. 현재 선택 집합으로 합성 실행을 시도한다(밤엔 무시).
     public void RequestMerge(TowerRecipe recipe)
     {
+        if (!TutorialInputGate.Allows(TutorialAction.MergeTower)) return;
         if (recipe == null) return;
         if (!IsDay) return; // 방어(패널도 밤엔 숨김)
         if (_controller == null) { Debug.LogError("[TowerMerge] TowerFusionController가 연결되지 않았습니다."); return; }

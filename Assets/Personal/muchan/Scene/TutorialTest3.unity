@@ -12047,7 +12047,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: debugMode
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: startOnPlay
@@ -12060,15 +12060,15 @@ PrefabInstance:
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: 'debugSteps.Array.data[0]'
       value: 
-      objectReference: {fileID: 11400000, guid: 34b2852b12edc184ca58bc831b50135d, type: 2}
+      objectReference: {fileID: 11400000, guid: bc70e8778bca7f443bd5271060cc062f, type: 2}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: 'debugSteps.Array.data[1]'
       value: 
-      objectReference: {fileID: 11400000, guid: e650d75cf77241448a74ab35bf498838, type: 2}
+      objectReference: {fileID: 11400000, guid: f8b3a8d990b360d45a54be978c108b87, type: 2}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: 'debugSteps.Array.data[2]'
       value: 
-      objectReference: {fileID: 11400000, guid: 172226fdf99b4474c8519e78cba95d92, type: 2}
+      objectReference: {fileID: 11400000, guid: 18830b9b69e19554888a68348195f12f, type: 2}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: 'debugSteps.Array.data[3]'
       value: 
