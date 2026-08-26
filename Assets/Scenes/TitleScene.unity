@@ -4895,7 +4895,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TitleCue
   fadeSeconds: 1
-  titleClip: {fileID: 0}
+  titleClip: {fileID: 8300000, guid: b661fd8b1fb3a524a89d9f25bc0f05e6, type: 3}
 --- !u!1 &1641934901
 GameObject:
   m_ObjectHideFlags: 0
