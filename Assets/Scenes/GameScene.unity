@@ -3885,10 +3885,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CameraController2
   cinemachineCamera: {fileID: 1228655714}
   cameraTarget: {fileID: 863015837}
-  moveSpeed: 250
+  baseMoveSpeed: 250
   xBounds: {x: -1450, y: 1200}
   zBounds: {x: -1050, y: 550}
-  dragSpeed: 0.3
+  baseDragSpeed: 0.3
   zoomSpeed: 10
   minZoomSize: 30
   maxZoomSize: 200
@@ -16383,6 +16383,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 144619837}
     m_Modifications:
+    - target: {fileID: 2402722738985476101, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1562921618077330383, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
       propertyPath: m_LocalPosition.y
       value: -2.5
@@ -16434,6 +16438,10 @@ PrefabInstance:
     - target: {fileID: 7805989967329158851, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8649934953252851180, guid: 49b0d8ca5e317054aba51d13bb34c1e9, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -25332,7 +25340,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: -5, y: 5}
+  m_AnchoredPosition: {x: -5, y: 5.000122}
   m_SizeDelta: {x: 320, y: 220}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &6418855815730911753
