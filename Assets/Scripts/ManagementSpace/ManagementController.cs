@@ -775,6 +775,11 @@ public class ManagementController : MonoBehaviour
     /// </summary>
     public bool TryExchange(BuildingAsset building, BuildingAsset.ExchangeOffer offer)
     {
+        if (!TutorialInputGate.Allows(TutorialAction.AlchemyExchange))
+        {
+            return false;
+        }
+
         if (!IsDay)
         {
             Debug.Log("[경영] 밤에는 교환할 수 없습니다.");

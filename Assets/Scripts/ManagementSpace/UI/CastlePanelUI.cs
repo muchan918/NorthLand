@@ -195,6 +195,11 @@ public class CastlePanelUI : MonoBehaviour
 
     private void HandleUpgradeClicked()
     {
+        if (!TutorialInputGate.Allows(TutorialAction.UpgradeBuilding))
+        {
+            return;
+        }
+
         // 성공 시 컨트롤러 OnChanged → Refresh가 자동으로 다시 그린다(실패해도 무해 — 컨트롤러가 로그를 남긴다).
         // 본진 레벨이 오르면 하위 건물 Max·연금술사 교환 배율도 같은 OnChanged로 따라 갱신된다(#229).
         if (_controller == null || _upgradeIndex < 0)
@@ -252,7 +257,8 @@ public class CastlePanelUI : MonoBehaviour
 
         if (_upgradeButton != null)
         {
-            _upgradeButton.interactable = _controller.CanUpgradeBuilding(_upgradeIndex);
+            _upgradeButton.interactable = _controller.CanUpgradeBuilding(_upgradeIndex)
+                && TutorialInputGate.AllowsForDisplay(TutorialAction.UpgradeBuilding);
         }
         SetText(_upgradeButtonText, upgradeMax ? L(k_MaxKey) : L(k_UpgradeKey));
         // 지금 누르면 도달할 레벨(level은 이미 표시용 1-based)의 효과를 보여준다.
