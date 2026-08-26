@@ -32,6 +32,14 @@ namespace NorthLand.Combat
         /// ⚠ static이므로 구독자는 **반드시 해제**할 것(죽은 구독자가 남으면 파괴된 타워를 계속 건드린다).
         public static event Action<IAttacker, Enemy> Killed;
 
+        /// 이 적이 씬에 등장한 직후 **Awake 끝에서** 1회 발행된다. 몬스터 체력바(#447)가 프리팹 종속
+        /// 없이 자신을 붙이는 창구이며, `PlayerBase.OnBaseSpawned`와 같은 idiom이다.
+        ///
+        /// ⚠ 발행 시점의 `MaxHp`는 **웨이브 배율이 아직 안 곱해진 값**이다(`MonsterSpawn`이 스폰 직후
+        /// `ApplyWaveHpScale`로 덮어쓴다). 최대치가 필요한 구독자는 `OnHpChanged`를 함께 구독할 것.
+        /// ⚠ static이므로 구독자는 반드시 해제할 것.
+        public static event Action<Enemy> Spawned;
+
         // 마지막으로 피해를 준 주체. DoT는 StatusEffectHandler가 원 소스를 그대로 실어 보내므로
         // 화상·독으로 죽은 적도 그 타워에 귀속된다. 스킬·환경 피해는 소스가 null이라 귀속되지 않는데,
         // 이것이 **의도**다 — 마지막 일격이 스킬이면 그 처치는 어느 타워의 것도 아니다.
@@ -137,6 +145,10 @@ namespace NorthLand.Combat
 
                 behaviorAgent.Graph = data.Boss.BehaviorTree;
             }
+
+            // 체력바 부착 창구(#447). 프리팹에 UI를 심는 대신 이 신호를 UI 레이어가 받아 붙인다 —
+            // PlayerBase.OnBaseSpawned와 같은 idiom이다.
+            Spawned?.Invoke(this);
         }
 
         public Faction Faction => Faction.Enemy;
