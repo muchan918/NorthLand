@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Recipe_multiinfernoTower
   m_EditorClassIdentifier: Assembly-CSharp::TowerRecipe
   Materials:
-  - Tower: {fileID: 11400000, guid: a644f4da55393c0449049fe2ae101343, type: 2}
-    Count: 2
+  - Tower: {fileID: 11400000, guid: 7ecd80d44165e644591aafb428cf5efe, type: 2}
+    Count: 3
   - Tower: {fileID: 11400000, guid: fbb3a339d8f737043ade73b0cad2374c, type: 2}
     Count: 1
   Result: {fileID: 11400000, guid: a7ec24d680663fc4d8de42bb83aff720, type: 2}

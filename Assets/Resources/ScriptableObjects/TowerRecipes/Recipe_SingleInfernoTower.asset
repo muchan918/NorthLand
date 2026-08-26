@@ -15,7 +15,7 @@ MonoBehaviour:
   Materials:
   - Tower: {fileID: 11400000, guid: a7ec24d680663fc4d8de42bb83aff720, type: 2}
     Count: 1
-  - Tower: {fileID: 11400000, guid: 12559c63206463b478dc0e4fbd7ea193, type: 2}
+  - Tower: {fileID: 11400000, guid: cfaa47a527e3e4844a94440f9d357f0f, type: 2}
     Count: 1
   Result: {fileID: 11400000, guid: 1c80864d90eaac840857e2328f4be5b6, type: 2}
   ExtraCost: []
