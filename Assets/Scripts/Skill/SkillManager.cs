@@ -279,7 +279,14 @@ public class SkillManager : MonoBehaviour
         }
 
         if (impactSfx != null)
-            AudioSource.PlayClipAtPoint(impactSfx, position);
+        {
+            float sfxVolume = AudioManager.Instance != null
+                ? AudioManager.Instance.GetEffectiveVolume(AudioChannel.Sfx)
+                : 1f;
+
+            if (sfxVolume > 0f)
+                AudioSource.PlayClipAtPoint(impactSfx, position, sfxVolume);
+        }
     }
 
 #if UNITY_EDITOR
