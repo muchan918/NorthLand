@@ -383,6 +383,10 @@ MonoBehaviour:
     m_Key: loading.tip.night
     m_Metadata:
       m_Items: []
+  - m_Id: 17103277785784320
+    m_Key: game.tower.unlock_wave
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
