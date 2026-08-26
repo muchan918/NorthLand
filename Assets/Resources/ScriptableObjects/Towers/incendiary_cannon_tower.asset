@@ -72,6 +72,8 @@ MonoBehaviour:
       MaxStacks: 0
       StackInterval: 0
       DecaySeconds: 0
+    SecondaryStat: 0
+    SecondaryPerStack: 0
   Effects:
   - rid: 1498367259597078619
   references:
