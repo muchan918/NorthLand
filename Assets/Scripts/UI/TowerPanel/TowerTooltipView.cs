@@ -109,11 +109,11 @@ public class TowerTooltipView : MonoBehaviour
         if (!_ready) return;
         if (tower == null) { Hide(); return; }
 
-        _nameText.text = ResolveHeader(tower);
-        string desc = ResolveDescription(tower);
+        _nameText.text = TowerInfoFormatter.BuildHeader(tower);
+        string desc = TowerInfoFormatter.BuildDescription(tower);
         _descText.text = desc;
         _descText.gameObject.SetActive(!string.IsNullOrEmpty(desc)); // 설명 없으면 빈 줄 안 남기고 접음
-        _statsText.text = NorthLand.Combat.TowerStatsFormatter.Join(BuildStats(tower), extraStatsLine);
+        _statsText.text = NorthLand.Combat.TowerStatsFormatter.Join(TowerInfoFormatter.BuildStats(tower),extraStatsLine);
         _costText.text = BuildCost(tower, recipe);
 
         // 아이콘은 버튼·후보 칸과 같은 SO 필드를 그린다(TowerAsset.Icon) — 같은 타워가 화면마다 다르게
@@ -276,44 +276,6 @@ public class TowerTooltipView : MonoBehaviour
     }
 
     // ----- 내용 조립 (변경 없음) -----
-
-    // 헤더 = 타워 이름 (+ 역할, 있으면). Data 미채움 시 TowerID로 폴백.
-    // BuildingTooltipSource의 "이름 - 역할" 표기와 같은 계열.
-    // 이름 자체는 공용 TowerDisplayName이 푼다(폴백 규칙 단일 출처) — 여기가 더하는 것은 역할 한 줄뿐이다.
-    // EnsureData를 거치므로 배치 경로를 타지 않은 결과 타워(합성 후보·정보 패널 후보 행)에서도 키가 잡힌다.
-    private string ResolveHeader(TowerAsset t)
-    {
-        string name = TowerDisplayName.Of(t);
-
-        TowerData data = TowerDisplayName.EnsureData(t);
-        if (data == null || string.IsNullOrEmpty(data.RoleKey)) return name;
-
-        string role = LocalizationHelper.Get(LocalizationHelper.k_TowersTable, data.RoleKey);
-        return string.IsNullOrEmpty(role) ? name : $"{name} - {role}";
-    }
-
-    // 설명(#141): TowerData.DescriptionKey를 Towers 테이블에서 pull. Magic 타워는 공통 공격 스탯이
-    // 없어 이 설명이 실질적 정보의 핵심(poison/slow/haste 구분 근거). 없으면 빈 문자열(호출부가 접음).
-    private string ResolveDescription(TowerAsset t)
-    {
-        if (t.Data == null || string.IsNullOrEmpty(t.Data.DescriptionKey)) return string.Empty;
-        return LocalizationHelper.Get(LocalizationHelper.k_TowersTable, t.Data.DescriptionKey);
-    }
-
-    // 배치 **전** 툴팁이라 인스턴스가 없다 → SO 원본 값을 쓴다(타일 버프·오라 버프가 반영되기 전 값).
-    // 라벨과 서식은 인스턴스 경로(AttackAction.DescribeStats)와 같은 포매터를 공유한다(WL-079).
-    private string BuildStats(TowerAsset t)
-    {
-        // "이 타워가 공격하는가"는 프리팹의 Actions가 답한다(#274) — 예전에는 SO의 TowerType을 보고
-        // TowerBehaviourFactory가 해석했지만, 종류의 정본이 프리팹으로 옮겨가면서 그 팩토리가 사라졌다.
-        TowerAsset.AttackFields atk = t.Attack;
-
-        return t.HasAction<NorthLand.Combat.AttackAction>() && atk != null
-            ? NorthLand.Combat.TowerStatsFormatter.BuildAttackLines(atk.AttackDamage, atk.AttackRange, atk.AttackInterval)
-            // 오라 타워는 공통 공격 스탯이 없어 반경으로 대체 표기한다.
-            : NorthLand.Combat.TowerStatsFormatter.BuildRangeLine(t.PreviewRadius);
-    }
-
     /// <summary>
     /// 코스트 슬롯 = "이걸 세우려면 무엇이 나가는가". 배치는 자원이 나가지만(<see cref="TowerAsset.Cost"/>),
     /// <b>합성은 재료 타워가 나간다</b>(+ 레시피의 <c>ExtraCost</c>) — 그래서 레시피를 받으면 표기 대상이 바뀐다.
