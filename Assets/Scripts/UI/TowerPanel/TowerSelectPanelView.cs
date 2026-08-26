@@ -125,12 +125,11 @@ public class TowerSelectPanelView : MonoBehaviour
     }
 
     /// <summary>
-    /// 해금 상태는 <see cref="DayNightManager.CurrentWave"/>로 **매번 계산한다** — 이벤트로 갱신된 값을
-    /// 들고 있으면 세이브 복원 경로에서 조용히 틀어진다(`TryRestoreState`는 의도적으로 페이즈 이벤트를
-    /// 발행하지 않으므로, 해금됐어야 할 타워가 잠긴 채 남는다).
+    /// 해금 판정은 <see cref="TowerAsset.IsUnlocked"/>가 정본이다 — 툴팁의 해금 웨이브 표기(#504)도
+    /// 같은 규칙을 봐야 버튼 게이트와 어긋나지 않는다. (매번 계산하는 이유는 그쪽 주석 참조 — 세이브 복원 경로)
     /// </summary>
     private bool IsUnlocked(TowerAsset tower)
-        => _dayNight == null || _dayNight.CurrentWave >= tower.UnlockWave;
+        => tower.IsUnlocked(_dayNight);
 
     /// 살 수 있는가. 무료 배치(<see cref="TowerPlacer.FreePlacement"/>) 중이면 자원을 보지 않는다 —
     /// 그 스위치는 TowerPlacer 안에서만 비용을 0으로 만들기 때문에, 여기서 같이 보지 않으면

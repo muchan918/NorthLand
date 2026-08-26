@@ -354,6 +354,10 @@ MonoBehaviour:
     m_Localized: Bracing for night
     m_Metadata:
       m_Items: []
+  - m_Id: 17103277785784320
+    m_Localized: Unlock Wave
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

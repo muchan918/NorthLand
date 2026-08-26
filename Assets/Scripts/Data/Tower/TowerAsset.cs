@@ -49,6 +49,26 @@ public class TowerAsset : ScriptableObject
     [Min(1)]
     public int UnlockWave = 1;
 
+    /// <summary>
+    /// 이 타워가 현재 웨이브에서 해금됐는가 — <b>해금 판정의 단일 출처</b>(#504). 선택 패널의 버튼
+    /// 게이트(자물쇠·회색 처리)와 툴팁의 해금 웨이브 표기가 같은 규칙을 봐야 "자물쇠는 걸렸는데
+    /// 툴팁은 열린 것처럼 보이는" 어긋남이 생기지 않는다. 값 옆에 두는 이유는 <see cref="UnlockWave"/>와
+    /// 같다 — 게이트와 그 기준값이 갈라지지 않게.
+    /// <br/>
+    /// <b>매번 계산한다</b> — 이벤트로 갱신한 값을 캐시하면 세이브 복원 경로에서 조용히 틀어진다
+    /// (<c>DayNightManager.TryRestoreState</c>는 의도적으로 페이즈 이벤트를 발행하지 않으므로,
+    /// 해금됐어야 할 타워가 잠긴 채 남는다).
+    /// </summary>
+    /// <param name="dayNight">
+    /// 참조를 이미 캐시해 뒀으면 넘긴다(패널처럼 Start에서 잡은 경우). 비우면 <c>Instance</c>를 본다.
+    /// 둘 다 없는 씬(타워 테스트 씬 등)은 전부 해금으로 본다 — 잠금은 웨이브 진행이 있는 씬의 개념이다.
+    /// </param>
+    public bool IsUnlocked(DayNightManager dayNight = null)
+    {
+        dayNight ??= DayNightManager.Instance;
+        return dayNight == null || dayNight.CurrentWave >= UnlockWave;
+    }
+
     // ── 평탄 스키마 (#274 Phase 1) ──────────────────────────────────────────────
     // 타입별 래퍼(Single/Area/Chain/Magic)를 풀어 한 층으로 편다. 타입별 필드가 7개뿐이라
     // 그룹 클래스 없이도 읽을 만하고, 안 쓰는 타워에서 값이 0이어도 아무도 안 읽으므로 무해하다.

@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 /// <summary>
 /// 타워 전용 호버 툴팁 뷰(#141). 건물과 공유하는 범용 <see cref="TooltipUI"/>(헤더+본문 텍스트뿐)와 달리
-/// 타워 정보에 맞춘 독립 슬롯(아이콘/이름/스탯/코스트)을 갖는다.
+/// 타워 정보에 맞춘 독립 슬롯(아이콘/이름/스탯/코스트/해금경고)을 갖는다.
 /// <br/>
 /// <b>씬 배치</b>: <see cref="TooltipUI"/>와 같은 계보로 <c>UICanvas</c>의 마지막 자식에 둔다
 /// (HUD 위·모달 아래 — Docs/Core/UIZOrder.md §4).
@@ -36,6 +36,7 @@ public class TowerTooltipView : MonoBehaviour
     private TextMeshProUGUI _descText;
     private TextMeshProUGUI _statsText;
     private TextMeshProUGUI _costText;
+    private TextMeshProUGUI _unlockText; // 잠긴 타워의 해금 웨이브(#504). 코스트 아래·큰 글씨·경고색 — 아래 주석 참조
  
     [Header("배치")]
     // 호버한 버튼의 위쪽 가장자리 기준 오프셋(x=수평 이동, y=버튼과의 간격).
@@ -116,6 +117,20 @@ public class TowerTooltipView : MonoBehaviour
         _statsText.text = NorthLand.Combat.TowerStatsFormatter.Join(BuildStats(tower), extraStatsLine);
         _costText.text = BuildCost(tower, recipe);
 
+        // 아직 잠긴 타워는 "몇 웨이브에 열리는가"를 맨 아래 전용 슬롯에 낸다(#504).
+        // 스탯 줄에 섞지 않는 이유: 스탯·코스트는 "이 타워가 무엇인가"이고 이 줄은 **지금 쓸 수 없다**는
+        // 경고라, 같은 크기·같은 색으로 섞이면 그냥 정보 한 줄로 읽힌다. 크기·색으로 갈라 둔다.
+        // 해금되면 슬롯을 접어 원래 툴팁 그대로 보인다 — 판정은 패널의 버튼 게이트와 같은 출처
+        // (TowerAsset.IsUnlocked)를 쓴다.
+        if (_unlockText != null)
+        {
+            bool locked = !tower.IsUnlocked();
+            _unlockText.text = locked
+                ? NorthLand.Combat.TowerStatsFormatter.BuildUnlockWaveLine(tower.UnlockWave)
+                : string.Empty;
+            _unlockText.gameObject.SetActive(locked); // 빈 줄로 남기지 않고 접는다(_descText와 같은 규약)
+        }
+
         // 아이콘은 버튼·후보 칸과 같은 SO 필드를 그린다(TowerAsset.Icon) — 같은 타워가 화면마다 다르게
         // 보이지 않게. 미할당이면 슬롯을 끈다: 스프라이트 없는 Image는 흰 사각형이 아니라 **회색 판**으로
         // 그려져(툴팁 폴백이 색을 깔아둔다) 아이콘이 있는 것처럼 보인다(TowerButtonView.Set과 같은 규약).
@@ -192,6 +207,11 @@ public class TowerTooltipView : MonoBehaviour
 
         _statsText = MakeText("Stats", _panel.transform, font, 18f, FontStyles.Normal, new Color(0.85f, 0.90f, 1f));
         _costText = MakeText("Cost", _panel.transform, font, 18f, FontStyles.Normal, new Color(1f, 0.92f, 0.60f));
+
+        // 해금 경고(#504). **패널의 마지막 자식** = 코스트 아래. 다른 줄보다 크고(22 = 이름과 같은 급)
+        // 굵고 붉다 — 스탯(연청)·코스트(노랑)와 색이 겹치지 않아야 "정보"가 아니라 "못 쓴다"로 읽힌다.
+        // 잠기지 않은 타워에서는 Show가 이 슬롯을 접으므로 툴팁 높이도 늘지 않는다.
+        _unlockText = MakeText("UnlockWave", _panel.transform, font, 22f, FontStyles.Bold, new Color(1f, 0.42f, 0.38f));
     }
 
     /// <summary>
