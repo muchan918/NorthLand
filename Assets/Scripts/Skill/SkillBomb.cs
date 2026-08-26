@@ -10,17 +10,28 @@ public class SkillBomb : MonoBehaviour
     float damage;
     float radius;
     LayerMask enemyLayerMask;
+    GameObject explosionEffectPrefab;
+    float explosionEffectScale = 1f;
     bool debugLog;
 
     float timer;
     bool initialized;
     readonly List<IDamageable> hits = new List<IDamageable>(16);
 
-    public void Init(float damage, float radius, float delay, LayerMask enemyLayerMask, bool debugLog)
+    public void Init(
+        float damage,
+        float radius,
+        float delay,
+        LayerMask enemyLayerMask,
+        GameObject explosionEffectPrefab,
+        float explosionEffectScale,
+        bool debugLog)
     {
         this.damage = damage;
         this.radius = radius;
         this.enemyLayerMask = enemyLayerMask;
+        this.explosionEffectPrefab = explosionEffectPrefab;
+        this.explosionEffectScale = explosionEffectScale;
         this.debugLog = debugLog;
         timer = delay;
         initialized = true;
@@ -69,17 +80,47 @@ public class SkillBomb : MonoBehaviour
         foreach (var damageable in hits)
             damageable.TakeDamage(new DamageInfo(damage, null));
 
+        if (explosionEffectPrefab != null)
+        {
+            var effect = Instantiate(explosionEffectPrefab, transform.position, Quaternion.identity);
+            effect.transform.localScale = explosionEffectPrefab.transform.localScale * explosionEffectScale;
+            effect.AddComponent<BombExplosionEffectLifetime>();
+        }
+
         if (debugLog)
             Debug.Log($"[SkillEffect] 폭탄 폭발: 위치={transform.position}, 적중={hits.Count}마리, 데미지={damage}, 반경={radius}");
 
         Destroy(gameObject);
     }
 
-#if UNITY_EDITOR
-    void OnDrawGizmosSelected()
+}
+
+// Imported 폭발 이펙트의 원본 설정을 바꾸지 않고, 모든 자식 파티클이 끝난 뒤 런타임 인스턴스만 정리한다.
+sealed class BombExplosionEffectLifetime : MonoBehaviour
+{
+    ParticleSystem[] particles;
+    bool observedAlive;
+
+    void Awake() => particles = GetComponentsInChildren<ParticleSystem>(true);
+
+    void Update()
     {
-        Gizmos.color = new Color(1f, 0.5f, 0f);
-        Gizmos.DrawWireSphere(transform.position, radius);
+        if (particles.Length == 0)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        for (int i = 0; i < particles.Length; i++)
+        {
+            if (particles[i] != null && particles[i].IsAlive(true))
+            {
+                observedAlive = true;
+                return;
+            }
+        }
+
+        if (observedAlive)
+            Destroy(gameObject);
     }
-#endif
 }

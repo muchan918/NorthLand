@@ -309,10 +309,10 @@ public class BuildingAsset : ScriptableObject
     [System.Serializable]
     public class SkillUpgradeLevel : UpgradeStep
     {
-        // 감전(SkillManager, #205) 기본 스탯 배율. 1 = 강화 없음(효과 없음).
-        public float DamageMultiplier = 1f;
+        // 감전(SkillManager, #205) 업그레이드 후 절대값. 기본(Lv0)은 SkillManager 씬 값을 사용한다.
+        public float DamageValue;
         public float RadiusMultiplier = 1f;
-        public float CooldownMultiplier = 1f;
+        public float CooldownSeconds;
 
         // 버프(BuffSkillManager, #205) 기본 스탯 배율. 1 = 강화 없음(효과 없음).
         public float BuffDamageMultiplierScale = 1f;

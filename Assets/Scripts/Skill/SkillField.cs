@@ -16,6 +16,9 @@ public class SkillField : MonoBehaviour
 
     float damagePerTick;
     float radius;
+    CapsuleCollider rangeCollider;
+    Vector3 capsulePoint0;
+    Vector3 capsulePoint1;
     float tickInterval;
     LayerMask enemyLayerMask;
     bool debugLog;
@@ -31,6 +34,8 @@ public class SkillField : MonoBehaviour
     {
         this.damagePerTick = damagePerTick;
         this.radius = radius;
+        rangeCollider = GetComponent<CapsuleCollider>();
+        UpdateCapsuleGeometry();
 
         // 시각 반경과 판정 반경이 어긋나면 "맞을 것 같은데 안 맞는다"가 된다. 코드가 한쪽에서 맞춘다
         // (SkillManager.cs:268이 감전 이펙트를 effectiveRadius에 맞추는 것과 같은 맥락).
@@ -99,7 +104,20 @@ public class SkillField : MonoBehaviour
 
     void Tick()
     {
-        SkillHitScan.CollectEnemies(transform.position, radius, enemyLayerMask, hits);
+        if (rangeCollider != null)
+        {
+            UpdateCapsuleGeometry();
+            SkillHitScan.CollectEnemiesInCapsule(
+                capsulePoint0,
+                capsulePoint1,
+                radius,
+                enemyLayerMask,
+                hits);
+        }
+        else
+        {
+            SkillHitScan.CollectEnemies(transform.position, radius, enemyLayerMask, hits);
+        }
 
         // Source: 플레이어 스킬 계열은 IAttacker 개체가 아니라 null (SkillManager의 DamageInfo와 동일 규약).
         foreach (var damageable in hits)
@@ -109,15 +127,42 @@ public class SkillField : MonoBehaviour
             Debug.Log($"[SkillEffect] 전기장 틱: 위치={transform.position}, 적중={hits.Count}마리, 데미지={damagePerTick}, 반경={radius}, 남은 지속={lifeTimer:0.##}s");
     }
 
-#if UNITY_EDITOR
-    void OnDrawGizmosSelected()
+    void UpdateCapsuleGeometry()
     {
-        // Tick의 캡슐 판정과 같은 모양 — 기즈모만 구체로 두면 수직 범위를 오해한다.
-        // 판정이 위아래 양방향이라 캡을 둘 다 그린다(SkillHitScan.VerticalRange 주석 참고).
-        Gizmos.color = new Color(0.3f, 0.7f, 1f);
-        Vector3 vertical = Vector3.up * SkillHitScan.VerticalRange;
-        Gizmos.DrawWireSphere(transform.position - vertical, radius);
-        Gizmos.DrawWireSphere(transform.position + vertical, radius);
+        if (rangeCollider == null) return;
+
+        Transform colliderTransform = rangeCollider.transform;
+        Vector3 scale = colliderTransform.lossyScale;
+        Vector3 axisLocal;
+        float axisScale;
+        float radiusScale;
+
+        switch (rangeCollider.direction)
+        {
+            case 0:
+                axisLocal = Vector3.right;
+                axisScale = Mathf.Abs(scale.x);
+                radiusScale = Mathf.Max(Mathf.Abs(scale.y), Mathf.Abs(scale.z));
+                break;
+            case 2:
+                axisLocal = Vector3.forward;
+                axisScale = Mathf.Abs(scale.z);
+                radiusScale = Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y));
+                break;
+            default:
+                axisLocal = Vector3.up;
+                axisScale = Mathf.Abs(scale.y);
+                radiusScale = Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
+                break;
+        }
+
+        Vector3 center = colliderTransform.TransformPoint(rangeCollider.center);
+        Vector3 axis = colliderTransform.TransformDirection(axisLocal).normalized;
+        radius = rangeCollider.radius * radiusScale;
+        float height = Mathf.Max(rangeCollider.height * axisScale, radius * 2f);
+        float halfSegment = Mathf.Max(0f, height * 0.5f - radius);
+        capsulePoint0 = center - axis * halfSegment;
+        capsulePoint1 = center + axis * halfSegment;
     }
-#endif
+
 }
