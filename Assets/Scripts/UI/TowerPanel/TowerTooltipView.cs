@@ -124,7 +124,11 @@ public class TowerTooltipView : MonoBehaviour
         // (TowerAsset.IsUnlocked)를 쓴다.
         if (_unlockText != null)
         {
-            bool locked = !tower.IsUnlocked();
+            // recipe가 있으면 이 툴팁은 **합성 획득**을 설명한다 → 해금 경고를 내지 않는다.
+            // 합성 패널·정보 패널의 후보 칸에는 해금 게이트가 없어서(TowerMergePanelView.cs:78
+            // "합성 후보에는 해금 개념이 없다") 버튼은 눌리는데 경고만 뜨는 어긋남이 된다.
+            // 자원 대신 재료 타워를 내는 위의 BuildCost와 같은 축의 분기다(#445).
+            bool locked = recipe == null && !tower.IsUnlocked();
             _unlockText.text = locked
                 ? NorthLand.Combat.TowerStatsFormatter.BuildUnlockWaveLine(tower.UnlockWave)
                 : string.Empty;
