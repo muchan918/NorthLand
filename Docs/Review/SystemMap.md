@@ -182,9 +182,12 @@
   **`static event Action<Enemy> Spawned`**(#447), `PlayerBase.CurrentHp` /
   `MaxHp` / `event OnHpChanged` / `static Instance` / `static event Action<PlayerBase> OnBaseSpawned`
   — HP UI(`Assets/Scripts/UI/HealthUI`, namespace `NorthLand.UI`, #100)가 구독하는 공개 계약.
-  `Enemy.Spawned`는 `Awake` 끝에서 1회 발행되며 몬스터 체력바가 **프리팹 종속 없이** 자신을 붙이는
+  `Enemy.Spawned`는 **`Start`에서** 1회 발행되며 몬스터 체력바가 **프리팹 종속 없이** 자신을 붙이는
   창구다(`PlayerBase.OnBaseSpawned`와 같은 idiom, `Docs/Core/MonsterHealthBar.md` §4).
-  ⚠ 발행 시점의 `MaxHp`는 웨이브 배율 이전 값이라 구독자는 `OnHpChanged`를 함께 봐야 한다. `PlayerBase.Instance`는 성문
+  **`Awake`가 아닌 이유**: `MonsterSpawn`이 `Instantiate` 직후 동기로 `ApplyWaveHpScale`을 부르므로
+  `Start` 시점의 `MaxHp`는 **웨이브 배율이 반영된 확정값**이다 — 구독자가 "지금 읽은 최대치가 임시일 수
+  있다"를 알아야 하는 부채가 없다. 덤으로 `AfterSceneLoad` 부트스트랩보다 늦어 첫 씬에 미리 놓인 적도
+  신호를 받고, `SpawnPrefab`의 검증 실패 경로(`Destroy`)에서는 `Start`가 돌지 않아 유령 구독이 없다. `PlayerBase.Instance`는 성문
   (BaseGate) 런타임 스폰 시점(`MonsterSpawn.UpdateGate`)에 설정됨 — `TowerInfoUI`/`DayNightManager`와
   동일한 씬 싱글톤 계보
 - **`IMovementAgent` 이동속도 다축 합성 계약(#233/#209)** —
@@ -959,6 +962,7 @@
      - ⚠ **실패 모드가 두 단계이고 위쪽만 시끄럽다.** 미할당은 `Enemy.Awake`(`Enemy.cs:111-115`)가 `LogError` + 피벗 폴백으로 잡지만, **할당돼 있고 위치만 틀리면 로그가 한 줄도 없다** — 증상은 "특정 몬스터만 안 맞는다"뿐이고 컴파일도 콘솔도 조용하다(Tank 동기화 계약과 같은 계통, WL-082). 특히 떠 있는 적은 루트 피벗이 자기 콜라이더 **밖**이라 폴백조차 몸 아래를 겨눈다(`Flying_Bat` 콜라이더 y=[2.35~5.05], 루트 1.00).
      - 저작 기준: `hitPosition`은 **콜라이더 안, 몸통 중심 언저리**를 가리킨다. StartMap 스폰 y=1.00 기준 실측 — `Yellow_Grummy` 4.00 / `Red_Grummy` 4.24 / `Blue_Grummy` 6.00 / `MidBoss` 5.00 / `Flying_Bat` 4.24. 인스펙터의 로컬 Y에 부모 스케일(2.7~5.0)이 곱해지므로 표시값과 월드 높이가 다르다 — 조정 후 콜라이더 안인지 확인할 것(WL-122). `Phantom`·`Shadow`는 아직 미할당이다.
    - **Part4 타워 모델 동기화 계약(램프업·개틀링)**: 두 타워의 **모델·Animator·포탑 마디 배선·공용 탄환 프리팹이 전부 `Assets/Imported`에 있다** — 메인 저장소 쪽 변경은 SO 2종(`PlacementYaw`·`ProjectilePrefab`)과 FlatKit 변환 원장 1줄뿐이므로, **Imported를 `6c5e879c`(Feat: 램프업·개틀링 타워 모델 적용) 이상으로 동기화하지 않으면 SO의 프리팹 참조가 해소되지 않는다.** sparse checkout을 쓰면 `@NorthLand/Prefabs/Tower/GatlingShooter/**` · `@NorthLand/Prefabs/Tower/RampUpTower/**` · `@NorthLand/Prefabs/Projectile/**` · `@NorthLand/Materials/FlatKit/**` · `TowerAssets/FattyPolyTurretPart4/**`를 반드시 포함한다. 커밋 순서는 **Imported 선행**이다(WL-040). 몬스터 `hitPosition` 계약과 같은 형식이고 근거도 같지만, **사각지대가 반대 방향으로도 작동한다는 점이 이 건의 교훈이다** — 메인 diff만 보면 "프리팹 미생성"으로 오판하거나(§4 「Imported 사각지대」), 거꾸로 **원장 1줄이 보여서 "변환 완료"로 오판**한다. 후자가 실제로 났다: 2026-08-18 FlatKit 변환 사본이 만들어지고 원장에도 적혔지만 **프리팹 재배선이 빠져** 탄환이 벤더 URP Lit 머티리얼을 그대로 물고 있었다(WL-194).
+   - **몬스터 체력바 동기화 계약(#447)**: 체력바는 런타임 스폰으로 바뀌었고(`Docs/Core/MonsterHealthBar.md`), 그 전제로 **몬스터 프리팹 9종(잡몹 7 + `Phantom`·`Shadow`)과 `Tank`에서 중첩 체력바를 떼는 커밋이 Imported에 선행한다.** 실행·리뷰·빌드 전에 `NorthLand-Imported`를 **`01bae4aa9`(몬스터 프리펩에서 체력바 삭제) 이상**으로 동기화해야 하며, sparse checkout을 쓰면 `@NorthLand/Prefabs/Monster/**` · `@NorthLand/Prefabs/Boss/**`를 반드시 포함한다. 커밋 순서는 **Imported 선행**이다(WL-040). ⚠ **미동기 증상이 두 갈래로 갈린다** — 구 체력바 프리팹(`fa9a175f…`)은 메인 저장소에서 삭제됐고 신규 프리팹은 **GUID가 다르므로**(`59702d22…`), 중첩 인스턴스로 붙어 있던 9종은 **Missing Prefab**이 되고, 스크립트를 직접 붙인 통 복제본이던 `Tank`만 **바가 두 개**로 보인다. 바 프리팹 자체는 메인 저장소(`Assets/Resources/UI/`)라 이 계약의 대상이 아니다.
    - **정보 패널 "합성 후보" 칸 프리팹 동기화 계약(#445)**: 칸 프리팹의 정본은 `Assets/Imported/@NorthLand/Prefabs/UI/TowerTargetSlot.prefab`이다(팔레트 `TowerButton.prefab`의 복제본이라 그것과 같은 저장소에 둔다 — StartMap이 타일 프리팹과 같은 저장소에 있어야 하는 것과 같은 이유). 타워를 클릭했을 때의 "합성 가능" 블록을 실행·리뷰·빌드하기 전에 `NorthLand-Imported`를 **`85fd857d3`(타워 타겟 슬롯 프리펩 추가) 이상**으로 동기화해야 하며, sparse checkout을 쓰면 `@NorthLand/Prefabs/UI/**`를 반드시 포함한다. 커밋 순서는 **Imported 선행**이다(WL-040). 미동기 환경에서는 `TowerInfoUI._mergeSlotPrefab` 참조가 풀려 블록이 **아예 뜨지 않고**, 증상은 "타워를 눌러도 상위 타워가 안 뜬다" 하나로 배선 누락과 구별되지 않는다 — 그래서 `TowerInfoUI.HasMergeSlotWiring`이 무엇이 null인지 + Imported 확인 안내를 **1회** 경고한다(Tank·`hitPosition` 계약이 "컴파일도 콘솔도 조용하다"로 남긴 사각지대를 이 건에서는 로그 한 줄로 닫았다. 매번 짖으면 타워 클릭마다 도는 경로라 콘솔이 죽는다). ⚠ **칸은 아이콘 전용이다**(이름 칸 없음 — 의도, `TowerMerge.md` §8.5) — 프리팹에 `Banner/Txt_Name`이 없는 것은 결함이 아니므로 "배너가 빠졌다"고 복원하지 말 것.
    - **리뷰어 주석(죽은 사본)**: `Assets/Personal/SUNGSOO/Font/`는 폰트가 TMP 정본으로 이관되며 더 이상 참조되지 않는 죽은 사본이다 — 이 경로의 폰트 아틀라스 churn을 WL-041 재발로 보고하지 말 것(WL-041 참고, 삭제 대기 중).
 
@@ -971,7 +975,7 @@
   현재 등재: `0 Default` / `3 Tile` / `4 Water` / `5 UI` / `6 Selectable` / `7 Enemy` / `8 Soldier`(리젝 잔재) / `9 PlayerBase` / `10 Ground` / `11 MinimapOverlay` / `13 MinimapHidden`.
   **`12`는 비어 있다** — #213에서 `OutlineShell`을 회수하며 이름을 비웠다. 재사용 시 URP 렌더러의 Opaque/Transparent/Prepass 마스크에 셸 시절 제외 설정이 남아 있지 않은지 먼저 확인할 것(2026-08-09 실측으로는 PC/Mobile 모두 `-1`이라 깨끗하다).
   `13 = MinimapHidden`(#138)은 **미니맵에만 감출 월드 오브젝트**용이다 — 현재 소비처는 열기구 프리팹 2종이고, `MinMapCamera.cullingMask`에서만 제외된다.
-- **카메라 컬링 마스크**: `Main Camera` = `-2049`(Everything − `MinimapOverlay(11)`), `MinMapCamera` = `-8193`(Everything − `MinimapHidden(13)`).
+- **카메라 컬링 마스크**: `Main Camera` = `-2049`(Everything − `MinimapOverlay(11)`), `MinMapCamera` = **`-8676`**(= `4294958620`. 제외 비트 0·1·5·6·7·8·13 — **`Default(0)`도 제외한다**). ⚠ 이 문서는 오래도록 `MinMapCamera = -8193`(Everything − `MinimapHidden(13)`)으로 적고 있었으나 **#506 이후 실제 값은 위와 같다**(2026-08-26 씬 실측). "두 카메라 모두 Everything에서 뺀다" 형태가 여전히 의도인지, `Default` 제외가 의도인지는 미니맵 소유자 확인이 필요하다. 몬스터 체력바(#447)는 이 값에 기대지 않는다 — 캔버스와 바 계층을 **`MinimapHidden(13)`으로 명시 지정**하므로 마스크를 Everything 기준으로 되돌려도 미니맵에 뜨지 않는다.
   두 카메라 모두 **"Everything에서 뺀다"** 형태를 유지한다 — 그래야 새 레이어가 자동으로 포함된다.
   ⚠ **인스펙터에서 Everything 상태로 항목 하나를 체크 해제하면 마스크가 "이름 있는 레이어만" 남기는 허용목록으로 바뀐다.**
   실제로 #138에서 `MinimapOverlay`만 끄려다 `10239`(비트 0~10 + 13)가 되어 **빈 슬롯 12·14~31이 전부 제외**된 적이 있다.
