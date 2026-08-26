@@ -239,7 +239,7 @@ public class TowerMergeCoordinator : MonoBehaviour
     // Shift 클릭이 **토글**인 것과 달리 Shift 드래그는 **합집합**이다(의도된 비대칭, 명세 §4.1).
     private void HandleBoxSelectBegin(bool additive)
     {
-        if (!IsDay) return;
+        if (!IsDay || !TutorialInputGate.Allows(TutorialAction.SelectPlacedTower)) return;
 
         _boxDragging = true;
         _dragBase.Clear();

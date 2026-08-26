@@ -170,6 +170,11 @@ public class CastlePanelUI : MonoBehaviour
 
     private void HandleAddVillagerClicked()
     {
+        if (!TutorialInputGate.Allows(TutorialAction.IncreaseVillager))
+        {
+            return;
+        }
+
         // 성공 시 컨트롤러 OnChanged → Refresh가 자동으로 다시 그린다(실패해도 무해 — 컨트롤러가 로그를 남긴다).
         if (_controller == null || _building == null)
         {
@@ -231,7 +236,9 @@ public class CastlePanelUI : MonoBehaviour
 
         if (_addVillagerButton != null)
         {
-            _addVillagerButton.interactable = !villagerMax && _controller.CanIncreaseVillagers(_building);
+            _addVillagerButton.interactable = !villagerMax
+                && _controller.CanIncreaseVillagers(_building)
+                && TutorialInputGate.AllowsForDisplay(TutorialAction.IncreaseVillager);
         }
         SetText(_addVillagerButtonText, villagerMax ? L(k_MaxKey) : L(k_AddVillagerKey));
         // 최대 도달 시엔 안내할 다음 효과가 없다 — 빈 줄로 두면 박스가 CSF로 자연히 줄어든다.
@@ -373,16 +380,22 @@ public class CastlePanelUI : MonoBehaviour
             return;
         }
         _controller.OnChanged += Refresh;
+        TutorialInputGate.Changed += Refresh;
         _subscribed = true;
     }
 
     private void Unsubscribe()
     {
-        if (!_subscribed || _controller == null)
+        if (!_subscribed)
         {
             return;
         }
-        _controller.OnChanged -= Refresh;
+
+        if (_controller != null)
+        {
+            _controller.OnChanged -= Refresh;
+        }
+        TutorialInputGate.Changed -= Refresh;
         _subscribed = false;
     }
 }

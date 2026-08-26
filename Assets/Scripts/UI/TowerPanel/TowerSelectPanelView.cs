@@ -173,7 +173,7 @@ public class TowerSelectPanelView : MonoBehaviour
 
     private void HandleClick(TowerAsset tower)
     {
-        if (!TutorialInputGate.Allows(TutorialAction.SelectTower))
+        if (!TutorialInputGate.Allows(TutorialAction.ChooseTowerForPlacement))
         {
             return;
         }

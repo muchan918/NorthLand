@@ -316,7 +316,11 @@ public class MouseManager : MonoBehaviour
         if ((screenPos - _pressScreenPos).sqrMagnitude >= _dragThreshold * _dragThreshold)
         {
             if (_pressDragHandle != null) BeginUnitDrag();
-            else if (!TutorialInputGate.IsRestricted) BeginBoxSelect(screenPos);
+            else if (TutorialInputGate.Allows(TutorialAction.SelectResident)
+                     || TutorialInputGate.Allows(TutorialAction.SelectPlacedTower))
+            {
+                BeginBoxSelect(screenPos);
+            }
         }
     }
 
@@ -339,6 +343,14 @@ public class MouseManager : MonoBehaviour
         if (TutorialInputGate.IsRestricted
             && (!hitSelectable || !AllowsTutorialSelection(hit.collider)))
         {
+            // 제한 중에는 허용되지 않은 대상을 새로 고르지 않지만, 평범한 빈 공간 클릭의
+            // "현재 선택 해제"까지 삼키면 패널·아웃라인이 영구히 남는다. Shift는 추가 선택
+            // 제스처이므로 기존 집합을 유지하고, 일반 클릭만 기존 선택을 비운다.
+            if (!additive)
+            {
+                Select(null);
+                OnPrimarySelect?.Invoke(null);
+            }
             return;
         }
 
@@ -628,6 +640,11 @@ public class MouseManager : MonoBehaviour
         if (collider.TryGetComponent(out BuildingInfo _))
         {
             return TutorialInputGate.Allows(TutorialAction.SelectBuilding);
+        }
+
+        if (collider.TryGetComponent(out TowerGroupSelectable _))
+        {
+            return TutorialInputGate.Allows(TutorialAction.SelectPlacedTower);
         }
 
         return false;

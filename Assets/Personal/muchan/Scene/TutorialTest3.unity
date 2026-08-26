@@ -12055,16 +12055,16 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: debugSteps.Array.size
-      value: 3
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: 'debugSteps.Array.data[0]'
       value: 
-      objectReference: {fileID: 11400000, guid: e0534bd2577db5d42b2850e88aa9af24, type: 2}
+      objectReference: {fileID: 11400000, guid: 34b2852b12edc184ca58bc831b50135d, type: 2}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: 'debugSteps.Array.data[1]'
       value: 
-      objectReference: {fileID: 11400000, guid: 77593dd74f9a36c42a794e74af25fe9d, type: 2}
+      objectReference: {fileID: 11400000, guid: e650d75cf77241448a74ab35bf498838, type: 2}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: 'debugSteps.Array.data[2]'
       value: 

@@ -704,6 +704,11 @@ public class ManagementController : MonoBehaviour
     /// </summary>
     public bool TryIncreaseVillagers(BuildingAsset building)
     {
+        if (!TutorialInputGate.Allows(TutorialAction.IncreaseVillager))
+        {
+            return false;
+        }
+
         if (!IsDay)
         {
             Debug.Log("[경영] 밤에는 주민을 늘릴 수 없습니다.");
