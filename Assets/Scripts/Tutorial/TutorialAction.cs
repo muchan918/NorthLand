@@ -12,5 +12,7 @@ public enum TutorialAction
     UseBuildingShortcut = 1 << 5,
     EditResidentByButton = 1 << 6,
     EndDay = 1 << 7,
-    UseSkill = 1 << 8
+    UseSkill = 1 << 8,
+    SelectBuilding = 1 << 9,
+    UpgradeBuilding = 1 << 10
 }

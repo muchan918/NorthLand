@@ -336,15 +336,8 @@ public class MouseManager : MonoBehaviour
     {
         bool hitSelectable = RaycastMask(screenPos, _selectableMask, out var hit);
 
-        if (!TutorialInputGate.Allows(TutorialAction.SelectResident))
-        {
-            return;
-        }
-
-        // 제한 중 주민 선택 단계에서는 다른 ISelectable까지 함께 통과시키지 않는다.
         if (TutorialInputGate.IsRestricted
-            && hitSelectable
-            && !hit.collider.TryGetComponent(out ResidentSelectable _))
+            && (!hitSelectable || !AllowsTutorialSelection(hit.collider)))
         {
             return;
         }
@@ -606,26 +599,38 @@ public class MouseManager : MonoBehaviour
     // 호버 대상 레이어는 선택 후보와 같다고 보고 _selectableMask를 재사용(최종 판정은 IHoverable 유무).
     private void UpdateHover(Vector2 screenPos, bool overUI)
     {
-        // 튜토리얼 제한 중에는 현재 단계의 대상만 호버시킨다. 팝업·카메라·타워 단계에서
-        // 건물 아웃라인이 안내보다 먼저 반응하지 않게 하고, 주민 단계에서는 주민만 보여 준다.
-        if (TutorialInputGate.IsRestricted
-            && !TutorialInputGate.Allows(TutorialAction.SelectResident))
-        {
-            ClearHover();
-            return;
-        }
-
         IHoverable next = null;
         if (!overUI && RaycastMask(screenPos, _selectableMask, out var hit))
         {
-            if (!TutorialInputGate.IsRestricted
-                || hit.collider.TryGetComponent(out ResidentSelectable _))
+            // 제한 중에는 현재 단계가 선택을 허용한 대상만 호버와 아웃라인을 통과시킨다.
+            // 건물 단계에서는 BuildingTooltipSource가 OnHoverChanged로 전달되어 기존 노란 아웃라인이 뜬다.
+            if (!TutorialInputGate.IsRestricted || AllowsTutorialSelection(hit.collider))
             {
                 hit.collider.TryGetComponent(out next); // 없으면 next는 null
             }
         }
 
         SetHover(next);
+    }
+
+    private static bool AllowsTutorialSelection(Collider collider)
+    {
+        if (collider == null)
+        {
+            return false;
+        }
+
+        if (collider.TryGetComponent(out ResidentSelectable _))
+        {
+            return TutorialInputGate.Allows(TutorialAction.SelectResident);
+        }
+
+        if (collider.TryGetComponent(out BuildingInfo _))
+        {
+            return TutorialInputGate.Allows(TutorialAction.SelectBuilding);
+        }
+
+        return false;
     }
 
     private void SetHover(IHoverable next)

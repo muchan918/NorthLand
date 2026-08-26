@@ -589,6 +589,11 @@ public class ManagementController : MonoBehaviour
     /// </summary>
     public bool TryUpgradeBuilding(int index)
     {
+        if (!TutorialInputGate.Allows(TutorialAction.UpgradeBuilding))
+        {
+            return false;
+        }
+
         if (!IsDay)
         {
             Debug.Log("[경영] 밤에는 업그레이드할 수 없습니다.");
@@ -1083,6 +1088,11 @@ public class ManagementController : MonoBehaviour
     /// </summary>
     public bool TryUpgrade(int index)
     {
+        if (!TutorialInputGate.Allows(TutorialAction.UpgradeBuilding))
+        {
+            return false;
+        }
+
         if (!IsDay)
         {
             Debug.Log("[경영] 밤에는 업그레이드할 수 없습니다.");
