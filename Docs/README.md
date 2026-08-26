@@ -16,6 +16,7 @@ NorthLand: Last Stand (팀 유유아) 프로젝트 문서 모음.
 | [Core/TowerRoster.md](Core/TowerRoster.md) | 타워별 획득 경로(직접배치/합성 전용) 정리표 + 미해결 항목 — 전수 스탯 카탈로그는 #282 잔여 범위 |
 | [Core/InteractionOutline.md](Core/InteractionOutline.md) | 상호작용 아웃라인(호버/선택/합성 프리뷰) 설계·측정 근거 (#213) — **구현 완료**(shell 방식은 임시, 스크린 스페이스 실루엣으로 이행 예정) |
 | [Core/UIZOrder.md](Core/UIZOrder.md) | HUD·모달 Canvas 표시 우선순위와 상위 패널 입력 차단 규칙 (#188) |
+| [Core/Settings.md](Core/Settings.md) | 설정 UI — 일반·그래픽·사운드, 저장 구조, 로컬라이제이션 및 검증 절차 |
 | [ManagementArea/Resources.md](ManagementArea/Resources.md) | 경영 자원 시스템(지갑·생산처·패널) — 자원 4종(나무·철·식량·마나석) |
 | [ManagementArea/BuildingUpgrade.md](ManagementArea/BuildingUpgrade.md) | 생산 건물 업그레이드(주민당 획득량 증가) 설계 (#139) |
 | [ManagementArea/Resident.md](ManagementArea/Resident.md) | 주민 캐릭터(경영 공간 분위기 군중) 명세 + 행위 목록 + BT 구조 — **구현 미착수, 행위 목록은 계속 채워 나가는 표** |
