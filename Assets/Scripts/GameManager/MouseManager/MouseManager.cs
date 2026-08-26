@@ -138,12 +138,16 @@ public class MouseManager : MonoBehaviour
             DontDestroyOnLoad(gameObject);
             SceneManager.sceneLoaded += HandleSceneLoaded;
 
-            // 최초 부트 씬은 sceneLoaded가 이미 지나간 뒤라 한 번 직접 연결한다.
-            // Camera.main은 Additive 로딩 씬의 카메라를 반환할 수 있으므로 게임 씬 안에서만 찾는다.
-            Scene activeScene = SceneManager.GetActiveScene();
-            if (activeScene.name == GameSceneManager.GameSceneName)
+            // 최초 부트 씬은 sceneLoaded가 이미 지나간 뒤라 한 번 직접 연결한다. 인스펙터에 배선된
+            // 카메라는 존중하고, 비어 있을 때만 채워 직접 Play하는 개인/테스트 씬도 살린다.
+            if (_camera == null)
             {
-                SetCamera(FindMainCameraInScene(activeScene));
+                Scene activeScene = SceneManager.GetActiveScene();
+                Camera initialCamera = activeScene.name == GameSceneManager.GameSceneName
+                    ? FindMainCameraInScene(activeScene) ?? Camera.main
+                    : Camera.main;
+
+                SetCamera(initialCamera);
             }
         }
         else
@@ -171,7 +175,7 @@ public class MouseManager : MonoBehaviour
         else if (mode == LoadSceneMode.Single)
         {
             // 타이틀/로딩 씬으로 완전히 전환됐으면 파괴 예정인 이전 게임 카메라를 보관하지 않는다.
-            _camera = null;
+            ClearCamera();
         }
 
         // 이전 씬의 선택/호버 대상은 이미 파괴됐을 수 있다. ISelectable/IHoverable은 인터페이스 타입이라
@@ -225,9 +229,16 @@ public class MouseManager : MonoBehaviour
     {
         if (cam == null)
         {
-            Debug.LogWarning("[MouseManager] MainCamera 태그가 붙은 카메라를 찾지 못했습니다.");
+            Debug.LogWarning(
+                $"[MouseManager] '{SceneManager.GetActiveScene().name}' 씬에서 " +
+                "MainCamera 태그가 붙은 카메라를 찾지 못했습니다.");
         }
         _camera = cam;
+    }
+
+    private void ClearCamera()
+    {
+        _camera = null;
     }
 
     /// **모드 전환의 유일한 창구.** `_mode`에 직접 대입하지 말 것.
