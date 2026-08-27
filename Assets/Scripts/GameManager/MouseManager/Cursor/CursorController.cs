@@ -37,14 +37,20 @@ public class CursorController : MonoBehaviour
     private CursorSet _set;
     private bool _setLoadAttempted;
 
-    // ── 상태 입력 3종 ──────────────────────────────────────────────
-    // 이 셋을 합쳐 한 종류로 접는다(Resolve). 각각 다른 통지로 들어오므로 따로 들고 있어야 한다.
+    // ── 상태 입력 4종 ──────────────────────────────────────────────
+    // 이 넷을 합쳐 한 종류로 접는다(Resolve). 각각 다른 통지로 들어오므로 따로 들고 있어야 한다.
     private CursorKind _hoverKind = CursorKind.Default;
     private bool _pressed;
     private MouseManager.Mode _mode = MouseManager.Mode.Idle;
 
-    // 커서가 UI 위인가. **커서 그림은 이것으로 바뀌지 않는다** — UI 위라고 포인터가 달라지면 오히려
-    // 헷갈린다는 판단이다. 오직 아래 「숨김」의 예외 하나에만 쓴다.
+    // 배치·조준 중 커서가 대상 표면(타일) 위인가. 고스트·인디케이터가 그려지는 것과 **같은 조건**이라,
+    // 이 값이 곧 "커서를 숨겨도 화면에 대신할 것이 남는가"다(그래서 표면 밖은 숨기지 않고 「안 됨」).
+    // 배치·조준이 아닌 모드에서는 MouseManager가 false로 내려 두므로 따로 지울 것이 없다.
+    private bool _overTargetSurface;
+
+    // 커서가 UI 위인가. **"UI 위라서" 바뀌는 그림은 없다** — UI에 올라갔다고 포인터가 달라지면 오히려
+    // 헷갈린다는 판단이다(그 버전은 넣었다가 걷어냈다). 쓰이는 곳은 **막는 자리 둘**뿐이다:
+    // 「숨김」의 예외(아래 UpdateVisibility)와 「안 됨」의 예외(아래 ShowBlocked).
     //
     // **이것만 통지가 아니라 폴링이다** — MouseManager는 이 값을 이벤트로 내보내지 않고(내부 판정용으로만
     // 쓴다), 커서 밑 UI는 마우스를 움직이지 않아도 패널이 열리고 닫히면서 바뀐다.
@@ -129,6 +135,7 @@ public class CursorController : MonoBehaviour
             mm.OnHoverChanged -= HandleHoverChanged;
             mm.OnPointerPressedChanged -= HandlePressedChanged;
             mm.OnModeChanged -= HandleModeChanged;
+            mm.OnTargetSurfaceChanged -= HandleTargetSurfaceChanged;
         }
 
         if (s_instance == this)
@@ -154,14 +161,14 @@ public class CursorController : MonoBehaviour
 
         if (overUI == _overUI && overUIButton == _overUIButton && panning == _cameraPanning) return;
 
-        bool visibilityOnly = overUIButton == _overUIButton && panning == _cameraPanning;
         _overUI = overUI;
         _overUIButton = overUIButton;
         _cameraPanning = panning;
 
-        // _overUI만 바뀌었다면 종류는 그대로다 — 그림을 다시 세팅할 필요 없이 숨김만 갱신한다.
-        if (visibilityOnly) UpdateVisibility();
-        else Apply();
+        // ⚠ **_overUI만 바뀌어도 종류가 바뀔 수 있다** — 「안 됨」은 UI 위에서 나오지 않기 때문이다
+        //   (ShowBlocked). 예전에는 이 경우를 "숨김만 갱신"으로 넘기는 지름길이 있었는데, _overUI가
+        //   종류 판정에 들어오면서 성립하지 않게 됐다. 중복 호출 걱정은 Apply가 스스로 걸러 준다.
+        Apply();
     }
 
     /// <summary>
@@ -222,8 +229,8 @@ public class CursorController : MonoBehaviour
     /// 커서 표시/숨김을 <c>Cursor.visible</c>에 반영한다. 실제로 바뀔 때만 대입한다.
     ///
     /// ⚠ <b>숨기는 상태여도 UI 위에서는 되살린다.</b> 배치·조준 중에도 취소 버튼이나 패널을 눌러야
-    /// 하는데, 그 위에서 커서가 없으면 겨냥할 수가 없다. 고스트는 UI 위에서 어차피 표시되지 않으므로
-    /// (<c>MouseManager.UpdatePlacement</c>가 <c>overUI</c>면 갱신을 멈춘다) 커서를 대신할 것도 없다.
+    /// 하는데, 그 위에서 커서가 없으면 겨냥할 수가 없다. 고스트가 (패널 뒤 타일을 맞혀) 여전히 따라다니고
+    /// 있더라도 <b>겨냥해야 하는 대상은 UI 쪽</b>이므로, 고스트는 그 자리에서 커서를 대신하지 못한다.
     ///
     /// ⚠ <c>Cursor.visible</c>은 전역 값이다. 다른 시스템이 이 값을 건드리기 시작하면 마지막에 쓴 쪽이
     /// 이긴다 — 커서 표시/숨김은 이 클래스가 단독으로 소유한다는 전제다.
@@ -260,11 +267,13 @@ public class CursorController : MonoBehaviour
         mm.OnHoverChanged += HandleHoverChanged;
         mm.OnPointerPressedChanged += HandlePressedChanged;
         mm.OnModeChanged += HandleModeChanged;
+        mm.OnTargetSurfaceChanged += HandleTargetSurfaceChanged;
         _subscribed = true;
 
         // 이벤트는 **변화가 있을 때만** 오므로, 구독 시점의 현재 상태는 직접 읽어 와야 한다.
         // (배치 중에 씬이 로드되는 등으로 구독이 늦어지면 첫 통지가 올 때까지 커서가 어긋난 채 남는다)
         _mode = mm.CurrentMode;
+        _overTargetSurface = mm.IsOverTargetSurface;
         Apply();
     }
 
@@ -281,7 +290,9 @@ public class CursorController : MonoBehaviour
         _cameraRetryCountdown = 0; // 새 씬에서는 백오프를 기다리지 않고 바로 한 번 찾는다
         _uiPointer = null;     // EventSystem도 마찬가지
         _uiPointerOwner = null;
-        _mode = MouseManager.Instance != null ? MouseManager.Instance.CurrentMode : MouseManager.Mode.Idle;
+        var mm = MouseManager.Instance;
+        _mode = mm != null ? mm.CurrentMode : MouseManager.Mode.Idle;
+        _overTargetSurface = mm != null && mm.IsOverTargetSurface;
 
         // 경고 latch는 **씬 단위**로 푼다(아웃라인 드라이버와 같은 이유 — 로딩 씬 한 번으로 소진되면
         // 정작 게임 씬에서 진짜 누락됐을 때 아무 신호도 남지 않는다).
@@ -310,6 +321,12 @@ public class CursorController : MonoBehaviour
         Apply();
     }
 
+    private void HandleTargetSurfaceChanged(bool over)
+    {
+        _overTargetSurface = over;
+        Apply();
+    }
+
     /// <summary>
     /// 호버 대상이 지정한 커서. 지정이 없으면(= <see cref="ICursorHint"/> 미구현) 기본 커서다.
     ///
@@ -333,6 +350,11 @@ public class CursorController : MonoBehaviour
     /// 겹치는 상태를 하나로 접는다. 우선순위는
     /// <c>카메라 팬 &gt; 누를 수 있는 UI &gt; 배치·조준 &gt; 유닛 끌기 &gt; 호버 &gt; 기본</c>.
     ///
+    /// <b>배치·조준은 한 칸이 아니라 두 갈래다</b> — 커서가 대상 표면(타일) 위면
+    /// <see cref="CursorKind.Placing"/>/<see cref="CursorKind.SkillAiming"/>(뱅크에서 숨김으로 선언돼 있어
+    /// 고스트·인디케이터에 자리를 내준다), 표면 밖이면 <see cref="CursorKind.Blocked"/>다.
+    /// 가르는 기준과 그 예외는 <see cref="ShowBlocked"/>에 적어 두었다.
+    ///
     /// <b>팬이 최우선인 이유</b>: 화면을 끌고 있는 동안에는 커서 밑에 무엇이 있든 지금 하는 일은 팬이다.
     /// 끌다가 커서가 UI나 건물 위를 지나갈 때 그림이 바뀌면 손을 놓친 것처럼 보인다.
     ///
@@ -355,38 +377,56 @@ public class CursorController : MonoBehaviour
 
         // ⚠ 여기서 보는 것은 _overUIButton이지 _overUI가 아니다. 반응하지 않는 UI(패널 배경·라벨)에서는
         //   그림이 바뀌지 않는다 — "UI에 올라가면 무조건 바뀜"은 넣었다가 걷어낸 버전이고, 바뀌는 것
-        //   자체가 "여기는 누를 수 있다"는 신호여야 한다. _overUI는 숨김 예외에만 쓴다.
+        //   자체가 "여기는 누를 수 있다"는 신호여야 한다.
         if (_overUIButton) return CursorKind.UIButton;
 
         switch (_mode)
         {
-            case MouseManager.Mode.Placement: return CursorKind.Placing;
-            case MouseManager.Mode.SkillTargeting: return CursorKind.SkillAiming;
-            case MouseManager.Mode.UnitDrag: return CursorKind.ResidentDrag;
+            case MouseManager.Mode.Placement:
+                return ShowBlocked ? CursorKind.Blocked : CursorKind.Placing;
+            case MouseManager.Mode.SkillTargeting:
+                return ShowBlocked ? CursorKind.Blocked : CursorKind.SkillAiming;
+            case MouseManager.Mode.UnitDrag:
+                return CursorKind.ResidentDrag;
         }
 
         return _hoverKind;
     }
 
+    /// <summary>
+    /// 배치·조준 중 「안 됨」 커서를 띄울 자리인가 = <b>대상 표면 밖 + UI 밖</b>.
+    ///
+    /// <b>표면 밖에서 띄우는 이유</b>: 그 자리에는 <b>커서를 대신할 것이 없다</b>. 고스트·인디케이터는
+    /// 표면 위에서만 그려지므로, 거기서까지 커서를 숨기면 화면에 아무것도 남지 않아 마우스를 어디로
+    /// 옮기고 있는지조차 보이지 않는다 — 예전에 <c>Hidden</c>을 켰다가 되돌린 이유가 정확히 이것이고
+    /// (<c>Docs/Core/CursorFeedback.md</c>), 그 자리를 「안 됨」이 메우면서 숨김을 다시 켤 수 있게 됐다.
+    ///
+    /// ⚠ <b>UI 위는 예외다.</b> "여기엔 못 놓는다"는 <b>지도</b>에 대한 말이라 패널 위에서는 거짓말이 되고,
+    /// 취소 버튼을 겨냥하러 올라간 손을 막아선 것처럼 보인다. 누를 수 있는 UI는 애초에 위에서
+    /// <see cref="CursorKind.UIButton"/>으로 갈리므로 이 예외가 실제로 걸리는 곳은 <b>반응하지 않는
+    /// UI</b>(패널 배경·라벨)이며, 거기서는 배치·조준 종류로 떨어졌다가 그 칸의 그림이 비어 있어
+    /// <see cref="CursorKind.Default"/>로 폴백된다(= 평소 손 커서).
+    /// </summary>
+    private bool ShowBlocked => !_overTargetSurface && !_overUI;
+
     private void Apply()
     {
         CursorKind kind = Resolve();
+        CursorSet set = Set;
+
+        // ⚠ **표시/숨김이 먼저고, 아래 그림 교체의 조기 반환에 걸리지 않는다.** 종류가 그대로여도 표시
+        //   여부는 바뀔 수 있기 때문이다 — 「숨김」의 UI 예외가 _overUI에 걸리는데, 배치 중 커서가 패널
+        //   배경 위를 오갈 때 종류는 계속 Placing이다. (뱅크가 없으면 숨길 근거도 없다 = 보인다)
+        _kindWantsHidden = set != null && set.IsHidden(kind);
+        UpdateVisibility();
+
         if (kind == _appliedKind && _pressed == _appliedPressed) return;
         _appliedKind = kind;
         _appliedPressed = _pressed;
 
-        CursorSet set = Set;
-
         // 뱅크가 없는 것은 오류가 아니라 "아직 아트가 없음"이다 — 조용히 OS 기본 커서를 쓴다.
-        if (set == null)
-        {
-            _kindWantsHidden = false;
-            UpdateVisibility();
-            return;
-        }
-
-        _kindWantsHidden = set.IsHidden(kind);
-        UpdateVisibility();
+        // (한 번도 SetCursor를 부르지 않았으므로 그대로 두면 OS 기본 화살표다)
+        if (set == null) return;
 
         // ⚠ **숨기는 종류여도 그림은 계속 세팅한다.** 커서가 UI 위로 올라가 되살아날 때(UpdateVisibility의
         //   예외) 직전 상태의 그림이 그대로 남아 있으면 배치 중인데 문·돋보기 커서가 뜬다.
@@ -443,6 +483,11 @@ public class CursorController : MonoBehaviour
 
             _setLoadAttempted = true;
             _set = Resources.Load<CursorSet>(k_SetPath);
+
+            // 뱅크를 집어온 **그 한 번**에 배선을 훑는다. 상태가 바뀔 때 검사하면 그 상태에 실제로 들어가야
+            // 드러나는데, 「안 됨」처럼 드물게 걸리는 칸이 비어 있는 것을 그때 알아채기는 늦다.
+            if (_set != null) _set.WarnIfArtMissing();
+
             return _set;
         }
     }
