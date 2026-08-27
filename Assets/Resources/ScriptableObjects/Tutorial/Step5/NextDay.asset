@@ -15,8 +15,7 @@ MonoBehaviour:
   popupTitleKey: 
   popupBodyKey: 
   popupImage: {fileID: 0}
-  bubbleTextKey: "\uC6E8\uC774\uBE0C\uB97C \uD074\uB9AC\uC5B4 \uD574\uBCF4\uC138\uC694.\n\uD29C\uD1A0\uB9AC\uC5BC\uC5D0\uC11C\uB294
-    \uD328\uBC30\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4"
+  bubbleTextKey: tutorial.next_day.bubble
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
