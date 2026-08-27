@@ -94,6 +94,11 @@ public class ManagementEndDayConfirmPopup : MonoBehaviour
     /// </summary>
     public void Request(ManagementController controller)
     {
+        if (!TutorialInputGate.AllowsEndDay())
+        {
+            return;
+        }
+
         if (controller == null || !controller.IsDay)
         {
             return;

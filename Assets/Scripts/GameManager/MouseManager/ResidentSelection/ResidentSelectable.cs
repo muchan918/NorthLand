@@ -14,11 +14,14 @@ using UnityEngine;
 /// 하나가 조용히 죽는다(`TowerGroupSelectable`에 같은 경고가 있다) → 반드시 여기 합칠 것.
 /// 마커는 콜라이더와 같은 GameObject(주민 루트)에 있어야 한다.
 [DisallowMultipleComponent]
-public class ResidentSelectable : MonoBehaviour, IGroupSelectable, IHoverable, ISelectable, IOutlineKindFilter, IDragHandle
+public class ResidentSelectable : MonoBehaviour, IGroupSelectable, IHoverable, ISelectable, IOutlineKindFilter,
+    IDragHandle, ITutorialSelectionGate
 {
     private Resident _resident;
 
     public Resident Resident => _resident != null ? _resident : (_resident = GetComponent<Resident>());
+
+    public TutorialAction SelectionAction => TutorialAction.SelectResident;
 
     private void Awake() => _resident = GetComponent<Resident>();
 

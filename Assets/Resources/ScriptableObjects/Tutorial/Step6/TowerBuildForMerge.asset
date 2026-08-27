@@ -20,6 +20,11 @@ MonoBehaviour:
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
   pauseGameDuringStep: 0
+  resumeGameAfterPopup: 0
+  restrictActions: 1
+  allowedActions: 4124
+  minimumTowerCountBeforeEndDay: 0
+  requiredTowerBeforeEndDay: {fileID: 0}
   freeTowerPlacement: 1
   restrictTowerPanelTo: {fileID: 11400000, guid: 7ecd80d44165e644591aafb428cf5efe, type: 2}
   freeManagementCost: 0
@@ -32,7 +37,7 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 3470829977900417131
-      type: {class: TowerPlacedCondition, ns: , asm: Assembly-CSharp}
+      type: {class: TowerCountCondition, ns: , asm: Assembly-CSharp}
       data:
-        count: 3
+        minimumCount: 3
         targetTower: {fileID: 11400000, guid: 7ecd80d44165e644591aafb428cf5efe, type: 2}
