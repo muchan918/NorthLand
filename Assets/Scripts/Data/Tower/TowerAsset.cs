@@ -49,6 +49,20 @@ public class TowerAsset : ScriptableObject
     [Min(1)]
     public int UnlockWave = 1;
 
+    /// <summary>
+    /// 이 타워가 <paramref name="currentWave"/>에서 해금됐는가 — <b>해금 판정의 단일 출처</b>(#504).
+    /// 선택 패널의 버튼 게이트(자물쇠·회색 처리)와 툴팁의 해금 웨이브 표기가 같은 규칙을 봐야
+    /// "자물쇠는 걸렸는데 툴팁은 열린 것처럼 보이는" 어긋남이 생기지 않는다. 값 옆에 두는 이유는
+    /// <see cref="UnlockWave"/>와 같다 — 게이트와 그 기준값이 갈라지지 않게.
+    /// <br/>
+    /// <b>웨이브는 인자로만 받는다</b> — 데이터 SO가 씬 오브젝트(<c>DayNightManager.Instance</c>)를
+    /// 직접 끌어오면 계층이 뒤집히고 씬 없이는 테스트도 못 한다. 호출부는 웨이브를
+    /// <see cref="DayNightManager.CurrentWaveOrMax"/> 하나로 조달한다(매니저 없는 씬의 permissive
+    /// 규약도 그쪽이 소유한다). 캐시하지 말 것 — 세이브 복원 경로(<c>TryRestoreState</c>는 의도적으로
+    /// 페이즈 이벤트를 발행하지 않는다)에서 해금됐어야 할 타워가 잠긴 채 남는다.
+    /// </summary>
+    public bool IsUnlocked(int currentWave) => currentWave >= UnlockWave;
+
     // ── 평탄 스키마 (#274 Phase 1) ──────────────────────────────────────────────
     // 타입별 래퍼(Single/Area/Chain/Magic)를 풀어 한 층으로 편다. 타입별 필드가 7개뿐이라
     // 그룹 클래스 없이도 읽을 만하고, 안 쓰는 타워에서 값이 0이어도 아무도 안 읽으므로 무해하다.

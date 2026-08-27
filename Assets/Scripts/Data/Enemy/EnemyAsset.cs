@@ -67,6 +67,39 @@ public class EnemyAsset : ScriptableObject
         [Tooltip("자폭 1회로 본진에 주는 확정 피해. 웨이브 HP 배율의 영향을 받지 않는다 — " +
                  "규약 ④의 자폭 위험 예산(웨이브당 총량 ≤ 본진 HP×0.5)이 성립하는 근거다.")]
         public float Damage;
+
+        // 폭발 연출(#452). 지정하면 **사망 모션을 건너뛰고 즉시 사라진다** — 「터져서 없어진다」가
+        // 자폭병의 연출이고, 2초짜리 패배 모션이 뒤에 붙으면 터진 몸이 천천히 쓰러진다.
+        // 비워두면 예전대로 사망 모션을 재생한다(즉시 사라지면 아무 피드백이 없다).
+        [Tooltip("폭발 순간 스폰할 파티클 프리팹. playOnAwake가 켜져 있어야 한다 — " +
+                 "Instantiate만으로 재생을 시작한다. 비우면 파티클 없이 사망 모션을 재생한다.")]
+        public GameObject ExplosionVfx;
+
+        [Tooltip("파티클 프리팹의 스케일에 곱하는 배수. 1 = 프리팹에 저작된 크기 그대로. " +
+                 "@NorthLand/Particles의 폭발들은 스킬 광역 기준으로 커져 있어(FX_Bomb_Exp 17, " +
+                 "FX_Fire_Exp 20) 자폭병 한 마리(높이 약 5.8)에는 줄여야 할 수 있다.")]
+        public float ExplosionScale = 1f;
+
+        [Tooltip("파티클 오브젝트를 제거하기까지의 시간(초). 파티클 최대 수명보다 길게 잡는다 — " +
+                 "짧으면 퍼지던 입자가 잘린다(FX_Bomb_Exp 약 5.6s, FX_Fire_Exp 약 4.6s).")]
+        public float ExplosionLifetime = 5f;
+
+        // 폭발음(#452). **클립을 SfxBank에 넣지 않는다** — 뱅크의 범위는 "주인이 없는 공용 소리"이고
+        // (`Docs/Core/AudioManager.md` §5.4) 이 소리의 주인은 이 EnemyAsset이다. 타워 발사음을
+        // 각자의 SO가 들기로 한 것과 같은 규칙이다(같은 문서 §7).
+        //
+        // 2D 원샷(`AudioManager.PlaySfx`)으로 낸다. 문서 §7이 그 경로를 "드물게 한 번 울리는 소리
+        // 전용"으로 한정하는데 자폭은 웨이브당 몇 번뿐이라 그 전제 안에 있다.
+        // ⚠ **몬스터 평타음을 같은 방식으로 얹지 말 것** — 후반 웨이브의 빈도를 2D 원샷이 못 받는다.
+        // 그쪽은 문서 §7의 SFX 풀·디바운스가 먼저다.
+        [Tooltip("폭발 순간 1회 재생할 효과음. 비우면 소리 없이 폭발한다. " +
+                 "2D로 재생되므로 화면 밖에서 터져도 같은 크기로 들린다.")]
+        public AudioClip ExplosionSfx;
+
+        [Range(0f, 1f)]
+        [Tooltip("폭발음 재생 배율. SFX 채널 볼륨에 곱해진다. 임포트 설정에는 클립별 게인이 없어 " +
+                 "(AudioManager.md §4.5) 클립 사이의 레벨 차는 여기서만 맞출 수 있다.")]
+        public float ExplosionSfxVolume = 1f;
     }
 
     // 저작 짝 검사(WL-205). 두 조합이 **아무 신호 없이** 실패하므로 저장 시점에 드러낸다 —
@@ -79,6 +112,14 @@ public class EnemyAsset : ScriptableObject
         if (SelfDestruct == null || !SelfDestruct.Enabled)
         {
             return;
+        }
+
+        // 파티클을 스폰한 프레임에 다시 지우면 **폭발이 아예 보이지 않는다** — 증상이
+        // "프리팹을 넣었는데 아무 일도 안 난다"라 원인에서 멀다(#452).
+        if (SelfDestruct.ExplosionVfx != null && SelfDestruct.ExplosionLifetime <= 0f)
+        {
+            Debug.LogWarning($"[EnemyAsset] {name}: ExplosionVfx가 지정됐는데 ExplosionLifetime이 " +
+                             $"{SelfDestruct.ExplosionLifetime}입니다 — 폭발이 보이지 않습니다.", this);
         }
 
         if (SelfDestruct.Damage <= 0f)

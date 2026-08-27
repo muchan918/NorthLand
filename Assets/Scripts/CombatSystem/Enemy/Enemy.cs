@@ -20,6 +20,15 @@ namespace NorthLand.Combat
         float cooldownTimer;
         bool isDying;
 
+        // 스윙 중 타격까지 남은 시간(#452). 0보다 크면 「이미 휘두르는 중」이다.
+        // 쿨다운(다음 스윙까지)과는 별개의 축이다 — 둘을 한 타이머로 겸하면 와인드업이 공격 간격에
+        // 더해져 실효 간격이 늘어난다.
+        float swingHitTimer;
+
+        // 공격 모션은 `monsterStateMachine`을 경유해 지시한다(#452) — `MonsterAnimation`을 직접 들지
+        // 않는다. 애니메이터 기록 주체와 참조 해석을 그쪽 한 컴포넌트로 모으기 위함이며,
+        // 근거는 `MonsterStateMachine.RequestAttackSwing`의 주석에 있다.
+
         /// 이 적이 **처치되어** 사라질 때 정확히 1회 발행된다. 첫 인자는 마지막으로 피해를 준 주체
         /// (모르면 null). 킬스택 성장 타워(#300)가 처치 귀속을 아는 유일한 창구다.
         ///
@@ -107,6 +116,9 @@ namespace NorthLand.Combat
         void Awake()
         {
             monsterStateMachine = GetComponent<MonsterStateMachine>();
+
+            // MonsterAnimation 미발견 경고는 MonsterStateMachine.Awake가 낸다 — 참조를 해석하는
+            // 컴포넌트가 경고도 낸다(경고를 두 곳에서 내면 같은 사실이 두 줄로 찍힌다).
 
             // 배율 미적용 상태의 최대치다. 스포너가 곧 ApplyWaveHpScale로 덮어쓴다 —
             // 스포너를 거치지 않는 경로(테스트 씬 직접 배치)는 배율 1이라 이 값이 그대로 정답이 된다.
@@ -217,6 +229,16 @@ namespace NorthLand.Combat
 
         // 현재 체력 비율(0~1). "HP 30% 이하" 같은 조건 노드가 참조한다. MaxHp==0이면 0.
         public float HpRatio => MaxHp > 0f ? currentHp / MaxHp : 0f;
+
+        /// 처형 표식(#318)이 살아 있는가. **표시 전용 계약**(#502의 상태 아이콘)이다.
+        ///
+        /// 표식이 `StatusEffectHandler`가 아니라 여기 필드로 사는 이유는 위 `executeThreshold` 주석에
+        /// 있다(모든 피해가 지나는 `TakeDamage`에서 읽혀야 해서). 그래서 상태이상 4종과 달리
+        /// `ActiveKindMask`로는 보이지 않고, UI가 이 프로퍼티를 따로 읽는다.
+        ///
+        /// ⚠ 임계값(`executeThreshold`)은 노출하지 않는다 — 표식의 **유무**만 표시 대상이고,
+        /// 임계는 집행 판정이 쓰는 값이라 UI가 알면 두 곳에서 같은 규칙을 해석하게 된다.
+        public bool HasExecuteMark => executeMarkRemaining > 0f;
 
         // 보스 판정(#318). EnemyType.Boss는 최종보스(ogre_king)와 중간보스(tank)를 모두 포함한다.
         public bool IsBoss => data != null && data.EnemyType == EnemyType.Boss;
@@ -357,6 +379,7 @@ namespace NorthLand.Combat
                 }
 
                 monsterStateMachine?.SetHasTarget(false);
+                CancelSwing();
                 return;
             }
 
@@ -370,6 +393,7 @@ namespace NorthLand.Combat
             if (MovementOwnedByBehavior)
             {
                 monsterStateMachine?.SetHasTarget(false);
+                CancelSwing();
                 cooldownTimer -= Time.deltaTime;
                 return;
             }
@@ -387,6 +411,7 @@ namespace NorthLand.Combat
             if (movement != null && movement.IsStunned)
             {
                 monsterStateMachine?.SetHasTarget(false);
+                CancelSwing();
                 cooldownTimer -= Time.deltaTime;
                 return;
             }
@@ -403,15 +428,61 @@ namespace NorthLand.Combat
 
             cooldownTimer -= Time.deltaTime;
 
+            // 스윙 중이면 타격 시점만 기다린다(#452). 와인드업 사이에 대상이 죽거나 사거리에서
+            // 벗어나면 **헛스윙**이 된다 — 의도한 거동이다. 모션은 이미 나갔으므로 피해만 빈다.
+            if (swingHitTimer > 0f)
+            {
+                swingHitTimer -= Time.deltaTime;
+
+                if (swingHitTimer <= 0f)
+                {
+                    swingHitTimer = 0f;
+
+                    if (hasTarget)
+                    {
+                        TryAttack(target);
+                    }
+                }
+
+                return;
+            }
+
             if (!hasTarget || cooldownTimer > 0f)
             {
                 return;
             }
 
-            if (TryAttack(target))
+            // 쿨다운을 **스윙 시작 기준**으로 재는 것이 핵심이다(#452). 타격 기준으로 재면 실효 공격
+            // 간격이 `간격 + 와인드업`으로 늘어나 밸런싱 수치가 조용히 어긋나고, 애니메이션 1주기와
+            // 공격 1주기가 다시 갈라진다.
+            //
+            // 성공 여부와 무관하게 재는 것도 의도다. 예전에는 실패 시 매 프레임 재시도했는데,
+            // 실패 사유는 투사체 프리팹 미지정 같은 저작 누락이라 재시도로 낫는 종류가 아니다.
+            cooldownTimer = AttackInterval;
+
+            float windup = monsterStateMachine != null
+                ? monsterStateMachine.RequestAttackSwing(AttackInterval)
+                : 0f;
+
+            if (windup > 0f)
             {
-                cooldownTimer = AttackInterval;
+                swingHitTimer = windup;
+                return;
             }
+
+            // 스윙 제어가 없는 프리팹(공격 클립 미지정 — 자폭병·Phantom)은 예전 즉발 경로를 그대로 쓴다.
+            TryAttack(target);
+        }
+
+        // 예약된 타격을 접는다(#452). 스턴·BT 소유권 진입·게임 종료에서 부른다.
+        //
+        // 접지 않으면 **스턴 중에 예약된 피해가 스턴이 풀린 뒤 그대로 들어간다** — #164가 막으려던
+        // 바로 그 구멍이 와인드업만큼 시간차를 두고 되살아난다. 증상이 "스턴을 걸었는데 본진이
+        // 깎였다"라 원인에서 멀다.
+        void CancelSwing()
+        {
+            swingHitTimer = 0f;
+            monsterStateMachine?.CancelAttackSwing();
         }
 
 
@@ -472,9 +543,63 @@ namespace NorthLand.Combat
         /// 반격·처치 기여 집계 대상에서 빠져야 하기 때문이라 사정이 다르다).
         void Detonate(IDamageable target)
         {
+            SpawnExplosionVfx();
+            PlayExplosionSfx();
+
             target.TakeDamage(new DamageInfo(data.SelfDestruct.Damage, this));
 
             SelfDestruct();
+        }
+
+        /// 자폭 폭발음(#452). `AudioManager`의 2D 원샷을 쓴다 —
+        /// `SkillManager`의 `PlayClipAtPoint`(볼륨 제어 밖, `Docs/Core/AudioManager.md` §2)를 따라가지 않는다.
+        ///
+        /// 자기 `AudioSource`를 달지 않는 이유: 자폭병은 같은 프레임에 제거되므로 소스가 함께 죽어
+        /// 소리가 첫 프레임에 끊긴다. 파티클을 부모 없이 스폰하는 것과 같은 사정이고, 매니저의
+        /// 소스는 씬을 넘어 살아 있으므로 이 축이 아예 없다.
+        void PlayExplosionSfx()
+        {
+            AudioClip clip = data.SelfDestruct.ExplosionSfx;
+
+            // 매니저가 없는 씬(전투 테스트 등)에서는 조용히 넘긴다 — SoundCue와 같은 방침.
+            if (clip == null || AudioManager.Instance == null)
+            {
+                return;
+            }
+
+            AudioManager.Instance.PlaySfx(clip, data.SelfDestruct.ExplosionSfxVolume);
+        }
+
+        /// 자폭 폭발 파티클(#452).
+        ///
+        /// **자신의 자식으로 두지 않는다.** 자폭병은 같은 프레임에 제거되므로 자식으로 붙이면
+        /// 파티클도 함께 파괴되어 아무것도 보이지 않는다 — 증상이 "프리팹을 넣었는데 폭발이
+        /// 안 보인다"라 원인에서 멀다. 같은 이유로 위치는 스폰 시점에 값으로 복사된다.
+        ///
+        /// 스케일은 프리팹 값에 **곱한다**. 파티클은 저작된 크기가 이미 제각각이라
+        /// (FX_Bomb_Exp 17, FireSphereBlast 5) 절대값으로 덮으면 저작 의도가 사라진다.
+        void SpawnExplosionVfx()
+        {
+            GameObject prefab = data.SelfDestruct.ExplosionVfx;
+
+            if (prefab == null)
+            {
+                return;
+            }
+
+            GameObject vfx = Instantiate(prefab, hitPosition.position, Quaternion.identity);
+
+            float scale = data.SelfDestruct.ExplosionScale;
+
+            if (scale > 0f)
+            {
+                vfx.transform.localScale *= scale;
+            }
+
+            // 파티클 시스템을 훑어 최대 수명을 자동 계산하지 않는다 —
+            // ResidentSpawner.PlayDespawnEffect와 같은 규칙으로 저작값을 쓴다.
+            // 실제로 튜닝하는 값은 "얼마나 오래 보일지"이고 그건 저작자가 정하는 편이 낫다.
+            Destroy(vfx, data.SelfDestruct.ExplosionLifetime);
         }
 
         /// 자폭 사망(#453). 연출·디스폰은 `Die`와 같지만 **`Killed`를 발행하지 않는다.**
@@ -498,18 +623,29 @@ namespace NorthLand.Combat
             currentHp = 0f;
             OnHpChanged?.Invoke(currentHp, MaxHp);
 
-            BeginDeathSequence();
+            // 폭발 파티클이 있으면 사망 모션을 건너뛴다(#452) — 터진 몸이 2초에 걸쳐 천천히
+            // 쓰러지면 "펑 하고 없어진다"가 성립하지 않는다. 파티클이 없으면 예전대로 모션을
+            // 재생한다(즉시 사라지면 아무 피드백이 없어 그게 더 나쁘다).
+            BeginDeathSequence(playDeathAnimation: data.SelfDestruct.ExplosionVfx == null);
         }
 
         // 사망 연출 → 디스폰. 처치(`Die`)와 자폭(`SelfDestruct`)이 공유하는 뒤처리다.
         // 두 경로의 유일한 차이는 `Killed` 발행 여부이며, 그 차이만 호출부에 남긴다.
         // 추후 오브젝트 풀링 도입 시 이 메서드 내부만 "풀 반환"으로 교체하면 두 경로가 함께 따라온다.
-        void BeginDeathSequence()
+        void BeginDeathSequence(bool playDeathAnimation = true)
         {
             // 사망 연출 지연 동안(파괴 전까지) 보스 BT가 계속 돌지 않도록 에이전트를 끈다.
             if (behaviorAgent != null)
             {
                 behaviorAgent.enabled = false;
+            }
+
+            // 자폭 폭발(#452) — 모션 없이 즉시 제거한다. 상태 기계를 Death로 넘기지 않는 이유는
+            // destroyDelay(2초)가 그쪽에 있기 때문이다. 여기서 전이시키면 즉시 제거가 안 된다.
+            if (!playDeathAnimation)
+            {
+                Destroy(gameObject);
+                return;
             }
 
             if (monsterStateMachine != null)
