@@ -86,5 +86,5 @@ MonoBehaviour:
     - rid: 3470829504553025631
       type: {class: SlowStatus, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
-        Multiplier: 0.8
+        Multiplier: 0.9
         Duration: 2

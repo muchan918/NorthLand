@@ -9,6 +9,7 @@ public class MonsterMove : MonoBehaviour, IRouteMovementAgent
 
     [SerializeField] private float arriveDistance = 0.05f;
 
+    [SerializeField] private float turnSpeed = 720f;
     private bool canMove = true;
 
     private readonly List<Vector3> route = new List<Vector3>();
@@ -152,22 +153,39 @@ public class MonsterMove : MonoBehaviour, IRouteMovementAgent
             return;
         }
 
-        Vector3 targetPosition = route[currentRouteIndex];
+        Vector3 startPosition = transform.position;
+        float remainingDistance = EffectiveMoveSpeed * Time.deltaTime;
 
-        Vector3 direction = targetPosition - transform.position;
-        direction.y = 0f;
-
-        if (direction.sqrMagnitude > 0.001f)
+        while (remainingDistance > 0f && currentRouteIndex < route.Count)
         {
-            transform.rotation = Quaternion.LookRotation(direction);
+            Vector3 targetPosition = route[currentRouteIndex];
+            Vector3 toTarget = targetPosition - transform.position;
+            float distance = toTarget.magnitude;
+
+            if (distance <= arriveDistance)
+            {
+                currentRouteIndex++;
+                continue;
+            }
+
+            float step = Mathf.Min(remainingDistance, distance);
+            transform.position += toTarget / distance * step;
+            remainingDistance -= step;
+
+            if (step >= distance)
+                currentRouteIndex++;
+            else
+                break;
         }
 
-        transform.position = Vector3.MoveTowards(transform.position,targetPosition,EffectiveMoveSpeed * Time.deltaTime);
+        Vector3 moveDirection = transform.position - startPosition;
+        moveDirection.y = 0f;
 
-        if (Vector3.Distance(transform.position, targetPosition) <= arriveDistance)
+        if (moveDirection.sqrMagnitude > 0.001f)
         {
-            currentRouteIndex++;
-            SkipReachedPoints();
+            Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
+
+            transform.rotation = Quaternion.RotateTowards(transform.rotation,targetRotation,turnSpeed * Time.deltaTime);
         }
     }
 

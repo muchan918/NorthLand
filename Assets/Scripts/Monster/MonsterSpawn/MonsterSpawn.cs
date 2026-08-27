@@ -10,6 +10,7 @@ using NorthLand.Core;
 public class MonsterSpawn : MonoBehaviour
 {
     public event Action<int> WaveCleared;
+    public event Action<int> WaveStarted;
 
     /// <summary>
     /// 몬스터가 실제로 스폰되어 경로까지 설정된 뒤 발생. 인자는 스폰된 몬스터다.<br/>
@@ -49,6 +50,26 @@ public class MonsterSpawn : MonoBehaviour
         2.10f, 2.35f, 2.40f, 2.65f, 2.85f,   // W11~15
         3.00f, 3.12f, 3.25f, 3.4f, 3.6f, // W16~20 
     };
+
+    [Tooltip("웨이브별 몬스터 이동속도 배율. index 0 = 웨이브 1.")]
+    [SerializeField]
+    private float[] waveMoveSpeedScales =
+{
+    1f, 1f, 1f, 1f, 1f,
+    1f, 1f, 1f, 1f, 1f,
+    1.1f, 1.1f, 1.1f, 1.1f, 1.1f,
+    1.2f, 1.2f, 1.2f, 1.2f, 1.2f,
+};
+
+    private float WaveMoveSpeedScale(int wave)
+    {
+        if (waveMoveSpeedScales == null || waveMoveSpeedScales.Length == 0)
+            return 1f;
+
+        int index = Mathf.Clamp(wave - 1, 0, waveMoveSpeedScales.Length - 1);
+        return Mathf.Max(0.01f, waveMoveSpeedScales[index]);
+    }
+
 
     [Header("Gate (성문)")]
     // 통합 계약(팀 규칙 #8): 성문 프리팹(현재 BaseGate)은 Assets/Imported(중첩 git repo) 소재다.
@@ -214,6 +235,7 @@ public class MonsterSpawn : MonoBehaviour
         }
 
         currentRound = round;
+        WaveStarted?.Invoke(round);
 
         CancellationToken cancellationToken =
             RestartSpawnTasks();
@@ -520,6 +542,7 @@ public class MonsterSpawn : MonoBehaviour
             int wave = dayNight != null ? dayNight.CurrentWave : currentRound;
 
             enemy.ApplyWaveHpScale(WaveHpScale(wave));
+            enemy.ApplyWaveMoveSpeedScale(WaveMoveSpeedScale(wave));
         }
 
         // Enemy가 IRouteMovementAgent.RouteCompleted를 구독하여

@@ -73,7 +73,8 @@ namespace NorthLand.Combat
 
         private void Recompute()
         {
-            EffectiveMoveSpeed = Mathf.Max(minMoveSpeed,baseMoveSpeed * patternSpeedFactor * speedDebuffProduct);
+            float unslowedSpeed = baseMoveSpeed * patternSpeedFactor;
+            EffectiveMoveSpeed = unslowedSpeed * Mathf.Max(0.5f, speedDebuffProduct);
         }
     }
 }
