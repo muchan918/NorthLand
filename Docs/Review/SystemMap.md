@@ -189,8 +189,9 @@
   `Start` 시점의 `MaxHp`는 **웨이브 배율이 반영된 확정값**이다 — 구독자가 "지금 읽은 최대치가 임시일 수
   있다"를 알아야 하는 부채가 없다. 덤으로 `AfterSceneLoad` 부트스트랩보다 늦어 첫 씬에 미리 놓인 적도
   신호를 받고, `SpawnPrefab`의 검증 실패 경로(`Destroy`)에서는 `Start`가 돌지 않아 유령 구독이 없다. `PlayerBase.Instance`는 성문
-  (BaseGate) 런타임 스폰 시점(`MonsterSpawn.UpdateGate`)에 설정됨 — `TowerInfoUI`/`DayNightManager`와
-  동일한 씬 싱글톤 계보
+  (BaseGate) 최초 런타임 스폰 시점(`MonsterSpawn.UpdateGate`)에 설정된다. 같은 Run에서 맵을 재구성할 때
+  기존 `PlayerBase.Instance`가 있으면 이를 재사용하며 새 본진을 생성하지 않는다(#526). `TowerInfoUI`/`DayNightManager`와
+  동일한 씬 싱글톤 계보다
 - **`IMovementAgent` 이동속도 다축 합성 계약(#233/#209)** —
   `bool IsStopped { get; set; }`, `void SetMoveSpeed(float moveSpeed)`,
   `float EffectiveMoveSpeed { get; }`, `float PatternSpeedFactor { get; set; }`,
