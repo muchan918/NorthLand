@@ -17,9 +17,8 @@ public class BuildingInfoUI : MonoBehaviour
     private const string k_PerVillagerKey = "building.upgrade.per_villager";
     private const string k_MaxKey = "building.upgrade.max";
     private const string k_LevelKey = "building.upgrade.level";
-    // 마법 연구소 등 업그레이드 전용 건물의 효과 줄 라벨. 생산 건물의 "주민당 5→7" 자리에 표시된다.
-    // 구체적인 강화 수치는 업그레이드 버튼 위 별도 줄(UpgradeEffect)이 담당하고, 이 자리는
-    // 그 줄을 만들 수 없을 때(SO에 레벨 없음·씬에 SkillManager 없음)의 폴백으로 남는다.
+    // 마법 연구소의 구체적인 강화 효과를 만들 수 없을 때(SO에 레벨 없음·씬에 SkillManager 없음)
+    // ProduceRow 밖의 강화 효과 줄에 표시하는 폴백 문구다.
     private const string k_SkillPendingKey = "building.upgrade.skill_pending";
     // 본진 레벨 부족으로 다음 레벨이 잠긴 상태(#229). 진짜 최대(k_MaxKey)와 구분해야
     // "왜 못 올리는지"가 보인다 — Smart String {0}에 필요한 본진 레벨이 들어간다.
@@ -212,12 +211,21 @@ public class BuildingInfoUI : MonoBehaviour
         bool isMax = level >= max;
 
         SetText(_nameLevelText, $"{BuildingName()} ({L(k_LevelKey)} {level}/{max})");
-        // 본진 레벨로 잠긴 상태면 강화 안내 대신 잠금 사유를 보여준다 — 지금 필요한 정보는 그쪽이다(#229).
+        // 마법 연구소는 ProduceRow를 숨기므로 안내를 그 안의 _produceAmountText에 쓰면 함께 사라진다.
+        // ProduceRow 밖에 있는 강화 효과 줄을 공용 안내 자리로 사용해 잠금 사유와 폴백도 항상 보이게 한다.
         string lockNotice = LockNotice(_controller.UpgradeBuildingRequiredCastleLevel(_upgradeIndex));
-        SetText(_produceAmountText, lockNotice ?? L(k_SkillPendingKey));
-        // 최대 도달이면 안내할 다음 효과가 없고, 잠긴 상태면 지금 필요한 정보는 잠금 사유 쪽이다 —
-        // 둘 다 빈 줄로 두면 CSF가 그 자리를 접는다(CastlePanelUI의 _upgradeEffectText와 같은 규약).
-        SetText(_skillEffectText, (isMax || lockNotice != null) ? string.Empty : UpgradeEffect(level + 1));
+        // 본진 제한에 걸리면 컨트롤러의 현재 허용 max와 level이 같아 isMax도 참이 될 수 있다.
+        // 따라서 잠금 사유를 MAX보다 먼저 판정해야 "본진 Lv n 필요"가 가려지지 않는다.
+        string skillNotice = lockNotice;
+        if (string.IsNullOrEmpty(skillNotice) && !isMax)
+        {
+            skillNotice = UpgradeEffect(level + 1);
+            if (string.IsNullOrEmpty(skillNotice))
+            {
+                skillNotice = L(k_SkillPendingKey);
+            }
+        }
+        SetText(_skillEffectText, skillNotice);
         HideProduceRow(); // 주민당 산출이 없는 건물
         if (isMax)
         {
