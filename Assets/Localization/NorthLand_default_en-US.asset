@@ -424,6 +424,14 @@ MonoBehaviour:
       sure you want to reset?'
     m_Metadata:
       m_Items: []
+  - m_Id: 17146012390469632
+    m_Localized: Fusion Info
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17378157591605248
+    m_Localized: No towers available
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

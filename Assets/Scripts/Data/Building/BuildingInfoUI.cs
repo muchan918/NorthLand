@@ -124,6 +124,11 @@ public class BuildingInfoUI : MonoBehaviour
 
     private void HandleUpgradeClicked()
     {
+        if (!TutorialInputGate.Allows(TutorialAction.UpgradeBuilding))
+        {
+            return;
+        }
+
         // 성공 시 컨트롤러 OnChanged → Refresh가 자동으로 다시 그린다(실패해도 무해).
         if (_controller == null)
         {
@@ -226,7 +231,8 @@ public class BuildingInfoUI : MonoBehaviour
         if (_upgradeButton != null)
         {
             _upgradeButton.gameObject.SetActive(true);
-            _upgradeButton.interactable = _controller.CanUpgradeBuilding(_upgradeIndex);
+            _upgradeButton.interactable = _controller.CanUpgradeBuilding(_upgradeIndex)
+                && TutorialInputGate.AllowsForDisplay(TutorialAction.UpgradeBuilding);
         }
     }
 
@@ -258,7 +264,8 @@ public class BuildingInfoUI : MonoBehaviour
         if (_upgradeButton != null)
         {
             _upgradeButton.gameObject.SetActive(true);
-            _upgradeButton.interactable = _controller.CanUpgrade(_lineIndex);
+            _upgradeButton.interactable = _controller.CanUpgrade(_lineIndex)
+                && TutorialInputGate.AllowsForDisplay(TutorialAction.UpgradeBuilding);
         }
     }
 

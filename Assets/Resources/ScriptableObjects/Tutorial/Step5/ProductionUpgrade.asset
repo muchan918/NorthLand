@@ -20,6 +20,11 @@ MonoBehaviour:
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
   pauseGameDuringStep: 0
+  resumeGameAfterPopup: 0
+  restrictActions: 1
+  allowedActions: 1584
+  minimumTowerCountBeforeEndDay: 0
+  requiredTowerBeforeEndDay: {fileID: 0}
   freeTowerPlacement: 0
   restrictTowerPanelTo: {fileID: 0}
   freeManagementCost: 1
@@ -30,11 +35,11 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 8268c334119ef524ea770b364abf1fd5, type: 2}
   - {fileID: 11400000, guid: 639db89c157d46343837e79b6259f345, type: 2}
   completion:
-    rid: 3470829977900417133
+    rid: 3470830054771785826
   references:
     version: 2
     RefIds:
-    - rid: 3470829977900417133
+    - rid: 3470830054771785826
       type: {class: AllProductionLinesUpgradedCondition, ns: , asm: Assembly-CSharp}
       data:
         requiredLevel: 1

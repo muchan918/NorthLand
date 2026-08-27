@@ -173,6 +173,11 @@ public class TowerSelectPanelView : MonoBehaviour
 
     private void HandleClick(TowerAsset tower)
     {
+        if (!TutorialInputGate.Allows(TutorialAction.ChooseTowerForPlacement))
+        {
+            return;
+        }
+
         if (_towerPlacer == null)
         {
             Debug.LogError("[타워선택패널] TowerPlacer가 연결되지 않았습니다.");

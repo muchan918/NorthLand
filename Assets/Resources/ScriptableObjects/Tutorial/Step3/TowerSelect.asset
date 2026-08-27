@@ -20,6 +20,8 @@ MonoBehaviour:
   highlightAnchorId: tower_panel
   highlightCell: {x: 0, y: 0}
   pauseGameDuringStep: 0
+  restrictActions: 1
+  allowedActions: 20
   freeTowerPlacement: 0
   restrictTowerPanelTo: {fileID: 0}
   freeManagementCost: 0

@@ -69,6 +69,13 @@ public class DayNightManager : MonoBehaviour
     // ── 외부 진입점 ────────────────────────────────────────────────
     public void EndDay()
     {
+        // UI 버튼이나 확인 팝업이 이미 열린 뒤 튜토리얼 조건이 바뀌어도,
+        // 실제 페이즈 전환 진입점에서 다시 검사해 우회 진입을 막는다.
+        if (!TutorialInputGate.AllowsEndDay())
+        {
+            return;
+        }
+
         if (CurrentPhase != Phase.Day)
         {
             Debug.LogWarning("이미 밤입니다");
