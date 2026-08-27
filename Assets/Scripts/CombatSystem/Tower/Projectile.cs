@@ -56,11 +56,27 @@ namespace NorthLand.Combat
         ///
         /// ⚠ 관통·부메랑처럼 **여러 번 때리는 탄은 명중마다 발행된다.** 한 번만 반응해야 하는 구독자는
         /// 스스로 걸러야 한다(`AttackAction`이 그렇게 한다).
-        public event Action<Vector3> Impacted;
+        ///
+        /// ⚠ **두 번째 인자는 이번 통지로 실제 피해를 입은 대상 수다. 0일 수 있다.**
+        /// `FlightStep.Impact`는 "이번 프레임에 명중 판정을 하라"는 뜻이지 "맞았다"가 아니기 때문이다
+        /// — 그 갈림이 실제로 드러나는 곳이 `BoomerangFlight`다. 그쪽은 매 프레임 `Physics.CheckSphere`로
+        /// 접촉만 보고 `HitAndContinue`를 내므로, 적 하나를 스쳐 지나가는 동안 **접촉한 프레임 수만큼**
+        /// 이 이벤트가 발행된다(속도 60·반경 0.5·60fps면 적 한 마리당 구간마다 대여섯 번). 피해는
+        /// `FlightState.LegHitSet`이 구간당 1회로 걸러 정상이지만, **그 걸러짐이 여기엔 보이지 않는다.**
+        /// 그래서 "맞을 때마다 한 번"이 필요한 연출 구독자는 `Impacted`가 아니라 **이 수가 0보다 큰지**를
+        /// 봐야 한다. 대상이 이미 죽은 뒤 도착한 탄도 같은 이유로 0으로 걸러진다.
+        ///
+        /// 스플래시가 5마리를 때려도 **통지는 여전히 한 번**이다(수가 5일 뿐) — 대상별 통지는
+        /// `DamageDealt` 쪽이다. 연출을 대상별로 붙이면 밀집 대형에서 파티클이 겹쳐 쌓인다.
+        public event Action<Vector3, int> Impacted;
 
         // 프리팹에 남는 **유일한** 설정 — 모델 메시의 기수가 어느 축을 보는지 보정한다(화살 −90, 공 0).
         // 타워가 알 이유가 없는 값이라 여기 남는다. 비행·명중은 전부 타워 SO가 정한다(#274).
         [SerializeField] Vector3 rotationOffset;
+
+        // 이번 `OnHit` 한 번이 실제로 피해를 입힌 대상 수. `Impacted` 통지에만 쓰이고 매 통지 앞에서
+        // 0으로 초기화된다 — 탄 수명 전체의 누계가 아니다(부메랑은 구간마다 다시 센다).
+        int victimsThisImpact;
 
         IDamageable target;
         float damage;
@@ -135,8 +151,10 @@ namespace NorthLand.Combat
         {
             // 피해 처리보다 **뒤**에 통지한다 — 구역이 거는 효과가 명중 효과(Effects)보다 먼저 들어가면
             // 같은 종류의 상태이상에서 어느 쪽이 슬롯을 먼저 잡는지가 프레임마다 흔들린다.
+            // 그 순서 덕분에 아래 피격 수가 **이번 통지 시점에 이미 확정**돼 있다.
+            victimsThisImpact = 0;
             ApplyImpact(impactPos);
-            Impacted?.Invoke(impactPos);
+            Impacted?.Invoke(impactPos, victimsThisImpact);
         }
 
         void ApplyImpact(Vector3 impactPos)
@@ -163,6 +181,14 @@ namespace NorthLand.Combat
         /// (#274 Phase 4에서 구조적으로 해소).
         void Hit(IDamageable victim, float amount)
         {
+            // 명중 경로가 전부 여기를 지나므로(위 주석) 피격 수도 여기 한 곳에서만 센다 —
+            // 경로별로 세면 하나를 빠뜨렸을 때 그 타워만 조용히 연출이 사라진다.
+            //
+            // 지금 저작된 것은 Single 7 · Area 7이고 **Chain은 0이다**(2026-08-27 실측) — `ApplyChain`은
+            // 아직 아무도 타지 않는 경로다. 그래도 세는 자리를 경로 위가 아니라 여기 둔 덕에 나중에
+            // 체인 타워가 저작돼도 이 축은 손댈 것이 없다.
+            victimsThisImpact++;
+
             victim.TakeDamage(new DamageInfo(amount, source));
             DamageDealt?.Invoke(source, victim);
             ApplyEffects(victim);
