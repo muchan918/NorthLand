@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MonsterWaveAsset
   minSpawnInterval: 0.3
   maxSpawnInterval: 0.7
-  spawnCountPerBatch: 3
+  spawnCountPerBatch: 4
   intraBatchJitter: 0.15
   randomizeSpawnOrder: 1
   groups:
