@@ -224,8 +224,10 @@ namespace NorthLand.UI
                 selectedTowerIcon.enabled = false;
             }
 
+
             if (selectedTowerNameText != null)
-                selectedTowerNameText.text = "타워 없음";
+                LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, "codex.tower.none");
+
 
             ClearRecipeIcons();
         }
@@ -290,7 +292,7 @@ namespace NorthLand.UI
 
             foreach (TowerRecipe.MaterialEntry material in recipe.Materials)
             {
-                if (material == null ||material.Tower == null ||material.Tower.Icon == null ||material.Count <= 0)
+                if (material == null ||material.Tower == null ||material.Count <= 0)
                 {
                     continue;
                 }

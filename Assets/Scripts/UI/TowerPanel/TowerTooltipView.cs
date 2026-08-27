@@ -3,6 +3,7 @@ using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using NorthLand.UI;
 
 /// <summary>
 /// 타워 전용 호버 툴팁 뷰(#141). 건물과 공유하는 범용 <see cref="TooltipUI"/>(헤더+본문 텍스트뿐)와 달리

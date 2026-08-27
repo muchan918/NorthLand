@@ -9,6 +9,13 @@ namespace NorthLand.UI
 
         public void Initialize(Sprite icon)
         {
+            if (towerIcon == null)
+            {
+                Debug.LogError("[RecipeMaterialIconView] Tower Icon이 연결되지 않았습니다.", this);
+
+                return;
+            }
+
             towerIcon.sprite = icon;
             towerIcon.enabled = icon != null;
         }
