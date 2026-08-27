@@ -54,6 +54,20 @@ public class MouseManager : MonoBehaviour
     /// 구독 시점의 현재 값은 이벤트로 오지 않는다 → `CurrentMode`를 직접 읽어 초기 상태를 맞출 것.
     public event Action<Mode> OnModeChanged;
 
+    /// 배치·조준 중 커서 밑에 **대상 표면이 있는가**가 바뀔 때만 통지(= 고스트·인디케이터가 지금 그려지는가).
+    ///
+    /// 판정 자체는 두 모드가 다르다 — 배치는 `_placementMask` 히트, 조준은 그 위의 전투 타일까지다.
+    /// 그럼에도 같은 이름으로 나가는 것은 **소비처가 알고 싶은 것이 하나**이기 때문이다:
+    /// "지금 커서를 대신할 것이 화면에 있는가". 커서 그림이 이 값으로 「숨김」과 「안 됨」을 가른다
+    /// (`CursorFeedback.md` §2 — 타일 밖에서까지 커서를 숨기면 대신할 것 없이 화면이 비어 버린다).
+    ///
+    /// ⚠ **"놓을 수 있는가"가 아니다.** 점유·도로처럼 `CanPlaceAt`이 거절하는 칸에서도 고스트는 그려지므로
+    ///   이 값은 참이다. 유효·무효 구분은 고스트 쪽 몫이다(`UpdatePlacement`의 TODO).
+    ///
+    /// 배치·조준이 아닌 모드에서는 항상 false다 — `SetMode`가 벗어나는 길목에서 내린다.
+    /// `OnModeChanged`와 같은 규약으로, 구독 시점의 현재 값은 `IsOverTargetSurface`를 직접 읽는다.
+    public event Action<bool> OnTargetSurfaceChanged;
+
     // ── 드래그 사각형 선택(#261) 3단계 통지 ──────────────────────────
     // MouseManager는 사각형에 무엇이 걸렸는지만 알리고 집합은 들지 않는다. 순서 있는 집합의 소유·해석은
     // 도메인 코디네이터(타워=TowerMergeCoordinator)가 계속 담당한다.
@@ -92,6 +106,9 @@ public class MouseManager : MonoBehaviour
     public Mode CurrentMode => _mode;
     /// 배치 고스트를 들고 있는가. 되돌리기 버튼(#281)이 "먼저 이 고스트부터 치운다"를 판정하는 데 쓴다.
     public bool IsPlacing => _mode == Mode.Placement;
+    /// 배치·조준 중 커서가 대상 표면 위인가(`OnTargetSurfaceChanged`의 현재 값). 구독자가 **초기 상태를
+    /// 맞출 때** 쓴다 — 이벤트는 변화만 싣는다. 그 외 모드에서는 항상 false.
+    public bool IsOverTargetSurface { get; private set; }
     // 현재 포인터 화면 좌표. 다른 시스템(툴팁 등)이 Mouse.current를 직접 읽지 않고 여기서 얻는다(입력 단일 창구 계약).
     public Vector2 PointerPosition { get; private set; }
 
@@ -306,6 +323,13 @@ public class MouseManager : MonoBehaviour
         if (_mode == next) return;
 
         _mode = next;
+
+        // 배치·조준을 벗어나면 고스트·인디케이터가 사라진다 → 「대상 표면 위」도 함께 내린다.
+        // 각 Cancel에 흩어 두지 않는 이유는 위 두 Exit와 같다 — 되돌리는 경로가 여럿이라 하나만 빠져도
+        // 커서가 숨은 채 남는다. **`OnModeChanged`보다 앞**이라야 구독자가 모드 통지를 받는 시점에
+        // 두 값이 어긋나 있지 않다.
+        if (next != Mode.Placement && next != Mode.SkillTargeting) SetOverTargetSurface(false);
+
         OnModeChanged?.Invoke(next);
     }
 
@@ -861,6 +885,11 @@ public class MouseManager : MonoBehaviour
             _ghost.SetActive(visible);
         }
 
+        // 커서 쪽 통지는 아래 조기 반환보다 **앞**이다. `_placementPreviewVisible`은 `BeginPlacement`가
+        // 통지 없이 직접 false로 놓는 자리가 있어(요청이 아직 새것이라 알릴 대상이 없다) 두 값이 어긋날 수
+        // 있는데, 그때 이 통지까지 함께 삼켜지면 커서가 이전 세션 상태에 갇힌다.
+        SetOverTargetSurface(visible);
+
         if (_placementPreviewVisible == visible)
         {
             return;
@@ -868,6 +897,29 @@ public class MouseManager : MonoBehaviour
 
         _placementPreviewVisible = visible;
         _request?.OnSurfaceHoverChanged?.Invoke(visible);
+    }
+
+    /// 조준 인디케이터의 표시를 맞춘다 — 배치 쪽 `SetPlacementPreviewVisible`과 짝이며, 둘 다
+    /// 「대상 표면 위인가」를 같은 창구로 흘려보낸다. 조준에는 요청 측 미리보기가 없어 이쪽이 더 짧다.
+    private void SetSkillIndicatorVisible(bool visible)
+    {
+        if (_ghost != null && _ghost.activeSelf != visible)
+        {
+            _ghost.SetActive(visible);
+        }
+
+        SetOverTargetSurface(visible);
+    }
+
+    /// 「대상 표면 위인가」의 **유일한 갱신 창구**. 바뀔 때만 통지한다.
+    /// 배치와 조준이 각자 통지하면 모드를 벗어날 때 내리는 것을 한쪽이 잊는다(그 대가는 조준을 끝냈는데
+    /// 커서가 숨은 채 남는 것이다) — 그래서 `SetMode`가 같은 창구로 함께 내린다.
+    private void SetOverTargetSurface(bool over)
+    {
+        if (IsOverTargetSurface == over) return;
+
+        IsOverTargetSurface = over;
+        OnTargetSurfaceChanged?.Invoke(over);
     }
 
     // ── SkillTargeting: 스킬 범위 지정 (요구사항 ③, #103) ─────────
@@ -890,11 +942,11 @@ public class MouseManager : MonoBehaviour
         // 전투 타일이 아니면(빈 칸·타일 사이 틈·맵 밖) 인디케이터를 숨긴다.
         if (tile == null)
         {
-            if (_ghost.activeSelf) _ghost.SetActive(false);
+            SetSkillIndicatorVisible(false);
             return;
         }
 
-        if (!_ghost.activeSelf) _ghost.SetActive(true);
+        SetSkillIndicatorVisible(true);
         Ray ray = _camera.ScreenPointToRay(screenPos);
         Vector3 pos = _skillRequest.Snap != null ? _skillRequest.Snap(ray, hit) : hit.point;
         _ghost.transform.position = pos;

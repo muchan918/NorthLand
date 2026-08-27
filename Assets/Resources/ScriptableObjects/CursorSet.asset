@@ -70,18 +70,26 @@ MonoBehaviour:
       Texture: {fileID: 0}
       Hotspot: {x: 0, y: 0}
   _placing:
-    Hidden: 0
+    Hidden: 1
     Normal:
-      Texture: {fileID: 2800000, guid: 8a1b6f2805d75eb4f99e95e1c453eb48, type: 3}
+      Texture: {fileID: 0}
       Hotspot: {x: 0, y: 0}
     Pressed:
       Texture: {fileID: 0}
       Hotspot: {x: 0, y: 0}
   _skillAiming:
-    Hidden: 0
+    Hidden: 1
     Normal:
       Texture: {fileID: 0}
       Hotspot: {x: 0, y: 0}
+    Pressed:
+      Texture: {fileID: 0}
+      Hotspot: {x: 0, y: 0}
+  _blocked:
+    Hidden: 0
+    Normal:
+      Texture: {fileID: 2800000, guid: 653151ba09d4d884db25bebf98891a33, type: 3}
+      Hotspot: {x: 16, y: 16}
     Pressed:
       Texture: {fileID: 0}
       Hotspot: {x: 0, y: 0}

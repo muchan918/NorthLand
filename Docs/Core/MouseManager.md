@@ -49,6 +49,7 @@
 > **`UnitDrag`가 같은 이음매를 쓰는 이유는 더 무겁다.** 들린 주민은 화면에서 감춰져 있으므로
 > (`Resident.md` §8), 종료 통지가 새면 패널이 멈추는 정도가 아니라 **그 주민이 영영 돌아오지 않는다.**
 
+- **배치·조준 중 "커서가 대상 표면 위인가"도 통지된다** — `OnTargetSurfaceChanged`(현재 값은 `IsOverTargetSurface`). 판정은 두 모드가 다르지만(배치는 `_placementMask` 히트, 조준은 **그 위의 전투 타일**까지) 같은 이름으로 나가는 이유는 소비처가 알고 싶은 것이 하나이기 때문이다 — **고스트·인디케이터가 지금 그려지고 있는가**. 커서 그림이 이 값으로 「숨김」과 「안 됨」을 가른다([CursorFeedback.md](CursorFeedback.md) §2). ⚠ **"놓을 수 있는가"가 아니다** — `CanPlaceAt`이 거절하는 칸에서도 고스트는 그려지므로 참이다. 배치·조준이 아닌 모드에서는 항상 false이고, 내리는 곳은 `SetMode`다 — 각 `Cancel`에 흩어 두면 하나가 빠져 커서가 숨은 채 남는다(위 「단일 창구」와 같은 이유).
 - 현재 모드는 `CurrentMode`로 읽고, 전환은 `OnModeChanged`로 **1회씩** 통지된다. 같은 모드로의 재진입은 통지하지 않는다 — `CancelInteractions`처럼 Cancel을 연달아 부르는 경로가 `SetMode(Idle)`을 두 번 때리기 때문이다. 이벤트는 **변화만** 싣으므로 구독자는 붙는 시점에 `CurrentMode`를 직접 읽어 초기 상태를 맞춘다. 첫 소비처는 커서 그림([CursorFeedback.md](CursorFeedback.md) §2).
 
 ## 4. 선택 모델

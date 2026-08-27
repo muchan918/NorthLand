@@ -12,7 +12,8 @@ using UnityEngine;
 ///
 /// ⚠ <b>이름에 도메인이 들어와도 원칙 2는 유지된다</b>(<c>MouseManager.md</c> §1). 이 어휘를 고르는 것은
 /// <b>대상 자신</b>이고(<see cref="ICursorHint"/>), <see cref="CursorController"/>는 여전히
-/// "타워인가 주민인가"를 묻지 않는다 — 컨트롤러가 분기하는 것은 아래 <b>모드 3종뿐</b>이다.
+/// "타워인가 주민인가"를 묻지 않는다 — 컨트롤러가 분기하는 것은 아래 <b>모드 3종</b>과
+/// <b>「대상 표면 위인가」</b>(<c>MouseManager.IsOverTargetSurface</c>)뿐이다.
 ///
 /// ⚠ <b>"눌림"은 여기 없다.</b> 좌버튼 눌림은 종류가 아니라 <b>각 종류의 변형</b>이다
 /// (<see cref="CursorSet.Entry.Pressed"/>) — "건물 위에서 누르면 문이 열린다"처럼 눌렸을 때의 그림이
@@ -58,6 +59,18 @@ public enum CursorKind
 
     /// <summary>스킬 조준 중.</summary>
     SkillAiming,
+
+    /// <summary>
+    /// <b>지금 이 자리에서는 할 수 없다.</b> 배치·조준 중 커서가 대상 표면(타일) 밖일 때
+    /// (<c>MouseManager.IsOverTargetSurface == false</c>) 컨트롤러가 고른다.
+    ///
+    /// <b>배치와 조준이 칸을 나눠 갖지 않는 이유</b>: 알리는 내용이 같다 — "여기엔 못 놓는다"와
+    /// "여기엔 못 쓴다"를 다른 그림으로 구분해야 할 이유가 아직 없다. 갈라야 하면 칸을 하나 더 판다.
+    ///
+    /// ⚠ <b>UI 위에서는 이 종류가 나오지 않는다.</b> "여기엔 못 놓는다"는 <b>지도</b>에 대한 말이라
+    /// 패널 위에서는 거짓말이 된다(<see cref="CursorController"/>의 판정 참고).
+    /// </summary>
+    Blocked,
 }
 
 /// <summary>
@@ -128,8 +141,15 @@ public class CursorSet : ScriptableObject
 
     [Header("상호작용 모드별 — 컨트롤러가 모드로 판정")]
     [SerializeField] Entry _residentDrag;
+
+    [Tooltip("배치 고스트를 들고 대상 표면(타일) 위에 있는 동안. Hidden을 켜 고스트에 자리를 내준다.")]
     [SerializeField] Entry _placing;
+
+    [Tooltip("스킬 조준 중 전투 타일 위. Hidden을 켜 범위 인디케이터에 자리를 내준다.")]
     [SerializeField] Entry _skillAiming;
+
+    [Tooltip("배치·조준 중 대상 표면 밖 — '여기서는 안 된다'. UI 위에서는 나오지 않는다.")]
+    [SerializeField] Entry _blocked;
 
     /// <summary>
     /// 커서를 누가 그리는가. <b>크기 제한은 여기서 갈린다.</b>
@@ -171,6 +191,7 @@ public class CursorSet : ScriptableObject
         CursorKind.ResidentDrag => _residentDrag,
         CursorKind.Placing => _placing,
         CursorKind.SkillAiming => _skillAiming,
+        CursorKind.Blocked => _blocked,
         _ => _default,
     };
 }
