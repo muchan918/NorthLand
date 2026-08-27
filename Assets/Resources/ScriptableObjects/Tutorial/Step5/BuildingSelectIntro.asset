@@ -20,6 +20,11 @@ MonoBehaviour:
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
   pauseGameDuringStep: 0
+  resumeGameAfterPopup: 0
+  restrictActions: 1
+  allowedActions: 16
+  minimumTowerCountBeforeEndDay: 0
+  requiredTowerBeforeEndDay: {fileID: 0}
   freeTowerPlacement: 0
   restrictTowerPanelTo: {fileID: 0}
   freeManagementCost: 0

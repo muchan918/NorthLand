@@ -158,6 +158,11 @@ public class BuildingShortcutBar : MonoBehaviour
 
     private void Focus(Entry entry)
     {
+        // 키보드 숫자키와 UI 버튼이 모두 이 경로로 들어오므로 한 곳에서 막는다.
+        // 이후 단축키 학습 단계는 SO에서 UseBuildingShortcut을 허용하면 그대로 열린다.
+        if (!TutorialInputGate.Allows(TutorialAction.UseBuildingShortcut))
+            return;
+
         if (entry.focus == null || _camera == null)
             return;
 

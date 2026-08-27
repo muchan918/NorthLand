@@ -177,6 +177,11 @@ public class StorePanelUI : MonoBehaviour
 
     private void HandleExchangeClicked(BuildingAsset.ExchangeOffer offer)
     {
+        if (!TutorialInputGate.Allows(TutorialAction.AlchemyExchange))
+        {
+            return;
+        }
+
         // 성공 시 컨트롤러 OnChanged → Refresh가 버튼 상태를 다시 계산한다(실패해도 무해).
         if (_controller == null || _building == null)
         {
@@ -215,7 +220,8 @@ public class StorePanelUI : MonoBehaviour
                 continue;
             }
             binding.Row.SetGain(_controller.ExchangeGainAmount(_building, binding.Offer));
-            binding.Row.SetInteractable(_controller.CanExchange(_building, binding.Offer));
+            binding.Row.SetInteractable(_controller.CanExchange(_building, binding.Offer)
+                && TutorialInputGate.AllowsForDisplay(TutorialAction.AlchemyExchange));
         }
     }
 

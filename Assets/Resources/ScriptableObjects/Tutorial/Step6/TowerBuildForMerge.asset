@@ -14,12 +14,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
   popupTitleKey: tutorial.tower.merge_intro.title
   popupBodyKey: tutorial.tower.merge_intro.body
-  popupImage: {fileID: 0}
+  popupImage: {fileID: 21300000, guid: 742e9b4c0f618ed4480b9ad830d60546, type: 3}
   bubbleTextKey: tutorial.tower.merge_intro.bubble
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
   pauseGameDuringStep: 0
+  resumeGameAfterPopup: 0
+  restrictActions: 1
+  allowedActions: 4156
+  minimumTowerCountBeforeEndDay: 0
+  requiredTowerBeforeEndDay: {fileID: 0}
   freeTowerPlacement: 1
   restrictTowerPanelTo: {fileID: 11400000, guid: 7ecd80d44165e644591aafb428cf5efe, type: 2}
   freeManagementCost: 0
@@ -32,7 +37,7 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 3470829977900417131
-      type: {class: TowerPlacedCondition, ns: , asm: Assembly-CSharp}
+      type: {class: TowerCountCondition, ns: , asm: Assembly-CSharp}
       data:
-        count: 3
+        minimumCount: 3
         targetTower: {fileID: 11400000, guid: 7ecd80d44165e644591aafb428cf5efe, type: 2}

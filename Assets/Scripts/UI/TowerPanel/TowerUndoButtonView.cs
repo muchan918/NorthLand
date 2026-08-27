@@ -26,7 +26,7 @@ public class TowerUndoButtonView : MonoBehaviour
     // 값은 NorthLand_default String Table(ko/en/ja)에 있다.
     private const string k_KeyUndo = "game.btn.undo";
 
-    [Tooltip("되돌리기 버튼. 스택이 비었거나 밤이면 비활성화된다.")]
+    [Tooltip("되돌리기 버튼. 스택이 비었거나 밤이거나 현재 튜토리얼 단계에서 허용되지 않으면 비활성화된다.")]
     [SerializeField] Button _button;
 
     private void Awake()
@@ -47,6 +47,7 @@ public class TowerUndoButtonView : MonoBehaviour
     private void Start()
     {
         CommandHistory.OnChanged += Refresh;
+        TutorialInputGate.Changed += Refresh;
         LocalizationSettings.SelectedLocaleChanged += HandleLocaleChanged;
 
         if (DayNightManager.Instance != null)
@@ -66,6 +67,7 @@ public class TowerUndoButtonView : MonoBehaviour
     private void OnDestroy()
     {
         CommandHistory.OnChanged -= Refresh;
+        TutorialInputGate.Changed -= Refresh;
         LocalizationSettings.SelectedLocaleChanged -= HandleLocaleChanged;
 
         if (DayNightManager.Instance == null) return;
@@ -82,7 +84,11 @@ public class TowerUndoButtonView : MonoBehaviour
     // 확정 타이밍에 기댄 우연이고 계약이 아니다). 버튼을 낮 패널 하위로 옮기면 그때 이중이 된다.
     private void Refresh()
     {
-        if (_button != null) _button.interactable = CommandHistory.CanUndo;
+        if (_button != null)
+        {
+            _button.interactable = CommandHistory.CanUndo
+                && TutorialInputGate.AllowsForDisplay(TutorialAction.Undo);
+        }
     }
 
     // 로케일 전환에 반응해야 하는 지속형 표시라, LocalizationHelper.Get(pull 방식)을 그때마다 다시 부른다.

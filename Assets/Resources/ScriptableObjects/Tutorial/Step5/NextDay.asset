@@ -15,11 +15,16 @@ MonoBehaviour:
   popupTitleKey: 
   popupBodyKey: 
   popupImage: {fileID: 0}
-  bubbleTextKey: 
+  bubbleTextKey: tutorial.next_day.bubble
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
   pauseGameDuringStep: 0
+  resumeGameAfterPopup: 0
+  restrictActions: 1
+  allowedActions: 272
+  minimumTowerCountBeforeEndDay: 0
+  requiredTowerBeforeEndDay: {fileID: 0}
   freeTowerPlacement: 0
   restrictTowerPanelTo: {fileID: 0}
   freeManagementCost: 0

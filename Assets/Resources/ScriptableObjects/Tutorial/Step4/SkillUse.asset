@@ -14,12 +14,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
   popupTitleKey: tutorial.skill.use.title
   popupBodyKey: tutorial.skill.use.body
-  popupImage: {fileID: 0}
+  popupImage: {fileID: 21300000, guid: 91fc25c023c8d3e4f84cf5d73dfb3841, type: 3}
   bubbleTextKey: tutorial.skill.use.bubble
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
   pauseGameDuringStep: 1
+  resumeGameAfterPopup: 1
+  restrictActions: 1
+  allowedActions: 272
+  minimumTowerCountBeforeEndDay: 0
+  requiredTowerBeforeEndDay: {fileID: 0}
   freeTowerPlacement: 0
   restrictTowerPanelTo: {fileID: 0}
   freeManagementCost: 0

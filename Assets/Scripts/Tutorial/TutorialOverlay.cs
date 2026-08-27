@@ -24,6 +24,10 @@ public class TutorialOverlay : MonoBehaviour
     [SerializeField]
     private Button confirmButton;
 
+    [Tooltip("팝업 뒤에서 다른 Canvas의 클릭을 막는 전체 화면 투명 패널")]
+    [SerializeField]
+    private GameObject popupInputBlocker;
+
     [Header("건너뛰기 (선택)")]
     [SerializeField]
     private Button skipButton;
@@ -34,6 +38,9 @@ public class TutorialOverlay : MonoBehaviour
 
     [SerializeField]
     private TMP_Text bubbleText;
+
+    [SerializeField]
+    private TutorialBubbleLayout bubbleLayout;
 
     [Header("딤 — 강조 대상만 클릭 가능하게 만든다. 비워두면 딤 기능이 꺼진다(선택)")]
     [SerializeField]
@@ -108,8 +115,10 @@ public class TutorialOverlay : MonoBehaviour
         if (popupBody == null) { LogMissing(nameof(popupBody)); ok = false; }
         if (popupImage == null) { LogMissing(nameof(popupImage)); ok = false; }
         if (confirmButton == null) { LogMissing(nameof(confirmButton)); ok = false; }
+        if (popupInputBlocker == null) { LogMissing(nameof(popupInputBlocker)); ok = false; }
         if (bubbleRoot == null) { LogMissing(nameof(bubbleRoot)); ok = false; }
         if (bubbleText == null) { LogMissing(nameof(bubbleText)); ok = false; }
+        if (bubbleLayout == null) { LogMissing(nameof(bubbleLayout)); ok = false; }
         return ok;
     }
 
@@ -127,18 +136,21 @@ public class TutorialOverlay : MonoBehaviour
         popupImage.sprite = image;
         popupImage.gameObject.SetActive(image != null);
 
+        popupInputBlocker.SetActive(true);
         popupRoot.SetActive(true);
     }
 
     public void HidePopup()
     {
         popupRoot.SetActive(false);
+        popupInputBlocker.SetActive(false);
     }
 
     public void ShowBubble(string text)
     {
         bubbleText.text = text;
         bubbleRoot.SetActive(true);
+        bubbleLayout.Rebuild();
     }
 
     public void HideBubble()

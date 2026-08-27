@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 08366b238e4880d4898b6b244413a4a1, type: 3}
   m_Name: TutorialWave
   m_EditorClassIdentifier: Assembly-CSharp::MonsterWaveAsset
-  minSpawnInterval: 1.5
-  maxSpawnInterval: 1.5
+  minSpawnInterval: 0.3
+  maxSpawnInterval: 0.3
   spawnCountPerBatch: 1
   intraBatchJitter: 0
   randomizeSpawnOrder: 0

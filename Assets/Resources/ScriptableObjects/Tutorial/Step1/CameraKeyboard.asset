@@ -12,14 +12,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
   m_Name: CameraKeyboard
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
-  popupTitleKey: tutorial.camera.keyboard.title
-  popupBodyKey: tutorial.camera.keyboard.body
+  popupTitleKey: 
+  popupBodyKey: 
   popupImage: {fileID: 0}
   bubbleTextKey: tutorial.camera.keyboard.bubble
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
   pauseGameDuringStep: 0
+  resumeGameAfterPopup: 0
+  restrictActions: 1
+  allowedActions: 16
+  minimumTowerCountBeforeEndDay: 0
+  requiredTowerBeforeEndDay: {fileID: 0}
   freeTowerPlacement: 0
   restrictTowerPanelTo: {fileID: 0}
   freeManagementCost: 0

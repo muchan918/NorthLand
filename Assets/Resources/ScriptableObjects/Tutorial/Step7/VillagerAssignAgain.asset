@@ -12,14 +12,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
   m_Name: VillagerAssignAgain
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
-  popupTitleKey: 
-  popupBodyKey: 
-  popupImage: {fileID: 0}
+  popupTitleKey: tutorial.villager.assign_again.title
+  popupBodyKey: tutorial.villager.assign_again.body
+  popupImage: {fileID: 21300000, guid: 0d04be6bbaced6f4db53dc9ddbd268eb, type: 3}
   bubbleTextKey: tutorial.villager.assign_again.bubble
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
   pauseGameDuringStep: 0
+  resumeGameAfterPopup: 0
+  restrictActions: 1
+  allowedActions: 563
+  minimumTowerCountBeforeEndDay: 0
+  requiredTowerBeforeEndDay: {fileID: 0}
   freeTowerPlacement: 0
   restrictTowerPanelTo: {fileID: 0}
   freeManagementCost: 0
@@ -27,10 +32,12 @@ MonoBehaviour:
   villagerCap: 0
   upgradeAllowList: []
   completion:
-    rid: 3470829977900417136
+    rid: 3470830054771785827
   references:
     version: 2
     RefIds:
-    - rid: 3470829977900417136
-      type: {class: AllVillagersAssignedCondition, ns: , asm: Assembly-CSharp}
-      data: 
+    - rid: 3470830054771785827
+      type: {class: ResidentDragAssignedCondition, ns: , asm: Assembly-CSharp}
+      data:
+        requiredCount: 1
+        requireAllVillagersAssigned: 1

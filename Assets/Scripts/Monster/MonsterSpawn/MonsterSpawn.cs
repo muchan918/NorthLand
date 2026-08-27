@@ -174,7 +174,10 @@ public class MonsterSpawn : MonoBehaviour
 
         if (gateInstance == null)
         {
-            gateInstance = Instantiate(gatePrefab);
+            if (PlayerBase.Instance != null)
+                gateInstance = PlayerBase.Instance.gameObject;
+            else
+                gateInstance = Instantiate(gatePrefab);
         }
 
         Vector3 worldOffset = gateCoordinateRoot != null? gateCoordinateRoot.TransformVector(gatePositionOffset): gatePositionOffset;
@@ -536,14 +539,19 @@ public class MonsterSpawn : MonoBehaviour
         // ⚠ **이 오작동은 아무 신호도 내지 않는다.** `WaveHpScale`의 LogError는 배율이 0 이하일 때만 나는데
         //   여기서 나오는 값은 정상 범위인 1.0이다. 증상이 "보스가 부르는 잡몹이 좀 약하다"뿐이라
         //   원인에서 멀다 — 그래서 값이 맞는 경로가 아니라 **읽는 출처**를 고정한다.
-        if (!enemy.IsBoss)
-        {
-            DayNightManager dayNight = DayNightManager.Instance;
-            int wave = dayNight != null ? dayNight.CurrentWave : currentRound;
+        DayNightManager dayNight = DayNightManager.Instance;
+        int wave = dayNight != null ? dayNight.CurrentWave : currentRound;
+        float hpScale = enemy.IsBoss ? 1f : WaveHpScale(wave);
 
-            enemy.ApplyWaveHpScale(WaveHpScale(wave));
-            enemy.ApplyWaveMoveSpeedScale(WaveMoveSpeedScale(wave));
+        // 전체 튜토리얼 Run에서만 등장하는 모든 적(보스 포함)의 체력을 50%로 낮춘다.
+        // Provider의 forceTutorialWaves는 웨이브 구성 전용 테스트라 이 밸런스를 적용하지 않는다.
+        if (TutorialMode.IsActive)
+        {
+            hpScale *= TutorialMode.EnemyHpScale;
         }
+
+        enemy.ApplyWaveHpScale(hpScale);
+        enemy.ApplyWaveMoveSpeedScale(WaveMoveSpeedScale(wave));
 
         // Enemy가 IRouteMovementAgent.RouteCompleted를 구독하여
         // 경로 끝 도달 시 몬스터 루트 오브젝트를 제거한다.

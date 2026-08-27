@@ -243,6 +243,38 @@ MonoBehaviour:
     m_Key: tutorial.relay.body
     m_Metadata:
       m_Items: []
+  - m_Id: 606019064860672
+    m_Key: tutorial.buff_tile.intro.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 606020335734784
+    m_Key: tutorial.buff_tile.intro.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 615170927136768
+    m_Key: tutorial.undo.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 615170964885504
+    m_Key: tutorial.undo.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 759725932580864
+    m_Key: tutorial.villager.assign_again.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 759725970329600
+    m_Key: tutorial.villager.assign_again.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 951498059452416
+    m_Key: tutorial.next_day.bubble
+    m_Metadata:
+      m_Items: []
+  - m_Id: 951498101395456
+    m_Key: tutorial.complete.bubble
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

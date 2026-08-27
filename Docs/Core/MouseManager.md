@@ -4,14 +4,14 @@
 
 - 관련 이슈: #9(원안) · #38 호버 툴팁 · #67 호버 훅 · #103 스킬 조준 · #183 그룹 선택 · #261 드래그 선택
 - 구현 위치: `Assets/Scripts/GameManager/MouseManager/`
-- 상세를 위임하는 문서: 그룹 선택의 도메인 규칙은 [TowerMerge.md](TowerMerge.md) §7, 하이라이트 연출은 [InteractionOutline.md](InteractionOutline.md), 타워 배치는 [TowerPlacement.md](TowerPlacement.md).
+- 상세를 위임하는 문서: 그룹 선택의 도메인 규칙은 [TowerMerge.md](TowerMerge.md) §7, 하이라이트 연출은 [InteractionOutline.md](InteractionOutline.md), 타워 배치는 [TowerPlacement.md](TowerPlacement.md), 커서 그림은 [CursorFeedback.md](CursorFeedback.md).
 
 ---
 
 ## 1. 원칙
 
 1. **포인터 입력은 여기서만 읽는다.** 다른 코드는 `Mouse.current`를 직접 폴링하지 않는다. **키보드 단축키는 형제 매니저 `KeyboardManager`가 갖는다**(#444, `Assets/Scripts/GameManager/KeyboardManager/`) — 단축키를 원하는 쪽이 `Bind(Key, KeyModifier, handler)`로 등록하므로 그쪽도 도메인을 모른다(원칙 2를 공유한다). 예외 둘: **카메라 조작**(WASD처럼 매 프레임 연속으로 읽는 입력이라 "눌린 순간 한 번" 디스패치 모델에 맞지 않는다)과 **이 매니저가 읽는 수식키(Shift)** — 수식키는 단축키가 아니라 *클릭의 해석을 바꾸는 값*이라 클릭을 읽는 곳에서 함께 읽어야 한다.
-2. **매니저는 도메인을 모른다.** "타워인지 주민인지"를 묻지 않고, 인터페이스(`ISelectable`/`IGroupSelectable`/`IHoverable`) 유무만 본다. 해석은 통지를 받는 쪽이 한다.
+2. **매니저는 도메인을 모른다.** "타워인지 주민인지"를 묻지 않고, 인터페이스(`ISelectable`/`IGroupSelectable`/`IHoverable`/`ITutorialSelectionGate`) 유무만 본다. 해석은 통지를 받는 쪽이 한다.
 3. **상태를 소유하지 않는다.** 단일 선택 1개를 빼면 선택 집합·하이라이트·패널은 전부 구독자 소유다.
 
 > 이 세 줄이 확장 규칙이다. 새 타입을 마우스 상호작용에 편입시키는 비용은 **인터페이스 구현 하나**여야 하고, MouseManager는 수정되지 않아야 한다.
@@ -49,6 +49,13 @@
 > **`UnitDrag`가 같은 이음매를 쓰는 이유는 더 무겁다.** 들린 주민은 화면에서 감춰져 있으므로
 > (`Resident.md` §8), 종료 통지가 새면 패널이 멈추는 정도가 아니라 **그 주민이 영영 돌아오지 않는다.**
 
+- **배치·조준 중 "커서가 대상 표면 위인가"도 통지된다** — `OnTargetSurfaceChanged`(현재 값은 `IsOverTargetSurface`). 판정은 두 모드가 다르지만(배치는 `_placementMask` 히트, 조준은 **그 위의 전투 타일**까지) 같은 이름으로 나가는 이유는 소비처가 알고 싶은 것이 하나이기 때문이다 — **고스트·인디케이터가 지금 그려지고 있는가**. 커서 그림이 이 값으로 「숨김」과 「안 됨」을 가른다([CursorFeedback.md](CursorFeedback.md) §2). ⚠ **"놓을 수 있는가"가 아니다** — `CanPlaceAt`이 거절하는 칸에서도 고스트는 그려지므로 참이다. 배치·조준이 아닌 모드에서는 항상 false이고, 내리는 곳은 `SetMode`다 — 각 `Cancel`에 흩어 두면 하나가 빠져 커서가 숨은 채 남는다(위 「단일 창구」와 같은 이유).
+  - ⚠ **「대상 표면」을 정하는 것은 매니저가 든 전역 마스크 하나(`_placementMask`)다 — 요청별이 아니다.** 정본 씬의 값은 레이어 3 `Tile` 하나뿐이라 실질적으로 **전투 타일 전용**이고, 경영 지면은 콜라이더가 없으며(WL-210) Terrain도 Default 레이어라(WL-047) 이 마스크에 걸리지 않는다. 지금은 그 우연이 "경영 공간 위 = 「안 됨」"을 공짜로 만들어 주지만, 경영 공간 배치(GDD §5.2 건물 건설 #27)가 같은 마스크로 열리면 표면 히트가 아예 없어 **배치 내내 이 값이 false**가 되고 커서가 「안 됨」에 고정된다. 마스크 소유를 요청별로 옮길지는 그 착수 PR에서 정한다(**WL-215**).
+  - ⚠ **범위는 배치·조준 두 모드뿐이다.** 이름이 범용이라 유닛 끌기의 드롭 판정까지 덮는 것처럼 읽히지만 아니다. 세 번째 모드에 주려면 **`SetMode`의 내리는 조건을 함께 늘린다** — 거기를 빼먹고 커서 쪽에만 갈래를 추가하면 그 모드는 값을 내려 줄 사람이 없어 **모든 프레임이 「안 됨」**이 된다.
+  - **불변식: 이 값 == 「고스트가 지금 켜져 있는가」.** 커서를 숨겨도 되는 근거가 전부 거기서 나오므로 둘을 따로 움직이지 않는다 — `SetPlacementPreviewVisible`/`SetSkillIndicatorVisible`이 `SetActive`와 통지를 한 자리에서 함께 하고, `BeginPlacement`/`BeginSkillTargeting`이 고스트를 **비활성으로 만들어 두는** 것도 진입 프레임에 둘이 같은 말을 하게 하려는 것이다.
+  - ⚠ **`PlacementRequest.OnSurfaceHoverChanged`와 같은 사실을 나르지만 역할이 다르다.** 이쪽은 전역 통지(소비처=커서)고 그쪽은 **그 요청의** 미리보기 전용이다. 둘 다 `SetPlacementPreviewVisible` 한 자리에서 나가며 **이 이벤트가 먼저**다(그쪽은 "상태가 바뀔 때만"이라 조기 반환에 걸리는데 이쪽은 그 앞이라 걸리지 않는다). 조준 쪽에는 요청 콜백이 없어 **배치만 두 채널**이다. 순서를 뒤집지 말 것.
+- 현재 모드는 `CurrentMode`로 읽고, 전환은 `OnModeChanged`로 **1회씩** 통지된다. 같은 모드로의 재진입은 통지하지 않는다 — `CancelInteractions`처럼 Cancel을 연달아 부르는 경로가 `SetMode(Idle)`을 두 번 때리기 때문이다. 이벤트는 **변화만** 싣으므로 구독자는 붙는 시점에 `CurrentMode`를 직접 읽어 초기 상태를 맞춘다. 첫 소비처는 커서 그림([CursorFeedback.md](CursorFeedback.md) §2).
+
 ## 4. 선택 모델
 
 선택에는 **단일 선택**과 **그룹 선택** 두 층이 있고, 서로 다른 통지를 쓴다.
@@ -57,9 +64,12 @@
 |---|---|---|
 | 단일 선택 | `ISelectable` | 정보 패널 · 사거리 원 등 "하나를 들여다보기" |
 | 그룹 선택 | `IGroupSelectable` | 여러 개를 재료·부대로 묶기(현재 타워 합성) |
+| 튜토리얼 선택 분류 | `ITutorialSelectionGate` | 제한 중 이 대상 선택에 필요한 `TutorialAction` 공개 |
 
 - **집합은 MouseManager가 들지 않는다.** 매니저는 "무엇이 눌렸다/사각형에 걸렸다"만 통지하고, 순서 있는 집합은 도메인 코디네이터가 소유한다(타워 = `TowerMergeCoordinator`).
 - 그래서 마커만 붙이면 새 타입이 그룹 선택에 편입된다. **주민 시스템이 들어와도 MouseManager는 수정되지 않는다.**
+- 튜토리얼 제한 중에는 선택 대상의 `ITutorialSelectionGate.SelectionAction`을 게이트에 질의한다. 매니저에
+  구체 타입 분기를 추가하지 않는다. 인터페이스가 없는 새 선택 대상은 제한 중 안전하게 차단된다.
 
 ### 4.1 입력 규칙
 
@@ -74,6 +84,8 @@
 | 우클릭 | 선택 해제가 **아니다** — 카메라 팬·배치/조준 취소 전용 |
 
 > Shift가 클릭에서는 **토글**, 드래그에서는 **합집합**인 것은 의도된 비대칭이다(RTS 관례). 드래그로 "빼기"는 지원하지 않는다 — 필요해지면 다른 키에 배정한다.
+
+- 좌버튼의 **눌림 상태 자체**는 위 표와 별개로 `OnPointerPressedChanged`가 통지한다(클릭 확정과 다른 신호 — "누르고 있는 동안"에 반응하는 연출용). **UI 위·모드를 가리지 않는 순수 입력 통지**이며, 판정은 `wasPressedThisFrame`이 아니라 **`isPressed` 변화**다. 포커스 상실로 뗀 프레임이 유실돼도 다음 프레임에 스스로 복구되기 때문이며, `BoxSelect`가 `isPressed`를 쓰는 이유와 같다(§5.2, WL-143).
 
 ## 5. 드래그 사각형 선택 (#261)
 
@@ -205,7 +217,7 @@
 | 파일 | 역할 |
 |---|---|
 | `MouseManager.cs` | 중앙 매니저(싱글톤). 모드 관리·레이캐스트·통지 |
-| `ISelectable.cs` / `IGroupSelectable.cs` / `IHoverable.cs` | 단일 선택 / 그룹 선택 / 호버 자격 |
+| `ISelectable.cs` / `IGroupSelectable.cs` / `IHoverable.cs` | 단일 선택 / 그룹 선택 / 호버 자격. `ISelectable.cs`에는 제한 중 필요한 선택 행동을 공개하는 `ITutorialSelectionGate`도 있다 |
 | `IDragHandle.cs` | **끌 수 있다**는 마커(§5.4). 멤버 없음 — 사각형/유닛 끌기를 가르는 유일한 기준 |
 | `GroupSelectableRegistry.cs` | 사각형 판정용 후보 목록(§5.3). 마커가 스스로 등록/해제 |
 | `ResidentSelection/` | 주민 선택·끌기 해석 — `Docs/ManagementArea/Resident.md` §11.12 · §11.15 |
@@ -214,6 +226,7 @@
 | `TowerInfoUI.cs` | 타워 정보 패널(임시 싱글톤, UIManager 도입 시 흡수) |
 | `TowerPlacement/` | 타워 배치·합성 — [TowerPlacement.md](TowerPlacement.md), [TowerMerge.md](TowerMerge.md) |
 | `Highlight/` | 아웃라인 구동 — [InteractionOutline.md](InteractionOutline.md) |
+| `Cursor/` | 상태별 커서 그림 구동 — [CursorFeedback.md](CursorFeedback.md) |
 | `../MouseHover/` | 툴팁 뷰와 `IHoverable` 어댑터 |
 | `Helper/` | 검증용 테스트 컴포넌트(실물로 교체 예정) |
 
