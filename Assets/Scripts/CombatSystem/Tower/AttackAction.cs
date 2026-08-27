@@ -284,17 +284,22 @@ namespace NorthLand.Combat
             // ⚠ 다만 **`Impacted`가 곧 "맞았다"가 아니다.** `BoomerangFlight`는 매 프레임 접촉만 보고
             // `HitAndContinue`를 내므로 적 하나를 스쳐 지나가는 동안 접촉 프레임 수만큼 통지가 온다 —
             // 피해는 `LegHitSet`이 구간당 1회로 걸러 정상인데 통지는 안 걸러진다. 그대로 구독하면
-            // **부메랑만 착탄 이펙트가 대여섯 배로 쏟아진다.** 그래서 피격 수가 0인 통지는 버린다.
-            // 이러면 "적 하나당 구간당 한 번"이 되고, 대상이 이미 죽은 뒤 도착한 탄도 함께 걸러진다.
+            // **부메랑만 착탄 이펙트가 대여섯 배로 쏟아진다.**
+            //
+            // 그래서 거르는 기준이 "맞았는가"가 아니라 **"이미 연출한 접촉의 재방문인가"**다.
+            // ⚠ 이 둘을 헷갈리면 안 된다 — "안 맞았으면 안 터뜨린다"로 만들면 **빗나간 포격이 조용해진다.**
+            // `BallisticFlight`는 착탄점을 발사 순간에 고정해 "적 무리의 길목을 예측해 쏜다"가 성립하는
+            // 방식이라 빗나감이 설계다(그쪽 주석). `incendiary_cannon_tower`가 그 조합인데, 빗나갔을 때
+            // 폭발이 없으면 착탄 구역(불바닥)만 갑자기 생겨 예측이 짧았는지 길었는지 읽을 수 없다.
             //
             // 지역 변수로 복사해 넘기는 이유는 람다가 `this`(액션)를 붙들지 않게 하기 위해서다 —
             // 구역 쪽이 `spawned` 플래그를 지역 변수로 두는 것과 같은 이유고, 탄이 나는 동안
             // 액션이 Dispose되어도 이 연출은 자기가 든 값으로 끝까지 간다.
             TowerAsset.ImpactVfxFields vfx = impactVfx;
             if (vfx != null && vfx.IsAuthored)
-                projectile.Impacted += (impactPos, victims) =>
+                projectile.Impacted += (impactPos, blocked) =>
                 {
-                    if (victims > 0) SpawnImpactVfx(vfx, impactPos);
+                    if (blocked == 0) SpawnImpactVfx(vfx, impactPos);
                 };
 
             // 데미지 소스는 Owner다 — IAttacker 계약을 가진 쪽이 타워이므로 DamageInfo가 타워를 가리킨다.
@@ -314,9 +319,9 @@ namespace NorthLand.Combat
             // 펠릿마다 별도 지역 변수라 산탄에서도 발마다 하나씩 생긴다.
             bool spawned = false;
 
-            // 피격 수(두 번째 인자)를 **의도적으로 무시한다.** 구역은 "맞은 자리"가 아니라 "떨어진 자리"에
-            // 생기는 것이라, 빗나간 탄이 남긴 장판도 뒤따라오는 적을 태우는 것이 맞다 —
-            // 연출(위 착탄 이펙트)이 0을 거르는 것과 갈리는 지점이고, 기존 거동이기도 하다.
+            // 두 번째 인자를 **의도적으로 무시한다.** 구역은 "맞은 자리"가 아니라 "떨어진 자리"에 생기는
+            // 것이라 빗나간 탄이 남긴 장판도 뒤따라오는 적을 태우는 것이 맞고, 재방문이든 아니든
+            // 아래 `spawned` 플래그가 이미 1발 1개로 묶고 있어 중복 걱정도 없다(기존 거동).
             projectile.Impacted += (impactPos, _) =>
             {
                 if (spawned) return;
