@@ -4,7 +4,7 @@ using UnityEngine;
 /// 이쪽은 '호버 시 이름·역할·설명을 요약해 보여주는' 툴팁만 담당한다.
 /// muchan 코드(BuildingAsset/BuildingData/BuildingType)는 읽기만 하고 수정하지 않는다.
 [RequireComponent(typeof(Collider))]
-public class BuildingTooltipSource : MonoBehaviour, IHoverable
+public class BuildingTooltipSource : MonoBehaviour, IHoverable, ICursorHint
 {
     [SerializeField] BuildingAsset _buildingAsset;
     [SerializeField] BuildingTooltipPalette _palette;
@@ -50,6 +50,10 @@ public class BuildingTooltipSource : MonoBehaviour, IHoverable
     // 건물 하이라이트는 이번 범위 밖 — 훅만 만족(#67).
     public void OnHoverEnter() { }
     public void OnHoverExit() { }
+
+    // 건물 위에서의 커서(현재 문). 그림 교체는 CursorController가 하고, 여기서는 종류만 답한다.
+    // 이 프로퍼티가 툴팁 공급자와 같은 컴포넌트에 있는 것이 중요하다 — ICursorHint 주석 참고.
+    public CursorKind HoverCursor => CursorKind.Building;
 
     private void ResolveColors(out Color header, out Color background)
     {

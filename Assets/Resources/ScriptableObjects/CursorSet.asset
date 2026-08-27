@@ -1,0 +1,87 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab93d1562380ad149b0de87cfc8103b9, type: 3}
+  m_Name: CursorSet
+  m_EditorClassIdentifier: Assembly-CSharp::CursorSet
+  _cursorMode: 0
+  _default:
+    Hidden: 0
+    Normal:
+      Texture: {fileID: 2800000, guid: a780e37202ab6134cbc8463a83faefcb, type: 3}
+      Hotspot: {x: 14, y: 5}
+    Pressed:
+      Texture: {fileID: 2800000, guid: 57aa0cc0f61439a438cf8b4bed432725, type: 3}
+      Hotspot: {x: 14, y: 5}
+  _uiButton:
+    Hidden: 0
+    Normal:
+      Texture: {fileID: 2800000, guid: fcb68a6328435d54a95a9dab63b748aa, type: 3}
+      Hotspot: {x: 13, y: 2}
+    Pressed:
+      Texture: {fileID: 0}
+      Hotspot: {x: 0, y: 0}
+  _cameraPan:
+    Hidden: 0
+    Normal:
+      Texture: {fileID: 2800000, guid: 869fed88d54c7354db04933488cbc269, type: 3}
+      Hotspot: {x: 13, y: 2}
+    Pressed:
+      Texture: {fileID: 0}
+      Hotspot: {x: 0, y: 0}
+  _building:
+    Hidden: 0
+    Normal:
+      Texture: {fileID: 2800000, guid: a697df9bb31b25e439557114e6af5ee3, type: 3}
+      Hotspot: {x: 16, y: 16}
+    Pressed:
+      Texture: {fileID: 2800000, guid: 9a334f418cb909d49b73d6642e08837f, type: 3}
+      Hotspot: {x: 16, y: 16}
+  _tower:
+    Hidden: 0
+    Normal:
+      Texture: {fileID: 2800000, guid: cdb4377505a88844b84d2aea3783d7ba, type: 3}
+      Hotspot: {x: 12, y: 12}
+    Pressed:
+      Texture: {fileID: 0}
+      Hotspot: {x: 0, y: 0}
+  _resident:
+    Hidden: 0
+    Normal:
+      Texture: {fileID: 2800000, guid: fcb68a6328435d54a95a9dab63b748aa, type: 3}
+      Hotspot: {x: 13, y: 2}
+    Pressed:
+      Texture: {fileID: 0}
+      Hotspot: {x: 0, y: 0}
+  _residentDrag:
+    Hidden: 0
+    Normal:
+      Texture: {fileID: 2800000, guid: 95ddcdf9f7ada9241b6e828672a0b419, type: 3}
+      Hotspot: {x: 5, y: 15}
+    Pressed:
+      Texture: {fileID: 0}
+      Hotspot: {x: 0, y: 0}
+  _placing:
+    Hidden: 0
+    Normal:
+      Texture: {fileID: 2800000, guid: 8a1b6f2805d75eb4f99e95e1c453eb48, type: 3}
+      Hotspot: {x: 0, y: 0}
+    Pressed:
+      Texture: {fileID: 0}
+      Hotspot: {x: 0, y: 0}
+  _skillAiming:
+    Hidden: 0
+    Normal:
+      Texture: {fileID: 0}
+      Hotspot: {x: 0, y: 0}
+    Pressed:
+      Texture: {fileID: 0}
+      Hotspot: {x: 0, y: 0}

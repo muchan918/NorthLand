@@ -15,7 +15,7 @@ using NorthLand.Combat;
 /// 나중에 타워 툴팁을 추가할 때 별도 컴포넌트를 만들면 툴팁이나 아웃라인 중 하나가 조용히 죽는다
 /// → 반드시 이 컴포넌트에 합칠 것. 마커는 콜라이더와 같은 GO(타워 루트)에 유지해야 한다.
 [DisallowMultipleComponent]
-public class TowerGroupSelectable : MonoBehaviour, IGroupSelectable, IHoverable
+public class TowerGroupSelectable : MonoBehaviour, IGroupSelectable, IHoverable, ICursorHint
 {
     private Tower _tower;
 
@@ -42,6 +42,10 @@ public class TowerGroupSelectable : MonoBehaviour, IGroupSelectable, IHoverable
     public TooltipContent? GetTooltipContent() => null;
     public void OnHoverEnter() { }
     public void OnHoverExit() { }
+
+    // 타워 위에서의 커서(현재 돋보기). 위 ⚠ 경고와 같은 이유로 이 컴포넌트에 함께 둔다 —
+    // 별도 컴포넌트로 빼면 GameObject당 하나만 잡히는 규칙에 걸려 조용히 죽는다.
+    public CursorKind HoverCursor => CursorKind.Tower;
 
     private OutlineHighlight Highlight => OutlineHighlight.GetOrAdd(gameObject);
 }
