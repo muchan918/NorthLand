@@ -27,7 +27,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 1620480000
-    m_Localized: Drag with the right mouse button to move the camera.
+    m_Localized: Hold the right mouse button and drag to move the camera.
     m_Metadata:
       m_Items: []
   - m_Id: 2090242048
@@ -39,7 +39,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2094436353
-    m_Localized: Move the camera using the WASD keys.
+    m_Localized: Move the camera with the WASD keys.
     m_Metadata:
       m_Items: []
   - m_Id: 2534838272
@@ -71,7 +71,10 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 3436613632
-    m_Localized: Click an empty tile in the battlefield to place the tower.
+    m_Localized: 'Click an empty tile in the battlefield to place the tower.
+
+      Placing
+      it on a buff tile grants the displayed effect.'
     m_Metadata:
       m_Items: []
   - m_Id: 3877015552
@@ -81,12 +84,13 @@ MonoBehaviour:
   - m_Id: 3877015553
     m_Localized: 'Choose a tower to place from the tower panel.
 
+
       Each tower
       has a different placement cost and attack style.'
     m_Metadata:
       m_Items: []
   - m_Id: 3877015554
-    m_Localized: Choose a tower from the tower panel.
+    m_Localized: Choose one tower from the tower panel.
     m_Metadata:
       m_Items: []
   - m_Id: 4334194688
@@ -104,7 +108,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 4334194690
-    m_Localized: Place at least one tower, then press End Day to begin the night.
+    m_Localized: Place at least one tower, then press Next to begin the night.
     m_Metadata:
       m_Items: []
   - m_Id: 5269524480
@@ -113,6 +117,7 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 5269524481
     m_Localized: 'At night, you can attack enemies directly with skills.
+
 
       Select
       a skill, then click a target location in the battlefield to cast it there.'
@@ -123,10 +128,9 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 6699782144
-    m_Localized: 'Upgrade the Biscuit House, Choco Tree, and Sugar Farm once each.
-
-      If
-      the panel closes, select the building or its shortcut again.'
+    m_Localized: "Upgrade the Biscuit House, Choco Tree, and Sugar Farm once each.\nYou
+      can also move between them with the 1\u20136 number keys.\nUpgrades are free
+      during the tutorial."
     m_Metadata:
       m_Items: []
   - m_Id: 7161155584
@@ -134,14 +138,14 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 7161155585
-    m_Localized: 'Click a building shortcut beside the minimap to move to that building
-      and open its information panel.
+    m_Localized: 'Click a building shortcut beside the minimap at the top left to
+      move to that building and open its information panel.
 
-      You can also open the information panel
-      by clicking the building directly.
+      You can also open
+      the panel by clicking the building directly.
 
-      The panel shows the building''s level
-      and upgrade cost.'
+      The panel shows the building''s
+      level and upgrade cost.'
     m_Metadata:
       m_Items: []
   - m_Id: 7161155586
@@ -153,17 +157,18 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 7609946113
-    m_Localized: 'Combine multiple towers of the same type to create a stronger tower.
+    m_Localized: 'Certain towers can be fused into stronger towers.
+
 
       Select
-      the material towers together to see the towers you can create.
-
-      Archer
-      Towers are free to build for this tutorial.'
+      the towers you want to use as materials to see a list of towers you can create.'
     m_Metadata:
       m_Items: []
   - m_Id: 7614140416
-    m_Localized: Place additional Archer Towers until you have three on the battlefield.
+    m_Localized: 'Place more Archer Towers until you have three on the battlefield.
+
+      Archer
+      Towers are free to place during the tutorial.'
     m_Metadata:
       m_Items: []
   - m_Id: 8046153728
@@ -173,7 +178,7 @@ MonoBehaviour:
       also select multiple towers with Shift+Click.
 
       Choose a tower from the
-      fusion list, then click where you want to place it.'
+      fusion list, then place it.'
     m_Metadata:
       m_Items: []
   - m_Id: 8494944256
@@ -191,14 +196,14 @@ MonoBehaviour:
     m_Localized: 'Spend resources at the Castle to increase the village population.
 
       More
-      villagers can be assigned to production buildings, increasing your daily output.
-
-      This
-      upgrade is free for this tutorial.'
+      villagers can be assigned to production buildings, increasing your daily output.'
     m_Metadata:
       m_Items: []
   - m_Id: 8964706306
-    m_Localized: Select the Castle and add one villager.
+    m_Localized: 'Select the Castle and add one villager.
+
+      It is free during
+      the tutorial.'
     m_Metadata:
       m_Items: []
   - m_Id: 9430274048
@@ -206,20 +211,23 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 9430274049
-    m_Localized: 'Spend Mana Stones at the Magic Laboratory to upgrade your skills.
+    m_Localized: 'Use Star Candy at the Magic Laboratory to upgrade your skills.
 
-      Upgrading
-      Shock increases its damage and area while reducing its recharge time.
+      Upgrades
+      increase a skill''s damage and area while reducing its cooldown.
 
       You
-      receive Mana Stones whenever you clear a night wave.
+      receive 10 Star Candy each time you clear a night wave.
 
-      This upgrade is
-      free for this tutorial.'
+      For practice,
+      this upgrade is free during the tutorial.'
     m_Metadata:
       m_Items: []
   - m_Id: 9430274050
-    m_Localized: Select the Magic Laboratory and upgrade the skill once.
+    m_Localized: 'Select the Magic Laboratory and upgrade a skill once.
+
+      It
+      is free during the tutorial.'
     m_Metadata:
       m_Items: []
   - m_Id: 9879064576
@@ -227,15 +235,15 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 9879064577
-    m_Localized: 'Exchange Mana Stones for other resources at the Alchemist''s House.
+    m_Localized: 'At the Alchemist''s House, you can exchange Star Candy for other
+      resources.
 
-      You
-      receive Mana Stones whenever you clear a night wave, so use them to replenish
-      resources you need.'
+
+      Use Star Candy to replenish resources you are short on.'
     m_Metadata:
       m_Items: []
   - m_Id: 9879064578
-    m_Localized: Exchange Mana Stones for any resource at the Alchemist's House.
+    m_Localized: Exchange Star Candy for any resource at the Alchemist's House.
     m_Metadata:
       m_Items: []
   - m_Id: 10348826624
@@ -249,15 +257,15 @@ MonoBehaviour:
       buildings and the Magic Laboratory cannot be upgraded beyond the level allowed
       by the Castle.
 
-      Castle upgrades also increase the amount of resources
-      received from the Alchemist''s House.
-
-      This upgrade is free for this
-      tutorial.'
+      It also increases the amount of resources received from
+      exchanges at the Alchemist''s House.'
     m_Metadata:
       m_Items: []
   - m_Id: 10348826626
-    m_Localized: Select the Castle and upgrade it to Lv. 2.
+    m_Localized: 'Select the Castle and upgrade it to Lv. 2.
+
+      It is free during
+      the tutorial.'
     m_Metadata:
       m_Items: []
   - m_Id: 10818588672
@@ -265,17 +273,15 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 10818588673
-    m_Localized: 'It is time to see your upgrades in action.
+    m_Localized: 'That concludes the instructions.
 
-      End the day to
-      begin the night, and your towers will automatically attack enemies.
 
-      Your
-      skill can also be used with its upgraded power.'
+      Clear the next wave to
+      finish the tutorial.'
     m_Metadata:
       m_Items: []
   - m_Id: 10818588674
-    m_Localized: Press End Day to begin the night.
+    m_Localized: Press Next to begin the night.
     m_Metadata:
       m_Items: []
   - m_Id: 11737141248
@@ -332,7 +338,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 606020335734784
-    m_Localized: 'When you pick up a tower, effect icons appear on buff tiles.
+    m_Localized: 'Effect icons appear on buff tiles while you are placing a tower.
+
 
       Place
       a tower on a buff tile to receive its stat bonus.'
@@ -351,10 +358,25 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 759725970329600
-    m_Localized: 'You can drag villagers directly to production buildings.
+    m_Localized: 'Zoom in on the village to find the marshmallow villagers.
 
-      Drag
-      a villager onto the production building where you want to assign them.'
+      You
+      can drag a villager directly onto a production building.
+
+      Drag a villager
+      to the production building where you want to assign them.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 951498059452416
+    m_Localized: 'Clear the wave.
+
+      You cannot lose during the tutorial.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 951498101395456
+    m_Localized: 'Tutorial complete.
+
+      The main game will begin shortly.'
     m_Metadata:
       m_Items: []
   references:

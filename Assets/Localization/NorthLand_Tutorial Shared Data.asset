@@ -267,6 +267,14 @@ MonoBehaviour:
     m_Key: tutorial.villager.assign_again.body
     m_Metadata:
       m_Items: []
+  - m_Id: 951498059452416
+    m_Key: tutorial.next_day.bubble
+    m_Metadata:
+      m_Items: []
+  - m_Id: 951498101395456
+    m_Key: tutorial.complete.bubble
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

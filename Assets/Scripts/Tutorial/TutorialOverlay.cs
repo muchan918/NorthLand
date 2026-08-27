@@ -39,6 +39,9 @@ public class TutorialOverlay : MonoBehaviour
     [SerializeField]
     private TMP_Text bubbleText;
 
+    [SerializeField]
+    private TutorialBubbleLayout bubbleLayout;
+
     [Header("딤 — 강조 대상만 클릭 가능하게 만든다. 비워두면 딤 기능이 꺼진다(선택)")]
     [SerializeField]
     private RaycastHoleTest dim;
@@ -115,6 +118,7 @@ public class TutorialOverlay : MonoBehaviour
         if (popupInputBlocker == null) { LogMissing(nameof(popupInputBlocker)); ok = false; }
         if (bubbleRoot == null) { LogMissing(nameof(bubbleRoot)); ok = false; }
         if (bubbleText == null) { LogMissing(nameof(bubbleText)); ok = false; }
+        if (bubbleLayout == null) { LogMissing(nameof(bubbleLayout)); ok = false; }
         return ok;
     }
 
@@ -146,6 +150,7 @@ public class TutorialOverlay : MonoBehaviour
     {
         bubbleText.text = text;
         bubbleRoot.SetActive(true);
+        bubbleLayout.Rebuild();
     }
 
     public void HideBubble()

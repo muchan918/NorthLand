@@ -1,6 +1,6 @@
 # 튜토리얼 — 구조와 단계 추가 절차
 
-> **기준 코드: #488(24단계 흐름·행동 게이트 구현) 시점.** 이 문서는 "어떻게 단계를 붙이는가"와
+> **기준 코드: #490(25단계 흐름·안내 UI 보강) 시점.** 이 문서는 "어떻게 단계를 붙이는가"와
 > "왜 이 구조인가"를 함께 다룬다. 실제 안내 문구의 정본은 `NorthLand_Tutorial` String Table이다.
 > 관련: [UIZOrder.md](UIZOrder.md)(캔버스 레이어) · [SceneWorkflow.md](SceneWorkflow.md)(씬 복사 규약) ·
 > [DayNightManager.md](DayNightManager.md) · [MouseManager.md](MouseManager.md) ·
@@ -99,9 +99,10 @@ protected void Fire();
 | └ `PopupInputBlocker` | 화면 전체 투명 `Image`. 팝업이 떠 있는 동안 다른 Canvas의 클릭을 막는다 |
 | └ `Popup` | 안내 제목·본문·이미지·확인 버튼. 입력 차단은 별도 `PopupInputBlocker`가 담당한다 |
 | └ `Bubble` | `Raycast Target`을 **반드시 끈다**(자식 텍스트도). 안 끄면 말풍선 뒤 오브젝트가 클릭되지 않는다 |
+| 　└ `TutorialBubbleLayout` | 문장 길이에 맞춰 Bubble 크기를 1회 계산한다. 텍스트 안전 영역은 `BubbleText` RectTransform의 Anchor·`sizeDelta`가 정본이다 |
 | `TutorialController` | `Overlay` 슬롯 + 단계 리스트 + `startOnPlay` 스위치 + `Debug Mode`/`Debug Steps`([§2.4](#24-단계-하나만-떼어내-돌려보기)) |
 
-튜토리얼 시스템과 24개 단계는 `Assets/Prefabs/Tutorial/TutorialSystem.prefab`에 등록되어 정본
+튜토리얼 시스템과 25개 단계는 `Assets/Prefabs/Tutorial/TutorialSystem.prefab`에 등록되어 정본
 `Assets/Scenes/GameScene.unity`에서 사용된다. 작업용 복사본은
 `Assets/Personal/muchan/Scene/TutorialTest3.unity`이며, 이후 정본 씬 변경은
 [SceneWorkflow.md](SceneWorkflow.md) §4를 따른다.
@@ -222,9 +223,9 @@ public class TowerPlacedCondition : TutorialCondition
 
 > **행동 단계에 타이머 금지.** 플레이어가 무언가를 하기를 기다리는 단계의 완료 판정은 각 시스템이 이미 가진 이벤트를 구독해서 한다. 시간으로 넘기면 아무것도 하지 않아도 통과되므로 그 단계의 학습이 사라진다(#271 요구사항).
 >
-> **예외 — 연출 간격.** 팝업도 말풍선도 없이 다음 안내가 뜨는 시점만 미루는 단계는 `DelayCondition`으로 시간을 쓴다. 가르치는 것이 없으므로 위 근거가 적용되지 않는다. 예: 낮→밤 전환 직후 몬스터가 걸어 나오는 것을 잠깐 보여준 뒤 스킬 안내를 띄우는 간격.
+> **예외 — 연출 간격과 전환 통지.** 팝업도 말풍선도 없이 다음 안내가 뜨는 시점만 미루는 단계는 `DelayCondition`으로 시간을 쓴다. 가르치는 것이 없으므로 위 근거가 적용되지 않는다. 예: 낮→밤 전환 직후 몬스터가 걸어 나오는 것을 잠깐 보여준 뒤 스킬 안내를 띄우는 간격. 또한 튜토리얼 완료처럼 **플레이어 행동을 요구하지 않고** 다음 화면으로 자동 전환하는 통지 말풍선도 사용할 수 있다. 이때는 입력을 모두 제한하고 `ignoreGameSpeed`를 켜 실제 시간으로 센다.
 >
-> 판별 기준은 하나다 — **말풍선이 있으면 타이머를 쓰지 않는다.**
+> 판별 기준은 하나다 — **플레이어 행동을 요구하는 말풍선에는 타이머를 쓰지 않는다.**
 
 #### 아직 이벤트가 없는 것
 
@@ -271,7 +272,7 @@ if (targetBuilding != null && building != targetBuilding)
 `SkillUsedCondition`처럼 밤을 요구하는 조건(`SkillManager.CanCast`)은 충족되지 않는다 —
 필요한 앞 단계(예: `DayEnd`)를 `Debug Steps`에 같이 넣어야 한다.
 
-### 2.5 현재 24단계 정본
+### 2.5 현재 25단계 정본
 
 순서는 `TutorialSystem.prefab`의 `TutorialController.Steps` 등록 순서가 정본이다. 아래 표의 팝업 여부는
 제목·본문·이미지 중 하나라도 설정됐는지를 뜻한다. 문구 자체는 SO가 저장한 의미 기반 키를 통해
@@ -279,15 +280,15 @@ if (targetBuilding != null && building != targetBuilding)
 
 | # | 단계 에셋 | 팝업 | 완료 조건 | 핵심 단계 규칙 |
 |---:|---|:---:|---|---|
-| 1 | `CameraKeyboard` | O | `CameraMovedCondition` | 카메라 이동만 |
-| 2 | `CameraDrag` | O | `CameraMovedCondition` | 카메라 이동만 |
-| 3 | `CameraZoomOut` | O | `CameraMovedCondition` | 카메라 이동만 |
+| 1 | `CameraKeyboard` | X | `CameraMovedCondition` | 카메라 이동만 |
+| 2 | `CameraDrag` | X | `CameraMovedCondition` | 카메라 이동만 |
+| 3 | `CameraZoomOut` | X | `CameraMovedCondition` | 카메라 이동만 |
 | 4 | `VillagerAssign` | O | `AllVillagersAssignedCondition` | 카메라, 주민 +/- |
 | 5 | `TowerSelect` | O | `TowerSelectedCondition` | 카메라, 배치할 타워 선택 |
 | 6 | `BuffTileIntro` | O | 없음(확인 후 즉시 진행) | 팝업 외 입력 없음 |
 | 7 | `TowerPlace` | X | `TowerPlacedCondition` | 카메라, 타워 선택·배치 |
 | 8 | `UndoIntro` | O | 없음(확인 후 즉시 진행) | 팝업 외 입력 없음 |
-| 9 | `DayEnd` | O | `PhaseChangedCondition`(밤) | 카메라, 타워 선택·배치, Undo, 낮 종료; 타워 최소 1개 |
+| 9 | `DayEnd` | X | `PhaseChangedCondition`(밤) | 카메라, 타워 선택·배치, Undo, 낮 종료; 타워 최소 1개 |
 | 10 | `SkillIntro` | X | `DelayCondition` | 카메라, 스킬; 등장 연출 대기 |
 | 11 | `SkillUse` | O | `SkillUsedCondition` | 팝업 동안만 정지, 확인 후 카메라·스킬 허용 |
 | 12 | `NextDay` | X | `PhaseChangedCondition`(낮) | 카메라, 스킬 |
@@ -303,6 +304,7 @@ if (targetBuilding != null && building != targetBuilding)
 | 22 | `TowerMerge` | X | `TowerMergedCondition` | 설치 타워 다중 선택·합성·결과 배치 |
 | 23 | `CombatIntro` | O | `PhaseChangedCondition`(밤) | 카메라, 낮 종료 |
 | 24 | `WaveClear` | X | `PhaseChangedCondition`(낮) | 카메라, 스킬, 설치 타워 선택 |
+| 25 | `TutorialComplete` | X | `DelayCondition`(3초, 실제 시간) | 입력 없음; 완료 통지 후 일반 게임으로 전환 |
 
 `BuildingShortcutUsedCondition`은 바로가기 바의 `Focused`와 `MouseManager.OnPrimarySelect`를 함께
 구독한다. 따라서 14단계는 지정 건물 바로가기뿐 아니라 월드의 같은 건물을 직접 클릭해도 완료된다.
@@ -448,8 +450,8 @@ Unity는 **단일 필드**의 managed reference에는 타입 선택 UI를 그리
 
 1. `Assets/Personal/muchan/Scene/TutorialTest3.unity`를 연다.
 2. `TutorialController.startOnPlay`를 켜고 `Debug Mode`를 끈다.
-3. `TutorialSystem.prefab`의 `Steps`가 [§2.5](#25-현재-24단계-정본) 순서인지 확인한다.
-4. 1~24단계를 실제 행동으로 끝까지 진행한다.
+3. `TutorialSystem.prefab`의 `Steps`가 [§2.5](#25-현재-25단계-정본) 순서인지 확인한다.
+4. 1~25단계를 실제 행동으로 끝까지 진행한다.
 5. 마지막 웨이브 종료 후 완료 저장과 일반 `GameScene` 전환을 확인한다.
 6. 일반 Run에서 초기 자원·적 체력·스킬 쿨다운·무료 비용·행동 제한이 남지 않았는지 확인한다.
 

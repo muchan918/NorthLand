@@ -15,7 +15,7 @@ MonoBehaviour:
   popupTitleKey: 
   popupBodyKey: 
   popupImage: {fileID: 0}
-  bubbleTextKey: 
+  bubbleTextKey: tutorial.next_day.bubble
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
