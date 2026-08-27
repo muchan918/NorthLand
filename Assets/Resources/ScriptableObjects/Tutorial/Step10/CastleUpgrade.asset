@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
   popupTitleKey: tutorial.castle.upgrade.title
   popupBodyKey: tutorial.castle.upgrade.body
-  popupImage: {fileID: 0}
+  popupImage: {fileID: 21300000, guid: 0472df5b2f0fb0c4b9f3a0379f66abef, type: 3}
   bubbleTextKey: tutorial.castle.upgrade.bubble
   highlightMode: 0
   highlightAnchorId: 
