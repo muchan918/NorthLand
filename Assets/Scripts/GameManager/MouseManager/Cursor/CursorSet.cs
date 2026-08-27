@@ -181,6 +181,44 @@ public class CursorSet : ScriptableObject
         return texture != null;
     }
 
+    /// <summary>
+    /// <b>그림이 있어야 하는데 비어 있는 칸</b>을 한 줄로 모아 1회 경고한다. 컨트롤러가 뱅크를 집어온
+    /// 직후 한 번만 부른다.
+    ///
+    /// <b>왜 필요한가</b>: 아트는 별도 저장소(<c>Assets/Imported/@NorthLand/UI/Cursor/</c>)에 있고 본
+    /// 저장소의 diff에 보이지 않는다(WL-040). 미동기 환경에서는 <see cref="TryGet"/>이 조용히
+    /// <see cref="CursorKind.Default"/>로, 그마저 비면 OS 기본 커서로 내려가므로 <b>아무 신호도 남지 않는다</b>.
+    /// 특히 「안 됨」이 그렇게 사라지면 <see cref="CursorKind.Placing"/>·<see cref="CursorKind.SkillAiming"/>의
+    /// 숨김은 <b>아트 없이도 그대로 동작</b>하므로, 화면은 "타일 위에선 커서가 없고 밖에선 평범한 화살표"가
+    /// 된다 — <c>Hidden</c>을 처음 켰다가 되돌렸던 그 상태와 구분되지 않는다(<c>CursorFeedback.md</c>).
+    ///
+    /// ⚠ <b>비어 있는 것이 설계인 칸은 짖지 않는다.</b> 거르는 기준은 <see cref="Entry.Hidden"/>이다 —
+    /// 숨김 칸은 그림이 없는 것이 정상이고(그래서 배선 표에도 비어 있다), <see cref="Entry.Pressed"/>가
+    /// 빈 것도 "그 종류는 눌림 연출이 없다"는 뜻이라 정상이다. 그래서 보는 것은 <b>숨김이 아닌 칸의
+    /// <see cref="Art.Texture"/> 하나뿐</b>이며, 동기화된 환경에서는 한 줄도 나오지 않는다.
+    ///
+    /// 경고이지 에러가 아니다 — "아트가 없어도 게임은 굴러간다"는 원칙 3은 그대로다.
+    /// </summary>
+    public void WarnIfArtMissing()
+    {
+        string missing = null;
+        foreach (CursorKind kind in Enum.GetValues(typeof(CursorKind)))
+        {
+            Entry entry = Pick(kind);
+            if (entry.Hidden || entry.Normal.Texture != null) continue;
+
+            missing = missing == null ? kind.ToString() : $"{missing}, {kind}";
+        }
+
+        if (missing == null) return;
+
+        Debug.LogWarning(
+            $"[커서] 그림이 비어 있는 칸: {missing}. 그 상태에서는 Default 칸으로, 그마저 비면 OS 기본 " +
+            "커서로 조용히 폴백합니다 — 의도한 것이 아니라면 커서 아트가 있는 Imported 저장소" +
+            "(Assets/Imported/@NorthLand/UI/Cursor/)가 동기화됐는지 확인하세요.",
+            this);
+    }
+
     private Entry Pick(CursorKind kind) => kind switch
     {
         CursorKind.UIButton => _uiButton,

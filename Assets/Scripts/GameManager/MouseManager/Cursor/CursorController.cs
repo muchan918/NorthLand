@@ -483,6 +483,11 @@ public class CursorController : MonoBehaviour
 
             _setLoadAttempted = true;
             _set = Resources.Load<CursorSet>(k_SetPath);
+
+            // 뱅크를 집어온 **그 한 번**에 배선을 훑는다. 상태가 바뀔 때 검사하면 그 상태에 실제로 들어가야
+            // 드러나는데, 「안 됨」처럼 드물게 걸리는 칸이 비어 있는 것을 그때 알아채기는 늦다.
+            if (_set != null) _set.WarnIfArtMissing();
+
             return _set;
         }
     }

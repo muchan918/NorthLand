@@ -64,8 +64,21 @@ public class MouseManager : MonoBehaviour
     /// ⚠ **"놓을 수 있는가"가 아니다.** 점유·도로처럼 `CanPlaceAt`이 거절하는 칸에서도 고스트는 그려지므로
     ///   이 값은 참이다. 유효·무효 구분은 고스트 쪽 몫이다(`UpdatePlacement`의 TODO).
     ///
+    /// ⚠ **「대상 표면」을 정하는 것은 매니저가 든 전역 마스크 하나(`_placementMask`)다** — 요청별이 아니다.
+    ///   정본 씬의 값은 레이어 3 `Tile` 하나뿐이라 실질적으로 **전투 타일 전용**이고, 경영 지면은 애초에
+    ///   콜라이더가 없으며(WL-210) Terrain도 Default 레이어라(WL-047) 이 마스크에 걸리지 않는다.
+    ///   지금은 그 우연 덕에 "경영 공간 위 = 「안 됨」"이 공짜로 나오지만, 경영 공간 배치(GDD §5.2 건물
+    ///   건설 #27)가 같은 마스크로 열리면 표면 히트가 아예 없어 **배치 내내 이 값이 false**가 되고 커서가
+    ///   「안 됨」에 고정된다. 증상은 커서에 뜨는데 원인은 마스크다 — 마스크 소유를 요청별로 옮길지는
+    ///   그 착수 PR에서 정한다(WL-215).
+    ///
     /// 배치·조준이 아닌 모드에서는 항상 false다 — `SetMode`가 벗어나는 길목에서 내린다.
     /// `OnModeChanged`와 같은 규약으로, 구독 시점의 현재 값은 `IsOverTargetSurface`를 직접 읽는다.
+    ///
+    /// ⚠ **`PlacementRequest.OnSurfaceHoverChanged`와 같은 사실을 나르지만 역할이 다르다.** 이쪽은 전역
+    ///   통지(소비처=커서)고 그쪽은 그 요청의 미리보기 전용이다. 둘 다 `SetPlacementPreviewVisible`
+    ///   한 자리에서 나가며 **이 이벤트가 먼저**다 — 그쪽은 "상태가 바뀔 때만"이라 조기 반환에 걸리는데
+    ///   이쪽은 그 앞이라 걸리지 않는다(아래 그 메서드의 주석). 순서를 뒤집지 말 것.
     public event Action<bool> OnTargetSurfaceChanged;
 
     // ── 드래그 사각형 선택(#261) 3단계 통지 ──────────────────────────
@@ -108,6 +121,9 @@ public class MouseManager : MonoBehaviour
     public bool IsPlacing => _mode == Mode.Placement;
     /// 배치·조준 중 커서가 대상 표면 위인가(`OnTargetSurfaceChanged`의 현재 값). 구독자가 **초기 상태를
     /// 맞출 때** 쓴다 — 이벤트는 변화만 싣는다. 그 외 모드에서는 항상 false.
+    ///
+    /// ⚠ **범위는 배치·조준 두 모드뿐이다.** 이름이 범용이라 유닛 끌기의 드롭 판정까지 덮는 것처럼 읽히지만
+    ///   그렇지 않다 — 세 번째 모드에 주려면 `SetMode`의 내리는 조건부터 함께 늘린다(그쪽 주석).
     public bool IsOverTargetSurface { get; private set; }
     // 현재 포인터 화면 좌표. 다른 시스템(툴팁 등)이 Mouse.current를 직접 읽지 않고 여기서 얻는다(입력 단일 창구 계약).
     public Vector2 PointerPosition { get; private set; }
@@ -328,6 +344,14 @@ public class MouseManager : MonoBehaviour
         // 각 Cancel에 흩어 두지 않는 이유는 위 두 Exit와 같다 — 되돌리는 경로가 여럿이라 하나만 빠져도
         // 커서가 숨은 채 남는다. **`OnModeChanged`보다 앞**이라야 구독자가 모드 통지를 받는 시점에
         // 두 값이 어긋나 있지 않다.
+        //
+        // ⚠ **이 순서의 대가는 알고 고른 것이다.** 여기서 `_mode`는 이미 next인데 구독자가 아는 모드는
+        //   아직 이전 것이라, 배치를 끝낼 때 커서가 중간 종류(「안 됨」)로 한 번 갱신됐다가 곧바로 모드
+        //   통지로 다시 갱신된다(`Cursor.SetCursor` 1회 추가). **같은 프레임이라 화면에는 드러나지 않고**,
+        //   순서를 뒤집으면 구독자가 모드 통지 시점에 어긋난 값을 보는 쪽이 남는다 — 그쪽이 더 비싸다.
+        //
+        // ⚠ **세 번째 모드에 「대상 표면」을 주려면 이 조건도 함께 늘린다.** 여기를 빼먹고 `CursorController`
+        //   쪽에만 갈래를 추가하면 그 모드는 값을 내려 줄 사람이 없어 **모든 프레임이 「안 됨」**이 된다.
         if (next != Mode.Placement && next != Mode.SkillTargeting) SetOverTargetSurface(false);
 
         OnModeChanged?.Invoke(next);
@@ -362,6 +386,18 @@ public class MouseManager : MonoBehaviour
         // 고스트와 같은 이유로 요청 측 미리보기도 숨김에서 시작한다(첫 스냅 전에는 놓을 자리가 없다).
         _placementPreviewVisible = false;
 
+        // ⚠ **여기서 「대상 표면 위」를 미리 참으로 맞추지 말 것.** 커서가 이미 타일 위인 채로 배치가 열리면
+        //   (지금은 진입점이 전부 UI 버튼이라 안 걸리지만, 단축키로 열면) 진입 프레임에 「안 됨」이 한 번
+        //   스치는 것이 눈에 걸려 그렇게 고치고 싶어진다. 그러면 커서는 숨는데 고스트는 아직 비활성이라
+        //   **화면에 아무것도 남지 않는다** — `Hidden`을 처음 켰다가 되돌렸던 바로 그 상태다
+        //   (`CursorFeedback.md` 「커서 숨김」).
+        //
+        //   요청 측 미리보기까지 함께 켜는 것도 답이 아니다: `TowerPlacer`는 사거리 원·셀 하이라이트를
+        //   **`BeginPlacement`가 돌아온 뒤에** 만들므로(그쪽 `StartPlacement`의 순서 주석), 여기서
+        //   `Snap`·`OnSurfaceHoverChanged`를 부르면 아직 없는 프리뷰에 대고 부르는 셈이다.
+        //
+        //   진입 프레임에는 정말로 그려지는 것이 없으므로 커서를 **보이게** 두는 지금 동작이 규칙대로다
+        //   (「대신할 것이 없으면 커서를 보여준다」). 첫 `UpdatePlacement`가 다음 프레임에 바로잡는다.
         SetMode(Mode.Placement);
     }
 
@@ -386,6 +422,17 @@ public class MouseManager : MonoBehaviour
         ClearHover(); // 타겟팅 중에는 툴팁을 띄우지 않는다
         _skillRequest = request;
         _ghost = Instantiate(request.GhostPrefab);
+
+        // ⚠ **배치와 같은 이유로 비활성에서 시작한다**(`BeginPlacement`의 같은 줄 참고). 스킬 버튼도 UI 위라
+        //   클릭한 프레임의 커서는 타일 위가 아니고, `UpdateSkillTargeting`은 타일을 못 맞히면 위치를
+        //   갱신하지 않는다 — 프리팹이 활성인 채로 들어오므로(`SkillGhost.prefab`) 그대로 두면 첫 갱신까지
+        //   **인디케이터가 월드 원점에 보인다**. 배치 쪽에만 있던 방어라 이쪽은 빠져 있었다.
+        //
+        //   커서가 걸린 뒤로는 빠져 있으면 안 되는 줄이다: 「대상 표면 위」는 진입 프레임에 false인데
+        //   인디케이터는 켜져 있어, "이 값 = 지금 그려지는가"라는 `SetOverTargetSurface`의 전제가
+        //   그 한 프레임 깨진다(원점에 인디케이터가 보이는데 커서는 「안 됨」).
+        _ghost.SetActive(false);
+
         SetMode(Mode.SkillTargeting);
     }
 
@@ -914,6 +961,11 @@ public class MouseManager : MonoBehaviour
     /// 「대상 표면 위인가」의 **유일한 갱신 창구**. 바뀔 때만 통지한다.
     /// 배치와 조준이 각자 통지하면 모드를 벗어날 때 내리는 것을 한쪽이 잊는다(그 대가는 조준을 끝냈는데
     /// 커서가 숨은 채 남는 것이다) — 그래서 `SetMode`가 같은 창구로 함께 내린다.
+    ///
+    /// **지키는 불변식은 하나다: 이 값 == 「고스트가 지금 켜져 있는가」.** 커서를 숨겨도 되는 근거가 전부
+    /// 거기서 나오므로, 이 값을 고스트와 따로 움직이는 코드를 만들지 말 것 — 위 두 `Set*Visible`이
+    /// `SetActive`와 이 통지를 **한 자리에서 함께** 하는 이유이고, 두 `Begin*`이 고스트를 비활성으로
+    /// 만들어 두는 이유이기도 하다(진입 프레임에도 둘이 같은 말을 하도록).
     private void SetOverTargetSurface(bool over)
     {
         if (IsOverTargetSurface == over) return;
