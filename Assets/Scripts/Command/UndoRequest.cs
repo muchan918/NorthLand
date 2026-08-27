@@ -26,6 +26,14 @@ public static class UndoRequest
     /// 되돌리기 요청 1회.
     public static void Submit()
     {
+        // 버튼과 Ctrl+Z가 반드시 같은 튜토리얼 정책을 탄다. 버튼의 interactable만 막으면
+        // 전역 키보드 입력이 UI를 우회하므로 실제 진입점에서 먼저 검사한다.
+        if (!TutorialInputGate.Allows(TutorialAction.Undo))
+        {
+            Sfx.Rejected();
+            return;
+        }
+
         // 고스트를 들고 있으면 그것부터 치우고 끝낸다. 배치하려다 만 상태에서 엉뚱한 이전 조작이 되감기면
         // "무엇을 되돌렸는지"가 화면에서 읽히지 않는다 — 한 번의 요청은 한 가지만 한다. 진짜로 되돌리려면
         // 한 번 더 요청한다.

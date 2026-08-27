@@ -74,6 +74,11 @@ public class TowerPlaceCommand : ReversibleCommandBase
             //    그 타일을 목록에서 빼버려 **재료가 타일 없는 타워로 되살아난다.**
             //    Release 뒤에는 OnDestroy가 조기 return하므로 이중 해제도 없다.
             if (_placed.TryGetComponent(out TowerFootprint footprint)) footprint.Release();
+
+            // Destroy는 프레임 끝까지 지연된다. 그동안 Tower.Active에 남아 있으면 튜토리얼의
+            // "타워 1개 이상" 낮 종료 조건이 Undo된 타워를 실제 배치로 잘못 센다.
+            // 먼저 비활성화해 Tower.OnDisable → Unregister를 같은 프레임에 확정한다.
+            _placed.SetActive(false);
             Object.Destroy(_placed);
         }
 

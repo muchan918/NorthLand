@@ -190,6 +190,13 @@ public class SkillManager : MonoBehaviour
             effectiveCooldown = cooldown;
         }
 
+        // 튜토리얼에서는 스킬을 한 번 쓴 뒤 다음 웨이브까지 오래 기다리지 않게 재충전 시간을
+        // 3초로 고정한다. 기본값이나 마법 연구소 SO를 바꾸지 않으므로 일반 Run에는 영향이 없다.
+        if (TutorialMode.IsActive)
+        {
+            effectiveCooldown = TutorialMode.SkillCooldownSeconds;
+        }
+
         _currentVisual = _visualSet != null ? _visualSet.Resolve(level) : null;
 
         if (level != lastMagicLabLevel)
@@ -241,6 +248,7 @@ public class SkillManager : MonoBehaviour
     // 대기 없이 곧바로 다시 시전할 수 있다(#319).
     public bool CastAt(Vector3 position)
     {
+        if (!TutorialInputGate.Allows(TutorialAction.UseSkill)) return false;
         if (!CanCast()) return false;
 
         charges--;

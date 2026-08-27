@@ -71,6 +71,7 @@ public class ManagementPanelView : MonoBehaviour
         }
 
         _controller.OnChanged += Refresh;
+        TutorialInputGate.Changed += Refresh;
         Refresh();
     }
 
@@ -82,6 +83,7 @@ public class ManagementPanelView : MonoBehaviour
         {
             _controller.OnChanged -= Refresh;
         }
+        TutorialInputGate.Changed -= Refresh;
         if (_endDayButton != null)
         {
             _endDayButton.onClick.RemoveListener(HandleEndDayClicked);
@@ -135,7 +137,8 @@ public class ManagementPanelView : MonoBehaviour
         }
         if (_endDayButton != null)
         {
-            _endDayButton.interactable = _controller.CanAdvancePhase;
+            _endDayButton.interactable = _controller.CanAdvancePhase
+                && TutorialInputGate.AllowsEndDay();
         }
 
         RefreshLines();
