@@ -24,6 +24,8 @@ MonoBehaviour:
     count: 7
   - monsterPrefab: {fileID: 8912611930598447601, guid: d1b48e1d0872d6545bc0a639fc98755f, type: 3}
     count: 2
+  - monsterPrefab: {fileID: 4806916592563036970, guid: 6194b9cc1d582e6468c0a0efad43b031, type: 3}
+    count: 5
   - monsterPrefab: {fileID: 1196599053652701155, guid: 03075335ba5354e4a972f0274406cc5e, type: 3}
-    count: 4
+    count: 3
   rewardPool: {fileID: 11400000, guid: ce674cf169ac3ea41a0b9fd5ca1b6cdf, type: 2}
