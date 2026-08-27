@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using NorthLand.Core;
 using UnityEngine;
@@ -37,6 +38,10 @@ using UnityEngine.SceneManagement;
 [DisallowMultipleComponent]
 public class ResidentDragCoordinator : MonoBehaviour
 {
+    /// 주민 드래그 한 번으로 생산 건물 배치에 성공했다. 인자는 성공한 주민 수다.
+    /// 튜토리얼은 ManagementController의 공용 배치 이벤트 대신 이 신호를 봐서 +/- 버튼 배치와 구분한다.
+    public event Action<int> VillagersAssignedByDrag;
+
     /// 참조를 못 찾았을 때 다시 찾기까지 쉬는 프레임 수(`ResidentSelectionCoordinator`와 같은 값·같은 이유).
     private const int k_RetryFrames = 120;
 
@@ -341,6 +346,7 @@ public class ResidentDragCoordinator : MonoBehaviour
         int lineIndex = ResolveProductionLine(dropTarget);
 
         _dropBuffer.Clear();
+        int assignedCount = 0;
 
         for (int i = 0; i < _carried.Count; i++)
         {
@@ -352,6 +358,7 @@ public class ResidentDragCoordinator : MonoBehaviour
             {
                 _visual.Consume(resident);
                 _spawner.ConsumeCarried(resident);
+                assignedCount++;
                 continue;
             }
 
@@ -364,6 +371,11 @@ public class ResidentDragCoordinator : MonoBehaviour
 
         _dropBuffer.Clear();
         _carried.Clear();
+
+        if (assignedCount > 0)
+        {
+            VillagersAssignedByDrag?.Invoke(assignedCount);
+        }
     }
 
     /// 놓은 지점이 어느 생산 라인인가. 생산 건물이 아니면(빈 땅 · 본진 · 상점 · 타워) −1.

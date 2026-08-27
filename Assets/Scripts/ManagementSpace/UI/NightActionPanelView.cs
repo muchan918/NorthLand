@@ -59,12 +59,15 @@ public class NightActionPanelView : MonoBehaviour
 
         DayNightManager.Instance.OnDayToNight += ShowNightButtons;
         DayNightManager.Instance.OnNightToDay += ShowDayButton;
+        TutorialInputGate.Changed += RefreshEndDayButton;
 
         ApplyPhase(DayNightManager.Instance.CurrentPhase);
     }
 
     private void OnDestroy()
     {
+        TutorialInputGate.Changed -= RefreshEndDayButton;
+
         if (DayNightManager.Instance == null)
         {
             return;
@@ -80,9 +83,18 @@ public class NightActionPanelView : MonoBehaviour
     {
         bool isDay = phase == DayNightManager.Phase.Day;
         if (_endDayButton != null) _endDayButton.gameObject.SetActive(isDay);
+        RefreshEndDayButton();
         if (_waveSuccessButton != null) _waveSuccessButton.gameObject.SetActive(!isDay);
         if (_waveFailButton != null) _waveFailButton.gameObject.SetActive(!isDay);
         if (_bossKillButton != null) _bossKillButton.gameObject.SetActive(!isDay);
+    }
+
+    private void RefreshEndDayButton()
+    {
+        if (_endDayButton != null)
+        {
+            _endDayButton.interactable = TutorialInputGate.AllowsEndDay();
+        }
     }
 
     // 낮 종료(#219): 조건 점검·표시·진행 판단은 전부 팝업이 소유한다(이 뷰는 호출만).

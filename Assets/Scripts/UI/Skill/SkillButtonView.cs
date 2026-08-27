@@ -41,7 +41,8 @@ public class SkillButtonView : MonoBehaviour
     {
         if (SkillManager.Instance == null) return;
 
-        _button.interactable = SkillManager.Instance.CanCast();
+        _button.interactable = SkillManager.Instance.CanCast()
+            && TutorialInputGate.AllowsForDisplay(TutorialAction.UseSkill);
         RefreshFill();
         RefreshRechargeText();
         RefreshChargeText();
@@ -112,6 +113,7 @@ public class SkillButtonView : MonoBehaviour
     private void HandleClick()
     {
         if (SkillManager.Instance == null || MouseManager.Instance == null) return;
+        if (!TutorialInputGate.Allows(TutorialAction.UseSkill)) return;
         if (!SkillManager.Instance.CanCast()) return;
 
         if (_skillGhostPrefab == null)

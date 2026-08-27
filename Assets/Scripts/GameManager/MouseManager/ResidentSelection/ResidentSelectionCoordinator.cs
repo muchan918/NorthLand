@@ -407,7 +407,7 @@ public class ResidentSelectionCoordinator : MonoBehaviour
 
     private void HandleBoxSelectBegin(bool additive)
     {
-        if (!IsDay) return;
+        if (!IsDay || !TutorialInputGate.Allows(TutorialAction.SelectResident)) return;
 
         _boxDragging = true;
         _dragBase.Clear();

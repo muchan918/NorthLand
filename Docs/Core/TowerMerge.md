@@ -239,6 +239,8 @@
 
 **왜 필요한가**: 합성 패널(§8.2)은 2개 이상 선택해야 열리므로, 플레이어가 **먼저 조합을 알아야** 재료를 모을 수 있다. 도감(`FusionTowerCodexUI`)이 그 역할을 하지만 "결과 → 필요한 재료" 방향이라, 손에 든 타워에서 출발할 수 없다.
 
+도감은 결과 타워에서 필요한 재료 레시피를 역조회하고, 이름·역할·설명·능력치는 툴팁과 같은 `NorthLand.UI.TowerInfoFormatter.BuildHeader/BuildDescription/BuildStats`를 사용한다. 두 화면의 표시 규칙을 따로 조립하지 않는다.
+
 - **조회 방향이 셋이다**: 선택 집합→레시피(`TowerFusionMatcher.CanFuse`, 합성 패널) / 결과→재료(`FusionTowerCodexUI.recipeByResult`, 도감) / **재료→결과(`TowerMergeTargetIndex`, 이 절)**.
 - **색인 = `TowerMergeTargetIndex.RecipesUsing(towerId)`**(순수 static, lazy 1회 구축). 재료 집계는 **`TowerFusionMatcher.BuildRequired`를 쓴다** — §6 단일 출처. 재료 판정을 두 벌로 구현하면 "정보 패널엔 상위 타워로 뜨는데 실제로는 재료로 안 걸리는" 어긋남이 생긴다.
   - `Result`가 없는 레시피는 색인에서 제외한다(행을 그릴 결과 타워가 없다 = 저작 실수).

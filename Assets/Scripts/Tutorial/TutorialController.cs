@@ -9,6 +9,7 @@ using UnityEngine.Localization.Settings;
 // 튜토리얼 진행을 소유한다. '지금 몇 단계인지'를 아는 유일한 곳.
 // 팝업·말풍선을 어떻게 그리는지는 모른다(TutorialOverlay의 몫).
 // 무엇을 기다리는지도 모른다(TutorialCondition의 몫) — "됐다"는 통지만 받는다.
+[DefaultExecutionOrder(-1000)]
 public class TutorialController : MonoBehaviour
 {
     [SerializeField]
@@ -62,6 +63,13 @@ public class TutorialController : MonoBehaviour
 
     private void Awake()
     {
+        // 작업 씬을 직접 재생해도 모든 소비처가 같은 단일 판정(TutorialMode.IsActive)을 읽는다.
+        // 실행 순서를 앞당긴 이유는 다른 시스템의 Awake가 웨이브·자원 모델을 만들기 전이어야 하기 때문이다.
+        if (startOnPlay)
+        {
+            TutorialMode.Enter();
+        }
+
         // 일반 모드에서도 비활성화 전에 초기 상태를 일관되게 준비한다.
         _context = new TutorialContext();
 
@@ -82,7 +90,7 @@ public class TutorialController : MonoBehaviour
             return;
         }
 
-        bool shouldRun = startOnPlay || TutorialMode.IsActive;
+        bool shouldRun = TutorialMode.IsActive;
 
         tutorialRoot.SetActive(shouldRun);
 
@@ -135,8 +143,7 @@ public class TutorialController : MonoBehaviour
 
     private void Start()
     {
-        // startOnPlay는 에디터 테스트용 임시 스위치다. 실제 진입은 TutorialMode가 결정한다.
-        if (startOnPlay || TutorialMode.IsActive)
+        if (TutorialMode.IsActive)
         {
             StartTutorial();
         }
@@ -195,6 +202,10 @@ public class TutorialController : MonoBehaviour
             _phase = Phase.Popup;
             overlay.HideBubble();
 
+            // 설명을 읽는 동안은 다음 버튼 외의 게임 조작을 모두 막는다.
+            TutorialInputGate.ApplyPopup(
+                step.RestrictActions ? step.AllowedActions : TutorialAction.None);
+
             // 팝업 구간은 팝업 자체가 전체화면 입력을 막는다 — 딤이 겹칠 이유가 없다.
             overlay.HideDim();
             ApplyPause(step);
@@ -233,9 +244,27 @@ public class TutorialController : MonoBehaviour
         _phase = Phase.Action;
         _active = condition;
 
-        // 팝업에서 이미 걸어 뒀으면 그대로 유지된다(PauseGame은 두 번 불러도 안전하다).
-        // 팝업이 없는 단계는 여기가 첫 진입점이다.
-        ApplyPause(step);
+        if (step.RestrictActions)
+        {
+            TutorialInputGate.Apply(step.AllowedActions);
+        }
+        else
+        {
+            TutorialInputGate.Clear();
+        }
+
+        // 스킬처럼 기존 scaled time으로 완주해야 하는 행동은 설명 팝업까지만 멈춘다.
+        // 개별 시스템을 unscaled time으로 갈라 놓지 않아 평상시 연출·피해 타이밍 계약을 보존한다.
+        if (step.ResumeGameAfterPopup)
+        {
+            ResumeGameIfPaused();
+        }
+        else
+        {
+            // 팝업에서 이미 걸어 뒀으면 그대로 유지된다(PauseGame은 두 번 불러도 안전하다).
+            // 팝업이 없는 단계는 여기가 첫 진입점이다.
+            ApplyPause(step);
+        }
         ApplyStepRules(step);
 
         // 말풍선을 Begin보다 먼저 띄운다 — 조건이 Begin 도중에 충족되면 그 자리에서 다음 단계까지
@@ -411,6 +440,10 @@ public class TutorialController : MonoBehaviour
     // 정리해야 하는 것은 튜토리얼이 끝나는 경로뿐이다(ClearStepRules).
     private void ApplyStepRules(TutorialStepAsset step)
     {
+        TutorialInputGate.SetEndDayTowerRequirement(
+            step.MinimumTowerCountBeforeEndDay,
+            step.RequiredTowerBeforeEndDay);
+
         SetStepRules(
             step.FreeTowerPlacement,
             step.RestrictTowerPanelTo,
@@ -424,6 +457,7 @@ public class TutorialController : MonoBehaviour
     // 공짜이거나 패널이 한 종류로 잠긴 채 남는다.
     private void ClearStepRules()
     {
+        TutorialInputGate.Clear();
         SetStepRules(false, null, false, 0, 0, null);
     }
 

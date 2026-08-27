@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class BuildingInfo : MonoBehaviour, ISelectable
+public class BuildingInfo : MonoBehaviour, ISelectable, ITutorialSelectionGate
 {
     [SerializeField] private BuildingAsset _buildingAsset;
 
@@ -10,6 +10,8 @@ public class BuildingInfo : MonoBehaviour, ISelectable
     ///
     /// `BuildingInstanceRegistry`와 방향이 반대인 짝이다(그쪽은 SO → Transform).
     public BuildingAsset Asset => _buildingAsset;
+
+    public TutorialAction SelectionAction => TutorialAction.SelectBuilding;
 
     // 이 건물이 어느 패널을 여는지. 게이트를 BuildingType이 아니라 '데이터 존재'로 거는 이유는
     // BuildingAsset.ValidateUpgradeCosts와 같다 — 타입은 인스펙터 authoring 분류일 뿐 동작 스위치가 아니다.

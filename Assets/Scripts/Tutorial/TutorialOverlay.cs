@@ -24,6 +24,10 @@ public class TutorialOverlay : MonoBehaviour
     [SerializeField]
     private Button confirmButton;
 
+    [Tooltip("팝업 뒤에서 다른 Canvas의 클릭을 막는 전체 화면 투명 패널")]
+    [SerializeField]
+    private GameObject popupInputBlocker;
+
     [Header("건너뛰기 (선택)")]
     [SerializeField]
     private Button skipButton;
@@ -108,6 +112,7 @@ public class TutorialOverlay : MonoBehaviour
         if (popupBody == null) { LogMissing(nameof(popupBody)); ok = false; }
         if (popupImage == null) { LogMissing(nameof(popupImage)); ok = false; }
         if (confirmButton == null) { LogMissing(nameof(confirmButton)); ok = false; }
+        if (popupInputBlocker == null) { LogMissing(nameof(popupInputBlocker)); ok = false; }
         if (bubbleRoot == null) { LogMissing(nameof(bubbleRoot)); ok = false; }
         if (bubbleText == null) { LogMissing(nameof(bubbleText)); ok = false; }
         return ok;
@@ -127,12 +132,14 @@ public class TutorialOverlay : MonoBehaviour
         popupImage.sprite = image;
         popupImage.gameObject.SetActive(image != null);
 
+        popupInputBlocker.SetActive(true);
         popupRoot.SetActive(true);
     }
 
     public void HidePopup()
     {
         popupRoot.SetActive(false);
+        popupInputBlocker.SetActive(false);
     }
 
     public void ShowBubble(string text)

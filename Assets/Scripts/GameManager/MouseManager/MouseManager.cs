@@ -354,6 +354,8 @@ public class MouseManager : MonoBehaviour
     // 클릭한 위치를 그대로 SkillTargetRequest.OnConfirmed로 넘긴다(요구사항: SystemMap §4 계약).
     public void BeginSkillTargeting(SkillTargetRequest request)
     {
+        if (!TutorialInputGate.Allows(TutorialAction.UseSkill)) return;
+
         CancelPlacement();
         CancelSkillTargeting();
         ResetGesture();
@@ -415,13 +417,18 @@ public class MouseManager : MonoBehaviour
         if ((screenPos - _pressScreenPos).sqrMagnitude >= _dragThreshold * _dragThreshold)
         {
             if (_pressDragHandle != null) BeginUnitDrag();
-            else BeginBoxSelect(screenPos);
+            else if (TutorialInputGate.Allows(TutorialAction.SelectResident)
+                     || TutorialInputGate.Allows(TutorialAction.SelectPlacedTower))
+            {
+                BeginBoxSelect(screenPos);
+            }
         }
     }
 
     /// 누른 지점의 끌 수 있는 대상. UI 위에서 시작한 제스처는 애초에 채택하지 않으므로 함께 걸러낸다.
     private IDragHandle ResolveDragHandle(Vector2 screenPos, bool overUI)
     {
+        if (!TutorialInputGate.Allows(TutorialAction.DragResident)) return null;
         if (overUI || !RaycastMask(screenPos, _selectableMask, out var hit)) return null;
 
         hit.collider.TryGetComponent(out IDragHandle handle);
@@ -433,6 +440,20 @@ public class MouseManager : MonoBehaviour
     private void CommitClick(Vector2 screenPos, bool additive)
     {
         bool hitSelectable = RaycastMask(screenPos, _selectableMask, out var hit);
+
+        if (TutorialInputGate.IsRestricted
+            && (!hitSelectable || !AllowsTutorialSelection(hit.collider)))
+        {
+            // 제한 중에는 허용되지 않은 대상을 새로 고르지 않지만, 평범한 빈 공간 클릭의
+            // "현재 선택 해제"까지 삼키면 패널·아웃라인이 영구히 남는다. Shift는 추가 선택
+            // 제스처이므로 기존 집합을 유지하고, 일반 클릭만 기존 선택을 비운다.
+            if (!additive)
+            {
+                Select(null);
+                OnPrimarySelect?.Invoke(null);
+            }
+            return;
+        }
 
         if (additive)
         {
@@ -693,9 +714,27 @@ public class MouseManager : MonoBehaviour
     {
         IHoverable next = null;
         if (!overUI && RaycastMask(screenPos, _selectableMask, out var hit))
-            hit.collider.TryGetComponent(out next); // 없으면 next는 null
+        {
+            // 제한 중에는 현재 단계가 선택을 허용한 대상만 호버와 아웃라인을 통과시킨다.
+            // 건물 단계에서는 BuildingTooltipSource가 OnHoverChanged로 전달되어 기존 노란 아웃라인이 뜬다.
+            if (!TutorialInputGate.IsRestricted || AllowsTutorialSelection(hit.collider))
+            {
+                hit.collider.TryGetComponent(out next); // 없으면 next는 null
+            }
+        }
 
         SetHover(next);
+    }
+
+    private static bool AllowsTutorialSelection(Collider collider)
+    {
+        if (collider == null)
+        {
+            return false;
+        }
+
+        return collider.TryGetComponent(out ITutorialSelectionGate gated)
+            && TutorialInputGate.Allows(gated.SelectionAction);
     }
 
     private void SetHover(IHoverable next)
@@ -794,6 +833,11 @@ public class MouseManager : MonoBehaviour
 
         if (!overUI && Mouse.current.leftButton.wasPressedThisFrame)
         {
+            if (!TutorialInputGate.Allows(TutorialAction.PlaceTower))
+            {
+                return;
+            }
+
             // UI 위 클릭은 여기 오지 않는다 — 그건 버튼을 누른 것이지 배치를 시도한 것이 아니다(그쪽은 클릭음).
             if (!valid)
             {
@@ -858,6 +902,12 @@ public class MouseManager : MonoBehaviour
         // 전투 타일 위이면 시전한다. 타일 밖은 위에서 이미 고스트를 숨기고 return 했다.
         if (!overUI && Mouse.current.leftButton.wasPressedThisFrame)
         {
+            if (!TutorialInputGate.Allows(TutorialAction.UseSkill))
+            {
+                CancelSkillTargeting();
+                return;
+            }
+
             _skillRequest.OnConfirmed(pos);
             CancelSkillTargeting(); // 한 번 시전하면 조준 모드 종료(연속 시전 불필요)
         }

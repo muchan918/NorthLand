@@ -589,6 +589,11 @@ public class ManagementController : MonoBehaviour
     /// </summary>
     public bool TryUpgradeBuilding(int index)
     {
+        if (!TutorialInputGate.Allows(TutorialAction.UpgradeBuilding))
+        {
+            return false;
+        }
+
         if (!IsDay)
         {
             Debug.Log("[경영] 밤에는 업그레이드할 수 없습니다.");
@@ -699,6 +704,11 @@ public class ManagementController : MonoBehaviour
     /// </summary>
     public bool TryIncreaseVillagers(BuildingAsset building)
     {
+        if (!TutorialInputGate.Allows(TutorialAction.IncreaseVillager))
+        {
+            return false;
+        }
+
         if (!IsDay)
         {
             Debug.Log("[경영] 밤에는 주민을 늘릴 수 없습니다.");
@@ -765,6 +775,11 @@ public class ManagementController : MonoBehaviour
     /// </summary>
     public bool TryExchange(BuildingAsset building, BuildingAsset.ExchangeOffer offer)
     {
+        if (!TutorialInputGate.Allows(TutorialAction.AlchemyExchange))
+        {
+            return false;
+        }
+
         if (!IsDay)
         {
             Debug.Log("[경영] 밤에는 교환할 수 없습니다.");
@@ -867,10 +882,15 @@ public class ManagementController : MonoBehaviour
         _wallet.OnChanged += (_, _) => OnChanged?.Invoke();
 
         // 게임 시작 초기 자원 지급(런당 1회, 이슈 #130) — 유일 창구인 ResourceWallet.Add로만 지급한다(팀 계약 #3).
-        _wallet.Add(ResourceKind.Wood, _initialWood);
-        _wallet.Add(ResourceKind.Iron, _initialIron);
-        _wallet.Add(ResourceKind.Food, _initialFood);
-        Debug.Log($"[경영] 초기 자원 지급: Wood +{_initialWood}, Iron +{_initialIron}, Food +{_initialFood}");
+        // 정식 진입과 TutorialTest3 직접 실행은 TutorialMode 단일 판정을 공유한다.
+        int initialWood = TutorialMode.IsActive ? TutorialMode.InitialBiscuit : _initialWood;
+        int initialIron = TutorialMode.IsActive ? 0 : _initialIron;
+        int initialFood = TutorialMode.IsActive ? 0 : _initialFood;
+
+        _wallet.Add(ResourceKind.Wood, initialWood);
+        _wallet.Add(ResourceKind.Iron, initialIron);
+        _wallet.Add(ResourceKind.Food, initialFood);
+        Debug.Log($"[경영] 초기 자원 지급: Wood +{initialWood}, Iron +{initialIron}, Food +{initialFood}");
 
         // 생산 배율 레지스트리는 지갑과 함께 런마다 새로 만든다(패시브 생산 효과가 여기에 누적).
         _productionModifiers = new ProductionModifiers();
@@ -1075,6 +1095,11 @@ public class ManagementController : MonoBehaviour
     /// </summary>
     public bool TryUpgrade(int index)
     {
+        if (!TutorialInputGate.Allows(TutorialAction.UpgradeBuilding))
+        {
+            return false;
+        }
+
         if (!IsDay)
         {
             Debug.Log("[경영] 밤에는 업그레이드할 수 없습니다.");
