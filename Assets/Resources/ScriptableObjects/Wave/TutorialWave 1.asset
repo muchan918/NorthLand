@@ -12,12 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 08366b238e4880d4898b6b244413a4a1, type: 3}
   m_Name: TutorialWave 1
   m_EditorClassIdentifier: Assembly-CSharp::MonsterWaveAsset
-  minSpawnInterval: 1.5
-  maxSpawnInterval: 1.5
+  minSpawnInterval: 0.3
+  maxSpawnInterval: 0.3
   spawnCountPerBatch: 1
   intraBatchJitter: 0
   randomizeSpawnOrder: 0
   groups:
   - monsterPrefab: {fileID: 7321704587212441968, guid: fd343a3c8af5dee4998407a8dd41a05d, type: 3}
-    count: 10
+    count: 5
+  - monsterPrefab: {fileID: 8912611930598447601, guid: d1b48e1d0872d6545bc0a639fc98755f, type: 3}
+    count: 5
   rewardPool: {fileID: 0}

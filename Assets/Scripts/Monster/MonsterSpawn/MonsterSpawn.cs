@@ -152,7 +152,10 @@ public class MonsterSpawn : MonoBehaviour
 
         if (gateInstance == null)
         {
-            gateInstance = Instantiate(gatePrefab);
+            if (PlayerBase.Instance != null)
+                gateInstance = PlayerBase.Instance.gameObject;
+            else
+                gateInstance = Instantiate(gatePrefab);
         }
 
         Vector3 worldOffset = gateCoordinateRoot != null? gateCoordinateRoot.TransformVector(gatePositionOffset): gatePositionOffset;
