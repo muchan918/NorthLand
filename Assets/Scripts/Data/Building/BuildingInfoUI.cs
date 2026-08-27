@@ -317,7 +317,7 @@ public class BuildingInfoUI : MonoBehaviour
         float next = SkillManager.Scale(baseValue, nextMultiplier);
         if (!Mathf.Approximately(current, next))
         {
-            lines.Add(build(current, next));
+            lines.Add(HighlightNextValue(build(current, next)));
         }
     }
 
@@ -328,8 +328,34 @@ public class BuildingInfoUI : MonoBehaviour
         float next = nextValue > 0f ? nextValue : baseValue;
         if (!Mathf.Approximately(current, next))
         {
-            lines.Add(build(current, next));
+            lines.Add(HighlightNextValue(build(current, next)));
         }
+    }
+
+    // SkillStatsFormatter가 만든 "현재 → 다음" 형식은 유지하면서 다음 값만 긍정 색으로 강조한다.
+    // 화살표 뒤 공백은 기본색으로 남겨 색상 영역이 실제 수치부터 시작하도록 한다.
+    private static string HighlightNextValue(string line)
+    {
+        if (string.IsNullOrEmpty(line))
+        {
+            return line;
+        }
+
+        int arrowIndex = line.LastIndexOf('→');
+        if (arrowIndex < 0)
+        {
+            return line;
+        }
+
+        int valueStart = arrowIndex + 1;
+        while (valueStart < line.Length && char.IsWhiteSpace(line[valueStart]))
+        {
+            valueStart++;
+        }
+
+        return valueStart >= line.Length
+            ? line
+            : $"{line.Substring(0, valueStart)}<color={k_PositiveColorHex}>{line.Substring(valueStart)}</color>";
     }
 
     // 배율 엔트리가 없으면(미강화 Lv0 · 범위 밖) 1.0 = 베이스 그대로. SkillManager.RefreshUpgrade의
