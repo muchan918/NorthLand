@@ -10,7 +10,10 @@ using NorthLand.Core;
 /// 클릭으로 선택 가능한 배치물(타워·건물 등)이 구현한다. (요구사항 ②)
 public class MouseManager : MonoBehaviour
 {
-    enum Mode
+    /// 상호작용 모드. **공개인 이유는 통지(`OnModeChanged`)와 짝이기 때문**이다 — 커서 그림처럼
+    /// "지금 무엇을 하는 중인가"에 반응하는 연출이 모드를 이름으로 받아야 한다. 구독자가 이 값으로
+    /// 모드를 **바꿀 수는 없다**(전환 창구는 여전히 private `SetMode` 하나뿐).
+    public enum Mode
     {
         Idle,
         BoxSelect,      // Idle의 하위 상태 — 배치·조준 중에는 진입할 수 없다(#261)
@@ -33,6 +36,23 @@ public class MouseManager : MonoBehaviour
     public event Action<ISelectable> OnPrimarySelect;
     // 커서 밑 호버 대상이 바뀔 때만 통지(없으면 null). 툴팁 UI가 구독해 표시/숨김을 결정한다.
     public event Action<IHoverable> OnHoverChanged;
+
+    /// 좌버튼의 눌림 상태가 **바뀔 때만** 통지(true=눌림). 커서 그림처럼 "누르고 있는 동안"에
+    /// 반응하는 연출을 위한 것이다 — 클릭 확정(`OnPrimarySelect`)과는 다른 신호다.
+    ///
+    /// ⚠ **모드·UI를 가리지 않는 순수 입력 통지다.** UI 버튼 위에서 눌러도, 배치 중에 눌러도 나간다.
+    ///   "그래서 무엇을 할지"는 구독자가 정한다(원칙 2와 같은 이유로 여기서 걸러 주지 않는다).
+    ///
+    /// ⚠ 판정은 `wasPressedThisFrame`이 아니라 **`isPressed` 변화**다. 포커스 상실·디바이스 리셋으로
+    ///   뗀 프레임이 통째로 유실될 수 있고(BoxSelect가 같은 이유로 `isPressed`를 쓴다 — WL-143),
+    ///   그러면 뗌 통지가 새서 구독자가 "눌린 그림"에 영구히 갇힌다.
+    public event Action<bool> OnPointerPressedChanged;
+
+    /// 상호작용 모드가 **바뀔 때만** 통지. `SetMode`가 유일한 발행처이므로 전환 경로가 몇 개든
+    /// 정확히 1회씩 나간다(그 이음매를 만든 이유가 그것이다 — WL-143 주석 참고).
+    ///
+    /// 구독 시점의 현재 값은 이벤트로 오지 않는다 → `CurrentMode`를 직접 읽어 초기 상태를 맞출 것.
+    public event Action<Mode> OnModeChanged;
 
     // ── 드래그 사각형 선택(#261) 3단계 통지 ──────────────────────────
     // MouseManager는 사각형에 무엇이 걸렸는지만 알리고 집합은 들지 않는다. 순서 있는 집합의 소유·해석은
@@ -67,6 +87,9 @@ public class MouseManager : MonoBehaviour
     /// 드래그 중인 사각형의 스크린 좌표 영역. 사각형 UI가 매 프레임 읽어 간다(IsBoxSelecting이 true일 때만 유효).
     public Rect BoxSelectScreenRect { get; private set; }
     public bool IsBoxSelecting => _mode == Mode.BoxSelect;
+    /// 현재 상호작용 모드. `OnModeChanged`를 구독한 쪽이 **초기 상태를 맞출 때** 쓴다
+    /// (이벤트는 변화만 싣는다). 읽기 전용 — 전환은 이 클래스의 진입점들을 통한다.
+    public Mode CurrentMode => _mode;
     /// 배치 고스트를 들고 있는가. 되돌리기 버튼(#281)이 "먼저 이 고스트부터 치운다"를 판정하는 데 쓴다.
     public bool IsPlacing => _mode == Mode.Placement;
     // 현재 포인터 화면 좌표. 다른 시스템(툴팁 등)이 Mouse.current를 직접 읽지 않고 여기서 얻는다(입력 단일 창구 계약).
@@ -103,6 +126,9 @@ public class MouseManager : MonoBehaviour
     // 누른 순간에는 클릭인지 드래그인지 알 수 없으므로(#261), 선택 확정을 **뗄 때**로 미루고
     // 누를 때는 시작점만 기록한다. UI 위에서 시작한 제스처는 아예 채택하지 않는다(_pressActive=false).
     private bool _pressActive;
+    // `OnPointerPressedChanged`가 실어 보낸 마지막 값. 제스처 채택 여부(_pressActive)와 **별개**다 —
+    // 이쪽은 UI 위·모드와 무관하게 "물리적으로 버튼이 눌려 있는가"만 본다.
+    private bool _pointerPressed;
     private Vector2 _pressScreenPos;
     private bool _pressAdditive; // 추가 선택 키(Shift)는 **누른 시점** 상태로 고정 — 도중에 눌렀다 떼도 안 바뀐다
     // 누른 순간 커서 밑에 있던 끌 수 있는 대상(없으면 null). 임계 거리를 넘을 때 사각형/유닛 끌기를 가르는
@@ -215,6 +241,10 @@ public class MouseManager : MonoBehaviour
         PointerPosition = screenPos;
         bool overUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
 
+        // 모드 분기보다 **먼저** 본다. 어느 모드에 있든 버튼 눌림은 같은 사실이고, 모드 분기 안에
+        // 흩어 두면 배치·조준처럼 좌버튼을 다르게 해석하는 경로에서 통지가 빠진다.
+        UpdatePointerPressed();
+
         switch (_mode)
         {
             case Mode.Idle: UpdateIdle(screenPos, overUI); break;
@@ -223,6 +253,19 @@ public class MouseManager : MonoBehaviour
             case Mode.Placement: UpdatePlacement(screenPos, overUI); break;
             case Mode.SkillTargeting: UpdateSkillTargeting(screenPos, overUI); break;
         }
+    }
+
+    /// 좌버튼 눌림 상태의 변화를 1회씩 통지한다(`OnPointerPressedChanged`).
+    ///
+    /// `wasPressedThisFrame`/`wasReleasedThisFrame`이 아니라 `isPressed`를 매 프레임 비교하는 이유는
+    /// 이벤트 주석에 적어 둔 그대로다 — 뗀 프레임이 유실돼도 다음 프레임에 스스로 복구된다.
+    private void UpdatePointerPressed()
+    {
+        bool pressed = Mouse.current.leftButton.isPressed;
+        if (pressed == _pointerPressed) return;
+
+        _pointerPressed = pressed;
+        OnPointerPressedChanged?.Invoke(pressed);
     }
 
     public void SetCamera(Camera cam)
@@ -255,7 +298,15 @@ public class MouseManager : MonoBehaviour
     {
         if (_mode == Mode.BoxSelect && next != Mode.BoxSelect) ExitBoxSelect();
         if (_mode == Mode.UnitDrag && next != Mode.UnitDrag) ExitUnitDrag();
+
+        // 같은 모드로의 재진입은 통지하지 않는다. `CancelInteractions`처럼 Cancel을 연달아 부르는
+        // 경로가 `SetMode(Idle)`을 두 번 때리는데(각 Cancel이 자기 몫으로 부른다), 그대로 흘리면
+        // 구독자가 "모드가 바뀌었다"를 실제보다 여러 번 본다. 위 Exit 두 줄은 애초에 모드가
+        // 다를 때만 걸리므로 이 조기 반환이 그것들을 건너뛰는 경우는 없다.
+        if (_mode == next) return;
+
         _mode = next;
+        OnModeChanged?.Invoke(next);
     }
 
     /// <summary>
