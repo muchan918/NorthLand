@@ -403,6 +403,14 @@ MonoBehaviour:
     m_Key: codex.tower.none
     m_Metadata:
       m_Items: []
+  - m_Id: 17502978577084416
+    m_Key: title.seed.error.invalid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17503031068798976
+    m_Key: title.seed.error.start_failed
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

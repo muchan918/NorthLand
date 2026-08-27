@@ -432,6 +432,14 @@ MonoBehaviour:
     m_Localized: No towers available
     m_Metadata:
       m_Items: []
+  - m_Id: 17502978577084416
+    m_Localized: Enter a number between 1 and 2147483647.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17503031068798976
+    m_Localized: Unable to start the game.
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:
