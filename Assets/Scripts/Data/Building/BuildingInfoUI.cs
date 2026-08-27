@@ -31,12 +31,12 @@ public class BuildingInfoUI : MonoBehaviour
     [Header("BuildingInfoPanel 연결")]
     [Tooltip("건물명 (Lv 현재/최대)")]
     [SerializeField] TextMeshProUGUI _nameLevelText;
-    [Tooltip("업그레이드 시 증감: 현재 → 업그레이드 후")]
-    [SerializeField] TextMeshProUGUI _amountText;
     [Tooltip("건물 설명 (BuildingTable.DescriptionKey)")]
     [SerializeField] TextMeshProUGUI _descriptionText;
     [Tooltip("업그레이드 버튼 위 강화 효과 문구 (마법 연구소 등 스킬 강화 건물에서만 채워진다)")]
     [SerializeField] TextMeshProUGUI _skillEffectText;
+    [Tooltip("마법연구소 강화 효과 영역 전체")]
+    [SerializeField] private GameObject _skillEffectBox;
 
     [Header("주민당 생산 (ProduceRow — 생산 건물에서만 표시)")]
     [Tooltip("생산 줄 전체. 생산 건물이 아니면 통째로 숨긴다.")]
@@ -155,11 +155,25 @@ public class BuildingInfoUI : MonoBehaviour
     {
         // 설명은 건물 종류와 무관하게 같은 소스라 분기 이전에 한 번만 채운다.
         SetText(_descriptionText, BuildingDescription());
-        // 강화 문구는 스킬 강화 건물만 채운다. 같은 패널을 모든 건물이 재사용하므로 여기서 먼저 비워야
-        // 마법 연구소를 보다 생산 건물을 클릭했을 때 이전 문구가 남지 않는다(분기 추가 시 빠뜨릴 자리를 없앤다).
+
+        // 업그레이드 전용 건물(현재는 마법 연구소)을 선택했을 때만
+        // 스킬 강화 효과 영역 전체를 표시한다.
+        // 텍스트만 비우면 배경 이미지는 계속 남으므로 박스 자체를 켜고 끈다.
+        bool showSkillEffect = _upgradeIndex >= 0;
+
+        if (_skillEffectBox != null)
+        {
+            _skillEffectBox.SetActive(showSkillEffect);
+        }
+
+        // 같은 패널을 여러 건물이 재사용하므로 먼저 기존 강화 문구를 비운다.
+        // 마법 연구소를 본 다음 생산 건물을 선택했을 때
+        // 이전 스킬 강화 내용이 남는 것을 방지한다.
         SetText(_skillEffectText, string.Empty);
 
-        // 표시 대상 분기: 생산 라인(주민당량) → 업그레이드 전용 건물(마법 연구소 등) → 그 외(본진 등, 이름만).
+        // 표시 대상 분기:
+        // 생산 라인(주민당 생산량) → 업그레이드 전용 건물(마법 연구소 등)
+        // → 그 외 업그레이드할 수 없는 건물 순서로 처리한다.
         if (_lineIndex >= 0)
         {
             RefreshProductionLine();
@@ -178,7 +192,6 @@ public class BuildingInfoUI : MonoBehaviour
     private void RefreshNonUpgradeable()
     {
         SetText(_nameLevelText, BuildingName());
-        SetText(_amountText, string.Empty);
         HideProduceRow();
         ClearCostRows();
         if (_upgradeButton != null) _upgradeButton.gameObject.SetActive(false);
@@ -225,7 +238,7 @@ public class BuildingInfoUI : MonoBehaviour
         bool isMax = level >= max;
 
         SetText(_nameLevelText, $"{BuildingName()} ({L(k_LevelKey)} {level}/{max})");
-        // 현재 산출은 ProduceRow(아이콘 + 주민당 현재량), 업그레이드 증감은 _amountText로 나눠 표시한다.
+        // 현재 산출과 업그레이드 증감은 ProduceRow의 _produceAmountText에 함께 표시한다.
         // 자원 종류는 아이콘이 말하므로 여기 텍스트에는 자원명을 넣지 않는다.
         ShowProduceRow(_building != null && _building.Production != null ? _building.Production.OutputResource : null,
             $"{L(k_PerVillagerKey)} {cur}");
@@ -274,7 +287,7 @@ public class BuildingInfoUI : MonoBehaviour
     {
         BuildingAsset.SkillUpgradeLevel next = Scaling(nextLevel);
         // 스킬 강화 건물이 아니거나, authoring된 레벨이 없거나, 베이스 스탯 출처(씬의 SkillManager)가
-        // 없다 — 어느 쪽이든 _amountText 폴백(k_SkillPendingKey)이 받는다.
+        // 없다 — 어느 쪽이든 호출부의 스킬 강화 안내 폴백(k_SkillPendingKey)이 받는다.
         if (next == null || SkillManager.Instance == null)
         {
             return string.Empty;
