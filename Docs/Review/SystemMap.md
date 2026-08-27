@@ -679,6 +679,7 @@
 - `TowerStatsFormatter`(`NorthLand.Combat`) — 스탯 표시 문자열 단일 출처(구 WL-079: `Tower`/`AuraTower`/`TowerTooltipView`
   3벌 복제 해소). 표시 경로는 둘로 갈리지만(배치 **전** 툴팁은 인스턴스가 없어 SO 원본을 본다) **라벨과 서식은 여기 한 곳**.
   `BuildUnlockWaveLine(int)`(#504)은 라벨(`game.tower.unlock_wave`)과 서식만 내고 **해금 여부는 판단하지 않는다** — 판정은 `TowerAsset.IsUnlocked`
+- `NorthLand.UI.TowerInfoFormatter.BuildHeader/BuildDescription/BuildStats` — 도감(`FusionTowerCodexUI`)과 툴팁(`TowerTooltipView`)이 공유하는 타워 이름·역할·설명·능력치 표시 규칙의 단일 출처. 이름 해석은 `TowerDisplayName`, 스탯 라벨·서식은 `TowerStatsFormatter`에 위임한다
 - `AuraModifiers`(`NorthLand.Combat`, 순수 static) — SO의 `StatModifier` → 적용 값 환산.
   `ComputeSlowMultiplier(mods)`([0,1] 클램프) / `ConvertBuffModifiers(mods, dst)`. 적용부와 표시부가 같은 식을 공유
 - `TowerRecipe`(SO, `Assets/Scripts/Data/Tower/TowerRecipe.cs`, #194) — `Materials`(재료 `TowerAsset`+개수)/`Result`(결과 `TowerAsset`)/`ExtraCost`(`List<ResourceCost>`). **인스펙터 손입력(CSV 미경유** — 재료·결과가 SO 참조라 ID 문자열 resolve보다 직접 드래그가 자연스러움)
@@ -995,7 +996,7 @@
   마스크를 바꿀 때는 인스펙터 드롭다운이 아니라 **저장된 정수값을 확인**할 것.
 - **좌표계**: MapBuilder는 battlespace 로컬 정수 그리드(MapSize=7), MouseManager/Combat은 월드 좌표.
   변환 유틸 없음.
-- **네임스페이스**: `NorthLand.Combat`만 존재, 나머지 전역. asmdef 없음(전부 Assembly-CSharp).
+- **네임스페이스**: 전투 타입은 `NorthLand.Combat`, 공용 UI 타입은 `NorthLand.UI`를 사용한다. 기존 UI 코드에는 전역 타입이 남아 있으나, 둘 이상의 UI 소비처가 공유하는 신규·이관 타입은 `NorthLand.UI`에 둔다. asmdef는 없으며 전부 Assembly-CSharp에 속한다.
 - **매니저 수명주기**: static(DataTableManager) / DontDestroyOnLoad(MouseManager) / 씬 싱글톤
   (TowerInfoUI) 3종 공존. 부트스트랩 미결정. DayNightManager는 씬 싱글톤(DontDestroyOnLoad 없음)
   채택 — 경영/전투 공간이 한 씬에 공존해 씬 전환에 걸쳐 상태를 유지할 이유가 없다는 판단(WL-002 참고 사례).

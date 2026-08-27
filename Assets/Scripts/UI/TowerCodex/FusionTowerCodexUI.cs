@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -25,7 +24,18 @@ namespace NorthLand.UI
         [Header("Selected Tower")]
         [SerializeField] private Image selectedTowerIcon;
         [SerializeField] private TMP_Text selectedTowerNameText;
-        [SerializeField] private TMP_Text selectedRecipeText;
+        [SerializeField] private TMP_Text selectedDescriptionText;
+        [SerializeField] private TMP_Text selectedStatsText;
+
+
+        [Header("Recipe")]
+        [SerializeField] private GameObject recipeSection;
+        [SerializeField] private Transform recipeIconContent;
+        [SerializeField] private RecipeMaterialIconView recipeMaterialIconPrefab;
+        [SerializeField] private TMP_Text recipeSeparatorPrefab;
+
+        [Header("Details")]
+        [SerializeField] private ScrollRect detailsScrollRect;
 
         private readonly Dictionary<TowerAsset, TowerRecipe> recipeByResult = new();
 
@@ -164,82 +174,62 @@ namespace NorthLand.UI
             }
 
             if (selectedTowerNameText != null)
-                selectedTowerNameText.text = TowerDisplayName.Of(tower);
+                selectedTowerNameText.text = TowerInfoFormatter.BuildHeader(tower);
 
-            if (selectedRecipeText == null)
-                return;
+            string description = TowerInfoFormatter.BuildDescription(tower);
 
-            if (recipeByResult.TryGetValue(tower, out TowerRecipe recipe))
+            if (selectedDescriptionText != null)
             {
-                selectedRecipeText.text = BuildRecipeText(recipe);
+                selectedDescriptionText.text = description;
+                selectedDescriptionText.gameObject.SetActive(!string.IsNullOrEmpty(description));
             }
-            else
-            {
-                selectedRecipeText.text = LocalizationHelper.Get(LocalizationHelper.k_TowersTable, "towers.normal");
-            }
+
+            if (selectedStatsText != null)
+                selectedStatsText.text = TowerInfoFormatter.BuildStats(tower);
+
+            recipeByResult.TryGetValue(tower, out TowerRecipe recipe);
+
+            BuildRecipeIcons(recipe);
+            ResetDetailsScroll();
+
         }
 
-        private string BuildRecipeText(TowerRecipe recipe)
+        private void ResetDetailsScroll()
         {
-            if (recipe == null || recipe.Materials == null || recipe.Materials.Count == 0)
-            {
-                return "조합 정보 없음";
-            }
+            if (detailsScrollRect == null)
+                return;
 
-            Dictionary<TowerAsset, int> materialCounts = new();
-
-            foreach (TowerRecipe.MaterialEntry material in recipe.Materials)
-            {
-                if (material == null || material.Tower == null || material.Count <= 0)
-                {
-                    continue;
-                }
-
-                if (materialCounts.ContainsKey(material.Tower))
-                    materialCounts[material.Tower] += material.Count;
-                else
-                    materialCounts.Add(material.Tower, material.Count);
-            }
-
-            if (materialCounts.Count == 0)
-                return "조합 정보 없음";
-
-            StringBuilder builder = new();
-            bool first = true;
-
-            foreach (KeyValuePair<TowerAsset, int> material in materialCounts)
-            {
-                if (!first)
-                {
-                    builder.Append("\n+ \n");
-                }
-                builder.Append(TowerDisplayName.Of(material.Key));
-
-                if (material.Value > 1)
-                {
-                    builder.Append(" * ");
-                    builder.Append(material.Value);
-
-                }
-
-                first = false;
-            }
-            return builder.ToString();
+            detailsScrollRect.StopMovement();
+            Canvas.ForceUpdateCanvases();
+            detailsScrollRect.verticalNormalizedPosition = 1f;
         }
 
         private void ClearSelectedView()
         {
+            if (selectedDescriptionText != null)
+            {
+                selectedDescriptionText.text = string.Empty;
+                selectedDescriptionText.gameObject.SetActive(false);
+            }
+
+            if (recipeSection != null)
+                recipeSection.SetActive(false);
+
+            if (selectedStatsText != null)
+                selectedStatsText.text = string.Empty;
+
             if (selectedTowerIcon != null)
             {
                 selectedTowerIcon.sprite = null;
                 selectedTowerIcon.enabled = false;
             }
 
-            if (selectedTowerNameText != null)
-                selectedTowerNameText.text = "타워 없음";
 
-            if (selectedRecipeText != null)
-                selectedRecipeText.text = "조합 정보 없음";
+            if (selectedTowerNameText != null)
+                selectedTowerNameText.text = LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, "codex.tower.none");
+
+
+            ClearRecipeIcons();
         }
 
         public void Open()
@@ -281,6 +271,52 @@ namespace NorthLand.UI
                 SelectTower(selectedTower);
             else
                 SelectFirstTower();
+        }
+
+
+        private void BuildRecipeIcons(TowerRecipe recipe)
+        {
+            ClearRecipeIcons();
+
+            bool hasRecipe = recipe != null && recipe.Materials != null && recipe.Materials.Count > 0;
+
+            if (recipeSection != null)
+                recipeSection.SetActive(hasRecipe);
+
+            if (!hasRecipe ||recipeIconContent == null ||recipeMaterialIconPrefab == null)
+            {
+                return;
+            }
+
+            bool isFirstIcon = true;
+
+            foreach (TowerRecipe.MaterialEntry material in recipe.Materials)
+            {
+                if (material == null ||material.Tower == null ||material.Count <= 0)
+                {
+                    continue;
+                }
+
+                for (int i = 0; i < material.Count; i++)
+                {
+                    if (!isFirstIcon && recipeSeparatorPrefab != null)
+                        Instantiate(recipeSeparatorPrefab, recipeIconContent);
+
+                    RecipeMaterialIconView icon = Instantiate(recipeMaterialIconPrefab,recipeIconContent);
+
+                    icon.Initialize(material.Tower.Icon);
+                    isFirstIcon = false;
+                }
+            }
+        }
+
+        private void ClearRecipeIcons()
+        {
+            if (recipeIconContent == null)
+                return;
+
+            for (int i = recipeIconContent.childCount - 1; i >= 0; i--)
+                Destroy(recipeIconContent.GetChild(i).gameObject);
         }
     }
 }
