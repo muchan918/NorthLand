@@ -286,20 +286,18 @@ namespace NorthLand.Combat
             // 피해는 `LegHitSet`이 구간당 1회로 걸러 정상인데 통지는 안 걸러진다. 그대로 구독하면
             // **부메랑만 착탄 이펙트가 대여섯 배로 쏟아진다.**
             //
-            // 그래서 거르는 기준이 "맞았는가"가 아니라 **"이미 연출한 접촉의 재방문인가"**다.
-            // ⚠ 이 둘을 헷갈리면 안 된다 — "안 맞았으면 안 터뜨린다"로 만들면 **빗나간 포격이 조용해진다.**
-            // `BallisticFlight`는 착탄점을 발사 순간에 고정해 "적 무리의 길목을 예측해 쏜다"가 성립하는
-            // 방식이라 빗나감이 설계다(그쪽 주석). `incendiary_cannon_tower`가 그 조합인데, 빗나갔을 때
-            // 폭발이 없으면 착탄 구역(불바닥)만 갑자기 생겨 예측이 짧았는지 길었는지 읽을 수 없다.
+            // 그래서 거르는 기준이 "맞았는가"가 아니라 **"이번 통지가 새로 일어난 일인가"**다. 그 판정은
+            // `Projectile`이 한다 — 빗나감·부메랑 재접촉·밀집 스플래시가 뒤섞이는 경계가 전부 그쪽
+            // 지식이라, 구독자가 다시 유도하면 매번 같은 함정을 밟는다(`Impacted` 주석의 ⚠ 두 개).
             //
             // 지역 변수로 복사해 넘기는 이유는 람다가 `this`(액션)를 붙들지 않게 하기 위해서다 —
             // 구역 쪽이 `spawned` 플래그를 지역 변수로 두는 것과 같은 이유고, 탄이 나는 동안
             // 액션이 Dispose되어도 이 연출은 자기가 든 값으로 끝까지 간다.
             TowerAsset.ImpactVfxFields vfx = impactVfx;
             if (vfx != null && vfx.IsAuthored)
-                projectile.Impacted += (impactPos, blocked) =>
+                projectile.Impacted += (impactPos, isFresh) =>
                 {
-                    if (blocked == 0) SpawnImpactVfx(vfx, impactPos);
+                    if (isFresh) SpawnImpactVfx(vfx, impactPos);
                 };
 
             // 데미지 소스는 Owner다 — IAttacker 계약을 가진 쪽이 타워이므로 DamageInfo가 타워를 가리킨다.

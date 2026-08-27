@@ -57,33 +57,40 @@ namespace NorthLand.Combat
         /// ⚠ 관통·부메랑처럼 **여러 번 때리는 탄은 명중마다 발행된다.** 한 번만 반응해야 하는 구독자는
         /// 스스로 걸러야 한다(`AttackAction`이 그렇게 한다).
         ///
-        /// ⚠ **두 번째 인자는 "접촉했지만 이번 구간에 이미 맞아서 걸러진 대상 수"다.**
-        /// 맞은 수가 아니다 — 연출 구독자가 물어야 하는 것이 "몇 마리 맞았나"가 아니라
-        /// **"이 통지가 이미 연출한 접촉의 재방문인가"**라서 그렇다.
+        /// ⚠ **두 번째 인자는 "이번 통지가 새로 일어난 일인가"다**(false = 이미 통지한 접촉의 재방문).
+        /// 원시 카운트가 아니라 **판정 결과**를 넘기는 이유는, 그 판정에 필요한 지식이 전부 여기 있고
+        /// 구독자마다 다시 유도하면 매번 같은 함정을 밟기 때문이다(아래 두 ⚠가 그 함정이다).
         ///
         /// `FlightStep.Impact`는 "이번 프레임에 명중 판정을 하라"는 뜻이지 "맞았다"가 아니다.
-        /// 그 갈림이 실제로 드러나는 곳이 `BoomerangFlight`다 — 그쪽은 매 프레임 `Physics.CheckSphere`로
-        /// 접촉만 보고 `HitAndContinue`를 내므로, 적 하나를 스쳐 지나가는 동안 **접촉한 프레임 수만큼**
-        /// 이 이벤트가 발행된다(속도 60·반경 0.5·60fps면 적 한 마리당 구간마다 대여섯 번).
-        /// 피해는 `FlightState.LegHitSet`이 구간당 1회로 걸러 정상이지만 **그 걸러짐이 여기엔 보이지 않아서**,
-        /// 그대로 구독하면 부메랑만 연출이 몇 배로 쏟아진다. 이 수가 0보다 크면 그 재방문이다.
+        /// 그 갈림이 드러나는 곳이 `BoomerangFlight`다 — 매 프레임 `Physics.CheckSphere`로 접촉만 보고
+        /// `HitAndContinue`를 내므로, 적 하나를 스쳐 지나가는 동안 **접촉한 프레임 수만큼** 발행된다
+        /// (속도 60·반경 0.5·60fps면 적 한 마리당 구간마다 대여섯 번). 피해는 `FlightState.LegHitSet`이
+        /// 구간당 1회로 걸러 정상이지만 그 걸러짐이 통지에는 보이지 않아, 그대로 구독하면 연출만 쏟아진다.
         ///
-        /// ⚠ **0은 "빗나갔다"도 포함한다.** 걸린 것이 아무도 없었다는 뜻이므로, 연출은 **터뜨리는 쪽이 맞다** —
-        /// `BallisticFlight`는 발사 순간 착탄점을 고정해 "적 무리의 길목을 예측해 쏜다"가 성립하는 방식이라
-        /// (그쪽 주석) 빗나감이 버그가 아니라 설계다. 빗나간 포격에서 폭발을 지우면 `incendiary_cannon_tower`는
-        /// 불바닥만 생기고 터지지 않아, 예측이 짧았는지 길었는지 읽을 단서가 사라진다.
+        /// ⚠ **"맞았는가"로 판정하면 빗나간 포격이 조용해진다.** `BallisticFlight`는 발사 순간 착탄점을
+        /// 고정해 "적 무리의 길목을 예측해 쏜다"가 성립하는 방식이라(그쪽 주석) 빗나감이 설계다.
+        /// `incendiary_cannon_tower`가 그 조합인데, 빗나갔을 때 폭발이 없으면 착탄 구역(불바닥)만 생겨
+        /// 예측이 짧았는지 길었는지 읽을 단서가 사라진다. 그래서 **아무것도 안 걸린 프레임은 true다.**
+        ///
+        /// ⚠ **"걸러진 것이 있는가"로 판정해도 안 된다.** 부메랑은 접촉 판정(HitRadius 0.5)보다 피해
+        /// 반경(SplashRadius 5)이 10배 넓어, 밀집 대형에서 "이미 맞은 적이 반경에 남아 있는데 새 적이
+        /// 막 들어오는" 프레임이 정상적으로 생긴다. 그 프레임을 재방문으로 묶으면 **실제 피해가
+        /// 들어갔는데 연출만 사라진다.** 그래서 신규 피격이 하나라도 있으면 true다.
         ///
         /// 스플래시가 5마리를 때려도 **통지는 한 번**이다 — 대상별 통지는 `DamageDealt` 쪽이다.
         /// 연출을 대상별로 붙이면 밀집 대형에서 파티클이 겹쳐 쌓인다.
-        public event Action<Vector3, int> Impacted;
+        public event Action<Vector3, bool> Impacted;
 
         // 프리팹에 남는 **유일한** 설정 — 모델 메시의 기수가 어느 축을 보는지 보정한다(화살 −90, 공 0).
         // 타워가 알 이유가 없는 값이라 여기 남는다. 비행·명중은 전부 타워 SO가 정한다(#274).
         [SerializeField] Vector3 rotationOffset;
 
-        // 이번 `OnHit` 한 번에서 **`LegHitSet`에 걸려 피해를 건너뛴** 대상 수. `Impacted` 통지에만 쓰이고
-        // 매 통지 앞에서 0으로 초기화된다 — 탄 수명 전체의 누계가 아니다.
-        // 왕복 비행(부메랑)만 그 원장을 들므로 나머지 비행에서는 항상 0이다.
+        // 이번 `OnHit` 한 번의 집계. 둘 다 `Impacted` 통지에만 쓰이고 매 통지 앞에서 0으로 초기화된다
+        // — 탄 수명 전체의 누계가 아니다.
+        //
+        // `hit`은 모든 명중 경로가 지나는 `Hit()`에서, `blocked`는 `LegHitSet`에 걸려 스킵하는
+        // `ApplyArea` 한 곳에서 센다(왕복 비행만 그 원장을 들므로 나머지 비행에서는 항상 0이다).
+        int hitThisImpact;
         int blockedThisImpact;
 
         IDamageable target;
@@ -159,10 +166,19 @@ namespace NorthLand.Combat
         {
             // 피해 처리보다 **뒤**에 통지한다 — 구역이 거는 효과가 명중 효과(Effects)보다 먼저 들어가면
             // 같은 종류의 상태이상에서 어느 쪽이 슬롯을 먼저 잡는지가 프레임마다 흔들린다.
-            // 그 순서 덕분에 아래 스킵 수가 **이번 통지 시점에 이미 확정**돼 있다.
+            // 그 순서 덕분에 아래 집계가 **이번 통지 시점에 이미 확정**돼 있다.
+            hitThisImpact = 0;
             blockedThisImpact = 0;
             ApplyImpact(impactPos);
-            Impacted?.Invoke(impactPos, blockedThisImpact);
+
+            // "이미 통지한 접촉의 재방문"만 걸러낸다 — 새로 때린 것이 하나라도 있으면 새 사건이고,
+            // 아무것도 안 걸렸으면(빗나감) 그것도 이번에 처음 일어난 일이다.
+            // ⚠ **`blocked == 0` 하나로 판정하면 안 된다.** 부메랑은 접촉 판정(HitRadius 0.5)보다
+            //    피해 반경(SplashRadius 5)이 10배 넓어, 밀집 대형을 스치는 동안 "이미 맞은 적이 반경에
+            //    남아 있는데 새 적이 막 들어오는" 프레임이 정상적으로 생긴다. 그 프레임을 재방문으로
+            //    묶으면 **실제 피해가 들어갔는데 연출만 사라진다.**
+            bool isFresh = hitThisImpact > 0 || blockedThisImpact == 0;
+            Impacted?.Invoke(impactPos, isFresh);
         }
 
         void ApplyImpact(Vector3 impactPos)
@@ -189,6 +205,10 @@ namespace NorthLand.Combat
         /// (#274 Phase 4에서 구조적으로 해소).
         void Hit(IDamageable victim, float amount)
         {
+            // 세 명중 경로(Single/Area/Chain)가 전부 여기를 지나므로 신규 피격도 여기서만 센다 —
+            // 경로별로 세면 하나를 빠뜨렸을 때 그 타워만 조용히 연출이 사라진다.
+            hitThisImpact++;
+
             victim.TakeDamage(new DamageInfo(amount, source));
             DamageDealt?.Invoke(source, victim);
             ApplyEffects(victim);
@@ -241,7 +261,6 @@ namespace NorthLand.Combat
                 if (flightState.LegHitSet != null && !flightState.LegHitSet.Add(d))
                 {
                     // 이번 구간에 이미 때린 대상 = 부메랑이 같은 적을 스쳐 지나가는 중이다.
-                    // 연출이 이 통지를 걸러내는 근거이므로(`Impacted` 주석) 세어서 함께 넘긴다.
                     blockedThisImpact++;
                     continue;
                 }
