@@ -12555,51 +12555,51 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4901894443790711918, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: m_AnchorMax.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4901894443790711918, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: m_AnchorMin.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4901894443790711918, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 0
+      value: 436.36365
       objectReference: {fileID: 0}
     - target: {fileID: 4901894443790711918, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 0
+      value: 480
       objectReference: {fileID: 0}
     - target: {fileID: 4901894443790711918, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 0
+      value: 218.18182
       objectReference: {fileID: 0}
     - target: {fileID: 4901894443790711918, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 0
+      value: -240
       objectReference: {fileID: 0}
     - target: {fileID: 8588015674922286078, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: m_AnchorMax.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8588015674922286078, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: m_AnchorMin.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8588015674922286078, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 0
+      value: 363.63635
       objectReference: {fileID: 0}
     - target: {fileID: 8588015674922286078, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 0
+      value: 480
       objectReference: {fileID: 0}
     - target: {fileID: 8588015674922286078, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 0
+      value: 618.1818
       objectReference: {fileID: 0}
     - target: {fileID: 8588015674922286078, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 0
+      value: -240
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -13901,7 +13901,10 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   impactEffectPrefab: {fileID: 0}
-  impactSfx: {fileID: 0}
+  castSfx: {fileID: 8300000, guid: 95f7acb4b3a020444a28cd7d5d9dcfdb, type: 3}
+  castSfxVolume: 1.5
+  impactSfx: {fileID: 8300000, guid: fd27b84e3c1cea84c81f154be4c1bfaf, type: 3}
+  impactSfxVolume: 1.5
   _visualSet: {fileID: 0}
   skillStarEffectPrefab: {fileID: 5671531732343113848, guid: 0ab33f3111e5a9048b79a4bd897d760e, type: 3}
   impactDelay: 0.8
@@ -21952,9 +21955,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildingInfoUI
   _controller: {fileID: 544968473}
   _nameLevelText: {fileID: 3632550484292773333}
-  _amountText: {fileID: 0}
   _descriptionText: {fileID: 1997450646}
   _skillEffectText: {fileID: 543201048}
+  _skillEffectBox: {fileID: 0}
   _produceRow: {fileID: 2132157155}
   _produceIcon: {fileID: 1130404521}
   _produceAmountText: {fileID: 726448190}

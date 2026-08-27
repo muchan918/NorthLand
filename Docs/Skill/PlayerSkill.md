@@ -10,7 +10,7 @@
 
 | 클래스 | 역할 |
 | --- | --- |
-| `SkillManager` | 감전 스킬(#103, #465). 클릭 위치에 별 낙하 연출을 생성하고 0.8초 뒤 중앙 100%·외곽 70% AoE 데미지 적용, 밤 게이팅 + **충전(탄약) 소모**(#319). 착탄마다 `ImpactResolved(SkillCastContext)` 이벤트 발행 |
+| `SkillManager` | 감전 스킬(#103, #465). 클릭 위치에 별 낙하 연출을 생성하고 0.8초 뒤 중앙 100%·외곽 70% AoE 데미지 적용, 밤 게이팅 + **충전(탄약) 소모**(#319). #522에서 시전음·착탄음과 개별 볼륨을 authoring하며 `CombatSfx` 풀로 재생. 착탄마다 `ImpactResolved(SkillCastContext)` 이벤트 발행 |
 | ~~`BuffSkillManager`~~ | **미사용 (#315)** — 버프 스킬(#103). 즉시 발동, `Tower.Active` 전체에 공격력/공속 배율. 씬 미배선이라 `Instance`가 항상 null |
 | `SkillEffectManager` | 보상 라우터(씬 싱글톤). `WaveRewardController.GrantReward` → `ApplyReward(reward)` → 타입 매칭 효과에 레벨 가산 위임. `GetLevel(type)`(세이브용) / 보상 후보 필터용 `IsMaxLevel(type)`(#292) / 카드 표시용 `GetSnapshot(type)` 제공 — 표시에 필요한 `Level`·`NextLevel`·`NextIsMax`·`Stats`(#287·#292)를 한 벌로 넘긴다. **값마다 따로 조회하지 말 것**(#353) |
 | `SkillEffect` (추상) | 특수효과 공통 베이스(MonoBehaviour, `SkillEffectManager` 오브젝트에 부착). 레벨·상한 소유 + 스킬 이벤트 구독 관리 + 표시 수치 제공(`GetStatSummary`) |
@@ -33,7 +33,8 @@
        maxLevel 도달:    더 오르지 않고, 다음 웨이브부터 후보에서 제외(#292)
 
 스킬 시전
-  → SkillManager: SkillStarEffect 생성 → 0.8초 뒤 착탄 피해 계산
+  → SkillManager: SkillStarEffect 생성 + 시전음 1회
+  → 0.8초 뒤 남은 시전음 정지 + 착탄음 1회 + 착탄 피해 계산
   → SkillManager: 착탄마다 ImpactResolved?.Invoke(context)
   → 구독된(=획득한) 효과들만 호출됨. 구독자 0이면 기본 스킬 그대로
 ```
