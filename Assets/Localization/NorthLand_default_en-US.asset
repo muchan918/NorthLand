@@ -160,11 +160,11 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 6627824745656320
-    m_Localized: title
+    m_Localized: Title
     m_Metadata:
       m_Items: []
   - m_Id: 6628086369562624
-    m_Localized: replay
+    m_Localized: Replay
     m_Metadata:
       m_Items: []
   - m_Id: 6628387554144256
@@ -410,12 +410,34 @@ MonoBehaviour:
     m_Localized: Unlock Wave
     m_Metadata:
       m_Items: []
+  - m_Id: 17447623478292480
+    m_Localized: 'We''re baking delicious cookies!
+
+      Are you sure you want to
+      leave the kingdom?'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17448088840515584
+    m_Localized: 'Your progress will melt away like cotton candy!
+
+      Are you
+      sure you want to reset?'
+    m_Metadata:
+      m_Items: []
   - m_Id: 17146012390469632
     m_Localized: Fusion Info
     m_Metadata:
       m_Items: []
   - m_Id: 17378157591605248
     m_Localized: No towers available
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17502978577084416
+    m_Localized: Enter a number between 1 and 2147483647.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17503031068798976
+    m_Localized: Unable to start the game.
     m_Metadata:
       m_Items: []
   references:

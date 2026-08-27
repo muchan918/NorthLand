@@ -387,12 +387,28 @@ MonoBehaviour:
     m_Key: game.tower.unlock_wave
     m_Metadata:
       m_Items: []
+  - m_Id: 17447623478292480
+    m_Key: game.setting.quit_confirm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17448088840515584
+    m_Key: game.setting.reset_confirm
+    m_Metadata:
+      m_Items: []
   - m_Id: 17146012390469632
     m_Key: codex.fusion.info
     m_Metadata:
       m_Items: []
   - m_Id: 17378157591605248
     m_Key: codex.tower.none
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17502978577084416
+    m_Key: title.seed.error.invalid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17503031068798976
+    m_Key: title.seed.error.start_failed
     m_Metadata:
       m_Items: []
   m_Metadata:

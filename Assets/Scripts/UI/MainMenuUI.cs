@@ -6,11 +6,23 @@ using UnityEngine.InputSystem;
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using UnityEngine.Localization.Components;
 
 namespace NorthLand.UI
 {
     public class MainMenuUI : MonoBehaviour
     {
+        private enum NewGameRequestType
+        {
+            None,
+            Random,
+            Seed
+        }
+
+        private string pendingSlotPath;
+
+        private NewGameRequestType pendingNewGameRequest;
+        private int pendingMasterSeed;
         [Header("Seed")]
 
         [SerializeField]
@@ -35,6 +47,23 @@ namespace NorthLand.UI
         private RunSaveLoader runSaveLoader;
         private CancellationTokenSource continueRefreshCts;
 
+        private bool hasValidRunSave;
+        private bool isRunSaveCheckCompleted;
+
+        [SerializeField]
+        private GameObject QuitGameWarningPanel;
+
+        [Header("New Game Warning")]
+
+        [SerializeField]
+        private GameObject newGameWarningPanel;
+
+        [SerializeField]
+        private Button newGameConfirmButton;
+
+        [SerializeField]
+        private LocalizeStringEvent seedErrorLocalize;
+
         private void Awake()
         {
             runSaveLoader = new RunSaveLoader();
@@ -44,11 +73,11 @@ namespace NorthLand.UI
         // 랜덤 시드로 시작
         public void OnClickStart()
         {
-            if (!EnsurePlayerSlotSelected())
-            {
-                return;
-            }
+            RequestNewGame(NewGameRequestType.Random);
+        }
 
+        private void StartRandomGame()
+        {
             if (!TryGetSceneManager(out GameSceneManager sceneManager))
             {
                 return;
@@ -65,35 +94,10 @@ namespace NorthLand.UI
                 sceneManager.LoadManageSpace();
             }
         }
-
-        // 플레이어가 입력한 시드로 시작
-        public void OnClickStartWithSeed()
+        private void StartSeedGame(int masterSeed)
         {
-            ClearSeedError();
-
-            if (!EnsurePlayerSlotSelected())
-            {
-                return;
-            }
-
             if (!TryGetSceneManager(out GameSceneManager sceneManager))
             {
-                return;
-            }
-
-            if (seedInputField == null)
-            {
-                ShowSeedError("시드 입력창이 연결되지 않았습니다.");
-
-                return;
-            }
-
-            string input = seedInputField.text.Trim();
-
-            if (!int.TryParse(input,out int masterSeed) ||masterSeed <= 0)
-            {
-                ShowSeedError("1~2147483647 사이의 숫자를 입력하세요.");
-
                 return;
             }
 
@@ -109,6 +113,112 @@ namespace NorthLand.UI
             }
         }
 
+        private void RequestNewGame(
+       NewGameRequestType requestType,
+       int masterSeed = 0)
+        {
+            RequestNewGameAsync(requestType, masterSeed).Forget();
+        }
+
+        private async UniTask RequestNewGameAsync(NewGameRequestType requestType,int masterSeed)
+        {
+            if (!EnsurePlayerSlotSelected())
+            {
+                return;
+            }
+
+            if (!isRunSaveCheckCompleted)
+            {
+                await RefreshContinueButtonAsync();
+
+                if (!isRunSaveCheckCompleted)
+                {
+                    Debug.LogWarning("[MainMenuUI] 저장 데이터 확인을 완료하지 못했습니다.",this);
+
+                    return;
+                }
+            }
+
+            PlayerSaveService playerSaveService = PlayerSaveService.Instance;
+
+            if (playerSaveService == null || !playerSaveService.HasSelectedSlot)
+            {
+                return;
+            }
+
+            pendingNewGameRequest = requestType;
+            pendingMasterSeed = masterSeed;
+            pendingSlotPath = playerSaveService.CurrentSlotPath;
+
+            if (hasValidRunSave)
+            {
+                if (newGameWarningPanel == null)
+                {
+                    Debug.LogError("[MainMenuUI] 새 게임 경고 패널이 연결되지 않았습니다.",this);
+
+                    CancelPendingNewGame();
+                    return;
+                }
+
+                newGameWarningPanel.SetActive(true);
+                return;
+            }
+
+            StartPendingNewGame();
+        }
+
+        private void StartPendingNewGame()
+        {
+            NewGameRequestType requestType = pendingNewGameRequest;
+            int masterSeed = pendingMasterSeed;
+
+            pendingNewGameRequest = NewGameRequestType.None;
+            pendingMasterSeed = 0;
+            pendingSlotPath = null;
+
+            switch (requestType)
+            {
+                case NewGameRequestType.Random:
+                    StartRandomGame();
+                    break;
+
+                case NewGameRequestType.Seed:
+                    StartSeedGame(masterSeed);
+                    break;
+            }
+        }
+        public void OnClickCancelNewGame()
+        {
+            CancelPendingNewGame();
+        }
+
+        // 플레이어가 입력한 시드로 시작
+        public void OnClickStartWithSeed()
+        {
+            ClearSeedError();
+
+            if (!EnsurePlayerSlotSelected())
+            {
+                return;
+            }
+
+            if (seedInputField == null)
+            {
+                ShowSeedError("title.seed.error.start_failed");
+                return;
+            }
+
+            string input = seedInputField.text.Trim();
+
+            if (!int.TryParse(input, out int masterSeed) || masterSeed <= 0)
+            {
+                ShowSeedError("title.seed.error.invalid");
+                return;
+            }
+
+            RequestNewGame(NewGameRequestType.Seed, masterSeed);
+        }
+
         private bool TryGetSceneManager(out GameSceneManager sceneManager)
         {
             sceneManager = GameSceneManager.Instance;
@@ -120,23 +230,35 @@ namespace NorthLand.UI
 
             Debug.LogError("[MainMenuUI] GameSceneManager 인스턴스가 없습니다.");
 
-            ShowSeedError("게임을 시작할 수 없습니다.");
+            ShowSeedError("title.seed.error.start_failed");
 
             return false;
         }
 
-        private void ShowSeedError(string message)
+        private void ShowSeedError(string entryKey)
         {
-            if (seedErrorText != null)
+            if (seedErrorLocalize == null)
             {
-                seedErrorText.text = message;
+                Debug.LogError("[MainMenuUI] SeedErrorText 로컬라이즈 컴포넌트가 연결되지 않았습니다.",this);
+
+                return;
             }
 
-            Debug.LogWarning($"[MainMenuUI] {message}",this);
+            seedErrorLocalize.StringReference.TableReference = "NorthLand_default";
+
+            seedErrorLocalize.StringReference.TableEntryReference = entryKey;
+
+            seedErrorLocalize.enabled = true;
+            seedErrorLocalize.RefreshString();
         }
 
         private void ClearSeedError()
         {
+            if (seedErrorLocalize != null)
+            {
+                seedErrorLocalize.enabled = false;
+            }
+
             if (seedErrorText != null)
             {
                 seedErrorText.text = string.Empty;
@@ -144,14 +266,16 @@ namespace NorthLand.UI
         }
         private void Update()
         {
-            // 타이틀 씬 전용 입력이다.
-            if (Keyboard.current == null)
+            if (Keyboard.current == null ||
+                !Keyboard.current.escapeKey.wasPressedThisFrame)
             {
                 return;
             }
 
-            if (!Keyboard.current.escapeKey.wasPressedThisFrame)
+            if (newGameWarningPanel != null &&
+                newGameWarningPanel.activeSelf)
             {
+                OnClickCancelNewGame();
                 return;
             }
 
@@ -183,8 +307,11 @@ namespace NorthLand.UI
         /// <summary>
         /// 정상적으로 읽을 수 있는 세이브가 있을 때만 이어하기 버튼을 표시한다.
         /// </summary>
-        private async UniTaskVoid RefreshContinueButtonAsync()
+        private async UniTask RefreshContinueButtonAsync()
         {
+            hasValidRunSave = false;
+            isRunSaveCheckCompleted = false;
+
             if (continueButton == null)
             {
                 Debug.LogError("[MainMenuUI] 이어하기 버튼이 연결되지 않았습니다.",this);
@@ -202,31 +329,38 @@ namespace NorthLand.UI
 
             if (playerSaveService == null || !playerSaveService.HasSelectedSlot)
             {
+                isRunSaveCheckCompleted = true;
                 return;
             }
 
-            CancellationTokenSource refreshCts =
-                CancellationTokenSource.CreateLinkedTokenSource(
-                this.GetCancellationTokenOnDestroy());
+            CancellationTokenSource refreshCts = CancellationTokenSource.CreateLinkedTokenSource(this.GetCancellationTokenOnDestroy());
             continueRefreshCts = refreshCts;
 
             string slotPath = playerSaveService.CurrentSlotPath;
 
             try
             {
-                SaveResult<RunData> result = await runSaveLoader.LoadAsync(
-                    slotPath,
-                    refreshCts.Token);
+                SaveResult<RunData> result = await runSaveLoader.LoadAsync(slotPath,refreshCts.Token);
 
-                if (playerSaveService.HasSelectedSlot &&
-                    playerSaveService.CurrentSlotPath == slotPath)
+                if (playerSaveService.HasSelectedSlot && playerSaveService.CurrentSlotPath == slotPath)
                 {
-                    continueButton.gameObject.SetActive(result.Success);
+                    hasValidRunSave = result.Success;
+                    isRunSaveCheckCompleted = true;
+
+                    continueButton.gameObject.SetActive(hasValidRunSave);
                 }
             }
+
             catch (OperationCanceledException)
             {
-                // 슬롯 변경 또는 타이틀 화면 종료에 따른 정상 취소
+                // 슬롯 변경 또는 화면 종료에 따른 정상 취소
+            }
+            catch (Exception exception)
+            {
+                hasValidRunSave = false;
+                isRunSaveCheckCompleted = true;
+
+                Debug.LogException(exception, this);
             }
             finally
             {
@@ -273,6 +407,11 @@ namespace NorthLand.UI
 
         private void HandleSelectedSlotChanged()
         {
+            if (pendingNewGameRequest != NewGameRequestType.None || newGameWarningPanel != null && newGameWarningPanel.activeSelf)
+            {
+                CancelPendingNewGame();
+            }
+
             RefreshContinueButtonAsync().Forget();
         }
 
@@ -310,6 +449,86 @@ namespace NorthLand.UI
             }
 
             savePanel.SetActive(false);
+        }
+
+        public void OnClickConfirmNewGame()
+        {
+            if (pendingNewGameRequest == NewGameRequestType.None)
+            {
+                Debug.LogWarning("[MainMenuUI] 대기 중인 새 게임 요청이 없습니다.",this);
+
+                CloseNewGameWarningPanel();
+                return;
+            }
+
+            PlayerSaveService playerSaveService = PlayerSaveService.Instance;
+
+            if (playerSaveService == null ||!playerSaveService.HasSelectedSlot ||playerSaveService.CurrentSlotPath != pendingSlotPath)
+            {
+                Debug.LogWarning("[MainMenuUI] 새 게임 요청 후 선택된 슬롯이 변경되었습니다.",this);
+
+                CancelPendingNewGame();
+                return;
+            }
+
+            if (!TryGetSceneManager(out _))
+            {
+                return;
+            }
+
+            if (newGameConfirmButton != null)
+            {
+                newGameConfirmButton.interactable = false;
+            }
+
+            var fileStore = new SaveFileStore(pendingSlotPath);
+
+            if (!fileStore.TryDelete(out string error))
+            {
+                Debug.LogError(
+                    $"[MainMenuUI] 기존 Run 세이브 삭제에 실패했습니다: {error}",
+                    this);
+
+                if (newGameConfirmButton != null)
+                {
+                    newGameConfirmButton.interactable = true;
+                }
+
+                return;
+            }
+
+            hasValidRunSave = false;
+            isRunSaveCheckCompleted = true;
+
+            if (continueButton != null)
+            {
+                continueButton.gameObject.SetActive(false);
+            }
+
+            CloseNewGameWarningPanel();
+            StartPendingNewGame();
+        }
+
+        private void CloseNewGameWarningPanel()
+        {
+            if (newGameWarningPanel != null)
+            {
+                newGameWarningPanel.SetActive(false);
+            }
+        }
+
+        private void CancelPendingNewGame()
+        {
+            pendingNewGameRequest = NewGameRequestType.None;
+            pendingMasterSeed = 0;
+            pendingSlotPath = null;
+
+            if (newGameConfirmButton != null)
+            {
+                newGameConfirmButton.interactable = true;
+            }
+
+            CloseNewGameWarningPanel();
         }
 
         private bool EnsurePlayerSlotSelected()
@@ -397,6 +616,28 @@ namespace NorthLand.UI
             {
                 Debug.LogWarning($"[MainMenuUI] 이어하기를 시작할 수 없습니다: {error}",this);
             }
+        }
+
+        public void OpenQuitGameWarningPanel()
+        {
+            if (QuitGameWarningPanel == null)
+            {
+                Debug.LogError($"[{QuitGameWarningPanel}] 패널이 연결되지 않았습니다.", this);
+                return;
+            }
+
+            QuitGameWarningPanel.SetActive(true);
+        }
+
+        public void CloseQuitGameWarningPanel()
+        {
+            if (QuitGameWarningPanel == null)
+            {
+                Debug.LogError($"[{QuitGameWarningPanel}] 패널이 연결되지 않았습니다.", this);
+                return;
+            }
+
+            QuitGameWarningPanel.SetActive(false);
         }
     }
 }
