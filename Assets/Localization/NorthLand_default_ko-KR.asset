@@ -402,6 +402,16 @@ MonoBehaviour:
     m_Localized: "\uD574\uAE08 \uC6E8\uC774\uBE0C"
     m_Metadata:
       m_Items: []
+  - m_Id: 17447623478292480
+    m_Localized: "\uB9DB\uC788\uB294 \uCFE0\uD0A4\uB97C \uAD7D\uACE0 \uC788\uC5B4\uC694!\n\uC815\uB9D0
+      \uC655\uAD6D\uC744 \uB5A0\uB098\uC2E4 \uAC74\uAC00\uC694?"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17448088840515584
+    m_Localized: "\uC19C\uC0AC\uD0D5\uCC98\uB7FC \uAE30\uB85D\uC774 \uC0AC\uB974\uB974
+      \uC0AC\uB77C\uC838\uC694!\n\uC815\uB9D0 \uCD08\uAE30\uD654\uD560\uAE4C\uC694?"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

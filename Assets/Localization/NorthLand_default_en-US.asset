@@ -410,6 +410,20 @@ MonoBehaviour:
     m_Localized: Unlock Wave
     m_Metadata:
       m_Items: []
+  - m_Id: 17447623478292480
+    m_Localized: 'We''re baking delicious cookies!
+
+      Are you sure you want to
+      leave the kingdom?'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17448088840515584
+    m_Localized: 'Your progress will melt away like cotton candy!
+
+      Are you
+      sure you want to reset?'
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

@@ -387,6 +387,14 @@ MonoBehaviour:
     m_Key: game.tower.unlock_wave
     m_Metadata:
       m_Items: []
+  - m_Id: 17447623478292480
+    m_Key: game.setting.quit_confirm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17448088840515584
+    m_Key: game.setting.reset_confirm
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
