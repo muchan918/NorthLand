@@ -160,11 +160,11 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 6627824745656320
-    m_Localized: title
+    m_Localized: Title
     m_Metadata:
       m_Items: []
   - m_Id: 6628086369562624
-    m_Localized: replay
+    m_Localized: Replay
     m_Metadata:
       m_Items: []
   - m_Id: 6628387554144256
