@@ -226,7 +226,7 @@ namespace NorthLand.UI
 
 
             if (selectedTowerNameText != null)
-                LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, "codex.tower.none");
+                selectedTowerNameText.text = LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, "codex.tower.none");
 
 
             ClearRecipeIcons();
