@@ -324,7 +324,6 @@ MonoBehaviour:
   text: {fileID: 3088402732723609233}
   minimumSize: {x: 300, y: 80}
   maximumSize: {x: 750, y: 300}
-  padding: {x: 40, y: 24}
 --- !u!1 &1520225892498578865
 GameObject:
   m_ObjectHideFlags: 0
