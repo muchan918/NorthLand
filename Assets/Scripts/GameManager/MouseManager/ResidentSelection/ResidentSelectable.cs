@@ -15,7 +15,7 @@ using UnityEngine;
 /// 마커는 콜라이더와 같은 GameObject(주민 루트)에 있어야 한다.
 [DisallowMultipleComponent]
 public class ResidentSelectable : MonoBehaviour, IGroupSelectable, IHoverable, ISelectable, IOutlineKindFilter,
-    IDragHandle, ITutorialSelectionGate
+    IDragHandle, ITutorialSelectionGate, ICursorHint
 {
     private Resident _resident;
 
@@ -45,6 +45,16 @@ public class ResidentSelectable : MonoBehaviour, IGroupSelectable, IHoverable, I
     public void OnHoverExit() { }
     public void OnSelected() { }
     public void OnDeselected() { }
+
+    // ── 커서 (ICursorHint) ──────────────────────────────────────────────
+    //
+    // 주민 위에 올렸을 때의 커서. 실제로 집어 든 동안(CursorKind.ResidentDrag)은 여기가 아니라
+    // `CursorController`가 모드(UnitDrag)로 판단한다 — 마커는 판정에 참여하지 않는다는
+    // 위 IDragHandle 주석과 같은 선이다.
+    //
+    // 가용 인원 0일 때도 같은 커서를 유지한다. 아래 AllowsOutline이 호버 노랑을 살려 두는 것과 같은
+    // 이유다(WL-158) — "고를 수 없다"와 "대상이 아니다"는 다르고, 거절 피드백을 걸 자리를 남긴다.
+    public CursorKind HoverCursor => CursorKind.Resident;
 
     // ── 들어서 끌 수 있다 (IDragHandle) ─────────────────────────────────
     //

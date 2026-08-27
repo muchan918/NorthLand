@@ -4,7 +4,7 @@
 
 - 관련 이슈: #9(원안) · #38 호버 툴팁 · #67 호버 훅 · #103 스킬 조준 · #183 그룹 선택 · #261 드래그 선택
 - 구현 위치: `Assets/Scripts/GameManager/MouseManager/`
-- 상세를 위임하는 문서: 그룹 선택의 도메인 규칙은 [TowerMerge.md](TowerMerge.md) §7, 하이라이트 연출은 [InteractionOutline.md](InteractionOutline.md), 타워 배치는 [TowerPlacement.md](TowerPlacement.md).
+- 상세를 위임하는 문서: 그룹 선택의 도메인 규칙은 [TowerMerge.md](TowerMerge.md) §7, 하이라이트 연출은 [InteractionOutline.md](InteractionOutline.md), 타워 배치는 [TowerPlacement.md](TowerPlacement.md), 커서 그림은 [CursorFeedback.md](CursorFeedback.md).
 
 ---
 
@@ -49,6 +49,8 @@
 > **`UnitDrag`가 같은 이음매를 쓰는 이유는 더 무겁다.** 들린 주민은 화면에서 감춰져 있으므로
 > (`Resident.md` §8), 종료 통지가 새면 패널이 멈추는 정도가 아니라 **그 주민이 영영 돌아오지 않는다.**
 
+- 현재 모드는 `CurrentMode`로 읽고, 전환은 `OnModeChanged`로 **1회씩** 통지된다. 같은 모드로의 재진입은 통지하지 않는다 — `CancelInteractions`처럼 Cancel을 연달아 부르는 경로가 `SetMode(Idle)`을 두 번 때리기 때문이다. 이벤트는 **변화만** 싣으므로 구독자는 붙는 시점에 `CurrentMode`를 직접 읽어 초기 상태를 맞춘다. 첫 소비처는 커서 그림([CursorFeedback.md](CursorFeedback.md) §2).
+
 ## 4. 선택 모델
 
 선택에는 **단일 선택**과 **그룹 선택** 두 층이 있고, 서로 다른 통지를 쓴다.
@@ -77,6 +79,8 @@
 | 우클릭 | 선택 해제가 **아니다** — 카메라 팬·배치/조준 취소 전용 |
 
 > Shift가 클릭에서는 **토글**, 드래그에서는 **합집합**인 것은 의도된 비대칭이다(RTS 관례). 드래그로 "빼기"는 지원하지 않는다 — 필요해지면 다른 키에 배정한다.
+
+- 좌버튼의 **눌림 상태 자체**는 위 표와 별개로 `OnPointerPressedChanged`가 통지한다(클릭 확정과 다른 신호 — "누르고 있는 동안"에 반응하는 연출용). **UI 위·모드를 가리지 않는 순수 입력 통지**이며, 판정은 `wasPressedThisFrame`이 아니라 **`isPressed` 변화**다. 포커스 상실로 뗀 프레임이 유실돼도 다음 프레임에 스스로 복구되기 때문이며, `BoxSelect`가 `isPressed`를 쓰는 이유와 같다(§5.2, WL-143).
 
 ## 5. 드래그 사각형 선택 (#261)
 
@@ -217,6 +221,7 @@
 | `TowerInfoUI.cs` | 타워 정보 패널(임시 싱글톤, UIManager 도입 시 흡수) |
 | `TowerPlacement/` | 타워 배치·합성 — [TowerPlacement.md](TowerPlacement.md), [TowerMerge.md](TowerMerge.md) |
 | `Highlight/` | 아웃라인 구동 — [InteractionOutline.md](InteractionOutline.md) |
+| `Cursor/` | 상태별 커서 그림 구동 — [CursorFeedback.md](CursorFeedback.md) |
 | `../MouseHover/` | 툴팁 뷰와 `IHoverable` 어댑터 |
 | `Helper/` | 검증용 테스트 컴포넌트(실물로 교체 예정) |
 
