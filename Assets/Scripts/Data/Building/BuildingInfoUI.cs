@@ -17,9 +17,8 @@ public class BuildingInfoUI : MonoBehaviour
     private const string k_PerVillagerKey = "building.upgrade.per_villager";
     private const string k_MaxKey = "building.upgrade.max";
     private const string k_LevelKey = "building.upgrade.level";
-    // 마법 연구소 등 업그레이드 전용 건물의 효과 줄 라벨. 생산 건물의 "주민당 5→7" 자리에 표시된다.
-    // 구체적인 강화 수치는 업그레이드 버튼 위 별도 줄(UpgradeEffect)이 담당하고, 이 자리는
-    // 그 줄을 만들 수 없을 때(SO에 레벨 없음·씬에 SkillManager 없음)의 폴백으로 남는다.
+    // 마법 연구소의 구체적인 강화 효과를 만들 수 없을 때(SO에 레벨 없음·씬에 SkillManager 없음)
+    // ProduceRow 밖의 강화 효과 줄에 표시하는 폴백 문구다.
     private const string k_SkillPendingKey = "building.upgrade.skill_pending";
     // 본진 레벨 부족으로 다음 레벨이 잠긴 상태(#229). 진짜 최대(k_MaxKey)와 구분해야
     // "왜 못 올리는지"가 보인다 — Smart String {0}에 필요한 본진 레벨이 들어간다.
@@ -31,12 +30,12 @@ public class BuildingInfoUI : MonoBehaviour
     [Header("BuildingInfoPanel 연결")]
     [Tooltip("건물명 (Lv 현재/최대)")]
     [SerializeField] TextMeshProUGUI _nameLevelText;
-    [Tooltip("업그레이드 시 증감: 현재 → 업그레이드 후")]
-    [SerializeField] TextMeshProUGUI _amountText;
     [Tooltip("건물 설명 (BuildingTable.DescriptionKey)")]
     [SerializeField] TextMeshProUGUI _descriptionText;
     [Tooltip("업그레이드 버튼 위 강화 효과 문구 (마법 연구소 등 스킬 강화 건물에서만 채워진다)")]
     [SerializeField] TextMeshProUGUI _skillEffectText;
+    [Tooltip("마법연구소 강화 효과 영역 전체")]
+    [SerializeField] private GameObject _skillEffectBox;
 
     [Header("주민당 생산 (ProduceRow — 생산 건물에서만 표시)")]
     [Tooltip("생산 줄 전체. 생산 건물이 아니면 통째로 숨긴다.")]
@@ -51,6 +50,8 @@ public class BuildingInfoUI : MonoBehaviour
     [SerializeField] Transform _costContent;
     [Tooltip("비용 한 줄 프리팹 (BuildingCostRow)")]
     [SerializeField] BuildingCostRow _costRowPrefab;
+
+    private const string k_PositiveColorHex = "#73D973";
 
     [SerializeField] Button _upgradeButton;
 
@@ -158,11 +159,25 @@ public class BuildingInfoUI : MonoBehaviour
     {
         // 설명은 건물 종류와 무관하게 같은 소스라 분기 이전에 한 번만 채운다.
         SetText(_descriptionText, BuildingDescription());
-        // 강화 문구는 스킬 강화 건물만 채운다. 같은 패널을 모든 건물이 재사용하므로 여기서 먼저 비워야
-        // 마법 연구소를 보다 생산 건물을 클릭했을 때 이전 문구가 남지 않는다(분기 추가 시 빠뜨릴 자리를 없앤다).
+
+        // 업그레이드 전용 건물(현재는 마법 연구소)을 선택했을 때만
+        // 스킬 강화 효과 영역 전체를 표시한다.
+        // 텍스트만 비우면 배경 이미지는 계속 남으므로 박스 자체를 켜고 끈다.
+        bool showSkillEffect = _upgradeIndex >= 0;
+
+        if (_skillEffectBox != null)
+        {
+            _skillEffectBox.SetActive(showSkillEffect);
+        }
+
+        // 같은 패널을 여러 건물이 재사용하므로 먼저 기존 강화 문구를 비운다.
+        // 마법 연구소를 본 다음 생산 건물을 선택했을 때
+        // 이전 스킬 강화 내용이 남는 것을 방지한다.
         SetText(_skillEffectText, string.Empty);
 
-        // 표시 대상 분기: 생산 라인(주민당량) → 업그레이드 전용 건물(마법 연구소 등) → 그 외(본진 등, 이름만).
+        // 표시 대상 분기:
+        // 생산 라인(주민당 생산량) → 업그레이드 전용 건물(마법 연구소 등)
+        // → 그 외 업그레이드할 수 없는 건물 순서로 처리한다.
         if (_lineIndex >= 0)
         {
             RefreshProductionLine();
@@ -181,7 +196,6 @@ public class BuildingInfoUI : MonoBehaviour
     private void RefreshNonUpgradeable()
     {
         SetText(_nameLevelText, BuildingName());
-        SetText(_amountText, string.Empty);
         HideProduceRow();
         ClearCostRows();
         if (_upgradeButton != null) _upgradeButton.gameObject.SetActive(false);
@@ -197,12 +211,21 @@ public class BuildingInfoUI : MonoBehaviour
         bool isMax = level >= max;
 
         SetText(_nameLevelText, $"{BuildingName()} ({L(k_LevelKey)} {level}/{max})");
-        // 본진 레벨로 잠긴 상태면 강화 안내 대신 잠금 사유를 보여준다 — 지금 필요한 정보는 그쪽이다(#229).
+        // 마법 연구소는 ProduceRow를 숨기므로 안내를 그 안의 _produceAmountText에 쓰면 함께 사라진다.
+        // ProduceRow 밖에 있는 강화 효과 줄을 공용 안내 자리로 사용해 잠금 사유와 폴백도 항상 보이게 한다.
         string lockNotice = LockNotice(_controller.UpgradeBuildingRequiredCastleLevel(_upgradeIndex));
-        SetText(_amountText, lockNotice ?? L(k_SkillPendingKey));
-        // 최대 도달이면 안내할 다음 효과가 없고, 잠긴 상태면 지금 필요한 정보는 잠금 사유 쪽이다 —
-        // 둘 다 빈 줄로 두면 CSF가 그 자리를 접는다(CastlePanelUI의 _upgradeEffectText와 같은 규약).
-        SetText(_skillEffectText, (isMax || lockNotice != null) ? string.Empty : UpgradeEffect(level + 1));
+        // 본진 제한에 걸리면 컨트롤러의 현재 허용 max와 level이 같아 isMax도 참이 될 수 있다.
+        // 따라서 잠금 사유를 MAX보다 먼저 판정해야 "본진 Lv n 필요"가 가려지지 않는다.
+        string skillNotice = lockNotice;
+        if (string.IsNullOrEmpty(skillNotice) && !isMax)
+        {
+            skillNotice = UpgradeEffect(level + 1);
+            if (string.IsNullOrEmpty(skillNotice))
+            {
+                skillNotice = L(k_SkillPendingKey);
+            }
+        }
+        SetText(_skillEffectText, skillNotice);
         HideProduceRow(); // 주민당 산출이 없는 건물
         if (isMax)
         {
@@ -229,15 +252,14 @@ public class BuildingInfoUI : MonoBehaviour
         bool isMax = level >= max;
 
         SetText(_nameLevelText, $"{BuildingName()} ({L(k_LevelKey)} {level}/{max})");
-        // 현재 산출은 ProduceRow(아이콘 + 주민당 현재량), 업그레이드 증감은 _amountText로 나눠 표시한다.
+        // 현재 산출과 업그레이드 증감은 ProduceRow의 _produceAmountText에 함께 표시한다.
         // 자원 종류는 아이콘이 말하므로 여기 텍스트에는 자원명을 넣지 않는다.
         ShowProduceRow(_building != null && _building.Production != null ? _building.Production.OutputResource : null,
             $"{L(k_PerVillagerKey)} {cur}");
         // 잠긴 경우 "MAX"가 아니라 "본진 Lv n 필요"가 된다 — 더 올릴 수 있다는 사실이 드러나야 한다(#229).
         string lockNotice = LockNotice(_controller.LineRequiredCastleLevel(_lineIndex));
-        SetText(_amountText, isMax
-            ? (lockNotice ?? L(k_MaxKey))
-            : $"{cur} → {_controller.LineNextAmountPerVillager(_lineIndex)}");
+        int nextAmount = _controller.LineNextAmountPerVillager(_lineIndex);
+        SetText(_produceAmountText, isMax ? (lockNotice ?? L(k_MaxKey)) : $"{cur} > <color={k_PositiveColorHex}>{nextAmount}</color>");
         if (isMax)
         {
             ClearCostRows();
@@ -280,7 +302,7 @@ public class BuildingInfoUI : MonoBehaviour
     {
         BuildingAsset.SkillUpgradeLevel next = Scaling(nextLevel);
         // 스킬 강화 건물이 아니거나, authoring된 레벨이 없거나, 베이스 스탯 출처(씬의 SkillManager)가
-        // 없다 — 어느 쪽이든 _amountText 폴백(k_SkillPendingKey)이 받는다.
+        // 없다 — 어느 쪽이든 호출부의 스킬 강화 안내 폴백(k_SkillPendingKey)이 받는다.
         if (next == null || SkillManager.Instance == null)
         {
             return string.Empty;
@@ -310,7 +332,7 @@ public class BuildingInfoUI : MonoBehaviour
         float next = SkillManager.Scale(baseValue, nextMultiplier);
         if (!Mathf.Approximately(current, next))
         {
-            lines.Add(build(current, next));
+            lines.Add(HighlightNextValue(build(current, next)));
         }
     }
 
@@ -321,8 +343,34 @@ public class BuildingInfoUI : MonoBehaviour
         float next = nextValue > 0f ? nextValue : baseValue;
         if (!Mathf.Approximately(current, next))
         {
-            lines.Add(build(current, next));
+            lines.Add(HighlightNextValue(build(current, next)));
         }
+    }
+
+    // SkillStatsFormatter가 만든 "현재 → 다음" 형식은 유지하면서 다음 값만 긍정 색으로 강조한다.
+    // 화살표 뒤 공백은 기본색으로 남겨 색상 영역이 실제 수치부터 시작하도록 한다.
+    private static string HighlightNextValue(string line)
+    {
+        if (string.IsNullOrEmpty(line))
+        {
+            return line;
+        }
+
+        int arrowIndex = line.LastIndexOf('→');
+        if (arrowIndex < 0)
+        {
+            return line;
+        }
+
+        int valueStart = arrowIndex + 1;
+        while (valueStart < line.Length && char.IsWhiteSpace(line[valueStart]))
+        {
+            valueStart++;
+        }
+
+        return valueStart >= line.Length
+            ? line
+            : $"{line.Substring(0, valueStart)}<color={k_PositiveColorHex}>{line.Substring(valueStart)}</color>";
     }
 
     // 배율 엔트리가 없으면(미강화 Lv0 · 범위 밖) 1.0 = 베이스 그대로. SkillManager.RefreshUpgrade의

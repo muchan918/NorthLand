@@ -12,7 +12,8 @@ using UnityEngine;
 ///
 /// ⚠ <b>이름에 도메인이 들어와도 원칙 2는 유지된다</b>(<c>MouseManager.md</c> §1). 이 어휘를 고르는 것은
 /// <b>대상 자신</b>이고(<see cref="ICursorHint"/>), <see cref="CursorController"/>는 여전히
-/// "타워인가 주민인가"를 묻지 않는다 — 컨트롤러가 분기하는 것은 아래 <b>모드 3종뿐</b>이다.
+/// "타워인가 주민인가"를 묻지 않는다 — 컨트롤러가 분기하는 것은 아래 <b>모드 3종</b>과
+/// <b>「대상 표면 위인가」</b>(<c>MouseManager.IsOverTargetSurface</c>)뿐이다.
 ///
 /// ⚠ <b>"눌림"은 여기 없다.</b> 좌버튼 눌림은 종류가 아니라 <b>각 종류의 변형</b>이다
 /// (<see cref="CursorSet.Entry.Pressed"/>) — "건물 위에서 누르면 문이 열린다"처럼 눌렸을 때의 그림이
@@ -58,6 +59,18 @@ public enum CursorKind
 
     /// <summary>스킬 조준 중.</summary>
     SkillAiming,
+
+    /// <summary>
+    /// <b>지금 이 자리에서는 할 수 없다.</b> 배치·조준 중 커서가 대상 표면(타일) 밖일 때
+    /// (<c>MouseManager.IsOverTargetSurface == false</c>) 컨트롤러가 고른다.
+    ///
+    /// <b>배치와 조준이 칸을 나눠 갖지 않는 이유</b>: 알리는 내용이 같다 — "여기엔 못 놓는다"와
+    /// "여기엔 못 쓴다"를 다른 그림으로 구분해야 할 이유가 아직 없다. 갈라야 하면 칸을 하나 더 판다.
+    ///
+    /// ⚠ <b>UI 위에서는 이 종류가 나오지 않는다.</b> "여기엔 못 놓는다"는 <b>지도</b>에 대한 말이라
+    /// 패널 위에서는 거짓말이 된다(<see cref="CursorController"/>의 판정 참고).
+    /// </summary>
+    Blocked,
 }
 
 /// <summary>
@@ -128,8 +141,15 @@ public class CursorSet : ScriptableObject
 
     [Header("상호작용 모드별 — 컨트롤러가 모드로 판정")]
     [SerializeField] Entry _residentDrag;
+
+    [Tooltip("배치 고스트를 들고 대상 표면(타일) 위에 있는 동안. Hidden을 켜 고스트에 자리를 내준다.")]
     [SerializeField] Entry _placing;
+
+    [Tooltip("스킬 조준 중 전투 타일 위. Hidden을 켜 범위 인디케이터에 자리를 내준다.")]
     [SerializeField] Entry _skillAiming;
+
+    [Tooltip("배치·조준 중 대상 표면 밖 — '여기서는 안 된다'. UI 위에서는 나오지 않는다.")]
+    [SerializeField] Entry _blocked;
 
     /// <summary>
     /// 커서를 누가 그리는가. <b>크기 제한은 여기서 갈린다.</b>
@@ -161,6 +181,44 @@ public class CursorSet : ScriptableObject
         return texture != null;
     }
 
+    /// <summary>
+    /// <b>그림이 있어야 하는데 비어 있는 칸</b>을 한 줄로 모아 1회 경고한다. 컨트롤러가 뱅크를 집어온
+    /// 직후 한 번만 부른다.
+    ///
+    /// <b>왜 필요한가</b>: 아트는 별도 저장소(<c>Assets/Imported/@NorthLand/UI/Cursor/</c>)에 있고 본
+    /// 저장소의 diff에 보이지 않는다(WL-040). 미동기 환경에서는 <see cref="TryGet"/>이 조용히
+    /// <see cref="CursorKind.Default"/>로, 그마저 비면 OS 기본 커서로 내려가므로 <b>아무 신호도 남지 않는다</b>.
+    /// 특히 「안 됨」이 그렇게 사라지면 <see cref="CursorKind.Placing"/>·<see cref="CursorKind.SkillAiming"/>의
+    /// 숨김은 <b>아트 없이도 그대로 동작</b>하므로, 화면은 "타일 위에선 커서가 없고 밖에선 평범한 화살표"가
+    /// 된다 — <c>Hidden</c>을 처음 켰다가 되돌렸던 그 상태와 구분되지 않는다(<c>CursorFeedback.md</c>).
+    ///
+    /// ⚠ <b>비어 있는 것이 설계인 칸은 짖지 않는다.</b> 거르는 기준은 <see cref="Entry.Hidden"/>이다 —
+    /// 숨김 칸은 그림이 없는 것이 정상이고(그래서 배선 표에도 비어 있다), <see cref="Entry.Pressed"/>가
+    /// 빈 것도 "그 종류는 눌림 연출이 없다"는 뜻이라 정상이다. 그래서 보는 것은 <b>숨김이 아닌 칸의
+    /// <see cref="Art.Texture"/> 하나뿐</b>이며, 동기화된 환경에서는 한 줄도 나오지 않는다.
+    ///
+    /// 경고이지 에러가 아니다 — "아트가 없어도 게임은 굴러간다"는 원칙 3은 그대로다.
+    /// </summary>
+    public void WarnIfArtMissing()
+    {
+        string missing = null;
+        foreach (CursorKind kind in Enum.GetValues(typeof(CursorKind)))
+        {
+            Entry entry = Pick(kind);
+            if (entry.Hidden || entry.Normal.Texture != null) continue;
+
+            missing = missing == null ? kind.ToString() : $"{missing}, {kind}";
+        }
+
+        if (missing == null) return;
+
+        Debug.LogWarning(
+            $"[커서] 그림이 비어 있는 칸: {missing}. 그 상태에서는 Default 칸으로, 그마저 비면 OS 기본 " +
+            "커서로 조용히 폴백합니다 — 의도한 것이 아니라면 커서 아트가 있는 Imported 저장소" +
+            "(Assets/Imported/@NorthLand/UI/Cursor/)가 동기화됐는지 확인하세요.",
+            this);
+    }
+
     private Entry Pick(CursorKind kind) => kind switch
     {
         CursorKind.UIButton => _uiButton,
@@ -171,6 +229,7 @@ public class CursorSet : ScriptableObject
         CursorKind.ResidentDrag => _residentDrag,
         CursorKind.Placing => _placing,
         CursorKind.SkillAiming => _skillAiming,
+        CursorKind.Blocked => _blocked,
         _ => _default,
     };
 }

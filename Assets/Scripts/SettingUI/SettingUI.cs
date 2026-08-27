@@ -26,7 +26,11 @@ public class SettingUI : MonoBehaviour
     [SerializeField]
     private GameObject SoundPanel;
 
+    [SerializeField]
+    private GameObject rePlayWarningPanel;
 
+    [SerializeField]
+    private GameObject QuitGameWarningPanel;
 
     public bool IsOpen => isActiveAndEnabled &&settingPanel != null &&settingPanel.activeInHierarchy;
 
@@ -62,6 +66,8 @@ public class SettingUI : MonoBehaviour
         GeneralPanel.SetActive(false);
         GraphicsPanel.SetActive(false);
         SoundPanel.SetActive(false);
+        rePlayWarningPanel.SetActive(false);
+        QuitGameWarningPanel.SetActive(false);
     }
 
     private void Update()
@@ -158,6 +164,8 @@ public class SettingUI : MonoBehaviour
         }
 
         settingPanel.SetActive(false);
+        QuitGameWarningPanel.SetActive(false);
+        rePlayWarningPanel.SetActive(false);
 
         if (GameSpeedController.Instance != null)
         {
@@ -239,6 +247,49 @@ public class SettingUI : MonoBehaviour
         GeneralPanel.SetActive(false);
         GraphicsPanel.SetActive(false);
         SoundPanel.SetActive(true);
+    }
+
+    public void OpenRePlayWarningPanel()
+    {
+        if (rePlayWarningPanel == null)
+        {
+            Debug.LogError($"[{rePlayWarningPanel}] 패널이 연결되지 않았습니다.", this);
+            return;
+        }
+
+        rePlayWarningPanel.SetActive(true);
+    }
+
+    public void CloseRePlayWarningPanel()
+    {
+        if (rePlayWarningPanel == null)
+        {
+            Debug.LogError($"[{rePlayWarningPanel}] 패널이 연결되지 않았습니다.", this);
+            return;
+        }
+
+        rePlayWarningPanel.SetActive(false);
+    }
+    public void OpenQuitGameWarningPanel()
+    {
+        if (QuitGameWarningPanel == null)
+        {
+            Debug.LogError($"[{QuitGameWarningPanel}] 패널이 연결되지 않았습니다.", this);
+            return;
+        }
+
+        QuitGameWarningPanel.SetActive(true);
+    }
+
+    public void CloseQuitGameWarningPanel()
+    {
+        if (QuitGameWarningPanel == null)
+        {
+            Debug.LogError($"[{QuitGameWarningPanel}] 패널이 연결되지 않았습니다.", this);
+            return;
+        }
+
+        QuitGameWarningPanel.SetActive(false);
     }
 
 }
