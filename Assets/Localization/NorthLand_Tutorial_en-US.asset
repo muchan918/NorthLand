@@ -168,7 +168,10 @@ MonoBehaviour:
     m_Localized: 'Place more Archer Towers until you have three on the battlefield.
 
       Archer
-      Towers are free to place during the tutorial.'
+      Towers are free to place during the tutorial.
+
+      Press 7 to move to the
+      combat area.'
     m_Metadata:
       m_Items: []
   - m_Id: 8046153728

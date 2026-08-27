@@ -234,6 +234,9 @@ namespace NorthLand.UI
 
         public void Open()
         {
+            if (TutorialMode.IsActive)
+                return;
+
             MouseManager.Instance?.CancelInteractions();
 
             if (panelRoot != null)

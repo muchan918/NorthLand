@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
   popupTitleKey: tutorial.shortcut.intro.title
   popupBodyKey: tutorial.shortcut.intro.body
-  popupImage: {fileID: 0}
+  popupImage: {fileID: 21300000, guid: ebf15f2e709a5ea488590cb84d63ee06, type: 3}
   bubbleTextKey: tutorial.shortcut.intro.bubble
   highlightMode: 0
   highlightAnchorId: 

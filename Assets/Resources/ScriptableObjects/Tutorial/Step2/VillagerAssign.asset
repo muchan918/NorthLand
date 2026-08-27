@@ -14,14 +14,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
   popupTitleKey: tutorial.villager.assign.title
   popupBodyKey: tutorial.villager.assign.body
-  popupImage: {fileID: 0}
+  popupImage: {fileID: 21300000, guid: d54618f33ae5f7841a28f9a1235effe0, type: 3}
   bubbleTextKey: tutorial.villager.assign.bubble
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
   pauseGameDuringStep: 0
+  resumeGameAfterPopup: 0
   restrictActions: 1
   allowedActions: 80
+  minimumTowerCountBeforeEndDay: 0
+  requiredTowerBeforeEndDay: {fileID: 0}
   freeTowerPlacement: 0
   restrictTowerPanelTo: {fileID: 0}
   freeManagementCost: 0

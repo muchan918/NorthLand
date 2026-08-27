@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
   popupTitleKey: tutorial.tower.merge_intro.title
   popupBodyKey: tutorial.tower.merge_intro.body
-  popupImage: {fileID: 0}
+  popupImage: {fileID: 21300000, guid: 742e9b4c0f618ed4480b9ad830d60546, type: 3}
   bubbleTextKey: tutorial.tower.merge_intro.bubble
   highlightMode: 0
   highlightAnchorId: 
@@ -22,7 +22,7 @@ MonoBehaviour:
   pauseGameDuringStep: 0
   resumeGameAfterPopup: 0
   restrictActions: 1
-  allowedActions: 4124
+  allowedActions: 4156
   minimumTowerCountBeforeEndDay: 0
   requiredTowerBeforeEndDay: {fileID: 0}
   freeTowerPlacement: 1

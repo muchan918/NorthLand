@@ -552,7 +552,7 @@ namespace NorthLand.Combat
         }
 
         /// 자폭 폭발음(#452). `AudioManager`의 2D 원샷을 쓴다 —
-        /// `SkillManager`의 `PlayClipAtPoint`(볼륨 제어 밖, `Docs/Core/AudioManager.md` §2)를 따라가지 않는다.
+        /// 전투 위치 효과음은 `CombatSfxPool`이 SFX 실효 볼륨을 반영한다(`Docs/Core/AudioManager.md` §6.2).
         ///
         /// 자기 `AudioSource`를 달지 않는 이유: 자폭병은 같은 프레임에 제거되므로 소스가 함께 죽어
         /// 소리가 첫 프레임에 끊긴다. 파티클을 부모 없이 스폰하는 것과 같은 사정이고, 매니저의

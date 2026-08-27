@@ -7,9 +7,8 @@
 - 구현 위치: `Assets/Scripts/GameManager/` — `AudioManager.cs`(재생 엔진·볼륨), `SoundCue.cs`+`TitleCue.cs`+`InGameCue.cs`(씬 큐, 5장), `SfxBank.cs`+`Sfx.cs`(공용 효과음 뱅크, 5.4절), `UiClickSfx.cs`+`UiClickSfxIgnore.cs`(버튼 클릭 전역 훅)
 - 이 문서는 **현재 구현된 구조**를 정리한 것이다. 코드를 바꾼 사람은 이 문서도 함께 갱신해 어긋나지 않게 유지한다. 미구현 항목은 [7. 미확정/TODO](#7-미확정--todo)에 모아둔다.
 
-> ⚠️ **SFX는 2D 경로 둘뿐이다** — 원샷(`PlaySfx`)과 겹치지 않는 전용 소스(`PlaySfxExclusive`). 둘 다
-> 위치가 없다. 믹서를 쓰지 않으므로 볼륨은 `AudioManager`가 소유한 `AudioSource`에만 적용되고,
-> 이 둘을 거치는 소리만 SFX 볼륨을 따른다. `SkillManager`의 `PlayClipAtPoint`는 아직 통제 밖이다(§2).
+> SFX는 화면 전역 2D 경로(`PlaySfx`/`PlaySfxExclusive`)와 전투 위치 기반 풀(`CombatSfx`)로 나뉜다.
+> 후자는 Unity 3D 거리가 아니라 카메라 줌·화면 위치로 감쇠하며 매 프레임 SFX 설정을 반영한다(§6.2).
 
 ## 1. 목적 · 핵심 원칙
 
@@ -34,7 +33,7 @@
 | BGM | ✅ 매니저가 소스를 직접 소유 → 볼륨·음소거가 즉시 걸린다 |
 | SFX (`PlaySfx` 경유) | ✅ 2D 원샷. 소비처는 낮/밤 전환 스팅어 2 + 공용 효과음 4(버튼 클릭·패널 오픈·타워 설치·거절, §5.4) |
 | SFX (`PlaySfxExclusive` 경유) | ✅ 2D 전용 소스. 소비처는 주민 증가음 1개. **매 프레임 볼륨을 다시 곱하므로 재생 중 슬라이더도 반영된다** |
-| SFX (그 밖) | ❌ `SkillManager`의 `AudioSource.PlayClipAtPoint`(스킬 착탄음)는 **통제 밖** — 볼륨·음소거가 걸리지 않는다 |
+| 전투 위치 SFX (`CombatSfx`) | ✅ 중앙 보이스 풀에서 매 프레임 `GetEffectiveVolume(Sfx)`를 곱한다 |
 
 새 재생 경로를 만드는 쪽은 `PlaySfx`를 쓰거나, 직접 소스를 굴린다면 **반드시
 `GetEffectiveVolume(channel)`을 곱해야** 볼륨 제어를 받는다 — 믹서가 없는 이상 이것이 유일한 연결 고리다.
@@ -404,7 +403,7 @@ Sfx.ResidentIncreased();  // ← 이것만 PlaySfxExclusive로 나간다
 
 | 경로 | 볼륨 제어 | 성격 |
 |---|---|---|
-| `SkillManager`의 `AudioSource.PlayClipAtPoint` | ❌ **안 받는다**(WL-179 이관 대기) | 스킬 착탄음 |
+| `CombatSfxPool` | ✅ 매 프레임 `GetEffectiveVolume(Sfx)`를 곱한다 | 전투 위치 기반 스킬·향후 타워 효과음 |
 | `ResidentVoice`(주민 대화 목소리) | ✅ 매 프레임 `GetEffectiveVolume(Sfx)`를 곱한다 | 주민 목소리 |
 
 `PlaySfxExclusive`는 여기 넣지 않는다 — **매니저 안**의 소스이고 매니저가 직접 볼륨을 곱한다(§6).
@@ -416,15 +415,31 @@ Sfx.ResidentIncreased();  // ← 이것만 PlaySfxExclusive로 나간다
 > 있는 소리에도 즉시 반영된다**(`PlaySfx`에는 없는 성질이다). 감쇠를 Unity의 3D 오디오에 맡기지 않은 근거는
 > `Docs/ManagementArea/Resident.md` §11.16에 있다.
 
+### 6.2 전투 위치 SFX 풀 (`CombatSfx`, #522)
+
+소비자는 `CombatSfx.Play(clip, worldPosition, loop, volumeScale, priority)`만 호출한다. 내부 풀은 보이스
+16개를 미리 만들고 최대 32개까지 확장하며, 재생 종료 시 삭제하지 않고 반환한다. 한 매니저의 `Update`가
+활성 보이스의 카메라 감쇠·스테레오 팬·설정 볼륨·자연 종료를 처리한다.
+
+- 줌: 오쏘 크기 80 이하 전체 볼륨, 80~160 감쇠, 160 이상 무음
+- 위치: 화면 중앙이 가장 크고 경계에서 0, 화면 밖은 무음
+- 상한 도달: 화면 밖 무음 → 낮은 우선순위 → 오래된 보이스 순으로 회수
+- 핸들: 슬롯 인덱스와 세대 번호를 가진 값 형식. 반환된 슬롯을 예전 핸들이 잘못 끄지 못한다
+- 씬 전환: 활성 보이스 전체 정지, 카메라 캐시 초기화
+- 스킬: 시전음 1회 → 착탄 시 남은 시전음 정지 → 착탄음 1회, 둘 다 `High`
+
+`CombatSfx`가 `AudioManager`의 소스를 빌리지 않는 이유는 위치마다 독립적으로 매 프레임 볼륨이 바뀌기
+때문이다. 대신 `GetEffectiveVolume(Sfx)`를 마지막 계수로 곱해 같은 설정 계약 아래 남는다.
+
 ## 7. 미확정 / TODO
 
-- [ ] **SFX 풀링·3D** — `PlaySfx(clip, position)`, `AudioSource` 풀, 동시재생 상한,
-      `SkillManager.cs:269`의 `PlayClipAtPoint` 이관. 구조는 **중앙 풀 + `AudioClip` 직접 전달**로
-      방향을 잡아뒀다(사운드 뱅크 SO·`SoundId` enum은 도입하지 않는다). 현재의 2D 원샷 `PlaySfx`는
-      전환 스팅어처럼 **드물게 한 번 울리는 소리** 전용이다
-      - ⚠ **풀을 만들 때 `ResidentVoice`(§6.1)를 흡수 대상으로 보지 말 것.** 그쪽은 "위치 기반 3D 감쇠"가
-        아니라 **화면 좌표 기반 감쇠**이고(오쏘 카메라라 3D 감쇠가 성립하지 않는다), 소리마다 볼륨이
-        **매 프레임 바뀐다.** 원샷 풀과 요구가 다르다
+- [x] **전투 위치 SFX 풀** — #522에서 화면 좌표 기반 `CombatSfxPool`로 구현(§6.2). Unity 3D 감쇠는
+      오쏘 카메라와 맞지 않아 사용하지 않는다. `ResidentVoice`는 주민 상태를 따라가는 독립 소스라 흡수하지 않는다.
+- [ ] **화면 감쇠 계산 공용화** — `CombatSfxAudibility`와 `ResidentVoiceAudibility`의 뷰포트 위치·팬 계산을
+      공용 타입으로 분리한다. 주민(40~80)과 전투(80~160)의 줌 밴드는 소비처별로 유지한다. 별도 이슈/PR 범위.
+- [ ] **타워 타격음 연결** — 공격음은 미정. 투사체 프리팹의 연출 컴포넌트가 착탄 위치에서
+      `CombatSfx.Play(..., priority: Low)`를 호출하는 방향. `ProjectileFlight` 피해 코어에 `AudioSource`를
+      넣지 않으며, 즉발·빔처럼 투사체가 없는 타워도 피해 확정 지점에서 같은 공용 API를 호출할 수 있어야 한다.
 - [x] **BGM·전환음 클립 에셋** — `Assets/Imported/@NorthLand/Sound`에 낮·밤 BGM 2개 + 전환 스팅어 2개(§4.5)
 - [x] **씬 배치** — `GameScene`에 `SoundCue/InGameCue`, `TitleScene`에 `SoundCue/TitleCue`
 - [ ] **타이틀 BGM 클립** — 트랙 에셋이 없어 `TitleCue.titleClip`이 비어 있다(정지만 한다, §5.1).
