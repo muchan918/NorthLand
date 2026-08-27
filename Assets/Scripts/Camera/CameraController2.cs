@@ -93,6 +93,14 @@ public class CameraController2 : MonoBehaviour
     private Vector2 _dragStartScreenPos;
     private Vector3 _dragStartTargetPos;
 
+    /// <summary>
+    /// 지금 우버튼을 쥐고 화면을 끌어 옮기는 중인가. 읽기 전용 — 팬을 시작·중단시키는 값이 아니다.
+    ///
+    /// 커서 그림이 이 값을 본다(<c>Docs/Core/CursorFeedback.md</c>). UI 위에서 시작한 우클릭은 팬으로
+    /// 치지 않으므로(<see cref="MoveDrag"/>), 소비처가 UI 여부를 따로 볼 필요가 없다.
+    /// </summary>
+    public bool IsDragging => _isDragging;
+
     [Header("UI References")]
     [SerializeField]
     private WaveRewardSelectionUI waveRewardSelectionUI;
@@ -241,6 +249,10 @@ public class CameraController2 : MonoBehaviour
 
         if (GameManager.Instance.Result != GameResult.Playing)
         {
+            // 위 패널 분기와 같은 이유로 드래그를 끊는다. 이 줄이 없으면 우버튼을 쥔 채 판이 끝났을 때
+            // _isDragging이 켜진 채 남아, 결과 화면 내내 커서가 '쥔 손'으로 굳고 다시 Playing이 되면
+            // 그 사이 움직인 만큼 화면이 튄다.
+            _isDragging = false;
             return;
         }
 
