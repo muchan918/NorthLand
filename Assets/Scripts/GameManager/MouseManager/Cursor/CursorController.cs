@@ -62,6 +62,12 @@ public class CursorController : MonoBehaviour
     // 카메라 팬 상태의 출처. 싱글톤이 아니라 씬마다 찾아 캐시한다(WL-002 — 싱글톤을 늘리지 않는다).
     private CameraController2 _camera;
 
+    /// 카메라를 못 찾았을 때 다시 찾기까지 쉬는 프레임 수
+    /// (`ResidentDragCoordinator`·`ResidentSelectionCoordinator`와 같은 값·같은 이유).
+    private const int k_CameraRetryFrames = 120;
+
+    private int _cameraRetryCountdown;
+
     // 현재 종류가 "커서를 숨긴다"로 선언돼 있는가(뱅크의 Entry.Hidden — 배치·조준처럼 고스트가 커서를
     // 대신하는 상태). 실제 숨김은 UI 위인지에 따라 갈리므로 선언과 적용을 따로 든다.
     private bool _kindWantsHidden;
@@ -197,8 +203,19 @@ public class CursorController : MonoBehaviour
     /// 규칙도 여기서 다시 구현해야 한다.
     private bool IsCameraPanning()
     {
-        if (_camera == null) _camera = FindFirstObjectByType<CameraController2>();
-        return _camera != null && _camera.IsDragging;
+        // 못 찾았으면 백오프한다 — 이 컴포넌트는 `DontDestroyOnLoad`라 **모든 씬에 상주**하는데
+        // `CameraController2`는 씬 소유라, 카메라가 없는 씬(TitleScene 등)에서는 조건이 영구히 참이라
+        // 매 프레임 전수 탐색을 돈다(`ResidentDragCoordinator.EnsureRefs`와 같은 판단 — WL-002).
+        if (_camera == null)
+        {
+            if (--_cameraRetryCountdown > 0) return false;
+
+            _cameraRetryCountdown = k_CameraRetryFrames;
+            _camera = FindFirstObjectByType<CameraController2>();
+            if (_camera == null) return false;
+        }
+
+        return _camera.IsDragging;
     }
 
     /// <summary>
@@ -261,6 +278,7 @@ public class CursorController : MonoBehaviour
         _overUIButton = false;
         _cameraPanning = false;
         _camera = null;        // 카메라는 씬마다 다른 인스턴스다 — 이전 씬 것을 들고 있으면 안 된다
+        _cameraRetryCountdown = 0; // 새 씬에서는 백오프를 기다리지 않고 바로 한 번 찾는다
         _uiPointer = null;     // EventSystem도 마찬가지
         _uiPointerOwner = null;
         _mode = MouseManager.Instance != null ? MouseManager.Instance.CurrentMode : MouseManager.Mode.Idle;
