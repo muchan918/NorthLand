@@ -8,6 +8,7 @@ using NorthLand.Combat;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+#if UNITY_EDITOR
 public sealed class WaveCombatRecorder : MonoBehaviour
 {
     const string Header =
@@ -211,3 +212,4 @@ public sealed class WaveCombatRecorder : MonoBehaviour
         return source != null ? source.GetType().Name : "skill_or_environment";
     }
 }
+#endif
