@@ -1,6 +1,6 @@
 # 튜토리얼 — 구조와 단계 추가 절차
 
-> **기준 코드: #490(25단계 흐름·안내 UI 보강) 시점.** 이 문서는 "어떻게 단계를 붙이는가"와
+> **기준 코드: #526(안내 이미지·접근 제한·본진 재사용 보강) 시점.** 이 문서는 "어떻게 단계를 붙이는가"와
 > "왜 이 구조인가"를 함께 다룬다. 실제 안내 문구의 정본은 `NorthLand_Tutorial` String Table이다.
 > 관련: [UIZOrder.md](UIZOrder.md)(캔버스 레이어) · [SceneWorkflow.md](SceneWorkflow.md)(씬 복사 규약) ·
 > [DayNightManager.md](DayNightManager.md) · [MouseManager.md](MouseManager.md) ·
@@ -34,6 +34,7 @@ TutorialController.cs     진행을 소유 — 지금 몇 단계인지 아는 �
 TutorialOverlay.cs        팝업·말풍선의 '표시'만 담당
 TutorialAction.cs         단계가 허용할 수 있는 행동 플래그
 TutorialInputGate.cs      실행·표시 게이트와 낮 종료 타워 요구치
+HideDuringTutorial.cs     튜토리얼 중 전용 UI 오브젝트 숨김
 TutorialCondition.cs      완료 조건의 공통 계약 (abstract)
 TutorialContext.cs        조건이 쓰는 씬 참조 주소록
 Conditions/
@@ -122,6 +123,8 @@ protected void Fire();
   1일차부터 시작한다. 선택 슬롯이 없으면 삭제할 Run이 없는 것으로 처리하며, 실제 삭제에 실패하면 현재 게임을 유지한다.
 - 튜토리얼 중 `DayNightManager.OnDayStart` 자동 저장은 건너뛴다. 튜토리얼 런은 이어하기 데이터의
   소유자가 아니다.
+- 타워 도감은 튜토리얼 중 진입할 수 없다. 버튼 오브젝트는 `HideDuringTutorial`로 숨기고,
+  `FusionTowerCodexUI.Open()`도 `TutorialMode.IsActive`를 다시 검사해 외부 호출을 차단한다.
 - `TutorialOverlay.SkipRequested`가 스킵 요청을 전달한다. 오버레이는 완료 기록이나 씬 전환을 직접
   처리하지 않는다.
 
@@ -139,6 +142,10 @@ protected void Fire();
 | 초기 초콜릿·설탕 | `0` | `ManagementController.BuildModel`의 튜토리얼 분기 |
 | 적 체력 | 일반 계산 결과의 `50%`(보스 포함) | `TutorialMode.EnemyHpScale` |
 | 스킬 재충전 간격 | `3초` | `TutorialMode.SkillCooldownSeconds` |
+
+절차 맵이 다시 구성될 때 `MonsterSpawn`은 이미 존재하는 `PlayerBase.Instance`를 본진으로 재사용한다.
+같은 런에서 본진을 중복 생성하면 싱글톤 참조와 `TutorialSafety`의 무적 구독 대상이 바뀔 수 있으므로,
+본진의 생명주기는 맵 재구성보다 길게 유지한다.
 
 `MonsterSpawnWaveProvider.forceTutorialWaves`는 **튜토리얼 웨이브 구성만** 확인하는 에디터 테스트 옵션이다.
 이 옵션만 켠 경우 초기 자원·적 체력·스킬 쿨다운·튜토리얼 UI는 바뀌지 않는다. 전체 튜토리얼 규칙까지
@@ -300,7 +307,7 @@ if (targetBuilding != null && building != targetBuilding)
 | 18 | `SkillUpgrade` | O | `BuildingActionCondition` | 마법 연구소 무료 강화, Lv.1 상한 |
 | 19 | `AlchemyExchange` | O | `BuildingActionCondition` | 연금술 교환 1회 |
 | 20 | `CastleUpgrade` | O | `BuildingActionCondition` | 본진 무료 강화, Lv.1 상한 |
-| 21 | `TowerBuildForMerge` | O | `TowerCountCondition` | 아처만 무료 배치, 아처 3개 보유, Undo 허용 |
+| 21 | `TowerBuildForMerge` | O | `TowerCountCondition` | 아처만 무료 배치, 아처 3개 보유, Undo·전투 지역 바로가기 허용 |
 | 22 | `TowerMerge` | X | `TowerMergedCondition` | 설치 타워 다중 선택·합성·결과 배치 |
 | 23 | `CombatIntro` | O | `PhaseChangedCondition`(밤) | 카메라, 낮 종료 |
 | 24 | `WaveClear` | X | `PhaseChangedCondition`(낮) | 카메라, 스킬, 설치 타워 선택 |
@@ -466,6 +473,10 @@ Unity는 **단일 필드**의 managed reference에는 타입 선택 UI를 그리
 - 15단계는 생산 건물 3종을 각각 한 번 강화해야 하며 다른 건물 선행 강화가 불가능하다.
 - 17단계는 주민 드래그 성공 1회와 미배치 주민 0명을 함께 요구한다.
 - 21단계는 아처 타워 현재 보유 3개를 요구하고, 22단계는 결과 타워 배치 확정 후 넘어간다.
+- 21단계 안내에 따라 숫자키 `7`로 전투 지역에 이동할 수 있고, 튜토리얼 중 타워 도감 버튼은
+  보이지 않으며 `FusionTowerCodexUI.Open()`을 직접 호출해도 열리지 않는다.
+- 튜토리얼 웨이브 시작과 맵 재구성 뒤에도 `PlayerBase`가 하나만 존재하고, 몬스터가 기존 본진을
+  정상적으로 인식하며 `TutorialSafety`의 무적 상태가 유지된다.
 - 완료·스킵·오브젝트 비활성화 후 `TutorialInputGate`와 무료/상한 규칙이 초기화된다.
 - `TutorialTest3` 직접 실행은 초기 자원 20·적 HP 50%·스킬 쿨다운 3초를 모두 적용한다.
 - `forceTutorialWaves`만 켠 일반 실행은 튜토리얼 웨이브만 사용하고 위 수치와 UI는 바꾸지 않는다.
