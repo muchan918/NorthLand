@@ -213,7 +213,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &6110969579770992551
 Transform:
   m_ObjectHideFlags: 0
@@ -242,13 +242,14 @@ GameObject:
   - component: {fileID: 2213812360799887919}
   - component: {fileID: 2897235779400123601}
   - component: {fileID: 254815194010700437}
+  - component: {fileID: 3488366282540441754}
   m_Layer: 5
   m_Name: Bubble
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &2213812360799887919
 RectTransform:
   m_ObjectHideFlags: 0
@@ -264,11 +265,11 @@ RectTransform:
   - {fileID: 3200928886866458919}
   m_Father: {fileID: 963836113394274098}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0.5}
-  m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 731, y: 327}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 731, y: -138.00006}
   m_SizeDelta: {x: 600, y: 150}
-  m_Pivot: {x: 0, y: 0.5}
+  m_Pivot: {x: 0, y: 1}
 --- !u!222 &2897235779400123601
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -307,6 +308,23 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &3488366282540441754
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 592385189485813607}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc1acedd6382bb645a187281f770b39e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TutorialBubbleLayout
+  bubble: {fileID: 2213812360799887919}
+  text: {fileID: 3088402732723609233}
+  minimumSize: {x: 300, y: 80}
+  maximumSize: {x: 750, y: 300}
+  padding: {x: 40, y: 24}
 --- !u!1 &1520225892498578865
 GameObject:
   m_ObjectHideFlags: 0
@@ -414,10 +432,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 2213812360799887919}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -15}
-  m_SizeDelta: {x: 0, y: -30}
+  m_AnchorMin: {x: 0.06, y: 0.1}
+  m_AnchorMax: {x: 0.94, y: 0.75}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2539675220883183633
 CanvasRenderer:
@@ -1972,6 +1990,7 @@ MonoBehaviour:
   skipButton: {fileID: 9159464873565210630}
   bubbleRoot: {fileID: 592385189485813607}
   bubbleText: {fileID: 3088402732723609233}
+  bubbleLayout: {fileID: 3488366282540441754}
   dim: {fileID: 1743885434406716737}
   hole: {fileID: 8735431939435978554}
   holePadding: {x: 16, y: 16}
@@ -2007,10 +2026,10 @@ RectTransform:
   - {fileID: 7227864148006609076}
   m_Father: {fileID: 4620938063365030088}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 600, y: -240}
-  m_SizeDelta: {x: 400, y: 480}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1816702309245264386
 CanvasRenderer:
@@ -2052,10 +2071,10 @@ RectTransform:
   - {fileID: 7694237587840314475}
   m_Father: {fileID: 4620938063365030088}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 200, y: -240}
-  m_SizeDelta: {x: 400, y: 480}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4705496351528834713
 CanvasRenderer:
