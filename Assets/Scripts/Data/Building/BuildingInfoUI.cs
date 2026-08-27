@@ -194,7 +194,7 @@ public class BuildingInfoUI : MonoBehaviour
         SetText(_nameLevelText, $"{BuildingName()} ({L(k_LevelKey)} {level}/{max})");
         // 본진 레벨로 잠긴 상태면 강화 안내 대신 잠금 사유를 보여준다 — 지금 필요한 정보는 그쪽이다(#229).
         string lockNotice = LockNotice(_controller.UpgradeBuildingRequiredCastleLevel(_upgradeIndex));
-        SetText(_amountText, lockNotice ?? L(k_SkillPendingKey));
+        SetText(_produceAmountText, lockNotice ?? L(k_SkillPendingKey));
         // 최대 도달이면 안내할 다음 효과가 없고, 잠긴 상태면 지금 필요한 정보는 잠금 사유 쪽이다 —
         // 둘 다 빈 줄로 두면 CSF가 그 자리를 접는다(CastlePanelUI의 _upgradeEffectText와 같은 규약).
         SetText(_skillEffectText, (isMax || lockNotice != null) ? string.Empty : UpgradeEffect(level + 1));
@@ -229,9 +229,8 @@ public class BuildingInfoUI : MonoBehaviour
             $"{L(k_PerVillagerKey)} {cur}");
         // 잠긴 경우 "MAX"가 아니라 "본진 Lv n 필요"가 된다 — 더 올릴 수 있다는 사실이 드러나야 한다(#229).
         string lockNotice = LockNotice(_controller.LineRequiredCastleLevel(_lineIndex));
-        SetText(_amountText, isMax
-            ? (lockNotice ?? L(k_MaxKey))
-            : $"{cur} → {_controller.LineNextAmountPerVillager(_lineIndex)}");
+        int nextAmount = _controller.LineNextAmountPerVillager(_lineIndex);
+        SetText(_produceAmountText,isMax? (lockNotice ?? L(k_MaxKey)): $"{cur} ▶ <color=#73D973>{nextAmount}</color>");
         if (isMax)
         {
             ClearCostRows();
