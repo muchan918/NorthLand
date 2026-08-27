@@ -27,6 +27,8 @@ public class MonsterMove : MonoBehaviour, IRouteMovementAgent
 
     [SerializeField] private float fallbackMoveSpeed = 3f;
 
+    [SerializeField] private float minMoveSpeed = 0.15f;
+
     public event Action RouteCompleted;
 
     private bool routeCompleted;
@@ -41,7 +43,7 @@ public class MonsterMove : MonoBehaviour, IRouteMovementAgent
     {
         get
         {
-            speedComposer ??= new MoveSpeedComposer(fallbackMoveSpeed);
+            speedComposer ??= new MoveSpeedComposer(fallbackMoveSpeed,minMoveSpeed);
             return speedComposer;
         }
     }

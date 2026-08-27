@@ -181,7 +181,7 @@ namespace NorthLand.Combat
             if (Duration <= 0f) return;
 
             // 배율 0을 넘기면 핸들러가 속도 축이 아니라 스턴 축(IMovementAgent.AddStun)으로 보낸다 —
-            // 속도 축은 50% 상대 하한이 있어 배율 0으로도 멈추지 않고 서행한다.
+            // 속도 축은 50% 상대 하한과 절대 하한이 있어 배율 0으로도 멈추지 않고 서행한다.
             Resolve(target)?.ApplySlow(SharedEffectId, 0f, Duration, ImmunityWindow);
         }
 

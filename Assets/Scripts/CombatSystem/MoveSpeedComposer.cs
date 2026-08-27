@@ -6,6 +6,7 @@ namespace NorthLand.Combat
     public sealed class MoveSpeedComposer
     {
         private readonly float fallbackMoveSpeed;
+        private readonly float minMoveSpeed;
 
         private readonly Dictionary<int, float> speedDebuffs = new();
 
@@ -25,9 +26,10 @@ namespace NorthLand.Combat
             }
         }
 
-        public MoveSpeedComposer(float fallbackMoveSpeed)
+        public MoveSpeedComposer(float fallbackMoveSpeed, float minMoveSpeed)
         {
             this.fallbackMoveSpeed = Mathf.Max(0.01f, fallbackMoveSpeed);
+            this.minMoveSpeed = Mathf.Max(0f, minMoveSpeed);
 
             baseMoveSpeed = this.fallbackMoveSpeed;
             Recompute();
@@ -72,7 +74,9 @@ namespace NorthLand.Combat
         private void Recompute()
         {
             float unslowedSpeed = baseMoveSpeed * patternSpeedFactor;
-            EffectiveMoveSpeed = unslowedSpeed * Mathf.Max(0.5f, speedDebuffProduct);
+            EffectiveMoveSpeed = Mathf.Max(
+                minMoveSpeed,
+                unslowedSpeed * Mathf.Max(0.5f, speedDebuffProduct));
         }
     }
 }

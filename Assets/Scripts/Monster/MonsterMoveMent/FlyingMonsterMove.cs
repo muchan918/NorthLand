@@ -22,6 +22,9 @@ public class FlyingMonsterMove : MonoBehaviour, IRouteMovementAgent
     [SerializeField]
     private float fallbackMoveSpeed = 3f;
 
+    [SerializeField]
+    private float minMoveSpeed = 0.15f;
+
     private readonly List<Vector3> route = new List<Vector3>();
 
     private int currentRouteIndex;
@@ -61,7 +64,7 @@ public class FlyingMonsterMove : MonoBehaviour, IRouteMovementAgent
     {
         get
         {
-            speedComposer ??= new MoveSpeedComposer(fallbackMoveSpeed);
+            speedComposer ??= new MoveSpeedComposer(fallbackMoveSpeed,minMoveSpeed);
 
             return speedComposer;
         }
