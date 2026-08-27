@@ -35,6 +35,9 @@ namespace NorthLand.UI
         private RunSaveLoader runSaveLoader;
         private CancellationTokenSource continueRefreshCts;
 
+        [SerializeField]
+        private GameObject QuitGameWarningPanel;
+
         private void Awake()
         {
             runSaveLoader = new RunSaveLoader();
@@ -397,6 +400,28 @@ namespace NorthLand.UI
             {
                 Debug.LogWarning($"[MainMenuUI] 이어하기를 시작할 수 없습니다: {error}",this);
             }
+        }
+
+        public void OpenQuitGameWarningPanel()
+        {
+            if (QuitGameWarningPanel == null)
+            {
+                Debug.LogError($"[{QuitGameWarningPanel}] 패널이 연결되지 않았습니다.", this);
+                return;
+            }
+
+            QuitGameWarningPanel.SetActive(true);
+        }
+
+        public void CloseQuitGameWarningPanel()
+        {
+            if (QuitGameWarningPanel == null)
+            {
+                Debug.LogError($"[{QuitGameWarningPanel}] 패널이 연결되지 않았습니다.", this);
+                return;
+            }
+
+            QuitGameWarningPanel.SetActive(false);
         }
     }
 }
