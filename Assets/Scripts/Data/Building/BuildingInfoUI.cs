@@ -52,6 +52,8 @@ public class BuildingInfoUI : MonoBehaviour
     [Tooltip("비용 한 줄 프리팹 (BuildingCostRow)")]
     [SerializeField] BuildingCostRow _costRowPrefab;
 
+    private const string k_PositiveColorHex = "#73D973";
+
     [SerializeField] Button _upgradeButton;
 
     private BuildingAsset _building;
@@ -230,7 +232,7 @@ public class BuildingInfoUI : MonoBehaviour
         // 잠긴 경우 "MAX"가 아니라 "본진 Lv n 필요"가 된다 — 더 올릴 수 있다는 사실이 드러나야 한다(#229).
         string lockNotice = LockNotice(_controller.LineRequiredCastleLevel(_lineIndex));
         int nextAmount = _controller.LineNextAmountPerVillager(_lineIndex);
-        SetText(_produceAmountText,isMax? (lockNotice ?? L(k_MaxKey)): $"{cur} ▶ <color=#73D973>{nextAmount}</color>");
+        SetText(_produceAmountText, isMax ? (lockNotice ?? L(k_MaxKey)) : $"{cur} > <color={k_PositiveColorHex}>{nextAmount}</color>");
         if (isMax)
         {
             ClearCostRows();
