@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+namespace NorthLand.Combat
+{
 public enum CombatSfxPriority { Low, Normal, High }
 
 /// 전투 위치 기반 효과음의 공용 진입점. 호출자는 풀과 AudioSource를 알지 않는다.
@@ -286,23 +288,29 @@ sealed class CombatSfxPool : MonoBehaviour
 /// 전투 효과음의 카메라 줌·화면 위치 감쇠 계산기.
 static class CombatSfxAudibility
 {
-    private const float FullVolumeOrthoSize = 40f;
-    private const float SilentOrthoSize = 80f;
+    private const float FullVolumeOrthoSize = 80f;
+    private const float SilentOrthoSize = 160f;
+
     private static Camera cachedCamera;
+    private static int stampedFrame = -1;
+    private static float zoomGain;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetStatics() => cachedCamera = null;
+    private static void ResetStatics() => ClearCamera();
 
-    public static void ClearCamera() => cachedCamera = null;
+    public static void ClearCamera()
+    {
+        cachedCamera = null;
+        stampedFrame = -1;
+        zoomGain = 0f;
+    }
 
     public static bool TryEvaluate(Vector3 worldPosition, out float gain, out float pan)
     {
         gain = 0f;
         pan = 0f;
 
-        if (cachedCamera == null)
-            cachedCamera = Camera.main;
-        if (cachedCamera == null)
+        if (!EnsureFrameState() || zoomGain <= 0f)
             return false;
 
         Vector3 viewport = cachedCamera.WorldToViewportPoint(worldPosition);
@@ -315,16 +323,35 @@ static class CombatSfxAudibility
         if (edgeDistance >= 1f)
             return false;
 
-        float zoomGain = cachedCamera.orthographic
-            ? Mathf.SmoothStep(0f, 1f,
-                Mathf.InverseLerp(SilentOrthoSize, FullVolumeOrthoSize, cachedCamera.orthographicSize))
-            : 1f;
-        if (zoomGain <= 0f)
-            return false;
-
         float screenGain = Mathf.SmoothStep(0f, 1f, 1f - edgeDistance);
         gain = zoomGain * screenGain;
         pan = Mathf.Clamp(dx * 2f, -1f, 1f);
         return gain > 0f;
     }
+
+    private static bool EnsureFrameState()
+    {
+        if (stampedFrame == Time.frameCount)
+            return cachedCamera != null;
+
+        stampedFrame = Time.frameCount;
+
+        if (cachedCamera == null)
+            cachedCamera = Camera.main;
+        if (cachedCamera == null)
+            return false;
+
+        if (!cachedCamera.orthographic)
+        {
+            zoomGain = 1f;
+            return true;
+        }
+
+        zoomGain = Mathf.SmoothStep(
+            0f,
+            1f,
+            Mathf.InverseLerp(SilentOrthoSize, FullVolumeOrthoSize, cachedCamera.orthographicSize));
+        return true;
+    }
+}
 }
