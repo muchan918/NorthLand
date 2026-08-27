@@ -9,6 +9,7 @@ using UnityEngine.Localization.Settings;
 // 튜토리얼 진행을 소유한다. '지금 몇 단계인지'를 아는 유일한 곳.
 // 팝업·말풍선을 어떻게 그리는지는 모른다(TutorialOverlay의 몫).
 // 무엇을 기다리는지도 모른다(TutorialCondition의 몫) — "됐다"는 통지만 받는다.
+[DefaultExecutionOrder(-1000)]
 public class TutorialController : MonoBehaviour
 {
     [SerializeField]
@@ -60,12 +61,15 @@ public class TutorialController : MonoBehaviour
 
     public bool IsRunning => _phase != Phase.Idle;
 
-    // 에디터 작업 씬에서 startOnPlay로 직접 실행하는 경우도 게임 규칙상 튜토리얼 런이다.
-    // MonsterSpawnWaveProvider가 Awake 순서와 무관하게 이 직렬화 값을 읽을 수 있게 공개한다.
-    public bool StartsOnPlay => startOnPlay;
-
     private void Awake()
     {
+        // 작업 씬을 직접 재생해도 모든 소비처가 같은 단일 판정(TutorialMode.IsActive)을 읽는다.
+        // 실행 순서를 앞당긴 이유는 다른 시스템의 Awake가 웨이브·자원 모델을 만들기 전이어야 하기 때문이다.
+        if (startOnPlay)
+        {
+            TutorialMode.Enter();
+        }
+
         // 일반 모드에서도 비활성화 전에 초기 상태를 일관되게 준비한다.
         _context = new TutorialContext();
 
@@ -86,7 +90,7 @@ public class TutorialController : MonoBehaviour
             return;
         }
 
-        bool shouldRun = startOnPlay || TutorialMode.IsActive;
+        bool shouldRun = TutorialMode.IsActive;
 
         tutorialRoot.SetActive(shouldRun);
 
@@ -139,8 +143,7 @@ public class TutorialController : MonoBehaviour
 
     private void Start()
     {
-        // startOnPlay는 에디터 테스트용 임시 스위치다. 실제 진입은 TutorialMode가 결정한다.
-        if (startOnPlay || TutorialMode.IsActive)
+        if (TutorialMode.IsActive)
         {
             StartTutorial();
         }

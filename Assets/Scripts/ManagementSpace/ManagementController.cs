@@ -882,13 +882,10 @@ public class ManagementController : MonoBehaviour
         _wallet.OnChanged += (_, _) => OnChanged?.Invoke();
 
         // 게임 시작 초기 자원 지급(런당 1회, 이슈 #130) — 유일 창구인 ResourceWallet.Add로만 지급한다(팀 계약 #3).
-        // TutorialTest3의 startOnPlay도 실제 튜토리얼과 같은 초기값을 써야 디버그 결과가 갈리지 않는다.
-        TutorialController tutorial = FindFirstObjectByType<TutorialController>();
-        bool tutorialRun = TutorialMode.IsActive || (tutorial != null && tutorial.StartsOnPlay);
-
-        int initialWood = tutorialRun ? TutorialMode.InitialBiscuit : _initialWood;
-        int initialIron = tutorialRun ? 0 : _initialIron;
-        int initialFood = tutorialRun ? 0 : _initialFood;
+        // 정식 진입과 TutorialTest3 직접 실행은 TutorialMode 단일 판정을 공유한다.
+        int initialWood = TutorialMode.IsActive ? TutorialMode.InitialBiscuit : _initialWood;
+        int initialIron = TutorialMode.IsActive ? 0 : _initialIron;
+        int initialFood = TutorialMode.IsActive ? 0 : _initialFood;
 
         _wallet.Add(ResourceKind.Wood, initialWood);
         _wallet.Add(ResourceKind.Iron, initialIron);

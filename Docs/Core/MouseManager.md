@@ -11,7 +11,7 @@
 ## 1. 원칙
 
 1. **포인터 입력은 여기서만 읽는다.** 다른 코드는 `Mouse.current`를 직접 폴링하지 않는다. **키보드 단축키는 형제 매니저 `KeyboardManager`가 갖는다**(#444, `Assets/Scripts/GameManager/KeyboardManager/`) — 단축키를 원하는 쪽이 `Bind(Key, KeyModifier, handler)`로 등록하므로 그쪽도 도메인을 모른다(원칙 2를 공유한다). 예외 둘: **카메라 조작**(WASD처럼 매 프레임 연속으로 읽는 입력이라 "눌린 순간 한 번" 디스패치 모델에 맞지 않는다)과 **이 매니저가 읽는 수식키(Shift)** — 수식키는 단축키가 아니라 *클릭의 해석을 바꾸는 값*이라 클릭을 읽는 곳에서 함께 읽어야 한다.
-2. **매니저는 도메인을 모른다.** "타워인지 주민인지"를 묻지 않고, 인터페이스(`ISelectable`/`IGroupSelectable`/`IHoverable`) 유무만 본다. 해석은 통지를 받는 쪽이 한다.
+2. **매니저는 도메인을 모른다.** "타워인지 주민인지"를 묻지 않고, 인터페이스(`ISelectable`/`IGroupSelectable`/`IHoverable`/`ITutorialSelectionGate`) 유무만 본다. 해석은 통지를 받는 쪽이 한다.
 3. **상태를 소유하지 않는다.** 단일 선택 1개를 빼면 선택 집합·하이라이트·패널은 전부 구독자 소유다.
 
 > 이 세 줄이 확장 규칙이다. 새 타입을 마우스 상호작용에 편입시키는 비용은 **인터페이스 구현 하나**여야 하고, MouseManager는 수정되지 않아야 한다.
@@ -57,9 +57,12 @@
 |---|---|---|
 | 단일 선택 | `ISelectable` | 정보 패널 · 사거리 원 등 "하나를 들여다보기" |
 | 그룹 선택 | `IGroupSelectable` | 여러 개를 재료·부대로 묶기(현재 타워 합성) |
+| 튜토리얼 선택 분류 | `ITutorialSelectionGate` | 제한 중 이 대상 선택에 필요한 `TutorialAction` 공개 |
 
 - **집합은 MouseManager가 들지 않는다.** 매니저는 "무엇이 눌렸다/사각형에 걸렸다"만 통지하고, 순서 있는 집합은 도메인 코디네이터가 소유한다(타워 = `TowerMergeCoordinator`).
 - 그래서 마커만 붙이면 새 타입이 그룹 선택에 편입된다. **주민 시스템이 들어와도 MouseManager는 수정되지 않는다.**
+- 튜토리얼 제한 중에는 선택 대상의 `ITutorialSelectionGate.SelectionAction`을 게이트에 질의한다. 매니저에
+  구체 타입 분기를 추가하지 않는다. 인터페이스가 없는 새 선택 대상은 제한 중 안전하게 차단된다.
 
 ### 4.1 입력 규칙
 
@@ -205,7 +208,7 @@
 | 파일 | 역할 |
 |---|---|
 | `MouseManager.cs` | 중앙 매니저(싱글톤). 모드 관리·레이캐스트·통지 |
-| `ISelectable.cs` / `IGroupSelectable.cs` / `IHoverable.cs` | 단일 선택 / 그룹 선택 / 호버 자격 |
+| `ISelectable.cs` / `IGroupSelectable.cs` / `IHoverable.cs` | 단일 선택 / 그룹 선택 / 호버 자격. `ISelectable.cs`에는 제한 중 필요한 선택 행동을 공개하는 `ITutorialSelectionGate`도 있다 |
 | `IDragHandle.cs` | **끌 수 있다**는 마커(§5.4). 멤버 없음 — 사각형/유닛 끌기를 가르는 유일한 기준 |
 | `GroupSelectableRegistry.cs` | 사각형 판정용 후보 목록(§5.3). 마커가 스스로 등록/해제 |
 | `ResidentSelection/` | 주민 선택·끌기 해석 — `Docs/ManagementArea/Resident.md` §11.12 · §11.15 |

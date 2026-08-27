@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 using NorthLand.Core;
-using NorthLand.Combat;
 
 /// <summary>
 /// Combat의 실제 웨이브 클리어/보스 처치 판정이 없는 상태의 임시 대체 UI(이슈 #66).
@@ -61,7 +60,6 @@ public class NightActionPanelView : MonoBehaviour
         DayNightManager.Instance.OnDayToNight += ShowNightButtons;
         DayNightManager.Instance.OnNightToDay += ShowDayButton;
         TutorialInputGate.Changed += RefreshEndDayButton;
-        Tower.ActiveChanged += RefreshEndDayButton;
 
         ApplyPhase(DayNightManager.Instance.CurrentPhase);
     }
@@ -69,7 +67,6 @@ public class NightActionPanelView : MonoBehaviour
     private void OnDestroy()
     {
         TutorialInputGate.Changed -= RefreshEndDayButton;
-        Tower.ActiveChanged -= RefreshEndDayButton;
 
         if (DayNightManager.Instance == null)
         {

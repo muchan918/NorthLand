@@ -8,10 +8,23 @@ public static class TutorialInputGate
     private static TutorialAction _displayedActions;
     private static int _minimumTowerCountBeforeEndDay;
     private static TowerAsset _requiredTowerBeforeEndDay;
+    private static bool _observingTowers;
 
     public static bool IsRestricted => _restricted;
 
     public static event Action Changed;
+
+    [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void Reset()
+    {
+        StopObservingTowers();
+        _restricted = false;
+        _allowedActions = TutorialAction.None;
+        _displayedActions = TutorialAction.None;
+        _minimumTowerCountBeforeEndDay = 0;
+        _requiredTowerBeforeEndDay = null;
+        Changed = null;
+    }
 
     public static bool Allows(TutorialAction action)
         => !_restricted || (_allowedActions & action) == action;
@@ -25,8 +38,18 @@ public static class TutorialInputGate
 
     public static void SetEndDayTowerRequirement(int minimumCount, TowerAsset requiredTower)
     {
-        _minimumTowerCountBeforeEndDay = Math.Max(0, minimumCount);
+        int normalizedCount = Math.Max(0, minimumCount);
+
+        if (_minimumTowerCountBeforeEndDay == normalizedCount
+            && _requiredTowerBeforeEndDay == requiredTower)
+        {
+            return;
+        }
+
+        _minimumTowerCountBeforeEndDay = normalizedCount;
         _requiredTowerBeforeEndDay = requiredTower;
+        RefreshTowerObservation();
+        Changed?.Invoke();
     }
 
     public static void Apply(TutorialAction allowedActions)
@@ -50,9 +73,41 @@ public static class TutorialInputGate
         _restricted = false;
         _allowedActions = TutorialAction.None;
         _displayedActions = TutorialAction.None;
-        SetEndDayTowerRequirement(0, null);
+        _minimumTowerCountBeforeEndDay = 0;
+        _requiredTowerBeforeEndDay = null;
+        StopObservingTowers();
         Changed?.Invoke();
     }
+
+    private static void RefreshTowerObservation()
+    {
+        if (_minimumTowerCountBeforeEndDay > 0)
+        {
+            if (_observingTowers)
+            {
+                return;
+            }
+
+            Tower.ActiveChanged += OnTowersChanged;
+            _observingTowers = true;
+            return;
+        }
+
+        StopObservingTowers();
+    }
+
+    private static void StopObservingTowers()
+    {
+        if (!_observingTowers)
+        {
+            return;
+        }
+
+        Tower.ActiveChanged -= OnTowersChanged;
+        _observingTowers = false;
+    }
+
+    private static void OnTowersChanged() => Changed?.Invoke();
 
     private static bool HasRequiredTowers()
     {

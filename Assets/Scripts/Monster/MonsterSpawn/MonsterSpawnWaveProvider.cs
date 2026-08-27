@@ -2,6 +2,7 @@ using NorthLand.Combat;
 using NorthLand.Core;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public readonly struct WaveMonsterCount
 {
@@ -29,9 +30,10 @@ public sealed class MonsterSpawnWaveProvider :
     [SerializeField]
     private List<MonsterWaveAsset> tutorialWaves = new List<MonsterWaveAsset>();
 
-    [Tooltip("[에디터 테스트용] 켜면 이 씬을 항상 튜토리얼 모드로 시작한다. 타이틀 화면이 붙으면 끈다.")]
+    [Tooltip("[에디터 테스트용] 켜면 튜토리얼 웨이브 구성만 사용한다. 초기 자원·적 HP·스킬 쿨다운·튜토리얼 UI에는 영향을 주지 않는다.")]
     [SerializeField]
-    private bool forceTutorialMode;
+    [FormerlySerializedAs("forceTutorialMode")]
+    private bool forceTutorialWaves;
 
     [Header("Seed")]
     [Tooltip("몬스터 스폰 랜덤에 사용할 마스터 시드를 제공하는 RunBootstrapper")]
@@ -59,22 +61,17 @@ public sealed class MonsterSpawnWaveProvider :
     // FinalWaveNumber를 0으로 두는 방식은 쓰지 않는다 — NextWavePreviewView가
     // "등록된 웨이브가 없습니다" 에러를 계속 찍는다.
     public bool IsFinalWave(int waveNumber) =>
-        !isTutorialRun && FinalWaveNumber > 0 && waveNumber >= FinalWaveNumber;
+        !usesTutorialWaves && FinalWaveNumber > 0 && waveNumber >= FinalWaveNumber;
 
     private readonly List<WaveMonsterCount> cachedBossComposition = new();
 
     // 이번 실행이 튜토리얼인지. Awake에서 한 번 확정하고 이후 바뀌지 않는다 —
     // 웨이브 순서가 이미 만들어진 뒤에 모드가 뒤집히면 진행 번호와 리스트가 어긋난다.
-    private bool isTutorialRun;
-
-    public bool IsTutorialRun => isTutorialRun;
+    private bool usesTutorialWaves;
 
     private void Awake()
     {
-        TutorialController tutorial = FindFirstObjectByType<TutorialController>();
-        isTutorialRun = forceTutorialMode
-            || TutorialMode.IsActive
-            || (tutorial != null && tutorial.StartsOnPlay);
+        usesTutorialWaves = forceTutorialWaves || TutorialMode.IsActive;
 
         BuildWaveOrder();
     }
@@ -279,14 +276,14 @@ public sealed class MonsterSpawnWaveProvider :
     {
         orderedWaves.Clear();
 
-        List<MonsterWaveAsset> source = isTutorialRun ? tutorialWaves : waves;
+        List<MonsterWaveAsset> source = usesTutorialWaves ? tutorialWaves : waves;
 
         foreach (MonsterWaveAsset wave in source)
         {
             if (wave == null)
             {
                 Debug.LogWarning(
-                    isTutorialRun
+                    usesTutorialWaves
                         ? "tutorialWaves 리스트에 비어 있는 슬롯이 있어 건너뜁니다."
                         : "waves 리스트에 비어 있는 슬롯이 있어 건너뜁니다.",
                     this);

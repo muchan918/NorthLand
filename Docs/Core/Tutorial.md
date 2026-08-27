@@ -72,7 +72,6 @@ Conditions/
 ```csharp
 // TutorialController
 public bool IsRunning { get; }
-public bool StartsOnPlay { get; }
 public void StartTutorial();
 public void StopTutorial();
 
@@ -127,8 +126,10 @@ protected void Fire();
 
 ### 1.6 튜토리얼 전용 런 규칙
 
-튜토리얼 여부는 정식 진입의 `TutorialMode.IsActive`와 작업 씬의 `TutorialController.StartsOnPlay`를 함께
-고려한다. 정식 `GameScene` 프리팹의 `startOnPlay`는 꺼져 있어 일반 Run에 아래 값이 적용되지 않는다.
+튜토리얼 런 여부의 단일 정본은 `TutorialMode.IsActive`다. 정식 진입은 씬 로드 전에 `Enter()`하고,
+작업 씬 직접 실행은 실행 순서가 빠른 `TutorialController.Awake`가 `startOnPlay`를 보고 먼저 `Enter()`한다.
+초기 자원·적 체력·스킬 쿨다운 등 소비 시스템은 컨트롤러나 웨이브 공급자를 탐색하지 않고 이 값만 읽는다.
+정식 `GameScene` 프리팹의 `startOnPlay`는 꺼져 있어 일반 Run에 아래 값이 적용되지 않는다.
 
 | 항목 | 값 | 정본 |
 |---|---:|---|
@@ -138,8 +139,9 @@ protected void Fire();
 | 적 체력 | 일반 계산 결과의 `50%`(보스 포함) | `TutorialMode.EnemyHpScale` |
 | 스킬 재충전 간격 | `3초` | `TutorialMode.SkillCooldownSeconds` |
 
-적 체력은 `MonsterSpawnWaveProvider`가 `Awake`에서 확정한 `IsTutorialRun`을 통해 적용한다. 스킬도 같은
-Provider 상태를 읽으므로 정식 진입과 `TutorialTest3`의 직접 실행 결과가 갈리지 않는다.
+`MonsterSpawnWaveProvider.forceTutorialWaves`는 **튜토리얼 웨이브 구성만** 확인하는 에디터 테스트 옵션이다.
+이 옵션만 켠 경우 초기 자원·적 체력·스킬 쿨다운·튜토리얼 UI는 바뀌지 않는다. 전체 튜토리얼 규칙까지
+검증하려면 `TutorialController.startOnPlay`를 사용한다.
 
 ---
 
@@ -366,6 +368,10 @@ Unity는 **단일 필드**의 managed reference에는 타입 선택 UI를 그리
 `Undo`는 독립 플래그다. 버튼과 Ctrl+Z는 모두 `UndoRequest.Submit()`을 통과하므로 SO에서 `Undo`를
 허용하면 둘 다 열리고, 빼면 둘 다 막힌다. 자원 소비까지 되돌릴 수 있으므로 필요한 단계에만 명시한다.
 
+낮 종료 타워 요구치가 1 이상이면 게이트가 `Tower.ActiveChanged`를 직접 구독하고, 현재 타워 수가 바뀔
+때마다 `Changed`를 발행한다. UI는 `Tower`를 별도로 구독하지 않고 게이트의 결과만 다시 그린다. 따라서
+배치와 Undo 어느 경로에서도 버튼 표시와 실제 `AllowsEndDay()` 판정이 같은 프레임에 함께 갱신된다.
+
 ### 4.2 `TutorialAction` 목록
 
 | 플래그 | 허용하는 행동 |
@@ -390,6 +396,10 @@ Unity는 **단일 필드**의 managed reference에는 타입 선택 UI를 그리
 새 행동 플래그를 추가할 때는 UI 한 곳만 막지 않는다. 모든 입력 경로가 모이는 실제 시스템 진입점에
 검사를 추가하고, 해당 UI가 지속 표시된다면 `TutorialInputGate.Changed` 구독과 `AllowsForDisplay`도 함께
 검토한다. 정적 이벤트 구독은 `OnDisable` 또는 `OnDestroy`에서 반드시 해제한다.
+
+월드 선택 대상은 `ITutorialSelectionGate.SelectionAction`으로 자신이 소비할 선택 플래그를 공개한다.
+`MouseManager`는 건물·주민·타워 같은 구체 타입을 나열하지 않는다. 제한 중 이 인터페이스가 없는 선택
+대상은 차단되므로 새 선택 타입을 추가할 때는 `ISelectable`/`IGroupSelectable`과 함께 구현해야 한다.
 
 ### 4.3 SO 단계 규칙 설정
 
@@ -446,6 +456,7 @@ Unity는 **단일 필드**의 managed reference에는 타입 선택 UI를 그리
 특히 다음 회귀를 반드시 확인한다.
 
 - 타워 설치 후 Undo 버튼 또는 Ctrl+Z로 되돌리면 타워 수가 즉시 줄고, 타워가 없을 때 낮 종료가 막힌다.
+- 타워 요구치가 생기거나 사라지는 단계 전환 직후 낮 종료 버튼 표시가 즉시 갱신된다.
 - Undo 버튼과 Ctrl+Z가 같은 단계에서 함께 허용되거나 함께 거절된다.
 - 팝업 중 뒤쪽 UI·월드 입력이 모두 막히지만, 확인 후 SO의 `Allowed Actions`만 열린다.
 - 11단계에서 팝업 중 전투가 멈추고, 확인 후 시간이 재개되어 스킬 착탄과 완료 이벤트가 정상 동작한다.
@@ -454,6 +465,9 @@ Unity는 **단일 필드**의 managed reference에는 타입 선택 UI를 그리
 - 17단계는 주민 드래그 성공 1회와 미배치 주민 0명을 함께 요구한다.
 - 21단계는 아처 타워 현재 보유 3개를 요구하고, 22단계는 결과 타워 배치 확정 후 넘어간다.
 - 완료·스킵·오브젝트 비활성화 후 `TutorialInputGate`와 무료/상한 규칙이 초기화된다.
+- `TutorialTest3` 직접 실행은 초기 자원 20·적 HP 50%·스킬 쿨다운 3초를 모두 적용한다.
+- `forceTutorialWaves`만 켠 일반 실행은 튜토리얼 웨이브만 사용하고 위 수치와 UI는 바꾸지 않는다.
+- 제한 중 건물·주민·설치 타워 선택은 각자의 선택 플래그에서만 허용되고, 빈 곳 클릭의 선택 해제는 유지된다.
 
 ### 5.2 특정 단계 디버그
 

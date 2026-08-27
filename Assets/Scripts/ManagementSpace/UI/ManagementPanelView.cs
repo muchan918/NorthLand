@@ -5,7 +5,6 @@ using UnityEngine.UI;
 using UnityEngine.Localization;
 using UnityEngine.Localization.Settings;
 using UnityEngine.Serialization;
-using NorthLand.Combat;
 
 /// <summary>
 /// 경영 패널 뷰. <see cref="ManagementController"/>를 구독해 자원 HUD·주민 풀·웨이브·생산/자원 라인을 렌더하고,
@@ -73,7 +72,6 @@ public class ManagementPanelView : MonoBehaviour
 
         _controller.OnChanged += Refresh;
         TutorialInputGate.Changed += Refresh;
-        Tower.ActiveChanged += Refresh;
         Refresh();
     }
 
@@ -86,7 +84,6 @@ public class ManagementPanelView : MonoBehaviour
             _controller.OnChanged -= Refresh;
         }
         TutorialInputGate.Changed -= Refresh;
-        Tower.ActiveChanged -= Refresh;
         if (_endDayButton != null)
         {
             _endDayButton.onClick.RemoveListener(HandleEndDayClicked);

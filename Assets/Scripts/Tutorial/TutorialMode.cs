@@ -2,10 +2,9 @@
 // 씬 로드를 넘어 유지되어야 하므로 static이다 — 튜토리얼이 끝나면 Exit() 후 게임 씬을 재로드해
 // 같은 씬을 정상 게임으로 다시 시작한다.
 //
-// ⚠ MonoBehaviour의 Awake에서 세우면 안 된다. MonsterSpawnWaveProvider가 Awake에서 웨이브
-//    순서를 확정하므로, 실행 순서에 따라 플래그를 읽기 전에 정상 웨이브로 굳어질 수 있다.
-//    타이틀 화면처럼 '씬 로드 전'에 세우거나, 에디터 테스트용으로는
-//    MonsterSpawnWaveProvider.forceTutorialMode 스위치를 쓴다.
+// 정식 진입은 씬 로드 전에 Enter한다. 에디터 작업 씬의 직접 실행은 실행 순서가 가장 빠른
+// TutorialController가 startOnPlay를 보고 Enter한다. 소비 시스템은 이 값만 읽는다.
+// MonsterSpawnWaveProvider.forceTutorialWaves는 웨이브 구성만 바꾸는 별도 테스트 옵션이다.
 public static class TutorialMode
 {
     public const int MasterSeed = 15416;
@@ -14,6 +13,10 @@ public static class TutorialMode
     public const int InitialBiscuit = 20;
 
     public static bool IsActive { get; private set; }
+
+    // Enter Play Mode Options에서 Domain Reload를 끈 경우에도 직전 실행의 모드가 남지 않게 한다.
+    [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void Reset() => IsActive = false;
 
     public static void Enter()
     {

@@ -682,22 +682,8 @@ public class MouseManager : MonoBehaviour
             return false;
         }
 
-        if (collider.TryGetComponent(out ResidentSelectable _))
-        {
-            return TutorialInputGate.Allows(TutorialAction.SelectResident);
-        }
-
-        if (collider.TryGetComponent(out BuildingInfo _))
-        {
-            return TutorialInputGate.Allows(TutorialAction.SelectBuilding);
-        }
-
-        if (collider.TryGetComponent(out TowerGroupSelectable _))
-        {
-            return TutorialInputGate.Allows(TutorialAction.SelectPlacedTower);
-        }
-
-        return false;
+        return collider.TryGetComponent(out ITutorialSelectionGate gated)
+            && TutorialInputGate.Allows(gated.SelectionAction);
     }
 
     private void SetHover(IHoverable next)

@@ -517,10 +517,9 @@ public class MonsterSpawn : MonoBehaviour
         int wave = dayNight != null ? dayNight.CurrentWave : currentRound;
         float hpScale = enemy.IsBoss ? 1f : WaveHpScale(wave);
 
-        // 튜토리얼은 웨이브 구성만 바꾸는 것이 아니라, 등장하는 모든 적(보스 포함)의 체력을
-        // 일반 계산 결과의 50%로 낮춘다. Provider가 Awake에서 확정한 모드를 읽으므로
-        // 타이틀 진입(TutorialMode)과 에디터 테스트(forceTutorialMode) 양쪽이 같은 규칙을 탄다.
-        if (waveProvider != null && waveProvider.IsTutorialRun)
+        // 전체 튜토리얼 Run에서만 등장하는 모든 적(보스 포함)의 체력을 50%로 낮춘다.
+        // Provider의 forceTutorialWaves는 웨이브 구성 전용 테스트라 이 밸런스를 적용하지 않는다.
+        if (TutorialMode.IsActive)
         {
             hpScale *= TutorialMode.EnemyHpScale;
         }
