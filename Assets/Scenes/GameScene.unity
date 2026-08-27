@@ -800,6 +800,11 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 78707c5ac976b044192922877d0e910d, type: 2}
   - {fileID: 11400000, guid: 9c0943bf1c97e5e488bee70890538755, type: 2}
   - {fileID: 11400000, guid: 83e6017eeec05c84e9811d226c89e19c, type: 2}
+  - {fileID: 11400000, guid: 9b6de6e47201ae44086ddb74604b22ae, type: 2}
+  - {fileID: 11400000, guid: 717d9a6c620393d44b17ad6130b8012e, type: 2}
+  - {fileID: 11400000, guid: 8b2d276fa5d71154d8bfa2b9a1b5459b, type: 2}
+  - {fileID: 11400000, guid: f4dc2de3f73dcdd45b8c0d2e828374a3, type: 2}
+  - {fileID: 11400000, guid: f81f6a0680d461746b0e6a390be2eafb, type: 2}
   tutorialWaves:
   - {fileID: 11400000, guid: 1c9287c3fab27464b9615862883773f1, type: 2}
   - {fileID: 11400000, guid: eeca155a2506e114fa5c67206a374b5e, type: 2}
@@ -825,19 +830,24 @@ MonoBehaviour:
   waveHpScales:
   - 1
   - 1
+  - 1
+  - 1
   - 1.1
   - 1.15
-  - 1.2
-  - 1.6
-  - 2.05
+  - 1.5
+  - 1.7
+  - 1.9
+  - 2
+  - 2.1
+  - 2.35
   - 2.4
-  - 3.1
-  - 3.85
-  - 4.85
-  - 5.05
-  - 5.25
-  - 5.35
-  - 5.45
+  - 2.65
+  - 2.85
+  - 3
+  - 3.12
+  - 3.25
+  - 3.4
+  - 3.6
   gatePrefab: {fileID: 7755653996151452929, guid: 0df6c15a63df9cf4c8d8fc69ed81d033, type: 3}
   gatePositionOffset: {x: -1, y: -3, z: 2.5}
   gateRotation: {x: 0, y: -19, z: 0}
@@ -4498,9 +4508,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 53d4ac52df4a48f40bb1add6df6fd5ba, type: 2}
   _maxVillagers: 2
   _manaPerWaveClear: 10
-  _initialWood: 55
-  _initialIron: 30
-  _initialFood: 0
+  _initialWood: 50
+  _initialIron: 10
+  _initialFood: 10
 --- !u!4 &544968474
 Transform:
   m_ObjectHideFlags: 0

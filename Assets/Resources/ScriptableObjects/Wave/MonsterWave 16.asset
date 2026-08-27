@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 08366b238e4880d4898b6b244413a4a1, type: 3}
-  m_Name: MonsterWave 10
+  m_Name: MonsterWave 16
   m_EditorClassIdentifier: Assembly-CSharp::MonsterWaveAsset
   minSpawnInterval: 0.3
   maxSpawnInterval: 0.7
@@ -19,11 +19,15 @@ MonoBehaviour:
   randomizeSpawnOrder: 1
   groups:
   - monsterPrefab: {fileID: 6835345894790427127, guid: 7dadd487d864fd748a54d06dfdef16f3, type: 3}
-    count: 8
+    count: 37
   - monsterPrefab: {fileID: 7321704587212441968, guid: fd343a3c8af5dee4998407a8dd41a05d, type: 3}
-    count: 7
+    count: 14
   - monsterPrefab: {fileID: 8912611930598447601, guid: d1b48e1d0872d6545bc0a639fc98755f, type: 3}
-    count: 2
+    count: 5
   - monsterPrefab: {fileID: 1196599053652701155, guid: 03075335ba5354e4a972f0274406cc5e, type: 3}
-    count: 2
+    count: 3
+  - monsterPrefab: {fileID: 7984123443639308007, guid: 251ac093362a5e547a0ed5618a9729cd, type: 3}
+    count: 1
+  - monsterPrefab: {fileID: 4806916592563036970, guid: 6194b9cc1d582e6468c0a0efad43b031, type: 3}
+    count: 4
   rewardPool: {fileID: 0}
