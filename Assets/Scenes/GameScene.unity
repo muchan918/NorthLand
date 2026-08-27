@@ -11579,6 +11579,26 @@ PrefabInstance:
       propertyPath: m_Sprite
       value: 
       objectReference: {fileID: 1970141389311054427, guid: 4fed058199d191b4b970b3b9185d501d, type: 3}
+    - target: {fileID: 2540183237312605661, guid: 1ca45b441416ca346b2d4f82ea5b0c95, type: 3}
+      propertyPath: m_fontSize
+      value: 80
+      objectReference: {fileID: 0}
+    - target: {fileID: 2540183237312605661, guid: 1ca45b441416ca346b2d4f82ea5b0c95, type: 3}
+      propertyPath: m_margin.w
+      value: -51.636726
+      objectReference: {fileID: 0}
+    - target: {fileID: 2540183237312605661, guid: 1ca45b441416ca346b2d4f82ea5b0c95, type: 3}
+      propertyPath: m_margin.y
+      value: -32.265045
+      objectReference: {fileID: 0}
+    - target: {fileID: 2540183237312605661, guid: 1ca45b441416ca346b2d4f82ea5b0c95, type: 3}
+      propertyPath: m_fontSizeMax
+      value: 80
+      objectReference: {fileID: 0}
+    - target: {fileID: 2540183237312605661, guid: 1ca45b441416ca346b2d4f82ea5b0c95, type: 3}
+      propertyPath: m_enableAutoSizing
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2579747685094426754, guid: 1ca45b441416ca346b2d4f82ea5b0c95, type: 3}
       propertyPath: m_AnchorMax.x
       value: 1
@@ -11849,6 +11869,9 @@ PrefabInstance:
     - {fileID: 7356901611360084123, guid: 1ca45b441416ca346b2d4f82ea5b0c95, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8757563943050430453, guid: 1ca45b441416ca346b2d4f82ea5b0c95, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1790530256}
     - targetCorrespondingSourceObject: {fileID: 4735184178092589717, guid: 1ca45b441416ca346b2d4f82ea5b0c95, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1443310515}
@@ -14515,6 +14538,62 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1778281746}
   m_CullTransparentMesh: 1
+--- !u!1 &1790530252 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8757563943050430453, guid: 1ca45b441416ca346b2d4f82ea5b0c95, type: 3}
+  m_PrefabInstance: {fileID: 1443310509}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1790530254 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2540183237312605661, guid: 1ca45b441416ca346b2d4f82ea5b0c95, type: 3}
+  m_PrefabInstance: {fileID: 1443310509}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1790530252}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
+--- !u!114 &1790530256
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1790530252}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56eb0353ae6e5124bb35b17aff880f16, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Components.LocalizeStringEvent
+  m_StringReference:
+    m_TableReference:
+      m_TableCollectionName: GUID:1d3165e14f060034fbf1f02d9888408b
+    m_TableEntryReference:
+      m_KeyId: 6627005447090176
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
+  m_FormatArguments: []
+  m_UpdateString:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1790530254}
+        m_TargetAssemblyTypeName: TMPro.TextMeshProUGUI, Unity.TextMeshPro
+        m_MethodName: SetText
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  references:
+    version: 2
+    RefIds: []
 --- !u!1 &1796170802
 GameObject:
   m_ObjectHideFlags: 0
@@ -25992,6 +26071,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 5236193169772626758}
     m_Modifications:
+    - target: {fileID: 7716113910707130, guid: 9d2541b4fbc1336479b46389cf1fd041, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -50
+      objectReference: {fileID: 0}
     - target: {fileID: 2098746149048670819, guid: 9d2541b4fbc1336479b46389cf1fd041, type: 3}
       propertyPath: m_Pivot.x
       value: 1
@@ -26054,11 +26137,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2098746149048670819, guid: 9d2541b4fbc1336479b46389cf1fd041, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 49.901367
+      value: 50
       objectReference: {fileID: 0}
     - target: {fileID: 2098746149048670819, guid: 9d2541b4fbc1336479b46389cf1fd041, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -176.7981
+      value: -180
       objectReference: {fileID: 0}
     - target: {fileID: 2098746149048670819, guid: 9d2541b4fbc1336479b46389cf1fd041, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
