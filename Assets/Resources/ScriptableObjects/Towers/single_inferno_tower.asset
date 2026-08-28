@@ -84,6 +84,8 @@ MonoBehaviour:
       MaxStacks: 0
       StackInterval: 0
       DecaySeconds: 0
+    SecondaryStat: 0
+    SecondaryPerStack: 0
   Effects: []
   references:
     version: 2

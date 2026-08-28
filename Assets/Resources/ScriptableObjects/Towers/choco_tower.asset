@@ -18,8 +18,8 @@ MonoBehaviour:
   Icon: {fileID: 592541246, guid: e973ebffd90e44145821a55a0dd3123b, type: 3}
   PlacementYaw: 0
   Cost:
-  - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-    Amount: 30
+  - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+    Amount: 25
   Rarity: 0
   UnlockWave: 5
   Attack:
@@ -86,5 +86,5 @@ MonoBehaviour:
     - rid: 3470829504553025631
       type: {class: SlowStatus, ns: NorthLand.Combat, asm: Assembly-CSharp}
       data:
-        Multiplier: 0.8
+        Multiplier: 0.9
         Duration: 2

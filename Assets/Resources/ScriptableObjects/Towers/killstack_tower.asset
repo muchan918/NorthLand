@@ -19,11 +19,13 @@ MonoBehaviour:
   PlacementYaw: 90
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-    Amount: 40
+    Amount: 20
+  - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+    Amount: 20
   Rarity: 0
-  UnlockWave: 7
+  UnlockWave: 9
   Attack:
-    AttackDamage: 14
+    AttackDamage: 18
     AttackRange: 20
     AttackInterval: 1.1
     ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}

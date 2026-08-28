@@ -19,11 +19,11 @@ MonoBehaviour:
   PlacementYaw: 0
   Cost:
   - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-    Amount: 30
-  - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+    Amount: 10
+  - Resource: {fileID: 11400000, guid: 746ba3ce36acad54fa80a53a079fd605, type: 2}
     Amount: 20
   Rarity: 0
-  UnlockWave: 3
+  UnlockWave: 7
   Attack:
     AttackDamage: 0
     AttackRange: 0
@@ -79,6 +79,8 @@ MonoBehaviour:
       MaxStacks: 0
       StackInterval: 0
       DecaySeconds: 0
+    SecondaryStat: 0
+    SecondaryPerStack: 0
   Effects: []
   references:
     version: 2

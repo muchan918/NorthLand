@@ -18,8 +18,8 @@ public enum AudioChannel
 /// AudioMixer를 쓰지 않는다 — 채널이 3개뿐이고 더킹·스냅샷 요구가 없어
 /// 믹서 에셋 + 그룹 배선 + dB 변환 비용이 이득보다 크다고 판단했다.
 /// 대신 이 매니저가 볼륨 값을 소유하고 **자기가 소유한** AudioSource.volume에 곱해 넣는다.
-/// 따라서 이 매니저를 거치지 않는 재생은 볼륨 제어를 받지 못한다 —
-/// <c>SkillManager</c>의 <c>AudioSource.PlayClipAtPoint</c>가 아직 그런 상태다.
+/// 따라서 이 매니저를 거치지 않는 재생은 호출부가 실효 볼륨을 직접 반영해야 한다 —
+/// 전투 위치 효과음은 <c>CombatSfxPool</c>이 매 프레임 SFX 실효 볼륨을 곱한다.
 ///
 /// "지금 어떤 곡을 틀지"는 여기서 정하지 않는다. 이 오브젝트는 DontDestroyOnLoad라
 /// 인스펙터 배선을 가질 수 없으므로, 클립 선택과 페이즈 구독은 씬 쪽 <see cref="BgmCue"/>가 맡는다.

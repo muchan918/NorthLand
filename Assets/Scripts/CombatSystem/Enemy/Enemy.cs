@@ -41,6 +41,9 @@ namespace NorthLand.Combat
         /// ⚠ static이므로 구독자는 **반드시 해제**할 것(죽은 구독자가 남으면 파괴된 타워를 계속 건드린다).
         public static event Action<IAttacker, Enemy> Killed;
 
+        // 실제 HP에서 차감된 피해만 통지한다. 오버킬은 현재 HP까지만 집계한다.
+        public static event Action<IAttacker, Enemy, float> Damaged;
+
         /// 이 적이 씬에 등장한 직후 **`Start`에서** 1회 발행된다. 몬스터 체력바(#447)가 프리팹 종속
         /// 없이 자신을 붙이는 창구이며, `PlayerBase.OnBaseSpawned`와 같은 idiom이다.
         ///
@@ -216,6 +219,12 @@ namespace NorthLand.Combat
             hpScale = scale;
             currentHp = MaxHp;
             OnHpChanged?.Invoke(currentHp, MaxHp);
+        }
+
+        public void ApplyWaveMoveSpeedScale(float scale)
+        {
+            if (movement != null && Stat != null)
+                movement.SetMoveSpeed(Stat.MoveSpeed * Mathf.Max(0.01f, scale));
         }
 
         // Stat 미설정(Stat==null)에서도 안전하도록 null 가드(공개 IAttacker 계약).
@@ -493,7 +502,10 @@ namespace NorthLand.Combat
             lastDamageSource = info.Source;
 
             // 받는 피해 배수를 여기 한 곳에서만 적용한다(#233) — 방어 태세 패턴의 감쇠 지점.
-            currentHp -= info.Amount * damageTakenFactor;
+            float damage = info.Amount * damageTakenFactor;
+            float appliedDamage = Mathf.Clamp(damage, 0f, Mathf.Max(0f, currentHp));
+            currentHp -= damage;
+            Damaged?.Invoke(info.Source, this, appliedDamage);
 
             // 피격 로그(검증용) — 필요할 때 아래 주석을 풀어 쓴다.
             // 적·소스 양쪽에 InstanceID를 붙이는 이유: 같은 프리팹에서 나온 개체는 이름이 전부 같아
@@ -552,7 +564,7 @@ namespace NorthLand.Combat
         }
 
         /// 자폭 폭발음(#452). `AudioManager`의 2D 원샷을 쓴다 —
-        /// `SkillManager`의 `PlayClipAtPoint`(볼륨 제어 밖, `Docs/Core/AudioManager.md` §2)를 따라가지 않는다.
+        /// 전투 위치 효과음은 `CombatSfxPool`이 SFX 실효 볼륨을 반영한다(`Docs/Core/AudioManager.md` §6.2).
         ///
         /// 자기 `AudioSource`를 달지 않는 이유: 자폭병은 같은 프레임에 제거되므로 소스가 함께 죽어
         /// 소리가 첫 프레임에 끊긴다. 파티클을 부모 없이 스폰하는 것과 같은 사정이고, 매니저의

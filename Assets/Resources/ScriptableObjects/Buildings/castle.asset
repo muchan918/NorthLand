@@ -29,54 +29,44 @@ MonoBehaviour:
   Villager:
     Levels:
     - Cost:
-      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
+      - Resource: {fileID: 11400000, guid: 746ba3ce36acad54fa80a53a079fd605, type: 2}
         Amount: 15
     - Cost:
-      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-        Amount: 25
-    - Cost:
-      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-        Amount: 35
-      - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
-        Amount: 10
-    - Cost:
-      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-        Amount: 45
-      - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+      - Resource: {fileID: 11400000, guid: 746ba3ce36acad54fa80a53a079fd605, type: 2}
         Amount: 20
     - Cost:
-      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-        Amount: 55
-      - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+      - Resource: {fileID: 11400000, guid: 746ba3ce36acad54fa80a53a079fd605, type: 2}
+        Amount: 25
+    - Cost:
+      - Resource: {fileID: 11400000, guid: 746ba3ce36acad54fa80a53a079fd605, type: 2}
         Amount: 30
     - Cost:
-      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-        Amount: 65
-      - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
+      - Resource: {fileID: 11400000, guid: 746ba3ce36acad54fa80a53a079fd605, type: 2}
+        Amount: 35
+    - Cost:
+      - Resource: {fileID: 11400000, guid: 746ba3ce36acad54fa80a53a079fd605, type: 2}
         Amount: 40
     - Cost:
-      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-        Amount: 75
-      - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
-        Amount: 50
+      - Resource: {fileID: 11400000, guid: 746ba3ce36acad54fa80a53a079fd605, type: 2}
+        Amount: 45
     - Cost:
-      - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-        Amount: 85
-      - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
-        Amount: 60
+      - Resource: {fileID: 11400000, guid: 746ba3ce36acad54fa80a53a079fd605, type: 2}
+        Amount: 50
   Castle:
     UpgradeLevels:
     - Cost:
       - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-        Amount: 100
+        Amount: 50
       - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
         Amount: 50
+      - Resource: {fileID: 11400000, guid: 746ba3ce36acad54fa80a53a079fd605, type: 2}
+        Amount: 20
       RequiredCastleLevel: 0
     - Cost:
       - Resource: {fileID: 11400000, guid: 986e44f2aaa6d70449eed051d842ec2a, type: 2}
-        Amount: 200
+        Amount: 100
       - Resource: {fileID: 11400000, guid: ffa6e5cfb898e5444ac5b20e583aad79, type: 2}
-        Amount: 120
-      - Resource: {fileID: 11400000, guid: ea1f990e36ed2664385dd7e105c5c6f3, type: 2}
-        Amount: 30
+        Amount: 100
+      - Resource: {fileID: 11400000, guid: 746ba3ce36acad54fa80a53a079fd605, type: 2}
+        Amount: 40
       RequiredCastleLevel: 0
