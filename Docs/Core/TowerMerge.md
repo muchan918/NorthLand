@@ -205,6 +205,9 @@
 
 ### 8.2 합성 패널 구성
 - **상단 Vertical Scroll View — 선택 리스트**: 선택된 재료 타워를 **선택 순서대로** 한 행씩. 집합 변경 시 즉시 갱신. 행 라벨 = `tower.Asset.TowerID` → `TowerData.NameKey` → 로컬라이즈(`NorthLand_Towers`, `LocalizationHelper.Get`). (행별 제거 버튼은 선택.)
+  - **행 표시 = 아이콘(맨 왼쪽) + 이름**(#535). 둘 다 행 프리팹(`SelectedRow.prefab`)의 `TowerMergeSelectedRowView.Set(Sprite, string)` 슬롯에 채운다. 이름은 `TowerDisplayName.Of`(단일 출처, §8.5), 아이콘은 `TowerAsset.Icon` — **아래 후보 버튼과 같은 필드다.** 표기 소스가 갈리면 같은 타워가 상단과 하단에서 다르게 보인다. 미할당이면 슬롯 off(빈 칸 — `ResourceAsset` 계보 규약).
+  - 여기는 **이름을 남긴다** — #470이 팔레트·후보 **버튼**에서 이름을 걷어낸 것과 상충하지 않는다. 그쪽은 누를 수 있는 칸이라 이름을 호버 툴팁이 대신 내지만, 이 행은 "무엇을 골랐는지 열거하는" 목록이라 이름이 식별 수단으로 남아야 한다.
+  - 프리팹에 뷰가 없는 미동기 환경에서는 `GetComponentInChildren<TMP_Text>()`로 **이름만** 채우는 폴백으로 내려간다(1회 경고). 동기화 기준 커밋은 SystemMap §4 「머지 패널 "선택 행" 프리팹 동기화 계약(#535)」.
 - **하단 Horizontal Scroll View — 후보 버튼**: **레시피(카탈로그)마다 버튼 1개를 미리 생성해 담아두고 기본 `SetActive(false)`**. 매칭되는 레시피의 버튼만 `SetActive(true)`.
   - 활성 판정 = `_coordinator.CanMerge(recipe)`(= `TowerFusionMatcher.CanFuse(group.Towers, recipe)`). (매칭 규칙 재구현 금지 — §6 단일 출처.)
   - **표시(재료)와 활성(코스트)을 가른다** — `SetActive` = `CanMerge`(재료 매칭), `interactable` = `_coordinator.CanAffordMerge(recipe)`(#406, WL-209). 예전에는 표시 조건이 재료뿐이라 **자원이 모자라도 버튼이 눌렸고 눌러도 조용히 반려**됐다. 거절음이 붙은 뒤에도 재료 부족과 코스트 부족이 같은 클립을 공유해 사유를 구분할 수 없었다 — 회색 표시가 그 자리를 대신한다. **최종 검증은 여전히 실행부(`TryFuse` 4단계)가 한다**(방어): 그룹이 판정과 클릭 사이에 바뀔 수 있다.
@@ -494,7 +497,7 @@
 - 패널 루트(예: `TowerMergePanel`) + `TowerMergePanelView`. 시작 시 활성/비활성 무관(코디네이터 `Start`가 꺼줌). **이 루트가 곧 `_mergePanel`.**
 - 자식:
   - **상단 Vertical Scroll View** → Content(Vertical Layout Group + Content Size Fitter) = `_selectedListContent`.
-  - **선택 리스트 행 프리팹**(TMP_Text 1개 포함) = `_selectedRowPrefab`.
+  - **선택 리스트 행 프리팹**(`SelectedRow.prefab` — Imported 정본) = `_selectedRowPrefab`. 루트에 `TowerMergeSelectedRowView`가 있고 `_icon`(첫 번째 자식 = 맨 왼쪽) · `_label`이 배선돼 있어야 한다. 아이콘 슬롯의 `LayoutElement`(preferredWidth/Height 48)는 **떼지 말 것** — 아이콘 없는 타워에서 칸이 접힌다(SystemMap §4 #535 계약).
   - **하단 Horizontal Scroll View** → Content(Horizontal Layout Group + Content Size Fitter) = `_candidateContent`.
   - **후보 버튼 프리팹**(Button + 자식 TMP_Text) = `_candidateButtonPrefab`(기존 `TowerSelectPanelView` 버튼 재사용 가능).
   - `_coordinator` → 1의 코디네이터.

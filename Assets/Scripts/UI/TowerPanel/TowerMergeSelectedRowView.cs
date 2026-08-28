@@ -13,7 +13,7 @@ using UnityEngine.UI;
 /// <c>Button.targetGraphic</c>에 그리지 않고 별도 슬롯으로 든 것과 같은 이유다.</para>
 /// </summary>
 [DisallowMultipleComponent]
-public class SelectedRowView : MonoBehaviour
+public class TowerMergeSelectedRowView : MonoBehaviour
 {
     [Tooltip("타워 아이콘 (행의 첫 번째 자식 — 맨 왼쪽)")]
     [SerializeField] Image _icon;

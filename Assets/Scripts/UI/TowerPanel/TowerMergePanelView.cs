@@ -16,7 +16,7 @@ public class TowerMergePanelView : MonoBehaviour
 
     [Header("선택 리스트 (상단 Vertical Scroll)")]
     [SerializeField] Transform _selectedListContent;
-    [SerializeField] GameObject _selectedRowPrefab; // SelectedRowView(아이콘 + 이름) 포함 행
+    [SerializeField] GameObject _selectedRowPrefab; // TowerMergeSelectedRowView(아이콘 + 이름) 포함 행
 
     [Header("후보 버튼 (하단 Horizontal Scroll)")]
     [SerializeField] Transform _candidateContent;
@@ -124,7 +124,7 @@ public class TowerMergePanelView : MonoBehaviour
             string label = TowerDisplayName.Of(tower.Asset);
 
             // 아이콘 소스는 아래 후보 버튼과 같은 `TowerAsset.Icon`이다(#535) — 표기 소스를 SO 한 곳에 둔다.
-            var view = row.GetComponent<SelectedRowView>();
+            var view = row.GetComponent<TowerMergeSelectedRowView>();
             if (view != null)
             {
                 view.Set(tower.Asset != null ? tower.Asset.Icon : null, label);
@@ -136,7 +136,7 @@ public class TowerMergePanelView : MonoBehaviour
                 if (!s_rowViewWarned)
                 {
                     s_rowViewWarned = true;
-                    Debug.LogWarning("[타워합성] SelectedRow 프리팹에 SelectedRowView가 없습니다 — 아이콘 없이 이름만 표시합니다. " +
+                    Debug.LogWarning("[타워합성] SelectedRow 프리팹에 TowerMergeSelectedRowView가 없습니다 — 아이콘 없이 이름만 표시합니다. " +
                                      "NorthLand-Imported의 SelectedRow.prefab 동기화를 확인하세요.", this);
                 }
 
