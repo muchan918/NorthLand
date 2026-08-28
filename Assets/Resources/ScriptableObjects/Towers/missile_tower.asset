@@ -21,7 +21,7 @@ MonoBehaviour:
   Rarity: 1
   UnlockWave: 1
   Attack:
-    AttackDamage: 27
+    AttackDamage: 31
     AttackRange: 24
     AttackInterval: 1.3
     ProjectilePrefab: {fileID: 8129974786565786213, guid: f4b2fbb323243d64494c288ca5db4a30, type: 3}
