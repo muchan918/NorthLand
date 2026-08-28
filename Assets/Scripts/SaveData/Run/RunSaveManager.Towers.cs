@@ -389,17 +389,7 @@ namespace NorthLand.Core
 
                     return false;
                 }
-       
-                Debug.Log(
-                    $"[Load] 타워 생성 완료: {savedTower.TowerId}, " +
-                    $"위치={restoredTower.transform.position}, " +
-                    $"activeSelf={restoredTower.gameObject.activeSelf}, " +
-                    $"activeInHierarchy={restoredTower.gameObject.activeInHierarchy}, " +
-                    $"ActiveCount={Tower.Active.Count}, " +
-                    $"{location}",
-                    restoredTower);
 
-             
                 restoredTowers.Add(restoredTower);
             }
 

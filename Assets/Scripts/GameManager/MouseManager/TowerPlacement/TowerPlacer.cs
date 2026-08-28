@@ -884,9 +884,10 @@ public class TowerPlacer : MonoBehaviour
         // 세이브 복원·합성 결과 배치도 이 한 줄을 지나므로 경로마다 각도가 갈릴 수 없다.
         placed = Instantiate(prefab,position, GridBasis * Quaternion.Euler(0f, asset.PlacementYaw, 0f));
 
-        // Additive 로딩 중에는 활성 씬이 LoadingScene이므로,
-        // TowerPlacer가 속한 GameScene으로 명시적으로 이동한다.
-        SceneManager.MoveGameObjectToScene(placed, gameObject.scene);
+        // Additive 로딩 중에는 활성 씬이 LoadingScene이므로, 배치 대상 타일이 속한 씬으로
+        // 명시적으로 이동한다. TowerPlacer가 DDOL이나 별도 UI 씬으로 옮겨져도 타워의 수명은
+        // 자신이 점유한 타일과 함께해야 한다.
+        SceneManager.MoveGameObjectToScene(placed, anchorView.gameObject.scene);
 
         var footprint = placed.AddComponent<TowerFootprint>();
 
