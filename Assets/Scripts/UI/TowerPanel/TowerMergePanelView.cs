@@ -16,7 +16,7 @@ public class TowerMergePanelView : MonoBehaviour
 
     [Header("선택 리스트 (상단 Vertical Scroll)")]
     [SerializeField] Transform _selectedListContent;
-    [SerializeField] GameObject _selectedRowPrefab; // TMP_Text 포함 행
+    [SerializeField] GameObject _selectedRowPrefab; // TowerMergeSelectedRowView(아이콘 + 이름) 포함 행
 
     [Header("후보 버튼 (하단 Horizontal Scroll)")]
     [SerializeField] Transform _candidateContent;
@@ -27,6 +27,10 @@ public class TowerMergePanelView : MonoBehaviour
     private readonly List<(Button button, TowerButtonView view, TowerRecipe recipe)> _candidates = new();
     private readonly List<GameObject> _rows = new();
     private bool _built;
+
+    // 프리팹 배선 유실 경고는 세션당 1회 — 행은 선택이 바뀔 때마다 전부 다시 생성되므로
+    // 인스턴스 플래그로는 갱신마다 같은 경고가 쏟아진다(TowerButtonView.s_bannerWiringWarned와 같은 규약).
+    private static bool s_rowViewWarned;
 
     private void Awake() => BuildCandidates();
 
@@ -117,8 +121,29 @@ public class TowerMergePanelView : MonoBehaviour
             if (tower == null) continue;
 
             var row = Instantiate(_selectedRowPrefab, _selectedListContent);
-            var text = row.GetComponentInChildren<TMP_Text>();
-            if (text != null) text.text = TowerDisplayName.Of(tower.Asset);
+            string label = TowerDisplayName.Of(tower.Asset);
+
+            // 아이콘 소스는 아래 후보 버튼과 같은 `TowerAsset.Icon`이다(#535) — 표기 소스를 SO 한 곳에 둔다.
+            var view = row.GetComponent<TowerMergeSelectedRowView>();
+            if (view != null)
+            {
+                view.Set(tower.Asset != null ? tower.Asset.Icon : null, label);
+            }
+            else
+            {
+                // 뷰 없는 프리팹 변종 폴백 — 이름만 채운다(후보 버튼의 TowerButtonView 폴백과 같은 판단).
+                // 프리팹이 별 저장소라 미동기 환경에서 이 경로를 탄다. 아이콘 없이 종전대로는 보인다.
+                if (!s_rowViewWarned)
+                {
+                    s_rowViewWarned = true;
+                    Debug.LogWarning("[타워합성] SelectedRow 프리팹에 TowerMergeSelectedRowView가 없습니다 — 아이콘 없이 이름만 표시합니다. " +
+                                     "NorthLand-Imported의 SelectedRow.prefab 동기화를 확인하세요.", this);
+                }
+
+                var text = row.GetComponentInChildren<TMP_Text>();
+                if (text != null) text.text = label;
+            }
+
             _rows.Add(row);
         }
     }
