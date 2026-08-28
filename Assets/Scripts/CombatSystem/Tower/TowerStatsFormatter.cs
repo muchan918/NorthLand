@@ -10,19 +10,85 @@ namespace NorthLand.Combat
     {
         static string Label(string key) => LocalizationHelper.Get(LocalizationHelper.k_DefaultTable, key);
 
+        // 라벨 키를 상수로 노출한다(#536). 문자열 줄과 스탯 행(TowerStatRowData)이 **같은 키**를 봐야
+        // 한 패널 안에서 같은 스탯의 이름이 갈리지 않는다. 값 서식도 여기 상수를 공유한다.
+        public const string k_DamageKey = "game.tower.attack_damage";
+        public const string k_RangeKey = "game.tower.attack_range";
+        public const string k_SpeedKey = "game.tower.attack_speed";
+        public const string k_AuraRadiusKey = "game.tower.aura_radius";
+        public const string k_MoveSpeedKey = "game.tower.move_speed";
+        public const string k_ArmorKey = "game.tower.armor";
+        public const string k_DotKey = "game.tower.dot";
+        public const string k_DpsKey = "game.tower.dps";
+        public const string k_BurstKey = "game.tower.burst";
+        public const string k_ZoneKey = "game.tower.zone";
+        public const string k_StackKey = "game.tower.stack";
+        public const string k_LockRampKey = "game.tower.lock_ramp";
+        public const string k_InheritKey = "game.tower.inherit";
+        public const string k_InheritNoneKey = "game.tower.inherit.none";
+        public const string k_DefaultFormat = "0.#";
+        public const string k_RateFormat = "0.##";
+
+        /// 스탯 행이 라벨을 직접 조회할 수 있게 여는 창구 — 조회 규칙(테이블·헬퍼)은 계속 여기 것이다.
+        public static string StatLabel(string key) => Label(key);
+
+        // ── enum → 로컬라이즈 키 ────────────────────────────────────────────
+        //
+        // ⚠ **매핑에 없는 값은 키를 조회하지 않고 enum 이름을 그대로 돌려준다.**
+        // `LocalizationHelper.Get`은 없는 키에 대해 빈 문자열이 아니라 **에러**를 내므로, 새 enum 값을
+        // 추가하고 키 등록을 잊으면 콘솔이 매 조회마다 더럽혀진다. 영어 이름이 잠깐 보이는 쪽이 낫다.
+
+        public static string StatName(TowerStat stat)
+        {
+            string key = stat switch
+            {
+                TowerStat.AttackDamage => k_DamageKey,
+                TowerStat.AttackRange => k_RangeKey,
+                TowerStat.AttackSpeed => k_SpeedKey,
+                TowerStat.AuraRadius => k_AuraRadiusKey,
+                _ => null,
+            };
+
+            return key == null ? stat.ToString() : Label(key);
+        }
+
+        /// 버프 오라가 남에게 거는 축(`ModifiableStat`)은 원장 축(`TowerStat`)과 **다른 열거형**이다 —
+        /// 대상이 타워가 아니라 적일 수도 있어(MoveSpeed·Armor) 축 자체가 더 넓다.
+        public static string StatName(ModifiableStat stat)
+        {
+            string key = stat switch
+            {
+                ModifiableStat.AttackDamage => k_DamageKey,
+                ModifiableStat.AttackSpeed => k_SpeedKey,
+                ModifiableStat.MoveSpeed => k_MoveSpeedKey,
+                ModifiableStat.Armor => k_ArmorKey,
+                _ => null,
+            };
+
+            return key == null ? stat.ToString() : Label(key);
+        }
+
+        /// 공격속도 표시 축: **rate(1÷간격)**. 문자열 줄과 스탯 행이 같은 축을 써야 한다 —
+        /// 한쪽만 간격(초)으로 내면 같은 패널에서 커질수록 좋은 수와 작을수록 좋은 수가 섞인다.
+        public static float ToRate(float interval) => interval > 0f ? 1f / interval : 0f;
+
         /// 공격 타워 3줄: 공격력 / 사거리 / 공격속도(=1÷간격).
+        ///
+        /// ⚠ **정보 패널은 이 메서드를 더 이상 쓰지 않는다**(#536) — 그 세 줄은 스탯 행이 소유한다.
+        /// 남은 소비처는 배치 **전** 툴팁(`TowerInfoFormatter.BuildStats`)이다. 그쪽은 타워 인스턴스가
+        /// 없어 원장이 없고 행을 만들 수 없으므로 계속 문자열로 낸다.
         public static string BuildAttackLines(float damage, float range, float attackInterval)
         {
-            float rate = attackInterval > 0f ? 1f / attackInterval : 0f;
+            float rate = ToRate(attackInterval);
 
-            return $"{Label("game.tower.attack_damage")}: {damage:0.#}\n" +
-                   $"{Label("game.tower.attack_range")}: {range:0.#}\n" +
-                   $"{Label("game.tower.attack_speed")}: {rate:0.##}";
+            return $"{Label(k_DamageKey)}: {damage.ToString(k_DefaultFormat)}\n" +
+                   $"{Label(k_RangeKey)}: {range.ToString(k_DefaultFormat)}\n" +
+                   $"{Label(k_SpeedKey)}: {rate.ToString(k_RateFormat)}";
         }
 
         /// 오라 타워의 반경 한 줄(사거리 라벨을 공유한다 — 플레이어에게는 같은 "닿는 거리" 개념).
         public static string BuildRangeLine(float range)
-            => $"{Label("game.tower.attack_range")}: {range:0.#}";
+            => $"{Label(k_RangeKey)}: {range.ToString(k_DefaultFormat)}";
 
         /// 해금 웨이브 한 줄(#504) — 아직 잠긴 타워의 툴팁에만 붙는다.
         /// **해금 여부는 여기서 판단하지 않는다**(<see cref="TowerAsset.IsUnlocked"/>가 정본) —
@@ -30,38 +96,36 @@ namespace NorthLand.Combat
         public static string BuildUnlockWaveLine(int unlockWave)
             => $"{Label("game.tower.unlock_wave")}: {unlockWave}";
 
-        /// 지속 피해 한 줄. 피해가 없으면 null.
+        /// 지속 피해 행. 피해가 없으면 null.
         /// **SO 원본이 아니라 실효값(원장 합성 후)을 넘길 것** — 패널 표기와 실제 효과가 어긋나면
         /// WL-079/WL-130이 지적한 "표시부와 적용부가 규칙을 각자 쓰는" 문제가 재발한다.
-        public static string BuildDotLine(float damagePerTick, float tickInterval)
+        public static TowerStatRowData? DotRow(float damagePerTick, float tickInterval)
             => damagePerTick > 0f && tickInterval > 0f
-                ? $"DoT: {damagePerTick:0.#} / {tickInterval:0.#}s"
-                : null;
+                ? TowerStatRowData.Note(Label(k_DotKey), $"{damagePerTick.ToString(k_DefaultFormat)} / {tickInterval.ToString(k_DefaultFormat)}s")
+                : (TowerStatRowData?)null;
 
-        /// 다중 타겟 지속딜(빔) 한 줄 — 대상 1기당 DPS와 동시 타격 대상 수(#298).
-        public static string BuildBeamLine(float dps, int maxTargets)
+        /// 다중 타겟 지속딜(빔) 행 — 대상 1기당 DPS와 동시 타격 대상 수(#298).
+        public static TowerStatRowData? BeamRow(float dps, int maxTargets)
             => dps > 0f && maxTargets > 0
-                ? $"DPS: {dps:0.#} × {maxTargets}"
-                : null;
+                ? TowerStatRowData.Note(Label(k_DpsKey), $"{dps.ToString(k_DefaultFormat)} × {maxTargets}")
+                : (TowerStatRowData?)null;
 
-        /// 성장(램프업) 한 줄 — 현재 스택/상한과 그 배율(#300).
+        /// 성장(램프업) 스택 행 — 현재 스택과 상한만 낸다(#300, #536).
         ///
-        /// ⚠ 정보 패널은 **선택 시점 스냅샷**이라 이 줄은 실시간으로 갱신되지 않는다. 그래서 현재
-        /// 값만 쓰지 않고 상한을 함께 낸다 — 플레이어가 "이 타워가 어디까지 자라는가"를 알 수 있어야
-        /// 한 장면의 숫자가 전부인 것으로 오해하지 않는다.
-        /// 둘째 축(`secondaryStat`/`secondaryMultiplier`)은 배율이 1이면 생략한다 — 단일 축 타워의
-        /// 표기를 바꾸지 않기 위해서다. 축이 둘일 때 스택은 공유하므로 한 번만 낸다.
-        public static string BuildRampLine(TowerStat stat, int stacks, int maxStacks, float multiplier,
-                                           TowerStat secondaryStat = default, float secondaryMultiplier = 1f)
-        {
-            if (maxStacks <= 0) return null;
-
-            string line = $"Ramp({stat}): {stacks}/{maxStacks} ×{multiplier:0.##}";
-
-            return secondaryMultiplier != 1f
-                ? $"{line} · {secondaryStat} ×{secondaryMultiplier:0.##}"
-                : line;
-        }
+        /// <para><b>배율과 축 이름은 내지 않는다.</b> 성장의 결과는 공격력·공격속도 행이 이미
+        /// `기본값 → 실제값`으로 보여주므로 여기서 `×1.2`를 또 내면 같은 사실이 두 번 적힌다.
+        /// 축 이름도 마찬가지다 — 어느 스탯이 자랐는지는 화살표가 붙은 행이 답한다.
+        /// 배율은 계속 내부 값(원장 modifier)으로만 살아 있고 표시만 걷어낸 것이다.</para>
+        ///
+        /// <para>상한을 함께 내는 이유는 남는다 — 스택 수만으로는 "이 타워가 어디까지 자라는가"를
+        /// 알 수 없어서, 지금 값이 전부인 것으로 오해하게 된다.</para>
+        ///
+        /// <para>축이 둘인 타워(<c>rampup_tower</c>)도 스택은 공유하므로 행은 하나다. 예전에는 둘째 축의
+        /// 배율만 값에 덧붙었는데, 첫째 축은 이름이 없고 둘째만 이름이 붙는 비대칭이 생겨 함께 걷어냈다.</para>
+        public static TowerStatRowData? StackRow(int stacks, int maxStacks)
+            => maxStacks > 0
+                ? TowerStatRowData.Note(Label(k_StackKey), $"{stacks}/{maxStacks}")
+                : (TowerStatRowData?)null;
 
         /// 조준 방식의 표시명(#387). 정책은 키만 알고, 로케일 해석은 여기서 한다.
         ///
@@ -71,30 +135,34 @@ namespace NorthLand.Combat
         public static string TargetingName(TargetingPolicy policy)
             => policy == null ? string.Empty : Label(policy.DisplayNameKey);
 
-        /// 연발 한 줄(#336). 1발이면 null — 대부분의 타워에서 줄이 늘지 않는다.
-        public static string BuildBurstLine(int burstCount)
-            => burstCount > 1 ? $"Burst: ×{burstCount}" : null;
+        /// 연발 행(#336). 1발이면 null — 대부분의 타워에서 행이 늘지 않는다.
+        public static TowerStatRowData? BurstRow(int burstCount)
+            => burstCount > 1 ? TowerStatRowData.Note(Label(k_BurstKey), $"×{burstCount}") : (TowerStatRowData?)null;
 
-        /// 착탄 지속 구역 한 줄(#336) — 반경과 남는 시간. 구역이 없으면 null.
-        /// 구역이 **거는 효과**는 DoT 줄이 따로 낸다(같은 `Effects`를 쓰므로 중복 표기하지 않는다).
-        public static string BuildGroundZoneLine(float radius, float duration)
+        /// 착탄 지속 구역 행(#336) — 반경과 남는 시간. 구역이 없으면 null.
+        /// 구역이 **거는 효과**는 DoT 행이 따로 낸다(같은 `Effects`를 쓰므로 중복 표기하지 않는다).
+        public static TowerStatRowData? GroundZoneRow(float radius, float duration)
             => radius > 0f && duration > 0f
-                ? $"Zone: {radius:0.#} / {duration:0.#}s"
-                : null;
+                ? TowerStatRowData.Note(Label(k_ZoneKey), $"{radius.ToString(k_DefaultFormat)} / {duration.ToString(k_DefaultFormat)}s")
+                : (TowerStatRowData?)null;
 
-        /// 감속 한 줄. 감속이 없으면(배율 1) null.
-        public static string BuildSlowLine(float slowMultiplier)
+        /// 감속 행. 감속이 없으면(배율 1) null.
+        public static TowerStatRowData? SlowRow(float slowMultiplier)
             => slowMultiplier < 1f
-                ? $"Slow: -{(1f - slowMultiplier) * 100f:0.#}%"
-                : null;
+                ? TowerStatRowData.Note(EffectName(EffectKind.Slow), $"-{((1f - slowMultiplier) * 100f).ToString(k_DefaultFormat)}%")
+                : (TowerStatRowData?)null;
 
-        /// 버프 오라가 부여하는 스탯 변화 한 줄.
-        public static string BuildModifierLine(StatModifier modifier)
+        /// 버프 오라가 부여하는 스탯 변화 행.
+        /// 라벨과 값을 가르는 자리가 스탯 이름과 증감량 사이다 — 다른 행들과 같은 열에 정렬된다.
+        public static TowerStatRowData? ModifierRow(StatModifier modifier)
         {
             if (modifier == null) return null;
 
             string sign = modifier.Amount >= 0 ? "+" : "";
-            return $"{modifier.Stat} {sign}{modifier.Amount:0.#}{(modifier.IsPercentage ? "%" : "")}";
+
+            return TowerStatRowData.Note(
+                StatName(modifier.Stat),
+                $"{sign}{modifier.Amount.ToString(k_DefaultFormat)}{(modifier.IsPercentage ? "%" : "")}");
         }
 
         /// 합성으로 물려받는 효과 한 줄(#274 Phase 5).
@@ -103,7 +171,7 @@ namespace NorthLand.Combat
         ///
         /// ⚠ **null과 빈 집합을 다르게 표시한다**(`ResolveInheritedKinds`와 같은 구분):
         ///   null    계승 개념이 없는 레시피 → 줄 자체를 안 낸다
-        ///   빈 집합  계승은 켰는데 물려줄 게 없다 → **"Inherit: 없음"**을 낸다
+        ///   빈 집합  계승은 켰는데 물려줄 게 없다 → **"계승: 없음"**을 낸다
         /// 빈 집합에 줄을 안 내면 "표시 0인데 실제로는 전부 off"가 되어 또 어긋난다.
         public static string BuildInheritLine(System.Collections.Generic.IEnumerable<EffectKind> kinds)
         {
@@ -116,15 +184,25 @@ namespace NorthLand.Combat
                 joined = joined == null ? name : $"{joined} + {name}";
             }
 
-            return $"Inherit: {joined ?? "없음"}";
+            return $"{Label(k_InheritKey)}: {joined ?? Label(k_InheritNoneKey)}";
         }
 
-        /// 효과 종류의 표시명.
-        /// ⚠ 로컬라이즈 키를 새로 만들지 않는다 — `LocalizationHelper.Get`은 키가 없으면 빈 문자열이
-        /// 아니라 에러를 내므로, 키를 먼저 등록하지 않은 채 조회하면 콘솔이 더럽혀진다.
-        /// DoT/Slow/Stun 줄이 이미 하드코딩 라벨을 쓰고 있어 표기 일관성도 이쪽이 맞다.
-        /// 로컬라이즈가 필요해지면 이 함수 하나만 바꾸면 된다.
-        public static string EffectName(EffectKind kind) => kind.ToString();
+        /// 효과 종류의 표시명. 감속 행(<see cref="SlowRow"/>)·기절 행과 **같은 키를 공유한다** —
+        /// 툴팁에서 "물려받는다"고 본 이름과 배치 후 정보 패널에 뜨는 이름이 다르면
+        /// 플레이어가 같은 것으로 인식하지 못한다.
+        public static string EffectName(EffectKind kind)
+        {
+            string key = kind switch
+            {
+                EffectKind.Burn => "game.tower.effect.burn",
+                EffectKind.Poison => "game.tower.effect.poison",
+                EffectKind.Slow => "game.tower.effect.slow",
+                EffectKind.Stun => "game.tower.effect.stun",
+                _ => null,
+            };
+
+            return key == null ? kind.ToString() : Label(key);
+        }
 
         /// null·빈 줄을 건너뛰고 개행으로 잇는다. 전부 비면 null.
         public static string Join(params string[] lines)

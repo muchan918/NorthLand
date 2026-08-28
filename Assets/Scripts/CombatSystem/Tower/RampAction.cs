@@ -126,14 +126,13 @@ namespace NorthLand.Combat
             PushStacks();
         }
 
-        public override string DescribeStats()
+        public override void DescribeStatRows(List<TowerStatRowData> into)
         {
-            if (!Authored) return null;
+            if (!Authored) return;
 
-            return TowerStatsFormatter.BuildRampLine(
-                fields.Stat, stacks, fields.Profile.MaxStacks, fields.Profile.Multiplier(stacks),
-                fields.SecondaryStat,
-                fields.HasSecondary ? fields.SecondaryMultiplier(stacks) : 1f);
+            // 배율(`Multiplier`)과 축(`Stat`/`SecondaryStat`)은 행으로 내지 않는다(#536) —
+            // 그 결과는 공격력·공격속도 행이 `기본값 → 실제값`으로 이미 보여준다. 여기는 스택만 낸다.
+            AttackAction.AddIf(into, TowerStatsFormatter.StackRow(stacks, fields.Profile.MaxStacks));
         }
 
         // ── 스택 ───────────────────────────────────────────────────────────

@@ -62,8 +62,8 @@ namespace NorthLand.Combat
         /// 무반응"인 비대칭이 있었다(Tower.md §5.3).
         public abstract void Apply(IDamageable target, IAttacker source, TowerStats stats, int sourceId);
 
-        /// 정보 패널에 이 효과가 기여할 줄. 없으면 null. 실효값(원장 합성 후)을 보여준다.
-        public abstract string Describe(TowerStats stats);
+        /// 정보 패널에 이 효과가 기여할 행. 없으면 null. 실효값(원장 합성 후)을 보여준다.
+        public abstract TowerStatRowData? DescribeRow(TowerStats stats);
 
         /// 대상의 상태이상 핸들러를 얻는다(없으면 붙인다). 대상이 Component가 아니면 null.
         protected static StatusEffectHandler Resolve(IDamageable target)
@@ -93,8 +93,8 @@ namespace NorthLand.Combat
             handler.ApplyOrRefresh(sourceId, Kind, ScaledDamage(stats), ScaledTick(stats), Duration, source);
         }
 
-        public override string Describe(TowerStats stats)
-            => TowerStatsFormatter.BuildDotLine(ScaledDamage(stats), ScaledTick(stats));
+        public override TowerStatRowData? DescribeRow(TowerStats stats)
+            => TowerStatsFormatter.DotRow(ScaledDamage(stats), ScaledTick(stats));
 
         float ScaledDamage(TowerStats stats)
             => stats == null ? DamagePerTick : stats.Evaluate(TowerStat.AttackDamage, DamagePerTick);
@@ -136,8 +136,8 @@ namespace NorthLand.Combat
         public override void Apply(IDamageable target, IAttacker source, TowerStats stats, int sourceId)
             => Resolve(target)?.ApplySlow(sourceId, Multiplier, Duration);
 
-        public override string Describe(TowerStats stats)
-            => TowerStatsFormatter.BuildSlowLine(Multiplier);
+        public override TowerStatRowData? DescribeRow(TowerStats stats)
+            => TowerStatsFormatter.SlowRow(Multiplier);
     }
 
     // ── 스턴 ───────────────────────────────────────────────────────────────
@@ -185,7 +185,7 @@ namespace NorthLand.Combat
             Resolve(target)?.ApplySlow(SharedEffectId, 0f, Duration, ImmunityWindow);
         }
 
-        public override string Describe(TowerStats stats)
-            => Duration > 0f ? $"Stun: {Duration:0.#}s" : null;
+        public override TowerStatRowData? DescribeRow(TowerStats stats)
+            => Duration > 0f ? TowerStatRowData.Note(TowerStatsFormatter.EffectName(EffectKind.Stun), $"{Duration.ToString(TowerStatsFormatter.k_DefaultFormat)}s") : (TowerStatRowData?)null;
     }
 }

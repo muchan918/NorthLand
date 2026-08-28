@@ -102,13 +102,16 @@ namespace NorthLand.Combat
             }
         }
 
-        // 정보 패널: 반경 + 효과 요약. 효과 수치는 **실효값**(원장 합성 후)이라 표기와 실제가 일치한다.
-        public override string DescribeStats()
-            => aura == null
-                ? null
-                : TowerStatsFormatter.Join(
-                    TowerStatsFormatter.BuildRangeLine(Radius),
-                    AttackAction.DescribeEffects(effects, Owner));
+        // 반경(원장 축 AuraRadius — 버프 타일이 바꾼다) + 효과 요약(#536).
+        // 효과 수치는 **실효값**(원장 합성 후)이라 표기와 실제가 일치한다.
+        public override void DescribeStatRows(List<TowerStatRowData> into)
+        {
+            if (aura == null) return;
+
+            into.Add(TowerStatRowData.Stat(TowerStatsFormatter.k_RangeKey, aura.Radius, Radius));
+
+            AttackAction.DescribeEffectRows(effects, Owner, into);
+        }
 
 #if UNITY_EDITOR
         public override void DrawGizmos()
