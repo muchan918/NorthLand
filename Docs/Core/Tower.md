@@ -619,7 +619,7 @@ ApplyOrRefresh / ApplySlow → StatusEffectHandler
 ⚠ **감속 중첩은 곱산인데 타워 버프는 합산이다**(WL-127 비대칭, 미확정).
 
 **스턴에는 가동률 상한이 있다**([StatusEffectHandler.cs:53-84](../../Assets/Scripts/CombatSystem/StatusEffect/StatusEffectHandler.cs)).
-스턴 축은 `minMoveSpeed` 하한 클램프를 우회해 완전 정지를 만들므로, 클램프가 막던 소프트락을 핸들러가
+스턴 축은 감속 50% 상대 하한과 `minMoveSpeed` 절대 하한을 우회해 완전 정지를 만들므로, 하한이 막던 소프트락을 핸들러가
 대신 막는다 — ① **에피소드 시작 기준 천장** ② 종료 후 면역 창. 판정은 **소스가 아니라
 대상 기준**이다(소스 기준이면 서로 다른 스턴원 2개가 번갈아 걸어 영구 정지가 만들어진다).
 현재 `StunStatus.SharedEffectId`가 static이라 **모든 스턴 타워가 단일 소스를 공유**한다.

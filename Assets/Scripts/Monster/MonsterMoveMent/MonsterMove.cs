@@ -9,6 +9,7 @@ public class MonsterMove : MonoBehaviour, IRouteMovementAgent
 
     [SerializeField] private float arriveDistance = 0.05f;
 
+    [SerializeField] private float turnSpeed = 720f;
     private bool canMove = true;
 
     private readonly List<Vector3> route = new List<Vector3>();
@@ -26,9 +27,6 @@ public class MonsterMove : MonoBehaviour, IRouteMovementAgent
 
     [SerializeField] private float fallbackMoveSpeed = 3f;
 
-    // 이동속도 다축 합성의 하한(#233). 패턴 배수와 디버프 배수가 곱해져 0에 수렴해도
-    // 이 값 아래로는 내려가지 않는다. 완전 정지는 속도 축이 아니라 IsStopped로만 표현한다 —
-    // 감속으로 몬스터를 영구 정지시켜 웨이브를 소프트락하는 경로를 막기 위함이다.
     [SerializeField] private float minMoveSpeed = 0.15f;
 
     public event Action RouteCompleted;
@@ -57,8 +55,7 @@ public class MonsterMove : MonoBehaviour, IRouteMovementAgent
 
 
     // 기준 이동속도를 주입한다(배수 축은 건드리지 않는다).
-    // 0 이하는 데이터 오류로 보고 폴백을 쓴다 — 배수가 0에 수렴하는 경우는 minMoveSpeed가 받아내므로
-    // 이 폴백 경로에 걸리지 않는다(#233 이전에는 크롤 배수가 여기 걸려 오히려 빨라졌다).
+    // 0 이하는 데이터 오류로 보고 폴백을 쓴다.
   
 
 
@@ -152,22 +149,39 @@ public class MonsterMove : MonoBehaviour, IRouteMovementAgent
             return;
         }
 
-        Vector3 targetPosition = route[currentRouteIndex];
+        Vector3 startPosition = transform.position;
+        float remainingDistance = EffectiveMoveSpeed * Time.deltaTime;
 
-        Vector3 direction = targetPosition - transform.position;
-        direction.y = 0f;
-
-        if (direction.sqrMagnitude > 0.001f)
+        while (remainingDistance > 0f && currentRouteIndex < route.Count)
         {
-            transform.rotation = Quaternion.LookRotation(direction);
+            Vector3 targetPosition = route[currentRouteIndex];
+            Vector3 toTarget = targetPosition - transform.position;
+            float distance = toTarget.magnitude;
+
+            if (distance <= arriveDistance)
+            {
+                currentRouteIndex++;
+                continue;
+            }
+
+            float step = Mathf.Min(remainingDistance, distance);
+            transform.position += toTarget / distance * step;
+            remainingDistance -= step;
+
+            if (step >= distance)
+                currentRouteIndex++;
+            else
+                break;
         }
 
-        transform.position = Vector3.MoveTowards(transform.position,targetPosition,EffectiveMoveSpeed * Time.deltaTime);
+        Vector3 moveDirection = transform.position - startPosition;
+        moveDirection.y = 0f;
 
-        if (Vector3.Distance(transform.position, targetPosition) <= arriveDistance)
+        if (moveDirection.sqrMagnitude > 0.001f)
         {
-            currentRouteIndex++;
-            SkipReachedPoints();
+            Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
+
+            transform.rotation = Quaternion.RotateTowards(transform.rotation,targetRotation,turnSpeed * Time.deltaTime);
         }
     }
 

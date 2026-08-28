@@ -22,8 +22,6 @@ public class FlyingMonsterMove : MonoBehaviour, IRouteMovementAgent
     [SerializeField]
     private float fallbackMoveSpeed = 3f;
 
-    // 완전 정지는 속도를 0으로 만드는 대신 IsStopped로 처리한다.
-    // 감속 효과로 몬스터가 영구 정지해 웨이브가 막히는 것을 방지한다.
     [SerializeField]
     private float minMoveSpeed = 0.15f;
 

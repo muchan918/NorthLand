@@ -200,8 +200,8 @@
   `void RemoveSpeedDebuff(int sourceId)`. namespace `NorthLand.Combat`.
   구현체는 `MonsterMove`와 `FlyingMonsterMove`이며, 구체 타입이 아니라 이 인터페이스로 소비한다.
   최종 속도는 순수 C# `MoveSpeedComposer`가 한 곳에서
-  `기준 속도(SetMoveSpeed) × 패턴 배수 × Π 디버프 배수`로 계산하고
-  `minMoveSpeed`(기본 0.15) 하한을 적용한다.
+  `max(minMoveSpeed, 기준 속도 × 패턴 배수 × max(0.5, Π 디버프 배수))`로 계산한다.
+  감속 디버프에는 50% 상대 하한, 최종 결과에는 `minMoveSpeed`(기본 0.15) 절대 하한을 적용한다.
   이동속도 감소 타워와 보스 BT가 소비하는 공통 창구이며, 패턴 축과 디버프 축이 분리되어
   서로의 값을 덮어쓰지 않는다. 디버프는 소스별 곱산 중첩이고 같은 `sourceId`는 갱신만 한다.
   **완전 정지는 속도 배수가 아니라 `IsStopped`로 표현한다** — 하한 클램프가 있어

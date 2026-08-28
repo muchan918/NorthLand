@@ -14,6 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TowerRecipe
   Materials:
   - Tower: {fileID: 11400000, guid: 7ecd80d44165e644591aafb428cf5efe, type: 2}
-    Count: 2
+    Count: 1
+  - Tower: {fileID: 11400000, guid: 76dc473896fb1b642ba2c5e5eb22104f, type: 2}
+    Count: 1
   Result: {fileID: 11400000, guid: a644f4da55393c0449049fe2ae101343, type: 2}
   ExtraCost: []
+  InheritEffects: 0

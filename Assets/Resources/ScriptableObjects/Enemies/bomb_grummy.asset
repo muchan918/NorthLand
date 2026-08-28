@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: bomb_grummy
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAsset
   EnemyID: bomb_grummy
-  icon: {fileID: 0}
+  icon: {fileID: -458778118, guid: 001422501f6ef714d9c9d3f77b2ecde6, type: 3}
   EnemyType: 0
   MovementMode: 0
   Melee:
