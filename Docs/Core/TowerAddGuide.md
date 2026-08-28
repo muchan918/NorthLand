@@ -203,8 +203,9 @@ archer_tower,towers.archer.name,1,1,towers.archer.role,towers.archer.desc
 > (어기면 피해는 그대로인데 CC만 조용히 절반으로 떨어진다). 유도는
 > [CombatBalance.md §2](CombatBalance.md).
 >
-> **4. 합성 결과 타워라면 규약 ②를 확인한다**(②) — 재료 타워 킬 수의 합보다 강해야 한다. 아니면
-> 합성이 순손실이라 아무도 안 만든다. 상한은 재료 합 × 1.3.
+> **4. 합성 결과 타워라면 규약 ②를 확인한다**(②) — 결과 타워의 1회 통과 킬 수가
+> **최강 재료 타워 × 1.3보다 강해야 한다.** 현재 적용 수치는
+> [BalanceV1.md](../Balance/BalanceV1.md), 계산식은 [CombatBalance.md §6](CombatBalance.md)를 따른다.
 > ⚠ **여기가 가장 조용히 깨진다** — #326 이전에 2차 `Sniper`가 3차 `killstack`(재료가 스나이퍼)보다
 > 강했는데 아무 신호도 없었다. (`killstack`은 #441에서 직접배치 1차로 내려갔다 — 이 예시는 당시 족보 기준이다.)
 
