@@ -116,15 +116,15 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 4384618839711744
-    m_Localized: Attack Damage
+    m_Localized: Damage
     m_Metadata:
       m_Items: []
   - m_Id: 4384618869071872
-    m_Localized: Attack Range
+    m_Localized: Range
     m_Metadata:
       m_Items: []
   - m_Id: 4384618869071873
-    m_Localized: Attack Speed
+    m_Localized: Speed
     m_Metadata:
       m_Items: []
   - m_Id: 4747409699778560
@@ -438,6 +438,66 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 17503031068798976
     m_Localized: Unable to start the game.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732080332800
+    m_Localized: DoT
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732113887232
+    m_Localized: DPS
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732113887233
+    m_Localized: Burst
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732113887234
+    m_Localized: Zone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732113887236
+    m_Localized: Lock
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732113887237
+    m_Localized: Aura
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732113887238
+    m_Localized: Inherit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732113887239
+    m_Localized: None
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732113887240
+    m_Localized: Burn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732113887241
+    m_Localized: Poison
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732113887242
+    m_Localized: Slow
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732113887243
+    m_Localized: Stun
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992906534019072
+    m_Localized: Move
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992906534019073
+    m_Localized: Armor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18003414511247360
+    m_Localized: Stack
     m_Metadata:
       m_Items: []
   references:
