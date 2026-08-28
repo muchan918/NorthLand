@@ -132,10 +132,11 @@ HP 1500으로 가장 강한데 콜라이더 반지름이 **2.5**로 `Red_Grummy`
 ## 4. 타워 쪽은 무엇을 하는가
 
 몬스터 수치가 **현행 유지**라는 전제로 타워 20종의 **발당 피해**를 조정한다.
-전체 표는 [CombatBalance.md §6.2](CombatBalance.md)에 있고, 요지만 적으면:
+현재 적용값은 [BalanceV1.md](../Balance/BalanceV1.md)가 정본이고, 계산 이력은
+[CombatBalance.md §6.2](CombatBalance.md)에 있다. 요지만 적으면:
 
 - 공격 간격 · 사거리 · 스플래시는 **손대지 않는다** (전부 규약을 만족한다)
-- 자원 비용은 별도 축이다 — [EconomyBalance.md](EconomyBalance.md)가 정본이고 사인오프 대기다
+- 자원 비용을 포함한 현재 밸런스 값은 [BalanceV1.md](../Balance/BalanceV1.md)가 정본이다
 - 크게 바뀌는 것은 넷: `missile`·`twin_missile`(하향 — #336이 이 문서 이후에 저작돼 기준을 안 탔고,
   3차가 4차보다 강했다) · `single_inferno`(상향 — 램프가 통과 한 번에 완주하지 못한다) ·
   `flame_field`(하향 — DoT 꼬리가 체류에 비례하지 않는다)
