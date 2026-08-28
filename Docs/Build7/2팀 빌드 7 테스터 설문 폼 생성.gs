@@ -30,7 +30,7 @@ var CONFIG = {
     '· zip 압축을 풀고 exe 실행 → 타이틀에서 세이브 슬롯을 하나 고른 뒤 "게임 시작"',
     '· 처음 시작하면 튜토리얼이 진행됩니다',
     '· 카메라: WASD 또는 우클릭 드래그로 이동, 휠로 줌 / ESC로 설정(언어 · 해상도 · 볼륨)',
-    '· 한 판은 15웨이브입니다. 끝까지 못 가도 괜찮습니다.',
+    '· 한 판은 20웨이브입니다. 끝까지 못 가도 괜찮습니다.',
     '',
     '설문은 5~10분 정도 걸립니다. "자유 의견" 칸은 비워도 됩니다.'
   ].join('\n'),
@@ -131,7 +131,7 @@ function createForm() {
     true,
     '그 전략을 고른 이유, 어디서 · 무엇 때문에 막혔는지 적어주세요.');
 
-  text(form, '7-1. 최대 몇 웨이브까지 갔나요? (숫자로 적어주세요 · 한 판은 15웨이브입니다)', true);
+  text(form, '7-1. 최대 몇 웨이브까지 갔나요? (숫자로 적어주세요 · 한 판은 20웨이브입니다)', true, true);
 
   choice(form,
     '8. 타워 합성의 장점이 느껴졌나요?',
@@ -271,17 +271,25 @@ function section(form, title, description) {
 }
 
 /** 단답 문항을 추가한다. */
-function text(form, title, required) {
-  form.addTextItem().setTitle(title).setRequired(!!required);
+function text(form, title, required, numeric) {
+  var item = form.addTextItem().setTitle(title).setRequired(!!required);
+  if (numeric) {
+    item.setValidation(
+      FormApp.createTextValidation()
+        .requireNumber()
+        .build()
+    );
+  }
 }
 
 /** 자유 의견(장문) 칸을 단독으로 추가한다. */
-function opinion(form, helpText) {
+function opinion(form, questionTitle, helpText) {
   if (!CONFIG.includeOpinionFields) {
     return;
   }
   var item = form.addParagraphTextItem();
-  item.setTitle('↳ 자유 의견 (선택)');
+  var questionNumber = questionTitle.split('.')[0];
+  item.setTitle('↳ ' + questionNumber + '. 자유 의견 (선택)');
   if (helpText) {
     item.setHelpText(helpText);
   }
@@ -305,7 +313,7 @@ function choice(form, title, choices, required, opinionHelpText, withOpinion) {
 
   var attach = (withOpinion === undefined) ? true : withOpinion;
   if (attach) {
-    opinion(form, opinionHelpText);
+    opinion(form, title, opinionHelpText);
   }
 }
 
@@ -326,6 +334,6 @@ function checkbox(form, title, choices, required, opinionHelpText, withOpinion) 
 
   var attach = (withOpinion === undefined) ? true : withOpinion;
   if (attach) {
-    opinion(form, opinionHelpText);
+    opinion(form, title, opinionHelpText);
   }
 }
