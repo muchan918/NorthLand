@@ -143,21 +143,19 @@ namespace NorthLand.Combat
             buffed.Clear();
         }
 
-        // 정보 패널에 이 오라가 기여할 줄. 반경 + 부여하는 스탯 변화.
-        public override string DescribeStats()
+        // 반경(원장 축 AuraRadius — 버프 타일이 바꾼다) + 이 오라가 남에게 거는 스탯 변화(#536).
+        public override void DescribeStatRows(List<TowerStatRowData> into)
         {
-            if (aura == null) return null;
+            if (aura == null) return;
 
-            string text = TowerStatsFormatter.BuildRangeLine(Radius);
-            if (aura.Modifiers == null) return text;
+            into.Add(TowerStatRowData.Stat(TowerStatsFormatter.k_AuraRadiusKey, aura.Radius, Radius));
+
+            if (aura.Modifiers == null) return;
 
             for (int i = 0; i < aura.Modifiers.Count; i++)
             {
-                string line = TowerStatsFormatter.BuildModifierLine(aura.Modifiers[i]);
-                if (!string.IsNullOrEmpty(line)) text += $"\n{line}";
+                AttackAction.AddIf(into, TowerStatsFormatter.ModifierRow(aura.Modifiers[i]));
             }
-
-            return text;
         }
 
 #if UNITY_EDITOR

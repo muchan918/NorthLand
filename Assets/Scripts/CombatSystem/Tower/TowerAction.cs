@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace NorthLand.Combat
@@ -85,13 +86,23 @@ namespace NorthLand.Combat
         ///
         /// 호스트가 `AttackRange`로 대신 그릴 수 없는 이유: 그 값은 공격 액션에서만 나오므로
         /// 오라 전용 타워에서 0이 되어 원이 사라진다(#192 회귀). 표시 반경은 액션마다 근거가
-        /// 다르므로(공격=사거리, 오라=오라 반경) `DescribeStats`와 같은 "액션이 자기 표시를 안다" 규약을 따른다.
+        /// 다르므로(공격=사거리, 오라=오라 반경) `DescribeStatRows`와 같은 "액션이 자기 표시를 안다" 규약을 따른다.
         public abstract float DisplayRange { get; }
 
-        /// 정보 패널에 이 액션이 기여할 설명 줄. 없으면 null.
-        /// 호스트는 조각을 모아 붙이기만 하고 "무엇을 보여줄지"는 각 액션이 안다 —
-        /// 예전에는 Tower와 AuraTower가 각자 자기 버전의 스탯 텍스트를 조립했다(WL-079).
-        public abstract string DescribeStats();
+        /// 정보 패널에 이 액션이 기여할 행(#536). 호스트는 조각을 모으기만 하고 "무엇을 보여줄지"는
+        /// 각 액션이 안다 — 예전에는 Tower와 AuraTower가 각자 자기 버전의 스탯 텍스트를 조립했다(WL-079).
+        ///
+        /// <para><b>정보 패널에 뜨는 줄은 예외 없이 이 경로 하나를 지난다.</b> 예전에는 문자열을 돌려주는
+        /// <c>DescribeStats()</c>가 따로 있었는데, 원장 4축만 행으로 옮기고 나머지를 문자열로 남겼더니
+        /// 같은 패널에 두 표기 경로가 생겼다 — WL-079가 지적한 구조가 그대로 재발하는 모양이라
+        /// 문자열 경로를 통째로 걷어냈다(#536).</para>
+        ///
+        /// <para>abstract인 이유: 낼 것이 없는 액션도 "없다"를 명시적으로 선언하게 한다. 새 액션을 만들 때
+        /// 이 훅을 잊으면 패널에서 조용히 사라지는데, 컴파일러가 그것을 먼저 잡아준다.</para>
+        ///
+        /// ⚠ 배치 **전** 툴팁은 이 경로를 쓰지 못한다 — 타워 인스턴스(=원장)가 없어 기본값과 실제값을
+        /// 가를 수 없기 때문이다. 그쪽은 SO만 보고 문자열을 만든다(<c>TowerInfoFormatter.BuildStats</c>).
+        public abstract void DescribeStatRows(List<TowerStatRowData> into);
 
 #if UNITY_EDITOR
         /// 씬 뷰 기즈모. 액션이 MonoBehaviour가 아니게 되면서 OnDrawGizmosSelected를 잃었으므로

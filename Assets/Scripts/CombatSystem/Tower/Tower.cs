@@ -5,7 +5,7 @@ using CombatSpace;
 
 namespace NorthLand.Combat
 {
-    public class Tower : MonoBehaviour, IAttacker, ISelectable, ITargetingSelector
+    public class Tower : MonoBehaviour, IAttacker, ISelectable, ITargetingSelector, ITowerStatRowSource
     {
         [SerializeField] TowerAsset data;
 
@@ -530,7 +530,7 @@ namespace NorthLand.Combat
             // 조준 전환 행은 **`AcquireTarget`이 실제로 거동을 좌우하는 타워에만** 넘긴다.
             // 오라 전용 타워에 조작을 띄우면 눌러도 아무 일이 없고, 빔 타워는 자체 탐색을 쓴다(WL-178).
             // 안 되는 조작을 보여주는 쪽이 아예 없는 것보다 나쁘다.
-            TowerInfoUI.Instance.ShowInfo(data.Data, BuildStatsText(), Has<AttackAction>() ? this : null);
+            TowerInfoUI.Instance.ShowInfo(data.Data, Has<AttackAction>() ? this : null, this);
 
             // 패널이 켜지는 쪽이 아니라 클릭한 이 자리에서 낸다(BuildingInfo.ShowOnly와 같은 규약).
             // 위 두 개의 조기 반환(에셋·데이터 누락)을 통과한 뒤이므로 패널이 실제로 열린 경우만 울린다.
@@ -580,22 +580,22 @@ namespace NorthLand.Combat
             }
         }
 
-        // 정보 패널용 스탯 텍스트. 각 액션이 자기 설명을 만들고 호스트는 붙이기만 한다 —
+        // ── ITowerStatRowSource 계약 (#536) ───────────────────────────────
+        //
+        // 정보 패널 스탯 행. 각 액션이 자기 표시를 만들고 호스트는 모으기만 한다 —
         // 타워가 "무엇을 하는 물건인지" 알아야 할 이유가 표시 경로에도 없다.
-        // 기여할 액션이 하나도 없으면 null(패널은 통계 구간 없이 설명만 표시).
-        string BuildStatsText()
-        {
-            string result = null;
+        // 기여할 액션이 하나도 없으면 아무것도 담지 않는다(패널은 스탯 구간 없이 설명만 표시).
 
+        /// 패널이 "다시 읽어야 하는가"를 판단하는 값. 원장 하나만 보면 되는 이유는
+        /// 램프 스택도 타일 버프도 스킬 버프도 전부 원장을 거쳐 값이 되기 때문이다.
+        public int StatsVersion => stats.Version;
+
+        public void BuildStatRows(List<TowerStatRowData> into)
+        {
             for (int i = 0; i < actions.Count; i++)
             {
-                string piece = actions[i]?.DescribeStats();
-                if (string.IsNullOrEmpty(piece)) continue;
-
-                result = result == null ? piece : $"{result}\n{piece}";
+                actions[i]?.DescribeStatRows(into);
             }
-
-            return result;
         }
 
         // ── IAttacker 계약 ────────────────────────────────────────────────
