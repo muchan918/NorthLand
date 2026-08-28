@@ -282,7 +282,7 @@ namespace NorthLand.Combat
         {
             if (range <= 0f) return null;
 
-            acquireBuffer ??= new Collider[16];
+            acquireBuffer ??= new Collider[64];
 
             Vector3 origin = transform.position;
             int count = Physics.OverlapSphereNonAlloc(origin, range, acquireBuffer, enemyLayerMask);
@@ -295,7 +295,10 @@ namespace NorthLand.Combat
             //
             // 대상 고정(#387)이 들어오면서 이 누락은 **더 오래 간다** — 예전에는 다음 프레임 재조회가
             // 사실상 다시 뽑았지만, 이제 잘못 고른 대상을 죽을 때까지 물고 있는다.
-            // 크기 산정 근거 합의는 WL-170 본안이고, 여기서는 조용한 누락을 드러내는 것까지만 한다.
+            // 그래서 버퍼를 16 → 64로 올렸다(밀집 47마리 + 사거리 버프 타일이 사거리를 2배 가까이
+            // 늘려 구체에 더 들어오는 몫). 경고는 그대로 남긴다 — 64도 상한 추정이라 넘는 구성이
+            // 생기면 다시 드러나야 한다. 크기 산정 근거 합의와 포화 경고의 공통 헬퍼화(다른 소비처
+            // 9곳은 8~64로 제각각이고 대부분 감지가 없다)는 여전히 WL-170 본안이다.
             if (count == acquireBuffer.Length)
                 Debug.LogWarning($"[Tower] {name}: 대상 탐색 버퍼 포화({count}) — 초과분이 누락되어 " +
                                  $"정책이 고른 것과 다른 적을 겨눌 수 있습니다. 사거리={range:0.#}", this);

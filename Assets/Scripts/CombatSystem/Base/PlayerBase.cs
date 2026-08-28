@@ -17,6 +17,7 @@ namespace NorthLand.Combat
         // (TowerInfoUI/DayNightManager와 동일한 씬 싱글톤 계보)
         public static PlayerBase Instance { get; private set; }
         public static event Action<PlayerBase> OnBaseSpawned;
+        public static event Action<DamageInfo, float> Damaged;
 
   
         void Awake()
@@ -54,7 +55,9 @@ namespace NorthLand.Combat
         {
             if (IsDead || DebugInvincible) return;   // 이미 파괴됨 또는 무적 — 추가 피해·중복 판정 차단
 
+            float appliedDamage = Mathf.Clamp(info.Amount, 0f, currentHp);
             currentHp -= info.Amount;
+            Damaged?.Invoke(info, appliedDamage);
             // Debug.Log($"{name} took {info.Amount} dmg, hp={currentHp}");   // 디버그용 — 전투 중 로그 스팸 방지 위해 비활성
             OnHpChanged?.Invoke(currentHp, maxHp);
 

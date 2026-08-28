@@ -117,12 +117,15 @@ Assets/Scripts/CombatSystem/MoveSpeedComposer.cs
 
 ```text
 최종 이동속도
-= 기준 이동속도
-× 패턴 이동속도 배수
-× 모든 디버프 이동속도 배수
+= max(
+    minMoveSpeed,
+    기준 이동속도 × 패턴 이동속도 배수
+    × max(0.5, 모든 디버프 이동속도 배수)
+  )
 ```
 
-최종 계산 결과에는 `minMoveSpeed` 하한값이 적용된다.
+감속 디버프는 감속 전 속도의 50% 아래로 내리지 못하고, 최종 결과에는
+`minMoveSpeed` 절대 하한도 적용된다. 따라서 패턴 배수가 0이어도 완전히 정지하지 않는다.
 
 기본 설정:
 
