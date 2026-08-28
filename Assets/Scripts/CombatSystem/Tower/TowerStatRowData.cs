@@ -37,22 +37,31 @@ namespace NorthLand.Combat
         /// </summary>
         public static TowerStatRowData Stat(string labelKey, float baseValue, float finalValue,
                                             string format = TowerStatsFormatter.k_DefaultFormat)
+            => StatLabeled(TowerStatsFormatter.StatLabel(labelKey), baseValue, finalValue, format);
+
+        /// <summary>
+        /// 라벨을 **이미 해석해서** 넘기는 <see cref="Stat"/>. 라벨이 키 하나로 떨어지지 않는 행
+        /// (예: 빔의 `DPS ×3` — 동시 타격 대상 수가 라벨에 붙는다)이 쓴다.
+        /// <para>대상 수를 값 칸이 아니라 라벨에 붙이는 이유: 값 칸은 <b>서식 후 문자열 비교</b>로
+        /// 화살표를 가르므로, 거기에 배수 접미사가 남으면 기본값과 실제값이 영원히 달라 보인다.</para>
+        /// </summary>
+        public static TowerStatRowData StatLabeled(string label, float baseValue, float finalValue,
+                                                   string format = TowerStatsFormatter.k_DefaultFormat)
         {
             string baseText = baseValue.ToString(format);
             string finalText = finalValue.ToString(format);
 
-            return new TowerStatRowData(
-                TowerStatsFormatter.StatLabel(labelKey),
-                baseText,
-                baseText == finalText ? null : finalText);
+            return new TowerStatRowData(label, baseText, baseText == finalText ? null : finalText);
         }
 
         /// <summary>
         /// 값이 하나뿐인 줄(연발·감속·지속피해·성장 등). 원장 축이 아니라 "이 타워가 무엇을 하는가"의
         /// 서술이라 기본값/실제값 구분이 없다 — 넘어오는 값은 이미 실효값이다.
-        /// <para><paramref name="label"/>은 <b>해석된 문자열</b>이다. 이 줄들의 라벨(DoT·Burst·Slow…)은
-        /// 로컬라이즈 키가 없고 하드코딩 표기를 쓴다 — <see cref="TowerStatsFormatter.EffectName"/> 주석의
-        /// 판단을 그대로 따른다(없는 키를 조회하면 콘솔에 에러가 난다).</para>
+        /// <para><paramref name="label"/>은 <b>이미 해석된 문자열</b>이다 — 호출부가
+        /// <see cref="TowerStatsFormatter.StatLabel"/>이나 <see cref="TowerStatsFormatter.EffectName"/>으로
+        /// 조회해서 넘긴다. 여기서 키를 받지 않는 이유는 `DPS ×3`처럼 라벨이 키 하나로 떨어지지 않는
+        /// 행이 있기 때문이다. <b>새 행을 추가할 때 하드코딩 문자열을 넣지 말 것</b> — 이 줄들도 전부
+        /// 로컬라이즈 키를 갖는다(#536).</para>
         /// </summary>
         public static TowerStatRowData Note(string label, string value)
             => new TowerStatRowData(label, value, null);

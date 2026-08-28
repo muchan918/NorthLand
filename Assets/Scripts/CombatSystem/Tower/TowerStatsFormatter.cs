@@ -38,20 +38,6 @@ namespace NorthLand.Combat
         // `LocalizationHelper.Get`은 없는 키에 대해 빈 문자열이 아니라 **에러**를 내므로, 새 enum 값을
         // 추가하고 키 등록을 잊으면 콘솔이 매 조회마다 더럽혀진다. 영어 이름이 잠깐 보이는 쪽이 낫다.
 
-        public static string StatName(TowerStat stat)
-        {
-            string key = stat switch
-            {
-                TowerStat.AttackDamage => k_DamageKey,
-                TowerStat.AttackRange => k_RangeKey,
-                TowerStat.AttackSpeed => k_SpeedKey,
-                TowerStat.AuraRadius => k_AuraRadiusKey,
-                _ => null,
-            };
-
-            return key == null ? stat.ToString() : Label(key);
-        }
-
         /// 버프 오라가 남에게 거는 축(`ModifiableStat`)은 원장 축(`TowerStat`)과 **다른 열거형**이다 —
         /// 대상이 타워가 아니라 적일 수도 있어(MoveSpeed·Armor) 축 자체가 더 넓다.
         public static string StatName(ModifiableStat stat)
@@ -86,9 +72,23 @@ namespace NorthLand.Combat
                    $"{Label(k_SpeedKey)}: {rate.ToString(k_RateFormat)}";
         }
 
-        /// 오라 타워의 반경 한 줄(사거리 라벨을 공유한다 — 플레이어에게는 같은 "닿는 거리" 개념).
+        /// 사거리 한 줄. 공격 개념이 있는 타워(빔 포함)가 쓴다.
         public static string BuildRangeLine(float range)
             => $"{Label(k_RangeKey)}: {range.ToString(k_DefaultFormat)}";
+
+        /// 오라 반경 한 줄. **사거리와 라벨을 나눈다**(#536 리뷰).
+        ///
+        /// <para>예전에는 "플레이어에게는 같은 닿는 거리 개념"이라는 이유로 사거리 라벨을 공유했다.
+        /// 표기가 줄 하나였을 때는 성립했지만, 행 기반으로 바뀌면서 <b>한 타워가 두 축을 동시에 낼 수
+        /// 있게</b> 됐다 — `Tower`가 설계 목표로 적어 둔 공격+오라 하이브리드가 나오면 「사거리」 라벨이
+        /// 붙은 행이 두 개가 되어 어느 쪽이 무엇인지 구분할 수 없다. 현재 하이브리드 프리팹은 0개라
+        /// 아직 재현되지 않지만, 라벨을 나누는 비용이 지금이 가장 싸다.</para>
+        ///
+        /// ⚠ **정보 패널과 배치 전 툴팁이 같은 라벨을 써야 한다** — 그래서 툴팁 쪽
+        /// (`TowerInfoFormatter.BuildStats`)도 오라 전용 타워에서는 이 줄을 쓴다. 한쪽만 바꾸면
+        /// 배치 전엔 「사거리」, 배치 후엔 「오라 반경」으로 이름이 갈린다.
+        public static string BuildAuraRadiusLine(float radius)
+            => $"{Label(k_AuraRadiusKey)}: {radius.ToString(k_DefaultFormat)}";
 
         /// 해금 웨이브 한 줄(#504) — 아직 잠긴 타워의 툴팁에만 붙는다.
         /// **해금 여부는 여기서 판단하지 않는다**(<see cref="TowerAsset.IsUnlocked"/>가 정본) —
@@ -99,15 +99,30 @@ namespace NorthLand.Combat
         /// 지속 피해 행. 피해가 없으면 null.
         /// **SO 원본이 아니라 실효값(원장 합성 후)을 넘길 것** — 패널 표기와 실제 효과가 어긋나면
         /// WL-079/WL-130이 지적한 "표시부와 적용부가 규칙을 각자 쓰는" 문제가 재발한다.
-        public static TowerStatRowData? DotRow(float damagePerTick, float tickInterval)
+        /// <param name="label">
+        /// 효과 이름(화상·중독). <b>`DoT`로 고정하지 않는다</b> — 합성 후보 툴팁은 「계승: 중독」이라
+        /// 부르는데 정보 패널이 「지속 피해」로 부르면 플레이어가 같은 것으로 인식하지 못한다
+        /// (<see cref="EffectName"/> 주석의 원칙). 화상과 중독을 함께 가진 타워에서 라벨이 같은 행이
+        /// 둘 뜨는 것도 막는다.
+        /// </param>
+        public static TowerStatRowData? DotRow(string label, float damagePerTick, float tickInterval)
             => damagePerTick > 0f && tickInterval > 0f
-                ? TowerStatRowData.Note(Label(k_DotKey), $"{damagePerTick.ToString(k_DefaultFormat)} / {tickInterval.ToString(k_DefaultFormat)}s")
+                ? TowerStatRowData.Note(label, $"{damagePerTick.ToString(k_DefaultFormat)} / {tickInterval.ToString(k_DefaultFormat)}s")
                 : (TowerStatRowData?)null;
 
-        /// 다중 타겟 지속딜(빔) 행 — 대상 1기당 DPS와 동시 타격 대상 수(#298).
-        public static TowerStatRowData? BeamRow(float dps, int maxTargets)
+        /// 다중 타겟 지속딜(빔) 행 — 대상 1기당 DPS(#298).
+        ///
+        /// <para><b>`Note`가 아니라 값 쌍이다.</b> 빔의 DPS는 공격력·공격속도 원장을 모두 통과하므로
+        /// (<c>DamagePerTick</c>·<c>TickInterval</c>) 버프 타일 위에서 실제로 오른다. `Note`로 내면
+        /// 값만 바뀌고 얼마나 올랐는지가 안 보여서, 빔 계열에서만 「기본값 → 적용값」 규칙이 깨진다.</para>
+        ///
+        /// <para>동시 타격 대상 수는 <b>라벨</b>에 붙인다(`DPS ×3`). 값 칸에 두면 서식 후 문자열 비교가
+        /// 접미사까지 포함해 기본값과 실제값이 영원히 달라 보인다.</para>
+        public static TowerStatRowData? BeamDpsRow(float baseDps, float dps, int maxTargets)
             => dps > 0f && maxTargets > 0
-                ? TowerStatRowData.Note(Label(k_DpsKey), $"{dps.ToString(k_DefaultFormat)} × {maxTargets}")
+                ? TowerStatRowData.StatLabeled(
+                    maxTargets > 1 ? $"{Label(k_DpsKey)} ×{maxTargets}" : Label(k_DpsKey),
+                    baseDps, dps)
                 : (TowerStatRowData?)null;
 
         /// 성장(램프업) 스택 행 — 현재 스택과 상한만 낸다(#300, #536).

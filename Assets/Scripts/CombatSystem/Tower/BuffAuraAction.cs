@@ -148,7 +148,7 @@ namespace NorthLand.Combat
         {
             if (aura == null) return;
 
-            into.Add(TowerStatRowData.Stat(TowerStatsFormatter.k_RangeKey, aura.Radius, Radius));
+            into.Add(TowerStatRowData.Stat(TowerStatsFormatter.k_AuraRadiusKey, aura.Radius, Radius));
 
             if (aura.Modifiers == null) return;
 

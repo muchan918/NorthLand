@@ -94,7 +94,7 @@ namespace NorthLand.Combat
         }
 
         public override TowerStatRowData? DescribeRow(TowerStats stats)
-            => TowerStatsFormatter.DotRow(ScaledDamage(stats), ScaledTick(stats));
+            => TowerStatsFormatter.DotRow(TowerStatsFormatter.EffectName(Kind), ScaledDamage(stats), ScaledTick(stats));
 
         float ScaledDamage(TowerStats stats)
             => stats == null ? DamagePerTick : stats.Evaluate(TowerStat.AttackDamage, DamagePerTick);
