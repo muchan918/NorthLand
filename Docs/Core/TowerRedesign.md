@@ -215,7 +215,7 @@
     public abstract void Tick(float deltaTime);
     public abstract void Dispose();
     public abstract float DisplayRange { get; }
-    public abstract string DescribeStats();
+    public abstract void DescribeStatRows(List<TowerStatRowData> into);
 }
 
 [Serializable] sealed class AttackAction     : TowerAction { ... }
@@ -312,7 +312,7 @@ protected int SourceId => owner.GetInstanceID() ^ GetType().Name.GetHashCode();
 | 스탯 원장 `TowerStats` | [Tower.md](Tower.md) §5 전체 — 액션이 그대로 `owner.Stats.Evaluate`를 부른다 |
 | `Active` 레지스트리 + `ActiveChanged` | 등록 시점이 `Build`인 것도 그대로(WL-066) |
 | 페이즈 게이팅을 호스트가 한 곳에서 | `TowerActivePhase`도 그대로(WL-044) |
-| 표시 위임 — `DisplayRange` / `DescribeStats` | 액션이 자기 표시를 안다(WL-079) |
+| 표시 위임 — `DisplayRange` / `DescribeStatRows` | 액션이 자기 표시를 안다(WL-079) |
 | 능력 질의 `Has<T>()` / `Get<T>()` | 제약만 `where T : TowerAction`으로. **소비처 로직은 동일** |
 
 특히 `Has<T>()`를 인터페이스 검사로 바꾸지 않는 것이 중요하다.
@@ -788,7 +788,7 @@ public class TowerBehaviour : MonoBehaviour, ITowerBehaviour {
 ```
 
 **이것은 [Tower.md](Tower.md) §3.2가 기록한 #164 이전 상태로의 회귀다.** `ITowerBehaviour`는 멤버가 6개
-(`ActivePhase`·`Initialize`·`Tick`·`Dispose`·`DisplayRange`·`DescribeStats`)라 모드를 내부에서 결정하면
+(`ActivePhase`·`Initialize`·`Tick`·`Dispose`·`DisplayRange`·`DescribeStatRows`)라 모드를 내부에서 결정하면
 **그 6개가 전부 switch가 된다** — 예전 `AuraTower`가 `MagicEffectType`으로 6곳에서 분기하던 것과 같은 수다.
 그때 나온 사고가 WL-044(페이즈 게이팅이 한쪽에만 있어 오라가 낮에도 동작) · WL-079(스탯 텍스트 3곳 복붙) ·
 WL-050/081(버프 원장 두 벌)이다.

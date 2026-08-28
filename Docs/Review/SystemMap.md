@@ -163,11 +163,30 @@
   `ResourceAsset.Icon`을 **참조만** 모은다(이중 authoring 없음). 미할당이면 null 반환 → 호출부가 이미지를 숨긴다
 - `BuildingInfoUI.Instance.ShowInfo(BuildingAsset)` / `HideInfo()` — 경영 공간 전용 정보 패널. `TowerInfoUI`와
   동일 구조의 별도 씬 싱글톤 (공간 분리 계약상 Combat의 `TowerInfoUI`와 공유하지 않음)
-- `TowerInfoUI.Instance.ShowInfo(TowerData, string statsText = null)` / `HideInfo()` — 전투 공간 타워 정보 패널.
+- `TowerInfoUI.Instance.ShowInfo(TowerData, ITargetingSelector = null, ITowerStatRowSource = null)` / `HideInfo()` — 전투 공간 타워 정보 패널.
   **`TowerData`를 통째로 받는 쪽이 정본**(이름·역할·설명을 각각 다른 TMP에 그리므로 키 하나로는 부족).
-  `statsText`는 `Tower.BuildStatsText()`가 조합한 평문(숫자라 로컬라이즈 대상 아님)이며, 비면 스탯 블록을 통째로 숨긴다.
+  **스탯 블록은 문자열이 아니라 행(`TowerStatRowData`) 목록이다(#536).** 행 하나가 `라벨 / 기본값 / → / 버프값`
+  네 칸이고, 뷰(`TowerStatRowView`)가 씬에 미리 깔아둔 `TowerStatRow` 인스턴스를 순서대로 채운다.
+  ⚠ **스탯 블록은 더 이상 선택 시점 스냅샷이 아니다(#536).** 패널이 `ITowerStatRowSource.StatsVersion`을
+  매 프레임 비교해 **바뀐 프레임에만** 행을 다시 만든다(pull). 램프 스택이 쌓이는 동안 공격력·공격속도가
+  따라 움직이고, 타일 버프·오라·스킬 버프·버프 만료도 같은 경로로 즉시 반영된다 — 전부 원장(`TowerStats`)을
+  거쳐 값이 되기 때문이다. 버전은 `TowerStats.Recompute` **한 곳**에서만 올라가므로(Apply·Remove·Prune·Clear가
+  전부 그것을 거친다) 새 변경 경로가 생겨도 자동으로 포함된다. 매 프레임 행을 재조립하지 않는 이유는
+  문자열 조립 비용이다. 파괴된 공급원은 인터페이스 참조라 `== null`로 안 걸리므로 `UnityEngine.Object`로
+  되짚어 검사한다(합성 재료로 사라진 타워처럼 `OnDeselected`가 오지 않는 경로의 마지막 방어선).
+  **조준 전환 행은 여전히 스냅샷**이다 — 그쪽은 원장이 아니라 정책 인덱스라 이 축을 타지 않는다.
+  표시할 행이 배선된 행보다 **적으면 남는 행을 숨기고, 많으면 넘치는 항목이 잘리며 1회 경고**한다(조용히 잘리지 않는다).
+  행이 하나도 없으면 스탯 블록을 통째로 숨긴다.
+  값은 두 종류다 — 원장 축(`TowerStatRowData.Stat`, 기본값≠실제값일 때만 화살표+버프칸)과
+  값이 하나뿐인 서술(`TowerStatRowData.Note` — 연발·감속·지속피해·성장 등).
+  ⚠ **정보 패널에 뜨는 줄은 예외 없이 `TowerAction.DescribeStatRows` 한 경로를 지난다.** 예전의 문자열 경로
+  (`TowerAction.DescribeStats` → `Tower.BuildStatsText` → `_statsText`)는 제거됐다 — 4축만 행으로 옮기고
+  나머지를 문자열로 남겼더니 같은 패널에 표기 경로가 둘이 되어 WL-079의 구조가 재발했기 때문이다.
+  배치 **전** 툴팁만 예외로 문자열을 쓴다(인스턴스=원장이 없어 기본값과 실제값을 가를 수 없다 —
+  `TowerInfoFormatter.BuildStats`).
   **"합성 후보" 블록은 뷰가 스스로 채운다**(`TowerData.TowerID` → `TowerMergeTargetIndex.RecipesUsing`) — 이 타워를 재료로 쓰는 상위 타워를 등급→이름 순으로 나열하고, 하나도 없으면 블록을 접는다. pull 규약의 예외지만 호출부(`Tower.OnSelected`)가 레시피 카탈로그를 알게 되는 것보다 낫다고 판단(`TowerMerge.md` §8.5). 표시 여부는 `_mergeContent.childCount`가 아니라 뷰가 추적하는 행 리스트로 판정한다 — `Destroy`가 프레임 끝에 반영돼 childCount는 방금 지운 행까지 센다.
-  `ShowInfo(string descriptionKey, string statsText = null)` 오버로드는 `TowerData`가 없는 테스트 헬퍼(`SelectableTest`) 전용
+  `ShowInfo(string descriptionKey)` 오버로드는 `TowerData`가 없는 테스트 헬퍼(`SelectableTest`) 전용 — 이 경로는
+  액션도 원장도 모르므로 스탯 행을 만들 수 없어 블록을 접는다.
 - `StorePanelUI.Instance.Show(BuildingAsset)` / `Hide()` — 교환 상점 패널(#211, 연금술사의 집). `BuildingInfoUI`와
   **같은 계보의 별도 씬 싱글톤**(정보 표시가 아니라 행마다 액션 버튼이 있는 목록이라 갱신 방식이 다르다 —
   행을 한 번만 만들고 `OnChanged`마다 `interactable`만 토글한다. 매번 재생성하면 클릭을 처리하는 도중 그 버튼이 파괴된다).
@@ -619,7 +638,7 @@
 - `Tower.Asset`(`TowerAsset`, 읽기 전용, `NorthLand.Combat`, #195 muchan) — 배치된 타워의 원본 SO 조회(합성 재료 TowerID 매칭용). 순수 읽기
 - `TowerAction`(`NorthLand.Combat`, #274) — 타워가 하는 일 한 조각. **MonoBehaviour가 아니라 프리팹에
   `[SerializeReference]`로 직렬화되는 순수 C# 클래스**다. `ActivePhase`(NightOnly/Always) /
-  `Initialize(Tower owner, TowerAsset asset)` / `Tick(dt)` / `Dispose()` / `DisplayRange` / `DescribeStats()`.
+  `Initialize(Tower owner, TowerAsset asset)` / `Tick(dt)` / `Dispose()` / `DisplayRange` / `DescribeStatRows(List<TowerStatRowData>)`.
   구현 3종: `AttackAction`(Single/Area/Chain — 차이는 `ProjectileImpact` 전략뿐) ·
   `BuffAuraAction`(이벤트 구동, Always) · `DebuffAuraAction`(Tick 폴링, NightOnly).
   **규약**: ⓐ 초기화는 `OnInitialize`만 ⓑ 스스로 `Update`를 돌지 않는다(호스트가 게이팅 후 `Tick`)
@@ -629,7 +648,7 @@
   **`DisplayRange`**: 선택 시 그릴 사거리 원의 반경(공격=교전 사거리 / 오라=오라 반경 / 없으면 0).
   호스트는 액션들이 보고한 값의 **최대치**로 원을 그린다. `AttackRange`로 대신 그리면 공격 액션이 없는
   오라 타워에서 0이 되어 원이 사라진다(#192 회귀 — 정보 패널엔 반경이 뜨는데 바닥 원만 없어 더 눈에 띈다).
-  `DescribeStats`와 같은 "액션이 자기 표시를 안다" 규약.
+  `DescribeStatRows`와 같은 "액션이 자기 표시를 안다" 규약.
   ⚠️ **`Tower.DisplayRange`는 `public`이다(#421)** — 소비처가 선택 원만이 아니라 장판 이펙트
   (`AuraZoneVisual`)까지 둘이다. "플레이어가 알아야 할 영향 범위"의 단일 출처이므로, 표시 계열이
   반경을 따로 계산하지 말고 이 값을 볼 것
@@ -1000,6 +1019,10 @@
    - **정보 패널 "합성 후보" 칸 프리팹 동기화 계약(#445)**: 칸 프리팹의 정본은 `Assets/Imported/@NorthLand/Prefabs/UI/TowerTargetSlot.prefab`이다(팔레트 `TowerButton.prefab`의 복제본이라 그것과 같은 저장소에 둔다 — StartMap이 타일 프리팹과 같은 저장소에 있어야 하는 것과 같은 이유). 타워를 클릭했을 때의 "합성 가능" 블록을 실행·리뷰·빌드하기 전에 `NorthLand-Imported`를 **`85fd857d3`(타워 타겟 슬롯 프리펩 추가) 이상**으로 동기화해야 하며, sparse checkout을 쓰면 `@NorthLand/Prefabs/UI/**`를 반드시 포함한다. 커밋 순서는 **Imported 선행**이다(WL-040). 미동기 환경에서는 `TowerInfoUI._mergeSlotPrefab` 참조가 풀려 블록이 **아예 뜨지 않고**, 증상은 "타워를 눌러도 상위 타워가 안 뜬다" 하나로 배선 누락과 구별되지 않는다 — 그래서 `TowerInfoUI.HasMergeSlotWiring`이 무엇이 null인지 + Imported 확인 안내를 **1회** 경고한다(Tank·`hitPosition` 계약이 "컴파일도 콘솔도 조용하다"로 남긴 사각지대를 이 건에서는 로그 한 줄로 닫았다. 매번 짖으면 타워 클릭마다 도는 경로라 콘솔이 죽는다). ⚠ **칸은 아이콘 전용이다**(이름 칸 없음 — 의도, `TowerMerge.md` §8.5) — 프리팹에 `Banner/Txt_Name`이 없는 것은 결함이 아니므로 "배너가 빠졌다"고 복원하지 말 것.
    - **머지 패널 "선택 행" 프리팹 동기화 계약(#535)**: 행 프리팹의 정본은 `Assets/Imported/@NorthLand/Prefabs/UI/SelectedRow.prefab`이다(위 `TowerTargetSlot.prefab`과 같은 저장소·같은 이유). 합성 패널의 **선택 리스트**를 실행·리뷰·빌드하기 전에 `NorthLand-Imported`를 **`aebbd691e`(SelectedRow에 아이콘 추가) 이상**으로 동기화해야 하며, sparse checkout을 쓰면 `@NorthLand/Prefabs/UI/**`를 반드시 포함한다(바로 위 #445 계약과 같은 경로 패턴이라 둘 중 하나만 챙기면 자동으로 둘 다 들어온다). 커밋 순서는 **Imported 선행**이다(WL-040). 미동기 환경의 실패 모드는 #445보다 **얕다** — 블록이 통째로 사라지는 게 아니라 행은 뜨고 아이콘만 빠진다: 컴포넌트 자체가 없으면 `TowerMergePanelView`가 이름만 채우는 폴백으로 내려가고, 컴포넌트는 있는데 필드가 비면 `TowerMergeSelectedRowView`가 무엇이 안 배선됐는지 알린다(둘 다 **1회** 경고 — #445가 굳힌 형태).
      - ⚠ **아이콘 슬롯의 `LayoutElement`(preferredWidth/Height 48)가 계약의 일부다.** 아이콘이 없는 타워는 `_icon.enabled = false`로 빈 칸이 되는데(흰 사각형보다 빈 칸 — `ResourceAsset` 계보 규약), 그 `LayoutElement`를 떼면 `Image` 자신의 `ILayoutElement` 기여가 꺼짐과 함께 사라져 칸 폭이 0으로 접히고 **그 행만 이름이 왼쪽으로 붙어 열이 어긋난다**. 에러도 경고도 없고 아이콘이 전부 채워진 환경에서는 재현되지 않는다. 2026-08-28 실측: 아이콘 on/off 모두 `rect.width = 48`, `preferredWidth = 48`로 동일하다(현재 프리팹은 계약 준수).
+   - **정보 패널 "스탯 행" 프리팹 동기화 계약(#536)**: 행 프리팹의 정본은 `Assets/Imported/@NorthLand/Prefabs/UI/TowerStatRow.prefab`이다(위 둘과 같은 저장소·같은 경로 패턴 `@NorthLand/Prefabs/UI/**`). 루트에 `TowerStatRowView`가 있고 자식 넷(`Stat` / `OriginStat` / `Arrow` / `BuffedStat`)이 각각 `_label` / `_origin` / `_arrow` / `_buffed`에 배선돼 있어야 한다. 정보 패널의 스탯 블록을 실행·리뷰·빌드하기 전에 `NorthLand-Imported`를 **`c94c58cc6`(타워 스탯 로우 폰트 사이즈 조정) 이상**으로 동기화해야 한다. 커밋 순서는 **Imported 선행**이다(WL-040). ⚠ 미동기 환경에서는 `_arrow`가 `GameObject`를 가리키던 구버전이라 `TMP_Text` 필드에 역직렬화되지 않아 **null이 되고, 화살표가 영영 안 뜬다** — `TowerStatRowView`가 1회 경고로 알린다.
+     - ⚠ **행 인스턴스는 씬이 소유한다.** 프리팹이 아니라 `GameScene`의 `TowerInfoPanel/Body/StatsContainer/Txt_Stats` 아래에 인스턴스를 미리 깔아두고 `TowerInfoUI._statRows`에 **순서대로** 배선한다. 행이 모자라면 넘치는 스탯이 잘리고(1회 경고) 남으면 숨겨진다 — 표시할 항목 수가 타워마다 다르기 때문이다(공격 3축 + 연발·구역·효과·성장…). 행을 새로 만들거나 지웠으면 **`_statRows` 재배선을 반드시 확인할 것**: 배열 밖 행은 채워지지도 숨겨지지도 않아 저작 플레이스홀더(`스탯명`)가 게임 중에 그대로 노출된다(#536 작업 중 실제로 발생).
+     - ⚠ **각 칸의 `LayoutElement.preferredWidth`(102 / 72 / 32 / 72)가 열 정렬의 근거다.** TMP `Auto Size`는 **고정된 박스에 글자가 넘칠 때 폰트를 줄이는 것**이지 박스를 글자에 맞춰 늘리지 않는다 — 이 값을 떼면 칸 폭이 텍스트마다 달라져 행 간 세로 열이 어긋난다. 반대로 값을 유지하면 긴 라벨에서만 폰트가 줄어 **행마다 글자 크기가 달라진다**(2026-08-29 실측: 짧은 라벨 24pt, 긴 라벨 13.2pt). TMP에는 여러 텍스트의 auto-size를 묶는 기능이 없으므로, 표기가 들쭉날쭉해지면 라벨을 짧게 유지하는 쪽으로 해결한다.
+     - ⚠ **버프가 없는 칸은 `SetActive(false)`로 끄지 않는다 — `Graphic.enabled = false`로 그리기만 끈다.** 비활성 자식은 레이아웃에서 통째로 빠지므로 행의 `ContentSizeFitter(h=PreferredSize)`가 폭을 줄이고, 그러면 그 행의 스탯명·기본값이 화면에서 옆으로 밀린다(2026-08-29 실측: 행 폭 278 → 174, 이동량 24.9px). 램프업 타워는 전투 중 스택이 오르내리며 이 전이가 반복돼 열이 계속 흔들렸다. `Graphic`만 끄면 같은 GameObject의 `LayoutElement`(화살표 32 / 버프값 72)가 폭을 계속 기여해 **버프 유무와 무관하게 칸 위치가 고정된다**(수정 후 실측 이동량 0). 그래서 `TowerStatRowView._arrow`는 `GameObject`가 아니라 `TMP_Text`다 — 끄는 대상이 오브젝트가 아니라 그리기라는 것이 타입에 드러나야 한다.
    - **리뷰어 주석(죽은 사본)**: `Assets/Personal/SUNGSOO/Font/`는 폰트가 TMP 정본으로 이관되며 더 이상 참조되지 않는 죽은 사본이다 — 이 경로의 폰트 아틀라스 churn을 WL-041 재발로 보고하지 말 것(WL-041 참고, 삭제 대기 중).
 9. **튜토리얼 모드와 입력 게이트** (#488): 전체 튜토리얼 런의 단일 정본은 `TutorialMode.IsActive`다.
    소비 시스템이 `TutorialController.startOnPlay`나 웨이브 공급자를 다시 탐색해 별도 판정을 만들지 않는다.
