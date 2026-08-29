@@ -220,9 +220,11 @@ public class MouseManager : MonoBehaviour
         if (Instance == this)
         {
             SceneManager.sceneLoaded -= HandleSceneLoaded;
-            // 씬 싱글톤이라 GameScene 언로드와 함께 죽는다. 해제하지 않으면 static Instance가 파괴된
-            // 컴포넌트를 계속 가리키고, 소비처의 `Instance?.`(순수 참조 검사)가 그대로 통과해
-            // MissingReferenceException이 난다(#554의 TowerInfoUI와 같은 실패 모드).
+            // ⚠ 이 오브젝트는 `DontDestroyOnLoad`(Awake `:197`)라 **씬 전환으로는 죽지 않는다.**
+            // 그래서 이 해제가 막는 것은 씬 언로드가 아니라 앱 종료·도메인 리로드 비활성 상태의
+            // 플레이 중지다. 그때 해제하지 않으면 static Instance가 파괴된 컴포넌트를 계속 가리키고,
+            // 소비처의 `Instance?.`(순수 참조 검사)가 그대로 통과해 MissingReferenceException이 난다
+            // — #554의 TowerInfoUI와 같은 실패 모드이나, 그쪽은 씬 싱글톤이라 씬 전환에서 났다.
             Instance = null;
         }
     }
