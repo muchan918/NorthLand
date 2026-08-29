@@ -28,16 +28,27 @@ public class KeyboardManager : MonoBehaviour
         public readonly Action Handler;
         public readonly string Label; // 로그용 이름("되돌리기"). 비워도 동작한다
 
-        public Binding(Key key, KeyModifier modifiers, Action handler, string label)
+        /// 눌린 보조키가 <see cref="Modifiers"/>와 **정확히** 같아야 발화하는가(기본 true).
+        /// false면 "요구한 보조키가 모두 눌려 있기만 하면" 되고 나머지는 무시한다 — WL-201.
+        public readonly bool ExactModifiers;
+
+        public Binding(Key key, KeyModifier modifiers, Action handler, string label, bool exactModifiers)
         {
             Key = key;
             Modifiers = modifiers;
             Handler = handler;
             Label = label;
+            ExactModifiers = exactModifiers;
         }
 
+        // 동등성에 ExactModifiers는 넣지 않는다 — 같은 (키+보조키+핸들러)를 판정 방식만 바꿔 두 번
+        // 등록하는 것은 실수이지 의도가 아니다. 먼저 등록된 쪽이 남고 뒤엣것은 조용히 버려진다.
         public bool Matches(Key key, KeyModifier modifiers, Action handler) =>
             Key == key && Modifiers == modifiers && Handler == handler;
+
+        /// 지금 눌린 보조키 조합이 이 바인딩을 발화시키는가.
+        public bool AcceptsModifiers(KeyModifier held) =>
+            ExactModifiers ? held == Modifiers : (held & Modifiers) == Modifiers;
 
         /// 로그에 쓰는 이름. 라벨을 안 넘겼으면 키 조합으로 대신한다.
         public string Describe() =>
@@ -63,7 +74,21 @@ public class KeyboardManager : MonoBehaviour
     /// ⚠ 인스턴스 메서드를 넘겼다면 대상이 사라질 때 <see cref="Unbind"/>로 걷어야 한다 — 목록이
     /// static이라 파괴된 오브젝트를 붙들고 남는다. static 진입점(예: <see cref="UndoRequest.Submit"/>)은
     /// 앱 수명과 같으므로 해제할 필요가 없다.
-    public static void Bind(Key key, KeyModifier modifiers, Action handler, string label = null)
+    ///
+    /// <param name="exactModifiers">
+    /// 기본 true — 눌린 보조키가 <paramref name="modifiers"/>와 정확히 같아야 발화한다. Ctrl+Shift+Z가
+    /// Ctrl+Z를 겸하지 않게 하는 판정이라 **조합키 단축키는 이 기본값을 쓴다.**
+    ///
+    /// 반대로 **보조키 없는 단축키**는 이 기본값이 함정이 된다: 이 프로젝트에서 Shift는 그룹 선택으로
+    /// 쥔 채 조작하는 키라(`MouseManager.cs:353-354`) 무보조키 단축키가 "가끔 안 먹는다"가 되고,
+    /// 원인이 이 한 줄이라는 것이 증상에서 멀다(WL-201). 그런 단축키는 false를 넘겨 "요구한 보조키만
+    /// 눌려 있으면 나머지는 무시"로 등록한다.
+    ///
+    /// ⚠ 전역 정책으로 뒤집지 않고 바인딩별로 고르게 둔 이유는, 같은 키를 보조키로 갈라 쓰는 조합이
+    /// 나중에 들어와도 서로를 조용히 겸하지 않게 하기 위함이다.
+    /// </param>
+    public static void Bind(Key key, KeyModifier modifiers, Action handler, string label = null,
+        bool exactModifiers = true)
     {
         if (handler == null)
         {
@@ -76,7 +101,7 @@ public class KeyboardManager : MonoBehaviour
             if (s_bindings[i].Matches(key, modifiers, handler)) return;
         }
 
-        s_bindings.Add(new Binding(key, modifiers, handler, label));
+        s_bindings.Add(new Binding(key, modifiers, handler, label, exactModifiers));
     }
 
     /// <see cref="Bind"/>의 대칭짝. 등록되지 않은 조합이면 아무 일도 하지 않는다.
@@ -136,9 +161,10 @@ public class KeyboardManager : MonoBehaviour
         {
             Binding binding = s_bindings[i];
 
-            // 보조키는 **정확히 일치**해야 한다(KeyModifier 주석) — 포함 판정이면 Ctrl+Shift+Z가
-            // Ctrl+Z까지 함께 발화시켜, 나중에 붙는 조합키가 기존 단축키를 조용히 겸하게 된다.
-            if (binding.Modifiers != held) continue;
+            // 보조키 판정은 바인딩이 정한다(Bind의 exactModifiers 주석). 기본은 **정확히 일치** —
+            // 포함 판정이면 Ctrl+Shift+Z가 Ctrl+Z까지 함께 발화시켜, 나중에 붙는 조합키가 기존
+            // 단축키를 조용히 겸하게 된다. 무보조키 단축키만 포함 판정을 골라 쓴다(WL-201).
+            if (!binding.AcceptsModifiers(held)) continue;
             if (!keyboard[binding.Key].wasPressedThisFrame) continue;
 
             _fired.Add(binding);
