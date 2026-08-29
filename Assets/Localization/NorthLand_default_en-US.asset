@@ -500,6 +500,26 @@ MonoBehaviour:
     m_Localized: Stack
     m_Metadata:
       m_Items: []
+  - m_Id: 18400787608793088
+    m_Localized: Fusion Tower Codex
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18419527620653056
+    m_Localized: All
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18419636135686144
+    m_Localized: Single
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18419711800930304
+    m_Localized: Area
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18419838489882624
+    m_Localized: Aura
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:
