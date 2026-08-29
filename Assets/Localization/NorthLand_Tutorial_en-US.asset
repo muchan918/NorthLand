@@ -382,6 +382,15 @@ MonoBehaviour:
       The main game will begin shortly.'
     m_Metadata:
       m_Items: []
+  - m_Id: 1622859966746624
+    m_Localized: Welcome to the Tutorial!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1622860000301056
+    m_Localized: "We\u2019ll guide you through the basic controls and the game\u2019s
+      key features.\nWhen you\u2019re ready, select Complete to begin the tutorial."
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []
