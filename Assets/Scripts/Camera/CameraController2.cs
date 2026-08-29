@@ -74,6 +74,12 @@ public class CameraController2 : MonoBehaviour
     /// </summary>
     public event Action<MoveSource, float> OnMoved;
 
+    /// <summary>
+    /// 튜토리얼이 요청한 카메라 포커스 이동이 위치·줌 목표에 모두 도착했을 때 발생한다.
+    /// 사용자 카메라 입력 완료와는 별개의 계약이다.
+    /// </summary>
+    public event Action TutorialFocusCompleted;
+
     [SerializeField] private float zoomSmoothTime = 0.2f;
 
     private bool isZooming;
@@ -82,6 +88,8 @@ public class CameraController2 : MonoBehaviour
 
     [Header("미니맵 이동")]
     [SerializeField] private float minimapMoveSmoothTime = 0.15f;
+
+    private bool _tutorialFocusActive;
 
     [SerializeField] private Camera mainCamera;
 
@@ -175,6 +183,14 @@ public class CameraController2 : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (_tutorialFocusActive)
+        {
+            UpdateTargetZoom();
+            UpdateMinimapMove();
+            CheckTutorialFocusCompleted();
+            return;
+        }
+
         if (!TutorialInputGate.Allows(TutorialAction.MoveCamera))
         {
             isZooming = false;
@@ -224,6 +240,14 @@ public class CameraController2 : MonoBehaviour
 
     private void Update()
     {
+        // 연출 중에는 사용자의 카메라 입력만 막는다. 실제 이동은 LateUpdate에서 unscaled time으로
+        // 계속 진행되므로 튜토리얼 Step이 게임 시간을 멈춰도 목적지까지 도달한다.
+        if (_tutorialFocusActive)
+        {
+            _isDragging = false;
+            return;
+        }
+
         if (!TutorialInputGate.Allows(TutorialAction.MoveCamera))
         {
             _isDragging = false;
@@ -468,6 +492,64 @@ public class CameraController2 : MonoBehaviour
             return;
         }
 
+        SetViewCenterMoveTarget(clickedWorldPosition, groundY);
+    }
+
+    /// <summary>
+    /// 튜토리얼 연출용 포커스 이동. 사용자 입력 게이트와 무관하게 실행되며,
+    /// 위치와 선택한 줌 목표에 모두 도착하면 <see cref="TutorialFocusCompleted"/>를 보낸다.
+    /// </summary>
+    public void FocusViewCenterForTutorial(
+        Vector3 worldPosition,
+        float groundY,
+        bool changeZoom,
+        float orthographicSize)
+    {
+        if (cameraTarget == null)
+        {
+            return;
+        }
+
+        _isDragging = false;
+        CancelMinimapMove();
+        _tutorialFocusActive = true;
+
+        if (mainCamera == null)
+        {
+            mainCamera = Camera.main;
+        }
+
+        if (mainCamera == null)
+        {
+            worldPosition.y = cameraTarget.position.y;
+            minimapMoveTarget = ClampPosition(worldPosition);
+            isMinimapMoving = true;
+        }
+        else
+        {
+            SetViewCenterMoveTarget(worldPosition, groundY);
+        }
+
+        if (changeZoom && cinemachineCamera != null)
+        {
+            zoomTarget = Mathf.Clamp(orthographicSize, minZoomSize, maxZoomSize);
+            zoomVelocity = 0f;
+            isZooming = true;
+        }
+    }
+
+    /// <summary>
+    /// Step 중단·튜토리얼 종료 시 진행 중인 강제 포커스 이동을 정리한다.
+    /// 취소는 완료로 취급하지 않는다.
+    /// </summary>
+    public void CancelTutorialFocus()
+    {
+        _tutorialFocusActive = false;
+        CancelMinimapMove();
+    }
+
+    private void SetViewCenterMoveTarget(Vector3 clickedWorldPosition, float groundY)
+    {
         Plane groundPlane = new Plane(
             Vector3.up,
             new Vector3(0f, groundY, 0f));
@@ -478,7 +560,7 @@ public class CameraController2 : MonoBehaviour
 
         if (!groundPlane.Raycast(centerRay, out float distance))
         {
-            MoveTo(clickedWorldPosition);
+            SetMoveTarget(clickedWorldPosition);
             return;
         }
 
@@ -499,6 +581,24 @@ public class CameraController2 : MonoBehaviour
             ClampPosition(correctedTargetPosition);
 
         isMinimapMoving = true;
+    }
+
+    private void SetMoveTarget(Vector3 worldPosition)
+    {
+        worldPosition.y = cameraTarget.position.y;
+        minimapMoveTarget = ClampPosition(worldPosition);
+        isMinimapMoving = true;
+    }
+
+    private void CheckTutorialFocusCompleted()
+    {
+        if (!_tutorialFocusActive || isMinimapMoving || isZooming)
+        {
+            return;
+        }
+
+        _tutorialFocusActive = false;
+        TutorialFocusCompleted?.Invoke();
     }
 
     // 대상 추종 모션(이동+줌)을 함께 내린다. 줌만 남기면 보상·설정 패널이 열렸을 때
