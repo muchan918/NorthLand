@@ -129,6 +129,8 @@ public class TutorialOverlay : MonoBehaviour
 
     public void ShowPopup(string title, string body, Sprite image)
     {
+        bool wasVisible = popupRoot.activeSelf;
+
         popupTitle.text = title;
         popupBody.text = body;
 
@@ -138,6 +140,11 @@ public class TutorialOverlay : MonoBehaviour
 
         popupInputBlocker.SetActive(true);
         popupRoot.SetActive(true);
+
+        if (!wasVisible)
+        {
+            Sfx.TutorialPopupOpened();
+        }
     }
 
     public void HidePopup()
@@ -148,9 +155,16 @@ public class TutorialOverlay : MonoBehaviour
 
     public void ShowBubble(string text)
     {
+        bool wasVisible = bubbleRoot.activeSelf;
+
         bubbleText.text = text;
         bubbleRoot.SetActive(true);
         bubbleLayout.Rebuild();
+
+        if (!wasVisible)
+        {
+            Sfx.TutorialBubbleOpened();
+        }
     }
 
     public void HideBubble()
