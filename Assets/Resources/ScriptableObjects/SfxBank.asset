@@ -18,6 +18,12 @@ MonoBehaviour:
   panelOpen:
     Clip: {fileID: 8300000, guid: eade9a9bf2c9eb14883703c9fe916312, type: 3}
     Volume: 1
+  tutorialBubbleOpen:
+    Clip: {fileID: 8300000, guid: 7a675bb878b5ea245a5c2fd7bd41c123, type: 3}
+    Volume: 1
+  tutorialPopupOpen:
+    Clip: {fileID: 8300000, guid: 8f4bc7c29773d0645887387d1122ca57, type: 3}
+    Volume: 1
   towerInstall:
     Clip: {fileID: 8300000, guid: dc36546b84bc06b40baee8485ac62acf, type: 3}
     Volume: 1

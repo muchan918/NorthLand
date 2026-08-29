@@ -275,6 +275,22 @@ MonoBehaviour:
     m_Key: tutorial.complete.bubble
     m_Metadata:
       m_Items: []
+  - m_Id: 1622859966746624
+    m_Key: tutorial.intro.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1622860000301056
+    m_Key: tutorial.intro.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1631492708405248
+    m_Key: tutorial.battle_map.intro.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1631492737765376
+    m_Key: tutorial.battle_map.intro.body
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

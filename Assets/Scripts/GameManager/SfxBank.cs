@@ -54,6 +54,12 @@ public class SfxBank : ScriptableObject
     [Tooltip("건물·타워를 클릭해 정보 패널이 열리는 순간. 패널이 켜질 때가 아니라 **클릭할 때** 울린다.")]
     [SerializeField] Cue panelOpen = new Cue();
 
+    [Tooltip("튜토리얼 말풍선이 닫힌 상태에서 새로 나타나는 순간. 같은 말풍선의 문구 갱신에는 울리지 않는다.")]
+    [SerializeField] Cue tutorialBubbleOpen = new Cue();
+
+    [Tooltip("튜토리얼 팝업 패널이 닫힌 상태에서 새로 나타나는 순간. 언어 변경에 따른 문구 갱신에는 울리지 않는다.")]
+    [SerializeField] Cue tutorialPopupOpen = new Cue();
+
     [Header("피드백")]
     [Tooltip("타워가 실제로 설치된 순간. 일반 배치와 합성 결과 배치가 같은 경로를 쓰므로 둘 다 여기서 울린다.")]
     [SerializeField] Cue towerInstall = new Cue();
@@ -79,6 +85,10 @@ public class SfxBank : ScriptableObject
     public Cue ButtonClick => buttonClick;
 
     public Cue PanelOpen => panelOpen;
+
+    public Cue TutorialBubbleOpen => tutorialBubbleOpen;
+
+    public Cue TutorialPopupOpen => tutorialPopupOpen;
 
     public Cue TowerInstall => towerInstall;
 
