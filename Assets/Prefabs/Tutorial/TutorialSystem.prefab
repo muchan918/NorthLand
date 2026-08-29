@@ -322,8 +322,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TutorialBubbleLayout
   bubble: {fileID: 2213812360799887919}
   text: {fileID: 3088402732723609233}
-  minimumSize: {x: 300, y: 80}
-  maximumSize: {x: 750, y: 300}
+  minimumSize: {x: 360, y: 100}
+  maximumSize: {x: 900, y: 380}
 --- !u!1 &1520225892498578865
 GameObject:
   m_ObjectHideFlags: 0
@@ -491,8 +491,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 24
-  m_fontSizeBase: 24
+  m_fontSize: 30
+  m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -1444,11 +1444,19 @@ MonoBehaviour:
   tutorialRoot: {fileID: 377768755125908057}
   overlay: {fileID: 6080662844821673709}
   steps:
+  - {fileID: 11400000, guid: f873380acd78e934eb053159f44ef677, type: 2}
   - {fileID: 11400000, guid: 8b8855ddc25d24f49b2dd97697f32a7a, type: 2}
+  - {fileID: 11400000, guid: ef5771c9fcab57c428866e256a31bb1d, type: 2}
   - {fileID: 11400000, guid: f973092073f4ace4d95601011ed88267, type: 2}
+  - {fileID: 11400000, guid: fbde677b376d79d49bf8eb92bdba9c7b, type: 2}
   - {fileID: 11400000, guid: 8096b01c58ca0cd4b825fec14e661825, type: 2}
+  - {fileID: 11400000, guid: fbde677b376d79d49bf8eb92bdba9c7b, type: 2}
   - {fileID: 11400000, guid: d2791ded24a342f47a3a5289bc14b633, type: 2}
+  - {fileID: 11400000, guid: fbde677b376d79d49bf8eb92bdba9c7b, type: 2}
   - {fileID: 11400000, guid: 8bf57dd7e0d98444f85ae7eedc601fb7, type: 2}
+  - {fileID: 11400000, guid: d7e85769b8df64744b9461f1faff4ff0, type: 2}
+  - {fileID: 11400000, guid: cb4737909928564488be27ad9b348a76, type: 2}
+  - {fileID: 11400000, guid: b3befe88328b6584b84de851db9a506b, type: 2}
   - {fileID: 11400000, guid: 7f4ad99db6ba8704fb97e2fc5b802dd0, type: 2}
   - {fileID: 11400000, guid: 8b3c0e957a04c8048b5ac54f40658edb, type: 2}
   - {fileID: 11400000, guid: 750aa240cb51b904a90c1e261a0046aa, type: 2}
@@ -1465,6 +1473,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 36e07b3b8060fd240ad288ce8e521cad, type: 2}
   - {fileID: 11400000, guid: 1db4bfa5ea7164349a57fe3062445797, type: 2}
   - {fileID: 11400000, guid: 18830b9b69e19554888a68348195f12f, type: 2}
+  - {fileID: 11400000, guid: a552d8c42b2ded742abbf09d9e455a5d, type: 2}
   - {fileID: 11400000, guid: bc70e8778bca7f443bd5271060cc062f, type: 2}
   - {fileID: 11400000, guid: f8b3a8d990b360d45a54be978c108b87, type: 2}
   - {fileID: 11400000, guid: 5eccda031e295294e9867f8f522cc1d1, type: 2}
