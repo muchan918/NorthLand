@@ -2,6 +2,8 @@ using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 
 
 namespace NorthLand.UI
@@ -16,27 +18,38 @@ namespace NorthLand.UI
         private TowerAsset tower;
         private Action<TowerAsset> onSelected;
 
-        [Header("Rarity Colors")]
-        [SerializeField]
-        private Color normalColor = new Color(1f, 0.75f, 0.2f, 1f);
-
-        [SerializeField]
-        private Color rareColor = new Color(0.2f, 0.55f, 1f, 1f);
-
-        [SerializeField]
-        private Color legendaryColor = new Color(0.7f, 0.25f, 1f, 1f);
+        [Header("Rarity Images")]
+        [SerializeField] private Sprite normalSprite;
+        [SerializeField] private Sprite rareSprite;
+        [SerializeField] private Sprite legendarySprite;
 
         [SerializeField] private Image buttonBackground;
+
+        private static FusionTowerEntry selectedEntry;
+
+        private CancellationTokenSource scaleCancellation;
+        [SerializeField]
+        private float selectedScale = 1.06f;
+
+        [SerializeField]
+        private Color unselectedColor = new Color(0.85f, 0.85f, 0.85f, 1f);
+
+        [SerializeField]
+        private float animationDuration = 0.12f;
+
+        private Vector3 originalScale;
 
         /// <summary>
         /// 도감 목록 항목을 초기화합니다.
         /// </summary>
-        public void Initialize(TowerAsset targetTower, string displayName, Action<TowerAsset> selectedCallback)
+        public void Initialize(TowerAsset targetTower,string displayName,Action<TowerAsset> selectedCallback)
         {
             tower = targetTower;
             onSelected = selectedCallback;
+            originalScale = transform.localScale;
 
             UpdateView(displayName);
+            SetSelected(false);
             RegisterButton();
         }
         private void UpdateView(string displayName)
@@ -68,23 +81,24 @@ namespace NorthLand.UI
 
             if (buttonBackground != null)
             {
-                buttonBackground.color = GetRarityColor(tower.Rarity);
+                buttonBackground.sprite = GetRaritySprite(tower.Rarity);
+                buttonBackground.color = Color.white;
             }
         }
 
-        private Color GetRarityColor(TowerRarity rarity)
+        private Sprite GetRaritySprite(TowerRarity rarity)
         {
             switch (rarity)
             {
                 case TowerRarity.Rare:
-                    return rareColor;
+                    return rareSprite;
 
                 case TowerRarity.Legendary:
-                    return legendaryColor;
+                    return legendarySprite;
 
                 case TowerRarity.Normal:
                 default:
-                    return normalColor;
+                    return normalSprite;
             }
         }
 
@@ -101,14 +115,56 @@ namespace NorthLand.UI
             button.onClick.AddListener(Select);
         }
 
-        private void Select()
+        private void SetSelected(bool selected)
+        {
+            if (buttonBackground != null)
+                buttonBackground.color = selected ? Color.white : unselectedColor;
+
+            scaleCancellation?.Cancel();
+            scaleCancellation?.Dispose();
+            scaleCancellation = new CancellationTokenSource();
+
+            Vector3 targetScale = selected ? originalScale * selectedScale : originalScale;
+
+            AnimateScaleAsync(targetScale,scaleCancellation.Token).Forget();
+        }
+
+        private async UniTask AnimateScaleAsync(Vector3 targetScale,CancellationToken cancellationToken)
+        {
+            Vector3 startScale = transform.localScale;
+            float elapsed = 0f;
+
+            try
+            {
+                while (elapsed < animationDuration)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    elapsed += Time.unscaledDeltaTime;
+                    float t = Mathf.Clamp01(elapsed / animationDuration);
+                    t = 1f - Mathf.Pow(1f - t, 3f);
+
+                    transform.localScale = Vector3.LerpUnclamped(startScale, targetScale, t);
+
+                    await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken);
+                }
+
+                transform.localScale = targetScale;
+            }
+            catch (OperationCanceledException)
+            {
+                // 다른 선택 애니메이션이 시작되면 이전 작업 종료
+            }
+        }
+       public void Select()
         {
             if (tower == null)
-            {
-                Debug.LogWarning($"[{nameof(FusionTowerEntry)}] TowerAsset이 없습니다.", this);
-
                 return;
-            }
+
+            selectedEntry?.SetSelected(false);
+
+            selectedEntry = this;
+            SetSelected(true);
 
             onSelected?.Invoke(tower);
         }
@@ -117,6 +173,13 @@ namespace NorthLand.UI
         {
             if (button != null)
                 button.onClick.RemoveListener(Select);
+
+            scaleCancellation?.Cancel();
+            scaleCancellation?.Dispose();
+
+            if (selectedEntry == this)
+                selectedEntry = null;
         }
+
     }
 }
