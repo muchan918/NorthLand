@@ -40,4 +40,4 @@ MonoBehaviour:
       type: {class: DelayCondition, ns: , asm: Assembly-CSharp}
       data:
         seconds: 0.5
-        ignoreGameSpeed: 0
+        ignoreGameSpeed: 1

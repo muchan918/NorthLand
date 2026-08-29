@@ -19,7 +19,7 @@ MonoBehaviour:
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
-  pauseGameDuringStep: 0
+  pauseGameDuringStep: 1
   resumeGameAfterPopup: 0
   restrictActions: 1
   allowedActions: 0

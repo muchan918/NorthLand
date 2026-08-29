@@ -44,6 +44,7 @@ public sealed class CameraFocusCondition : TutorialCondition
         if (_camera == null)
         {
             Debug.LogWarning($"[{nameof(CameraFocusCondition)}] 씬에서 CameraController2를 찾지 못해 카메라 연출을 시작할 수 없다.");
+            Fire();
             return;
         }
 
@@ -57,6 +58,15 @@ public sealed class CameraFocusCondition : TutorialCondition
             {
                 Debug.LogWarning($"[{nameof(CameraFocusCondition)}] 전투 그리드를 찾지 못해 카메라 연출을 시작할 수 없다.");
                 _camera = null;
+                Fire();
+                return;
+            }
+
+            if (!spawner.TryGetTileView(combatGridCell, out _))
+            {
+                Debug.LogWarning($"[{nameof(CameraFocusCondition)}] 전투 그리드 셀 {combatGridCell}을 찾지 못해 카메라 연출을 시작할 수 없다.");
+                _camera = null;
+                Fire();
                 return;
             }
 
