@@ -5,11 +5,40 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Localization;
 using UnityEngine.Localization.Settings;
+using NorthLand.Combat;
 
 namespace NorthLand.UI
 {
     public class FusionTowerCodexUI : MonoBehaviour
     {
+        private enum TowerFilter
+        {
+            All,
+            Single,
+            Area,
+            Aura
+        }
+
+        private static TowerFilter GetFilter(TowerAsset tower)
+        {
+            if (tower.HasAction<BuffAuraAction>() ||
+                tower.HasAction<DebuffAuraAction>())
+            {
+                return TowerFilter.Aura;
+            }
+
+            if (tower.HasAction<BeamAction>())
+            {
+                return tower.Beam.MaxTargets > 1
+                    ? TowerFilter.Area
+                    : TowerFilter.Single;
+            }
+
+            return tower.Impact == ImpactKind.Single
+                ? TowerFilter.Single
+                : TowerFilter.Area;
+        }
+
         private const string TowerFolder = "ScriptableObjects/Towers";
 
         [Header("Panel")]
@@ -43,6 +72,11 @@ namespace NorthLand.UI
         private IReadOnlyList<TowerRecipe> recipes;
         private TowerAsset selectedTower;
 
+        private FusionTowerEntry firstEntry;
+
+        private readonly Dictionary<TowerAsset, FusionTowerEntry> entryByTower = new();
+        private TowerFilter currentFilter = TowerFilter.All;
+
 
         private void Awake()
         {
@@ -50,7 +84,6 @@ namespace NorthLand.UI
             LoadData();
             BuildRecipeLookup();
             BuildTowerEntries();
-            SelectFirstTower();
         }
 
         private void RegisterButtons()
@@ -111,12 +144,15 @@ namespace NorthLand.UI
         {
             if (content == null || entryPrefab == null)
             {
-                Debug.LogError("[FusionTowerCodexUI] Content 또는 Entry Prefab이 연결되지 않았습니다.", this);
+                Debug.LogError("[FusionTowerCodexUI] Content 또는 Entry Prefab이 연결되지 않았습니다.",this);
 
                 return;
             }
 
             ClearEntries();
+            entryByTower.Clear();
+            firstEntry = null;
+
 
             foreach (TowerAsset tower in towers)
             {
@@ -125,8 +161,70 @@ namespace NorthLand.UI
 
                 FusionTowerEntry entry = Instantiate(entryPrefab, content);
 
-                entry.Initialize(tower, TowerDisplayName.Of(tower), SelectTower);
+                entry.Initialize(tower,TowerDisplayName.Of(tower),SelectTower);
+
+                entryByTower[tower] = entry;
+                firstEntry ??= entry;
             }
+        }
+
+        private void ApplyFilter(TowerFilter filter)
+        {
+            currentFilter = filter;
+
+            FusionTowerEntry firstVisible = null;
+            bool selectedIsVisible = false;
+
+            foreach (TowerAsset tower in towers)
+            {
+                if (tower == null || !entryByTower.TryGetValue(tower, out FusionTowerEntry entry))
+                {
+                    continue;
+                }
+
+                bool visible = filter == TowerFilter.All || GetFilter(tower) == filter;
+
+                entry.gameObject.SetActive(visible);
+
+                if (!visible)
+                    continue;
+
+                firstVisible ??= entry;
+
+                if (tower == selectedTower)
+                    selectedIsVisible = true;
+            }
+
+            if (selectedIsVisible)
+                return;
+
+            if (firstVisible != null)
+                firstVisible.Select();
+            else
+                SelectTower(null);
+        }
+        public void ShowAllTowers(bool isOn)
+        {
+            if (isOn)
+                ApplyFilter(TowerFilter.All);
+        }
+
+        public void ShowSingleTowers(bool isOn)
+        {
+            if (isOn)
+                ApplyFilter(TowerFilter.Single);
+        }
+
+        public void ShowAreaTowers(bool isOn)
+        {
+            if (isOn)
+                ApplyFilter(TowerFilter.Area);
+        }
+
+        public void ShowAuraTowers(bool isOn)
+        {
+            if (isOn)
+                ApplyFilter(TowerFilter.Aura);
         }
 
         private void ClearEntries()
@@ -241,6 +339,9 @@ namespace NorthLand.UI
 
             if (panelRoot != null)
                 panelRoot.SetActive(true);
+
+            if (selectedTower == null)
+                firstEntry?.Select();
         }
 
         public void Close()
