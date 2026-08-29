@@ -391,6 +391,15 @@ MonoBehaviour:
       key features.\nWhen you\u2019re ready, select Complete to begin the tutorial."
     m_Metadata:
       m_Items: []
+  - m_Id: 1631492708405248
+    m_Localized: Battle Map
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1631492737765376
+    m_Localized: This is where you build towers and use skills to fend off the monsters
+      that attack at night.
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []
