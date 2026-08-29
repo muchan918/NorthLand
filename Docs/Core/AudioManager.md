@@ -31,7 +31,7 @@
 | | 상태 |
 |---|---|
 | BGM | ✅ 매니저가 소스를 직접 소유 → 볼륨·음소거가 즉시 걸린다 |
-| SFX (`PlaySfx` 경유) | ✅ 2D 원샷. 소비처는 낮/밤 전환 스팅어 2 + 공용 효과음 4(버튼 클릭·패널 오픈·타워 설치·거절, §5.4) |
+| SFX (`PlaySfx` 경유) | ✅ 2D 원샷. 소비처는 낮/밤 전환 스팅어 2 + 공용 효과음 10(튜토리얼 Bubble·Popup 안내음 포함, §5.4) |
 | SFX (`PlaySfxExclusive` 경유) | ✅ 2D 전용 소스. 소비처는 주민 증가음 1개. **매 프레임 볼륨을 다시 곱하므로 재생 중 슬라이더도 반영된다** |
 | 전투 위치 SFX (`CombatSfx`) | ✅ 중앙 보이스 풀에서 매 프레임 `GetEffectiveVolume(Sfx)`를 곱한다 |
 
@@ -258,7 +258,7 @@ WL-180이 BGM에서 낸 사고와 정확히 같은 형태다. 씬 큐로는 이 
 ```
 Assets/Resources/ScriptableObjects/SfxBank.asset   (SfxBank — 클립 + 클립별 볼륨)
         ↑ Resources.Load 1회
-Sfx (static)   ← 호출부는 이것만 부른다: Sfx.ButtonClick() / PanelOpen() / TowerInstalled() / Rejected() / ResidentIncreased()
+Sfx (static)   ← 호출부는 이것만 부른다: Sfx.ButtonClick() / PanelOpen() / TutorialBubbleOpened() / TutorialPopupOpened() / ...
         ↓
 AudioManager.PlaySfx  또는  PlaySfxExclusive
 ```
@@ -279,6 +279,8 @@ AudioManager.PlaySfx  또는  PlaySfxExclusive
 |---|---|---|
 | `ButtonClick` | `UiClickSfx`(전역 훅) | 버튼별 배선 없음 — 아래 참고 |
 | `PanelOpen` | `BuildingInfo.ShowOnly` / `Tower.OnSelected` | **패널이 켜질 때가 아니라 클릭할 때** |
+| `TutorialBubbleOpened` | `TutorialOverlay.ShowBubble` | Bubble 루트가 비활성→활성으로 바뀔 때만. 열린 Bubble의 Localization 갱신·닫힘에는 울리지 않음 |
+| `TutorialPopupOpened` | `TutorialOverlay.ShowPopup` | Popup 루트가 비활성→활성으로 바뀔 때만. 열린 Popup의 Localization 갱신·닫힘에는 울리지 않음 |
 | `TowerInstalled` | `TowerPlacer.PlaceTower` | 합성 결과 배치도 같은 경로를 지나 함께 덮인다 |
 | `Rejected` | `TowerPlacer`(배치 반려) · `TowerFusionController`(재료·코스트 부족) · `CastlePanelUI`(주민 증가·본진 업그레이드 실패) · `BuildingInfoUI`(업그레이드 실패) | 지금은 클립 하나를 넷이 공유 |
 | `BuildingUpgraded` | `InGameCue.HandleBuildingAction` (`OnBuildingAction` 구독) | 생산 라인·업그레이드 전용 건물이 같은 소리 |
@@ -370,6 +372,7 @@ void StopSfxExclusive();                                        // 위 소리를
 ```csharp
 Sfx.ButtonClick();        Sfx.PanelOpen();          Sfx.TowerInstalled();
 Sfx.Rejected();           Sfx.BuildingUpgraded();   Sfx.Undone();
+Sfx.TutorialBubbleOpened(); Sfx.TutorialPopupOpened();
 Sfx.Redone();             // 아직 부르는 곳이 없다(다시 실행 기능 미구현)
 Sfx.ResidentIncreased();  // ← 이것만 PlaySfxExclusive로 나간다
 ```
