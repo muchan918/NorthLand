@@ -21,6 +21,10 @@ public class SkillField : MonoBehaviour
     Vector3 capsulePoint1;
     float tickInterval;
     LayerMask enemyLayerMask;
+    float slowMultiplier;
+    float slowDuration;
+    int slowEffectId;
+    CombatSfxHandle loopSound;
     bool debugLog;
 
     float lifeTimer;
@@ -30,7 +34,9 @@ public class SkillField : MonoBehaviour
     readonly List<IDamageable> hits = new List<IDamageable>(64);
 
     public void Init(float damagePerTick, float radius, float duration, float tickInterval,
-                     LayerMask enemyLayerMask, bool debugLog)
+                     LayerMask enemyLayerMask, float slowMultiplier, float slowDuration,
+                     AudioClip loopSfx, float loopSfxVolume,
+                     bool debugLog)
     {
         this.damagePerTick = damagePerTick;
         this.radius = radius;
@@ -44,7 +50,17 @@ public class SkillField : MonoBehaviour
             visual.localScale = new Vector3(radius * 2f, visualThickness, radius * 2f);
 
         this.enemyLayerMask = enemyLayerMask;
+        this.slowMultiplier = Mathf.Clamp(slowMultiplier, 0.01f, 1f);
+        this.slowDuration = Mathf.Max(0.05f, slowDuration);
+        slowEffectId = HitEffect.SourceKey(GetInstanceID(), EffectKind.Slow);
         this.debugLog = debugLog;
+
+        loopSound = CombatSfx.Play(
+            loopSfx,
+            transform.position,
+            loop: true,
+            volumeScale: loopSfxVolume,
+            priority: CombatSfxPriority.Normal);
 
         // 0 이하 간격이면 아래 while이 무한 루프가 된다. 최소값으로 막는다.
         this.tickInterval = Mathf.Max(0.05f, tickInterval);
@@ -72,6 +88,8 @@ public class SkillField : MonoBehaviour
 
     void OnDestroy()
     {
+        loopSound.Stop();
+
         if (DayNightManager.Instance != null)
             DayNightManager.Instance.OnNightToDay -= HandleWaveEnd;
         if (GameManager.Instance != null)
@@ -121,7 +139,18 @@ public class SkillField : MonoBehaviour
 
         // Source: 플레이어 스킬 계열은 IAttacker 개체가 아니라 null (SkillManager의 DamageInfo와 동일 규약).
         foreach (var damageable in hits)
+        {
             damageable.TakeDamage(new DamageInfo(damagePerTick, null));
+
+            if (damageable.IsDead || slowMultiplier >= 1f || damageable is not Component target)
+                continue;
+
+            StatusEffectHandler handler = target.GetComponent<StatusEffectHandler>();
+            if (handler == null)
+                handler = target.gameObject.AddComponent<StatusEffectHandler>();
+
+            handler.ApplySlow(slowEffectId, slowMultiplier, slowDuration);
+        }
 
         if (debugLog)
             Debug.Log($"[SkillEffect] 전기장 틱: 위치={transform.position}, 적중={hits.Count}마리, 데미지={damagePerTick}, 반경={radius}, 남은 지속={lifeTimer:0.##}s");
