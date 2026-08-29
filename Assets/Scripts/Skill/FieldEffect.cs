@@ -15,6 +15,16 @@ public class FieldEffect : SkillEffect
     [SerializeField] bool loopParticlesForDuration;
     [SerializeField] ParticleSystem[] fieldParticles;
 
+    [Header("사운드")]
+    [SerializeField] AudioClip loopSfx;
+    [Range(0f, 2f)] [SerializeField] float loopSfxVolume = 1f;
+
+    [Header("슬로우")]
+    [Tooltip("레벨당 감속률. 0.1 = 레벨마다 10%p 증가")]
+    [Range(0f, 0.99f)] [SerializeField] float slowPercentPerLevel = 0.1f;
+    [Tooltip("마지막 전기장 틱 이후 감속이 유지되는 시간")]
+    [Min(0.05f)] [SerializeField] float slowDuration = 0.6f;
+
     // 실제 반경의 정본은 fieldPrefab 루트의 CapsuleCollider다. 프리팹이나 Collider가 누락된
     // 비정상 구성에서만 기존 기본 반경을 사용하며, 씬에 별도 조절값을 남기지 않는다.
     const float FallbackFieldRadius = 3.6f;
@@ -31,10 +41,17 @@ public class FieldEffect : SkillEffect
     // 반경은 레벨과 무관한 고정값이라 그대로 노출한다.
     public float GetCurrentTickDamage() => GetTickDamageAt(Level);
     public float GetTickDamageAt(int level) => tickDamagePerLevel * level;
+    public float GetSlowMultiplierAt(int level)
+        => Mathf.Clamp(1f - slowPercentPerLevel * level, 0.01f, 1f);
     public float FieldRadius => GetAuthoredFieldRadius();
 
     public override string GetStatSummary()
-        => SkillStatsFormatter.BuildFieldLines(GetCurrentTickDamage(), GetTickDamageAt(NextLevel), FieldRadius);
+        => SkillStatsFormatter.BuildFieldLines(
+            GetCurrentTickDamage(),
+            GetTickDamageAt(NextLevel),
+            FieldRadius,
+            GetSlowMultiplierAt(Level),
+            GetSlowMultiplierAt(NextLevel));
 
     protected override void HandleImpact(SkillCastContext context)
     {
@@ -72,6 +89,10 @@ public class FieldEffect : SkillEffect
             duration,
             tickInterval,
             enemyLayerMask,
+            GetSlowMultiplierAt(Level),
+            slowDuration,
+            loopSfx,
+            loopSfxVolume,
             debugLog);
 
         if (debugLog)

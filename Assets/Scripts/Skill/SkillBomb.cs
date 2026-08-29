@@ -12,6 +12,8 @@ public class SkillBomb : MonoBehaviour
     LayerMask enemyLayerMask;
     GameObject explosionEffectPrefab;
     float explosionEffectScale = 1f;
+    AudioClip explosionSfx;
+    float explosionSfxVolume = 1f;
     bool debugLog;
 
     float timer;
@@ -25,6 +27,8 @@ public class SkillBomb : MonoBehaviour
         LayerMask enemyLayerMask,
         GameObject explosionEffectPrefab,
         float explosionEffectScale,
+        AudioClip explosionSfx,
+        float explosionSfxVolume,
         bool debugLog)
     {
         this.damage = damage;
@@ -32,6 +36,8 @@ public class SkillBomb : MonoBehaviour
         this.enemyLayerMask = enemyLayerMask;
         this.explosionEffectPrefab = explosionEffectPrefab;
         this.explosionEffectScale = explosionEffectScale;
+        this.explosionSfx = explosionSfx;
+        this.explosionSfxVolume = explosionSfxVolume;
         this.debugLog = debugLog;
         timer = delay;
         initialized = true;
@@ -75,6 +81,12 @@ public class SkillBomb : MonoBehaviour
     {
         initialized = false;   // 이중 폭발 방어(같은 프레임 재진입 차단)
         SkillHitScan.CollectEnemies(transform.position, radius, enemyLayerMask, hits);
+
+        CombatSfx.Play(
+            explosionSfx,
+            transform.position,
+            volumeScale: explosionSfxVolume,
+            priority: CombatSfxPriority.High);
 
         // Source: 플레이어 스킬 계열은 IAttacker 개체가 아니라 null (SkillManager의 DamageInfo와 동일 규약).
         foreach (var damageable in hits)

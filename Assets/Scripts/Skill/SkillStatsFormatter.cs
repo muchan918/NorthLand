@@ -59,10 +59,18 @@ public static class SkillStatsFormatter
     public static string BuildChargeCountLine(int current, int next)
         => $"{Label(k_ChargeCountKey)}: {current}{k_Arrow}{next}";
 
-    /// 전기장 2줄: 틱 데미지 / 반경. 반경은 레벨과 무관한 고정값이라 화살표 없이 한 값만 보여준다(폭탄과 동일).
-    public static string BuildFieldLines(float currentDamage, float nextDamage, float radius)
+    /// 전기장 3줄: 틱 데미지 / 반경 / 감속. 반경은 고정값이고 감속은 레벨에 따라 강해진다.
+    public static string BuildFieldLines(
+        float currentDamage,
+        float nextDamage,
+        float radius,
+        float currentSlowMultiplier,
+        float nextSlowMultiplier)
         => $"{Label(k_FieldTickDamageKey)}: {currentDamage:0.#}{k_Arrow}{nextDamage:0.#}\n" +
-           $"{Label(k_FieldRadiusKey)}: {radius:0.#}";
+           $"{Label(k_FieldRadiusKey)}: {radius:0.#}\n" +
+           $"{NorthLand.Combat.TowerStatsFormatter.EffectName(NorthLand.Combat.EffectKind.Slow)}: " +
+           $"-{(1f - currentSlowMultiplier) * 100f:0.#}%{k_Arrow}" +
+           $"-{(1f - nextSlowMultiplier) * 100f:0.#}%";
 
     /// 처형 임계 한 줄. 값이 MaxHp 대비 비율(0~1)이라 백분율로 표기한다("10% → 20%").
     /// P0 서식을 쓰지 않는 이유: ko-KR PercentPositivePattern이 "10 %"처럼 공백을 넣고,
