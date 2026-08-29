@@ -19,26 +19,6 @@ namespace NorthLand.UI
             Aura
         }
 
-        private static TowerFilter GetFilter(TowerAsset tower)
-        {
-            if (tower.HasAction<BuffAuraAction>() ||
-                tower.HasAction<DebuffAuraAction>())
-            {
-                return TowerFilter.Aura;
-            }
-
-            if (tower.HasAction<BeamAction>())
-            {
-                return tower.Beam.MaxTargets > 1
-                    ? TowerFilter.Area
-                    : TowerFilter.Single;
-            }
-
-            return tower.Impact == ImpactKind.Single
-                ? TowerFilter.Single
-                : TowerFilter.Area;
-        }
-
         private const string TowerFolder = "ScriptableObjects/Towers";
 
         [Header("Panel")]
@@ -168,6 +148,17 @@ namespace NorthLand.UI
             }
         }
 
+        private void OnLocaleChanged(Locale locale)
+        {
+            BuildTowerEntries();
+            ApplyFilter(currentFilter);
+
+            if (selectedTower != null)
+                SelectTower(selectedTower);
+            else
+                SelectFirstTower();
+        }
+
         private void ApplyFilter(TowerFilter filter)
         {
             currentFilter = filter;
@@ -182,8 +173,7 @@ namespace NorthLand.UI
                     continue;
                 }
 
-                bool visible = filter == TowerFilter.All || GetFilter(tower) == filter;
-
+                bool visible = MatchesFilter(tower, filter);
                 entry.gameObject.SetActive(visible);
 
                 if (!visible)
@@ -367,17 +357,6 @@ namespace NorthLand.UI
             LocalizationSettings.SelectedLocaleChanged -= OnLocaleChanged;
         }
 
-        private void OnLocaleChanged(Locale locale)
-        {
-            BuildTowerEntries();
-
-            if (selectedTower != null)
-                SelectTower(selectedTower);
-            else
-                SelectFirstTower();
-        }
-
-
         private void BuildRecipeIcons(TowerRecipe recipe)
         {
             ClearRecipeIcons();
@@ -412,6 +391,22 @@ namespace NorthLand.UI
                     isFirstIcon = false;
                 }
             }
+        }
+
+        private static bool MatchesFilter(TowerAsset tower, TowerFilter filter)
+        {
+            if (filter == TowerFilter.All)
+                return true;
+
+            TowerCategory category = TowerCategoryResolver.Of(tower);
+
+            return filter switch
+            {
+                TowerFilter.Single => category == TowerCategory.Single,
+                TowerFilter.Area => category == TowerCategory.Area,
+                TowerFilter.Aura => category == TowerCategory.Aura,
+                _ => true
+            };
         }
 
         private void ClearRecipeIcons()
