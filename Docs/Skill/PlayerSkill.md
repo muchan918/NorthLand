@@ -49,18 +49,19 @@
 | 타입 | 클래스 | 동작 | 레벨업 효과 |
 | --- | --- | --- | --- |
 | `Burn` | `BurnEffect` | 감전 착탄에 맞은 적에게 도트(대상의 `StatusEffectHandler` 재사용) | 틱 데미지 = 레벨 × 수치 |
-| `Bomb` | `BombEffect`+`SkillBomb` | 착탄 지점에 구 프리팹(`Assets/Prefabs/Skill/SkillBomb.prefab`) 설치 → 지연 후 반경 폭발 | 폭발 데미지 = 레벨 × 수치 |
+| `Bomb` | `BombEffect`+`SkillBomb` | 착탄 지점에 구 프리팹(`Assets/Prefabs/Skill/SkillBomb.prefab`) 설치 → 지연 후 반경 폭발 + 위치 기반 폭발음 1회 | 폭발 데미지 = 레벨 × 수치 |
 | `Count` | `CountEffect` | 감전의 **최대 충전**을 레벨만큼 올린다(총 1+레벨발). 충전 보유·소모·재적립은 `SkillManager`가 소유하고, 이 효과는 `OnLevelChanged`로 레벨을 밀어넣기만 한다(#319) | 최대 충전 +1 |
-| `Field` | `FieldEffect`+`SkillField` | 착탄 지점에 장판 프리팹(`Assets/Prefabs/Skill/SkillField.prefab`) 설치 → `duration` 동안 `tickInterval`마다 **그 순간** 범위 안의 적에게 즉시 데미지 (#316) | 틱 데미지 = 레벨 × 수치 |
+| `Field` | `FieldEffect`+`SkillField` | 착탄 지점에 장판 프리팹(`Assets/Prefabs/Skill/SkillField.prefab`) 설치 → `duration` 동안 `tickInterval`마다 **그 순간** 범위 안의 적에게 즉시 데미지와 감속 적용 + 위치 기반 루프음 재생 (#316) | 틱 데미지 = 레벨 × 수치, 감속률 = 레벨 × 레벨당 감속률(기본 10%p) |
 | ~~`BuffBurn`~~ | ~~`BurnBuff`~~ | **미사용 (#315)** — 버프 스킬 전용 효과였다. enum 값·`BuffBurnReward.asset`·클래스는 남아있으나 `WaveRewardPool`에서 빠져 뽑히지 않고, 컴포넌트도 씬에 없다 | — |
 
-> **화상과 전기장은 축이 다르다.** 화상은 맞은 **대상**에 DoT를 붙여 따라다니고(`StatusEffectHandler`), 전기장은 **위치**에 결속된다 — 적이 장판을 벗어나면 그 즉시 데미지가 끊기고 재진입하면 다음 틱부터 다시 들어간다. 그래서 `FieldEffect.HandleImpact`는 `context.HitTargets`를 읽지 않고 `context.Position`만 쓰며, 대상에 상태를 붙이지 않는다(붙이면 장판을 벗어나도 계속 틱뎀이 들어가 정체성이 무너진다).
+> **화상과 전기장의 피해 축은 다르다.** 화상은 맞은 **대상**에 DoT를 붙여 따라다니고(`StatusEffectHandler`), 전기장 틱 피해는 **위치**에 결속된다 — 적이 장판을 벗어나면 즉시 피해가 끊기고 재진입하면 다음 틱부터 다시 들어간다. `FieldEffect.HandleImpact`가 `context.HitTargets` 대신 `context.Position`만 쓰는 이유도 이것이다. 다만 전기장의 **감속만** 대상의 `StatusEffectHandler`에 짧게 붙으며, 장판 안에서는 매 틱 갱신되고 벗어나면 마지막 틱부터 `slowDuration`(기본 0.6초) 뒤 풀린다. 감속을 대상 상태로 두는 것은 이동속도 합성을 기존 CC 경로 한 곳에 유지하기 위함이지, 틱 피해를 대상 추적형 DoT로 바꾸는 것이 아니다.
 
 > **종류 4 = 카드 3**이라 첫 웨이브부터 후보가 섞이기 시작했다(#316). 다만 GDD §5.6의 조항(종류 ≥ 상한 + 3 = **6종**)에는 여전히 미달이라 **완화지 해소가 아니다** — 한 효과가 Lv3에 닿는 순간 남은 3종이 매번 전부 제시된다.
 
 - 수치는 전부 각 효과 컴포넌트의 **인스펙터 직접 입력**(CSV 미사용 — 스킬 수치 정책과 동일, WL-015 축).
-- 충전을 연달아 쓰면 시전마다 Burn/Bomb/Field가 각각 발동한다 — 조합 시너지 의도. 전기장은 대상에 붙는 디버프가 아니라 독립 오브젝트라 **장판이 여러 장 생겨 겹치는 자리에서 데미지가 합산**된다(각자 독립 타이머라 "갱신"으로 죽지 않는다). 중첩 상한은 두지 않았다 — 다만 자동 반복이 사라진 뒤로는 플레이어가 같은 자리에 다시 조준해야만 겹친다(#319).
+- 충전을 연달아 쓰면 시전마다 Burn/Bomb/Field가 각각 발동한다 — 조합 시너지 의도. 전기장은 독립 오브젝트라 **장판이 여러 장 생겨 겹치는 자리에서 데미지가 합산**된다(각자 독립 타이머라 "갱신"으로 죽지 않는다). 감속 소스 키도 `HitEffect.SourceKey(장판 InstanceID, Slow)`로 장판마다 갈리므로, 같은 장판의 반복 틱은 한 슬롯을 갱신하고 다른 장판·슬로우 타워는 별도 슬롯으로 곱산 중첩된다. 단 `MoveSpeedComposer`가 디버프 곱을 최소 0.5로 제한하므로 최종 상대속도는 50% 아래로 내려가지 않는다. 자동 반복이 사라진 뒤로는 플레이어가 같은 자리에 다시 조준해야만 장판이 겹친다(#319).
 - **웨이브 종료 시** 미폭발 폭탄·활성 장판·아직 착탄하지 않은 별은 취소된다(§5 규약, #200, #465).
+- **특수효과 사운드는 `SfxBank`가 아니라 효과 컴포넌트가 authoring한다.** 폭탄은 실제 `Explode` 순간 `CombatSfx` `High` 단발을 재생해 폭발 전 취소에는 소리가 없고, 전기장은 생성 시 `Normal` 루프 핸들을 받아 `OnDestroy`에서 정지한다. 따라서 정상 만료·웨이브 종료·승패 확정·씬 전환 어느 경로에서도 장판음이 남지 않는다. 둘 다 `CombatSfx`의 화면 위치·줌 감쇠와 SFX 설정 볼륨을 따른다.
 
 ### 3.1 마법 연구소 강화 (#205, #465, 보상 축과 독립) — 레벨별 스탯
 
@@ -81,6 +82,14 @@
 현재 GameScene의 감전은 `SkillStarEffect` 하나를 사용한다. 시전 위치에 별을 생성하고 `impactDelay`(현재 0.8초) 뒤에 피해와 `ImpactResolved`를 처리하며, 중앙은 100%, 외곽은 70% 피해를 받는다. 연구소의 사거리 배율이 오르면 별 연출과 두 인디케이터의 크기도 같은 비율로 증가한다.
 
 과거 `SkillVisualSet` 기반의 연구소 레벨별 착탄 프리팹 교체 코드는 남아 있지만, 별 낙하 경로는 `ApplyImpact`를 사용하지 않고 GameScene의 `_visualSet`도 비어 있어 현재는 동작하지 않는다. 다시 사용할 때는 별 프리팹 세트로 통합하는 별도 설계가 필요하다.
+
+### 3.3 조준 입력 — 버튼 / Q 단축키
+
+스킬 버튼 클릭과 `Q` 단축키는 모두 `SkillButtonView.TryBeginTargeting()`으로 수렴해 밤·충전·튜토리얼 입력 게이트와 고스트 누락 검사를 공유한다. `Q`는 `KeyboardManager.Bind(Key.Q, KeyModifier.None, ...)`로 등록하고 오브젝트 파괴 시 같은 `Action` 인스턴스로 `Unbind`한다 — `KeyboardManager`나 Input Actions 에셋에 스킬 지식을 넣지 않는다.
+
+- 마우스 클릭음은 기존 전역 `UiClickSfx`가 버튼을 누른 순간 한 번 낸다.
+- 키보드 입력은 전역 마우스 훅을 지나지 않으므로, Q로 조준 진입에 **성공했을 때만** `SkillButtonView`가 `Sfx.ButtonClick()`을 한 번 낸다.
+- 사용 불가 상태에서는 버튼이 비활성이고 Q의 `TryBeginTargeting()`도 실패하므로 두 경로 모두 별도 거절음을 내지 않는다.
 
 ## 4. 새 특수효과 추가 절차
 
@@ -106,7 +115,7 @@
 - **`SkillCastContext.HitTargets`는 재사용 버퍼** — 이벤트 처리 중에만 유효, 필드에 보관 금지.
 - **착탄 이펙트 프리팹은 스스로 끝나야 한다(§3.2)** — `ApplyImpact`은 `Instantiate`만 하고 수명을 관리하지 않는다. 프리팹 파티클의 `Stop Action`을 `Destroy`로 두는 것이 유일한 정리 수단이며, **자식 파티클이 하나라도 `Looping`이면 발동하지 않는다**(루트+자식이 모두 끝나야 트리거). 루프용 변형(`*_Loop_*`)을 쓸 때 특히 주의. 세트에 프리팹을 꽂을 때마다 확인할 것.
 - **`_currentVisual`은 레벨 변경 시에만 갱신된다(§3.2)** — 플레이 중 `SkillVisualSet`을 편집해도 즉시 반영되지 않는다. 튜닝 중이면 플레이를 재시작하거나 연구소를 한 단계 올려 `RefreshUpgrade`를 태울 것.
-- **`StatusEffectHandler` effectId 분리 규약**: 다른 id는 공존(각자 틱), 같은 id는 갱신. 현재 사용: 타워 오라=TowerID 해시, 감전 화상=`"skill_burn"` 해시. (`"buff_burn"`은 제거된 버프 화상이 쓰던 id — #315, 재사용 금지) 새 도트 효과는 고유 문자열 해시로 분리할 것.
+- **`StatusEffectHandler` effectId 분리 규약**: 다른 id는 공존, 같은 id는 갱신. 현재 스킬 사용: 감전 화상=`"skill_burn"` 해시, 전기장 감속=`HitEffect.SourceKey(장판 InstanceID, EffectKind.Slow)`. 전자는 모든 감전 화상이 한 슬롯을 갱신하고, 후자는 같은 장판의 틱만 갱신하면서 다른 장판·타워 감속과 공존한다. (`"buff_burn"`은 제거된 버프 화상이 쓰던 id — #315, 재사용 금지) 새 효과는 의도한 중첩 단위에 맞춰 소스 키를 정할 것.
 - **`DamageInfo` source=null 규약**: 플레이어 스킬 계열은 `IAttacker` 개체가 아니므로 source를 null로 넘긴다(`SkillManager` 주석 참고).
 - **`Projectile.DamageDealt`는 static 이벤트** — 구독 해제는 구독자 책임. 파괴 경로(`OnDestroy`→`Unsubscribe`)에서 반드시 해제. `BurnBuff`는 #315로 미사용이 됐고 현재 구독자는 `RampAction`(`Trigger=Hit`)뿐이다. ⚠ **빔 타워(`BeamAction`)는 이 이벤트를 발행하지 않으므로**, 여기 붙는 새 효과는 빔 타워에서 조용히 빠진다(WL-155).
 - **웨이브/런 종료 시 진행 중 효과 취소(#200)**: 시전 후 **지연·지속 발동하는 효과 3종** — 지연 폭탄(`SkillBomb`)·지속 장판(`SkillField`, #316)·별 낙하 지연 착탄(`SkillDelayedImpact`, #465) — 을 취소한다. 신호는 `DayNightManager.OnNightToDay`(밤→낮=웨이브 종료)와 `GameManager.OnResultDecided`(승리/게임오버 — `EndNight()`를 안 타는 종료 경로) 둘 다 구독해 적이 사라졌거나 결과 화면이 열린 뒤 잔존 발동하는 것을 막는다. 폭탄·장판·별 착탄은 초기화 상태를 내리고 자기 파괴한다(장판은 잔류 딜 없이 즉시 사라진다). 현재 세 구현이 종료 신호를 각각 구독하는 중복은 WL-080에서 후속 통합 대상으로 추적한다. **취소 대상 아님**: 적 DoT는 자체 타이머로 만료된다(낮엔 타워가 밤 게이팅돼 실害 0). 조준(타겟팅) 모드 취소는 별개로 `PhasePanelSwitcher`가 소유한다 — 웨이브 종료는 `OnDayStart`, 런 종료는 같은 `OnResultDecided`를 구독해 `MouseManager.CancelSkillTargeting()`을 부른다(#391). 입력 매니저 쪽에서 구독하지 않는 이유는 `MouseManager.md` §1 원칙 2·3(매니저는 도메인을 모른다)이며, 씬 오브젝트인 이쪽이 `GameManager`와 수명이 같아 재바인딩도 불필요하다.
