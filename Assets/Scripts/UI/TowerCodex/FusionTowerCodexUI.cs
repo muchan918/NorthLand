@@ -398,15 +398,15 @@ namespace NorthLand.UI
             if (filter == TowerFilter.All)
                 return true;
 
-            TowerCategory category = TowerCategoryResolver.Of(tower);
-
-            return filter switch
+            TowerCategory required = filter switch
             {
-                TowerFilter.Single => category == TowerCategory.Single,
-                TowerFilter.Area => category == TowerCategory.Area,
-                TowerFilter.Aura => category == TowerCategory.Aura,
-                _ => true
+                TowerFilter.Single => TowerCategory.Single,
+                TowerFilter.Area => TowerCategory.Area,
+                TowerFilter.Aura => TowerCategory.Aura,
+                _ => TowerCategory.None
             };
+
+            return (TowerCategoryResolver.Of(tower) & required) != 0;
         }
 
         private void ClearRecipeIcons()

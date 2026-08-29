@@ -81,7 +81,10 @@ namespace NorthLand.UI
 
             if (buttonBackground != null)
             {
-                buttonBackground.sprite = GetRaritySprite(tower.Rarity);
+                Sprite raritySprite = GetRaritySprite(tower.Rarity);
+
+                buttonBackground.sprite = raritySprite;
+                buttonBackground.enabled = raritySprite != null;
                 buttonBackground.color = Color.white;
             }
         }

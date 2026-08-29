@@ -49,12 +49,16 @@ namespace NorthLand.UI
             // 쓰므로, 여기만 「사거리」로 두면 배치 전과 배치 후에 같은 값의 이름이 갈린다.
             // ⚠ 빔 타워는 이 분기로 내려오지만(AttackAction이 없다) 오라가 아니라 **사거리**다 —
             // 그래서 "AttackAction이 없다"가 아니라 "오라 액션이 있다"로 판정해야 한다.
-            if (TowerCategoryResolver.Of(tower) == TowerCategory.Aura)
+            if ((TowerCategoryResolver.Of(tower) & TowerCategory.Aura) != 0)
             {
-                return NorthLand.Combat.TowerStatsFormatter.BuildAuraRadiusLine(tower.PreviewRadius);
+                return NorthLand.Combat.TowerStatsFormatter.BuildAuraRadiusLine(
+                    tower.PreviewRadius
+                );
             }
 
-            return NorthLand.Combat.TowerStatsFormatter.BuildRangeLine(tower.PreviewRadius);
+            return NorthLand.Combat.TowerStatsFormatter.BuildRangeLine(
+                tower.PreviewRadius
+            );
         }
     }
 }
