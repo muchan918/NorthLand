@@ -14588,11 +14588,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: startOnPlay
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: steps.Array.size
-      value: 29
+      value: 30
       objectReference: {fileID: 0}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: 'steps.Array.data[0]'
@@ -14693,21 +14693,25 @@ PrefabInstance:
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: 'steps.Array.data[24]'
       value: 
-      objectReference: {fileID: 11400000, guid: bc70e8778bca7f443bd5271060cc062f, type: 2}
+      objectReference: {fileID: 11400000, guid: a552d8c42b2ded742abbf09d9e455a5d, type: 2}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: 'steps.Array.data[25]'
       value: 
-      objectReference: {fileID: 11400000, guid: f8b3a8d990b360d45a54be978c108b87, type: 2}
+      objectReference: {fileID: 11400000, guid: bc70e8778bca7f443bd5271060cc062f, type: 2}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: 'steps.Array.data[26]'
       value: 
-      objectReference: {fileID: 11400000, guid: 5eccda031e295294e9867f8f522cc1d1, type: 2}
+      objectReference: {fileID: 11400000, guid: f8b3a8d990b360d45a54be978c108b87, type: 2}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: 'steps.Array.data[27]'
       value: 
-      objectReference: {fileID: 11400000, guid: 5d1d1f1346f310549998bd0474c1f16f, type: 2}
+      objectReference: {fileID: 11400000, guid: 5eccda031e295294e9867f8f522cc1d1, type: 2}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
       propertyPath: 'steps.Array.data[28]'
+      value: 
+      objectReference: {fileID: 11400000, guid: 5d1d1f1346f310549998bd0474c1f16f, type: 2}
+    - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
+      propertyPath: 'steps.Array.data[29]'
       value: 
       objectReference: {fileID: 11400000, guid: 51f1b1d29dba91e4287c57336d320eef, type: 2}
     - target: {fileID: 6314069678369868557, guid: 31619a38f0d226b4781ef12e92bfb4bb, type: 3}
