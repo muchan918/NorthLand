@@ -220,6 +220,10 @@ public class MouseManager : MonoBehaviour
         if (Instance == this)
         {
             SceneManager.sceneLoaded -= HandleSceneLoaded;
+            // 씬 싱글톤이라 GameScene 언로드와 함께 죽는다. 해제하지 않으면 static Instance가 파괴된
+            // 컴포넌트를 계속 가리키고, 소비처의 `Instance?.`(순수 참조 검사)가 그대로 통과해
+            // MissingReferenceException이 난다(#554의 TowerInfoUI와 같은 실패 모드).
+            Instance = null;
         }
     }
 
