@@ -12,6 +12,10 @@ public class BombEffect : SkillEffect
     [SerializeField] float explosionDelay = 2f;
     [SerializeField] float explosionRadius = 3f;
 
+    [Header("사운드")]
+    [SerializeField] AudioClip explosionSfx;
+    [Range(0f, 2f)] [SerializeField] float explosionSfxVolume = 1f;
+
     // TODO(TBD): SkillManager와 동일하게 임시 LayerMask 방식. 팀 컨벤션 확정 후 정리(Tower.cs 참고).
     [SerializeField] LayerMask enemyLayerMask;
 
@@ -50,6 +54,8 @@ public class BombEffect : SkillEffect
             enemyLayerMask,
             explosionEffectPrefab,
             bombScale,
+            explosionSfx,
+            explosionSfxVolume,
             debugLog);
 
         if (debugLog)

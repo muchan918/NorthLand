@@ -1,5 +1,7 @@
+using System;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 /// 스킬 버튼 1개(#103). 클릭 시 MouseManager에 스킬 타겟팅을 요청하고,
@@ -30,11 +32,27 @@ public class SkillButtonView : MonoBehaviour
     int _shownCharges = -1;
     int _shownMaxCharges = -1;
     int _shownRechargeSeconds = -1;
+    Action _shortcutHandler;
 
     private void Awake()
     {
         if (_button == null) _button = GetComponent<Button>();
         _button.onClick.AddListener(HandleClick);
+
+        // 마우스 클릭음은 UiClickSfx 전역 훅이 낸다. Q는 그 훅을 지나지 않으므로 전용 진입점에서
+        // 조준 시작에 성공했을 때만 같은 공용 클릭음을 낸다.
+        // KeyboardManager의 바인딩 목록은 static이므로 해제할 때 쓸 같은 Action 인스턴스를 보관한다.
+        _shortcutHandler = HandleShortcut;
+        KeyboardManager.Bind(Key.Q, KeyModifier.None, _shortcutHandler, "감전 스킬");
+    }
+
+    private void OnDestroy()
+    {
+        if (_button != null)
+            _button.onClick.RemoveListener(HandleClick);
+
+        if (_shortcutHandler != null)
+            KeyboardManager.Unbind(Key.Q, KeyModifier.None, _shortcutHandler);
     }
 
     private void Update()
@@ -111,15 +129,24 @@ public class SkillButtonView : MonoBehaviour
     }
 
     private void HandleClick()
+        => TryBeginTargeting();
+
+    private void HandleShortcut()
     {
-        if (SkillManager.Instance == null || MouseManager.Instance == null) return;
-        if (!TutorialInputGate.Allows(TutorialAction.UseSkill)) return;
-        if (!SkillManager.Instance.CanCast()) return;
+        if (TryBeginTargeting())
+            Sfx.ButtonClick();
+    }
+
+    private bool TryBeginTargeting()
+    {
+        if (SkillManager.Instance == null || MouseManager.Instance == null) return false;
+        if (!TutorialInputGate.Allows(TutorialAction.UseSkill)) return false;
+        if (!SkillManager.Instance.CanCast()) return false;
 
         if (_skillGhostPrefab == null)
         {
             Debug.LogError("[스킬버튼] skillGhostPrefab이 지정되지 않았습니다.");
-            return;
+            return false;
         }
 
         MouseManager.Instance.BeginSkillTargeting(new SkillTargetRequest
@@ -128,6 +155,8 @@ public class SkillButtonView : MonoBehaviour
             Snap = SnapToCastHeight,
             OnConfirmed = pos => SkillManager.Instance.CastAt(pos), // CastAt은 bool 반환 → Action<Vector3>엔 람다로 감싸 반환값 버림
         });
+
+        return true;
     }
 
         // 시전 지점: 커서 광선을 고정 높이(_castHeight) 수평면에 투영해서 구한다.
