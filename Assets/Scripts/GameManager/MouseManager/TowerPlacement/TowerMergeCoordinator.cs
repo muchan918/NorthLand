@@ -356,7 +356,10 @@ public class TowerMergeCoordinator : MonoBehaviour
 
         if (count >= 2)
         {
-            TowerInfoUI.Instance?.HideInfo();
+            // `?.`가 아니라 Unity 오버로드 ==다 — `?.`는 순수 참조 검사라 파괴된 패널을 그대로 통과시킨다
+            // (위 _infoShownFor 주석과 같은 규약). TowerInfoUI는 DontDestroyOnLoad가 아니라 씬 언로드 때
+            // 타워와 순서 미정으로 함께 죽는다.
+            if (TowerInfoUI.Instance != null) TowerInfoUI.Instance.HideInfo();
             if (_mergePanel != null) _mergePanel.SetActive(true);
         }
         else
@@ -370,7 +373,7 @@ public class TowerMergeCoordinator : MonoBehaviour
             }
             else // count == 0 (또는 멤버가 파괴돼 표시할 게 없음)
             {
-                TowerInfoUI.Instance?.HideInfo();
+                if (TowerInfoUI.Instance != null) TowerInfoUI.Instance.HideInfo();
             }
         }
     }

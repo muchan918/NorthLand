@@ -22,17 +22,19 @@ public class SelectableTest : MonoBehaviour, ISelectable
         _selectedColor = selectedColor;
     }
 
+    // 패널이 없는 테스트 씬(정본 GameScene 밖)에서도 이 헬퍼만으로 예외가 나지 않게 가드한다.
+    // `?.`가 아니라 Unity 오버로드 ==인 이유는 #554와 같다 — 순수 참조 검사는 파괴를 못 잡는다.
     public void OnSelected()
     {
         _renderer.material.color = _selectedColor;
-        TowerInfoUI.Instance.ShowInfo(_testInfo);
+        if (TowerInfoUI.Instance != null) TowerInfoUI.Instance.ShowInfo(_testInfo);
         Debug.Log($"{name} 선택됨", this);
     }
 
     public void OnDeselected()
     {
         _renderer.material.color = _originalColor;
-        TowerInfoUI.Instance.HideInfo();
+        if (TowerInfoUI.Instance != null) TowerInfoUI.Instance.HideInfo();
         Debug.Log($"{name} 선택 해제됨", this);
     }
 }

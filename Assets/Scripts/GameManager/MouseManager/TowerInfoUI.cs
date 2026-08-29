@@ -70,6 +70,18 @@ public class TowerInfoUI : MonoBehaviour
         HideInfo(); // Instance 등록 후 숨기므로 안전
     }
 
+    // 파괴될 때 등록을 놓는다. 이게 없으면 씬이 언로드된 뒤에도 static Instance가 **파괴된 컴포넌트**를
+    // 계속 가리키고, `Instance?.`(순수 참조 검사)가 그걸 그대로 통과시켜 MissingReferenceException이 난다.
+    // 실제 경로: GameScene→TitleScene 단일 로드 중 이 패널이 타워보다 먼저 죽으면
+    // Tower.OnDisable→ActiveChanged→TowerMergeCoordinator.RefreshPanel→Tower.OnSelected가 여길 만졌다.
+    //
+    // `Instance == this` 검사가 필수다 — 위 Awake의 중복 가드로 **사본**이 자멸할 때
+    // (그 시점 Instance는 원본, this는 사본) 원본 등록까지 지워버리면 안 된다.
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
+    }
+
     // 조준 전환 버튼의 동작. 라벨만 다시 그리고 패널 전체는 건드리지 않는다 —
     // ShowInfo를 다시 부르면 스탯·합성 블록까지 재구성되어 스크롤·레이아웃이 튄다.
     void CycleTargeting(int step)

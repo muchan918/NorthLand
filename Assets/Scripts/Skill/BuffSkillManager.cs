@@ -86,6 +86,10 @@ public class BuffSkillManager : MonoBehaviour
     {
         if (_managementController != null)
             _managementController.OnChanged -= RefreshUpgrade;
+
+        // 씬 싱글톤 — 파괴 시 등록 해제(#554와 같은 규약). BuffSkillButtonView.cs:36이
+        // `BuffSkillManager.Instance?.Activate()`로 소비하는데 `?.`는 파괴를 못 잡는다.
+        if (Instance == this) Instance = null;
     }
 
     // 마법 연구소 레벨(미배선·미보유 시 0)로 유효 스탯을 다시 계산한다. 레벨 0/범위 밖 = 배율 1.0(기본값 그대로).

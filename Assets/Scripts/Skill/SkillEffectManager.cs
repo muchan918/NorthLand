@@ -68,6 +68,14 @@ public class SkillEffectManager : MonoBehaviour
         }
     }
 
+    // 씬 싱글톤 — 파괴 시 등록 해제(#554와 같은 규약). 이게 없으면 씬 언로드 뒤에도 static Instance가
+    // 파괴된 컴포넌트를 가리켜, 소비처의 `Instance?.`가 그대로 통과해 MissingReferenceException이 난다.
+    // `Instance == this`인 이유는 위 Awake의 중복 가드로 사본이 자멸할 때 원본을 지우면 안 되기 때문이다.
+    void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
+    }
+
     // 보상 선택 결과를 해당 타입의 효과에 위임한다. WaveRewardController가 호출.
     public void ApplyReward(WaveRewardData reward)
     {
