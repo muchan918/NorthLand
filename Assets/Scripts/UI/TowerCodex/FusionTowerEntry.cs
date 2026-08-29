@@ -25,8 +25,6 @@ namespace NorthLand.UI
 
         [SerializeField] private Image buttonBackground;
 
-        private static FusionTowerEntry selectedEntry;
-
         private CancellationTokenSource scaleCancellation;
         [SerializeField]
         private float selectedScale = 1.06f;
@@ -118,7 +116,7 @@ namespace NorthLand.UI
             button.onClick.AddListener(Select);
         }
 
-        private void SetSelected(bool selected)
+        internal void SetSelected(bool selected)
         {
             if (buttonBackground != null)
                 buttonBackground.color = selected ? Color.white : unselectedColor;
@@ -129,7 +127,7 @@ namespace NorthLand.UI
 
             Vector3 targetScale = selected ? originalScale * selectedScale : originalScale;
 
-            AnimateScaleAsync(targetScale,scaleCancellation.Token).Forget();
+            AnimateScaleAsync(targetScale, scaleCancellation.Token).Forget();
         }
 
         private async UniTask AnimateScaleAsync(Vector3 targetScale,CancellationToken cancellationToken)
@@ -159,19 +157,13 @@ namespace NorthLand.UI
                 // 다른 선택 애니메이션이 시작되면 이전 작업 종료
             }
         }
-       public void Select()
+        public void Select()
         {
             if (tower == null)
                 return;
 
-            selectedEntry?.SetSelected(false);
-
-            selectedEntry = this;
-            SetSelected(true);
-
             onSelected?.Invoke(tower);
         }
-
         private void OnDestroy()
         {
             if (button != null)
@@ -180,8 +172,6 @@ namespace NorthLand.UI
             scaleCancellation?.Cancel();
             scaleCancellation?.Dispose();
 
-            if (selectedEntry == this)
-                selectedEntry = null;
         }
 
     }

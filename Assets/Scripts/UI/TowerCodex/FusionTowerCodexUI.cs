@@ -247,6 +247,12 @@ namespace NorthLand.UI
 
         private void SelectTower(TowerAsset tower)
         {
+            if (selectedTower != null &&
+                entryByTower.TryGetValue(selectedTower, out FusionTowerEntry previousEntry))
+            {
+                previousEntry.SetSelected(false);
+            }
+
             selectedTower = tower;
 
             if (tower == null)
@@ -254,6 +260,9 @@ namespace NorthLand.UI
                 ClearSelectedView();
                 return;
             }
+
+            if (entryByTower.TryGetValue(tower, out FusionTowerEntry currentEntry))
+                currentEntry.SetSelected(true);
 
             if (selectedTowerIcon != null)
             {
