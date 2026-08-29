@@ -124,7 +124,7 @@ namespace NorthLand.UI
         {
             if (content == null || entryPrefab == null)
             {
-                Debug.LogError("[FusionTowerCodexUI] Content 또는 Entry Prefab이 연결되지 않았습니다.",this);
+                Debug.LogError("[FusionTowerCodexUI] Content 또는 Entry Prefab이 연결되지 않았습니다.", this);
 
                 return;
             }
@@ -141,7 +141,7 @@ namespace NorthLand.UI
 
                 FusionTowerEntry entry = Instantiate(entryPrefab, content);
 
-                entry.Initialize(tower,TowerDisplayName.Of(tower),SelectTower);
+                entry.Initialize(tower, TowerDisplayName.Of(tower), SelectTower);
 
                 entryByTower[tower] = entry;
                 firstEntry ??= entry;
@@ -394,7 +394,7 @@ namespace NorthLand.UI
                     if (!isFirstIcon && recipeSeparatorPrefab != null)
                         Instantiate(recipeSeparatorPrefab, recipeIconContent);
 
-                    RecipeMaterialIconView icon = Instantiate(recipeMaterialIconPrefab,recipeIconContent);
+                    RecipeMaterialIconView icon = Instantiate(recipeMaterialIconPrefab, recipeIconContent);
 
                     icon.Initialize(material.Tower.Icon);
                     isFirstIcon = false;

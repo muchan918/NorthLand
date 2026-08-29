@@ -40,7 +40,7 @@ namespace NorthLand.UI
         /// <summary>
         /// 도감 목록 항목을 초기화합니다.
         /// </summary>
-        public void Initialize(TowerAsset targetTower,string displayName,Action<TowerAsset> selectedCallback)
+        public void Initialize(TowerAsset targetTower, string displayName, Action<TowerAsset> selectedCallback)
         {
             tower = targetTower;
             onSelected = selectedCallback;
@@ -130,7 +130,7 @@ namespace NorthLand.UI
             AnimateScaleAsync(targetScale, scaleCancellation.Token).Forget();
         }
 
-        private async UniTask AnimateScaleAsync(Vector3 targetScale,CancellationToken cancellationToken)
+        private async UniTask AnimateScaleAsync(Vector3 targetScale, CancellationToken cancellationToken)
         {
             Vector3 startScale = transform.localScale;
             float elapsed = 0f;
@@ -160,7 +160,11 @@ namespace NorthLand.UI
         public void Select()
         {
             if (tower == null)
+            {
+                Debug.LogWarning($"[{nameof(FusionTowerEntry)}] TowerAsset이 없습니다.", this);
+
                 return;
+            }
 
             onSelected?.Invoke(tower);
         }
