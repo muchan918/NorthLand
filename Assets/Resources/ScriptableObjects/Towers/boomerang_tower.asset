@@ -64,6 +64,10 @@ MonoBehaviour:
     Radius: 0
     Duration: 0
     Interval: 0
+  ImpactVfx:
+    Prefab: {fileID: 199898, guid: cb4287e8f6cbf0e4083e8d5dd00a0a7a, type: 3}
+    Scale: 1
+    Lifetime: 0.85
   Ramp:
     Stat: 2
     Trigger: 0

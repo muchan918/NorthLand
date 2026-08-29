@@ -104,6 +104,14 @@ public class TowerAsset : ScriptableObject
     [Header("착탄 지속 구역")]
     public GroundZoneFields GroundZone;
 
+    // 착탄 순간 그 자리에 한 번 터지는 파티클(#521).
+    //
+    // ⚠ 바로 위 `GroundZone`과 **다른 축이다** — 이름이 비슷해 헷갈리기 쉬운데, 저쪽은 착탄점에
+    // 남아 **효과를 거는 판정 구역**이고 이쪽은 판정이 없는 **순수 연출**이다. 그래서 이쪽에는
+    // 반경도 주기도 없다: "어디에"는 착탄점이 정하고, 저작하는 것은 "무엇을·얼마나 크게·얼마나 오래"뿐이다.
+    [Header("착탄 이펙트")]
+    public ImpactVfxFields ImpactVfx;
+
     // 전투 실적으로 이 타워가 스스로 강해지는 축(#300). 지금까지 타워 스탯을 바꾸는 소스는 전부
     // 외부(타일 버프·오라·스킬·보스 봉인)에서 왔는데, 이것이 **자기 실적이 원장에 얹히는 첫 소스**다.
     [Header("성장(램프업)")]
@@ -337,6 +345,22 @@ public class TowerAsset : ScriptableObject
             Debug.LogWarning($"[TowerAsset] {name}: 착탄 구역을 저작했는데 Effects가 비어 있습니다 " +
                              "— 구역이 생기기만 하고 아무 효과도 걸지 않습니다(화상 수치는 Effects가 소유).", this);
 
+        // ── 착탄 이펙트(#521) ────────────────────────────────────────────────
+        // 순수 연출이라 밸런스 축은 없지만, "지정했는데 안 보인다"는 두 조합은 여기서 잡는다 —
+        // 둘 다 예외도 로그도 없이 조용히 아무 일도 일어나지 않는다.
+        bool impactVfxSet = ImpactVfx != null && ImpactVfx.Prefab != null;
+
+        if (impactVfxSet && ImpactVfx.Lifetime <= 0f)
+            Debug.LogWarning($"[TowerAsset] {name}: ImpactVfx.Prefab은 지정됐는데 Lifetime이 " +
+                             $"{ImpactVfx.Lifetime}입니다 — 스폰한 프레임에 지워져 아무것도 보이지 않습니다.", this);
+
+        // 착탄 이펙트는 **투사체가 터지는 순간**에만 걸린다. 빔 타워(BeamAction)는 투사체가 없어
+        // 이 축을 아예 타지 않으므로, 인페르노류 SO에 저작하면 값이 조용히 버려진다.
+        if (impactVfxSet && !hasAttack)
+            Debug.LogWarning($"[TowerAsset] {name}: 착탄 이펙트를 저작했는데 프리팹에 AttackAction이 없습니다 " +
+                             "— 착탄이 발생하지 않으므로 이펙트가 영영 생기지 않습니다" +
+                             (hasBeam ? "(빔 타워는 투사체가 없어 이 축을 타지 않습니다)." : "."), this);
+
         // 부메랑도 산탄과 같은 이유로 Area가 필요하다(#298) — Single은 위치 무관 판정이라
         // 왕복 경로의 재타격 게이트와 무관하게 항상 원래 타겟만 맞아버린다.
         if (hasAttack && attackAuthored && Attack.Flight is NorthLand.Combat.BoomerangFlight boomerang)
@@ -505,6 +529,30 @@ public class TowerAsset : ScriptableObject
         public float Interval;
 
         public bool IsAuthored => ZonePrefab != null && Radius > 0f && Duration > 0f && Interval > 0f;
+    }
+
+    // 착탄 순간의 파티클 저작 묶음(#521). 소비처는 `AttackAction.SpawnImpactVfx` 하나다.
+    //
+    // ⚠ **수치 기본값을 0으로 두지 않는다 — 바로 위 `GroundZoneFields`와 정반대다.** 저쪽은 반경·주기가
+    // 판정에 쓰여서 0이 "미저작"과 구분돼야 했지만, 이쪽 수치는 판정에 닿지 않고 프리팹 하나만 꽂으면
+    // 바로 보이는 것이 목적이다. 기본값이 0이면 프리팹을 지정한 사람마다 "넣었는데 아무것도 안 보인다"를
+    // 먼저 겪는다. 저작 여부의 유일한 판정 기준은 `Prefab`이다.
+    [System.Serializable]
+    public class ImpactVfxFields
+    {
+        [Tooltip("착탄 순간 스폰할 파티클 프리팹. playOnAwake가 켜져 있어야 한다 — " +
+                 "Instantiate만으로 재생을 시작한다. 비우면 착탄 이펙트가 없다(기존 거동).")]
+        public GameObject Prefab;
+
+        [Tooltip("프리팹 스케일에 곱하는 배수. 1 = 프리팹에 저작된 크기 그대로. " +
+                 "벤더 팩의 이펙트는 스킬 광역 기준으로 크게 저작된 것이 많아 착탄용으로는 줄여야 한다.")]
+        public float Scale = 1f;
+
+        [Tooltip("파티클 오브젝트를 제거하기까지의 시간(초). 파티클 최대 수명보다 길게 잡는다 — " +
+                 "짧으면 퍼지던 입자가 잘린다.")]
+        public float Lifetime = 2f;
+
+        public bool IsAuthored => Prefab != null && Lifetime > 0f;
     }
 
     [System.Serializable]
