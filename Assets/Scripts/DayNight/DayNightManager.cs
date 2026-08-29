@@ -54,6 +54,14 @@ public class DayNightManager : MonoBehaviour
         CurrentPhase = Phase.Day;
     }
 
+    // 씬 싱글톤 — 파괴 시 등록 해제(#554와 같은 규약). SystemMap §DayNight가 명시한 대로 이 매니저는
+    // DontDestroyOnLoad가 아니라 GameScene과 함께 죽는다. 해제하지 않으면 static Instance가 파괴된
+    // 컴포넌트를 계속 가리켜 CurrentWaveOrMax(:33)의 `Instance != null` 뒤 접근까지 위태로워진다.
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
+    }
+
     private void Start()
     {
         // 다른 오브젝트의 Start()에서 이벤트를 구독할 시간을 주기 위해 한 프레임 지연 후 발생시킴

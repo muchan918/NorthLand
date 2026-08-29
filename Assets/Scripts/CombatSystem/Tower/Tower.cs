@@ -527,13 +527,22 @@ namespace NorthLand.Combat
                 return;
             }
 
+            // 패널이 없거나 이미 파괴됐으면 선택 연출 전체를 건너뛴다. 씬 언로드 중 Tower.OnDisable→
+            // ActiveChanged→TowerMergeCoordinator.RefreshPanel이 남은 1개에 대해 여기를 다시 부르는
+            // 경로가 있고, 그때 TowerInfoUI가 먼저 죽어 있으면 ShowInfo 안 gameObject 접근에서
+            // MissingReferenceException이 났다. `?.`가 아니라 Unity 오버로드 ==인 이유는 아래
+            // OnDeselected 주석과 같다(순수 참조 검사는 파괴를 못 잡는다).
+            // 조기 반환인 이유: 아래 Sfx.PanelOpen()·ShowRangeCircle()은 "패널이 실제로 열린 경우"에만
+            // 뒤따르는 연출이다(바로 아래 주석의 규약) — 못 여는데 소리를 내고 원을 새로 만들 이유가 없다.
+            if (TowerInfoUI.Instance == null) return;
+
             // 조준 전환 행은 **`AcquireTarget`이 실제로 거동을 좌우하는 타워에만** 넘긴다.
             // 오라 전용 타워에 조작을 띄우면 눌러도 아무 일이 없고, 빔 타워는 자체 탐색을 쓴다(WL-178).
             // 안 되는 조작을 보여주는 쪽이 아예 없는 것보다 나쁘다.
             TowerInfoUI.Instance.ShowInfo(data.Data, Has<AttackAction>() ? this : null, this);
 
             // 패널이 켜지는 쪽이 아니라 클릭한 이 자리에서 낸다(BuildingInfo.ShowOnly와 같은 규약).
-            // 위 두 개의 조기 반환(에셋·데이터 누락)을 통과한 뒤이므로 패널이 실제로 열린 경우만 울린다.
+            // 위 세 개의 조기 반환(에셋·데이터 누락·패널 부재)을 통과한 뒤이므로 패널이 실제로 열린 경우만 울린다.
             // 박스·Shift 다중 선택은 이 경로를 타지 않아(MouseManager는 그쪽에서 Select를 부르지 않는다)
             // 타워를 여러 개 훑어도 소리가 겹쳐 쌓이지 않는다.
             Sfx.PanelOpen();
@@ -546,7 +555,7 @@ namespace NorthLand.Combat
             // `?.`는 순수 참조 검사라 **파괴된** 원(타워 소모·철거로 자식째 파괴)도 통과시켜 Hide() 안에서
             // MissingReferenceException이 난다 → Unity 오버로드 ==로 검사한다.
             if (_rangeCircle != null) _rangeCircle.Hide();
-            TowerInfoUI.Instance.HideInfo();
+            if (TowerInfoUI.Instance != null) TowerInfoUI.Instance.HideInfo();
         }
 
         // 선택 시 사거리 원(버프 반영 AttackRange)을 표시한다. 원은 자식 GO라 타워 파괴 시 함께 정리된다.

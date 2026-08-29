@@ -167,6 +167,10 @@ public class SkillManager : MonoBehaviour
             DayNightManager.Instance.OnDayToNight -= RefillCharges;
         if (_managementController != null)
             _managementController.OnChanged -= RefreshUpgrade;
+
+        // 씬 싱글톤 — 파괴 시 등록 해제(#554와 같은 규약). `Instance == this`인 이유는 위 Awake의
+        // 중복 가드로 사본이 자멸할 때 원본 등록을 지우면 안 되기 때문이다.
+        if (Instance == this) Instance = null;
     }
 
     void RefillCharges()
