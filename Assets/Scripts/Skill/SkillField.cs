@@ -21,6 +21,7 @@ public class SkillField : MonoBehaviour
     Vector3 capsulePoint1;
     float tickInterval;
     LayerMask enemyLayerMask;
+    CombatSfxHandle loopSound;
     bool debugLog;
 
     float lifeTimer;
@@ -30,7 +31,8 @@ public class SkillField : MonoBehaviour
     readonly List<IDamageable> hits = new List<IDamageable>(64);
 
     public void Init(float damagePerTick, float radius, float duration, float tickInterval,
-                     LayerMask enemyLayerMask, bool debugLog)
+                     LayerMask enemyLayerMask, AudioClip loopSfx, float loopSfxVolume,
+                     bool debugLog)
     {
         this.damagePerTick = damagePerTick;
         this.radius = radius;
@@ -45,6 +47,13 @@ public class SkillField : MonoBehaviour
 
         this.enemyLayerMask = enemyLayerMask;
         this.debugLog = debugLog;
+
+        loopSound = CombatSfx.Play(
+            loopSfx,
+            transform.position,
+            loop: true,
+            volumeScale: loopSfxVolume,
+            priority: CombatSfxPriority.Normal);
 
         // 0 이하 간격이면 아래 while이 무한 루프가 된다. 최소값으로 막는다.
         this.tickInterval = Mathf.Max(0.05f, tickInterval);
@@ -72,6 +81,8 @@ public class SkillField : MonoBehaviour
 
     void OnDestroy()
     {
+        loopSound.Stop();
+
         if (DayNightManager.Instance != null)
             DayNightManager.Instance.OnNightToDay -= HandleWaveEnd;
         if (GameManager.Instance != null)

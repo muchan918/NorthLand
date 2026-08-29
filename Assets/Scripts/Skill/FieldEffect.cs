@@ -15,6 +15,10 @@ public class FieldEffect : SkillEffect
     [SerializeField] bool loopParticlesForDuration;
     [SerializeField] ParticleSystem[] fieldParticles;
 
+    [Header("사운드")]
+    [SerializeField] AudioClip loopSfx;
+    [Range(0f, 2f)] [SerializeField] float loopSfxVolume = 1f;
+
     // 실제 반경의 정본은 fieldPrefab 루트의 CapsuleCollider다. 프리팹이나 Collider가 누락된
     // 비정상 구성에서만 기존 기본 반경을 사용하며, 씬에 별도 조절값을 남기지 않는다.
     const float FallbackFieldRadius = 3.6f;
@@ -72,6 +76,8 @@ public class FieldEffect : SkillEffect
             duration,
             tickInterval,
             enemyLayerMask,
+            loopSfx,
+            loopSfxVolume,
             debugLog);
 
         if (debugLog)
