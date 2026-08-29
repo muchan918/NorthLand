@@ -89,48 +89,63 @@ namespace NorthLand.Combat
             burstTarget = null;
         }
 
-        // 정보 패널에 이 액션이 기여할 줄: 공격력 / 사거리 / 공격속도.
-        // 배치 전 툴팁(TowerTooltipView)과 같은 포매터를 쓴다 — 값의 출처만 다르다(원장 합성값 vs SO 원본).
-        public override string DescribeStats()
+        // 공격력 / 사거리 / 공격속도를 **기본값과 실제값의 쌍**으로 낸다(#536).
+        // 셋 다 원장 4축(TowerStat)에 대응하므로 버프 타일·버프 오라·스킬이 실제로 바꾸는 축이고,
+        // 그 변화를 보여주는 것이 이 행의 존재 이유다.
+        public override void DescribeStatRows(List<TowerStatRowData> into)
         {
-            if (fields == null) return null;
+            if (fields == null) return;
 
-            string text = TowerStatsFormatter.BuildAttackLines(Damage, Range, Interval);
+            into.Add(TowerStatRowData.Stat(TowerStatsFormatter.k_DamageKey, fields.AttackDamage, Damage));
+            into.Add(TowerStatRowData.Stat(TowerStatsFormatter.k_RangeKey, fields.AttackRange, Range));
 
+            // 공격속도만 rate(1÷간격) 축이다. 간격을 그대로 쓰면 "버프를 받았는데 숫자가 줄어드는"
+            // 유일한 행이 되어 다른 행과 방향이 반대가 된다 — 문자열 표기(BuildAttackLines)도 같은 이유로 rate다.
+            into.Add(TowerStatRowData.Stat(
+                TowerStatsFormatter.k_SpeedKey,
+                TowerStatsFormatter.ToRate(fields.AttackInterval),
+                TowerStatsFormatter.ToRate(Interval),
+                TowerStatsFormatter.k_RateFormat));
+
+            // 아래는 원장 축이 아니라 "이 타워가 무엇을 하는가"의 서술이라 값이 하나뿐인 행이다.
+            //
             // 조준 방식은 여기서 내지 않는다 — 인게임 전환이 붙으면서 정보 패널의 **전용 행**이
             // 소유하게 됐다(#387). 스탯 블록은 선택 시점 스냅샷이라 버튼을 눌러도 갱신되지 않아,
             // 여기 두면 조작 직후 두 표기가 어긋난다.
-            return TowerStatsFormatter.Join(
-                text,
-                TowerStatsFormatter.BuildBurstLine(fields.BurstCount),
-                zone != null && zone.IsAuthored
-                    ? TowerStatsFormatter.BuildGroundZoneLine(zone.Radius, zone.Duration)
-                    : null,
-                DescribeEffects(effects, Owner));
+            AddIf(into, TowerStatsFormatter.BurstRow(fields.BurstCount));
+
+            if (zone != null && zone.IsAuthored)
+            {
+                AddIf(into, TowerStatsFormatter.GroundZoneRow(zone.Radius, zone.Duration));
+            }
+
+            DescribeEffectRows(effects, Owner, into);
         }
 
-        /// 효과 목록을 설명 줄로 잇는다. 공격 액션과 디버프 오라가 같은 표기를 공유한다.
+        /// 값이 있을 때만 담는다. 행 생산자들이 "해당 없음"을 null로 답하므로 호출부마다 같은 검사가 반복된다.
+        internal static void AddIf(List<TowerStatRowData> into, TowerStatRowData? row)
+        {
+            if (row.HasValue) into.Add(row.Value);
+        }
+
+        /// 효과 목록을 행으로 담는다. 공격 액션과 디버프 오라가 같은 표기를 공유한다.
         ///
         /// ⚠ **적용부와 같은 술어로 걸러야 한다.** 합성 계승(#274 Phase 5)으로 꺼진 효과를 그대로 표기하면
         /// "정보 패널엔 독이 있다는데 실제로는 안 걸리는" 어긋남이 생긴다 — 표시부와 적용부가 규칙을 각자
         /// 쓰는 것이 WL-079/WL-130이 지적한 문제였다. 그래서 `stats`가 아니라 **`owner`를 통째로** 받는다:
         /// 원장과 필터가 같은 곳에서 나오므로 호출부가 필터를 빠뜨릴 수 없다.
-        internal static string DescribeEffects(List<HitEffect> effects, Tower owner)
+        internal static void DescribeEffectRows(List<HitEffect> effects, Tower owner, List<TowerStatRowData> into)
         {
-            if (effects == null || effects.Count == 0 || owner == null) return null;
+            if (effects == null || effects.Count == 0 || owner == null) return;
 
-            string result = null;
             for (int i = 0; i < effects.Count; i++)
             {
                 HitEffect effect = effects[i];
                 if (effect == null) continue;
                 if (!owner.IsEffectActive(effect.Kind)) continue;   // 계승으로 꺼진 효과는 표기하지 않는다
 
-                string line = effect.Describe(owner.Stats);
-                if (string.IsNullOrEmpty(line)) continue;
-                result = result == null ? line : $"{result}\n{line}";
+                AddIf(into, effect.DescribeRow(owner.Stats));
             }
-            return result;
         }
 
         public override void Tick(float deltaTime)

@@ -22,7 +22,7 @@ MonoBehaviour:
   pauseGameDuringStep: 0
   resumeGameAfterPopup: 0
   restrictActions: 1
-  allowedActions: 563
+  allowedActions: 627
   minimumTowerCountBeforeEndDay: 0
   requiredTowerBeforeEndDay: {fileID: 0}
   freeTowerPlacement: 0
@@ -32,12 +32,10 @@ MonoBehaviour:
   villagerCap: 0
   upgradeAllowList: []
   completion:
-    rid: 3470830054771785827
+    rid: 3470830115119693922
   references:
     version: 2
     RefIds:
-    - rid: 3470830054771785827
-      type: {class: ResidentDragAssignedCondition, ns: , asm: Assembly-CSharp}
-      data:
-        requiredCount: 1
-        requireAllVillagersAssigned: 1
+    - rid: 3470830115119693922
+      type: {class: AllVillagersAssignedCondition, ns: , asm: Assembly-CSharp}
+      data: 

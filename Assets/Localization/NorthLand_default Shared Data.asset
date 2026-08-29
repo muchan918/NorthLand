@@ -411,6 +411,66 @@ MonoBehaviour:
     m_Key: title.seed.error.start_failed
     m_Metadata:
       m_Items: []
+  - m_Id: 17992732080332800
+    m_Key: game.tower.dot
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732113887232
+    m_Key: game.tower.dps
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732113887233
+    m_Key: game.tower.burst
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732113887234
+    m_Key: game.tower.zone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732113887236
+    m_Key: game.tower.lock_ramp
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732113887237
+    m_Key: game.tower.aura_radius
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732113887238
+    m_Key: game.tower.inherit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732113887239
+    m_Key: game.tower.inherit.none
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732113887240
+    m_Key: game.tower.effect.burn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732113887241
+    m_Key: game.tower.effect.poison
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732113887242
+    m_Key: game.tower.effect.slow
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992732113887243
+    m_Key: game.tower.effect.stun
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992906534019072
+    m_Key: game.tower.move_speed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17992906534019073
+    m_Key: game.tower.armor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18003414511247360
+    m_Key: game.tower.stack
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

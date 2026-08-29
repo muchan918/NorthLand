@@ -221,24 +221,32 @@ namespace NorthLand.Combat
         }
 
         // 정보 패널: 사거리 / 대상 1기당 DPS × 동시 대상 수 / (램프가 있으면) 성장 구간 / 효과.
-        public override string DescribeStats()
+        public override void DescribeStatRows(List<TowerStatRowData> into)
         {
-            if (fields == null) return null;
+            if (fields == null) return;
 
+            // 사거리는 원장 축(AttackRange)이라 기본값과 실제값을 가른다 — 빔 타워도 타일 버프를 탄다.
+            into.Add(TowerStatRowData.Stat(TowerStatsFormatter.k_RangeKey, fields.Range, Range));
+
+            // DPS도 원장을 통과하는 값이라 **기본값과 실제값을 가른다**(#536 리뷰). 피해와 틱 간격이
+            // 각각 AttackDamage·AttackSpeed 축을 타므로 버프 타일 위에서 실제로 오르는데, 예전에는
+            // Note 행이라 얼마나 올랐는지가 안 보였다 — 빔 계열만 「기본값 → 적용값」 규칙에서 빠졌다.
             float dps = TickInterval > 0f ? DamagePerTick / TickInterval : 0f;
+            float baseDps = fields.TickInterval > 0f ? fields.DamagePerTick / fields.TickInterval : 0f;
+            AttackAction.AddIf(into, TowerStatsFormatter.BeamDpsRow(baseDps, dps, fields.MaxTargets));
 
             // 램프가 있으면 최대 DPS를 함께 낸다 — 시작 DPS만 보여주면 단일 인페르노가 그냥 약한
             // 타워로 읽힌다(정체성이 "오래 지지면 아프다"인데 그 절반이 표시에서 사라진다).
             RampProfile ramp = fields.LockRamp;
-            string rampLine = ramp != null && ramp.IsAuthored
-                ? $"Lock ramp: ×1 → ×{ramp.Multiplier(ramp.MaxStacks):0.##} ({ramp.StackInterval * ramp.MaxStacks:0.#}s)"
-                : null;
+            if (ramp != null && ramp.IsAuthored)
+            {
+                into.Add(TowerStatRowData.Note(
+                    TowerStatsFormatter.StatLabel(TowerStatsFormatter.k_LockRampKey),
+                    $"×1 → ×{ramp.Multiplier(ramp.MaxStacks).ToString(TowerStatsFormatter.k_RateFormat)}" +
+                    $" ({(ramp.StackInterval * ramp.MaxStacks).ToString(TowerStatsFormatter.k_DefaultFormat)}s)"));
+            }
 
-            return TowerStatsFormatter.Join(
-                TowerStatsFormatter.BuildRangeLine(Range),
-                TowerStatsFormatter.BuildBeamLine(dps, fields.MaxTargets),
-                rampLine,
-                AttackAction.DescribeEffects(effects, Owner));
+            AttackAction.DescribeEffectRows(effects, Owner, into);
         }
 
         // ── 빔 비주얼(최소 구현) ──────────────────────────────────────────────

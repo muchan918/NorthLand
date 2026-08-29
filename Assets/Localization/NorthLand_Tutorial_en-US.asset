@@ -108,7 +108,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 4334194690
-    m_Localized: Place at least one tower, then press Next to begin the night.
+    m_Localized: Place at least one tower, then press Next in the upper-right corner
+      to begin the night.
     m_Metadata:
       m_Items: []
   - m_Id: 5269524480
@@ -185,10 +186,13 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 8494944256
-    m_Localized: 'Drag the new villager to a production building.
+    m_Localized: 'Drag the newly added villagers to production buildings.
 
-      The tutorial
-      will continue once every villager is assigned.'
+      The
+      tutorial will continue once every villager is assigned.
+
+      You can also
+      assign them using the buttons on the production line.'
     m_Metadata:
       m_Items: []
   - m_Id: 8964706304
@@ -206,7 +210,9 @@ MonoBehaviour:
     m_Localized: 'Select the Castle and add one villager.
 
       It is free during
-      the tutorial.'
+      the tutorial.
+
+      The shortcut key is 1.'
     m_Metadata:
       m_Items: []
   - m_Id: 9430274048
@@ -230,7 +236,10 @@ MonoBehaviour:
     m_Localized: 'Select the Magic Laboratory and upgrade a skill once.
 
       It
-      is free during the tutorial.'
+      is free during the tutorial.
+
+      The shortcut key for the Magic Laboratory
+      is 5.'
     m_Metadata:
       m_Items: []
   - m_Id: 9879064576
@@ -246,7 +255,10 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 9879064578
-    m_Localized: Exchange Star Candy for any resource at the Alchemist's House.
+    m_Localized: 'Exchange Star Candy for any resource at the Alchemist''s House.
+
+      The
+      shortcut key for the Alchemist''s House is 6.'
     m_Metadata:
       m_Items: []
   - m_Id: 10348826624
@@ -268,7 +280,9 @@ MonoBehaviour:
     m_Localized: 'Select the Castle and upgrade it to Lv. 2.
 
       It is free during
-      the tutorial.'
+      the tutorial.
+
+      The shortcut key is 1.'
     m_Metadata:
       m_Items: []
   - m_Id: 10818588672
@@ -380,6 +394,24 @@ MonoBehaviour:
     m_Localized: 'Tutorial complete.
 
       The main game will begin shortly.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1622859966746624
+    m_Localized: Welcome to the Tutorial!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1622860000301056
+    m_Localized: "We\u2019ll guide you through the basic controls and the game\u2019s
+      key features.\nWhen you\u2019re ready, select Complete to begin the tutorial."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1631492708405248
+    m_Localized: Battle Map
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1631492737765376
+    m_Localized: This is where you build towers and use skills to fend off the monsters
+      that attack at night.
     m_Metadata:
       m_Items: []
   references:

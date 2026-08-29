@@ -82,6 +82,24 @@ public static class Sfx
         Play(Bank != null ? Bank.PanelOpen : null);
     }
 
+    /// <summary>
+    /// 튜토리얼 말풍선이 새로 나타나는 순간. 문구를 갱신하는 호출이 아니라
+    /// 비활성 상태에서 활성 상태로 바뀌는 경계에서만 <see cref="TutorialOverlay"/>가 부른다.
+    /// </summary>
+    public static void TutorialBubbleOpened()
+    {
+        Play(Bank != null ? Bank.TutorialBubbleOpen : null);
+    }
+
+    /// <summary>
+    /// 튜토리얼 팝업이 새로 나타나는 순간. 선택 언어가 바뀌어 열린 팝업의 내용을 다시 그릴 때는
+    /// 호출하지 않으므로 안내음이 중복 재생되지 않는다.
+    /// </summary>
+    public static void TutorialPopupOpened()
+    {
+        Play(Bank != null ? Bank.TutorialPopupOpen : null);
+    }
+
     /// <summary>타워가 실제로 설치된 순간. 일반 배치와 합성 결과 배치가 같은 경로(`TowerPlacer.PlaceTower`)를 지난다.</summary>
     public static void TowerInstalled()
     {

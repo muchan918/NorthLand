@@ -21,9 +21,11 @@ public class TowerInfoUI : MonoBehaviour
     [SerializeField] TextMeshProUGUI _descriptionText;
 
     [Header("스탯")]
-    [Tooltip("스탯 블록 전체. 스탯 문자열이 비면(오라 전용 타워 등) 통째로 숨긴다.")]
+    [Tooltip("스탯 블록 전체. 표시할 행이 하나도 없으면 통째로 숨긴다.")]
     [SerializeField] GameObject _statsContainer;
-    [SerializeField] TextMeshProUGUI _statsText;
+    [Tooltip("스탯 행. 씬에 배치한 TowerStatRow 인스턴스를 순서대로 배선한다. " +
+             "표시할 항목이 배열보다 적으면 남는 행은 숨기고, 많으면 1회 경고한다.")]
+    [SerializeField] TowerStatRowView[] _statRows;
 
     [Header("조준 전환 (#387)")]
     [Tooltip("조준 전환 행 전체. 조준 개념이 없는 타워(오라 전용 등)에서는 통째로 숨긴다.")]
@@ -79,14 +81,16 @@ public class TowerInfoUI : MonoBehaviour
     }
 
     /// <summary>
-    /// 타워 메타데이터로 패널을 채운다(정본 경로).<br/>
-    /// <paramref name="statsText"/>는 이미 조합된 평문(공격력/사거리 등 SO 수치) — 숫자값이라 로컬라이즈 대상이 아니다.
+    /// 타워 메타데이터로 패널을 채운다(정본 경로).
     /// </summary>
     // 로컬라이즈는 지속형 패널에 LocalizationHelper.Get을 쓰는 방식이라 로케일 변경 자동 갱신이 안 되는 한계가 있다
     // (BuildingInfoUI와 동일한 트레이드오프, #153 — 필요 시 후속으로 LocalizeStringEvent로 함께 교체).
     /// <paramref name="targeting"/>가 null이면 조준 전환 행을 숨긴다 — 조준 개념이 없는 타워가 있고(오라 전용),
     /// 안 먹는 조작을 띄우는 것은 조작이 아예 없는 것보다 나쁘기 때문이다.
-    public void ShowInfo(TowerData data, string statsText = null, ITargetingSelector targeting = null)
+    /// <paramref name="statSource"/>가 null이면 스탯 블록을 접는다 — 배치 전 툴팁처럼 원장이 없는
+    /// 호출부는 기본값과 실제값을 가를 수 없어 행을 만들 수 없다.
+    public void ShowInfo(TowerData data, ITargetingSelector targeting = null,
+                         ITowerStatRowSource statSource = null)
     {
         if (data == null)
         {
@@ -97,19 +101,20 @@ public class TowerInfoUI : MonoBehaviour
         SetText(_nameText, L(data.NameKey));
         SetText(_roleText, L(data.RoleKey));
         SetText(_descriptionText, L(data.DescriptionKey));
-        ApplyStats(statsText);
+        ApplyStats(statSource);
         ApplyTargeting(targeting);
         RefreshMergeTargets(data.TowerID);
         gameObject.SetActive(true);
     }
 
-    /// <summary>설명만 아는 호출부(테스트 헬퍼 등)를 위한 축약 경로. 이름·역할은 비워 둔다.</summary>
-    public void ShowInfo(string descriptionKey, string statsText = null)
+    /// <summary>설명만 아는 호출부(테스트 헬퍼 등)를 위한 축약 경로. 이름·역할은 비워 둔다.
+    /// 스탯 행은 액션과 원장에서 나오므로 이 경로에서는 만들 수 없다 — 블록을 접는다.</summary>
+    public void ShowInfo(string descriptionKey)
     {
         SetText(_nameText, string.Empty);
         SetText(_roleText, string.Empty);
         SetText(_descriptionText, L(descriptionKey));
-        ApplyStats(statsText);
+        ApplyStats(null);
         ApplyTargeting(null);   // 축약 경로는 타워 인스턴스를 모르므로 조준 조작을 붙일 수 없다
         RefreshMergeTargets(null);  // TowerID를 모르면 역방향 조회를 할 수 없다 → 블록을 접는다
         gameObject.SetActive(true);
@@ -120,7 +125,7 @@ public class TowerInfoUI : MonoBehaviour
         SetText(_nameText, string.Empty);
         SetText(_roleText, string.Empty);
         SetText(_descriptionText, string.Empty);
-        SetText(_statsText, string.Empty);
+        ApplyStats(null);       // 스탯 행을 접는다 — 직전 타워의 행이 남지 않게(#536)
         ApplyTargeting(null);   // 선택이 풀린 타워를 계속 붙들지 않는다(파괴된 타워를 조작하는 경로 차단)
         RefreshMergeTargets(null);  // 다음 표시가 축약 경로여도 직전 타워의 후보가 남지 않게 비운다
         gameObject.SetActive(false);
@@ -139,15 +144,104 @@ public class TowerInfoUI : MonoBehaviour
         SetText(_targetingText, targeting?.TargetingName);
     }
 
-    // 스탯이 없는 타워(오라 전용 등 DescribeStats가 빈 경우)는 블록을 통째로 숨겨 빈 박스가 남지 않게 한다.
-    private void ApplyStats(string statsText)
+    // 지금 행을 공급하는 타워. 파괴·선택 해제 시 놓는다(ITargetingSelector와 같은 규약).
+    private ITowerStatRowSource _statSource;
+    // 마지막으로 그린 원장 버전. Update가 이 값과 비교해 **바뀐 프레임에만** 행을 다시 만든다.
+    private int _statVersion;
+    // 행 조립 버퍼. 패널이 소유한다 — 예전엔 Tower가 static 스크래치를 넘겨줬는데, 이제 패널이
+    // 매 갱신마다 직접 채우므로 소유자가 여기인 편이 수명이 명확하다.
+    private readonly List<TowerStatRowData> _rowBuffer = new();
+
+    // 낼 행이 하나도 없는 타워는 블록을 통째로 숨겨 빈 박스가 남지 않게 한다.
+    private void ApplyStats(ITowerStatRowSource statSource)
     {
-        SetText(_statsText, statsText);
+        _statSource = statSource;
+        _statVersion = statSource?.StatsVersion ?? 0;
+
+        RebuildStatRows();
+    }
+
+    /// <summary>
+    /// 원장이 바뀌었으면 행을 다시 그린다(#536). 램프 스택이 쌓이는 동안 패널을 다시 열지 않아도
+    /// 공격력·공격속도가 따라 움직이게 하는 경로다 — 타일 버프·오라·스킬 버프·버프 만료도 같은 축이라
+    /// 함께 반영된다(전부 원장을 거쳐 값이 되기 때문).
+    /// <para>매 프레임 행을 재조립하지 않는 이유는 문자열 조립 비용이다. 실제로 값이 바뀌는 순간은
+    /// 드물어서 <see cref="ITowerStatRowSource.StatsVersion"/> 비교만 매 프레임 한다.</para>
+    /// </summary>
+    private void Update()
+    {
+        if (_statSource == null) return;
+
+        // 합성으로 소모된 타워처럼 **파괴된** 공급원은 `== null`로 걸러지지 않는다(인터페이스 참조라
+        // C# null 검사가 Unity의 파괴 판정을 타지 않는다). UnityEngine.Object로 되짚어 검사한다 —
+        // OnDeselected가 오지 않는 경로(타워가 합성 재료로 사라짐)에서 여기가 마지막 방어선이다.
+        if (_statSource is UnityEngine.Object unityObject && unityObject == null)
+        {
+            HideInfo();
+            return;
+        }
+
+        int version = _statSource.StatsVersion;
+        if (version == _statVersion) return;
+
+        _statVersion = version;
+        RebuildStatRows();
+    }
+
+    private void RebuildStatRows()
+    {
+        _rowBuffer.Clear();
+        _statSource?.BuildStatRows(_rowBuffer);
+
+        int filled = ApplyStatRows(_rowBuffer);
+
         if (_statsContainer != null)
         {
-            _statsContainer.SetActive(!string.IsNullOrEmpty(statsText));
+            _statsContainer.SetActive(filled > 0);
         }
     }
+
+    /// <summary>
+    /// 스탯 행을 채우고 남는 행은 숨긴다. 채운 행 수를 돌려준다.
+    /// <para>행이 배열보다 많으면 넘치는 항목은 **표시되지 않는다** — 조용히 잘리지 않도록 1회 경고한다.
+    /// 행 수는 타워마다 다르다(공격 3축 + 연발·구역·효과·성장…) — 효과가 많은 타워가 배선된 행 수를
+    /// 넘길 수 있으므로, 잘린 사실이 콘솔에 남아야 "왜 저 타워만 독 표기가 없지"로 헤매지 않는다.</para>
+    /// </summary>
+    private int ApplyStatRows(IReadOnlyList<TowerStatRowData> statRows)
+    {
+        if (_statRows == null) return 0;
+
+        int count = statRows?.Count ?? 0;
+
+        if (count > _statRows.Length && !_statRowOverflowWarned)
+        {
+            _statRowOverflowWarned = true;
+            Debug.LogWarning($"[타워정보] 스탯 행이 {count}개인데 배선된 행은 {_statRows.Length}개입니다 — " +
+                             $"{count - _statRows.Length}개가 표시되지 않습니다. 씬에 TowerStatRow를 더 배치하세요.", this);
+        }
+
+        int filled = 0;
+
+        for (int i = 0; i < _statRows.Length; i++)
+        {
+            if (_statRows[i] == null) continue;
+
+            if (i < count)
+            {
+                _statRows[i].Set(statRows[i]);
+                filled++;
+            }
+            else
+            {
+                _statRows[i].Hide();
+            }
+        }
+
+        return filled;
+    }
+
+    // 행 부족 경고는 배선이 바뀌기 전까지 사실이 변하지 않으므로 1회만 낸다.
+    private bool _statRowOverflowWarned;
 
     /// <summary>
     /// "이 타워를 재료로 쓰는 상위 타워" 블록을 다시 그린다(TowerMerge.md §8.5).

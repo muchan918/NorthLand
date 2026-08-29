@@ -1,6 +1,6 @@
 # 튜토리얼 — 구조와 단계 추가 절차
 
-> **기준 코드: #526(안내 이미지·접근 제한·본진 재사용 보강) 시점.** 이 문서는 "어떻게 단계를 붙이는가"와
+> **기준 코드: #545(인트로·카메라 연출·다국어 안내·안내음 보강) 시점.** 이 문서는 "어떻게 단계를 붙이는가"와
 > "왜 이 구조인가"를 함께 다룬다. 실제 안내 문구의 정본은 `NorthLand_Tutorial` String Table이다.
 > 관련: [UIZOrder.md](UIZOrder.md)(캔버스 레이어) · [SceneWorkflow.md](SceneWorkflow.md)(씬 복사 규약) ·
 > [DayNightManager.md](DayNightManager.md) · [MouseManager.md](MouseManager.md) ·
@@ -40,6 +40,7 @@ TutorialContext.cs        조건이 쓰는 씬 참조 주소록
 Conditions/
   BuildingActionCondition.cs   경영 공간 행동 감시
   PhaseChangedCondition.cs     낮/밤 전환 감시
+  CameraFocusCondition.cs      카메라 강제 포커스 이동 후 도착 감시
   TowerCountCondition.cs       현재 보유 타워 수 감시
   ResidentDragAssignedCondition.cs 주민 드래그 성공 감시
 ```
@@ -103,12 +104,17 @@ protected void Fire();
 | 　└ `TutorialBubbleLayout` | 문장 길이에 맞춰 Bubble 크기를 1회 계산한다. 텍스트 안전 영역은 `BubbleText` RectTransform의 Anchor·`sizeDelta`가 정본이다 |
 | `TutorialController` | `Overlay` 슬롯 + 단계 리스트 + `startOnPlay` 스위치 + `Debug Mode`/`Debug Steps`([§2.4](#24-단계-하나만-떼어내-돌려보기)) |
 
-튜토리얼 시스템과 25개 단계는 `Assets/Prefabs/Tutorial/TutorialSystem.prefab`에 등록되어 정본
+튜토리얼 시스템과 35개 등록 단계는 `Assets/Prefabs/Tutorial/TutorialSystem.prefab`에 등록되어 정본
 `Assets/Scenes/GameScene.unity`에서 사용된다. 작업용 복사본은
 `Assets/Personal/muchan/Scene/TutorialTest3.unity`이며, 이후 정본 씬 변경은
 [SceneWorkflow.md](SceneWorkflow.md) §4를 따른다.
 
 단계 에셋은 `Assets/Resources/ScriptableObjects/Tutorial/`에 둔다.
+
+`TutorialOverlay.ShowBubble`과 `ShowPopup`은 루트가 비활성 상태에서 새로 활성화되는 순간 각각
+`Sfx.TutorialBubbleOpened()`와 `Sfx.TutorialPopupOpened()`를 부른다. 열린 패널의 Localization 문구를
+다시 그리는 호출에는 소리를 반복하지 않고, 닫힐 때도 소리를 내지 않는다. 클립·볼륨 정본은
+`Assets/Resources/ScriptableObjects/SfxBank.asset`의 `Tutorial Bubble Open` / `Tutorial Popup Open` Cue다.
 
 ### 1.5 진입·종료 계약
 
@@ -234,6 +240,25 @@ public class TowerPlacedCondition : TutorialCondition
 >
 > 판별 기준은 하나다 — **플레이어 행동을 요구하는 말풍선에는 타이머를 쓰지 않는다.**
 
+#### 카메라 연출 전용 단계 — `CameraFocusCondition`
+
+팝업보다 먼저 특정 공간을 보여 주려면 팝업 없는 단계 에셋의 완료 조건에 `CameraFocusCondition`을 둔다.
+이 조건은 관찰만 하는 `CameraMovedCondition`과 달리 `Begin`에서 이동을 직접 시작하고, 위치와 선택한 줌
+목표에 모두 도착하면 `Satisfied`를 보낸다. 다음 단계에 설명 팝업을 두면 순서는
+`카메라 이동 → 도착 → 팝업 표시`가 된다.
+
+| 설정 | 의미 |
+|---|---|
+| `Target Mode = WorldPosition` | 지정 월드 지점을 화면 중앙으로 옮긴다 |
+| `Target Mode = CombatGridCell` | 런타임 전투 셀을 `CombatMapTileSpawner.GridToWorldPosition`으로 변환해 화면 중앙으로 옮긴다 |
+| `Change Zoom` / `Zoom Size` | 켠 경우 이동과 줌이 모두 끝나야 완료된다 |
+
+연출 단계는 팝업·말풍선을 비우고 `Pause Game During Step = On`, `Restrict Actions = On`,
+`Allowed Actions = None`으로 두는 것이 기본이다. 사용자 카메라 입력은 막히지만
+`CameraController2.FocusViewCenterForTutorial`은 전용 상태로 `TutorialInputGate`를 우회하며,
+`unscaledDeltaTime`으로 움직이므로 튜토리얼 정지 중에도 완료된다. 단계 중단·튜토리얼 종료 시 조건의
+`End`가 `CancelTutorialFocus()`를 불러 이동과 이벤트 구독을 정리한다.
+
 #### 아직 이벤트가 없는 것
 
 붙이려면 해당 시스템에 통지를 먼저 추가해야 한다.
@@ -279,7 +304,7 @@ if (targetBuilding != null && building != targetBuilding)
 `SkillUsedCondition`처럼 밤을 요구하는 조건(`SkillManager.CanCast`)은 충족되지 않는다 —
 필요한 앞 단계(예: `DayEnd`)를 `Debug Steps`에 같이 넣어야 한다.
 
-### 2.5 현재 25단계 정본
+### 2.5 현재 35개 등록 단계 정본
 
 순서는 `TutorialSystem.prefab`의 `TutorialController.Steps` 등록 순서가 정본이다. 아래 표의 팝업 여부는
 제목·본문·이미지 중 하나라도 설정됐는지를 뜻한다. 문구 자체는 SO가 저장한 의미 기반 키를 통해
@@ -287,34 +312,47 @@ if (targetBuilding != null && building != targetBuilding)
 
 | # | 단계 에셋 | 팝업 | 완료 조건 | 핵심 단계 규칙 |
 |---:|---|:---:|---|---|
-| 1 | `CameraKeyboard` | X | `CameraMovedCondition` | 카메라 이동만 |
-| 2 | `CameraDrag` | X | `CameraMovedCondition` | 카메라 이동만 |
-| 3 | `CameraZoomOut` | X | `CameraMovedCondition` | 카메라 이동만 |
-| 4 | `VillagerAssign` | O | `AllVillagersAssignedCondition` | 카메라, 주민 +/- |
-| 5 | `TowerSelect` | O | `TowerSelectedCondition` | 카메라, 배치할 타워 선택 |
-| 6 | `BuffTileIntro` | O | 없음(확인 후 즉시 진행) | 팝업 외 입력 없음 |
-| 7 | `TowerPlace` | X | `TowerPlacedCondition` | 카메라, 타워 선택·배치 |
-| 8 | `UndoIntro` | O | 없음(확인 후 즉시 진행) | 팝업 외 입력 없음 |
-| 9 | `DayEnd` | X | `PhaseChangedCondition`(밤) | 카메라, 타워 선택·배치, Undo, 낮 종료; 타워 최소 1개 |
-| 10 | `SkillIntro` | X | `DelayCondition` | 카메라, 스킬; 등장 연출 대기 |
-| 11 | `SkillUse` | O | `SkillUsedCondition` | 팝업 동안만 정지, 확인 후 카메라·스킬 허용 |
-| 12 | `NextDay` | X | `PhaseChangedCondition`(낮) | 카메라, 스킬 |
-| 13 | `BuildingSelectIntro` | X | `DelayCondition`(1.5초) | 카메라만 |
-| 14 | `ShortcutBarIntro` | O | `BuildingShortcutUsedCondition` | 카메라, 바로가기, 건물 선택 |
-| 15 | `ProductionUpgrade` | X | `AllProductionLinesUpgradedCondition` | 생산 건물 3종 무료, 각 Lv.1 상한 |
-| 16 | `VillagerIncrease` | O | `BuildingActionCondition` | 본진 주민 증가 무료, 1회 상한 |
-| 17 | `VillagerAssignAgain` | O | `ResidentDragAssignedCondition` | 주민 선택·드래그; 드래그 성공 후 전원 배치 확인 |
-| 18 | `SkillUpgrade` | O | `BuildingActionCondition` | 마법 연구소 무료 강화, Lv.1 상한 |
-| 19 | `AlchemyExchange` | O | `BuildingActionCondition` | 연금술 교환 1회 |
-| 20 | `CastleUpgrade` | O | `BuildingActionCondition` | 본진 무료 강화, Lv.1 상한 |
-| 21 | `TowerBuildForMerge` | O | `TowerCountCondition` | 아처만 무료 배치, 아처 3개 보유, Undo·전투 지역 바로가기 허용 |
-| 22 | `TowerMerge` | X | `TowerMergedCondition` | 설치 타워 다중 선택·합성·결과 배치 |
-| 23 | `CombatIntro` | O | `PhaseChangedCondition`(밤) | 카메라, 낮 종료 |
-| 24 | `WaveClear` | X | `PhaseChangedCondition`(낮) | 카메라, 스킬, 설치 타워 선택 |
-| 25 | `TutorialComplete` | X | `DelayCondition`(3초, 실제 시간) | 입력 없음; 완료 통지 후 일반 게임으로 전환 |
+| 1 | `SceneLoadDelay` | X | `DelayCondition` | 씬 초기 표시 안정화 대기 |
+| 2 | `Intro` | O | 없음(확인 후 즉시 진행) | 튜토리얼 시작 안내, 팝업 외 입력 없음 |
+| 3 | `DelayIntro` | X | `DelayCondition` | 첫 조작 안내 전 간격 |
+| 4 | `CameraKeyboard` | X | `CameraMovedCondition` | 키보드 카메라 이동만 |
+| 5 | `DelayTime` | X | `DelayCondition` | 다음 카메라 안내 전 간격 |
+| 6 | `CameraDrag` | X | `CameraMovedCondition` | 드래그 카메라 이동만 |
+| 7 | `DelayTime` | X | `DelayCondition` | 다음 카메라 안내 전 간격 |
+| 8 | `CameraZoomOut` | X | `CameraMovedCondition` | 카메라 줌만 |
+| 9 | `DelayTime` | X | `DelayCondition` | 주민 안내 전 간격 |
+| 10 | `VillagerAssign` | O | `AllVillagersAssignedCondition` | 카메라, 주민 +/- |
+| 11 | `MoveBattleMap` | X | `CameraFocusCondition` | 입력·게임 정지, 전투 공간으로 강제 이동 |
+| 12 | `BattleMapIntro` | O | 없음(확인 후 즉시 진행) | 전투 공간 소개, 팝업 외 입력 없음 |
+| 13 | `DelayTime` | X | `DelayCondition` | 타워 안내 전 간격 |
+| 14 | `TowerSelect` | O | `TowerSelectedCondition` | 카메라, 배치할 타워 선택 |
+| 15 | `BuffTileIntro` | O | 없음(확인 후 즉시 진행) | 팝업 외 입력 없음 |
+| 16 | `TowerPlace` | X | `TowerPlacedCondition` | 카메라, 타워 선택·배치 |
+| 17 | `UndoIntro` | O | 없음(확인 후 즉시 진행) | 팝업 외 입력 없음 |
+| 18 | `DayEnd` | X | `PhaseChangedCondition`(밤) | 카메라, 타워 선택·배치, Undo, 낮 종료; 타워 최소 1개 |
+| 19 | `SkillIntro` | X | `DelayCondition` | 카메라, 스킬; 등장 연출 대기 |
+| 20 | `SkillUse` | O | `SkillUsedCondition` | 팝업 동안만 정지, 확인 후 카메라·스킬 허용 |
+| 21 | `NextDay` | X | `PhaseChangedCondition`(낮) | 카메라, 스킬 |
+| 22 | `BuildingSelectIntro` | X | `DelayCondition`(1.5초) | 카메라만 |
+| 23 | `ShortcutBarIntro` | O | `BuildingShortcutUsedCondition` | 카메라, 바로가기, 건물 선택 |
+| 24 | `ProductionUpgrade` | X | `AllProductionLinesUpgradedCondition` | 생산 건물 3종 무료, 각 Lv.1 상한 |
+| 25 | `VillagerIncrease` | O | `BuildingActionCondition` | 본진 주민 증가 무료, 1회 상한 |
+| 26 | `VillagerAssignAgain` | O | `ResidentDragAssignedCondition` | 주민 버튼·선택·드래그; 드래그 성공 후 전원 배치 확인 |
+| 27 | `SkillUpgrade` | O | `BuildingActionCondition` | 마법 연구소 무료 강화, Lv.1 상한 |
+| 28 | `AlchemyExchange` | O | `BuildingActionCondition` | 연금술 교환 1회 |
+| 29 | `CastleUpgrade` | O | `BuildingActionCondition` | 본진 무료 강화, Lv.1 상한 |
+| 30 | `MoveBattleMap2` | X | `CameraFocusCondition` | 입력·게임 정지, 전투 공간으로 강제 이동 |
+| 31 | `TowerBuildForMerge` | O | `TowerCountCondition` | 아처만 무료 배치, 아처 3개 보유, Undo·전투 지역 바로가기 허용 |
+| 32 | `TowerMerge` | X | `TowerMergedCondition` | 설치 타워 다중 선택·합성·결과 배치 |
+| 33 | `CombatIntro` | O | `PhaseChangedCondition`(밤) | 카메라, 낮 종료 |
+| 34 | `WaveClear` | X | `PhaseChangedCondition`(낮) | 카메라, 스킬, 설치 타워 선택 |
+| 35 | `TutorialComplete` | X | `DelayCondition`(3초, 실제 시간) | 입력 없음; 완료 통지 후 일반 게임으로 전환 |
 
 `BuildingShortcutUsedCondition`은 바로가기 바의 `Focused`와 `MouseManager.OnPrimarySelect`를 함께
-구독한다. 따라서 14단계는 지정 건물 바로가기뿐 아니라 월드의 같은 건물을 직접 클릭해도 완료된다.
+구독한다. 따라서 23단계는 지정 건물 바로가기뿐 아니라 월드의 같은 건물을 직접 클릭해도 완료된다.
+
+`DelayTime`은 같은 에셋을 리스트의 여러 위치에서 재사용한다. 위 표의 35는 고유 SO 개수가 아니라
+`TutorialController.Steps`의 **등록 슬롯 수**다.
 
 `TowerPlacedCondition`은 단계 진입 뒤의 **증가량**을 보고, `TowerCountCondition`은 단계 진입 전에 있던
 타워까지 포함한 **현재 보유량**을 본다. Undo·합성 단계에서 둘을 혼용하지 않는다.
@@ -457,8 +495,8 @@ Unity는 **단일 필드**의 managed reference에는 타입 선택 UI를 그리
 
 1. `Assets/Personal/muchan/Scene/TutorialTest3.unity`를 연다.
 2. `TutorialController.startOnPlay`를 켜고 `Debug Mode`를 끈다.
-3. `TutorialSystem.prefab`의 `Steps`가 [§2.5](#25-현재-25단계-정본) 순서인지 확인한다.
-4. 1~25단계를 실제 행동으로 끝까지 진행한다.
+3. `TutorialSystem.prefab`의 `Steps`가 [§2.5](#25-현재-35개-등록-단계-정본) 순서인지 확인한다.
+4. 1~35번 등록 단계를 실제 행동으로 끝까지 진행한다.
 5. 마지막 웨이브 종료 후 완료 저장과 일반 `GameScene` 전환을 확인한다.
 6. 일반 Run에서 초기 자원·적 체력·스킬 쿨다운·무료 비용·행동 제한이 남지 않았는지 확인한다.
 

@@ -79,6 +79,16 @@ namespace NorthLand.Combat
 
         public bool HasAny => sources.Count > 0;
 
+        /// <summary>
+        /// 원장이 바뀔 때마다 오르는 카운터(#536). 표시부가 "다시 읽어야 하는가"를 이 값 하나로 판단한다 —
+        /// 정보 패널이 매 프레임 행을 재조립하면 문자열 할당이 프레임마다 쌓이는데, 실제로 값이 바뀌는
+        /// 순간은 드물기 때문이다(램프 스택 증감·버프 적용·만료).
+        ///
+        /// <para><b>증가 지점은 <see cref="Recompute"/> 하나다.</b> Apply·Remove·Prune·Clear가 전부 그것을
+        /// 거치므로 새 변경 경로가 생겨도 자동으로 포함된다 — 각 진입점에서 따로 올리면 하나를 흘린다.</para>
+        /// </summary>
+        public int Version { get; private set; }
+
         /// 기본값에 이 원장의 modifier를 합성한 최종 값.
         /// 배율형 스탯(공격속도)은 baseValue에 1f를 넘겨 순수 배율로 받는다.
         ///
@@ -192,6 +202,8 @@ namespace NorthLand.Combat
 
         void Recompute()
         {
+            Version++;
+
             for (int i = 0; i < StatCount; i++)
             {
                 flat[i] = 0f;
