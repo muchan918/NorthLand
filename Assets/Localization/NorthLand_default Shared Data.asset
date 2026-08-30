@@ -471,6 +471,10 @@ MonoBehaviour:
     m_Key: game.tower.stack
     m_Metadata:
       m_Items: []
+  - m_Id: 18462505637502976
+    m_Key: game.result.seed
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

@@ -500,6 +500,10 @@ MonoBehaviour:
     m_Localized: Stack
     m_Metadata:
       m_Items: []
+  - m_Id: 18462505637502976
+    m_Localized: Current Seed
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

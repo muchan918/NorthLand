@@ -259,8 +259,15 @@ public class AudioManager : MonoBehaviour
     ///
     /// ⚠️ **소스가 하나뿐이라 이 경로의 소리들끼리도 서로를 끊는다.** 지금 소비처가 하나라 충분하지만,
     /// 둘 이상이 동시에 울려야 하는 상황이 생기면 소리별 소스로 갈라야 한다.
+    ///
+    /// <param name="startTime">
+    /// 클립의 몇 초 지점부터 재생할지. 기본값 0은 처음부터 재생하는 기존 동작이다.
+    /// 앞에 워밍업이 붙어 있어 <b>타격 순간이 클립 중간에 있는</b> 효과음을 화면 연출에 맞출 때 쓴다
+    /// (결과창 승리 스팅어가 그렇다 — 실제 타격이 0.6초 지점이라 그대로 틀면 로고가 착지하고
+    /// 한참 뒤에 소리가 난다). 클립 길이를 넘으면 재생되지 않으므로 안쪽으로 물린다.
+    /// </param>
     /// </summary>
-    public void PlaySfxExclusive(AudioClip clip, float volumeScale = 1f)
+    public void PlaySfxExclusive(AudioClip clip, float volumeScale = 1f, float startTime = 0f)
     {
         if (clip == null || sfxExclusiveSource == null)
         {
@@ -280,6 +287,12 @@ public class AudioManager : MonoBehaviour
 
         sfxExclusiveSource.clip = clip;
         sfxExclusiveSource.volume = GetEffectiveVolume(AudioChannel.Sfx) * exclusiveScale;
+
+        // 시작 지점은 Play() **전에** 넣는다. 재생을 걸어 두고 나중에 time을 밀면 앞부분이
+        // 한 프레임 새어 나온다 — 워밍업을 건너뛰려고 쓰는 기능이라 그 한 프레임이 곧 실패다.
+        // 길이 이상을 넣으면 Unity가 재생을 거르므로 마지막 샘플 앞으로 물린다.
+        sfxExclusiveSource.time = Mathf.Clamp(startTime, 0f, Mathf.Max(0f, clip.length - 0.01f));
+
         sfxExclusiveSource.Play();
     }
 
