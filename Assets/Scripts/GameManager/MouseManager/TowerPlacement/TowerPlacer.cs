@@ -149,6 +149,10 @@ public class TowerPlacer : MonoBehaviour
 
     private bool previewFootprintInitialized;
 
+    private float _previewLowestSurfaceY;
+    private float _previewHighestSurfaceY;
+    private bool _previewFoundationDirty;
+
     private readonly TileBuffCalculator previewBuffCalculator = new TileBuffCalculator();
 
     private readonly List<BuffTileDefinition> previewDefinitions = new List<BuffTileDefinition>();
@@ -285,6 +289,7 @@ public class TowerPlacer : MonoBehaviour
             // 아래 PlaceTower의 본체 회전과 **같은 출처**를 써야 미리보기와 실제 배치가 어긋나지 않는다.
             GhostRotation = GridBasis * Quaternion.Euler(0f, data.PlacementYaw, 0f),
             Snap = SnapToFootprintCenter,
+            OnGhostPositionUpdated = UpdateGhostFoundation,
             CanPlaceAt = CanPlaceFootprint,
             OnConfirmed = PlaceTower,
             OnRejected = Sfx.Rejected,
@@ -367,7 +372,19 @@ public class TowerPlacer : MonoBehaviour
             UpdateRangeIndicator(CalculatePreviewRange());
         }
 
-        Vector3 result = anchor != null ? CalculateFootprintCenter(anchor,_activeData,_activeSurfaceLift,out _,out _) : hit.point;
+        Vector3 result;
+
+        if (anchor != null)
+        {
+            result = CalculateFootprintCenter(anchor,_activeData,_activeSurfaceLift,out _previewLowestSurfaceY,out _previewHighestSurfaceY);
+
+            _previewFoundationDirty = footprintChanged;
+        }
+        else
+        {
+            result = hit.point;
+            _previewFoundationDirty = false;
+        }
 
         if (_rangeCircle != null)
         {
@@ -381,6 +398,21 @@ public class TowerPlacer : MonoBehaviour
         }
         UpdateCellHighlights();
         return result;
+    }
+
+    private void UpdateGhostFoundation(GameObject ghost)
+    {
+        if (!_previewFoundationDirty)
+        {
+            return;
+        }
+
+        _previewFoundationDirty = false;
+
+        if (ghost != null && ghost.TryGetComponent(out AdaptiveTowerFoundation foundation))
+        {
+            foundation.Fit(_previewLowestSurfaceY,_previewHighestSurfaceY);
+        }
     }
 
     // ── 유효성: 풋프린트 전 셀이 건설 가능(Grass) & 미점유여야 함 (Docs §4) ────────────
