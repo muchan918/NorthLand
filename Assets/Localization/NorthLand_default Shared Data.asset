@@ -471,6 +471,26 @@ MonoBehaviour:
     m_Key: game.tower.stack
     m_Metadata:
       m_Items: []
+  - m_Id: 18400787608793088
+    m_Key: codex.fusion.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18419527620653056
+    m_Key: codex.filter.all
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18419636135686144
+    m_Key: codex.filter.single
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18419711800930304
+    m_Key: codex.filter.area
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18419838489882624
+    m_Key: codex.filter.aura
+    m_Metadata:
+      m_Items: []
   - m_Id: 18462505637502976
     m_Key: game.result.seed
     m_Metadata:
