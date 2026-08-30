@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using NorthLand.Combat;
 using UnityEngine;
+using TMPro;
 
 namespace NorthLand.UI
 {
@@ -8,12 +9,18 @@ namespace NorthLand.UI
     {
         [Header("Wave Data")]
         [SerializeField] private MonsterSpawnWaveProvider waveProvider;
+        [SerializeField] private MonsterSpawn monsterSpawn;
 
         [Header("UI")]
         [SerializeField] private Transform content;
         [SerializeField] private NextWaveMonsterEntry entryPrefab;
         [SerializeField] private Sprite unknownMonsterIcon;
         [SerializeField] private GameObject noMoreWavesView;
+
+        [SerializeField] private GameObject hpBuff;
+        [SerializeField] private TMP_Text hpText;
+        [SerializeField] private GameObject speedBuff;
+        [SerializeField] private TMP_Text speedText;
 
         private readonly List<NextWaveMonsterEntry> spawnedEntries = new();
 
@@ -22,6 +29,20 @@ namespace NorthLand.UI
         private void Start()
         {
             dayNightManager = DayNightManager.Instance;
+
+            if (monsterSpawn == null)
+            {
+                Debug.LogError("[웨이브 미리보기] monsterSpawn이 연결되지 않았습니다.", this);
+                enabled = false;
+                return;
+            }
+
+            if (hpBuff == null || hpText == null || speedBuff == null || speedText == null)
+            {
+                Debug.LogError("[웨이브 미리보기] 공통 강화 UI가 연결되지 않았습니다.", this);
+                enabled = false;
+                return;
+            }
 
             if (dayNightManager == null)
             {
@@ -74,6 +95,9 @@ namespace NorthLand.UI
         {
             ClearEntries();
 
+            hpBuff.SetActive(false);
+            speedBuff.SetActive(false);
+
             if (noMoreWavesView != null)
             {
                 noMoreWavesView.SetActive(false);
@@ -99,12 +123,20 @@ namespace NorthLand.UI
                 return;
             }
 
+            bool hasRegularMonster = false;
             foreach (WaveMonsterCount monster in composition)
             {
-                bool isBoss =monster.Asset != null &&monster.Asset.EnemyType == EnemyType.Boss;
+                bool isBoss = monster.Asset != null && monster.Asset.EnemyType == EnemyType.Boss;
+
+                if (monster.Asset != null && !isBoss && monster.Count > 0)
+                {
+                    hasRegularMonster = true;
+                }
 
                 AddEntry(monster.Asset != null ? monster.Asset.Icon : null,monster.Count,isBoss);
             }
+
+            RefreshCommonBuff(currentWaveNumber, hasRegularMonster);
         }
 
         private void ShowNoMoreWaves()
@@ -140,6 +172,35 @@ namespace NorthLand.UI
             }
 
             spawnedEntries.Clear();
+        }
+
+        private void RefreshCommonBuff(int waveNumber, bool hasRegularMonster)
+        {
+            if (!hasRegularMonster)
+            {
+                return;
+            }
+
+            float hpScale = monsterSpawn.GetWaveHpScale(waveNumber);
+            float speedScale = monsterSpawn.GetWaveMoveSpeedScale(waveNumber);
+
+            bool showHp = hpScale > 1f;
+            bool showSpeed = speedScale > 1f;
+
+            hpBuff.SetActive(showHp);
+            speedBuff.SetActive(showSpeed);
+
+            if (showHp)
+            {
+                int percent = Mathf.RoundToInt((hpScale - 1f) * 100f);
+                hpText.text = $"+{percent}%";
+            }
+
+            if (showSpeed)
+            {
+                int percent = Mathf.RoundToInt((speedScale - 1f) * 100f);
+                speedText.text = $"+{percent}%";
+            }
         }
     }
 }
