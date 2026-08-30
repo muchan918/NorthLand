@@ -51,7 +51,7 @@ MonoBehaviour:
       TickInterval: 0
   DebuffAura:
     Radius: 15
-    Interval: 1
+    Interval: 0.1
   Beam:
     Range: 0
     MaxTargets: 1

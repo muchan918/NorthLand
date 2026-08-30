@@ -497,9 +497,23 @@
   사거리 버프 타일 3종은 `AuraRadius`에 **퍼센트**(+5/10/15%)로 얹는다 — 기본값이 작은 축에 flat을
   얹으면 같은 문제가 재발한다. **축만 갈렸고 단일 출처는 유지된다**: 판정(`ApplyDebuff`)·선택 원·장판
   (`AuraZoneVisual`)이 전부 `DebuffAuraAction.Radius`/`BuffAuraAction.Radius` 하나를 본다.
+  ⚠ **같은 반경을 봐도 판정의 "모양"이 갈린다(#541)** — `ApplyDebuff`는 `OverlapSphere`였다. 구체는
+  타워 원점(타일 윗면)과 적 몸통의 높이차만큼 수평 도달을 잃어, 부양(WL-063)한 적에게는 R=12 장판이
+  10.1(Flying_Bat)에서야 닿았다 — **같은 사거리인데 적 종류·높이마다 발동 거리가 달랐다.** 지금은
+  `GroundZone`/`SkillField`와 같은 **수직 축 캡슐**(`VerticalRange` 12f)이라 높이 의존이 사라졌다.
+  판정 시점은 **콜라이더 접촉**을 의도적으로 유지한다("몸이 장판에 들어가면 묻는다"가 기획 기준) —
+  그래서 실효 도달 = `Radius + 적 콜라이더 반경`(1.35~5)이고 **적 크기에 비례**한다(R=12 →
+  Red_Grummy 13.35 / Blue_Grummy 14.5 / Phantom 17.0, 높이 무관). 밸런싱에서 표기 반경을 도달 거리로
+  그대로 읽지 말 것. 버프 오라(`CollectTargets`)만 **대상 피벗 거리**라 판정 모양이 다르다 —
+  한쪽 규칙을 바꾸면 다른 쪽도 같이 봐야 한다. 표면 판정은 `Tower.FindTarget`(공격 조준)·
+  `GroundZone`/`SkillField`(스킬 장판)도 같다(WL-122 축).
   의도적으로 원장을 거치지 **않는** 2가지 —
   ① 오라 재스캔 주기(`DebuffAuraFields.Interval`): 빠르게 해도 DoT는 이미 대상이 소유하므로 갱신만
   잦아지고 피해가 늘지 않는다(독 타워에서 "공속"의 의미를 갖는 축은 `TickInterval`이다).
+  ⚠ **밸런스 값이 아니라 반응 속도 값이다(#541)** — 1초였을 때 몬스터는 그 사이 8~18(=`MoveSpeed`)을
+  이동해, 판정 반경이 정확해도 디버프가 **원 안쪽 아무 데서나** 시작됐다(플레이 실측: R=12·속도 8에서
+  첫 적용 거리가 틱 위상에 따라 6.9~13.4로 흩어짐 — 표시와 어긋나 보이는 진짜 원인이었다).
+  현재 3종 모두 0.1초이며, 기준은 `MoveSpeed × Interval`(이동 오차)이 반경 대비 무시할 만한가다.
   ② 슬로우 강도(`Modifiers`의 MoveSpeed): `TowerStat`에 "CC 강도" 축이 없고 공격력·공속에 매핑하면
   의미가 어긋난다 → 순수 감속 타워(choco)는 타일에서 사거리만 이득을 본다(축 신설이 선행 과제)
   **MonoBehaviour가 아닌 순수 C#이고 `Time.time`을 주입받는다** → 씬 없이 EditMode 테스트 가능
@@ -1042,6 +1056,8 @@
      - ⚠ **각 칸의 `LayoutElement.preferredWidth`(102 / 72 / 32 / 72)가 열 정렬의 근거다.** TMP `Auto Size`는 **고정된 박스에 글자가 넘칠 때 폰트를 줄이는 것**이지 박스를 글자에 맞춰 늘리지 않는다 — 이 값을 떼면 칸 폭이 텍스트마다 달라져 행 간 세로 열이 어긋난다. 반대로 값을 유지하면 긴 라벨에서만 폰트가 줄어 **행마다 글자 크기가 달라진다**(2026-08-29 실측: 짧은 라벨 24pt, 긴 라벨 13.2pt). TMP에는 여러 텍스트의 auto-size를 묶는 기능이 없으므로, 표기가 들쭉날쭉해지면 라벨을 짧게 유지하는 쪽으로 해결한다.
      - ⚠ **버프가 없는 칸은 `SetActive(false)`로 끄지 않는다 — `Graphic.enabled = false`로 그리기만 끈다.** 비활성 자식은 레이아웃에서 통째로 빠지므로 행의 `ContentSizeFitter(h=PreferredSize)`가 폭을 줄이고, 그러면 그 행의 스탯명·기본값이 화면에서 옆으로 밀린다(2026-08-29 실측: 행 폭 278 → 174, 이동량 24.9px). 램프업 타워는 전투 중 스택이 오르내리며 이 전이가 반복돼 열이 계속 흔들렸다. `Graphic`만 끄면 같은 GameObject의 `LayoutElement`(화살표 32 / 버프값 72)가 폭을 계속 기여해 **버프 유무와 무관하게 칸 위치가 고정된다**(수정 후 실측 이동량 0). 그래서 `TowerStatRowView._arrow`는 `GameObject`가 아니라 `TMP_Text`다 — 끄는 대상이 오브젝트가 아니라 그리기라는 것이 타입에 드러나야 한다.
    - **도감 등급 테두리 스프라이트 동기화 계약(#544)**: 도감 카드의 Normal·Rare·Legendary 테두리는 `NorthLand-Imported`의 `@NorthLand/Prefabs/Skill/SkillButtonG1.png` · `SkillButtonB1.png` · `SkillButton.png`이며, 메인 저장소의 `Assets/Prefabs/UI/TowerCodex/FusionTowerEntry.prefab`이 `.meta` GUID로 참조한다. 도감 UI를 실행·리뷰·빌드하기 전에 Imported를 **`ebaa7f7bd`(도감패널을 위한 이미지 추가) 이상**으로 동기화해야 하며, sparse checkout을 쓰면 `@NorthLand/Prefabs/Skill/**`를 반드시 포함한다. 이미지와 `.meta`를 함께 동기화해 GUID를 유지해야 한다. 미동기 환경에서는 테두리 참조가 null이 되지만 `FusionTowerEntry`가 `buttonBackground`를 비활성화해 흰 사각형 대신 빈칸으로 표시한다. 커밋 순서는 **Imported 선행**이다(WL-040).
+   - **오라 장판 이펙트 동기화 계약(#541)**: 오라 타워의 바닥 장판이 표시 사거리 원과 같은 크기로 보이는 근거는 **코드가 아니라 프리팹 값**이다 — `AuraZoneVisual.edgeCompensation`(공유 링 에셋 실측값 1.15)이 `Choco_Area`·`FlameField_Area`·`Poison_Area`·`HasteTowerTest(HasteArea)` 네 프리팹에 저작돼 있고 전부 Imported 소속이다(독 타워 모델 스케일 1.3 → 1도 같은 커밋). 실행·리뷰·빌드 전에 `NorthLand-Imported`를 **`3ad78389c`(오라 장판 이펙트 사거리 보정 + 독 타워 모델 크기 축소) 이상**으로 동기화해야 하며, sparse checkout을 쓰면 `@NorthLand/Prefabs/Tower/**`를 반드시 포함한다. 커밋 순서는 **Imported 선행**이다(WL-040).
+     - ⚠ **이 계약에는 「null 시 1회 경고」를 붙일 수 없다.** 다른 계약들은 미동기 = 참조가 null이라 감지되지만, 여기서 미동기 상태는 `edgeCompensation: 1`이라는 **정상 값**이라 코드가 구별할 방법이 없다(1을 의심하면 다른 링 아트를 쓰는 정상 저작까지 짖는다). 증상은 가시 링이 다시 0.86x로 줄어드는 것뿐인데 판정(수직 캡슐·재스캔 0.1초)은 메인 저장소에 있어 고쳐진 채로 남으므로, **「원보다 좁게 보이는데 원 밖에서도 걸린다」**는 #541 원본보다 헷갈리는 상태가 된다. 재발 방지는 감지가 아니라 코드 기본값 쪽에 뒀다 — `AuraZoneVisual.edgeCompensation`의 기본값이 1.15라 **신규** 장판 이펙트는 저작 실수로 어긋나지 않는다(기존 프리팹은 직렬화된 값이 이기므로 이 계약이 유일한 방어선이다).
    - **리뷰어 주석(죽은 사본)**: `Assets/Personal/SUNGSOO/Font/`는 폰트가 TMP 정본으로 이관되며 더 이상 참조되지 않는 죽은 사본이다 — 이 경로의 폰트 아틀라스 churn을 WL-041 재발로 보고하지 말 것(WL-041 참고, 삭제 대기 중).
 9. **튜토리얼 모드와 입력 게이트** (#488): 전체 튜토리얼 런의 단일 정본은 `TutorialMode.IsActive`다.
    소비 시스템이 `TutorialController.startOnPlay`나 웨이브 공급자를 다시 탐색해 별도 판정을 만들지 않는다.
