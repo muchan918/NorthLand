@@ -238,6 +238,32 @@ public class TowerAsset : ScriptableObject
         if (hasDebuff && (DebuffAura == null || DebuffAura.Radius <= 0f))
             Debug.LogWarning($"[TowerAsset] {name}: DebuffAuraAction이 있는데 DebuffAura.Radius가 0입니다.", this);
 
+        // ── 밸런싱 규약 ① — 오라 재스캔 축(#541) ──────────────────────────
+        //
+        // 아래 공격 간격 검사와 **같은 상한식**(사거리/18)을 쓰지만 보장하는 것이 다르다.
+        // 공격은 "통과 중 3발"이고, 오라는 **"첫 부여가 언제 오느냐"**다 — 한 번 걸리면 효과는
+        // 대상이 `Duration`을 들고 도므로(`StatusEffectHandler`), 재스캔이 느려도 피해 박자는
+        // 그대로다. 대신 늦게 걸린 만큼 체류가 통째로 사라진다.
+        //
+        // 어기면 **증상이 밸런스가 아니라 표시로 나타난다.** 재스캔 1초 · 몬스터 속도 8~18에서
+        // 몬스터는 스캔 사이에 8~18유닛을 이동하므로, 반경에 들어와도 원 안쪽 아무 데서나 효과가
+        // 붙는다(#541 실측: R=12·속도 8에서 첫 적용 거리가 틱 위상에 따라 6.9~13.4로 흩어졌다).
+        // 사거리 원·장판 이펙트는 정확한데 "판정만 이상하다"로 보이는 유형이라, 밸런스 표를
+        // 아무리 봐도 원인이 안 보인다. 0.1초로 낮춘 뒤 11.6~14.5로 모였다.
+        //
+        // 상한을 넘으면 §2 체류 모델의 전제("반경에 들어온 순간부터 체류가 시작")도 함께 깨져
+        // §3.3 유효 시간·§6.3 킬 수가 실측과 어긋난다 — 즉 문서가 조용히 거짓이 된다.
+        // 정본은 Docs/Core/CombatBalance.md §1.3 「오라 재스캔 축」 + 규약 ① 확장 절.
+        if (hasDebuff && DebuffAura != null && DebuffAura.Radius > 0f && DebuffAura.Interval > 0f)
+        {
+            float scanLimit = DebuffAura.Radius / 18f;   // 18 = 타일 6유닛 × 규약 계수 3(아래 주석과 같은 상수)
+            if (DebuffAura.Interval > scanLimit + 0.0001f)
+                Debug.LogWarning($"[TowerAsset] {name}: DebuffAura.Interval({DebuffAura.Interval})이 오라 재스캔 " +
+                                 $"규약 상한({scanLimit:0.###})을 넘습니다 — 사거리 {DebuffAura.Radius / 6f:0.##}타일에서 " +
+                                 "적이 반경에 들어온 뒤 효과가 붙기까지 체류의 1/3을 넘게 걸려, 장판 안쪽 " +
+                                 "아무 데서나 걸리는 것처럼 보입니다(Docs/Core/CombatBalance.md §1.3 오라 재스캔 축).", this);
+        }
+
         // ── 밸런싱 규약 ①(#326) — 간격 ≤ 사거리(타일) ÷ 3 ────────────────────
         //
         // 정본은 Docs/Core/CombatBalance.md §2, 저작 절차는 TowerAddGuide.md §3.5.
