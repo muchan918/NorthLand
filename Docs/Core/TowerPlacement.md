@@ -177,7 +177,9 @@
 
 ### 6.1 타일 식별 (`BattleTile` 마커)
 - `BattleTile { TileKind Kind; bool Occupied }` — 데이터 전용 컴포넌트.
-- 배치 히트에서 `hit.collider.GetComponentInParent<BattleTile>()`로 타일을 얻는다. 셀 중심 = `tile.transform.position`, 배치 y = `tile.AnchorPosition.y`(타일 윗면 — 레이가 옆면에 맞아도 타워가 윗면에 앉는다).
+- 배치 히트에서 `hit.collider.GetComponentInParent<BattleTile>()`로 타일을 얻는다. 셀 중심은 `tile.transform.position`이다.
+- 배치 y는 `CalculateFootprintCenter`가 풋프린트의 `AnchorPosition.y` 최댓값을 기준으로 결정한다. 일반 타워는 최고 타일 윗면에 그대로 앉고, `AdaptiveTowerFoundation`이 있는 타워만 받침대 이음새를 가리기 위한 `FoundationSurfaceLift`를 더한다. 고스트와 실제 배치는 이 계산을 함께 사용한다.
+- 높이차가 있는 풋프린트에서는 `AdaptiveTowerFoundation.Fit(lowestSurfaceY, highestSurfaceY)`가 최저·최고 타일 높이에 맞춰 받침대 높이와 위치를 조정한다.
 - 풋프린트 이웃 셀은 앵커 위치에서 `tileSize` 간격으로 계산한 지점을 `OverlapSphere`로 조회해 각 `BattleTile`을 찾는다.
 
 **타일 태깅 (완료)**: 전투 타일 프리팹에 `BattleTile`(Kind 설정)이 부착돼 있다(`Assets/Imported/@NorthLand/Prefabs/Tile/`의 GrassTile 4종·ground_cube). 인스턴스는 `Instantiate` 시 이를 그대로 가지므로 스포너의 별도 태깅이 불필요하다. 단 프리팹이 **`Assets/Imported/`(벤더링, 별도 git 저장소)** 에 있어 **메인 repo diff·자동 리뷰에는 이 부착이 보이지 않는다.**
