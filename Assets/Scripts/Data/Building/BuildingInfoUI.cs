@@ -51,7 +51,7 @@ public class BuildingInfoUI : MonoBehaviour
     [Tooltip("비용 한 줄 프리팹 (BuildingCostRow)")]
     [SerializeField] BuildingCostRow _costRowPrefab;
 
-    private const string k_PositiveColorHex = "#73D973";
+    private const string k_PositiveColorHex = "#72B455";
 
     [SerializeField] Button _upgradeButton;
 

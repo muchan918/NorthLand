@@ -23,7 +23,7 @@ public class StoreOfferRow : MonoBehaviour
     [SerializeField] TextMeshProUGUI _buttonLabel;
 
     [Tooltip("지불 자원을 감당할 수 있을 때 글씨 색")]
-    [SerializeField] Color _affordableColor = new Color(0.45f, 0.85f, 0.45f);
+    [SerializeField] Color _affordableColor = new Color(0.45f, 0.71f, 0.33f);
     [Tooltip("지불 자원이 부족할 때 글씨 색")]
     [SerializeField] Color _insufficientColor = new Color(0.55f, 0.55f, 0.55f);
 

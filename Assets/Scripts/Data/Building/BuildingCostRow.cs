@@ -14,7 +14,7 @@ public class BuildingCostRow : MonoBehaviour
     [SerializeField] TextMeshProUGUI _amount;
 
     [Tooltip("보유량이 충분할 때 수량 텍스트 색")]
-    [SerializeField] Color _affordableColor = new Color(0.45f, 0.85f, 0.45f);
+    [SerializeField] Color _affordableColor = new Color(0.45f, 0.71f, 0.33f);
     [Tooltip("보유량이 부족할 때 수량 텍스트 색")]
     [SerializeField] Color _insufficientColor = new Color(0.55f, 0.55f, 0.55f);
 
