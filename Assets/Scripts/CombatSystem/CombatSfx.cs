@@ -76,6 +76,10 @@ sealed class CombatSfxPool : MonoBehaviour
         public ulong StartedOrder;
         public uint Generation;
         public bool Active;
+
+        /// 풀이 일시정지 때문에 멈춰 둔 상태(#540). `AudioSource.Pause()`는 `isPlaying`을 false로
+        /// 만들기 때문에, 이 플래그가 없으면 `Update`의 자연 종료 판정이 정지된 루프를 회수해 버린다.
+        public bool Paused;
     }
 
     private static CombatSfxPool instance;
@@ -156,9 +160,14 @@ sealed class CombatSfxPool : MonoBehaviour
         return new CombatSfxHandle(this, index, voice.Generation);
     }
 
+    /// ⚠ **일시정지로 멈춘 루프도 "재생 중"으로 답한다**(#540). 소비처는 이 값으로 "내 루프가 아직
+    /// 살아 있는가"를 묻는데, 정지 중에 false를 주면 `BeamAction.UpdateLoopSfx`처럼 매 프레임 도는
+    /// 쪽이 루프가 죽은 줄 알고 **정지 화면에서 계속 새 보이스를 잡는다.** 정지를 고치려다 다른
+    /// churn을 만드는 자리다.
     public bool IsPlaying(int index, uint generation)
     {
-        return TryGetCurrentVoice(index, generation, out Voice voice) && voice.Source.isPlaying;
+        return TryGetCurrentVoice(index, generation, out Voice voice)
+            && (voice.Source.isPlaying || voice.Paused);
     }
 
     public void Stop(int index, uint generation)
@@ -167,13 +176,41 @@ sealed class CombatSfxPool : MonoBehaviour
             Release(voice);
     }
 
+    /// ⚠ **일시정지는 루프에만 건다**(#540). `Time.timeScale = 0`은 `AudioSource`에 영향을 주지 않고
+    /// 이 `Update`도 계속 돌기 때문에, 정지를 명시적으로 걸지 않으면 **설정 패널·보상 선택창·결과창
+    /// 밑에서 빔과 전기장 소리가 계속 흐른다.** 단발음(0.2~1초)은 정지 중 스스로 소진되는 편이
+    /// 자연스러워 대상에서 뺀다 — 정지 순간 울리던 발사음이 뚝 끊기면 그쪽이 더 어색하다.
     private void Update()
     {
+        bool paused = GameSpeedController.Instance != null && GameSpeedController.Instance.IsPaused;
+
         for (int i = 0; i < voices.Count; i++)
         {
             Voice voice = voices[i];
             if (!voice.Active)
                 continue;
+
+            if (voice.Source.loop)
+            {
+                if (paused && !voice.Paused)
+                {
+                    voice.Source.Pause();
+                    voice.Paused = true;
+                }
+                else if (!paused && voice.Paused)
+                {
+                    voice.Source.UnPause();
+                    voice.Paused = false;
+                }
+            }
+
+            // ⚠ **자연 종료 판정보다 먼저 걸러야 한다.** `Pause()`가 `isPlaying`을 false로 만들기
+            // 때문에 이 가드가 없으면 정지된 루프가 곧바로 회수되고, 정지를 풀어도 돌아오지 않는다.
+            if (voice.Paused)
+            {
+                ApplyVolume(voice);   // 정지 중에도 설정 슬라이더는 따라간다
+                continue;
+            }
 
             if (!voice.Source.isPlaying)
             {
@@ -250,6 +287,7 @@ sealed class CombatSfxPool : MonoBehaviour
         voice.Source.volume = 0f;
         voice.Source.panStereo = 0f;
         voice.LastGain = 0f;
+        voice.Paused = false;   // 정지 상태로 회수된 슬롯이 다음 소리를 멈춘 채로 시작하지 않게
         voice.Active = false;
     }
 
