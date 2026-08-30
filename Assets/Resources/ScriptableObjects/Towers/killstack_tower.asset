@@ -29,6 +29,8 @@ MonoBehaviour:
     AttackRange: 20
     AttackInterval: 1.1
     ProjectilePrefab: {fileID: 1627456267034388861, guid: 7055a18d0be52b14287e0dc82f97b83e, type: 3}
+    FireSfx: {fileID: 8300000, guid: 4000fc4898cfb5648b7a3d19a76c33e6, type: 3}
+    FireSfxVolume: 0.47
     Flight:
       rid: 3470829504553025640
     PelletCount: 1

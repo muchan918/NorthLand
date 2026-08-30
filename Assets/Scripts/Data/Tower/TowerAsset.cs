@@ -112,6 +112,25 @@ public class TowerAsset : ScriptableObject
     [Header("착탄 이펙트")]
     public ImpactVfxFields ImpactVfx;
 
+    // 착탄음(#540). 발사음(`Attack.FireSfx`)과 **다른 축이다** — 발사는 포구에서 나는 소리이고
+    // 이쪽은 맞은 자리에서 나는 소리다. 캐논·소이캐논·미사일처럼 착탄에서 터지는 타워는 폭발을
+    // 이쪽에 두어야 한다(발사음에 폭발을 넣으면 착탄음을 붙이는 순간 한 발에 두 번 터진다).
+    //
+    // **스턴처럼 "맞았을 때 일어나는 일"을 알리는 소리도 이쪽이다** — 소다 계열이 그 경우다.
+    // 발사음 자리에 넣으면 곡사탄이 날아가는 동안 소리만 먼저 나서 어긋난다.
+    //
+    // ⚠ **파티클(`ImpactVfx`)과 같은 통지를 탄다** — `AttackAction`이 `Projectile.Impacted`를
+    // 한 번 구독해 둘을 함께 낸다. 트리거를 갈라 두면 진입점이 늘 때 한쪽만 조용히 빠진다(WL-208).
+    [Header("착탄음")]
+    [Tooltip("착탄 순간 1회 재생할 효과음. 비우면 소리 없이 착탄한다. " +
+             "스플래시가 여러 마리를 때려도 착탄당 한 번만 울린다.")]
+    public AudioClip ImpactSfx;
+
+    [Range(0f, 2f)]
+    [Tooltip("착탄음 재생 배율. SFX 채널 볼륨에 곱해진다. 임포트 설정에는 클립별 게인이 없어 " +
+             "(AudioManager.md §4.5) 클립 사이의 레벨 차는 여기서만 맞출 수 있다.")]
+    public float ImpactSfxVolume = 1f;
+
     // 전투 실적으로 이 타워가 스스로 강해지는 축(#300). 지금까지 타워 스탯을 바꾸는 소스는 전부
     // 외부(타일 버프·오라·스킬·보스 봉인)에서 왔는데, 이것이 **자기 실적이 원장에 얹히는 첫 소스**다.
     [Header("성장(램프업)")]
@@ -501,6 +520,24 @@ public class TowerAsset : ScriptableObject
         public float AttackInterval;
         public GameObject ProjectilePrefab;   // 겉모습만 고른다 — 비행·명중은 아래 값들이 정한다
 
+        // ── 발사음 (#540) ───────────────────────────────────────────────────
+        // **클립을 SfxBank에 넣지 않는다** — 뱅크의 범위는 "주인이 없는 공용 소리"이고
+        // (`Docs/Core/AudioManager.md` §5.4) 이 소리의 주인은 이 TowerAsset이다.
+        // 자폭병 폭발음(`EnemyAsset.SelfDestruct.ExplosionSfx`, #452)과 같은 규칙이다.
+        //
+        // 재생 경로는 2D 원샷이 아니라 **위치 기반 풀**(`CombatSfx`, #522)이다 — 발사 간격이
+        // 0.35초(개틀링)까지 내려가고 타워가 여러 기 깔리므로, 문서 §7이 `PlaySfx`를 한정한
+        // "드물게 한 번 울리는 소리" 전제를 발사음은 만족하지 못한다. 풀이 화면 밖 컷·줌 감쇠·
+        // 동시재생 상한을 함께 처리한다.
+        [Tooltip("발사 순간 1회 재생할 효과음. 비우면 소리 없이 발사한다. " +
+                 "화면 밖 타워는 들리지 않고 줌 아웃할수록 작아진다(AudioManager.md §6.2).")]
+        public AudioClip FireSfx;
+
+        [Range(0f, 2f)]
+        [Tooltip("발사음 재생 배율. SFX 채널 볼륨에 곱해진다. 임포트 설정에는 클립별 게인이 없어 " +
+                 "(AudioManager.md §4.5) 클립 사이의 레벨 차는 여기서만 맞출 수 있다.")]
+        public float FireSfxVolume = 1f;
+
         // ── 비행 (#274 Phase 1에서 탄환 프리팹 → 여기로 이관, Phase 4.5에서 부품화) ──────
         // 궤적은 착탄 시간 → 움직이는 적에 대한 실효 DPS를 정하므로 **비주얼이 아니라 밸런스**다.
         // 탄환 프리팹에 남는 것은 rotationOffset(모델 축 보정)뿐이다. 근거: TowerRedesign.md §6.1
@@ -638,6 +675,22 @@ public class TowerAsset : ScriptableObject
         [Tooltip("램프 진행도별 빔 굵기·색. 비워두면 단색 기본 연출(기존 거동). " +
                  "낮은 문턱부터 순서대로 저작할 것.")]
         public List<BeamStage> VisualStages = new List<BeamStage>();
+
+        // 빔이 켜져 있는 동안 흐르는 루프(#540). 발사음·착탄음이 **사건**이라면 이것은 **상태**다 —
+        // 빔은 쏘는 순간이 따로 없어서 원샷을 걸 자리가 없다.
+        //
+        // ⚠ **타워당 하나만 흐른다.** 멀티 인페르노는 대상을 5기까지 잠그지만 소리는 빔 수가 아니라
+        // "이 타워가 지금 지지고 있는가"를 알리는 것이라 대상마다 겹치면 안 된다.
+        //
+        // 단계별 클립(`BeamStage.LoopSfx`)이 저작돼 있으면 그쪽이 이긴다 — 이 필드는 단계가 없는
+        // 타워(멀티 인페르노)와 단계 클립 미저작 시의 폴백이다.
+        [Tooltip("빔이 켜져 있는 동안 반복 재생할 소리. 비우면 무음. " +
+                 "루프이므로 머리와 꼬리의 레벨이 비슷한 클립을 쓸 것 — 차이가 크면 반복마다 툭 튄다.")]
+        public AudioClip LoopSfx;
+
+        [Range(0f, 2f)]
+        [Tooltip("빔 루프 재생 배율. 단계별 클립이 쓰일 때는 그쪽 배율이 적용된다.")]
+        public float LoopSfxVolume = 1f;
     }
 
     /// 빔 연출 한 구간. 램프 진행도(0~1)가 이 문턱 이상이면 이 겉모습으로 그린다.
@@ -663,6 +716,18 @@ public class TowerAsset : ScriptableObject
 
         [Tooltip("빔 색.")]
         [ColorUsage(true, true)] public Color Color = Color.white;
+
+        // 이 단계에서 흐를 루프(#540). 저작하면 단계가 바뀌는 순간 `BeamFields.LoopSfx`를 대신해
+        // 이 클립으로 교체된다 — 색이 바뀌는 것과 같은 신호를 귀로도 준다.
+        //
+        // **불 루프의 Small/Medium/Big 세트처럼 같은 계열의 강도 차이**를 쓰면 교체가 자연스럽다.
+        // 서로 다른 음색을 넣으면 단계마다 다른 소리로 갈아타는 것처럼 들려 연속성이 깨진다.
+        [Tooltip("이 단계에서 흐를 루프. 비우면 BeamFields.LoopSfx가 계속 흐른다(단계 전환 시 무변화).")]
+        public AudioClip LoopSfx;
+
+        [Range(0f, 2f)]
+        [Tooltip("이 단계 루프의 재생 배율. 단계가 오를수록 커지게 하려면 여기서 조정한다.")]
+        public float LoopSfxVolume = 1f;
     }
 
     // 성장(램프업) 저작 묶음(#300). 계기와 축은 여기서, 수치는 공용 부품 `RampProfile`이 소유한다 —

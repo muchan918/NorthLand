@@ -28,6 +28,11 @@ namespace NorthLand.Combat
         // 착탄 순간의 파티클(#521). 구역과 같은 통지(`Projectile.Impacted`)를 타지만 판정이 없다.
         [NonSerialized] TowerAsset.ImpactVfxFields impactVfx;
 
+        // 착탄음(#540). 파티클과 **같은 통지·같은 필터**를 탄다 — 트리거를 갈라 두면 진입점이 늘 때
+        // 한쪽만 조용히 빠진다(WL-208). 미저작이면 null이라 기존 타워는 이 축을 타지 않는다.
+        [NonSerialized] AudioClip impactSfx;
+        [NonSerialized] float impactSfxVolume;
+
         // 이번 공격 사이클에서 아직 남은 연발 수(#336). 0 = 사이클 종료(다음 발이 새 사이클의 첫 발).
         [NonSerialized] int burstRemaining;
 
@@ -71,6 +76,8 @@ namespace NorthLand.Combat
             impact = BuildImpact(asset, enemyLayerMask);
             zone = asset.GroundZone;
             impactVfx = asset.ImpactVfx;
+            impactSfx = asset.ImpactSfx;
+            impactSfxVolume = asset.ImpactSfxVolume;
             cooldownTimer = 0f;
             burstRemaining = 0;
             burstTarget = null;
@@ -308,11 +315,25 @@ namespace NorthLand.Combat
             // 지역 변수로 복사해 넘기는 이유는 람다가 `this`(액션)를 붙들지 않게 하기 위해서다 —
             // 구역 쪽이 `spawned` 플래그를 지역 변수로 두는 것과 같은 이유고, 탄이 나는 동안
             // 액션이 Dispose되어도 이 연출은 자기가 든 값으로 끝까지 간다.
+            //
+            // 파티클과 착탄음을 **한 번의 구독으로 함께** 낸다. 둘을 따로 구독하면 `isFresh` 판정이
+            // 두 벌이 되고, 위 ⚠가 말한 부메랑 함정을 한쪽만 밟는 상태가 생긴다.
+            // 저작 여부를 따로 보는 이유는 소리만 넣고 파티클은 비운 타워가 정상이기 때문이다 —
+            // `IsAuthored`(프리팹 유무) 하나로 묶으면 그런 타워가 조용히 무음이 된다.
             TowerAsset.ImpactVfxFields vfx = impactVfx;
-            if (vfx != null && vfx.IsAuthored)
+            AudioClip sfx = impactSfx;
+            float sfxVolume = impactSfxVolume;
+            bool hasVfx = vfx != null && vfx.IsAuthored;
+            bool hasSfx = sfx != null;
+            if (hasVfx || hasSfx)
                 projectile.Impacted += (impactPos, isFresh) =>
                 {
-                    if (isFresh) SpawnImpactVfx(vfx, impactPos);
+                    if (!isFresh) return;
+                    if (hasVfx) SpawnImpactVfx(vfx, impactPos);
+
+                    // 발사음과 같은 `Low` — 상한에 닿으면 스킬음·경고음보다 먼저 회수되어야 한다.
+                    if (hasSfx)
+                        CombatSfx.Play(sfx, impactPos, volumeScale: sfxVolume, priority: CombatSfxPriority.Low);
                 };
 
             // 데미지 소스는 Owner다 — IAttacker 계약을 가진 쪽이 타워이므로 DamageInfo가 타워를 가리킨다.
