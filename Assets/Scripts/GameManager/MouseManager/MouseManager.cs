@@ -900,6 +900,7 @@ public class MouseManager : MonoBehaviour
 
         Vector3 pos = _request.Snap != null ? _request.Snap(hit) : hit.point; // 스냅은 요청이 결정(그리드 스냅)
         _ghost.transform.position = pos;
+        _request.OnGhostPositionUpdated?.Invoke(_ghost);
 
         // 위치를 잡은 뒤에 켠다(원점 노출 방지). 요청 측 미리보기도 같은 이유로 Snap 뒤에 켠다 —
         // Snap이 이미 이번 프레임 위치로 갱신해 두었으므로 한 프레임도 옛 자리에 보이지 않는다.

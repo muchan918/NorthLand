@@ -472,6 +472,7 @@
   ⚠️ **`data`가 없으면 아무것도 하지 않고 `Active`에도 들어가지 않는다** — "조립되지 않은 타워는 존재하지 않는 타워"
 - `Tower.Has<T>()` / `Tower.Get<T>()`(`where T : TowerAction`) — **능력 질의 창구.** 소비처가 타워의 구상 타입이
   아니라 능력을 묻게 한다. 예: 보스 P3 마력 봉인 대상 = `Has<AttackAction>()`(`EnemyNodeQuery.IsAttackTower`)
+- `AdaptiveTowerFoundation.Fit(float lowestSurfaceY, float highestSurfaceY)`(`NorthLand.Combat`) — **높이차가 있는 풋프린트에 받침대를 맞추는 공개 API.** `TowerPlacer`가 고스트와 실제 타워에 같은 최저·최고 타일 높이를 전달하며, 받침대는 로컬 +Y 축이 높이 방향이고 로컬 회전이 없는 것을 전제로 한다.
 - `Tower.Stats`(`TowerStats`, `NorthLand.Combat`) — **이 타워의 스탯 modifier 단일 원장.** 타일 버프·
   버프 오라·보스 봉인이 전부 여기로 수렴하며(버프 스킬도 소비처였으나 #315로 제거) 합성 규칙은 `TowerStats.Evaluate` 한 곳에만 산다:
   `(기본값 + Σflat) × (1 + Σpercent/100) × (1 + Σ배율보너스)`. 축은 `TowerStat`(AttackDamage/AttackRange/AttackSpeed/AuraRadius)

@@ -12,6 +12,9 @@ public class PlacementRequest
     // 월드 정렬로 놓으면 타일과 각이 어긋난다 → 요청 측이 그리드 기준축을 넣는다.
     // 배치 세션 동안 상수라 매 프레임 갱신하지 않는다(맵 루트는 런타임에 돌지 않는다).
     public Quaternion GhostRotation = Quaternion.identity;
+    // 고스트 위치가 갱신된 직후 호출된다.
+    // 요청 측이 생성된 고스트의 받침대처럼 위치에 종속된 시각 요소를 갱신할 때 사용한다.
+    public Action<GameObject> OnGhostPositionUpdated;
     public Func<RaycastHit, bool> CanPlaceAt; // 배치 가능 여부 (그리드/검증 시스템이 제공)
     public Action<RaycastHit, Vector3> OnConfirmed; // (히트, 스냅 위치) 확정 시 실제 배치 수행
     // 놓을 수 없는 곳을 클릭했을 때 호출된다 — 거절 피드백(효과음 등)용. 선택(null 허용).
