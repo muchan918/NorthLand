@@ -20,6 +20,20 @@ public static class CombatSfx
             ? default
             : CombatSfxPool.Instance.Play(clip, worldPosition, loop, volumeScale, priority);
     }
+
+    /// 이 위치의 소리가 지금 들리는가(화면 안 + 줌 감쇠 > 0).
+    ///
+    /// **루프 소비처를 위한 것이다.** 단발음은 들리지 않아도 곧 끝나므로 이 판정이 필요 없고,
+    /// 그냥 재생해 두면 풀이 알아서 회수한다. 문제는 루프다 — 화면 밖 루프는 `LastGain`이 계속
+    /// 0이라 **탈취 1순위**인데(`IsBetterStealCandidate`), 뺏기면 소비처가 다음 프레임에 곧바로
+    /// 다시 잡는다. 풀이 포화면 그 재획득이 매 프레임 반복되면서 **화면 안에서 실제로 들리고
+    /// 있던 소리를 60fps로 잘라 낸다.** 증상은 "전투가 격해지면 소리가 지직거린다"로만 보이고
+    /// 원인이 화면 밖 타워라는 단서가 없다.
+    ///
+    /// 그래서 루프 소비처는 새로 잡기 **전에** 이것을 확인한다. 화면에 들어오는 순간 다음 프레임에
+    /// 자연히 켜지므로 청감 손실이 없고, 화면 밖 루프가 보이스를 붙들지 않는 부수 효과가 따라온다.
+    public static bool IsAudible(Vector3 worldPosition)
+        => CombatSfxAudibility.TryEvaluate(worldPosition, out _, out _);
 }
 
 /// 슬롯 세대가 일치할 때만 동작하므로 반환된 슬롯이 재사용돼도 새 소리를 잘못 끄지 않는다.

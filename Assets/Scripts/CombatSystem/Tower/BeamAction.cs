@@ -414,6 +414,21 @@ namespace NorthLand.Combat
             if (loopClip == clip && loopSound.IsPlaying)
                 return;
 
+            // ⚠ **들리지 않는 위치면 새로 잡지 않는다.** 화면 밖 루프는 풀에서 `LastGain`이 계속 0이라
+            // 탈취 1순위인데, 뺏길 때마다 여기서 다시 잡으면 포화 상태에서 **매 프레임** 재획득이
+            // 반복되고 화면 안에서 들리고 있던 발사음·착탄음이 그만큼 잘려 나간다(`CombatSfx.IsAudible`).
+            //
+            // 여기서 멈추기만 하고 화면 밖이라고 **먼저 끊지는 않는다** — 이미 흐르는 루프는 위 조기
+            // 반환이 살려 두고, 뺏긴 뒤에야 이 경로로 온다. 화면 경계에 걸친 타워가 매 프레임
+            // 재생·정지를 오가는 것을 피하려는 것이다.
+            if (!CombatSfx.IsAudible(Origin.position))
+            {
+                // 단계가 바뀐 채 화면을 벗어난 경우가 있으므로 옛 클립은 정리한다 — 그대로 두면
+                // 화면에 돌아왔을 때 이전 단계 소리가 이어진다.
+                StopLoopSfx();
+                return;
+            }
+
             StopLoopSfx();
             loopSound = CombatSfx.Play(
                 clip,
