@@ -44,6 +44,11 @@ namespace NorthLand.Combat
         // 의미를 갖는 축은 효과 쪽 TickInterval이고, 그건 HitEffect가 원장을 거쳐 합성한다.
         float Interval => Mathf.Max(aura != null ? aura.Interval : 0f, 0.05f);
 
+        // 판정 캡슐의 수직 길이. `GroundZone.VerticalRange`·`SkillField.verticalRange`와 **같은 12f**다 —
+        // 셋 다 바닥에 깔린 장판이고, 몬스터가 경로 Y에서 6f 부양(WL-063)한 채 그 위에 몸통을 얹는
+        // 같은 맵 성질을 상대하기 때문이다. 타워의 성질이 아니므로 SO 저작 항목으로 빼지 않는다(같은 이유).
+        const float k_VerticalRange = 12f;
+
         protected override void OnInitialize(TowerAsset asset)
         {
             aura = asset.DebuffAura;
@@ -74,8 +79,25 @@ namespace NorthLand.Combat
 
         void ApplyDebuff()
         {
-            int count = Physics.OverlapSphereNonAlloc(
-                Origin.position, Radius, hitBuffer, targetLayerMask);
+            Vector3 origin = Origin.position;
+            float radius = Radius;                               // 원장(버프 타일) 평가는 틱당 1회면 된다
+
+            // **구체가 아니라 수직 축 캡슐**이다. 수평 단면이 정확히 반경 `radius`인 원이라 선택 사거리
+            // 원·장판 이펙트와 수평으로 1:1이고, 수직만 열어 부양한 적(WL-063)에게 닿는다 —
+            // `GroundZone.Apply`와 같은 형태이고 같은 이유다. 구체는 타워 원점(타일 윗면)과 적 몸통의
+            // 높이차만큼 수평 도달이 줄어, 같은 사거리인데 **적 종류마다** 닿는 거리가 달랐다
+            // (실측 R=12·부양 6f에서 Flying_Bat 10.1 / Blue_Grummy 12.1 — 원은 12).
+            //
+            // 판정 시점은 **적 콜라이더가 이 원에 닿는 순간**이다(피벗이 들어오는 순간이 아니라).
+            // "몸이 장판에 들어가면 묻는다"가 기획 의도라 표면 판정을 의도적으로 남긴다(#541).
+            // 그 대가로 실효 도달은 `radius + 적 콜라이더 반경`(월드 1.35~5)이라 표기 반경보다 넓고
+            // **적 크기에 비례**한다 — 밸런싱에서 표기 반경을 그대로 도달 거리로 읽지 말 것.
+            // 몬스터 아트는 콜라이더보다 크므로(전 종 +0.6~2.3) 발동 시점엔 그림이 이미 원 안이다.
+            // ⚠ 버프 오라(`BuffAuraAction.CollectTargets`)는 대상 **피벗 거리**를 쓴다 — 두 오라의 판정
+            // 모양이 다르다는 뜻이므로, 한쪽 규칙을 바꿀 때 다른 쪽도 같이 볼 것.
+            int count = Physics.OverlapCapsuleNonAlloc(
+                origin, origin + Vector3.up * k_VerticalRange,
+                radius, hitBuffer, targetLayerMask);
             if (count == 0) return;
 
             // 소스 키는 HitEffect.SourceKey — 투사체 경로(Projectile.ApplyEffects)와 **같은 함수**라,
