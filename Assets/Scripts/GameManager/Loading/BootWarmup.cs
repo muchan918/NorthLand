@@ -91,9 +91,58 @@ namespace NorthLand.Core
         {
             // 레시피와 타워를 둘 다 만진다. TowerRecipe.Result / MaterialEntry.Tower가 TowerAsset
             // 직접 참조라 서로를 끌어오지만, 레시피에 등장하지 않는 타워는 레시피만으로 안 올라온다.
-            Resources.LoadAll<TowerAsset>(k_TowerFolder);
+            TowerAsset[] towers = Resources.LoadAll<TowerAsset>(k_TowerFolder);
 
             _ = TowerRecipeCatalog.All;
+
+            WarnIfTowerSfxMissing(towers);
+        }
+
+        /// 타워 전투음 클립(Imported)의 미동기를 부팅 시점에 1회 알린다(#540).
+        ///
+        /// **이 실패는 완전히 조용하다** — `CombatSfx.Play`가 `clip == null`을 무시하도록 설계돼
+        /// 있어서(미저작 타워가 에러 없이 무음으로 발사하는 것이 의도다) 콘솔이 한 줄도 짖지 않고,
+        /// 증상이 "아직 소리를 안 붙인 상태"와 구별되지 않는다. 계약은 `SystemMap.md` §4
+        /// 「타워 전투음 클립 동기화 계약」이고, 결과창 아트 계약의 `logoImage.sprite == null`
+        /// 경고와 같은 형태다.
+        ///
+        /// ⚠ **타워별이 아니라 전수 0건 검사다.** 오라·빔 타워는 `FireSfx`가 비어 있는 것이
+        /// 정상이고, 투사체 타워 중에도 착탄음만 저작한 것이 있다(소다 계열). 개별 검사로 짖으면
+        /// 정상 저작에까지 오탐이 나서 아무도 안 보게 된다. 하나라도 살아 있으면 폴더가
+        /// 동기화된 것이므로 그 시점에 즉시 빠진다.
+        private static void WarnIfTowerSfxMissing(TowerAsset[] towers)
+        {
+            if (towers == null)
+            {
+                return;
+            }
+
+            bool anyProjectileTower = false;
+
+            foreach (TowerAsset tower in towers)
+            {
+                if (tower == null || tower.Attack == null || tower.Attack.ProjectilePrefab == null)
+                {
+                    continue;
+                }
+
+                anyProjectileTower = true;
+
+                if (tower.Attack.FireSfx != null)
+                {
+                    return;   // 한 본이라도 물려 있으면 클립 폴더가 동기화된 것이다
+                }
+            }
+
+            if (!anyProjectileTower)
+            {
+                return;   // 저작 자체가 없는 상태(테스트 씬 등) — 동기화 문제가 아니다
+            }
+
+            Debug.LogWarning(
+                "[BootWarmup] 투사체 타워의 발사음이 하나도 배선돼 있지 않습니다 — " +
+                "Imported 저장소의 @NorthLand/Sound/Towers 동기화를 확인하세요" +
+                "(SystemMap.md §4 「타워 전투음 클립 동기화 계약」).");
         }
 
         /// <summary>
