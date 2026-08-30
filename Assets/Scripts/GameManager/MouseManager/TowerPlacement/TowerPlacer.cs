@@ -153,6 +153,11 @@ public class TowerPlacer : MonoBehaviour
 
     private readonly List<BuffTileDefinition> previewDefinitions = new List<BuffTileDefinition>();
 
+    // 받침대 윗면과 최고 타일 표면이 겹쳐 보이는 이음새를 가리기 위한 높이 여유.
+    private const float FoundationSurfaceLift = 0.1f;
+
+    private float _activeSurfaceLift;
+
     private void Awake()
     {
         // 타일 간격 단일 출처화(WL-034 완화): 신맵 CombatMapGenerator.Settings.TileSize가 있으면 그 값을 쓴다.
@@ -232,6 +237,7 @@ public class TowerPlacer : MonoBehaviour
 
         towerPrefab = so.TowerPrefab;
         ghostPrefab = so.GhostPrefab;
+        _activeSurfaceLift = towerPrefab != null && towerPrefab.TryGetComponent<AdaptiveTowerFoundation>(out _) ? FoundationSurfaceLift: 0f;
         _activeCost = cost;
         _activeAsset = so;
         // _onConfirmed은 StartPlacement가 BeginPlacement '이후'에 설정한다 — BeginPlacement 내부의
@@ -313,17 +319,33 @@ public class TowerPlacer : MonoBehaviour
     /// 기준 타일과 타워 풋프린트 크기로 실제 타워 중심 위치를 계산한다.
     /// 일반 배치와 세이브 복원이 동일한 좌표 계산식을 사용한다.
     /// </summary>
-    private Vector3 CalculateFootprintCenter(BattleTile anchor,TowerPlacementData data)
+    private Vector3 CalculateFootprintCenter(BattleTile anchor,TowerPlacementData data,float surfaceLift,out float lowestSurfaceY,out float highestSurfaceY)
     {
         if (anchor == null)
+        {
+            lowestSurfaceY = 0f;
+            highestSurfaceY = 0f;
             return Vector3.zero;
+        }
 
-        Vector3 center = GridStep(
-            anchor.transform.position,
-            (data.GridWidth - 1) * 0.5f,
-            (data.GridHeight - 1) * 0.5f);
+        lowestSurfaceY = anchor.AnchorPosition.y;
+        highestSurfaceY = anchor.AnchorPosition.y;
 
-        return new Vector3(center.x,anchor.AnchorPosition.y,center.z);
+        foreach ((Vector3 _, BattleTile tile) in _footprint)
+        {
+            if (tile == null)
+            {
+                continue;
+            }
+
+            float surfaceY = tile.AnchorPosition.y;
+            lowestSurfaceY = Mathf.Min(lowestSurfaceY, surfaceY);
+            highestSurfaceY = Mathf.Max(highestSurfaceY, surfaceY);
+        }
+
+        Vector3 center = GridStep(anchor.transform.position,(data.GridWidth - 1) * 0.5f,(data.GridHeight - 1) * 0.5f);
+
+        return new Vector3(center.x,highestSurfaceY + surfaceLift,center.z);
     }
 
     // ── 스냅: 앵커(히트 타일) 기준 W×H 풋프린트의 중심 월드 좌표 ─────────────────────
@@ -345,15 +367,7 @@ public class TowerPlacer : MonoBehaviour
             UpdateRangeIndicator(CalculatePreviewRange());
         }
 
-        Vector3 result = anchor != null? CalculateFootprintCenter(anchor, _activeData) : hit.point;
-
-        foreach ((Vector3 _, BattleTile tile) in _footprint)
-        {
-            if (tile != null)
-            {
-                result.y = Mathf.Max(result.y, tile.AnchorPosition.y + 0.1f);
-            }
-        }
+        Vector3 result = anchor != null ? CalculateFootprintCenter(anchor,_activeData,_activeSurfaceLift,out _,out _) : hit.point;
 
         if (_rangeCircle != null)
         {
@@ -864,8 +878,6 @@ public class TowerPlacer : MonoBehaviour
         _activeData = new TowerPlacementData(asset.Data.GridWidth,asset.Data.GridHeight,asset.AttackSideRadius,
             asset.AuraSideRadius,asset.PlacementYaw);
 
-        Vector3 position =CalculateFootprintCenter(anchor,_activeData);
-
         GameObject prefab = asset.TowerPrefab;
 
         if (prefab == null)
@@ -875,10 +887,11 @@ public class TowerPlacer : MonoBehaviour
             return false;
         }
 
+        float surfaceLift = prefab.TryGetComponent<AdaptiveTowerFoundation>(out _) ? FoundationSurfaceLift : 0f;
+
         RebuildFootprint(anchor);
 
-        float lowestSurfaceY = float.PositiveInfinity;
-        float highestSurfaceY = float.NegativeInfinity;
+        Vector3 position = CalculateFootprintCenter(anchor,_activeData,surfaceLift,out float lowestSurfaceY,out float highestSurfaceY);
 
         foreach ((Vector3 _, BattleTile tile) in _footprint)
         {
@@ -888,13 +901,7 @@ public class TowerPlacer : MonoBehaviour
 
                 return false;
             }
-
-            float surfaceY = tile.AnchorPosition.y;
-            lowestSurfaceY = Mathf.Min(lowestSurfaceY, surfaceY);
-            highestSurfaceY = Mathf.Max(highestSurfaceY, surfaceY);
         }
-
-        position.y = highestSurfaceY + 0.1f;
 
         // 회전된 맵에서도 타워가 그리드 축과 동일한 방향을 바라보게 한다. 여기에 SO가 지정한 모델 yaw를
         // 얹는다 — 각도의 사유는 특정 에셋의 실루엣이므로 배치기가 상수로 들지 않는다(WL-180).
@@ -903,6 +910,10 @@ public class TowerPlacer : MonoBehaviour
         if (placed.TryGetComponent(out AdaptiveTowerFoundation adaptiveFoundation))
         {
             adaptiveFoundation.Fit(lowestSurfaceY, highestSurfaceY);
+        }
+        else if (_activeData.GridWidth > 1 || _activeData.GridHeight > 1)
+        {
+            Debug.LogWarning($"[TowerPlacer] 다중 타일 타워에 높이 대응형 받침대가 없습니다: {asset.TowerID}",placed);
         }
 
         // Additive 로딩 중에는 활성 씬이 LoadingScene이므로, 배치 대상 타일이 속한 씬으로
