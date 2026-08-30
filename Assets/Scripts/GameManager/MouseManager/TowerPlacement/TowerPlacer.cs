@@ -347,6 +347,14 @@ public class TowerPlacer : MonoBehaviour
 
         Vector3 result = anchor != null? CalculateFootprintCenter(anchor, _activeData) : hit.point;
 
+        foreach ((Vector3 _, BattleTile tile) in _footprint)
+        {
+            if (tile != null)
+            {
+                result.y = Mathf.Max(result.y, tile.AnchorPosition.y + 0.1f);
+            }
+        }
+
         if (_rangeCircle != null)
         {
             _rangeCircle.transform.position = result;
@@ -869,6 +877,9 @@ public class TowerPlacer : MonoBehaviour
 
         RebuildFootprint(anchor);
 
+        float lowestSurfaceY = float.PositiveInfinity;
+        float highestSurfaceY = float.NegativeInfinity;
+
         foreach ((Vector3 _, BattleTile tile) in _footprint)
         {
             if (!IsBuildable(tile))
@@ -877,12 +888,22 @@ public class TowerPlacer : MonoBehaviour
 
                 return false;
             }
+
+            float surfaceY = tile.AnchorPosition.y;
+            lowestSurfaceY = Mathf.Min(lowestSurfaceY, surfaceY);
+            highestSurfaceY = Mathf.Max(highestSurfaceY, surfaceY);
         }
+
+        position.y = highestSurfaceY + 0.1f;
 
         // 회전된 맵에서도 타워가 그리드 축과 동일한 방향을 바라보게 한다. 여기에 SO가 지정한 모델 yaw를
         // 얹는다 — 각도의 사유는 특정 에셋의 실루엣이므로 배치기가 상수로 들지 않는다(WL-180).
         // 세이브 복원·합성 결과 배치도 이 한 줄을 지나므로 경로마다 각도가 갈릴 수 없다.
         placed = Instantiate(prefab,position, GridBasis * Quaternion.Euler(0f, asset.PlacementYaw, 0f));
+        if (placed.TryGetComponent(out AdaptiveTowerFoundation adaptiveFoundation))
+        {
+            adaptiveFoundation.Fit(lowestSurfaceY, highestSurfaceY);
+        }
 
         // Additive 로딩 중에는 활성 씬이 LoadingScene이므로, 배치 대상 타일이 속한 씬으로
         // 명시적으로 이동한다. TowerPlacer가 DDOL이나 별도 UI 씬으로 옮겨져도 타워의 수명은
