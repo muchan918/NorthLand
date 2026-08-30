@@ -151,6 +151,41 @@ RMS -17.8 dBFS. 둘 다 피크가 0 dBFS 코앞까지 마스터링돼 있어 SFX
 | `Feedback/SFX_Castle_ResidentIncrease` | `Miscellaneous/SFX_MusicalFanfare_Happy_01` |
 | `Feedback/SFX_BuildingUpgrade` | `ExageratedImpact/SFX_ExageratedImpact_Cannon_Reverb_Explosion` |
 
+#### 타워 전투음 14본 — 출처와 편집 (#540)
+
+`@NorthLand/Sound/Towers/`에 있다. **`.wav`만 복사했고 `.meta`는 Unity가 새로 발급했다** — 위 ⚠의
+GUID 충돌을 되풀이하지 않기 위함이고, 실제로 팩 원본 쪽에 수정이 하나도 남지 않은 것을 확인했다.
+임포트 설정은 14본 전부 `DecompressOnLoad` + `preload` + Vorbis 100%로 통일했다.
+
+아래 매핑은 **MD5 해시 대조로 확인**했다(위 6본과 같은 방식).
+
+| `Sound/Towers/…` | 팩 원본 | 편집 |
+|---|---|---|
+| `SFX_Tower_Archer_Fire` | `Vefects/…/Anime VFX/SFX_Vefects_Anime_Stylized_Arrow_Shot_Cast` | 없음 |
+| `SFX_Tower_Cannon_Fire` | `Particles/Vefects/Pixel Craft…/Fer/SFX_Vefects_Gun_Smoke_01` | 없음 |
+| `SFX_Tower_KillStack_Fire` | `Vefects/…/Anime VFX/SFX_Vefects_Anime_Stylized_Gun_Shot` | 없음 |
+| `SFX_Tower_IncendiaryCannon_Fire` | `Vefects/…/Flipbook VFX/SFX_Vefects_Flipbook_Fire_Burst_01` | 없음 |
+| `SFX_Tower_Beam_Loop_1` | `Vefects/…/Free Fire VFX/SFX_Vefects_Fire_Small_L` | 없음 |
+| `SFX_Tower_Beam_Loop_2` | `Vefects/…/Free Fire VFX/SFX_Vefects_Fire_Medium_L` | 없음 |
+| `SFX_Tower_Beam_Loop_3` | `Vefects/…/Free Fire VFX/SFX_Vefects_Fire_Big_L` | 없음 |
+| `SFX_Tower_Gatling_Fire` | `Vefects/…/Anime VFX/SFX_Vefects_Anime_Stylized_Gun_Shot` | **앞 0.22초만** + 뒤 5ms 페이드아웃 |
+| `SFX_Tower_RampUp_Fire` | `Vefects/…/Flipbook VFX/SFX_Vefects_Flipbook_GunShot_03` | **앞 0.50초만** + 뒤 5ms 페이드아웃 |
+| `SFX_Tower_Missile_Fire` | `Particles/MagicArsenal/…/Cast/magic_cast_fire` | **0.07~0.44초 구간** + 앞 3ms·뒤 5ms 페이드 |
+| `SFX_Tower_Boomerang_Fire` | *(외부 조달)* | — |
+| `SFX_Tower_Sniper_Fire` | *(외부 조달)* | — |
+| `SFX_Tower_SodaTower_Impact` | *(외부 조달)* | — |
+| `SFX_Tower_SodaCannon_Impact` | *(외부 조달)* | — |
+
+- **빔 루프 3본은 팩 안에서 중복 저작돼 있다** — `Free Fire VFX/SFX_Vefects_Fire_*_L`과
+  `Flipbook VFX/SFX_Vefects_Flipbook_Fire_*_Loop`가 바이트 단위로 같은 파일이다(해시 일치).
+- **편집한 3본의 공통 근거는 "꼬리가 공격 간격보다 길다"**였다. 특히 `Anime_Stylized_Gun_Shot`은
+  **1.02초 중 실제 소리가 0.18초뿐이고 나머지 0.84초가 디지털 무음**이라, 개틀링(간격 0.35초)에
+  그대로 쓰면 들리지도 않는 구간에 보이스를 3개씩 물었다.
+- `magic_cast_fire`는 길이가 아니라 **포락선이 문제**였다 — 0.10초에 걸쳐 차오르는 시전음이라
+  발사 순간과 붙지 않았다(§5.6이 결과창 스팅어에서 다룬 것과 같은 축인데, 그쪽은 재생 시점을
+  미뤘고 이쪽은 파일을 잘랐다. **재사용처가 하나뿐이라 파일을 자르는 편이 단순하다**).
+- **외부 조달 4본은 팩 원본이 없으므로 되돌릴 수 없다.** 편집이 필요하면 원본을 따로 보관할 것.
+
 > ⚠️ **`SFX_Castle_ResidentIncrease`는 `.meta`까지 함께 복사돼 GUID가 충돌했다.** 복사본이 팩 원본의
 > GUID(`b5c64e6e…`)를 가져갔고, Unity가 **팩 원본 쪽에** 새 GUID를 발급했다 — 즉 팩 데모 씬이 참조하던
 > 팬파레가 우리 복사본을 가리킨다(소리가 같아 들리지는 않는다). **미해결.** 고치려면 복사본 `.meta`를
@@ -469,15 +504,68 @@ Sfx.ResidentIncreased();  // ← 이것만 PlaySfxExclusive로 나간다
 `CombatSfx`가 `AudioManager`의 소스를 빌리지 않는 이유는 위치마다 독립적으로 매 프레임 볼륨이 바뀌기
 때문이다. 대신 `GetEffectiveVolume(Sfx)`를 마지막 계수로 곱해 같은 설정 계약 아래 남는다.
 
+### 6.3 타워 전투음 — 세 축 (#540)
+
+클립은 **각 `TowerAsset`이 소유한다**(§5.4의 "뱅크는 주인 없는 소리 전용" 규약).
+셋 다 `CombatSfx.Play(..., priority: Low)`로 나가므로 상한에서 스킬음·경고음보다 먼저 회수된다.
+
+| 축 | SO 필드 | 발화 지점 | 성격 |
+|---|---|---|---|
+| 발사음 | `Attack.FireSfx` + `FireSfxVolume` | `Tower.RaiseFired` | 사건 · 원샷 |
+| 착탄음 | `ImpactSfx` + `ImpactSfxVolume` | `AttackAction`의 `Projectile.Impacted` 구독 | 사건 · 원샷 |
+| 빔 루프 | `Beam.LoopSfx` / `BeamStage.LoopSfx` + 각 볼륨 | `BeamAction.UpdateLoopSfx` | **상태** · 루프 |
+
+**발사음을 구독 컴포넌트로 빼지 않았다.** 발사음은 공격 타워 전부가 갖는 보편 소리라, 프리팹마다
+컴포넌트를 붙이는 방식이면 새 타워를 만든 사람이 잊었을 때 그 타워만 조용히 무음이 된다 —
+`UiClickSfx`를 전역 훅으로 만든 것과 같은 축이다(§5.4). `TowerReloadVisual`이 컴포넌트인 것은
+탄약 모형이 있는 타워에만 해당하는 **선택적** 연출이기 때문이고, 발사음은 그렇지 않다.
+`RaiseFired`는 이미 발사 통지의 단일 창구이며 호출부도 `AttackAction` 한 곳이다.
+
+**착탄음은 착탄 파티클(`ImpactVfx`)과 같은 구독을 탄다.** 트리거를 갈라 두면 진입점이 늘 때 한쪽만
+조용히 빠진다(WL-208 — 건물 성공음이 같은 사고를 냈다). 부수 효과로 `isFresh` 필터를 공유하므로
+**부메랑 재접촉·스플래시에서 소리가 배수로 늘지 않는다** — 착탄당 1회다.
+⚠ 저작 여부는 파티클과 **따로** 본다. `ImpactVfxFields.IsAuthored`(프리팹 유무) 하나로 묶으면
+**소리만 넣고 파티클은 비운 타워가 조용히 무음**이 된다(소다 계열이 그 경우다).
+
+**빔 루프는 사건이 아니라 상태다.** 빔은 쏘는 순간이 따로 없어 원샷을 걸 자리가 없고, 잠금이 살아
+있는 동안 흐르다 끊긴다. 규칙 둘:
+- **타워당 하나만 흐른다.** 멀티 인페르노는 대상을 5기까지 잠그지만 소리는 "이 타워가 지금 지지고
+  있는가"를 알리는 것이라 대상마다 겹치면 안 된다.
+- **단계 판정은 대상들 중 최대 진행도**다. 평균을 쓰면 새 대상이 잠길 때마다 소리가 내려가
+  "약해졌다"로 잘못 읽힌다.
+
+⚠ **정지는 `BeamAction.HideAllBeams` 안에 있다.** 빔을 끄는 경로가 `Dispose`(비활성화)와
+`OnWaveEnd`(낮 전환) 둘인데 각 경로에 손으로 달면 세 번째가 생겼을 때 그쪽만 빠진다 —
+"빔이 낮에도 켜진 채 남는다"는 기존 사고(#300 실측)의 소리 버전으로, 증상은 **낮 내내 불타는
+소리가 흐르는 것**이다. 표시와 소리는 같은 상태의 두 얼굴이라 한 함수가 함께 끈다.
+
+**저작 시 지켜야 할 수치 규약**
+
+- **클립 길이 ≤ 공격 간격.** 넘으면 자기 소리끼리 겹쳐 그 배수만큼 보이스를 문다(들리지 않아도
+  슬롯은 점유된다). 간격은 [CombatBalance.md](CombatBalance.md) §1.3 표에 있다.
+- **어택(최대 음량 도달) ≤ 0.03초.** 차오르는 소리는 발사 순간과 붙지 않는다(§5.6).
+- **레벨은 클립 RMS 기준으로 맞춘다.** 임포트 설정에 게인이 없으므로(§4.5) 편차는 `*SfxVolume`에서만
+  잡는다. 현재 기준점은 아처(RMS -20.9 dBFS @ 0.6)이고, 다른 타워는 RMS 차이를 상쇄해 넣었다.
+  ⚠ **개틀링만 일부러 기준보다 낮다** — 초당 2.9발이라 레벨을 맞추면 그 타워 하나가 전장을 덮는다.
+  ⚠ **빔 루프도 일부러 낮다** — 지속음이 단발음만큼 크면 안 된다(실효 -36 ~ -27dB).
+- **발사음에 폭발감을 넣지 않는다.** 착탄에서 터지는 타워(캐논·소이캐논·미사일)는 폭발이 착탄음
+  몫이다. 발사음에 넣으면 착탄음을 붙이는 순간 한 발에 두 번 터진다.
+- ⚠ **자폭병 폭발음과 음색이 겹치지 않게 한다.** 그 소리는 본진 HP 10%가 날아가는 **위험 신호**인데
+  (2D로 재생돼 화면 밖에서도 들리게 설계돼 있다), 타워가 0.75초마다 같은 음색을 내면 플레이어가
+  그것을 일상음으로 학습해 정작 반응하지 않게 된다. 실제로 캐논이 한 번 그 상태였다.
+
 ## 7. 미확정 / TODO
 
 - [x] **전투 위치 SFX 풀** — #522에서 화면 좌표 기반 `CombatSfxPool`로 구현(§6.2). Unity 3D 감쇠는
       오쏘 카메라와 맞지 않아 사용하지 않는다. `ResidentVoice`는 주민 상태를 따라가는 독립 소스라 흡수하지 않는다.
 - [ ] **화면 감쇠 계산 공용화** — `CombatSfxAudibility`와 `ResidentVoiceAudibility`의 뷰포트 위치·팬 계산을
       공용 타입으로 분리한다. 주민(40~80)과 전투(80~160)의 줌 밴드는 소비처별로 유지한다. 별도 이슈/PR 범위.
-- [ ] **타워 타격음 연결** — 공격음은 미정. 투사체 프리팹의 연출 컴포넌트가 착탄 위치에서
-      `CombatSfx.Play(..., priority: Low)`를 호출하는 방향. `ProjectileFlight` 피해 코어에 `AudioSource`를
-      넣지 않으며, 즉발·빔처럼 투사체가 없는 타워도 피해 확정 지점에서 같은 공용 API를 호출할 수 있어야 한다.
+- [x] **타워 전투음 연결** — #540에서 발사음·착탄음·빔 루프 세 축으로 구현(§6.3).
+      ⚠ **여기 적혀 있던 방향과 다르게 갔다.** "투사체 프리팹의 연출 컴포넌트"가 아니라 `AttackAction`이
+      `Projectile.Impacted`를 구독하는 형태다 — 착탄 파티클(`ImpactVfx`, #521)이 이미 그 통지를 타고 있어서,
+      트리거를 갈라 두면 진입점이 늘 때 한쪽만 조용히 빠지기 때문이다(WL-208). 대신 "피해 코어에
+      `AudioSource`를 넣지 않는다"와 "공용 API를 쓴다"는 두 전제는 그대로 지켰다.
+      또한 **발사음이라는 축이 이 항목에 없었다** — 착탄만으로는 "내 타워가 일하고 있다"가 안 들린다.
 - [x] **BGM·전환음 클립 에셋** — `Assets/Imported/@NorthLand/Sound`에 낮·밤 BGM 2개 + 전환 스팅어 2개(§4.5)
 - [x] **씬 배치** — `GameScene`에 `SoundCue/InGameCue`, `TitleScene`에 `SoundCue/TitleCue`
 - [ ] **타이틀 BGM 클립** — 트랙 에셋이 없어 `TitleCue.titleClip`이 비어 있다(정지만 한다, §5.1).
