@@ -524,6 +524,14 @@ MonoBehaviour:
     m_Localized: Current Seed
     m_Metadata:
       m_Items: []
+  - m_Id: 18482472005132288
+    m_Localized: Copy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18482472076435456
+    m_Localized: Copied!
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:

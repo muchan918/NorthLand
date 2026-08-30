@@ -96,7 +96,13 @@ namespace NorthLand.UI
             {
                 Debug.LogError($"[{nameof(UIConfettiBurst)}] RectTransform이 아닌 곳에 붙어 있습니다.", this);
                 enabled = false;
+                return;
             }
+
+            // 조각을 미리 만들어 둔다. 첫 Burst()까지 미루면 36개 GameObject 생성 비용이
+            // 하필 로고 착지 프레임(스팅어·흔들림·컨페티가 겹치는 가장 빡빡한 지점)에 몰린다.
+            EnsurePool();
+            HideAll();
         }
 
         private void OnDisable()

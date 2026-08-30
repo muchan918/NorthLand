@@ -96,6 +96,19 @@ namespace NorthLand.UI
         /// 배너의 authored 배율. 1로 가정하면 레이아웃에서 크기를 조정해 둔 경우 연출이 그것을 덮어쓴다.
         private Vector3 waveInfoRestScale = Vector3.one;
 
+        /// 버튼의 authored 위치. **매 재생마다 현재 위치를 다시 읽으면 안 된다** — 등장 도중 취소되면
+        /// 버튼이 -16px 지점에 남는데, 다음 재생이 그 자리를 새 기준으로 삼아 취소할 때마다 아래로
+        /// 밀려난다. authored 값을 한 번만 잡아 두면 이 누적이 구조적으로 닫힌다.
+        private Vector2[] buttonRestPositions;
+
+        /// 지금 유효한 연출의 세대. <see cref="Play"/>가 부를 때마다 오른다.
+        ///
+        /// **`UniTask.Yield`의 취소는 `Cancel()` 시점이 아니라 다음 PlayerLoop Update에 도착한다.**
+        /// 그래서 재생 중 다시 <see cref="Play"/>를 부르면, 새 연출이 시작 상태를 칠한 **다음 프레임에**
+        /// 죽은 연출의 `finally`가 최종 상태로 덮어쓴다 — 완성된 결과창이 한 프레임 번쩍인다.
+        /// 세대가 어긋난 태스크는 최종 상태를 쓰지 않게 해서 막는다.
+        private long generation;
+
         private CancellationTokenSource playCts;
 
         private void Awake()
@@ -129,6 +142,42 @@ namespace NorthLand.UI
             {
                 waveInfoRestScale = waveRect.localScale;
             }
+
+            CaptureButtonRestPositions();
+            WarnIfLogoArtMissing();
+        }
+
+        private void CaptureButtonRestPositions()
+        {
+            if (buttons == null)
+            {
+                buttonRestPositions = Array.Empty<Vector2>();
+                return;
+            }
+
+            buttonRestPositions = new Vector2[buttons.Length];
+
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                buttonRestPositions[i] = buttons[i] != null && buttons[i].transform is RectTransform rect
+                    ? rect.anchoredPosition
+                    : Vector2.zero;
+            }
+        }
+
+        /// 로고 스프라이트가 풀렸으면 한 번 경고한다.
+        ///
+        /// 아트가 `Assets/Imported`(별도 저장소)에 있어 **동기화하지 않은 환경에서는 컴포넌트는 살아 있고
+        /// 참조만 끊긴다.** 그러면 연출은 정상 재생되는데 로고 자리만 비어, 컴파일도 콘솔도 조용한 채
+        /// "연출이 이상하다"만 남는다 — 증상이 원인을 가리키지 않는다(WL-040과 같은 축).
+        private void WarnIfLogoArtMissing()
+        {
+            if (logoImage != null && logoImage.sprite == null)
+            {
+                Debug.LogWarning(
+                    $"[{nameof(ResultPanelAnimator)}] 결과 로고 스프라이트가 비어 있습니다. " +
+                    "Assets/Imported 동기화를 확인하세요(@NorthLand/UI/Result).", this);
+            }
         }
 
         private void OnDisable()
@@ -156,7 +205,7 @@ namespace NorthLand.UI
             playCts = CancellationTokenSource.CreateLinkedTokenSource(
                 this.GetCancellationTokenOnDestroy());
 
-            PlayAsync(playCts.Token).Forget();
+            PlayAsync(++generation, playCts.Token).Forget();
         }
 
         private void CancelPlay()
@@ -171,7 +220,7 @@ namespace NorthLand.UI
             playCts = null;
         }
 
-        private async UniTaskVoid PlayAsync(CancellationToken token)
+        private async UniTaskVoid PlayAsync(long playGeneration, CancellationToken token)
         {
             try
             {
@@ -200,9 +249,17 @@ namespace NorthLand.UI
             }
             finally
             {
-                // 취소든 정상 종료든 최종 상태를 보장한다. 버튼이 잠긴 채 남으면
-                // 플레이어가 결과창에서 나갈 수 없다.
-                ApplyEndState();
+                // 취소든 정상 종료든 최종 상태를 보장한다 — 버튼이 잠긴 채 남으면 플레이어가
+                // 결과창에서 나갈 수 없다.
+                //
+                // 단 **자기 세대일 때만** 쓴다. 취소는 다음 Update에 도착하므로, 재생 중
+                // Play()가 다시 불리면 새 연출이 칠한 시작 상태를 죽은 태스크가 여기서
+                // 최종 상태로 덮어쓴다. 세대가 밀렸다면 최종 상태는 이어받은 쪽 책임이다
+                // (UIButtonHoverEffect가 취소 시 아무것도 쓰지 않는 것과 같은 규약).
+                if (playGeneration == generation)
+                {
+                    ApplyEndState();
+                }
             }
         }
 
@@ -230,6 +287,11 @@ namespace NorthLand.UI
             if (seedInfo != null)
             {
                 seedInfo.alpha = 0f;
+
+                // 시드 복사 버튼이 들어 있으므로 보이기 전에는 못 누르게 막는다 —
+                // 알파만 0으로 두면 투명한 버튼이 클릭을 받는다.
+                seedInfo.interactable = false;
+                seedInfo.blocksRaycasts = false;
             }
 
             if (buttons == null)
@@ -247,7 +309,23 @@ namespace NorthLand.UI
                 buttons[i].alpha = 0f;
                 buttons[i].interactable = false;
                 buttons[i].blocksRaycasts = false;
+
+                if (buttons[i].transform is RectTransform rect)
+                {
+                    rect.anchoredPosition = ButtonRestPosition(i, rect);
+                }
             }
+        }
+
+        /// 버튼 i의 authored 위치. 배열이 비었거나 길이가 어긋나면 현재 위치로 물러선다.
+        private Vector2 ButtonRestPosition(int index, RectTransform rect)
+        {
+            if (buttonRestPositions != null && index < buttonRestPositions.Length)
+            {
+                return buttonRestPositions[index];
+            }
+
+            return rect != null ? rect.anchoredPosition : Vector2.zero;
         }
 
         /// 연출이 끝났거나 취소됐을 때의 화면: 전부 제자리, 버튼은 눌린다.
@@ -277,6 +355,8 @@ namespace NorthLand.UI
             if (seedInfo != null)
             {
                 seedInfo.alpha = 1f;
+                seedInfo.interactable = true;
+                seedInfo.blocksRaycasts = true;
             }
 
             if (buttons == null)
@@ -294,6 +374,13 @@ namespace NorthLand.UI
                 buttons[i].alpha = 1f;
                 buttons[i].interactable = true;
                 buttons[i].blocksRaycasts = true;
+
+                // 위치까지 되돌린다. 여기가 빠져 있으면 등장 도중 취소된 버튼이
+                // -16px에 남고 다음 재생이 그 자리를 기준으로 삼아 누적된다.
+                if (buttons[i].transform is RectTransform rect)
+                {
+                    rect.anchoredPosition = ButtonRestPosition(i, rect);
+                }
             }
         }
 
@@ -447,6 +534,8 @@ namespace NorthLand.UI
             }
 
             seedInfo.alpha = 1f;
+            seedInfo.interactable = true;
+            seedInfo.blocksRaycasts = true;
         }
 
         private async UniTask RevealButtonsAsync(CancellationToken token)
@@ -469,7 +558,10 @@ namespace NorthLand.UI
                 }
 
                 var rect = group.transform as RectTransform;
-                Vector2 rest = rect != null ? rect.anchoredPosition : Vector2.zero;
+
+                // authored 위치를 쓴다. 현재 위치를 읽으면 직전 재생이 취소된 자리가
+                // 새 기준이 되어 재생마다 아래로 밀려난다.
+                Vector2 rest = ButtonRestPosition(i, rect);
                 float elapsed = 0f;
 
                 while (elapsed < duration)
