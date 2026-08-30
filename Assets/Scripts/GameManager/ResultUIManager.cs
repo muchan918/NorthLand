@@ -40,6 +40,7 @@ namespace NorthLand.UI
         {
             HideAll();
             SetActiveSafe(gameOverPanel, true);
+            PlayAnimator(gameOverPanel);
         }
 
         // 승리 결과 패널을 띄운다. (보스 처치 등 클리어 확정 시 외부에서 호출)
@@ -47,6 +48,7 @@ namespace NorthLand.UI
         {
             HideAll();
             SetActiveSafe(victoryPanel, true);
+            PlayAnimator(victoryPanel);
         }
 
         // 모든 결과 패널을 숨긴다.
@@ -80,6 +82,19 @@ namespace NorthLand.UI
                 return;
             }
             GameSceneManager.Instance.LoadManageSpace();
+        }
+
+        // 패널의 등장 연출을 시작한다. 연출은 표시의 일부일 뿐이라 없어도 게임은 진행돼야 하므로
+        // (경고도 남기지 않는다) 컴포넌트가 없으면 패널이 즉시 완성된 모습으로 떠 있게 된다.
+        //
+        // 연출을 OnEnable이 아니라 여기서 명시적으로 트리거하는 이유: 패널을 켜는 주체가 이 매니저
+        // 하나뿐이어야 "화면은 떴는데 연출만 안 돌았다"는 어긋남이 생기지 않는다.
+        void PlayAnimator(GameObject panel)
+        {
+            if (panel == null) return;
+
+            var animator = panel.GetComponent<ResultPanelAnimator>();
+            if (animator != null) animator.Play();
         }
 
         // 참조 미할당 시 NullRef 대신 경고만 남기고 넘어간다(씬 배선 누락 방어).

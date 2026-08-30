@@ -32,7 +32,7 @@
 |---|---|
 | BGM | ✅ 매니저가 소스를 직접 소유 → 볼륨·음소거가 즉시 걸린다 |
 | SFX (`PlaySfx` 경유) | ✅ 2D 원샷. 소비처는 낮/밤 전환 스팅어 2 + 공용 효과음 10(튜토리얼 Bubble·Popup 안내음 포함, §5.4) |
-| SFX (`PlaySfxExclusive` 경유) | ✅ 2D 전용 소스. 소비처는 주민 증가음 1개. **매 프레임 볼륨을 다시 곱하므로 재생 중 슬라이더도 반영된다** |
+| SFX (`PlaySfxExclusive` 경유) | ✅ 2D 전용 소스. 소비처는 주민 증가음 + 결과창 승리/패배 스팅어 **2개**. **매 프레임 볼륨을 다시 곱하므로 재생 중 슬라이더도 반영된다** |
 | 전투 위치 SFX (`CombatSfx`) | ✅ 중앙 보이스 풀에서 매 프레임 `GetEffectiveVolume(Sfx)`를 곱한다 |
 
 새 재생 경로를 만드는 쪽은 `PlaySfx`를 쓰거나, 직접 소스를 굴린다면 **반드시
@@ -285,6 +285,7 @@ AudioManager.PlaySfx  또는  PlaySfxExclusive
 | `Rejected` | `TowerPlacer`(배치 반려) · `TowerFusionController`(재료·코스트 부족) · `CastlePanelUI`(주민 증가·본진 업그레이드 실패) · `BuildingInfoUI`(업그레이드 실패) | 지금은 클립 하나를 넷이 공유 |
 | `BuildingUpgraded` | `InGameCue.HandleBuildingAction` (`OnBuildingAction` 구독) | 생산 라인·업그레이드 전용 건물이 같은 소리 |
 | `ResidentIncreased` | 〃 | `PlaySfxExclusive` — 클립이 9.5초라 연타 시 겹침 |
+| *(결과창 스팅어)* | `ResultPanelAnimator`(승리/패배 패널, 뱅크 밖 인스펙터 배선) | `PlaySfxExclusive` — 승리 클립은 타격이 0.66초 지점이라 `startTime` 0.63으로 앞을 건너뛴다(§5.6) |
 | `Undone` | `UndoRequest.Submit` | 되돌리기 버튼과 **Ctrl+Z가 같은 진입점**이라 한 곳에서 난다 |
 | `Redone` | *(아직 없음)* | 다시 실행 기능이 없다 — 클립만 뱅크에 꽂아둔 상태 |
 
@@ -343,6 +344,32 @@ AudioManager.PlaySfx  또는  PlaySfxExclusive
 - 자기 소리를 따로 내는 버튼은 `UiClickSfxIgnore`로 뺀다(버튼에 붙이면 그것만, 패널 루트에 붙이면 전부).
 - 상주 비용은 `Update`의 버튼 상태 조회 하나다 — 씬 탐색이 없다.
 
+### 5.6 타격이 클립 중간에 있는 스팅어 — `startTime` (#538)
+
+`PlaySfxExclusive`에 `startTime` 인자가 붙었다(기본 0이라 기존 호출부는 그대로다).
+
+**앞쪽 무음을 잘라내는 기능이 아니다.** §4의 "소리가 게임과 안 붙는다" 항목과 같은 축인데 크기가 다르다 —
+`Tower_Install`은 앞 75ms가 문제였지만, 결과창 승리 스팅어
+(`SFX_Vefects_Stylized_Magic_Attack_Earth_Cast`, 2.252초)는 **디지털 무음이 0.15초, 그 뒤 0.63초까지가
+거의 안 들리는 워밍업이고 실제 타격이 0.66초 지점**에 있다. 마법 시전음이라 차오르는 구간이 붙은 구조다.
+그대로 재생하면 로고가 착지하고 0.66초 뒤에 소리가 난다.
+
+50ms 단위 RMS 포락선(0 = 무음, 9 = 피크):
+
+```
+000111111111024422332111100000000000000000000
+↑0.00      ↑0.50   ↑0.75      ↑1.25      ↑2.25
+```
+
+5ms로 좁히면 **0.629초에 골**(거의 무음)이 있고 0.663초부터 어택이 치솟는다. 그 골에서 시작하면
+타격 트랜지언트가 하나도 잘리지 않는다 — `ResultPanelAnimator.stingerStartTime = 0.63`의 근거다.
+
+⚠ **`time`은 `Play()` 전에 넣는다.** 재생을 걸어 두고 나중에 밀면 워밍업이 한 프레임 새어 나오는데,
+그 한 프레임이 곧 이 기능의 실패다.
+
+⚠ 이건 재생 시점 우회일 뿐 파일은 그대로다. 같은 클립을 다른 화면에서 처음부터 쓰고 싶으면 그쪽은
+`startTime`을 넘기지 않으면 된다.
+
 ## 6. 공개 API
 
 ```csharp
@@ -363,7 +390,9 @@ void PlayBgm(AudioClip clip, float fadeSeconds = 1f);  // 같은 클립·null은
 void StopBgm(float fadeSeconds = 1f);
 
 void PlaySfx(AudioClip clip, float volumeScale = 1f);           // 2D 원샷. 볼륨 0·음소거면 재생 생략
-void PlaySfxExclusive(AudioClip clip, float volumeScale = 1f);  // 2D 전용 소스. 직전 것을 끊고 처음부터
+void PlaySfxExclusive(AudioClip clip, float volumeScale = 1f, float startTime = 0f);
+                                                                // 2D 전용 소스. 직전 것을 끊고 처음부터
+                                                                // startTime: 클립의 이 지점부터 재생(§5.6)
 void StopSfxExclusive();                                        // 위 소리를 즉시 정지(씬 전환용, §5.1)
 ```
 
