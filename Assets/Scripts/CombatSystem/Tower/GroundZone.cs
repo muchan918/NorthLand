@@ -29,7 +29,12 @@ namespace NorthLand.Combat
         // ⚠ SO 저작 항목으로 빼지 않은 이유: 이 값은 타워의 성질이 아니라 **맵의 성질**이다 —
         // 타워마다 다르게 적을 이유가 없고, 저작 항목이 되면 값이 틀린 타워만 조용히 안 맞는다.
         // WL-063이 부양 높이의 단일 출처를 세우면 이 상수도 그쪽에서 파생시킬 자리다.
-        const float VerticalRange = 12f;
+        //
+        // `public`인 이유: 같은 맵 성질을 상대하는 `DebuffAuraAction`(디버프 오라 장판)이 이 값을
+        // 참조한다 — 사본을 하나 더 만들면 부양 높이가 바뀔 때 일부 판정만 조용히 어긋난다(WL-063).
+        // `SkillHitScan.VerticalRange`(스킬 소유)가 아직 별개 사본이라 현재 원본은 둘이며, 셋을
+        // 하나로 모으는 일은 WL-063이 단일 출처를 세울 때의 몫이다.
+        public const float VerticalRange = 12f;
 
         // 착탄점 아래 지면을 찾는 탐침. 맵 타일은 전부 `Tile` 레이어에 콜라이더를 갖는다(실측 390/390).
         const string k_GroundLayer = "Tile";

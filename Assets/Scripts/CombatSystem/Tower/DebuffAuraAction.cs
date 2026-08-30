@@ -44,10 +44,10 @@ namespace NorthLand.Combat
         // 의미를 갖는 축은 효과 쪽 TickInterval이고, 그건 HitEffect가 원장을 거쳐 합성한다.
         float Interval => Mathf.Max(aura != null ? aura.Interval : 0f, 0.05f);
 
-        // 판정 캡슐의 수직 길이. `GroundZone.VerticalRange`·`SkillField.verticalRange`와 **같은 12f**다 —
-        // 셋 다 바닥에 깔린 장판이고, 몬스터가 경로 Y에서 6f 부양(WL-063)한 채 그 위에 몸통을 얹는
-        // 같은 맵 성질을 상대하기 때문이다. 타워의 성질이 아니므로 SO 저작 항목으로 빼지 않는다(같은 이유).
-        const float k_VerticalRange = 12f;
+        // 판정 캡슐의 수직 반길이. **사본을 만들지 않고 `GroundZone.VerticalRange`를 그대로 참조한다** —
+        // 둘 다 바닥에 깔린 장판이고, 몬스터가 경로 Y에서 부양(WL-063)한 채 그 위에 몸통을 얹는
+        // 같은 맵 성질을 상대하므로 값이 갈리면 한쪽만 조용히 어긋난다. 그 상수의 주석에 "왜 SO 저작
+        // 항목이 아닌가"(맵의 성질이지 타워의 성질이 아니다)까지 함께 있다.
 
         protected override void OnInitialize(TowerAsset asset)
         {
@@ -88,6 +88,13 @@ namespace NorthLand.Combat
             // 높이차만큼 수평 도달이 줄어, 같은 사거리인데 **적 종류마다** 닿는 거리가 달랐다
             // (실측 R=12·부양 6f에서 Flying_Bat 10.1 / Blue_Grummy 12.1 — 원은 12).
             //
+            // **위아래 대칭으로 연다**(`SkillHitScan.CollectEnemies`와 같은 형태). 원점이 지면이 아니라
+            // 타워 루트(=타일 윗면)라, 위로만 열면 원점보다 **낮은** 곳의 수평 도달이 아래쪽 반구만큼
+            // 다시 줄어든다 — 실제로 몬스터 경로가 타워 원점보다 낮다(실측: 타워 4.50 / 경로 1.70).
+            // 지금 배치에서는 몸통이 위로 뻗어 차이가 0이지만(실측 ΔY −2.8에서 ±0.00), 잔디·도로
+            // 타일 높이차가 커지면 되살아난다(ΔY −8에서 Flying_Bat 12.25 → 13.35). 타워 아래에는 적이
+            // 없으므로 아래로 여는 대가는 없다 — 한 항 추가로 타일 높이 의존이 사라진다.
+            //
             // 판정 시점은 **적 콜라이더가 이 원에 닿는 순간**이다(피벗이 들어오는 순간이 아니라).
             // "몸이 장판에 들어가면 묻는다"가 기획 의도라 표면 판정을 의도적으로 남긴다(#541).
             // 그 대가로 실효 도달은 `radius + 적 콜라이더 반경`(월드 1.35~5)이라 표기 반경보다 넓고
@@ -95,10 +102,24 @@ namespace NorthLand.Combat
             // 몬스터 아트는 콜라이더보다 크므로(전 종 +0.6~2.3) 발동 시점엔 그림이 이미 원 안이다.
             // ⚠ 버프 오라(`BuffAuraAction.CollectTargets`)는 대상 **피벗 거리**를 쓴다 — 두 오라의 판정
             // 모양이 다르다는 뜻이므로, 한쪽 규칙을 바꿀 때 다른 쪽도 같이 볼 것.
+            Vector3 vertical = Vector3.up * GroundZone.VerticalRange;
             int count = Physics.OverlapCapsuleNonAlloc(
-                origin, origin + Vector3.up * k_VerticalRange,
+                origin - vertical, origin + vertical,
                 radius, hitBuffer, targetLayerMask);
             if (count == 0) return;
+
+#if UNITY_EDITOR
+            // 포화 = 초과분이 **말없이 버려진** 상태. `Physics.Overlap*NonAlloc`은 버퍼가 차면 나머지를
+            // 그냥 반환하지 않으므로, 증상이 "밀집 웨이브에서만 가끔 안 걸리는 적이 있다"로 나타나
+            // 재현이 안 된다(`GroundZone.Apply`와 같은 처방·같은 이유). 이 자리는 특히 값이 커졌다 —
+            // 판정이 구체에서 원기둥으로 넓어졌고 재스캔이 초당 1회에서 10회가 됐으며, 반경이 가장 큰
+            // `choco_tower`(16)의 감속 누락은 보스 P1 파훼 수단에 닿는다.
+            // 버퍼 크기 산정 근거 합의와 `SkillHitScan.CollectEnemiesInCapsule`(포화 시 성장 + 다중
+            // 콜라이더 중복 제거)의 공통 헬퍼화는 WL-170 본안이고, 여기서는 드러내는 것까지만 한다.
+            if (count == hitBuffer.Length)
+                Debug.LogWarning($"[DebuffAuraAction] 판정 버퍼 포화({count}) — 초과분이 누락됩니다. " +
+                                 $"반경={radius:0.#}", Owner);
+#endif
 
             // 소스 키는 HitEffect.SourceKey — 투사체 경로(Projectile.ApplyEffects)와 **같은 함수**라,
             // "맞아서 걸린 화상"과 "장판에서 걸린 화상"이 같은 슬롯을 쓴다.
