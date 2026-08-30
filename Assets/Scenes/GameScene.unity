@@ -24619,7 +24619,7 @@ MonoBehaviour:
   _nameLevelText: {fileID: 3632550484292773333}
   _descriptionText: {fileID: 1997450646}
   _skillEffectText: {fileID: 543201048}
-  _skillEffectBox: {fileID: 0}
+  _skillEffectBox: {fileID: 289614163}
   _produceRow: {fileID: 2132157155}
   _produceIcon: {fileID: 1130404521}
   _produceAmountText: {fileID: 726448190}
