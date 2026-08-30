@@ -491,6 +491,18 @@ MonoBehaviour:
     m_Key: codex.filter.aura
     m_Metadata:
       m_Items: []
+  - m_Id: 18462505637502976
+    m_Key: game.result.seed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18482472005132288
+    m_Key: game.btn.copy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18482472076435456
+    m_Key: game.result.seed_copied
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
