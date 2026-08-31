@@ -1002,6 +1002,11 @@ public class MouseManager : MonoBehaviour
         if (tile == null)
         {
             SetSkillIndicatorVisible(false);
+
+            // 타일 밖 클릭도 거절이다 — 배치 쪽 표면 밖 분기(UpdatePlacement)와 같은 판단이다.
+            // 여기서 조용히 빠지면 "조준 중인데 눌러도 아무 반응이 없는" 구간이 화면 대부분을 차지한다.
+            // 커서는 이미 「안 됨」(CursorKind.Blocked)으로 바뀌어 있으므로 소리도 그 칸을 쓴다(#550).
+            if (!overUI && Mouse.current.leftButton.wasPressedThisFrame) Sfx.Blocked();
             return;
         }
 

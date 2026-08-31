@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Localization.Settings;
 using UnityEngine.UI;
+using NorthLand.UI;
 
 // 경영 공간 전용 건물 정보 패널. 선택된 생산 건물의 이름·레벨·업그레이드 정보를 표시하고,
 // 업그레이드 버튼으로 ManagementController.TryUpgrade를 호출한다(로직/뷰 분리 — 계산·차감은 컨트롤러).
@@ -50,8 +51,6 @@ public class BuildingInfoUI : MonoBehaviour
     [SerializeField] Transform _costContent;
     [Tooltip("비용 한 줄 프리팹 (BuildingCostRow)")]
     [SerializeField] BuildingCostRow _costRowPrefab;
-
-    private const string k_PositiveColorHex = "#73D973";
 
     [SerializeField] Button _upgradeButton;
 
@@ -259,7 +258,7 @@ public class BuildingInfoUI : MonoBehaviour
         // 잠긴 경우 "MAX"가 아니라 "본진 Lv n 필요"가 된다 — 더 올릴 수 있다는 사실이 드러나야 한다(#229).
         string lockNotice = LockNotice(_controller.LineRequiredCastleLevel(_lineIndex));
         int nextAmount = _controller.LineNextAmountPerVillager(_lineIndex);
-        SetText(_produceAmountText, isMax ? (lockNotice ?? L(k_MaxKey)) : $"{cur} > <color={k_PositiveColorHex}>{nextAmount}</color>");
+        SetText(_produceAmountText, isMax ? (lockNotice ?? L(k_MaxKey)) : $"{cur} > <color={UiPalette.PositiveHex}>{nextAmount}</color>");
         if (isMax)
         {
             ClearCostRows();
@@ -356,7 +355,7 @@ public class BuildingInfoUI : MonoBehaviour
             return line;
         }
 
-        int arrowIndex = line.LastIndexOf('→');
+        int arrowIndex = line.LastIndexOf('>');
         if (arrowIndex < 0)
         {
             return line;
@@ -370,7 +369,7 @@ public class BuildingInfoUI : MonoBehaviour
 
         return valueStart >= line.Length
             ? line
-            : $"{line.Substring(0, valueStart)}<color={k_PositiveColorHex}>{line.Substring(valueStart)}</color>";
+            : $"{line.Substring(0, valueStart)}<color={UiPalette.PositiveHex}>{line.Substring(valueStart)}</color>";
     }
 
     // 배율 엔트리가 없으면(미강화 Lv0 · 범위 밖) 1.0 = 베이스 그대로. SkillManager.RefreshUpgrade의
