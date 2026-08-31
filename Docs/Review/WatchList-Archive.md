@@ -9,6 +9,8 @@
 
 - **WL-225** | RESOLVED(#543, `PlacementRequest.OnGhostPositionUpdated`) | 고스트 프리뷰와 실제 배치의 적응형 받침대 표현이 달랐던 문제 해소 — `MouseManager`가 고스트 위치 갱신 직후 생성 인스턴스를 요청 콜백으로 전달하고, `TowerPlacer`가 같은 풋프린트 최저·최고 높이로 `AdaptiveTowerFoundation.Fit`을 호출한다. `SniperTower-GHOST`·`TwinMissileTower-Ghost` 루트에도 컴포넌트와 받침대 참조를 배선했으며, 평지·높이차 타일 사이 이동과 배치 전후 일치를 플레이 모드에서 확인했다. 재발감지: 2x2 고스트 루트의 `AdaptiveTowerFoundation` 누락, `OnGhostPositionUpdated` 연결 제거, 고스트와 실제 배치가 서로 다른 높이 계산 경로 사용
 
+- **WL-172** | RESOLVED(2026-08-12 설계 철회) | KIM-SUNGSOO·muchan918 | 몬스터 이동속도 ×0.6 및 HP ×1.5 조정안은 2026-08-12에 철회됐다. 현재 `EnemyAsset.MoveSpeed`와 HP를 전투 밸런스의 정본으로 유지하고 타워 수치를 이 값에 맞추는 방향으로 확정했으며, 철회된 조정안은 실제 몬스터 에셋에 적용된 적이 없다. 재발감지: 전체 전투 재검산 없이 이동속도 ×0.6을 다시 적용, 속도 6·HP 60을 현재 검산 기준으로 사용, 철회된 계획을 미적용 작업으로 활성 WatchList에 재등재
+
 - **WL-003** | RESOLVED(StageBuilder.cs:74) | 몬스터 순서 경로가 MapBuilder 정본으로 확정 — `StageBuilder.MonsterRoute`(IReadOnlyList<Vector3>) 읽기 전용 공개, 소비 측은 `IMovementAgent.SetRoute`로 수신. 재발감지: StageBuilder 밖에서 경로 좌표를 재구성하는 코드, MonsterRoute를 우회한 자체 경로 리스트
 - **WL-004** | RESOLVED(BattleTile.cs:4-9 + TowerPlacer.cs) | 배치 검증 공백 해소 — `TileKind`(Grass/Road/Lava)+Occupied 마커를 타일 프리팹에 부착하고 TowerPlacer가 스냅·풋프린트·점유·맵밖 셀을 검증. 재발감지: CanPlaceAt이 무조건 true로 회귀, TileKind 조회 없는 신규 배치 경로 (tileSize 동기화는 WL-034)
 - **WL-007** | RESOLVED(StageBuilder.cs:221,246 → StageMonsterRouteTracker.cs:45) | grid→world 인라인 복제 제거, `ToWorldPosition`/`GetWorldPosition` 단일 창구로 통일(SpawnFinalCenterObject 포함). 재발감지: StageBuilder/스포너 내부에 tileSize 곱셈이 다시 등장 — 신맵 CombatMapTileSpawner.GridToWorldPosition·TowerPlacer tileSize는 각각 신맵 경로/WL-034로 별도 추적
