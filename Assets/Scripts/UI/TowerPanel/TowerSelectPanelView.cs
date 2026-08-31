@@ -29,6 +29,9 @@ public class TowerSelectPanelView : MonoBehaviour
     private DayNightManager _dayNight;        // OnDayStart 구독용(웨이브 값은 DayNightManager.CurrentWaveOrMax로 조회한다).
     private readonly List<(Button button, TowerAsset tower)> _buttons = new(); // 버튼별 갱신용
     private TowerAsset _restrictedTo;         // [튜토리얼용] 이것만 고를 수 있다. null이면 제한 없음.
+    // 배치 세션이 살아 있는 타워(#563). null이면 선택 없음. 표시의 정본은 여기 하나이고,
+    // 버튼은 RefreshButton에서 "이게 나인가"를 받아 그리기만 한다 — 잠금·회색 처리와 같은 방향이다.
+    private TowerAsset _selectedTower;
 
     private void Awake()
     {
@@ -164,6 +167,10 @@ public class TowerSelectPanelView : MonoBehaviour
             // 따로 세우면 Button의 ColorTint가 테두리를 즉시 밝혀, 해제 연출이 끝나기도 전에
             // 칸이 살아난 것처럼 보인다(#470).
             view.SetSelectable(selectable);
+
+            // 선택 표시는 위 세 게이트와 **별개 축**이다 — 배치 도중 자원이 줄어 칸이 회색이 돼도
+            // "지금 이걸 놓는 중"은 세션이 끝날 때까지 남아야 한다(TowerButtonView.SetSelected 참조).
+            view.SetSelected(tower == _selectedTower);
         }
         else
         {
@@ -205,8 +212,28 @@ public class TowerSelectPanelView : MonoBehaviour
             return;
         }
 
-        _towerPlacer.BeginTowerPlacement(tower);
+        // 종료 통지를 받는 오버로드를 쓴다 — 확정이든 취소든 세션이 끝나면 선택 표시를 걷어야 한다.
+        // **반환값을 반드시 본다**: 세션이 시작되지 않으면 onEnded도 영영 오지 않으므로,
+        // 그때 선택을 세우면 파티클이 켜진 채 영구히 남는다(BeginTowerPlacement 주석의 그 계약).
+        if (!_towerPlacer.BeginTowerPlacement(tower, ClearSelection)) return;
+
+        // 대입은 Begin '이후'다. Begin 내부의 CancelPlacement가 이전 세션의 onEnded(=ClearSelection)를
+        // 먼저 발화하므로, 앞에 두면 방금 세운 선택이 그 콜백에 즉시 지워진다 —
+        // TowerPlacer가 _onConfirmed을 BeginPlacement 뒤에 대입하는 것과 같은 순서 계약이다.
+        _selectedTower = tower;
+        RefreshButtons();
 
         OnTowerSelected?.Invoke(tower);
+    }
+
+    /// <summary>
+    /// 배치 세션 종료 통지(확정·취소 무관, 1회). 합성 패널이 배치를 가로채 이 세션이 밀려난 경우도
+    /// 같은 길로 온다 — <see cref="TowerPlacer"/>가 새 배치를 시작하기 전에 이전 세션을 끝내기 때문에,
+    /// 패널이 합성을 따로 알 필요가 없다.
+    /// </summary>
+    private void ClearSelection()
+    {
+        _selectedTower = null;
+        RefreshButtons();
     }
 }
