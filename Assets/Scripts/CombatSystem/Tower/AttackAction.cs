@@ -126,7 +126,7 @@ namespace NorthLand.Combat
                 AddIf(into, TowerStatsFormatter.GroundZoneRow(zone.Radius, zone.Duration));
             }
 
-            DescribeEffectRows(effects, Owner, into);
+            DescribeEffectRows(effects, Owner, into, EffectDisplaySource.Hit);
         }
 
         /// 값이 있을 때만 담는다. 행 생산자들이 "해당 없음"을 null로 답하므로 호출부마다 같은 검사가 반복된다.
@@ -141,7 +141,8 @@ namespace NorthLand.Combat
         /// "정보 패널엔 독이 있다는데 실제로는 안 걸리는" 어긋남이 생긴다 — 표시부와 적용부가 규칙을 각자
         /// 쓰는 것이 WL-079/WL-130이 지적한 문제였다. 그래서 `stats`가 아니라 **`owner`를 통째로** 받는다:
         /// 원장과 필터가 같은 곳에서 나오므로 호출부가 필터를 빠뜨릴 수 없다.
-        internal static void DescribeEffectRows(List<HitEffect> effects, Tower owner, List<TowerStatRowData> into)
+        internal static void DescribeEffectRows(List<HitEffect> effects, Tower owner,
+                                                List<TowerStatRowData> into, EffectDisplaySource source)
         {
             if (effects == null || effects.Count == 0 || owner == null) return;
 
@@ -151,7 +152,11 @@ namespace NorthLand.Combat
                 if (effect == null) continue;
                 if (!owner.IsEffectActive(effect.Kind)) continue;   // 계승으로 꺼진 효과는 표기하지 않는다
 
-                AddIf(into, effect.DescribeRow(owner.Stats));
+                TowerStatRowData? row = effect.DescribeRow(owner.Stats);
+                if (row.HasValue)
+                {
+                    into.Add(row.Value.WithLabel(TowerStatsFormatter.EffectName(effect.Kind, source)));
+                }
             }
         }
 

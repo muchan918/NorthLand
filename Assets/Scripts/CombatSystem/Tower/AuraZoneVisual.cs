@@ -3,7 +3,7 @@ using UnityEngine;
 namespace NorthLand.Combat
 {
     /// <summary>
-    /// 오라 타워의 장판 이펙트를 **실제 영향 반경**(<see cref="Tower.DisplayRange"/>)에 맞춘다.
+    /// 오라 타워의 장판 이펙트를 해당 오라 액션의 **실제 영향 반경**에 맞춘다.
     ///
     /// 스케일을 프리팹에 박으면 두 경우에 표시가 실제와 어긋난다 —
     /// ① 밸런싱으로 <c>DebuffAura.Radius</c>를 조정할 때, ② 사거리 버프 타일로 런타임에 반경이 변할 때.
@@ -82,7 +82,7 @@ namespace NorthLand.Combat
             Cache();
             if (_tower == null || _ps == null || _renderer == null) return;
 
-            float radius = _tower.DisplayRange;
+            float radius = ResolveAuraRadius();
             if (radius <= 0f) return;                                  // 액션 미초기화(에디트 모드 등)
 
             float parentScale = transform.parent != null ? transform.parent.lossyScale.x : 1f;
@@ -99,6 +99,21 @@ namespace NorthLand.Combat
             transform.localScale = Vector3.one * (radius * 2f * edgeCompensation / (unitDiameter * parentScale));
             _appliedRadius = radius;
             _appliedParentScale = parentScale;
+        }
+
+        float ResolveAuraRadius()
+        {
+            // DisplayRange는 공격+오라 하이브리드에서 두 액션 중 최대값이다. 그것을 장판에 쓰면
+            // 인페르노처럼 빔(20)이 오라(12)보다 넓을 때 독 장판까지 20으로 보이게 된다.
+            // 장판은 실제 판정과 같은 액션 값을 직접 읽고, 선택 원만 Tower.DisplayRange를 유지한다.
+            DebuffAuraAction debuffAura = _tower.Get<DebuffAuraAction>();
+            if (debuffAura != null) return debuffAura.Radius;
+
+            BuffAuraAction buffAura = _tower.Get<BuffAuraAction>();
+            if (buffAura != null) return buffAura.Radius;
+
+            // 잘못 연결된 구형 프리팹도 갑자기 사라지지는 않게 기존 동작으로 폴백한다.
+            return _tower.DisplayRange;
         }
 
         // 경계선 역할을 하는 자식의 이름 규약. 바닥 장판 3종(`Choco/FlameField/Poison_Area`)이 이 이름으로

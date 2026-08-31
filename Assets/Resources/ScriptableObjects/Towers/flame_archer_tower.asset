@@ -48,8 +48,8 @@ MonoBehaviour:
       DamageAmount: 0
       TickInterval: 0
   DebuffAura:
-    Radius: 0
-    Interval: 0
+    Radius: 15
+    Interval: 0.1
   Beam:
     Range: 0
     MaxTargets: 1
@@ -61,6 +61,8 @@ MonoBehaviour:
       StackInterval: 0
       DecaySeconds: 0
     VisualStages: []
+    LoopSfx: {fileID: 0}
+    LoopSfxVolume: 1
   GroundZone:
     ZonePrefab: {fileID: 0}
     Radius: 0
@@ -70,6 +72,8 @@ MonoBehaviour:
     Prefab: {fileID: 100014, guid: ee964602b85047a4aaed6d227687985c, type: 3}
     Scale: 1
     Lifetime: 1.7
+  ImpactSfx: {fileID: 0}
+  ImpactSfxVolume: 1
   Ramp:
     Stat: 2
     Trigger: 0

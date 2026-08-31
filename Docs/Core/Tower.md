@@ -205,6 +205,9 @@ SO의 `TowerType`을 보고 `AddComponent`로 조립하고, 새 SO에서 빠진 
 - **빔의 잠금이 지속형(sticky)인 이유**: 한 번 잠근 대상은 죽거나 사거리를 벗어날 때까지 유지하고 빈
   슬롯만 새로 채운다. 매 틱 전체를 다시 뽑으면 사거리 안 대상 구성이 그대로여도 **물리 엔진 내부 순서**에
   따라 잠금이 흔들린다. 단일/멀티 인페르노는 별개 액션이 아니라 `MaxTargets`와 램프 저작으로만 갈린다(§3.10).
+- **`Beam.SuppressHitEffects`**: 공격과 오라를 함께 가진 하이브리드 타워가 `TowerAsset.Effects`를
+  오라 전용으로 사용할 때 켠다. 빔 피해는 유지하되 빔 대상에는 효과를 적용하지 않으며, 정보 패널의
+  효과 행도 `BeamAction`이 만들지 않는다. 해당 효과의 적용·표시는 `DebuffAuraAction` 한 곳이 맡는다.
 - **`RampAction`이 대상을 갖지 않는 이유**: 이것만 **적을 건드리지 않는 액션**이다. 하는 일이 자기
   타워의 원장에 소스를 하나 얹는 것뿐이고, 그래서 `DisplayRange`가 0이다(§3.10).
 
@@ -353,11 +356,13 @@ void Update() {                                  // 분기가 없다
 #### 소스 키
 
 ```
-sourceId = 쏜 쪽의 GetInstanceID() ^ (int)EffectKind
+직접 명중 = HashCode.Combine(타워 InstanceID, EffectKind)
+디버프 오라 = HashCode.Combine(DebuffAuraAction.SourceId, EffectKind)
 ```
 
-같은 종류 타워 여러 기는 인스턴스 ID가 달라 **자동 중첩**되고, 한 타워 안에서는 종류당 하나로 수렴한다.
-`EnemyApplyTowerDebuffAction`의 `agentID ^ 효과종류해시` 관례와 동형이다.
+같은 종류 타워 여러 기는 인스턴스 ID가 달라 **자동 중첩**된다. 공격과 오라를 함께 가진 하이브리드
+타워에서는 오라 쪽이 액션 타입을 포함한 `SourceId`를 사용하므로, 같은 `EffectKind`라도 직접 명중과
+오라가 서로 다른 슬롯에서 독립적으로 지속·틱 피해를 처리한다.
 
 ⚠ **`Effects` 리스트의 순서를 섞거나 항목을 지우지 말 것** — 키가 `Kind`로 채번되므로 종류가 바뀌면
 진행 중이던 효과가 대상 쪽에 **회수되지 않는 유령**으로 남는다.

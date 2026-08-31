@@ -121,9 +121,10 @@ namespace NorthLand.Combat
                                  $"반경={radius:0.#}", Owner);
 #endif
 
-            // 소스 키는 HitEffect.SourceKey — 투사체 경로(Projectile.ApplyEffects)와 **같은 함수**라,
-            // "맞아서 걸린 화상"과 "장판에서 걸린 화상"이 같은 슬롯을 쓴다.
-            int baseId = Owner.GetInstanceID();
+            // 효과 종류가 같아도 직접 명중과 오라는 서로 다른 출처다. 타워 ID만 쓰면 화염 궁수의
+            // "맞아서 걸린 화상"과 "오라 화상"이 같은 슬롯을 갱신해 중첩되지 않는다. 액션 타입까지
+            // 포함한 SourceId를 기반으로 채번해 공격 경로와 독립된 상태이상 슬롯을 갖게 한다.
+            int baseId = SourceId;
             TowerStats stats = Owner.Stats;
 
             for (int i = 0; i < count; i++)
@@ -153,7 +154,7 @@ namespace NorthLand.Combat
 
             into.Add(TowerStatRowData.Stat(TowerStatsFormatter.k_AuraRadiusKey, aura.Radius, Radius));
 
-            AttackAction.DescribeEffectRows(effects, Owner, into);
+            AttackAction.DescribeEffectRows(effects, Owner, into, EffectDisplaySource.Aura);
         }
 
 #if UNITY_EDITOR

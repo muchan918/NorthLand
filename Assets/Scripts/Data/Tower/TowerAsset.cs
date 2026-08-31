@@ -644,6 +644,10 @@ public class TowerAsset : ScriptableObject
     {
         public float Range;
 
+        [Tooltip("켜면 BeamAction은 TowerAsset.Effects를 명중 대상에게 적용하지 않는다. " +
+                 "오라 전용 효과처럼 다른 Action만 Effects를 소비해야 하는 하이브리드 타워에서 사용한다.")]
+        public bool SuppressHitEffects;
+
         [Tooltip("한 번에 동시 잠그는 최대 대상 수.")]
         public int MaxTargets = 1;
 

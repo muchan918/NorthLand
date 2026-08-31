@@ -66,6 +66,11 @@ namespace NorthLand.Combat
         public static TowerStatRowData Note(string label, string value)
             => new TowerStatRowData(label, value, null);
 
+        /// 기존 값 칸은 그대로 두고 표시 라벨만 교체한다.
+        /// 효과가 공격과 오라 양쪽에서 올 때 적용 경로를 구분하는 데 쓴다.
+        public TowerStatRowData WithLabel(string label)
+            => new TowerStatRowData(label, BaseText, BuffedText);
+
         /// 버프 칸을 그릴지 여부. 뷰가 화살표와 오른쪽 칸을 함께 가르는 기준이다.
         public bool HasBuffedValue => BuffedText != null;
     }

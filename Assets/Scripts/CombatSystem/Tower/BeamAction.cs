@@ -222,7 +222,9 @@ namespace NorthLand.Combat
                 // 의도적으로 램프를 타지 않는다(효과는 `Owner.Stats`만 본다).
                 victim.TakeDamage(new DamageInfo(damage * LockMultiplier(i), Owner));
 
-                if (effects == null) continue;
+                // 하이브리드 타워가 Effects를 오라 전용으로 쓸 수 있다. 빔 피해 자체는 그대로 주되,
+                // 이 플래그가 켜지면 명중 효과 적용과 정보 패널 표기를 함께 막는다.
+                if (fields.SuppressHitEffects || effects == null) continue;
                 for (int e = 0; e < effects.Count; e++)
                 {
                     HitEffect effect = effects[e];
@@ -260,7 +262,8 @@ namespace NorthLand.Combat
                     $" ({(ramp.StackInterval * ramp.MaxStacks).ToString(TowerStatsFormatter.k_DefaultFormat)}s)"));
             }
 
-            AttackAction.DescribeEffectRows(effects, Owner, into);
+            if (!fields.SuppressHitEffects)
+                AttackAction.DescribeEffectRows(effects, Owner, into, EffectDisplaySource.Hit);
         }
 
         // ── 빔 비주얼(최소 구현) ──────────────────────────────────────────────

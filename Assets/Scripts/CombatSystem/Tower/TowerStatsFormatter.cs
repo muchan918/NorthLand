@@ -26,6 +26,8 @@ namespace NorthLand.Combat
         public const string k_LockRampKey = "game.tower.lock_ramp";
         public const string k_InheritKey = "game.tower.inherit";
         public const string k_InheritNoneKey = "game.tower.inherit.none";
+        public const string k_HitEffectFormatKey = "game.tower.effect.hit_format";
+        public const string k_AuraEffectFormatKey = "game.tower.effect.aura_format";
         public const string k_DefaultFormat = "0.#";
         public const string k_RateFormat = "0.##";
 
@@ -219,6 +221,15 @@ namespace NorthLand.Combat
             return key == null ? kind.ToString() : Label(key);
         }
 
+        /// 같은 효과가 공격과 오라 양쪽에 있을 때 정보 패널에서 출처를 구분한다.
+        public static string EffectName(EffectKind kind, EffectDisplaySource source)
+        {
+            string formatKey = source == EffectDisplaySource.Aura
+                ? k_AuraEffectFormatKey
+                : k_HitEffectFormatKey;
+            return string.Format(Label(formatKey), EffectName(kind));
+        }
+
         /// null·빈 줄을 건너뛰고 개행으로 잇는다. 전부 비면 null.
         public static string Join(params string[] lines)
         {
@@ -230,5 +241,11 @@ namespace NorthLand.Combat
             }
             return result;
         }
+    }
+
+    public enum EffectDisplaySource
+    {
+        Hit,
+        Aura,
     }
 }

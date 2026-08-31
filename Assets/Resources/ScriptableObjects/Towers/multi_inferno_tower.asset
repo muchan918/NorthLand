@@ -48,10 +48,11 @@ MonoBehaviour:
       DamageAmount: 0
       TickInterval: 0
   DebuffAura:
-    Radius: 0
-    Interval: 0
+    Radius: 12
+    Interval: 0.1
   Beam:
     Range: 20
+    SuppressHitEffects: 1
     MaxTargets: 5
     TickInterval: 1
     DamagePerTick: 8.8
@@ -84,9 +85,16 @@ MonoBehaviour:
       DecaySeconds: 0
     SecondaryStat: 0
     SecondaryPerStack: 0
-  Effects: []
+  Effects:
+  - rid: 3470830157919682659
   references:
     version: 2
     RefIds:
     - rid: -2
       type: {class: , ns: , asm: }
+    - rid: 3470830157919682659
+      type: {class: PoisonStatus, ns: NorthLand.Combat, asm: Assembly-CSharp}
+      data:
+        DamagePerTick: 3.9
+        TickInterval: 1
+        Duration: 4

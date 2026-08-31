@@ -503,6 +503,14 @@ MonoBehaviour:
     m_Key: game.result.seed_copied
     m_Metadata:
       m_Items: []
+  - m_Id: 18935580370309120
+    m_Key: game.tower.effect.hit_format
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18935580399669248
+    m_Key: game.tower.effect.aura_format
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
