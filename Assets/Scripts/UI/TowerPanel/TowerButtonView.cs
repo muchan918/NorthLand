@@ -21,6 +21,8 @@ public class TowerButtonView : MonoBehaviour
     [SerializeField] GameObject _lockOverlay;
     [Tooltip("해제 연출. 비어 있으면 오버레이에서 찾고, 그래도 없으면 연출 없이 즉시 걷는다.")]
     [SerializeField] TowerLockUnlockEffect _unlockEffect;
+    [Tooltip("선택 표시 파티클 묶음 (Slot/Fx_Selected) — 이 타워로 배치 모드에 들어와 있는 동안만 켠다. 비어 있으면 표시 없이 넘어간다.")]
+    [SerializeField] GameObject _selectedEffect;
 
     [Header("비활성 표시")]
     [Tooltip("버튼이 죽었을 때 아이콘에 씌울 색. Button의 색 전이는 targetGraphic(테두리) 하나에만 걸려 아이콘까지 닿지 않는다(#470).")]
@@ -29,6 +31,8 @@ public class TowerButtonView : MonoBehaviour
     Color _normalIconColor = Color.white;
     bool _iconColorCached;
     Button _button;
+    ParticleSystem[] _selectedParticles;
+    bool _selectedParticlesCached;
     // 배선 유실 경고는 **세션당 1회**다(TowerInfoUI._mergeWiringWarned와 같은 규약이지만 static인 이유:
     // 그쪽은 패널 1개인데 이쪽은 타워 수만큼 칸이 생겨, 인스턴스 플래그면 같은 경고가 칸마다 쏟아진다).
     static bool s_bannerWiringWarned;
@@ -123,6 +127,56 @@ public class TowerButtonView : MonoBehaviour
 
         if (_button == null) _button = GetComponent<Button>();
         if (_button != null) _button.interactable = _requestedSelectable;
+    }
+
+    /// <summary>
+    /// 이 칸의 타워로 <b>배치 모드에 들어와 있는지</b>(#563). 무엇이 선택인지는 판단하지 않는다 —
+    /// 패널이 매 갱신마다 "선택된 타워 == 이 칸"을 계산해 넘긴다.
+    ///
+    /// <para><b>왜 선택 가능 여부(<see cref="SetSelectable"/>)와 엮지 않는가</b>: 배치 세션이 시작된 뒤
+    /// 자원이 줄어 칸이 회색이 되는 경로가 있다. 그때 표시를 걷으면 "지금 뭘 놓고 있는지"가 사라진다 —
+    /// 배치 중이라는 사실은 자원과 무관하게 세션이 끝날 때까지 유지된다.</para>
+    ///
+    /// <para><b>왜 알파가 아니라 GameObject를 끄는가</b>: UIParticle은 살아 있는 동안 매 프레임 메시를
+    /// 굽고 자기 CanvasRenderer로 캔버스 배칭을 끊는다. 선택은 항상 한 칸뿐인데 알파만 내리면
+    /// 나머지 칸 전부가 그 비용을 그대로 낸다.</para>
+    ///
+    /// <para><b>왜 Play/Stop을 명시로 부르는가</b>: <c>playOnAwake</c>는 <b>첫 활성화에만</b> 재생을 건다.
+    /// 아래에서 <c>StopEmittingAndClear</c>로 멈춘 뒤 다시 켜면 자동으로 살아나지 않아, 두 번째 선택부터
+    /// 조용히 아무것도 안 보인다.</para>
+    /// </summary>
+    public void SetSelected(bool selected)
+    {
+        if (_selectedEffect == null) return;
+        // 표시 상태가 곧 직전 값이다 — 별도 플래그를 들지 않는 이유는 SetLocked와 같다(#424).
+        if (_selectedEffect.activeSelf == selected) return;
+
+        CacheSelectedParticles();
+
+        if (selected)
+        {
+            _selectedEffect.SetActive(true);
+            // withChildren:false — 캐시가 이미 자식 전부라 true면 중첩된 시스템에 Play가 두 번 간다.
+            foreach (var ps in _selectedParticles) ps.Play(false);
+            return;
+        }
+
+        // 끄기 **전에** 지운다. 살아 있는 파티클을 남긴 채 비활성하면 다음 선택의 첫 프레임에
+        // 지난번 잔상이 그대로 한 번 튄다(비활성은 시뮬레이션을 멈출 뿐 버퍼를 비우지 않는다).
+        foreach (var ps in _selectedParticles) ps.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+        _selectedEffect.SetActive(false);
+    }
+
+    // includeInactive:true — 이펙트는 프리팹에서 꺼진 채로 저작된다. false면 빈 배열이 잡혀
+    // Play가 아무 데도 닿지 않고, 에러도 나지 않는다.
+    void CacheSelectedParticles()
+    {
+        if (_selectedParticlesCached) return;
+        _selectedParticles = _selectedEffect.GetComponentsInChildren<ParticleSystem>(true);
+        _selectedParticlesCached = true;
+
+        if (_selectedParticles.Length == 0)
+            Debug.LogWarning($"[타워버튼] _selectedEffect 아래에 ParticleSystem이 없습니다 — 선택 표시가 켜져도 아무것도 그려지지 않습니다({name}).", this);
     }
 
     TowerLockUnlockEffect ResolveEffect()

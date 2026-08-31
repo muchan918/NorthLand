@@ -215,7 +215,15 @@ public class TowerPlacer : MonoBehaviour
     /// 더미 데이터 + 인스펙터 프리팹으로 배치 시작. UI 버튼 OnClick에 연결(현재 테스트 경로).
     /// 비용은 so.Cost(FreePlacement면 무료), 확정 콜백 없음(일반 타워 배치).
     public bool BeginTowerPlacement(TowerAsset so)
-        => BeginTowerPlacement(so, so != null && !FreePlacement ? so.Cost : null, null, null, PlacementOwner.Placer);
+        => BeginTowerPlacement(so, onEnded: null);
+
+    /// 종료 통지만 덧붙이는 오버로드. 비용·확정 콜백·소유권은 단일인자 경로와 **완전히 같다** —
+    /// "배치 중"을 UI에 표시했다가 세션이 끝나면 걷는 호출부(타워 패널의 선택 표시 #563)를 위한 것이다.
+    ///
+    /// 5인자 오버로드를 직접 부르게 하지 않는 이유: 그러면 호출부가 비용 규칙(`FreePlacement면 무료`)을
+    /// 복제해야 하고, 규칙이 바뀌는 날 패널만 옛 규칙으로 남는다. 규칙은 이 줄 하나에만 있는다.
+    public bool BeginTowerPlacement(TowerAsset so, System.Action onEnded)
+        => BeginTowerPlacement(so, so != null && !FreePlacement ? so.Cost : null, null, onEnded, PlacementOwner.Placer);
 
     /// 비용·확정 콜백을 주입하는 오버로드. 합성(#195)이 결과 타워를 결과 코스트(ExtraCost)로 배치하고,
     /// 배치 확정 직후 onConfirmed(결과 커맨드 편입)를 실행하는 데 쓴다. 배치 코어는 단일인자 경로와 동일.
