@@ -12,6 +12,11 @@ using UnityEngine.UI;
 [RequireComponent(typeof(Button))]
 public class SkillButtonView : MonoBehaviour, IDisabledClickFeedback
 {
+    // 충전 대기 안내음의 최소 재생 간격(초). 클립(SFX_Skill_Cooldown, 0.75초)보다 살짝 짧게 잡아
+    // 겹치지 않으면서도 "두드리면 반응한다"는 감은 남긴다. 정확히 맞출 필요는 없다 — 겹침을 막는
+    // 가드일 뿐이라 클립 길이가 바뀌어도 조금 겹치거나 조금 더 눌러 먹는 정도로 끝난다.
+    private const float k_UnavailableSfxMinInterval = 0.7f;
+
     [SerializeField] Button _button;
     [SerializeField] GameObject _skillGhostPrefab; // 마우스를 따라다닐 범위 인디케이터
 
@@ -33,6 +38,10 @@ public class SkillButtonView : MonoBehaviour, IDisabledClickFeedback
     int _shownMaxCharges = -1;
     int _shownRechargeSeconds = -1;
     Action _shortcutHandler;
+
+    // 충전 대기 안내음을 마지막으로 낸 시각. 연타를 흡수하는 데만 쓴다(아래 PlayUnavailableSfx).
+    // 음수 초기값이라 첫 시도는 항상 통과한다.
+    float _lastUnavailableSfxTime = float.NegativeInfinity;
 
     private void Awake()
     {
@@ -158,10 +167,27 @@ public class SkillButtonView : MonoBehaviour, IDisabledClickFeedback
     /// 이 뷰는 Awake에서 Bind하고 OnDestroy에서만 Unbind하므로 패널이 꺼져도 바인딩이 남는다.
     /// 그래서 낮에 Q를 눌러도 무음인 것이 이 게이트의 실제 효과다.
     ///
+    /// ⚠ **연타를 여기서 흡수한다.** Sfx.Play의 프레임 래치(ClaimFrame)는 **같은 프레임**의 중복만
+    /// 막고, 이 소리가 나가는 AudioManager.PlaySfx는 동시재생 상한이 없다(SystemMap §2 — "드물게 한 번
+    /// 울리는 짧은 소리에만 쓴다"). 클립이 0.75초라 초당 몇 번만 두드려도 여러 벌이 겹쳐 쌓이는데,
+    /// **못 쓰는 것을 확인하려고 두세 번 두드리는 것이 정확히 이 기능의 대상 시나리오다**
+    /// (그러면 "안 된다"는 안내가 경보처럼 커진다).
+    ///
+    /// Sfx 층이 아니라 이 뷰에 두는 이유: 다른 큐의 거동을 건드리지 않는다. 같은 노출이
+    /// Sfx.Rejected(무효 타일 연타)에도 있으므로 공용 규약으로 올릴지는 AudioManager.md §7 TODO에 남겼다.
+    ///
+    /// 시간축은 **unscaled**다 — 안내·피드백은 배속·정지와 무관해야 한다(SystemMap §6).
     private void PlayUnavailableSfx()
     {
-        if (SkillManager.Instance != null && SkillManager.Instance.IsOutOfCharges)
-            Sfx.SkillOutOfCharges();
+        if (SkillManager.Instance == null || !SkillManager.Instance.IsOutOfCharges)
+            return;
+
+        float now = Time.unscaledTime;
+        if (now - _lastUnavailableSfxTime < k_UnavailableSfxMinInterval)
+            return;
+
+        _lastUnavailableSfxTime = now;
+        Sfx.SkillOutOfCharges();
     }
 
     private bool TryBeginTargeting()
