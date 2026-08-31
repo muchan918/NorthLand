@@ -56,6 +56,10 @@
 > 실제로 눌렀을 때의 반응은 소리가 맡는다 — 스킬 조준 중 타일 밖 클릭이 그 전까지 **무음**이었다
 > (`UpdateSkillTargeting`이 `tile == null`에서 조기 return 하므로 클릭 판정에 닿지도 않았다).
 >
+> 조건은 `!overUI && leftPressed && tile == null`이고, 이는 이 시스템의 `ShowBlocked`
+> (`!_overTargetSurface && !_overUI`)와 **같은 술어**다 — 그래서 「안 됨」 커서가 떠 있는 순간에만
+> 「안 됨」 소리가 나며, 그림과 소리가 어긋나는 조합이 구조적으로 만들어지지 않는다.
+>
 > 소리와 커서의 대응은 1:1을 노렸다 — `Blocked` 커서 → `Sfx.Blocked()`(`SFX_Error`),
 > `Placing` 커서에서 규칙에 걸린 반려 → `Sfx.Rejected()`(`SFX_Tower_CantPlace`).
 > ⚠ **단 배치 모드의 표면 밖 클릭은 아직 `Rejected` 쪽에 남아 있다** — 두 클립이 청감상 거의 같아
