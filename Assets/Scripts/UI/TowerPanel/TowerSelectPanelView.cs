@@ -170,7 +170,7 @@ public class TowerSelectPanelView : MonoBehaviour
 
             // 선택 표시는 위 세 게이트와 **별개 축**이다 — 배치 도중 자원이 줄어 칸이 회색이 돼도
             // "지금 이걸 놓는 중"은 세션이 끝날 때까지 남아야 한다(TowerButtonView.SetSelected 참조).
-            view.SetSelected(tower == _selectedTower);
+            view.SetSelected(tower == _selectedTower, _selectedTower != null);
         }
         else
         {

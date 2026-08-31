@@ -28,6 +28,12 @@ public class TowerButtonView : MonoBehaviour
     [Tooltip("버튼이 죽었을 때 아이콘에 씌울 색. Button의 색 전이는 targetGraphic(테두리) 하나에만 걸려 아이콘까지 닿지 않는다(#470).")]
     [SerializeField] Color _dimmedIconColor = new(0.42f, 0.42f, 0.42f, 1f);
 
+    [Header("선택 스케일")]
+    [Tooltip("선택된 칸의 배율. LayoutGroup은 localScale을 보지 않으므로 칸 자리는 흔들리지 않는다.")]
+    [SerializeField] float _selectedScale = 1.1f;
+    [Tooltip("선택 세션 중 나머지 칸의 배율. 아무도 고르지 않은 평상시에는 적용하지 않는다.")]
+    [SerializeField] float _unselectedScale = 0.9f;
+
     Color _normalIconColor = Color.white;
     bool _iconColorCached;
     Button _button;
@@ -147,8 +153,12 @@ public class TowerButtonView : MonoBehaviour
     /// 아래에서 <c>StopEmittingAndClear</c>로 멈춘 뒤 다시 켜면 자동으로 살아나지 않아, 두 번째 선택부터
     /// 조용히 아무것도 안 보인다.</para>
     /// </summary>
-    public void SetSelected(bool selected)
+    public void SetSelected(bool selected, bool anySelected)
     {
+        // **파티클 가드보다 앞이다.** 아래 두 줄(미배선 이탈 / 중복 이탈)은 파티클만의 사정인데,
+        // 그 뒤에 두면 이펙트가 배선되지 않은 환경에서 스케일까지 함께 조용히 사라진다.
+        ApplySelectedScale(selected, anySelected);
+
         if (!EnsureSelectedEffectWired()) return;
         // 표시 상태가 곧 직전 값이다 — 별도 플래그를 들지 않는 이유는 SetLocked와 같다(#424).
         if (_selectedEffect.activeSelf == selected) return;
@@ -169,6 +179,20 @@ public class TowerButtonView : MonoBehaviour
         // 지난번 잔상이 그대로 한 번 튄다(비활성은 시뮬레이션을 멈출 뿐 버퍼를 비우지 않는다).
         foreach (var ps in _selectedParticles) ps.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
         _selectedEffect.SetActive(false);
+    }
+
+    // 세 상태다 — 「선택됨 / 선택 세션 중의 나머지 / 아무도 안 고름」. 마지막을 1배로 되돌리지 않으면
+    // 배치 모드에 들어가기도 전에 팔레트 전체가 쪼그라든 채로 그려진다(selected==false 하나로는 뒤 둘이
+    // 구별되지 않아 anySelected를 함께 받는 이유).
+    //
+    // <para><b>왜 localScale인가</b>: LayoutGroup은 스케일을 무시하고 원래 크기로 자리를 잡으므로,
+    // 칸 하나가 커져도 나머지가 밀리지 않는다. 대신 커진 칸이 이웃 위로 삐져나오는데, 형제 순서를
+    // 올려 앞에 그리면(SetAsLastSibling) 그 순서가 곧 LayoutGroup의 배치 순서라 칸 위치가 바뀐다 —
+    // 겹침이 거슬리면 순서가 아니라 그룹의 spacing으로 푼다.</para>
+    void ApplySelectedScale(bool selected, bool anySelected)
+    {
+        float target = !anySelected ? 1f : (selected ? _selectedScale : _unselectedScale);
+        transform.localScale = Vector3.one * target;
     }
 
     // 슬롯이 비어 있으면 선택 표시가 **조용히** 사라진다 — 프리팹이 별 저장소(NorthLand-Imported)에 있어
