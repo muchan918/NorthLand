@@ -22,6 +22,8 @@ namespace NorthLand.UI
         [SerializeField] private GameObject speedBuff;
         [SerializeField] private TMP_Text speedText;
 
+        private bool canShowCommonBuff;
+
         private readonly List<NextWaveMonsterEntry> spawnedEntries = new();
 
         private DayNightManager dayNightManager;
@@ -30,23 +32,10 @@ namespace NorthLand.UI
         {
             dayNightManager = DayNightManager.Instance;
 
-            if (monsterSpawn == null)
-            {
-                Debug.LogError("[웨이브 미리보기] monsterSpawn이 연결되지 않았습니다.", this);
-                enabled = false;
-                return;
-            }
-
-            if (hpBuff == null || hpText == null || speedBuff == null || speedText == null)
-            {
-                Debug.LogError("[웨이브 미리보기] 공통 강화 UI가 연결되지 않았습니다.", this);
-                enabled = false;
-                return;
-            }
-
             if (dayNightManager == null)
             {
                 Debug.LogError("[웨이브 미리보기] DayNightManager를 찾을 수 없습니다.",this);
+
                 enabled = false;
                 return;
             }
@@ -54,6 +43,7 @@ namespace NorthLand.UI
             if (waveProvider == null)
             {
                 Debug.LogError("[웨이브 미리보기] waveProvider가 연결되지 않았습니다.",this);
+
                 enabled = false;
                 return;
             }
@@ -61,6 +51,7 @@ namespace NorthLand.UI
             if (content == null)
             {
                 Debug.LogError("[웨이브 미리보기] content가 연결되지 않았습니다.",this);
+
                 enabled = false;
                 return;
             }
@@ -68,8 +59,16 @@ namespace NorthLand.UI
             if (entryPrefab == null)
             {
                 Debug.LogError("[웨이브 미리보기] entryPrefab이 연결되지 않았습니다.",this);
+
                 enabled = false;
                 return;
+            }
+
+            canShowCommonBuff =monsterSpawn != null &&hpBuff != null &&hpText != null &&speedBuff != null &&speedText != null;
+
+            if (!canShowCommonBuff)
+            {
+                Debug.LogWarning("[웨이브 미리보기] 공통 강화 UI 배선이 불완전하여 강화 표시만 생략합니다.",this);
             }
 
             dayNightManager.OnDayStart += HandleDayStart;
@@ -95,8 +94,15 @@ namespace NorthLand.UI
         {
             ClearEntries();
 
-            hpBuff.SetActive(false);
-            speedBuff.SetActive(false);
+            if (hpBuff != null)
+            {
+                hpBuff.SetActive(false);
+            }
+
+            if (speedBuff != null)
+            {
+                speedBuff.SetActive(false);
+            }
 
             if (noMoreWavesView != null)
             {
@@ -124,11 +130,20 @@ namespace NorthLand.UI
             }
 
             bool hasRegularMonster = false;
+            bool hasAnyMonster = false;
+
             foreach (WaveMonsterCount monster in composition)
             {
+                bool isValidMonster = monster.Asset != null && monster.Count > 0;
+
                 bool isBoss = monster.Asset != null && monster.Asset.EnemyType == EnemyType.Boss;
 
-                if (monster.Asset != null && !isBoss && monster.Count > 0)
+                if (isValidMonster)
+                {
+                    hasAnyMonster = true;
+                }
+
+                if (isValidMonster && !isBoss)
                 {
                     hasRegularMonster = true;
                 }
@@ -136,7 +151,10 @@ namespace NorthLand.UI
                 AddEntry(monster.Asset != null ? monster.Asset.Icon : null,monster.Count,isBoss);
             }
 
-            RefreshCommonBuff(currentWaveNumber, hasRegularMonster);
+            if (canShowCommonBuff)
+            {
+                RefreshCommonBuff(currentWaveNumber,hasRegularMonster,hasAnyMonster);
+            }
         }
 
         private void ShowNoMoreWaves()
@@ -174,9 +192,9 @@ namespace NorthLand.UI
             spawnedEntries.Clear();
         }
 
-        private void RefreshCommonBuff(int waveNumber, bool hasRegularMonster)
+        private void RefreshCommonBuff(int waveNumber,bool hasRegularMonster,bool hasAnyMonster)
         {
-            if (!hasRegularMonster)
+            if (!canShowCommonBuff)
             {
                 return;
             }
@@ -184,8 +202,9 @@ namespace NorthLand.UI
             float hpScale = monsterSpawn.GetWaveHpScale(waveNumber);
             float speedScale = monsterSpawn.GetWaveMoveSpeedScale(waveNumber);
 
-            bool showHp = hpScale > 1f;
-            bool showSpeed = speedScale > 1f;
+            bool showHp = hasRegularMonster && hpScale > 1f;
+
+            bool showSpeed = hasAnyMonster && speedScale > 1f;
 
             hpBuff.SetActive(showHp);
             speedBuff.SetActive(showSpeed);
