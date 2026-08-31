@@ -175,7 +175,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildingCostRow
   _icon: {fileID: 7256153722964871998}
   _amount: {fileID: 6672729294592795132}
-  _affordableColor: {r: 0.45, g: 0.85, b: 0.45, a: 1}
   _insufficientColor: {r: 0.55, g: 0.55, b: 0.55, a: 1}
   _iconAffordableColor: {r: 1, g: 1, b: 1, a: 1}
   _iconInsufficientColor: {r: 0.55, g: 0.55, b: 0.55, a: 1}

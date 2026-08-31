@@ -61,7 +61,7 @@ public class MonsterSpawn : MonoBehaviour
     1.2f, 1.2f, 1.2f, 1.2f, 1.2f,
 };
 
-    private float WaveMoveSpeedScale(int wave)
+    public float GetWaveMoveSpeedScale(int wave)
     {
         if (waveMoveSpeedScales == null || waveMoveSpeedScales.Length == 0)
             return 1f;
@@ -420,7 +420,7 @@ public class MonsterSpawn : MonoBehaviour
     /// 해당 웨이브의 몬스터 최대 HP 배율(§4.7). 표 밖의 웨이브는 **마지막 값으로 고정**한다 —
     /// 0이나 1로 떨어뜨리면 15웨이브를 넘겨 플레이했을 때 난이도가 갑자기 무너진다.
     /// 배열이 비어 있으면 무보정(1)이라 배선을 잊어도 게임이 성립한다.
-    private float WaveHpScale(int wave)
+    public float GetWaveHpScale(int wave)
     {
         if (waveHpScales == null || waveHpScales.Length == 0)
         {
@@ -533,15 +533,15 @@ public class MonsterSpawn : MonoBehaviour
         //   웨이브 스폰 경로만 보면 `currentRound`로 충분하다 — `SpawnRoundAsync`가 대입 직후에 돌기 때문.
         //   하지만 이 메서드는 **공개 소환 창구 `SpawnMonster`**(보스 BT의 지속 소환)도 함께 타고, 그쪽은
         //   `StartRound` 타이밍과 무관하게 불린다. `currentRound`는 검증을 통과한 뒤에야 대입되므로
-        //   그 전에는 0이거나 직전 웨이브 값(낡음)이고, `WaveHpScale(0)`은 인덱스가 클램프돼 **배율 1.0**을
+        //   그 전에는 0이거나 직전 웨이브 값(낡음)이고, `GetWaveHpScale(0)`은 인덱스가 클램프돼 **배율 1.0**을
         //   돌려준다 — W15(×5.45)에서 소환된 잡몹이 5배 넘게 약해진다.
         //
-        // ⚠ **이 오작동은 아무 신호도 내지 않는다.** `WaveHpScale`의 LogError는 배율이 0 이하일 때만 나는데
+        // ⚠ **이 오작동은 아무 신호도 내지 않는다.** `GetWaveHpScale`의 LogError는 배율이 0 이하일 때만 나는데
         //   여기서 나오는 값은 정상 범위인 1.0이다. 증상이 "보스가 부르는 잡몹이 좀 약하다"뿐이라
         //   원인에서 멀다 — 그래서 값이 맞는 경로가 아니라 **읽는 출처**를 고정한다.
         DayNightManager dayNight = DayNightManager.Instance;
         int wave = dayNight != null ? dayNight.CurrentWave : currentRound;
-        float hpScale = enemy.IsBoss ? 1f : WaveHpScale(wave);
+        float hpScale = enemy.IsBoss ? 1f : GetWaveHpScale(wave);
 
         // 전체 튜토리얼 Run에서만 등장하는 모든 적(보스 포함)의 체력을 50%로 낮춘다.
         // Provider의 forceTutorialWaves는 웨이브 구성 전용 테스트라 이 밸런스를 적용하지 않는다.
@@ -551,7 +551,7 @@ public class MonsterSpawn : MonoBehaviour
         }
 
         enemy.ApplyWaveHpScale(hpScale);
-        enemy.ApplyWaveMoveSpeedScale(WaveMoveSpeedScale(wave));
+        enemy.ApplyWaveMoveSpeedScale(GetWaveMoveSpeedScale(wave));
 
         // Enemy가 IRouteMovementAgent.RouteCompleted를 구독하여
         // 경로 끝 도달 시 몬스터 루트 오브젝트를 제거한다.
