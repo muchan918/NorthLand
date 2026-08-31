@@ -136,6 +136,11 @@ public abstract class ManagedReferencePickerDrawer : PropertyDrawer
     }
 }
 
+/// 타워 행동 축(`Tower.Actions`)에 타입 피커를 붙인다.
+/// 리스트 항목을 추가한 뒤 Attack/Beam/Aura/Ramp 행동을 선택해 프리팹에서 직접 조립한다.
+[CustomPropertyDrawer(typeof(TowerAction), useForChildren: true)]
+public sealed class TowerActionDrawer : ManagedReferencePickerDrawer { }
+
 /// 투사체 비행 축(`TowerAsset.Attack.Flight`)에 타입 피커를 붙인다.
 /// `useForChildren: true`라 `HomingFlight`/`BallisticFlight`가 담겨 있어도 이 드로어가 그린다.
 [CustomPropertyDrawer(typeof(ProjectileFlight), useForChildren: true)]
