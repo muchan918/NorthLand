@@ -25,6 +25,8 @@ MonoBehaviour:
     AttackRange: 0
     AttackInterval: 0
     ProjectilePrefab: {fileID: 0}
+    FireSfx: {fileID: 0}
+    FireSfxVolume: 1
     Flight:
       rid: -2
     PelletCount: 1
@@ -59,11 +61,19 @@ MonoBehaviour:
       StackInterval: 0
       DecaySeconds: 0
     VisualStages: []
+    LoopSfx: {fileID: 8300000, guid: 4da3b4f42ddd8d8469ae94392f7ec55f, type: 3}
+    LoopSfxVolume: 0.45
   GroundZone:
     ZonePrefab: {fileID: 0}
     Radius: 0
     Duration: 0
     Interval: 0
+  ImpactVfx:
+    Prefab: {fileID: 0}
+    Scale: 1
+    Lifetime: 2
+  ImpactSfx: {fileID: 0}
+  ImpactSfxVolume: 1
   Ramp:
     Stat: 2
     Trigger: 0

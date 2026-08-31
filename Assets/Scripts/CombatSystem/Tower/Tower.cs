@@ -193,7 +193,33 @@ namespace NorthLand.Combat
 
         // 발사 통지 발행 창구. 액션(AttackAction)이 실제 발사 주체지만, 구독자(TowerReloadVisual)는
         // 타워를 보고 붙으므로 이벤트 소유는 호스트에 남긴다.
-        internal void RaiseFired() => OnFired?.Invoke();
+        internal void RaiseFired()
+        {
+            PlayFireSfx();
+            OnFired?.Invoke();
+        }
+
+        // 발사음(#540). **구독 컴포넌트로 빼지 않고 이 창구에서 직접 낸다** — 발사음은 공격 타워
+        // 전부가 갖는 보편 소리라, 프리팹마다 컴포넌트를 붙이는 방식이면 새 타워를 만든 사람이
+        // 잊었을 때 그 타워만 조용히 무음이 된다(버튼 클릭음을 버튼마다 배선하지 않고 전역 훅으로
+        // 만든 것과 같은 축, `Docs/Core/AudioManager.md` §5.4). `TowerReloadVisual`이 컴포넌트인
+        // 것은 탄약 모형이 있는 타워에만 해당하는 **선택적** 연출이기 때문이고, 발사음은 아니다.
+        //
+        // 클립 주인은 SO(`TowerAsset.Attack.FireSfx`)라 저작은 필드를 채우는 일 하나다.
+        // 위치는 타워 자신 — 풀이 화면 좌표로 감쇠·팬을 계산하므로 총구까지 잡을 필요가 없다.
+        // 우선순위 `Low`: 상한에 닿으면 스킬음·경고음보다 먼저 회수되어야 한다(문서 §7).
+        // 클립이 비면 `CombatSfx.Play`가 조용히 넘긴다 — 미배선 타워는 무음으로 발사한다.
+        void PlayFireSfx()
+        {
+            if (data == null || data.Attack == null)
+                return;
+
+            CombatSfx.Play(
+                data.Attack.FireSfx,
+                transform.position,
+                volumeScale: data.Attack.FireSfxVolume,
+                priority: CombatSfxPriority.Low);
+        }
 
         // ── 대상 탐색 (#336) ────────────────────────────────────────────────
         // "이 타워가 지금 누구를 겨누는가"의 **단일 출처**. 예전에는 공격 액션과 포탑 조준 연출이

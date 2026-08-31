@@ -41,6 +41,19 @@ namespace NorthLand.Combat
         [NonSerialized] List<LineRenderer> beams;
         [NonSerialized] Material beamMaterial;
 
+        // 빔 루프(#540). 발사음이 **사건**이라면 이쪽은 **상태**다 — 빔은 쏘는 순간이 따로 없어서
+        // 원샷을 걸 자리가 없고, 잠금이 살아 있는 동안 흐르다 끊기는 형태가 맞다.
+        //
+        // ⚠ **타워당 하나다.** 대상이 5기여도 소리는 "이 타워가 지금 지지고 있는가" 하나를 알린다.
+        // 그래서 `beams`(대상 수만큼)와 달리 리스트가 아니라 단일 핸들이다.
+        [NonSerialized] CombatSfxHandle loopSound;
+
+        // 지금 흐르는 클립. 단계가 바뀌었는지 판정하는 기준이라 **매 프레임 비교용**으로 들고 있다 —
+        // 단계 인덱스를 기억하지 않는 이유는 단계 목록이 저작 중에 바뀌어도 클립 동일성만 맞으면
+        // 교체가 일어나지 않아야 하기 때문이다.
+        [NonSerialized] AudioClip loopClip;
+
+
         public override TowerActivePhase ActivePhase => TowerActivePhase.NightOnly;
 
         // 최종 스탯 = SO 기본값 + 원장(Owner.Stats) 합성 — AttackAction과 같은 축을 그대로 쓴다.
@@ -114,6 +127,7 @@ namespace NorthLand.Combat
             AccumulateLockTime(deltaTime);
 
             FollowLockedTargets();
+            UpdateLoopSfx();   // 표시를 갱신한 것과 같은 상태로 소리도 맞춘다
 
             tickTimer -= deltaTime;
             if (tickTimer > 0f) return;
@@ -340,10 +354,89 @@ namespace NorthLand.Combat
             }
         }
 
+        /// 빔을 끄고 루프도 함께 끊는다.
+        ///
+        /// **소리 정지를 여기 두는 이유**: 빔을 끄는 경로가 `Dispose`(비활성화)와 `OnWaveEnd`(낮 전환)
+        /// 둘인데, 정지를 각 경로에 손으로 달면 나중에 세 번째 경로가 생겼을 때 그쪽만 조용히 빠진다 —
+        /// 소리가 낮 내내 흐르는 형태가 되는데, 위 `OnWaveEnd` 주석이 적은 "빔이 낮에 켜진 채 남는"
+        /// 사고와 같은 축이다. 빔 표시와 소리는 같은 상태의 두 얼굴이므로 한 함수가 함께 끈다.
         void HideAllBeams()
         {
+            StopLoopSfx();
+
             if (beams == null) return;
             for (int i = 0; i < beams.Count; i++) beams[i].enabled = false;
+        }
+
+        void StopLoopSfx()
+        {
+            loopSound.Stop();      // 세대 불일치면 아무 일도 하지 않는다(이미 회수된 슬롯)
+            loopSound = default;
+            loopClip = null;
+        }
+
+        /// 잠금 상태에 맞춰 루프를 켜고·끄고·단계에 따라 교체한다. 매 프레임 `Tick`에서 불린다.
+        ///
+        /// 단계 판정에 **대상들 중 최대 진행도**를 쓴다 — 멀티 인페르노는 대상마다 램프가 따로 도는데
+        /// 소리는 하나뿐이라 대표값이 필요하다. 최대를 고르는 것은 "이 타워가 도달한 세기"를 알리는
+        /// 쪽이 플레이어에게 유용하기 때문이고, 평균을 쓰면 대상이 하나 새로 잠길 때마다 소리가
+        /// 내려가 "약해졌다"로 잘못 읽힌다.
+        void UpdateLoopSfx()
+        {
+            if (lockedTargets == null || lockedTargets.Count == 0)
+            {
+                StopLoopSfx();
+                return;
+            }
+
+            AudioClip clip = fields?.LoopSfx;
+            float volume = fields?.LoopSfxVolume ?? 1f;
+
+            // 단계별 클립이 저작돼 있으면 그쪽이 이긴다(미저작이면 기본 루프가 계속 흐른다).
+            float maxProgress = 0f;
+            for (int i = 0; i < lockedTargets.Count; i++)
+                maxProgress = Mathf.Max(maxProgress, RampProgress(i));
+
+            TowerAsset.BeamStage stage = StageFor(maxProgress);
+            if (stage != null && stage.LoopSfx != null)
+            {
+                clip = stage.LoopSfx;
+                volume = stage.LoopSfxVolume;
+            }
+
+            if (clip == null)
+            {
+                StopLoopSfx();
+                return;
+            }
+
+            // 같은 클립이 아직 흐르고 있으면 건드리지 않는다 — 매 프레임 재시작하면 소리가 뭉갠다.
+            if (loopClip == clip && loopSound.IsPlaying)
+                return;
+
+            // ⚠ **들리지 않는 위치면 새로 잡지 않는다.** 화면 밖 루프는 풀에서 `LastGain`이 계속 0이라
+            // 탈취 1순위인데, 뺏길 때마다 여기서 다시 잡으면 포화 상태에서 **매 프레임** 재획득이
+            // 반복되고 화면 안에서 들리고 있던 발사음·착탄음이 그만큼 잘려 나간다(`CombatSfx.IsAudible`).
+            //
+            // 여기서 멈추기만 하고 화면 밖이라고 **먼저 끊지는 않는다** — 이미 흐르는 루프는 위 조기
+            // 반환이 살려 두고, 뺏긴 뒤에야 이 경로로 온다. 화면 경계에 걸친 타워가 매 프레임
+            // 재생·정지를 오가는 것을 피하려는 것이다.
+            if (!CombatSfx.IsAudible(Origin.position))
+            {
+                // 단계가 바뀐 채 화면을 벗어난 경우가 있으므로 옛 클립은 정리한다 — 그대로 두면
+                // 화면에 돌아왔을 때 이전 단계 소리가 이어진다.
+                StopLoopSfx();
+                return;
+            }
+
+            StopLoopSfx();
+            loopSound = CombatSfx.Play(
+                clip,
+                Origin.position,
+                loop: true,
+                volumeScale: volume,
+                priority: CombatSfxPriority.Low);
+            loopClip = clip;
         }
 
 #if UNITY_EDITOR

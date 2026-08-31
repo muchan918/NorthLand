@@ -25,6 +25,8 @@ MonoBehaviour:
     AttackRange: 27
     AttackInterval: 2.5
     ProjectilePrefab: {fileID: 1162392375372998, guid: 899178ed5d6bed64687bc9aa18612058, type: 3}
+    FireSfx: {fileID: 0}
+    FireSfxVolume: 1
     Flight:
       rid: 1498367711936249967
     PelletCount: 1
@@ -68,6 +70,8 @@ MonoBehaviour:
     Prefab: {fileID: 172476, guid: 013f9a02b38a12c4f93284d3319dc778, type: 3}
     Scale: 2
     Lifetime: 2
+  ImpactSfx: {fileID: 8300000, guid: 4c381f6a4d63f5247b28433d93b8aebc, type: 3}
+  ImpactSfxVolume: 0.94
   Ramp:
     Stat: 2
     Trigger: 0
