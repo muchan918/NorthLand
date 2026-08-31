@@ -248,13 +248,40 @@ public class SkillManager : MonoBehaviour
         }
     }
 
-    public bool CanCast()
+    public bool CanCast() => GatesOpen && IsReady;
+
+    /// <summary>
+    /// 지금 못 쓰는 이유가 <b>충전 소진 하나뿐</b>인가 — 즉 "기다리면 쓸 수 있다"가 참인가.
+    ///
+    /// 충전 대기 안내음(<c>Sfx.SkillOutOfCharges</c>)의 조건이다. 낮 페이즈나 게임 종료로 막힌 상태를
+    /// 함께 묶지 않는 이유: 그때는 기다려도 충전이 차지 않으므로(밤 진입 시 <see cref="RefillCharges"/>가
+    /// 한 번에 채운다) 같은 소리가 거짓 안내가 된다.
+    ///
+    /// ⚠ <b>"쿨다운"이라 부르지 않는다.</b> `GDD.md` §5.6이 "감전은 쿨다운이 아니라 <b>충전(탄약)</b>을
+    /// 쓴다"로 확정했고, 이 클래스의 공개 표면도 전부 충전 어휘다(<see cref="Charges"/>·<see cref="IsReady"/>·
+    /// <see cref="RechargeRemaining"/>·<see cref="RefillCharges"/>). <c>cooldown</c>은 <b>재충전 간격</b>을
+    /// 가리키는 내부 이름으로만 남아 있어, 「충전 0발」에 그 말을 쓰면 같은 단어가 두 뜻이 된다.
+    ///
+    /// ⚠ <b><c>IsRecharging</c>도 아니다.</b> 그 이름은 <c>charges &lt; MaxCharges</c>인 동안 —
+    /// 즉 <b>시전 가능한 상태에서도</b> — 참이어야 맞는 말이 되므로 이 조건과 다른 것을 가리킨다.
+    /// </summary>
+    public bool IsOutOfCharges => GatesOpen && !IsReady;
+
+    /// <summary>
+    /// 충전 말고 다른 게이트(게임 진행 중·밤 페이즈)가 전부 열려 있는가.
+    ///
+    /// <see cref="CanCast"/>와 <see cref="IsOutOfCharges"/>가 같은 조건을 두 벌 들지 않도록 여기로 모았다 —
+    /// 게이트가 하나 늘 때 한쪽만 고치면 "쓸 수 없는데 쿨다운음이 난다"로 새어 나온다.
+    /// </summary>
+    private bool GatesOpen
     {
-        if (GameManager.Instance != null && GameManager.Instance.Result != GameResult.Playing) return false;
-        if (!IsReady) return false;
-        if (DayNightManager.Instance != null &&
-            DayNightManager.Instance.CurrentPhase != DayNightManager.Phase.Night) return false;
-        return true;
+        get
+        {
+            if (GameManager.Instance != null && GameManager.Instance.Result != GameResult.Playing) return false;
+            if (DayNightManager.Instance != null &&
+                DayNightManager.Instance.CurrentPhase != DayNightManager.Phase.Night) return false;
+            return true;
+        }
     }
 
     // 클릭한 위치를 중심으로 감전 임팩트를 발동한다. 충전 1발을 소모하며, 남은 충전이 있으면

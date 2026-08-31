@@ -21,7 +21,7 @@ using UnityEngine.UI;
 ///
 /// 배선 시점 규칙은 <see cref="ManagementEndDayConfirmPopup"/>과 같다: 자기완결적 배선(버튼 리스너)은
 /// <c>Awake</c>, 다른 매니저에 의존하는 구독은 <c>Start</c>, 해제는 <c>OnDestroy</c>로 대칭.
-public class TowerUndoButtonView : MonoBehaviour
+public class TowerUndoButtonView : MonoBehaviour, IDisabledClickFeedback
 {
     // 값은 NorthLand_default String Table(ko/en/ja)에 있다.
     private const string k_KeyUndo = "game.btn.undo";
@@ -77,6 +77,19 @@ public class TowerUndoButtonView : MonoBehaviour
 
     // 클릭과 Ctrl+Z는 **같은 진입점**을 쓴다 — 두 벌로 갈라지면 한쪽만 고쳐진다.
     private void HandleClick() => UndoRequest.Submit();
+
+    /// 되돌릴 것이 없어(또는 밤·튜토리얼 제한으로) 버튼이 회색인 채 눌렸다.
+    ///
+    /// **이 경로가 없으면 「되돌릴 것 없음 → 거절음」 계약이 버튼에서 도달 불가다.** 그 소리는
+    /// `UndoRequest.Submit`의 else 분기에 있는데, Refresh가 `CanUndo == false`일 때 `interactable`을
+    /// 내려 버려 `onClick`이 아예 발화하지 않는다 — `UndoRequest`의 "⚠ Ctrl+Z는 언제든 눌린다" 주석이
+    /// 가리키는 비대칭의 나머지 절반이고, 실제로 단축키로만 들렸다. `UiClickSfxIgnore`가 걸려 있어
+    /// 공용 클릭음도 나지 않으므로 버튼은 완전한 무음이었다(#550).
+    ///
+    /// ⚠ **Submit을 부르지 않는다.** 그쪽은 상태를 바꾸는 경로이고, 이 훅은 소리·연출만 허용된다
+    /// (`IDisabledClickFeedback`의 제약 — 팀 계약 #1 넷째 예외의 전제). 어차피 비활성 사유가
+    /// 「되돌릴 것 없음」이라 되돌릴 것도 없다.
+    public void OnDisabledClick() => Sfx.Rejected();
 
     // ⚠ 이 버튼은 정본 씬에서 **페이즈 패널 밖(UICanvas 직속)**에 있어 밤에도 꺼지지 않는다.
     // 따라서 "밤엔 되돌리기 불가"의 **유일한** 방어선은 CommandHistory.CanUndo의 페이즈 검사다 —
