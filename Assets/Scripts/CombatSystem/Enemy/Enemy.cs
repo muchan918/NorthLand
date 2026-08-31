@@ -558,28 +558,37 @@ namespace NorthLand.Combat
             SpawnExplosionVfx();
             PlayExplosionSfx();
 
-            target.TakeDamage(new DamageInfo(data.SelfDestruct.Damage, this));
+            // `DamageKind.SelfDestruct`는 **받는 쪽이 이 피해를 자폭으로 알아보는 유일한 축**이다.
+            // 바로 위에서 폭발음을 이미 냈으므로, 본진이 피격음을 겹쳐 내지 않게 한다(§6.4).
+            target.TakeDamage(new DamageInfo(data.SelfDestruct.Damage, this, DamageKind.SelfDestruct));
 
             SelfDestruct();
         }
 
-        /// 자폭 폭발음(#452). `AudioManager`의 2D 원샷을 쓴다 —
-        /// 전투 위치 효과음은 `CombatSfxPool`이 SFX 실효 볼륨을 반영한다(`Docs/Core/AudioManager.md` §6.2).
+        /// 자폭 폭발음(#452). **위치 기반 풀(`CombatSfx`, §6.2)로 낸다 — 예전에는 2D 원샷이었다.**
         ///
-        /// 자기 `AudioSource`를 달지 않는 이유: 자폭병은 같은 프레임에 제거되므로 소스가 함께 죽어
-        /// 소리가 첫 프레임에 끊긴다. 파티클을 부모 없이 스폰하는 것과 같은 사정이고, 매니저의
-        /// 소스는 씬을 넘어 살아 있으므로 이 축이 아예 없다.
+        /// 바뀐 이유: 2D는 화면 밖·줌아웃에서도 같은 크기로 울려서, 카메라가 본진에 없을 때
+        /// 아무 그림 없이 폭음만 났다. 이제 화면 밖과 오쏘 160 이상에서 무음이 되고, 「본진이
+        /// 맞았다」는 통지는 그 자리를 대신할 `PlayerBase`의 피격음이 같은 규칙으로 낸다(§6.4).
+        /// ⚠ **자폭 순간 본진 피격음은 나지 않는다.** 폭발음이 그 자리의 피드백을 이미 다 하고 있어서
+        /// 겹치면 뭉친다 — `Detonate`가 넘기는 `DamageKind.SelfDestruct`가 그것을 가르는 축이다(§6.4).
+        /// 그래서 **이 클립이 비면 자폭이 완전 무음이 된다**(피격음이 대신 나 주지 않는다).
+        /// `EnemyAsset.OnValidate`가 그 조합을 저장 시점에 경고한다.
+        ///
+        /// 자기 `AudioSource`를 달지 않는 이유는 그대로다: 자폭병은 같은 프레임에 제거되므로 소스가
+        /// 함께 죽어 소리가 첫 프레임에 끊긴다. 풀은 **위치를 값으로 복사해** 보이스를 씬 밖에서
+        /// 굴리므로 이 축이 아예 없다 — 파티클을 부모 없이 스폰하는 것과 같은 사정이다.
+        ///
+        /// 위치는 파티클과 **같은 `hitPosition`**이다. 갈라 두면 감쇠·팬이 그림과 어긋난다.
+        /// 우선순위 `High`: 본진 HP 10%가 날아가는 사건이라 상한에서 타워 전투음(`Low`)에
+        /// 밀리면 안 된다. 클립이 비면 `CombatSfx.Play`가 조용히 넘긴다.
         void PlayExplosionSfx()
         {
-            AudioClip clip = data.SelfDestruct.ExplosionSfx;
-
-            // 매니저가 없는 씬(전투 테스트 등)에서는 조용히 넘긴다 — SoundCue와 같은 방침.
-            if (clip == null || AudioManager.Instance == null)
-            {
-                return;
-            }
-
-            AudioManager.Instance.PlaySfx(clip, data.SelfDestruct.ExplosionSfxVolume);
+            CombatSfx.Play(
+                data.SelfDestruct.ExplosionSfx,
+                hitPosition.position,
+                volumeScale: data.SelfDestruct.ExplosionSfxVolume,
+                priority: CombatSfxPriority.High);
         }
 
         /// 자폭 폭발 파티클(#452).

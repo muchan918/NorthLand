@@ -86,19 +86,20 @@ public class EnemyAsset : ScriptableObject
 
         // 폭발음(#452). **클립을 SfxBank에 넣지 않는다** — 뱅크의 범위는 "주인이 없는 공용 소리"이고
         // (`Docs/Core/AudioManager.md` §5.4) 이 소리의 주인은 이 EnemyAsset이다. 타워 발사음을
-        // 각자의 SO가 들기로 한 것과 같은 규칙이다(같은 문서 §7).
+        // 각자의 SO가 들기로 한 것과 같은 규칙이다(같은 문서 §6.3).
         //
-        // 2D 원샷(`AudioManager.PlaySfx`)으로 낸다. 문서 §7이 그 경로를 "드물게 한 번 울리는 소리
-        // 전용"으로 한정하는데 자폭은 웨이브당 몇 번뿐이라 그 전제 안에 있다.
-        // ⚠ **몬스터 평타음을 같은 방식으로 얹지 말 것** — 후반 웨이브의 빈도를 2D 원샷이 못 받는다.
-        // 그쪽은 문서 §7의 SFX 풀·디바운스가 먼저다.
+        // 재생 경로는 **위치 기반 풀(`CombatSfx`, §6.2)**이다 — 예전 2D 원샷에서 옮겼다.
+        // 2D는 카메라가 본진에 없을 때 그림 없이 폭음만 내보냈다. 「본진이 맞았다」는 통지는
+        // `PlayerBase`의 피격음이 같은 감쇠 규칙으로 맡는다(§6.4).
+        // ⚠ **몬스터 평타음을 여기에 얹지 말 것** — 평타는 본진 피격음이 이미 한 창구에서 낸다.
         [Tooltip("폭발 순간 1회 재생할 효과음. 비우면 소리 없이 폭발한다. " +
-                 "2D로 재생되므로 화면 밖에서 터져도 같은 크기로 들린다.")]
+                 "화면 밖·줌아웃에서는 들리지 않는다(AudioManager.md §6.2).")]
         public AudioClip ExplosionSfx;
 
-        [Range(0f, 1f)]
+        [Range(0f, 2f)]
         [Tooltip("폭발음 재생 배율. SFX 채널 볼륨에 곱해진다. 임포트 설정에는 클립별 게인이 없어 " +
-                 "(AudioManager.md §4.5) 클립 사이의 레벨 차는 여기서만 맞출 수 있다.")]
+                 "(AudioManager.md §4.5) 클립 사이의 레벨 차는 여기서만 맞출 수 있다. " +
+                 "화면 감쇠가 헤드룸을 먹으므로 2D 시절 값보다 올려야 할 수 있다(상한 2).")]
         public float ExplosionSfxVolume = 1f;
     }
 
@@ -120,6 +121,15 @@ public class EnemyAsset : ScriptableObject
         {
             Debug.LogWarning($"[EnemyAsset] {name}: ExplosionVfx가 지정됐는데 ExplosionLifetime이 " +
                              $"{SelfDestruct.ExplosionLifetime}입니다 — 폭발이 보이지 않습니다.", this);
+        }
+
+        // 자폭 순간에는 본진 피격음이 **일부러 억제된다**(`PlayerBase.PlayHitSfx`, AudioManager.md §6.4)
+        // — 폭발음이 그 자리의 피드백을 다 하기 때문이다. 그래서 이 클립이 비면 대신 나 주는 소리가
+        // 없어 **자폭이 완전 무음이 된다.** 증상이 "본진이 소리 없이 깎인다"라 원인에서 멀다.
+        if (SelfDestruct.ExplosionSfx == null)
+        {
+            Debug.LogWarning($"[EnemyAsset] {name}: 자폭이 켜져 있는데 ExplosionSfx가 비어 있습니다 — " +
+                             "자폭 순간 본진 피격음도 억제되므로 완전 무음으로 터집니다.", this);
         }
 
         if (SelfDestruct.Damage <= 0f)
