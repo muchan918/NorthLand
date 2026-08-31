@@ -149,12 +149,19 @@ public class SkillButtonView : MonoBehaviour, IDisabledClickFeedback
         => PlayUnavailableSfx();
 
     /// 시전 시도가 반려된 뒤의 안내음. **충전 소진일 때만 낸다** — 낮 페이즈나 게임 종료로 막힌 상태는
-    /// 기다려도 풀리지 않아 쿨다운음이 거짓 안내가 되고, 튜토리얼 게이트로 막힌 것은 안내 문구가
-    /// 이미 화면에 떠 있다. 판정은 SkillManager.IsOnCooldown 한 곳이 소유한다.
+    /// 기다려도 풀리지 않아 안내음이 거짓말이 되고, 튜토리얼 게이트로 막힌 것은 안내 문구가
+    /// 이미 화면에 떠 있다. 판정은 SkillManager.IsOutOfCharges 한 곳이 소유한다.
+    ///
+    /// ⚠ **낮 페이즈 게이트가 실제로 걸리는 경로는 Q뿐이다.** 낮에는 PhasePanelSwitcher가 스킬 패널을
+    /// 통째로 끄므로 「낮에 회색 버튼을 클릭」은 화면에 존재하지 않는다. 반면 Q는 살아 있다 —
+    /// KeyboardManager는 static 목록에 바인딩을 들고 대상의 활성 여부를 보지 않고,
+    /// 이 뷰는 Awake에서 Bind하고 OnDestroy에서만 Unbind하므로 패널이 꺼져도 바인딩이 남는다.
+    /// 그래서 낮에 Q를 눌러도 무음인 것이 이 게이트의 실제 효과다.
+    ///
     private void PlayUnavailableSfx()
     {
-        if (SkillManager.Instance != null && SkillManager.Instance.IsOnCooldown)
-            Sfx.SkillOnCooldown();
+        if (SkillManager.Instance != null && SkillManager.Instance.IsOutOfCharges)
+            Sfx.SkillOutOfCharges();
     }
 
     private bool TryBeginTargeting()

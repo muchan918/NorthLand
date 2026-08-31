@@ -138,12 +138,16 @@ public static class Sfx
     /// 함께 쓴다 — 후자는 <c>Button.interactable == false</c>라 <c>onClick</c>도 <see cref="UiClickSfx"/>의
     /// 공용 클릭음도 지나지 않으므로, <see cref="IDisabledClickFeedback"/> 훅을 통해 여기로 온다.
     ///
-    /// ⚠ <b>낮 페이즈·게임 종료로 못 쓰는 경우에는 울리지 않는다</b>(<c>SkillManager.IsOnCooldown</c>이
+    /// ⚠ <b>낮 페이즈·게임 종료로 못 쓰는 경우에는 울리지 않는다</b>(<c>SkillManager.IsOutOfCharges</c>가
     /// 그 둘을 걸러낸다). "기다리면 된다"는 안내가 기다려도 소용없는 상태에서 나가면 거짓말이 된다.
+    ///
+    /// ⚠ <b>이름에 "쿨다운"을 쓰지 않는다</b> — `GDD.md` §5.6이 "감전은 쿨다운이 아니라 충전(탄약)을 쓴다"로
+    /// 확정한 어휘를 따른다. 클립 파일명(<c>SFX_Skill_Cooldown.wav</c>)은 사운드 소스의 이름이고 코드
+    /// 계약이 아니라 그대로 둔다.
     /// </summary>
-    public static void SkillOnCooldown()
+    public static void SkillOutOfCharges()
     {
-        Play(Bank != null ? Bank.SkillOnCooldown : null);
+        Play(Bank != null ? Bank.SkillOutOfCharges : null);
     }
 
     /// <summary>
