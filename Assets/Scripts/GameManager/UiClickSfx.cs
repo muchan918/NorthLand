@@ -98,8 +98,22 @@ public class UiClickSfx : MonoBehaviour
         // "가끔 클릭음만 안 나는" 재현 어려운 결함만 만든다. 레이캐스트는 클릭한 프레임에만 돈다.
         Selectable pressed = PickSelectable(eventSystem, mouse.position.ReadValue());
 
-        if (pressed == null || !pressed.IsInteractable())
+        if (pressed == null)
         {
+            return;
+        }
+
+        // 비활성 버튼은 공용 클릭음을 내지 않는다 — 눌리지도 않았으니 클릭음은 거짓말이다.
+        // 다만 **아무 반응도 없는 것**은 반응이 없어서가 아니라 못 눌러서라는 사실조차 지운다(#550).
+        // 그 자리에 무엇을 낼지는 버튼 자신이 안다(IDisabledClickFeedback) — 아래 타입·제외 필터를
+        // 지나지 않는 이유가 그것이다. 자기 소리는 자기 규칙으로 낸다.
+        if (!pressed.IsInteractable())
+        {
+            if (pressed.TryGetComponent(out IDisabledClickFeedback feedback))
+            {
+                feedback.OnDisabledClick();
+            }
+
             return;
         }
 

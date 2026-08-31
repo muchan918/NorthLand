@@ -318,11 +318,52 @@ AudioManager.PlaySfx  또는  PlaySfxExclusive
 | `TutorialPopupOpened` | `TutorialOverlay.ShowPopup` | Popup 루트가 비활성→활성으로 바뀔 때만. 열린 Popup의 Localization 갱신·닫힘에는 울리지 않음 |
 | `TowerInstalled` | `TowerPlacer.PlaceTower` | 합성 결과 배치도 같은 경로를 지나 함께 덮인다 |
 | `Rejected` | `TowerPlacer`(배치 반려) · `TowerFusionController`(재료·코스트 부족) · `CastlePanelUI`(주민 증가·본진 업그레이드 실패) · `BuildingInfoUI`(업그레이드 실패) | 지금은 클립 하나를 넷이 공유 |
+| `Blocked` | `MouseManager.UpdateSkillTargeting`(스킬 조준 중 타일 밖 클릭) | 커서가 `CursorKind.Blocked`인 자리의 클릭. **배치 모드의 같은 상황은 여전히 `Rejected`를 쓴다** — 아래 참고 |
+| `SkillOutOfCharges` | `SkillButtonView`(Q 단축키 · **비활성 버튼 클릭**) | 충전 소진일 때만(`SkillManager.IsOutOfCharges`). 연타 흡수용 0.7초 게이트가 뷰에 있다 — 아래 참고 |
 | `BuildingUpgraded` | `InGameCue.HandleBuildingAction` (`OnBuildingAction` 구독) | 생산 라인·업그레이드 전용 건물이 같은 소리 |
 | `ResidentIncreased` | 〃 | `PlaySfxExclusive` — 클립이 9.5초라 연타 시 겹침 |
 | *(결과창 스팅어)* | `ResultPanelAnimator`(승리/패배 패널, 뱅크 밖 인스펙터 배선) | `PlaySfxExclusive` — 승리 클립은 타격이 0.66초 지점이라 `startTime` 0.63으로 앞을 건너뛴다(§5.6) |
 | `Undone` | `UndoRequest.Submit` | 되돌리기 버튼과 **Ctrl+Z가 같은 진입점**이라 한 곳에서 난다 |
 | `Redone` | *(아직 없음)* | 다시 실행 기능이 없다 — 클립만 뱅크에 꽂아둔 상태 |
+
+> ⚠️ **`Blocked`와 `Rejected`의 경계는 커서 그림이 정한다.** 표면 위에서 규칙에 걸려 반려된 것
+> (`Placing` 커서)과 애초에 조작 대상이 아닌 곳(`Blocked` 커서 = `Default-No-32`)은 플레이어가 해야 할
+> 다음 행동이 다르다 — 앞은 "다른 타일을 고른다", 뒤는 "지도 위로 커서를 옮긴다"
+> (`CursorFeedback.md` §2 참고).
+>
+> **그런데 배치 모드의 표면 밖 클릭은 지금도 `Rejected`를 부른다**(`MouseManager.UpdatePlacement`의
+> `_request.OnRejected`). 두 클립(`SFX_Tower_CantPlace` / `SFX_Error`)이 청감상 거의 같아 굳이 갈지
+> 않기로 한 결정이다(#550). 클립이 갈리면 그 분기를 `Sfx.Blocked()`로 옮긴다 — 그때 `Blocked`의
+> 호출부가 둘이 되고 `Rejected`는 "표면 위 반려" 전용이 된다.
+
+> ⚠️ **비활성 버튼은 어느 소리 경로도 지나지 않는다.** `Button.interactable == false`면 `onClick`이 아예
+> 발화하지 않고 `UiClickSfx`도 `Selectable.IsInteractable()`에서 빠진다 — 그래서 회색 버튼은 눌러도
+> **아무 일도 안 일어난 것처럼 보인다**(스킬 쿨다운 중 버튼 연타가 실제로 그랬다). 그 자리를
+> `IDisabledClickFeedback`이 메운다: 전역 훅이 비활성 `Selectable`을 눌렀을 때 그 오브젝트가 이 인터페이스를
+> 구현하고 있으면 호출하고, 무슨 소리를 낼지는 **버튼 자신이 판단한다**(`ICursorHint`와 같은 패턴).
+> 구현체 없는 버튼은 지금처럼 조용히 넘어간다 — 회색 버튼 대부분이 그렇다(남은 자리는 WL-229).
+>
+> 현재 구현체 **2개**. ① `SkillButtonView` — 충전 소진 → `SkillOutOfCharges`.
+> ② `TowerUndoButtonView` — 되돌릴 것 없음 → `Rejected`. **②는 계약이 도달 불가였던 것을 메운다**:
+> 「되돌릴 것 없음 → 거절음」은 `UndoRequest.Submit`의 else 분기에 있는데 `Refresh`가 `CanUndo == false`일
+> 때 `interactable`을 내려 `onClick`이 발화하지 않아 **Ctrl+Z로만 들렸다**. 그 파일의
+> "⚠ Ctrl+Z는 언제든 눌린다" 주석이 가리키는 비대칭의 나머지 절반이다.
+>
+> ⚠ **구현체는 소리·연출만 한다 — 게임 상태를 바꾸지 않는다**(툴팁·패널 열기도 상태다).
+> `SystemMap.md` 팀 계약 #1이 `UiClickSfx`의 좌클릭 직접 폴링을 넷째 예외로 허용하는 **조건이
+> "게임 상태를 바꾸지 않는다" 하나**이고, 이 훅은 그 폴링 경로 위에서 돈다. 그래서 ②도
+> `UndoRequest.Submit`을 부르지 않고 소리만 낸다.
+>
+> ⚠ 이 훅은 **버튼·토글 타입 필터와 `UiClickSfxIgnore` 제외를 지나지 않는다.** 공용 클릭음이 아니라
+> 버튼 자기 소리이므로 자기 규칙으로 낸다. 클릭음을 뺀 버튼(`UiClickSfxIgnore`)이라도 비활성 피드백은
+> 별개로 살아 있다.
+
+> ⚠️ **`Sfx`의 프레임 래치는 연타를 막지 않는다.** `ClaimFrame`은 **같은 프레임**의 중복만 걸러내고,
+> `PlaySfx`는 동시재생 상한이 없다(SystemMap §2 — "드물게 한 번 울리는 짧은 소리"). 클립이 0.2~0.8초라
+> 초당 몇 번만 두드려도 여러 벌이 겹쳐 쌓인다. `SkillOutOfCharges`는 **연타가 정확히 대상 시나리오**라
+> (못 쓰는 것을 확인하려고 두세 번 두드린다) `SkillButtonView`에 0.7초 최소 간격 게이트를 뒀다 —
+> `Time.unscaledTime` 기준이다(안내·피드백은 배속·정지와 무관, `SystemMap.md` §6).
+> 게이트를 `Sfx` 층이 아니라 뷰에 둔 이유는 다른 큐의 거동을 건드리지 않기 위해서다.
 
 > ⚠️ **같은 소리는 한 프레임에 한 번만 난다**(`Sfx.ClaimFrame`). 선택 표시의 소유자가 둘이라
 > — 대상 자신의 `ISelectable` 훅과 `TowerMergeCoordinator.RefreshPanel` — 타워를 **한 번** 클릭하면
@@ -602,11 +643,19 @@ Sfx.ResidentIncreased();  // ← 이것만 PlaySfxExclusive로 나간다
       **pull**로 읽어야 한다 — 매니저의 초기 발행 시점(`Awake`)엔 구독자가 없다
 - [x] **UI 클릭 공용 사운드** — `UiClickSfx` 전역 훅 + `SfxBank`(§5.4). 풀을 기다리지 않았다 — 클릭·패널
       오픈·설치·거절은 전부 드물게 한 번 울리는 2D 소리라 기존 원샷 경로로 충분하다
+- [ ] **거절음 연타 게이트의 공용화** — `SkillOutOfCharges`만 뷰 로컬로 0.7초 게이트를 갖는다.
+      같은 노출이 `Rejected`에도 있다(무효 타일·부족한 코스트 연타). 공용으로 올린다면 `SfxBank.Cue`에
+      최소 간격 필드를 두고 `Sfx.Play`가 걸러내는 형태가 자연스럽다 — ⚠ 기본값을 0으로 둬야 기존 큐의
+      거동이 안 바뀐다. 세 번째 큐가 같은 게이트를 필요로 할 때가 가장 싼 시점이다
 - [ ] **UI 호버 사운드** — 미착수. 호버는 클릭과 빈도가 달라(커서를 스치기만 해도 난다) 같은 경로로
       그대로 옮기면 안 된다 — 디바운스·쿨다운을 함께 정할 것
 - [ ] **거절음 분화** — 지금 `Sfx.Rejected` 하나를 배치 반려·합성 실패·주민 증가 실패가 공유한다.
       상황별로 다른 소리가 필요해지면 `SfxBank`의 항목과 `Sfx`의 메서드를 함께 가른다
       (`PlacementRequest.OnRejected`도 사유 인자를 받는 형태로 바꾼다)
+      - 첫 갈래로 `Sfx.Blocked`(`SFX_Error`)가 떨어져 나왔다(#550) — 기준은 **커서 그림**이다
+        (`Blocked` 커서면 `Blocked`, `Placing` 커서면 `Rejected`). 다만 **배치 모드의 표면 밖 클릭은
+        아직 `Rejected` 쪽에 남아 있다** — 두 클립이 청감상 거의 같아 옮기지 않았다. 클립이 갈리는
+        순간 `MouseManager.UpdatePlacement`의 표면 밖 분기를 `Sfx.Blocked()`로 옮길 것
 - [x] **`SFX_Castle_ResidentIncrease` 길이** — 자르지 않기로 했다. **패널을 닫아도 끝까지 울리는 것이
       의도**다(주민 증가를 축하하는 팡파레). 겹침은 `PlaySfxExclusive`가 막는다
 - [ ] **팬파레가 BGM에 묻히는 문제** — 파일 정규화(+3dB)와 뱅크 볼륨 1.0(+3.1dB)으로 6dB 올렸다.

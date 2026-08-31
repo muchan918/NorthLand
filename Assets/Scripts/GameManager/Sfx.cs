@@ -116,6 +116,41 @@ public static class Sfx
     }
 
     /// <summary>
+    /// 커서가 <see cref="CursorKind.Blocked"/>(「안 됨」)인 자리를 클릭한 순간 — <b>대상 표면이 아예 없는 곳</b>
+    /// (하늘·맵 밖·타일 사이 틈)이다.
+    ///
+    /// <b><see cref="Rejected"/>와 나눈 이유</b>: 커서 그림이 이미 둘을 구분하고 있다. 표면 위에서 규칙에
+    /// 걸려 반려된 것(<c>Placing</c> 커서 + <see cref="Rejected"/>)과 애초에 조작 대상이 아닌 곳
+    /// (<c>Blocked</c> 커서)은 플레이어가 해야 할 다음 행동이 다르다 — 앞은 "다른 타일을 고른다",
+    /// 뒤는 "지도 위로 커서를 옮긴다".
+    ///
+    /// ⚠ <b>부르는 곳은 지금 스킬 조준 하나뿐이다.</b> 배치 모드의 같은 상황(표면 밖 클릭)은 이미
+    /// <see cref="Rejected"/>를 부르고 있고 두 클립이 청감상 거의 같아 그대로 뒀다(#550). 나중에 클립이
+    /// 갈리면 <c>MouseManager.UpdatePlacement</c>의 표면 밖 분기를 이쪽으로 옮기면 된다.
+    /// </summary>
+    public static void Blocked()
+    {
+        Play(Bank != null ? Bank.Blocked : null);
+    }
+
+    /// <summary>
+    /// 충전이 없어 스킬을 쓸 수 없는데 시전을 시도한 순간. Q 단축키와 <b>비활성 상태의 스킬 버튼 클릭</b>이
+    /// 함께 쓴다 — 후자는 <c>Button.interactable == false</c>라 <c>onClick</c>도 <see cref="UiClickSfx"/>의
+    /// 공용 클릭음도 지나지 않으므로, <see cref="IDisabledClickFeedback"/> 훅을 통해 여기로 온다.
+    ///
+    /// ⚠ <b>낮 페이즈·게임 종료로 못 쓰는 경우에는 울리지 않는다</b>(<c>SkillManager.IsOutOfCharges</c>가
+    /// 그 둘을 걸러낸다). "기다리면 된다"는 안내가 기다려도 소용없는 상태에서 나가면 거짓말이 된다.
+    ///
+    /// ⚠ <b>이름에 "쿨다운"을 쓰지 않는다</b> — `GDD.md` §5.6이 "감전은 쿨다운이 아니라 충전(탄약)을 쓴다"로
+    /// 확정한 어휘를 따른다. 클립 파일명(<c>SFX_Skill_Cooldown.wav</c>)은 사운드 소스의 이름이고 코드
+    /// 계약이 아니라 그대로 둔다.
+    /// </summary>
+    public static void SkillOutOfCharges()
+    {
+        Play(Bank != null ? Bank.SkillOutOfCharges : null);
+    }
+
+    /// <summary>
     /// 건물 레벨이 오른 순간. 생산 라인 업그레이드와 업그레이드 전용 건물이 같은 소리를 쓴다 —
     /// 플레이어에게는 둘 다 "이 건물이 좋아졌다" 하나의 사건이고, 컨트롤러도
     /// <see cref="ManagementController.BuildingAction.Upgraded"/> 한 종류로만 알린다.
