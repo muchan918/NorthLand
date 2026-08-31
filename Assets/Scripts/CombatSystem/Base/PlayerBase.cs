@@ -156,7 +156,7 @@ namespace NorthLand.Combat
         /// **새 무음 경로를 하나 더** 만든다(`WarnIfHitSfxMissing`이 막으려는 것과 같은 실패).
         void PlayHitSfx(DamageInfo info, float appliedDamage)
         {
-            if (hitSfx == null || appliedDamage <= 0f)
+            if (appliedDamage <= 0f)
                 return;
 
             if (info.Kind == DamageKind.SelfDestruct)
@@ -166,17 +166,29 @@ namespace NorthLand.Combat
             // 우회까지 함께 꺼져, 폴백으로 소리는 나는데 창에 걸려 사라지는 조합이 생긴다 —
             // 클립이 없어도 사건은 여전히 대타격이다.
             bool isImpact = info.Kind == DamageKind.Impact;
+            bool useImpactClip = isImpact && impactSfx != null;
+
+            AudioClip clip = useImpactClip ? impactSfx : hitSfx;
+
+            // ⚠ **널 검사는 「쓸 클립」에 건다 — 특정 필드에 걸지 않는다.** 예전에는 함수 맨 위에서
+            // `hitSfx == null`로 막았는데, 그러면 `impactSfx`만 배선한 조합이 함수에 들어오지도
+            // 못해 **돌진음까지 함께 무음이 됐다**(리뷰 지적). 두 필드 중 하나가 비어 있는 것은
+            // 에러가 아니라 저작자가 고를 수 있는 상태이므로(각 툴팁 참조), 규칙은
+            // 「쓸 클립이 있으면 울린다」로 두 방향에 대칭이어야 한다.
+            //
+            // 디바운스 도장보다 먼저 검사하는 것도 의도다 — 울리지 못한 요청이 창을 소모하면
+            // 뒤따르는 유효한 피해가 이유 없이 잘린다.
+            if (clip == null)
+                return;
 
             if (!isImpact && Time.unscaledTime - lastHitSfxTime < hitSfxMinInterval)
                 return;
-
-            bool useImpactClip = isImpact && impactSfx != null;
 
             // 우회로 울린 뒤에도 도장은 찍는다 — 돌진 직후 몰려드는 평타가 그 위에 겹치지 않게.
             lastHitSfxTime = Time.unscaledTime;
 
             CombatSfx.Play(
-                useImpactClip ? impactSfx : hitSfx,
+                clip,
                 HitPosition.position,
                 volumeScale: useImpactClip ? impactSfxVolume : hitSfxVolume,
                 priority: CombatSfxPriority.High);
