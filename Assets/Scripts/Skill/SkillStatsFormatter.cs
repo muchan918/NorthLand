@@ -36,7 +36,7 @@ public static class SkillStatsFormatter
 
     // 보상 카드는 "고르면 어떻게 바뀌는지"를 보여주므로 모든 줄이 현재값 → 획득 후 값 형태다.
     // 화살표는 BuildingInfoUI의 업그레이드 표기(주민당 5 → 7)와 같은 문자를 쓴다.
-    const string k_Arrow = " → ";
+    const string k_Arrow = " > ";
 
     /// 보상 카드의 레벨 줄. 미보유는 "Lv 0 → Lv 1", 이번 선택으로 상한에 닿으면 "Lv 2 → Max"(#292).
     public static string BuildLevelLine(int current, int next, bool nextIsMax)

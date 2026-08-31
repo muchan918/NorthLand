@@ -355,7 +355,7 @@ public class BuildingInfoUI : MonoBehaviour
             return line;
         }
 
-        int arrowIndex = line.LastIndexOf('→');
+        int arrowIndex = line.LastIndexOf('>');
         if (arrowIndex < 0)
         {
             return line;
