@@ -684,6 +684,13 @@ public class TowerPlacer : MonoBehaviour
         _footprint.Clear();
         _onConfirmed = null; // 취소로 끝났으면 확정 콜백은 실행하지 않는다(재료 보존).
         _historyOwner = PlacementOwner.Placer; // 콜백과 대칭으로 비운다(#281) — 세션 밖으로 새지 않게.
+        // 이번 세션의 대상·비용도 같은 자리에서 비운다. 세션이 끝난 뒤에도 남아 있으면 "지금 무엇을
+        // 배치 중인가"를 묻는 창구가 생겼을 때 **마지막으로 배치했던 타워가 계속 답한다**(WL-129의
+        // "패널에서 산 것과 실제 배치를 잇는 유일한 연결선"이 세션 밖으로 새는 형태).
+        // 확정 경로에서 비어도 안전하다 — MouseManager가 `OnConfirmed`(=PlaceTower)를 먼저 부르고
+        // 그 뒤에 `CancelPlacement`를 하므로(MouseManager.cs:926-927) 차감·생성은 이미 끝나 있다.
+        _activeAsset = null;
+        _activeCost = null;
         lastPreviewAnchor = null;
         previewFootprintInitialized = false;
 

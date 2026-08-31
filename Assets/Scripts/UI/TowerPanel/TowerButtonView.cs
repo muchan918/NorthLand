@@ -36,6 +36,8 @@ public class TowerButtonView : MonoBehaviour
     // 배선 유실 경고는 **세션당 1회**다(TowerInfoUI._mergeWiringWarned와 같은 규약이지만 static인 이유:
     // 그쪽은 패널 1개인데 이쪽은 타워 수만큼 칸이 생겨, 인스턴스 플래그면 같은 경고가 칸마다 쏟아진다).
     static bool s_bannerWiringWarned;
+    // 선택 표시 슬롯의 배선 유실 경고도 같은 규약이다(EnsureSelectedEffectWired 참조).
+    static bool s_selectedEffectWiringWarned;
     // 선택 가능 여부의 **요청값**. 해제 연출이 도는 동안 적용을 미루므로 요청과 적용을 분리해 들고 있는다.
     bool _requestedSelectable = true;
 
@@ -147,7 +149,7 @@ public class TowerButtonView : MonoBehaviour
     /// </summary>
     public void SetSelected(bool selected)
     {
-        if (_selectedEffect == null) return;
+        if (!EnsureSelectedEffectWired()) return;
         // 표시 상태가 곧 직전 값이다 — 별도 플래그를 들지 않는 이유는 SetLocked와 같다(#424).
         if (_selectedEffect.activeSelf == selected) return;
 
@@ -157,7 +159,9 @@ public class TowerButtonView : MonoBehaviour
         {
             _selectedEffect.SetActive(true);
             // withChildren:false — 캐시가 이미 자식 전부라 true면 중첩된 시스템에 Play가 두 번 간다.
-            foreach (var ps in _selectedParticles) ps.Play(false);
+            // Clear를 먼저 부르는 이유: 아래 Stop 경로를 **타지 않고** 꺼지는 길이 있다(패널째 비활성화되는
+            // 밤 전환 등). 그때 남은 파티클이 다음 선택의 첫 프레임에 잔상으로 스친다.
+            foreach (var ps in _selectedParticles) { ps.Clear(false); ps.Play(false); }
             return;
         }
 
@@ -165,6 +169,22 @@ public class TowerButtonView : MonoBehaviour
         // 지난번 잔상이 그대로 한 번 튄다(비활성은 시뮬레이션을 멈출 뿐 버퍼를 비우지 않는다).
         foreach (var ps in _selectedParticles) ps.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
         _selectedEffect.SetActive(false);
+    }
+
+    // 슬롯이 비어 있으면 선택 표시가 **조용히** 사라진다 — 프리팹이 별 저장소(NorthLand-Imported)에 있어
+    // 미동기 환경에서 컴파일도 통하고 콘솔도 조용하다(WL-040이 굳힌 「§4 계약 등재 + null 시 1회 경고」 형태).
+    // static인 이유는 `s_bannerWiringWarned`와 같다 — 인스턴스 플래그면 칸마다 같은 경고가 쏟아진다.
+    bool EnsureSelectedEffectWired()
+    {
+        if (_selectedEffect != null) return true;
+
+        if (!s_selectedEffectWiringWarned)
+        {
+            s_selectedEffectWiringWarned = true;
+            Debug.LogWarning($"[타워버튼] _selectedEffect 미배선 — 타워를 골라도 선택 표시가 뜨지 않습니다. " +
+                             $"NorthLand-Imported의 TowerButton.prefab 동기화를 확인하세요(aee42246c 이상). ({name})", this);
+        }
+        return false;
     }
 
     // includeInactive:true — 이펙트는 프리팹에서 꺼진 채로 저작된다. false면 빈 배열이 잡혀
@@ -176,7 +196,22 @@ public class TowerButtonView : MonoBehaviour
         _selectedParticlesCached = true;
 
         if (_selectedParticles.Length == 0)
+        {
             Debug.LogWarning($"[타워버튼] _selectedEffect 아래에 ParticleSystem이 없습니다 — 선택 표시가 켜져도 아무것도 그려지지 않습니다({name}).", this);
+            return;
+        }
+
+        // **시간축은 unscaled다.** 이건 장식이 아니라 "지금 이걸 놓는 중"이라는 표시라,
+        // 2배속(`GameSpeedController`가 전역 `Time.timeScale`을 올린다)에서 혼자 빨라지거나
+        // 설정·튜토리얼 정지(`timeScale` 0)에서 얼어붙으면 안 된다 — SystemMap §6의
+        // "안내·피드백은 Use Unscaled Time = on" 기준이고 `SpeedBoostEffect`와 같은 근거다.
+        // 프리팹 저작에 맡기지 않고 코드에서 강제하는 이유도 그쪽과 같다: 파티클이 여러 개라
+        // 하나만 빠뜨려도 그것만 멎는데, 증상이 인스펙터 깊은 곳에 있어 찾기 어렵다.
+        foreach (var ps in _selectedParticles)
+        {
+            var main = ps.main;
+            main.useUnscaledTime = true;
+        }
     }
 
     TowerLockUnlockEffect ResolveEffect()
