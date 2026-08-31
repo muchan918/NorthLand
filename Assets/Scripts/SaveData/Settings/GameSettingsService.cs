@@ -1,5 +1,7 @@
 using System;
+using System.IO;
 using UnityEngine;
+using static NorthLand.Core.GameSettingsStore;
 
 namespace NorthLand.Core
 {
@@ -20,6 +22,11 @@ namespace NorthLand.Core
         private GameSettingsStore store;
 
         public GameSettingsData CurrentSettings
+        {
+            get;
+            private set;
+        }
+        public bool WasRecoveredFromCorruption
         {
             get;
             private set;
@@ -61,7 +68,7 @@ namespace NorthLand.Core
         {
             if (store.Exists)
             {
-                if (store.TryLoad(out GameSettingsData data, out string error))
+                if (store.TryLoad(out GameSettingsData data,out GameSettingsLoadFailure failure,out string error))
                 {
                     CurrentSettings = data;
                     canSaveSettings = true;
@@ -73,6 +80,13 @@ namespace NorthLand.Core
                 // 손상 파일은 조사할 수 있도록 별도 이름으로 보존하고,
                 // 기본 설정을 새 settings.json으로 만들어 이후 저장을 정상화한다.
                 CurrentSettings = GameSettingsData.CreateDefault();
+
+                if (failure != GameSettingsLoadFailure.Corrupted)
+                {
+                    // 상위·과거 버전 또는 IO 실패 파일은 원본을 그대로 보존한다.
+                    canSaveSettings = false;
+                    return;
+                }
 
                 if (!store.TryQuarantineCorrupted(out string backupPath,out string quarantineError))
                 {
@@ -89,7 +103,9 @@ namespace NorthLand.Core
                 }
 
                 canSaveSettings = true;
-                Debug.LogWarning($"손상 게임 설정을 보존하고 기본 설정으로 복구했습니다: {backupPath}",this);
+                WasRecoveredFromCorruption = true;
+
+                Debug.Log($"손상 게임 설정을 보존하고 기본 설정으로 복구했습니다: {backupPath}",this);
                 return;
             }
 
@@ -127,7 +143,7 @@ namespace NorthLand.Core
 
             CurrentSettings.localeCode = localeCode.Trim();
 
-            // 손상 파일은 보존하되 현재 실행에는 설정을 적용한다.
+            // 저장할 수 없는 설정 파일은 보존하되 현재 실행에는 설정을 적용한다.
             if (!canSaveSettings)
             {
                 SettingsChanged?.Invoke();
@@ -165,7 +181,7 @@ namespace NorthLand.Core
 
             CurrentSettings.lastSelectedSlotIndex = slotIndex;
 
-            // 손상 파일은 보존하되 현재 실행의 선택 상태는 갱신한다.
+            // 저장할 수 없는 설정 파일은 보존하되 현재 실행의 선택 상태는 갱신한다.
             if (!canSaveSettings)
             {
                 SettingsChanged?.Invoke();

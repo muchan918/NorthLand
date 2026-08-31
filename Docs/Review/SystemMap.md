@@ -69,6 +69,7 @@
 - 플레이어 슬롯은 3개이며, 각 슬롯은 `Application.persistentDataPath/SaveSlots/slot-{index}/player.json`과 `run-save.json`을 독립적으로 가진다. `RunSaveManager`는 `PlayerSaveService`에서 현재 선택 슬롯 경로를 받아 사용한다.
 - 마지막으로 선택한 슬롯은 별도로 기억해 게임 재실행 시 복원한다. 슬롯을 선택하지 않은 상태에서는 새 게임과 이어하기를 시작하지 않는다.
 - 언어 등 게임 공통 설정은 슬롯 밖 `Application.persistentDataPath/settings.json`에 저장한다.
+- `settings.json` 로드 실패는 `Corrupted` / `UnsupportedVersion` / `IoFailure`로 구분한다. `Corrupted`만 타임스탬프 백업으로 격리한 뒤 기본 설정을 다시 저장하며, 백업은 최신 3개만 유지한다. 지원하지 않는 버전과 IO 실패는 다운그레이드·정상 파일 손상을 막기 위해 원본을 보존하고 해당 실행의 설정 저장을 차단한다.
 - 구버전 루트 `Application.persistentDataPath/run-save.json`은 선택 슬롯에 Run 저장이 없을 때만 이전한다. 대상 기록이 성공한 뒤에만 구버전 원본을 삭제하며 기존 슬롯 Run을 덮어쓰지 않는다.
 - 각 JSON 파일은 임시 파일 기록 성공 후 교체해 기존 세이브 손상을 막는다.
 - `run-save.json`은 `SaveSerializer`, `player.json`과 `settings.json`은 `VersionedSaveSerializer<TData>`를 사용해 봉투의 `version`을 먼저 읽고 지원 버전의 `data`만 DTO로 변환한다. 파일마다 독립된 포맷 버전과 인접 버전 마이그레이션 체인을 가지며, 알 수 없는 상위 버전은 다운그레이드 손상을 막기 위해 거부한다.
@@ -119,7 +120,7 @@
 - `PlayerSaveService.Instance` / `HasSelectedSlot` / `CurrentSlotPath` / `SelectedSlotChanged` — 현재 플레이어 슬롯과 Run 저장 경로를 제공하는 선행 계약.
 - `PlayerSaveService.CreateAndSelectSlotAsync(int, CancellationToken)` / `SelectSlotAsync(int, CancellationToken)` / `DeleteSlotAsync(int, CancellationToken)` / `UpdateLastPlayedAtAsync(CancellationToken)` → `UniTask<SaveResult>` — 플레이어 슬롯 생성·선택·삭제와 최근 플레이 시각 갱신의 비동기 진입점.
 - `PlayerSaveService.GetSlotDataAsync(int, CancellationToken)` → `UniTask<SaveResult<PlayerData>>` — 슬롯 UI가 플레이어 데이터를 비동기로 조회하는 진입점.
-- `GameSettingsService.Instance` / `CurrentSettings` / `SettingsChanged` / `TrySetLocale` / `TrySetLastSelectedSlotIndex` — 플레이어 슬롯과 독립된 공통 설정 조회·변경 진입점.
+- `GameSettingsService.Instance` / `CurrentSettings` / `WasRecoveredFromCorruption` / `SettingsChanged` / `TrySetLocale` / `TrySetLastSelectedSlotIndex` — 플레이어 슬롯과 독립된 공통 설정 조회·변경 및 손상 복구 여부 조회 진입점.
 - `GameSceneManager.TryLoadContinue(RunData, out string)` — 타이틀에서 준비된 이어하기 데이터를 일회성 핸드오프로 등록하고 게임 씬을 한 번에 로드한다. 파일 IO·역직렬화는 이 API 호출 전에 끝나 있어야 하며, 별도의 준비 호출 순서 규약은 없다.
 - `GameSceneManager.TryConsumeContinueData(out RunData)` — 게임 씬에서 준비된 `RunData`를 한 번만 소비한다. 성공 시 내부 플래그와 데이터 참조를 즉시 제거하며, `RunSaveManager`가 유일한 운영 소비자다.
 - `ManagementController.TryRestoreResource` / `TryRestoreProductionLine` / `TryRestoreUpgradeBuilding` / `TryRestoreBonusVillagers` — 비용·보상 경로를 거치지 않는 경영 복원 전용 진입점. 건물은 배열 인덱스가 아니라 BuildingID로 찾는다.
