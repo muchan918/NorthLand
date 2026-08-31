@@ -70,10 +70,26 @@ namespace NorthLand.Core
 
                 Debug.LogWarning($"게임 설정을 불러오지 못했습니다: {error}", this);
 
-                // 기존 파일은 보존하고 이번 실행에서만 기본값을 사용한다.
+                // 손상 파일은 조사할 수 있도록 별도 이름으로 보존하고,
+                // 기본 설정을 새 settings.json으로 만들어 이후 저장을 정상화한다.
                 CurrentSettings = GameSettingsData.CreateDefault();
 
-                canSaveSettings = false;
+                if (!store.TryQuarantineCorrupted(out string backupPath,out string quarantineError))
+                {
+                    canSaveSettings = false;
+                    Debug.LogWarning($"손상 게임 설정을 격리하지 못했습니다: {quarantineError}",this);
+                    return;
+                }
+
+                if (!store.TrySave(CurrentSettings,out string recoveryError))
+                {
+                    canSaveSettings = false;
+                    Debug.LogWarning($"기본 게임 설정을 복구하지 못했습니다: {recoveryError}",this);
+                    return;
+                }
+
+                canSaveSettings = true;
+                Debug.LogWarning($"손상 게임 설정을 보존하고 기본 설정으로 복구했습니다: {backupPath}",this);
                 return;
             }
 

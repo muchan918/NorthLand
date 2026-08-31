@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -170,6 +171,34 @@ namespace NorthLand.Core
         public bool TryDelete(out string error)
         {
             return fileStore.TryDelete(out error);
+        }
+
+        public bool TryQuarantineCorrupted(out string backupPath,out string error)
+        {
+            backupPath = null;
+            error = null;
+
+            if (!File.Exists(SavePath))
+            {
+                error = "격리할 손상 설정 파일이 없습니다.";
+                return false;
+            }
+
+            string directory = Path.GetDirectoryName(SavePath);
+            string fileName = $"settings.corrupt.{DateTime.UtcNow:yyyyMMddTHHmmssfffZ}.json";
+            backupPath = Path.Combine(directory ?? string.Empty,fileName);
+
+            try
+            {
+                File.Move(SavePath,backupPath);
+                return true;
+            }
+            catch (Exception exception)
+            {
+                backupPath = null;
+                error = $"손상 설정 파일을 격리할 수 없습니다: {exception.Message}";
+                return false;
+            }
         }
     }
 }
