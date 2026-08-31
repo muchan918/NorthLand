@@ -79,7 +79,12 @@ public partial class EnemyImpactTargetAction : Action
 
         // Source는 IAttacker 계약이며 EnemyAgent는 이를 구현하지 않는다.
         // 충돌 피해는 반격·처치 기여 집계 대상이 아니므로 null로 둔다(Enemy의 근접 공격과 구분).
-        damageable.TakeDamage(new DamageInfo(speed * damagePerUnit, null));
+        //
+        // `DamageKind.Impact`는 **받는 쪽이 이 피해를 돌진으로 알아보는 유일한 축**이다.
+        // 여기까지는 평타와 코드 경로가 완전히 갈려 있는데 `TakeDamage`에서 합류하며 그 구분이
+        // 사라지므로, 아는 쪽(여기)이 라벨을 실어 보낸다. `Source`가 null이라 받는 쪽에서
+        // 가해자를 캐스팅해 되묻는 방법도 애초에 없다. 소비처는 본진 피격음(§6.4).
+        damageable.TakeDamage(new DamageInfo(speed * damagePerUnit, null, DamageKind.Impact));
 
         return Status.Success;
     }

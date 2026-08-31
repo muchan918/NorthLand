@@ -16,6 +16,16 @@ namespace NorthLand.Combat
         /// 자폭병이 터지며 준 피해(`Enemy.Detonate`). 가해자가 자기 자리에서 폭발 연출을
         /// 이미 냈다는 뜻이라, 피해자 쪽 피격 연출은 겹치지 않게 생략한다.
         SelfDestruct,
+
+        /// 돌진해 들이받아 준 피해(`EnemyImpactTargetAction`). 속도에 비례하는 단발 대타격이라
+        /// 평타와 크기가 자릿수로 다르다 — `tank`의 P1은 `speed × 3.75`에 `MinSpeed 10` 게이트라
+        /// **최소 37.5**(본진 HP 200의 18.75%)다.
+        ///
+        /// ⚠ **`BossImpact`가 아니라 `Impact`인 것이 의도다.** 축은 「누가 때렸나」가 아니라
+        /// 「어떤 사건인가」다 — `EnemyImpactTargetAction`은 보스 전용 노드가 아니라 충돌 피해
+        /// 노드라서, 돌진하는 일반 몹이 생기면 그쪽도 같은 사건을 낸다. 이름에 `Boss`를 박으면
+        /// 그날 이름과 실제가 어긋난 채로 동작한다(`EnemyType`이 역할을 겸직해 생긴 WL-207과 같은 형태).
+        Impact,
     }
 
     public struct DamageInfo

@@ -587,6 +587,7 @@ Sfx.ResidentIncreased();  // ← 이것만 PlaySfxExclusive로 나간다
 | 축 | 저작 위치 | 발화 지점 | 성격 |
 |---|---|---|---|
 | 본진 피격음 | `PlayerBase`의 `hitSfx` / `hitSfxVolume` / `hitSfxMinInterval` | `PlayerBase.TakeDamage` (자폭 피해 제외) | 사건 · 원샷 · **디바운스** |
+| 본진 돌진 피격음 | `PlayerBase`의 `impactSfx` / `impactSfxVolume` | 같은 자리, `DamageKind.Impact`일 때 | 사건 · 원샷 · **디바운스 우회** |
 | 자폭 폭발음 | `EnemyAsset.SelfDestruct.ExplosionSfx` + `ExplosionSfxVolume` | `Enemy.Detonate` | 사건 · 원샷 |
 
 둘 다 `CombatSfx.Play(..., priority: High)`다 — **화면 밖과 오쏘 160 이상 줌아웃에서는 무음이다.**
@@ -612,6 +613,22 @@ Sfx.ResidentIncreased();  // ← 이것만 PlaySfxExclusive로 나간다
 ⚠ **소리 전용 플래그가 아니라 사건 종류로 둔 것이 의도다.** 자폭은 이미 피해 코어 안에서 다른 축을
 여럿 갖고 있다 — 웨이브 HP 배율 제외, `Killed` 미발행, 규약 ④ 예산의 입력. 그 구분이 지금까지
 **가해자 쪽에만 있고 피해자 쪽에는 없었다.**
+
+**돌진(`DamageKind.Impact`)은 자기 클립을 쓰고 디바운스를 뚫는다.** `EnemyImpactTargetAction`이 내는
+`speed × DamagePerSpeedUnit` 단발 대타격으로, `tank`의 P1은 `3.75`에 `MinSpeed 10` 게이트라
+**최소 37.5 = 본진 HP 200의 18.75%**다 — 자폭 한 방(20, 10%)보다 크다. 직전 0.15초에 잡몹 평타가
+하나 들어와 있었다는 이유로 통째로 사라지면 안 되는 크기이고, 증상이 타이밍 의존이라 버그로
+인지되지 않고 "가끔 소리가 안 난다"로 남는다.
+
+- ⚠ **"큰 피해"를 피해 비율로 추정하지 않는다.** `appliedDamage / MaxHp`에 임계를 걸어도 되지만,
+  사건 종류로 직접 아는 편이 임계값 저작 없이 정확하다 — 종류를 아는 것은 여기서도 가해자뿐이다.
+- ⚠ **디바운스 우회와 클립 선택은 따로 판정한다.** 묶으면 `impactSfx` 미배선일 때 우회까지 함께
+  꺼져, 폴백으로 소리는 나는데 창에 걸려 사라지는 조합이 생긴다. 클립이 없어도 사건은 대타격이다.
+- ⚠ **`BossImpact`가 아니라 `Impact`다.** 축은 「누가 때렸나」가 아니라 「어떤 사건인가」이고,
+  `EnemyImpactTargetAction`은 보스 전용 노드가 아니다 — 돌진하는 일반 몹이 생기면 그쪽도 같은
+  사건을 낸다. 이름에 `Boss`를 박으면 그날 이름과 실제가 어긋난 채로 동작한다(WL-207과 같은 형태).
+  현재 이 노드를 쓰는 것은 `tank`뿐이다(`ogre_king`의 `MidBossBehavior`에는 0건) — **미드보스는
+  일반 피격음이 나는 것이 정상이다.**
 
 ⚠ **그래서 `ExplosionSfx`가 비면 자폭이 완전 무음이 된다** — 피격음이 대신 나 주지 않는다.
 `EnemyAsset.OnValidate`가 그 조합을 저장 시점에 경고한다(증상이 "본진이 소리 없이 깎인다"라

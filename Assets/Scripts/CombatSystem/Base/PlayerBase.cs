@@ -33,8 +33,22 @@ namespace NorthLand.Combat
         // 실시간 기준(`Time.unscaledTime`)인 것이 의도다 — 오디오 뭉침은 배속과 무관한 실시간
         // 현상이라, 2배속에서 창이 함께 늘어나면 그 배속에서만 소리가 성기어진다.
         [Min(0f)]
-        [Tooltip("피격음이 다시 날 수 있기까지의 최소 실시간 간격(초). 0이면 매 피해마다 난다.")]
+        [Tooltip("피격음이 다시 날 수 있기까지의 최소 실시간 간격(초). 0이면 매 피해마다 난다. " +
+                 "돌진 피해에는 걸리지 않는다.")]
         [SerializeField] float hitSfxMinInterval = 0.15f;
+
+        // 돌진 피격음. 평타와 **크기가 자릿수로 다른 사건**이라 소리를 가른다 — `tank`의 P1은
+        // `speed × 3.75`에 `MinSpeed 10` 게이트라 최소 37.5, 본진 HP의 18.75%가 한 번에 날아간다.
+        // 판별은 `DamageKind.Impact`가 하고 이 컴포넌트는 고르기만 한다(§6.4).
+        [Tooltip("돌진(충돌) 피해를 받은 순간 재생할 효과음. 비우면 일반 피격음으로 대신한다 — " +
+                 "미배선이 새 무음 경로를 만들지 않게 한 것이다. 파삭한 일반 피격음과 갈리도록 " +
+                 "묵직한 저역이 좋고, 자폭 폭발음과는 음색이 겹치지 않아야 한다(§6.3).")]
+        [SerializeField] AudioClip impactSfx;
+
+        [Range(0f, 2f)]
+        [Tooltip("돌진 피격음 재생 배율. SFX 채널 볼륨에 곱해진다. " +
+                 "1.0을 넘긴 몫은 화면 중앙에서 잘린다 — 헤드룸이 부족하면 클립 자체를 정규화할 것.")]
+        [SerializeField] float impactSfxVolume = 1f;
 
         float lastHitSfxTime = float.NegativeInfinity;
 
@@ -132,6 +146,14 @@ namespace NorthLand.Combat
         /// `Source is Enemy`를 캐스팅해 자폭병인지 되묻는 방식은 쓰지 않는다. 그 술어는
         /// "자폭 가능한 적"이지 "이번 피해가 자폭"이 아니라서, 자폭병이 평타도 하게 되는 날
         /// 조용히 틀린다.
+        /// ⚠ **돌진(`Impact`)은 자기 클립을 쓰고 디바운스를 뚫는다.** 평타와 크기가 자릿수로 다른
+        /// 단발 대타격이라(최소 37.5 = 본진 HP의 18.75%), 직전 0.15초에 잡몹 평타가 하나 들어와
+        /// 있었다는 이유로 통째로 사라지면 안 된다 — 재현이 타이밍 의존이라 버그로 인지되지 않고
+        /// "가끔 소리가 안 난다"로 남는 종류다. **"큰 피해"를 피해 비율로 추정하지 않는 것이
+        /// 의도다** — 사건 종류로 직접 아는 편이 임계값 저작 없이도 정확하다.
+        ///
+        /// `impactSfx`가 비면 일반 피격음으로 폴백한다. 여기서 무음으로 두면 클립 미배선이
+        /// **새 무음 경로를 하나 더** 만든다(`WarnIfHitSfxMissing`이 막으려는 것과 같은 실패).
         void PlayHitSfx(DamageInfo info, float appliedDamage)
         {
             if (hitSfx == null || appliedDamage <= 0f)
@@ -140,15 +162,23 @@ namespace NorthLand.Combat
             if (info.Kind == DamageKind.SelfDestruct)
                 return;
 
-            if (Time.unscaledTime - lastHitSfxTime < hitSfxMinInterval)
+            // ⚠ 디바운스 우회와 클립 선택은 **따로 판정한다.** 묶어 두면 `impactSfx` 미배선일 때
+            // 우회까지 함께 꺼져, 폴백으로 소리는 나는데 창에 걸려 사라지는 조합이 생긴다 —
+            // 클립이 없어도 사건은 여전히 대타격이다.
+            bool isImpact = info.Kind == DamageKind.Impact;
+
+            if (!isImpact && Time.unscaledTime - lastHitSfxTime < hitSfxMinInterval)
                 return;
 
+            bool useImpactClip = isImpact && impactSfx != null;
+
+            // 우회로 울린 뒤에도 도장은 찍는다 — 돌진 직후 몰려드는 평타가 그 위에 겹치지 않게.
             lastHitSfxTime = Time.unscaledTime;
 
             CombatSfx.Play(
-                hitSfx,
+                useImpactClip ? impactSfx : hitSfx,
                 HitPosition.position,
-                volumeScale: hitSfxVolume,
+                volumeScale: useImpactClip ? impactSfxVolume : hitSfxVolume,
                 priority: CombatSfxPriority.High);
         }
 

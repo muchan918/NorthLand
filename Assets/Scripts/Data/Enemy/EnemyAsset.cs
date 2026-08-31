@@ -99,7 +99,7 @@ public class EnemyAsset : ScriptableObject
         [Range(0f, 2f)]
         [Tooltip("폭발음 재생 배율. SFX 채널 볼륨에 곱해진다. 임포트 설정에는 클립별 게인이 없어 " +
                  "(AudioManager.md §4.5) 클립 사이의 레벨 차는 여기서만 맞출 수 있다. " +
-                 "화면 감쇠가 헤드룸을 먹으므로 2D 시절 값보다 올려야 할 수 있다(상한 2).")]
+                 "1.0을 넘긴 몫은 화면 중앙에서 잘린다 — 헤드룸이 부족하면 클립 자체를 정규화할 것.")]
         public float ExplosionSfxVolume = 1f;
     }
 
