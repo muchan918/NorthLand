@@ -3,6 +3,7 @@ using UnityEngine;
 using CombatSpace;
 using NorthLand.Combat;
 using UnityEngine.SceneManagement;
+using NorthLand.UI;
 
 /// 배치에 필요한 타워 데이터(풋프린트·사거리)의 최소 단위.
 /// TowerPlacer는 이 구조체에만 의존하고 특정 SO(TowerAsset/Combat TowerData)에 묶이지 않는다.
@@ -132,6 +133,10 @@ public class TowerPlacer : MonoBehaviour
     [Header("버프 타일 아이콘")]
     [SerializeField]
     private BuffTileIconPreview buffTileIconPreview;
+
+    [Header("버프 타일 수치 미리보기")]
+    [SerializeField]
+    private TileBuffPreviewView tileBuffPreviewView;
 
     //Ksj
     //타워가 여러 버프 타일을 점유할 때 사용할 효과 중첩 규칙
