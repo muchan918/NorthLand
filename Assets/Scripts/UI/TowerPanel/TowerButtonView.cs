@@ -29,13 +29,15 @@ public class TowerButtonView : MonoBehaviour
     [SerializeField] Color _dimmedIconColor = new(0.42f, 0.42f, 0.42f, 1f);
 
     [Header("선택 스케일")]
-    [Tooltip("선택된 칸의 배율. LayoutGroup은 localScale을 보지 않으므로 칸 자리는 흔들리지 않는다.")]
+    [Tooltip("선택된 칸의 배율. 프리팹 저작 스케일에 곱한다 — LayoutGroup은 localScale을 보지 않으므로 칸 자리는 흔들리지 않는다.")]
     [SerializeField] float _selectedScale = 1.1f;
     [Tooltip("선택 세션 중 나머지 칸의 배율. 아무도 고르지 않은 평상시에는 적용하지 않는다.")]
     [SerializeField] float _unselectedScale = 0.9f;
 
     Color _normalIconColor = Color.white;
     bool _iconColorCached;
+    Vector3 _authoredScale = Vector3.one;
+    bool _authoredScaleCached;
     Button _button;
     ParticleSystem[] _selectedParticles;
     bool _selectedParticlesCached;
@@ -191,8 +193,20 @@ public class TowerButtonView : MonoBehaviour
     // 겹침이 거슬리면 순서가 아니라 그룹의 spacing으로 푼다.</para>
     void ApplySelectedScale(bool selected, bool anySelected)
     {
-        float target = !anySelected ? 1f : (selected ? _selectedScale : _unselectedScale);
-        transform.localScale = Vector3.one * target;
+        CacheAuthoredScale();
+        float factor = !anySelected ? 1f : (selected ? _selectedScale : _unselectedScale);
+        transform.localScale = _authoredScale * factor;
+    }
+
+    // 기준은 `Vector3.one`이 아니라 **프리팹 저작 스케일**이다 — 절대값을 박으면 칸에 스케일을 준
+    // 프리팹에서 첫 선택 때 크기가 조용히 바뀐다(`CacheIconColor`가 `Color.white`를 상수로 박지 않는 것과
+    // 같은 근거이고, 도감 항목 `FusionTowerEntry.originalScale`도 같은 규약이다). 지연 캐시인 이유 역시
+    // 그쪽과 같으며, 여기선 **이 스케일의 기입자가 우리뿐**이라 첫 호출 시점의 값이 항상 저작값이다.
+    void CacheAuthoredScale()
+    {
+        if (_authoredScaleCached) return;
+        _authoredScale = transform.localScale;
+        _authoredScaleCached = true;
     }
 
     // 슬롯이 비어 있으면 선택 표시가 **조용히** 사라진다 — 프리팹이 별 저장소(NorthLand-Imported)에 있어
