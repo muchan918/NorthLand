@@ -2,6 +2,7 @@ using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using NorthLand.UI;
 
 // 교환 상점의 한 줄(자원 1종). StorePanelUI가 ScrollView Content에 Instantiate한 뒤 Bind로 주입한다.
 // BuildingCostRow와 같은 계보의 얇은 뷰지만, 버튼이 있어 '상태만 갱신'이 필요하다 —
@@ -22,8 +23,6 @@ public class StoreOfferRow : MonoBehaviour
     [Tooltip("교환 버튼의 라벨 (로컬라이즈된 '교환')")]
     [SerializeField] TextMeshProUGUI _buttonLabel;
 
-    [Tooltip("지불 자원을 감당할 수 있을 때 글씨 색")]
-    [SerializeField] Color _affordableColor = new Color(0.45f, 0.85f, 0.45f);
     [Tooltip("지불 자원이 부족할 때 글씨 색")]
     [SerializeField] Color _insufficientColor = new Color(0.55f, 0.55f, 0.55f);
 
@@ -99,7 +98,7 @@ public class StoreOfferRow : MonoBehaviour
         }
         if (_costText != null)
         {
-            _costText.color = canExchange ? _affordableColor : _insufficientColor;
+            _costText.color = canExchange? UiPalette.Positive : _insufficientColor;
         }
         if (_payIcon != null)
         {
