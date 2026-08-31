@@ -40,3 +40,15 @@ MonoBehaviour:
       AttackRange: 0
       AttackInterval: 0
     BehaviorTree: {fileID: 0}
+  SelfDestruct:
+    Enabled: 0
+    Damage: 0
+    ExplosionVfx: {fileID: 0}
+    ExplosionScale: 1
+    ExplosionLifetime: 5
+    ExplosionSfx: {fileID: 0}
+    ExplosionSfxVolume: 1
+  AttackSfx: {fileID: 8300000, guid: 07e5c6b82019edf4992fedc89d876b30, type: 3}
+  AttackSfxVolume: 0.5
+  ImpactSfx: {fileID: 0}
+  ImpactSfxVolume: 1

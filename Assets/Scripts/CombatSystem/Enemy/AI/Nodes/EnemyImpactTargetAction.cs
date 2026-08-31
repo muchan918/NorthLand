@@ -80,12 +80,45 @@ public partial class EnemyImpactTargetAction : Action
         // Source는 IAttacker 계약이며 EnemyAgent는 이를 구현하지 않는다.
         // 충돌 피해는 반격·처치 기여 집계 대상이 아니므로 null로 둔다(Enemy의 근접 공격과 구분).
         //
-        // `DamageKind.Impact`는 **받는 쪽이 이 피해를 돌진으로 알아보는 유일한 축**이다.
-        // 여기까지는 평타와 코드 경로가 완전히 갈려 있는데 `TakeDamage`에서 합류하며 그 구분이
-        // 사라지므로, 아는 쪽(여기)이 라벨을 실어 보낸다. `Source`가 null이라 받는 쪽에서
-        // 가해자를 캐스팅해 되묻는 방법도 애초에 없다. 소비처는 본진 피격음(§6.4).
-        damageable.TakeDamage(new DamageInfo(speed * damagePerUnit, null, DamageKind.Impact));
+        // 충돌음의 주인은 때리는 쪽이다(`EnemyAsset.ImpactSfx`, §6.4) — 평타 공격음과 같은 규칙이고,
+        // 소리를 가르기 위해 받는 쪽에 특례를 얹지 않는다. 스로틀은 걸지 않는다: 돌진은 `tank` P1의
+        // 1회 한정 패턴이라 자기끼리 겹칠 일이 없고, 걸어 두면 오히려 놓칠 위험만 생긴다.
+        //
+        // 우선순위 `Normal`: 평타(`Low`)보다 무거운 단발 대타격이지만, 상한에서 본진 경고음보다
+        // 먼저 회수되는 편이 맞다.
+        PlayImpactSfx(agent, speed * damagePerUnit);
+
+        damageable.TakeDamage(new DamageInfo(speed * damagePerUnit, null));
 
         return Status.Success;
+    }
+
+    /// 돌진 충돌음. 클립은 가해자의 `EnemyAsset`이 든다.
+    ///
+    /// `EnemyAgent`가 `Enemy`를 공개하지 않으므로 같은 오브젝트에서 집어온다 — BT 그래프에
+    /// 블랙보드 변수를 추가하지 않기 위한 선택이다(그래프 저작을 건드리면 이 노드를 쓰는
+    /// 트리마다 배선이 늘고, 잊은 트리는 조용히 무음이 된다).
+    ///
+    /// 위치는 **가해자**다. 돌진은 자기 몸으로 들이받는 것이라 소리가 나는 곳이 곧 보스의 위치다.
+    private static void PlayImpactSfx(EnemyAgent agent, float damage)
+    {
+        if (damage <= 0f)
+        {
+            return;
+        }
+
+        var enemy = agent.GetComponent<Enemy>();
+        var asset = enemy != null ? enemy.Asset : null;
+
+        if (asset == null)
+        {
+            return;
+        }
+
+        CombatSfx.Play(
+            asset.ImpactSfx,
+            enemy.HitPosition != null ? enemy.HitPosition.position : agent.transform.position,
+            volumeScale: asset.ImpactSfxVolume,
+            priority: CombatSfxPriority.Normal);
     }
 }

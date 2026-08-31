@@ -29,6 +29,38 @@ public class EnemyAsset : ScriptableObject
     // 함께 갈라진다. 자폭은 그 갈림 어디에도 새 분기를 요구하지 않는다.
     public SelfDestructFields SelfDestruct;
 
+    // ── 전투음 ─────────────────────────────────────────────────────────────
+    // **타격음의 주인은 때리는 쪽이다.** 타워가 `TowerAsset.Attack.FireSfx`를 들고, 자폭병이
+    // `SelfDestruct.ExplosionSfx`를 드는 것과 같은 규칙이다(`Docs/Core/AudioManager.md` §5.4).
+    // 예전에는 본진이 「맞았을 때 나는 소리」를 소유했는데, 그러면 고블린 칼질·박쥐 물기·탱크
+    // 주먹이 전부 같은 소리가 되고 소리를 가르려면 받는 쪽에 특례를 얹어야 했다.
+    //
+    // 본진에 남은 것은 **2D 경고음**이다 — 위치음(이쪽)은 화면 밖에서 무음이라, 「본진이 깎였다」를
+    // 알리는 축이 따로 있어야 한다(§6.4).
+    //
+    // 재생은 위치 기반 풀(`CombatSfx`)이 하고, 클립 단위 스로틀이 밤 후반의 겹침을 눌러 준다 —
+    // 문서 §7이 "몬스터 평타음에는 풀·디바운스가 먼저"라고 경고한 자리다.
+    [Tooltip("공격이 닿는 순간 재생할 효과음. 근접은 타격 순간, 원거리는 발사 순간이다. " +
+             "비우면 소리 없이 공격한다. 화면 밖·줌아웃에서는 들리지 않는다(AudioManager.md §6.2).")]
+    public AudioClip AttackSfx;
+
+    [Range(0f, 2f)]
+    [Tooltip("공격음 재생 배율. SFX 채널 볼륨에 곱해진다. " +
+             "1.0을 넘긴 몫은 화면 중앙에서 잘린다 — 헤드룸이 부족하면 클립 자체를 정규화할 것.")]
+    public float AttackSfxVolume = 1f;
+
+    // 돌진 충돌음. 평타와 **다른 사건**이라 축을 가른다 — `EnemyImpactTargetAction`이 내는
+    // `speed × DamagePerSpeedUnit` 단발 대타격이고, 현재 소비처는 `tank`의 P1뿐이다.
+    // 평타를 하지 않는 몬스터에게는 빈 필드로 남는다(`SelfDestruct`가 대부분에게 그런 것과 같다).
+    [Tooltip("돌진(충돌) 피해를 준 순간 재생할 효과음. 돌진 패턴이 있는 보스만 쓴다. " +
+             "평타 공격음과 음색이 갈리도록 묵직한 저역이 좋다.")]
+    public AudioClip ImpactSfx;
+
+    [Range(0f, 2f)]
+    [Tooltip("돌진 충돌음 재생 배율. SFX 채널 볼륨에 곱해진다. " +
+             "1.0을 넘긴 몫은 화면 중앙에서 잘린다 — 헤드룸이 부족하면 클립 자체를 정규화할 것.")]
+    public float ImpactSfxVolume = 1f;
+
         // Melee/Ranged/Boss 공통 기초 전투 스탯. Combat/EnemyData.cs(SUNGSOO)의
         // maxHp/attackDamage/attackRange/attackInterval과 의미 대응되도록 필드명을 맞춘다
         // (실제 Combat 마이그레이션은 아직 미착수, WL-001).
@@ -123,13 +155,14 @@ public class EnemyAsset : ScriptableObject
                              $"{SelfDestruct.ExplosionLifetime}입니다 — 폭발이 보이지 않습니다.", this);
         }
 
-        // 자폭 순간에는 본진 피격음이 **일부러 억제된다**(`PlayerBase.PlayHitSfx`, AudioManager.md §6.4)
-        // — 폭발음이 그 자리의 피드백을 다 하기 때문이다. 그래서 이 클립이 비면 대신 나 주는 소리가
-        // 없어 **자폭이 완전 무음이 된다.** 증상이 "본진이 소리 없이 깎인다"라 원인에서 멀다.
+        // 자폭병은 평타 경로를 타지 않으므로 `AttackSfx`도 읽히지 않는다 — 이 클립이 비면
+        // **터지는 연출에 소리가 아예 없다.** 본진 경고음(2D, §6.4)은 계속 울리지만 그것은
+        // 「본진이 깎였다」는 신호이고, 「무언가 폭발했다」를 알리는 소리는 이쪽뿐이다.
+        // 증상이 "본진은 깎이는데 폭발이 조용하다"라 원인에서 멀다.
         if (SelfDestruct.ExplosionSfx == null)
         {
             Debug.LogWarning($"[EnemyAsset] {name}: 자폭이 켜져 있는데 ExplosionSfx가 비어 있습니다 — " +
-                             "자폭 순간 본진 피격음도 억제되므로 완전 무음으로 터집니다.", this);
+                             "자폭병은 평타 경로를 타지 않아 AttackSfx도 읽히지 않으므로 소리 없이 터집니다.", this);
         }
 
         if (SelfDestruct.Damage <= 0f)

@@ -40,6 +40,19 @@ public class EnemyAssetEditor : Editor
         EditorGUILayout.Space();
         EditorGUILayout.PropertyField(serializedObject.FindProperty("SelfDestruct"), true);
 
+        // 전투음도 EnemyType 축과 직교하므로 switch 밖에서 항상 그린다(자폭과 같은 이유).
+        //
+        // ⚠ **이 에디터는 필드를 이름으로 하나씩 그린다 — `DrawDefaultInspector`가 아니다.**
+        // 그래서 `EnemyAsset`에 직렬화 필드를 추가하면 **여기에도 줄을 넣어야 인스펙터에 나온다.**
+        // 안 넣으면 값이 직렬화·저장·재생까지 정상으로 도는데 저작만 불가능한 상태가 되고,
+        // 증상이 "SO에 필드를 넣었는데 인스펙터에 없다"라 원인이 이 파일이라는 단서가 없다.
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("전투음", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("AttackSfx"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("AttackSfxVolume"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("ImpactSfx"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("ImpactSfxVolume"));
+
         serializedObject.ApplyModifiedProperties();
     }
 }

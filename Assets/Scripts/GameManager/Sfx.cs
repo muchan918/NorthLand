@@ -177,6 +177,21 @@ public static class Sfx
         Play(Bank != null ? Bank.Redo : null);
     }
 
+    /// <summary>
+    /// 본진이 피해를 받은 순간의 **경고음**(`Docs/Core/AudioManager.md` §6.4).
+    ///
+    /// ⚠ **타격음이 아니다.** 타격음은 가해자가 소유하고 위치 기반 풀로 나가 화면 밖에서 무음이다.
+    /// 이 소리는 그 반대 축이다 — 「본진이 깎였다」는 패배 조건 직결 신호라, 카메라가 어디를
+    /// 보고 있든 들려야 해서 2D로 낸다. 그래서 <see cref="CombatSfx"/>가 아니라 이 경로다.
+    ///
+    /// 호출 빈도 제어(디바운스)는 <c>PlayerBase</c>가 한다 — "얼마나 자주 경고할지"는 클립의
+    /// 성질이 아니라 본진의 정책이고, 돌진 같은 대타격은 그 창을 뚫어야 하기 때문이다.
+    /// </summary>
+    public static void BaseDamaged()
+    {
+        Play(Bank != null ? Bank.BaseDamaged : null);
+    }
+
     private static void Play(SfxBank.Cue cue)
     {
         // 클립 미배선(cue.Clip == null)은 매니저가 조용히 무시한다 — 뱅크가 덜 채워져도 게임이 깨지지 않는다.

@@ -10,47 +10,46 @@ namespace NorthLand.Combat
     {
         [SerializeField] float maxHp = 200f;
 
-        // ── 피격음 (#540 후속) ──────────────────────────────────────────────
-        // **`SfxBank`에 넣지 않는다** — 뱅크의 범위는 "주인이 없는 공용 소리"이고
-        // (`Docs/Core/AudioManager.md` §5.4) 이 소리의 주인은 본진 하나다. 타워 발사음을 각자의
-        // SO가, 자폭 폭발음을 `EnemyAsset`이 드는 것과 같은 규칙이다.
+        // ── 피격 경고음 (§6.4) ─────────────────────────────────────────────
+        // **본진은 타격음을 소유하지 않는다.** 타격음의 주인은 때리는 쪽이고
+        // (`EnemyAsset.AttackSfx`/`ImpactSfx`) 위치 기반 풀로 나가 화면 밖에서 무음이다.
+        // 본진에 남은 것은 그 반대 축 하나 — 「본진이 깎였다」는 **2D 경고음**이다.
+        // 패배 조건에 직결된 신호라 카메라가 어디를 보고 있든 들려야 하고, 그래서 `CombatSfx`가
+        // 아니라 `Sfx.BaseDamaged()`(2D)로 낸다.
         //
-        // **구독 컴포넌트로 빼지 않았다.** 본진 피격은 모든 피해 경로(평타·자폭·보스)가 지나는
-        // `TakeDamage` 한 곳에서 나야 하는 보편 소리라, 컴포넌트로 두면 프리팹에서 빠졌을 때
+        // 클립은 `SfxBank`가 든다 — 여기 `[SerializeField]`로 두면 씬의 `PlayerBase`가
+        // `Assets/Imported`의 `Gate_02.prefab`이라 **메인 저장소만 받은 환경에서 조용히 무음**이 된다.
+        // 뱅크 에셋은 메인 저장소(Resources)에 있어 그 축이 아예 없다.
+        //
+        // **구독 컴포넌트로 빼지 않았다.** 경고는 모든 피해 경로(평타·자폭·돌진)가 지나는
+        // `TakeDamage` 한 곳에서 나야 하는 보편 신호라, 컴포넌트로 두면 프리팹에서 빠졌을 때
         // 에러 없이 조용히 무음이 된다 — 발사음을 `Tower.RaiseFired`에 둔 것과 같은 축이다(§6.3).
-        [Header("피격음")]
-        [Tooltip("본진이 피해를 받은 순간 1회 재생할 효과음. 비우면 소리 없이 맞는다. " +
-                 "화면 밖·줌아웃(오쏘 160 이상)에서는 들리지 않는다(AudioManager.md §6.2).")]
-        [SerializeField] AudioClip hitSfx;
+        // ⚠ **매 피격이 아니라 HP 임계를 아래로 통과할 때만 울린다.** 사이렌은 「지금 위험하다」는
+        // **상태** 신호라 드물게 울려야 무게가 산다. 한 방이 본진 HP의 5~25%(잡몹 10 ~ 탱크 50 / 200)라
+        // 매 피격에 물리면 공성 중에는 거의 연속으로 울리고, 연속으로 울리는 사이렌은 정보가 아니라
+        // 밤의 배경음이 된다 — 특히 자폭병은 웨이브당 설계된 이벤트라(규약 ④) 런 내내 11번 울렸다.
+        // 개별 타격의 피드백은 가해자의 위치음이 이미 담당한다(§6.4).
+        [Header("피격 경고음")]
+        [Tooltip("경고음을 낼 HP 비율 임계. 0.75 = HP가 75% 아래로 처음 떨어질 때 1회. " +
+                 "정렬 순서는 상관없다. 클립은 SfxBank의 BaseDamaged가 든다.")]
+        [SerializeField] float[] warningHpThresholds = { 0.75f, 0.5f, 0.25f, 0.1f };
 
-        [Range(0f, 2f)]
-        [Tooltip("피격음 재생 배율. SFX 채널 볼륨에 곱해진다. 임포트 설정에는 클립별 게인이 없어 " +
-                 "(AudioManager.md §4.5) 클립 사이의 레벨 차는 여기서만 맞출 수 있다.")]
-        [SerializeField] float hitSfxVolume = 1f;
-
-        // 디바운스. 밤 후반에는 본진에 붙은 근접 몹이 여러 마리라 **같은 프레임에 피해가 여러 번**
-        // 들어오고, 그대로 두면 한 번에 여러 보이스를 물어 소리가 뭉치면서 풀 상한(32)까지 갉는다.
-        // 실시간 기준(`Time.unscaledTime`)인 것이 의도다 — 오디오 뭉침은 배속과 무관한 실시간
-        // 현상이라, 2배속에서 창이 함께 늘어나면 그 배속에서만 소리가 성기어진다.
+        // 자기 소리 겹침 방지용 **하한**이다 — 주 게이트는 위 임계다.
+        // `PlaySfx`는 `PlayOneShot`이라 동시재생 상한이 없어서, 임계 둘을 짧은 간격으로 연달아
+        // 통과하면 사이렌 두 벌이 겹쳐 볼륨이 튄다. 클립 길이 이상으로 잡는다(현재 클립 1.10초).
+        // ⚠ 이 하한에 막힌 통과는 **그냥 버린다.** 1초 전에 이미 사이렌이 울렸으므로 "위험하다"는
+        // 전달됐고, 큐에 쌓아 뒤늦게 울리면 상황과 어긋난 시점에 경보가 난다.
         [Min(0f)]
-        [Tooltip("피격음이 다시 날 수 있기까지의 최소 실시간 간격(초). 0이면 매 피해마다 난다. " +
-                 "돌진 피해에는 걸리지 않는다.")]
-        [SerializeField] float hitSfxMinInterval = 0.15f;
+        [Tooltip("경고음이 다시 날 수 있기까지의 최소 실시간 간격(초). 임계를 연달아 통과할 때 " +
+                 "사이렌이 자기끼리 겹치는 것만 막는 하한이다 — 클립 길이 이상으로 둘 것.")]
+        [SerializeField] float warningMinInterval = 1.2f;
 
-        // 돌진 피격음. 평타와 **크기가 자릿수로 다른 사건**이라 소리를 가른다 — `tank`의 P1은
-        // `speed × 3.75`에 `MinSpeed 10` 게이트라 최소 37.5, 본진 HP의 18.75%가 한 번에 날아간다.
-        // 판별은 `DamageKind.Impact`가 하고 이 컴포넌트는 고르기만 한다(§6.4).
-        [Tooltip("돌진(충돌) 피해를 받은 순간 재생할 효과음. 비우면 일반 피격음으로 대신한다 — " +
-                 "미배선이 새 무음 경로를 만들지 않게 한 것이다. 파삭한 일반 피격음과 갈리도록 " +
-                 "묵직한 저역이 좋고, 자폭 폭발음과는 음색이 겹치지 않아야 한다(§6.3).")]
-        [SerializeField] AudioClip impactSfx;
+        float lastWarningTime = float.NegativeInfinity;
 
-        [Range(0f, 2f)]
-        [Tooltip("돌진 피격음 재생 배율. SFX 채널 볼륨에 곱해진다. " +
-                 "1.0을 넘긴 몫은 화면 중앙에서 잘린다 — 헤드룸이 부족하면 클립 자체를 정규화할 것.")]
-        [SerializeField] float impactSfxVolume = 1f;
-
-        float lastHitSfxTime = float.NegativeInfinity;
+        // 아래로 통과해 이미 알린 임계 수. **개수로 세는 것이 의도다** — 비율이 내려갈수록
+        // 「만족하는 임계 수」는 단조 증가하므로, 배열이 어떤 순서로 저작돼 있어도 옳게 동작한다.
+        // 인덱스나 값으로 추적하면 정렬 전제가 생기고, 저작자가 순서를 섞어 넣으면 조용히 틀린다.
+        int announcedThresholds;
 
         float currentHp;
 
@@ -66,7 +65,6 @@ namespace NorthLand.Combat
         {
             currentHp = maxHp;
             Instance = this;
-            WarnIfHitSfxMissing();
             OnHpChanged?.Invoke(currentHp, maxHp);
             OnBaseSpawned?.Invoke(this);
         }
@@ -75,27 +73,6 @@ namespace NorthLand.Combat
         {
             if (Instance == this)
                 Instance = null;
-        }
-
-        /// 피격음 클립 미배선을 부팅 시점에 1회 알린다(WL-040).
-        ///
-        /// **이 실패는 완전히 조용하다** — 배선 정본이 `Gate_02.prefab`(`Assets/Imported`, 별도 저장소)이라
-        /// 메인 저장소만 받은 환경에서는 필드가 빈 채로 오고, `PlayHitSfx`가 `null`을 조용히 넘긴다
-        /// (미저작 상태에서 씬이 깨지지 않게 한 것이 의도다). 컴파일·콘솔 신호가 0이라 증상이
-        /// "내 환경만 소리가 이상한가"로 끝나고 원인이 저장소 동기화라는 단서가 없다.
-        /// `BootWarmup.WarnIfTowerSfxMissing`(#540)이 타워 클립에 건 것과 같은 계약이다.
-        ///
-        /// ⚠ **재생 시점이 아니라 `Awake`인 것이 의도다.** 본진 피격은 밤이 한참 진행돼야 처음
-        /// 일어나므로 `PlayHitSfx`에 걸면 발견이 그만큼 늦다 — 같은 처방을 따른
-        /// `CursorSet.WarnIfArtMissing`(#517)도 부팅 시점 검사다. `Awake`는 인스턴스당 1회라
-        /// 별도의 중복 게이트도 필요 없다.
-        void WarnIfHitSfxMissing()
-        {
-            if (hitSfx == null)
-            {
-                Debug.LogWarning($"[PlayerBase] {name}: hitSfx가 비어 있어 본진 피격음이 나지 않습니다 — " +
-                                 "Assets/Imported 저장소 동기화를 확인하세요.", this);
-            }
         }
 
         public Faction Faction => Faction.Player;
@@ -122,7 +99,7 @@ namespace NorthLand.Combat
             float appliedDamage = Mathf.Clamp(info.Amount, 0f, currentHp);
             currentHp -= info.Amount;
             Damaged?.Invoke(info, appliedDamage);
-            PlayHitSfx(info, appliedDamage);
+            PlayDamageWarning(appliedDamage);
             // Debug.Log($"{name} took {info.Amount} dmg, hp={currentHp}");   // 디버그용 — 전투 중 로그 스팸 방지 위해 비활성
             OnHpChanged?.Invoke(currentHp, maxHp);
 
@@ -130,68 +107,79 @@ namespace NorthLand.Combat
                 GameOver();
         }
 
-        /// 본진 피격음(#540 후속). 자폭 폭발음과 같은 위치 기반 풀을 탄다(`AudioManager.md` §6.2) —
-        /// **화면 밖과 오쏘 160 이상 줌아웃에서는 무음이다.**
+        /// 본진 피격 경고음(§6.4). **2D다** — `Sfx.BaseDamaged()` → `AudioManager.PlaySfx` 경로라
+        /// 카메라가 어디를 보고 있든 같은 크기로 들린다. 클립은 `SfxBank`가 든다.
         ///
-        /// 우선순위 `High`: 본진이 깎이는 것은 런의 패배 조건에 직결되는 사건이라, 상한에 닿았을 때
-        /// 타워 전투음(`Low`)에 밀려 잘리면 안 된다.
+        /// ⚠ **타격음이 아니다.** 타격음은 가해자가 소유하고(`EnemyAsset.AttackSfx`/`ImpactSfx`)
+        /// 위치 기반 풀로 나가 화면 밖에서 무음이다. 이 소리는 그 반대 축 하나만 맡는다 —
+        /// 「본진이 깎였다」는 패배 조건 직결 신호라 화면을 안 보고 있을 때가 가장 알아야 하는
+        /// 순간이다. 두 축을 한 소리로 겸하게 하면 둘 중 하나가 반드시 어긋난다.
         ///
         /// 실제로 깎인 값(`appliedDamage`)이 0이면 내지 않는다 — HP가 이미 바닥나 클램프된 잉여
         /// 피해와, 데미지 0으로 저작된 적(자폭병의 `Melee.Stat.AttackDamage`가 그렇다)이 여기 걸린다.
-        /// 소리만 나고 체력바는 그대로인 상태가 "맞았는데 안 깎인다"로 읽히는 것을 막는다.
+        /// 경고만 울리고 체력바는 그대로인 상태가 "맞았는데 안 깎인다"로 읽히는 것을 막는다.
         ///
-        /// ⚠ **자폭 피해는 건너뛴다.** 자폭병은 터지는 자리에서 자기 폭발음을 이미 내므로
-        /// (`EnemyAsset.SelfDestruct.ExplosionSfx`) 피격음을 겹치면 같은 프레임·같은 지점에서
-        /// 두 소리가 뭉친다. 가르는 축은 `DamageKind`이고 **가해자만 그것을 안다** — 여기서
-        /// `Source is Enemy`를 캐스팅해 자폭병인지 되묻는 방식은 쓰지 않는다. 그 술어는
-        /// "자폭 가능한 적"이지 "이번 피해가 자폭"이 아니라서, 자폭병이 평타도 하게 되는 날
-        /// 조용히 틀린다.
-        /// ⚠ **돌진(`Impact`)은 자기 클립을 쓰고 디바운스를 뚫는다.** 평타와 크기가 자릿수로 다른
-        /// 단발 대타격이라(최소 37.5 = 본진 HP의 18.75%), 직전 0.15초에 잡몹 평타가 하나 들어와
-        /// 있었다는 이유로 통째로 사라지면 안 된다 — 재현이 타이밍 의존이라 버그로 인지되지 않고
-        /// "가끔 소리가 안 난다"로 남는 종류다. **"큰 피해"를 피해 비율로 추정하지 않는 것이
-        /// 의도다** — 사건 종류로 직접 아는 편이 임계값 저작 없이도 정확하다.
-        ///
-        /// `impactSfx`가 비면 일반 피격음으로 폴백한다. 여기서 무음으로 두면 클립 미배선이
-        /// **새 무음 경로를 하나 더** 만든다(`WarnIfHitSfxMissing`이 막으려는 것과 같은 실패).
-        void PlayHitSfx(DamageInfo info, float appliedDamage)
+        /// ⚠ **피해 종류를 보지 않는다.** 자폭·돌진·평타가 모두 같은 규칙을 탄다 — 임계를 넘겼는가만
+        /// 본다. 예전에는 자폭을 건너뛰고 돌진에 디바운스 우회를 뒀는데, 그 둘은 「매 피격마다
+        /// 울린다」는 전제 위의 보정이었다. 임계 방식에서는 큰 피해가 **자연히** 임계를 넘어 울리고
+        /// (탱크 램 50 = 25%는 사실상 항상 넘는다) 작은 피해는 넘을 때만 울리므로 종류별 특례가
+        /// 필요 없다. 그래서 그 목적으로 만들었던 `DamageKind`도 함께 걷어냈다.
+        void PlayDamageWarning(float appliedDamage)
         {
             if (appliedDamage <= 0f)
                 return;
 
-            if (info.Kind == DamageKind.SelfDestruct)
+            int reached = CountReachedThresholds();
+
+            // 한 방에 임계 둘을 통과해도 **1회만** 울린다(탱크 램 50 = 25%가 그런 경우다).
+            // 통과한 개수까지 한 번에 올려 두므로 다음 피해가 같은 임계로 다시 울리지 않는다.
+            if (reached <= announcedThresholds)
                 return;
 
-            // ⚠ 디바운스 우회와 클립 선택은 **따로 판정한다.** 묶어 두면 `impactSfx` 미배선일 때
-            // 우회까지 함께 꺼져, 폴백으로 소리는 나는데 창에 걸려 사라지는 조합이 생긴다 —
-            // 클립이 없어도 사건은 여전히 대타격이다.
-            bool isImpact = info.Kind == DamageKind.Impact;
-            bool useImpactClip = isImpact && impactSfx != null;
+            announcedThresholds = reached;
 
-            AudioClip clip = useImpactClip ? impactSfx : hitSfx;
-
-            // ⚠ **널 검사는 「쓸 클립」에 건다 — 특정 필드에 걸지 않는다.** 예전에는 함수 맨 위에서
-            // `hitSfx == null`로 막았는데, 그러면 `impactSfx`만 배선한 조합이 함수에 들어오지도
-            // 못해 **돌진음까지 함께 무음이 됐다**(리뷰 지적). 두 필드 중 하나가 비어 있는 것은
-            // 에러가 아니라 저작자가 고를 수 있는 상태이므로(각 툴팁 참조), 규칙은
-            // 「쓸 클립이 있으면 울린다」로 두 방향에 대칭이어야 한다.
-            //
-            // 디바운스 도장보다 먼저 검사하는 것도 의도다 — 울리지 못한 요청이 창을 소모하면
-            // 뒤따르는 유효한 피해가 이유 없이 잘린다.
-            if (clip == null)
+            if (Time.unscaledTime - lastWarningTime < warningMinInterval)
                 return;
 
-            if (!isImpact && Time.unscaledTime - lastHitSfxTime < hitSfxMinInterval)
-                return;
+            lastWarningTime = Time.unscaledTime;
 
-            // 우회로 울린 뒤에도 도장은 찍는다 — 돌진 직후 몰려드는 평타가 그 위에 겹치지 않게.
-            lastHitSfxTime = Time.unscaledTime;
+            Sfx.BaseDamaged();
+        }
 
-            CombatSfx.Play(
-                clip,
-                HitPosition.position,
-                volumeScale: useImpactClip ? impactSfxVolume : hitSfxVolume,
-                priority: CombatSfxPriority.High);
+        /// 현재 HP 비율이 만족하는(= 그 아래로 내려간) 임계의 개수.
+        int CountReachedThresholds()
+        {
+            if (warningHpThresholds == null || maxHp <= 0f)
+            {
+                return 0;
+            }
+
+            float ratio = currentHp / maxHp;
+            int count = 0;
+
+            for (int i = 0; i < warningHpThresholds.Length; i++)
+            {
+                if (ratio <= warningHpThresholds[i])
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        /// 경고 장부를 현재 HP에 맞춘다 — **울리지 않고** 통과 개수만 동기화한다.
+        ///
+        /// 세이브 복원에서 부르는 이유: HP 40%로 이어하기를 하면 75%·50% 임계가 이미 지나간
+        /// 상태인데, 장부가 0이면 복원 직후 첫 피격에 그 둘을 한꺼번에 "새로 통과"한 것으로 보고
+        /// 사이렌이 울린다. 증상이 "이어하기 하면 맞을 때 경보가 이상하게 난다"라 원인에서 멀다.
+        ///
+        /// ⚠ **본진 회복이 들어오면 이 함수를 회복 경로에서도 불러야 한다**(WL-206의 「낮 시작
+        /// 본진 회복」이 구현되면). 부르지 않으면 회복 후 다시 내려갈 때 경보가 재무장되지 않아
+        /// 조용히 지나간다. 장부 갱신을 한 함수로 묶어 둔 이유가 그것이다.
+        void SyncWarningThresholds()
+        {
+            announcedThresholds = CountReachedThresholds();
         }
 
         void GameOver()
@@ -236,6 +224,10 @@ namespace NorthLand.Combat
             }
 
             currentHp = hp;
+
+            // 복원된 HP 기준으로 경고 장부를 맞춘다 — 이미 지나간 임계를 다시 알리지 않게(§6.4).
+            SyncWarningThresholds();
+
             OnHpChanged?.Invoke(currentHp,maxHp);
 
             return true;
