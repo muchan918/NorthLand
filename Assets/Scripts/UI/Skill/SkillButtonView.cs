@@ -10,7 +10,7 @@ using UnityEngine.UI;
 /// 다음 충전까지의 진행을 원형 게이지로 보여준다(#397). 보유 충전 수와 남은 초는 서로를
 /// 대신하는 표시라 동시에 뜨지 않는다 — 0발일 때만 남은 초, 1발 이상일 때만 충전 수(#319).
 [RequireComponent(typeof(Button))]
-public class SkillButtonView : MonoBehaviour
+public class SkillButtonView : MonoBehaviour, IDisabledClickFeedback
 {
     [SerializeField] Button _button;
     [SerializeField] GameObject _skillGhostPrefab; // 마우스를 따라다닐 범위 인디케이터
@@ -134,7 +134,27 @@ public class SkillButtonView : MonoBehaviour
     private void HandleShortcut()
     {
         if (TryBeginTargeting())
+        {
             Sfx.ButtonClick();
+            return;
+        }
+
+        PlayUnavailableSfx();
+    }
+
+    /// 버튼이 회색(비활성)인 채로 눌렸다 — Update가 `interactable`을 내려 둔 상태라 `onClick`도
+    /// 공용 클릭음도 지나지 않으므로, UiClickSfx가 IDisabledClickFeedback으로 여기까지 넘겨준다.
+    /// Q와 같은 소리를 내는 것이 의도다: 플레이어가 한 일("지금 스킬을 쓰려 했다")이 같다.
+    public void OnDisabledClick()
+        => PlayUnavailableSfx();
+
+    /// 시전 시도가 반려된 뒤의 안내음. **충전 소진일 때만 낸다** — 낮 페이즈나 게임 종료로 막힌 상태는
+    /// 기다려도 풀리지 않아 쿨다운음이 거짓 안내가 되고, 튜토리얼 게이트로 막힌 것은 안내 문구가
+    /// 이미 화면에 떠 있다. 판정은 SkillManager.IsOnCooldown 한 곳이 소유한다.
+    private void PlayUnavailableSfx()
+    {
+        if (SkillManager.Instance != null && SkillManager.Instance.IsOnCooldown)
+            Sfx.SkillOnCooldown();
     }
 
     private bool TryBeginTargeting()

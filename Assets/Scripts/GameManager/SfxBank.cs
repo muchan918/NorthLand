@@ -68,6 +68,14 @@ public class SfxBank : ScriptableObject
              "지금은 클립 하나를 셋이 공유한다. 소리를 나누고 싶어지면 항목을 쪼개고 Sfx의 메서드도 함께 가른다.")]
     [SerializeField] Cue rejected = new Cue();
 
+    [Tooltip("커서가 「안 됨」(CursorKind.Blocked)인 자리를 클릭한 순간 — 대상 표면이 아예 없는 곳(하늘·맵 밖). " +
+             "위 rejected와 다른 칸인 이유는 커서 그림이 이미 둘을 구분하고 있기 때문이다(Sfx.Blocked 주석 참고).")]
+    [SerializeField] Cue blocked = new Cue();
+
+    [Tooltip("충전이 없어 스킬을 쓸 수 없는데 시전을 시도한 순간(Q·비활성 버튼 클릭). " +
+             "낮 페이즈·게임 종료로 못 쓰는 경우에는 울리지 않는다 — SkillManager.IsOnCooldown 참고.")]
+    [SerializeField] Cue skillOnCooldown = new Cue();
+
     [Tooltip("건물 레벨이 오른 순간. 생산 라인 업그레이드와 업그레이드 전용 건물(본진·마법 연구소)이 공유한다 " +
              "— 둘 다 ManagementController.BuildingAction.Upgraded 한 종류이기 때문이다.")]
     [SerializeField] Cue buildingUpgrade = new Cue();
@@ -93,6 +101,10 @@ public class SfxBank : ScriptableObject
     public Cue TowerInstall => towerInstall;
 
     public Cue Rejected => rejected;
+
+    public Cue Blocked => blocked;
+
+    public Cue SkillOnCooldown => skillOnCooldown;
 
     public Cue BuildingUpgrade => buildingUpgrade;
 

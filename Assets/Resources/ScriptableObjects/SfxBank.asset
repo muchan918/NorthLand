@@ -30,6 +30,12 @@ MonoBehaviour:
   rejected:
     Clip: {fileID: 8300000, guid: 3cc14d4ead345bd4788c6cf80e934cbd, type: 3}
     Volume: 0.4
+  blocked:
+    Clip: {fileID: 8300000, guid: 4bd99ed13c5096e40a2a9d9d09a74f5f, type: 3}
+    Volume: 0.4
+  skillOnCooldown:
+    Clip: {fileID: 8300000, guid: b905457ad20d07748930b4ff18acd53b, type: 3}
+    Volume: 0.4
   buildingUpgrade:
     Clip: {fileID: 8300000, guid: c712d1267de8cf240b6d60c8fcf300c0, type: 3}
     Volume: 0.4
