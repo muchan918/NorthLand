@@ -15,14 +15,7 @@ namespace NorthLand.Combat
 
         [SerializeField, FormerlySerializedAs("minimumThickness"), Min(0f)]
         private float extraThickness = 0.4f;
-        private void OnValidate()
-        {
-            if (foundation != null &&
-                Quaternion.Angle(foundation.localRotation, Quaternion.identity) > 0.01f)
-            {
-                Debug.LogWarning($"[AdaptiveTowerFoundation] 받침대의 Local Rotation은 (0, 0, 0)이어야 합니다: {name}",this);
-            }
-        }
+  
         public void Fit(float lowestSurfaceY, float highestSurfaceY)
         {
             if (foundation == null)
