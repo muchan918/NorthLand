@@ -8,7 +8,7 @@ using NorthLand.UI;
 // BuildingCostRow와 같은 계보의 얇은 뷰지만, 버튼이 있어 '상태만 갱신'이 필요하다 —
 // 갱신은 행 재생성이 아니라 SetInteractable로 한다(클릭 도중 행이 파괴되면 안 되므로, StorePanelUI 주석 참고).
 // (프리팹 StoreOfferRow의 Cost/Gain 텍스트와 Button을 인스펙터에서 연결할 것)
-public class StoreOfferRow : MonoBehaviour
+public class StoreOfferRow : MonoBehaviour, IDisabledClickFeedback
 {
     [Tooltip("지불 자원 아이콘 (마나석)")]
     [SerializeField] Image _payIcon;
@@ -27,6 +27,8 @@ public class StoreOfferRow : MonoBehaviour
     [SerializeField] Color _insufficientColor = new Color(0.55f, 0.55f, 0.55f);
 
     private Action _onExchange;
+    // 교환 버튼이 죽은 사유가 **지불 자원 부족 하나뿐인지**. 소리 전용 값이다(OnDisabledClick).
+    private bool _blockedByCost;
 
     private void Awake()
     {
@@ -89,13 +91,20 @@ public class StoreOfferRow : MonoBehaviour
         }
     }
 
-    /// <summary>교환 가능 여부를 반영한다(StorePanelUI가 컨트롤러 상태 변화마다 호출).</summary>
-    public void SetInteractable(bool canExchange)
+    /// <summary>
+    /// 교환 가능 여부를 반영한다(StorePanelUI가 컨트롤러 상태 변화마다 호출).<br/>
+    /// <paramref name="blockedByCost"/>는 <b>소리 전용</b>이다 — 버튼이 죽은 사유가 지불 자원 부족
+    /// 하나뿐일 때만 true이며, <see cref="OnDisabledClick"/>이 이 값으로 안내음을 낼지 정한다.
+    /// 사유 판정은 게이트를 계산한 <c>StorePanelUI</c>가 소유한다.
+    /// </summary>
+    public void SetInteractable(bool canExchange, bool blockedByCost)
     {
         if (_exchangeButton != null)
         {
             _exchangeButton.interactable = canExchange;
         }
+        _blockedByCost = blockedByCost;
+
         if (_costText != null)
         {
             _costText.color = canExchange? UiPalette.Positive : _insufficientColor;
@@ -108,4 +117,22 @@ public class StoreOfferRow : MonoBehaviour
     }
 
     private void HandleClicked() => _onExchange?.Invoke();
+
+    /// <summary>
+    /// 회색이 된 교환 버튼을 눌렀을 때(<see cref="IDisabledClickFeedback"/>). 지불 자원 부족이
+    /// 유일한 사유일 때만 안내음을 낸다 — 밤 페이즈·튜토리얼 제한은 기다려도 자원이 느는 문제가
+    /// 아니라 "모으면 된다"가 거짓 안내가 된다(<see cref="Sfx.InsufficientResources"/> 주석).
+    ///
+    /// ⚠ 이 컴포넌트는 <b>행 루트</b>에 있고 눌리는 <c>Button</c>은 그 자식이다. 훅이 닿는 것은
+    /// <see cref="UiClickSfx"/>가 눌린 <c>Selectable</c>에서 <b>부모로 올라가며</b> 구현체를 찾기
+    /// 때문이다 — 그 탐색을 좁히면 이 행이 다시 무음이 된다.
+    ///
+    /// ⚠ 게임 상태를 바꾸지 않는다(<see cref="IDisabledClickFeedback"/>의 제약).
+    /// </summary>
+    public void OnDisabledClick(Selectable pressed)
+    {
+        if (!_blockedByCost) return;
+
+        Sfx.InsufficientResources();
+    }
 }

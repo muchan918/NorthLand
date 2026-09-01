@@ -10,7 +10,7 @@ using NorthLand.UI;
 // 업그레이드 버튼으로 ManagementController.TryUpgrade를 호출한다(로직/뷰 분리 — 계산·차감은 컨트롤러).
 // TowerInfoUI(전투 공간)와 같은 계보의 별도 싱글톤.
 // (주의) 이 오브젝트는 씬에서 '활성' 상태로 둬야 Awake가 실행되어 Instance가 등록된다. 인스펙터에서 미리 꺼두지 말 것.
-public class BuildingInfoUI : MonoBehaviour
+public class BuildingInfoUI : MonoBehaviour, IDisabledClickFeedback
 {
     public static BuildingInfoUI Instance { get; private set; }
 
@@ -135,7 +135,8 @@ public class BuildingInfoUI : MonoBehaviour
         // **성공음은 여기서 내지 않는다**(WL-208). 컨트롤러가 OnBuildingAction으로 알리고 씬 큐가
         // 구독한다 — 업그레이드 진입점이 늘어도(예: `Test/BuildingsUpgradeHelper`) 소리가 따라온다.
         // 실패는 이벤트로 오지 않으므로 거절음만 호출부 몫이다.
-        // ⚠ 자원이 모자라도 버튼이 눌린다 — 그 경로가 여태 로그만 남기고 조용히 반려돼 있었다.
+        // ⚠ 자원이 모자라면 버튼이 **회색**이라(Refresh — CanUpgrade/CanUpgradeBuilding이 CanAfford를 포함)
+        //   여기까지 오지 않는다. 「자원 부족」의 정상 경로는 OnDisabledClick이다.
         if (_lineIndex >= 0)
         {
             PlayUpgradeFeedback(_controller.TryUpgrade(_lineIndex));            // 생산 라인: 주민당량 업그레이드
@@ -146,12 +147,72 @@ public class BuildingInfoUI : MonoBehaviour
         }
     }
 
-    private static void PlayUpgradeFeedback(bool upgraded)
+    // 반려된 이유를 소리로 가른다. 「자원을 더 모아라」와 「지금은 안 된다」(밤 페이즈·본진 레벨
+    // 미달·최대 레벨)는 플레이어가 할 다음 행동이 달라, 한 소리로 뭉치면 안내가 되지 않는다.
+    //
+    // ⚠ 실제로 자주 도달하는 쪽은 아래 OnDisabledClick이다 — 자원이 모자라면 Refresh가 버튼을
+    //   회색으로 내려(CanUpgrade/CanUpgradeBuilding이 CanAfford를 포함한다) onClick이 아예 안 난다.
+    //   이 경로는 튜토리얼 강제 클릭·경합처럼 회색 판정과 실행 사이에 상태가 바뀐 경우의 방어다.
+    private void PlayUpgradeFeedback(bool upgraded)
     {
-        if (!upgraded)
+        if (upgraded)
+        {
+            return;
+        }
+
+        if (BlockedByCostOnly())
+        {
+            Sfx.InsufficientResources();
+        }
+        else
         {
             Sfx.Rejected();
         }
+    }
+
+    /// <summary>
+    /// 회색이 된 업그레이드 버튼을 눌렀을 때(<see cref="IDisabledClickFeedback"/>). 이 패널은 버튼 위가
+    /// 아니라 **패널 루트**에 있고, 훅 탐색이 눌린 <c>Selectable</c>에서 부모로 올라오기 때문에 닿는다 —
+    /// 그래서 <paramref name="pressed"/>로 자기 버튼인지 먼저 확인한다(패널 안 다른 회색 버튼이 생겨도
+    /// 이 소리가 새어 나가지 않는다).
+    ///
+    /// ⚠ 게임 상태를 바꾸지 않는다 — <see cref="IDisabledClickFeedback"/>의 제약이다.
+    /// </summary>
+    public void OnDisabledClick(Selectable pressed)
+    {
+        if (_upgradeButton == null || pressed != _upgradeButton) return;
+        if (!BlockedByCostOnly()) return;
+
+        Sfx.InsufficientResources();
+    }
+
+    // 지금 업그레이드가 막힌 사유가 **비용 하나뿐**인가. 비활성 클릭 피드백과 핸들러 반려가 같은 술어를
+    // 쓴다 — 갈라두면 "회색일 때와 눌렸을 때가 다른 소리"가 된다.
+    //
+    // 비용 외 사유를 먼저 전부 걷어낸 뒤 마지막에 CanUpgrade*로 되묻는 방식이다. CanAfford를 여기서
+    // 다시 계산하지 않는 이유: 무료 처리(EffectiveCost)가 컨트롤러 안에 있어 밖에서 재현하면 갈라진다.
+    //   · 밤 페이즈 — 기다려도 자원이 느는 문제가 아니다(낮이 와야 한다)
+    //   · 튜토리얼 제한 — "모으면 된다"가 거짓 안내가 된다
+    //   · 최대 레벨 — 비용 조회가 null이다(더 올릴 것이 없다)
+    //   · 본진 레벨 미달 — RequiredCastleLevel > 0. 자원이 아니라 본진을 올려야 열린다(#229)
+    private bool BlockedByCostOnly()
+    {
+        if (_controller == null || !_controller.IsDay) return false;
+        if (!TutorialInputGate.AllowsForDisplay(TutorialAction.UpgradeBuilding)) return false;
+
+        if (_lineIndex >= 0)
+        {
+            return _controller.LineUpgradeCost(_lineIndex) != null
+                && _controller.LineRequiredCastleLevel(_lineIndex) == 0
+                && !_controller.CanUpgrade(_lineIndex);
+        }
+        if (_upgradeIndex >= 0)
+        {
+            return _controller.UpgradeBuildingCost(_upgradeIndex) != null
+                && _controller.UpgradeBuildingRequiredCastleLevel(_upgradeIndex) == 0
+                && !_controller.CanUpgradeBuilding(_upgradeIndex);
+        }
+        return false;
     }
 
     private void Refresh()
