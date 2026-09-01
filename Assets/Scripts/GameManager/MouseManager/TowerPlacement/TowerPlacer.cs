@@ -3,6 +3,7 @@ using UnityEngine;
 using CombatSpace;
 using NorthLand.Combat;
 using UnityEngine.SceneManagement;
+using NorthLand.UI;
 
 /// 배치에 필요한 타워 데이터(풋프린트·사거리)의 최소 단위.
 /// TowerPlacer는 이 구조체에만 의존하고 특정 SO(TowerAsset/Combat TowerData)에 묶이지 않는다.
@@ -133,6 +134,10 @@ public class TowerPlacer : MonoBehaviour
     [SerializeField]
     private BuffTileIconPreview buffTileIconPreview;
 
+    [Header("버프 타일 수치 미리보기")]
+    [SerializeField]
+    private TileBuffPreviewView tileBuffPreviewView;
+
     //Ksj
     //타워가 여러 버프 타일을 점유할 때 사용할 효과 중첩 규칙
     [Header("Tile Buff")]
@@ -157,10 +162,20 @@ public class TowerPlacer : MonoBehaviour
 
     private readonly List<BuffTileDefinition> previewDefinitions = new List<BuffTileDefinition>();
 
+    private readonly List<string> previewBuffLines = new List<string>();
+
+    private string previewBuffText;
+
     // 받침대 윗면과 최고 타일 표면이 겹쳐 보이는 이음새를 가리기 위한 높이 여유.
     private const float FoundationSurfaceLift = 0.1f;
 
     private float _activeSurfaceLift;
+
+    private GameObject _cachedPreviewGhost;
+    private Renderer[] _cachedPreviewRenderers;
+
+    private readonly List<BattleTile> _footprintTiles = new List<BattleTile>();
+
 
     private void Awake()
     {
@@ -366,9 +381,12 @@ public class TowerPlacer : MonoBehaviour
     // y는 hit.point.y(레이가 타일 옆면에 맞으면 벽면 높이) 대신 타일 앵커 y를 써서 타워가 항상 윗면에 앉는다.
     private Vector3 SnapToFootprintCenter(RaycastHit hit)
     {
-        BattleTile anchor = hit.collider.GetComponentInParent<BattleTile>();
+        BattleTile anchor =
+            hit.collider.GetComponentInParent<BattleTile>();
 
-        bool footprintChanged = !previewFootprintInitialized || anchor != lastPreviewAnchor;
+        bool footprintChanged =
+            !previewFootprintInitialized ||
+            anchor != lastPreviewAnchor;
 
         if (footprintChanged)
         {
@@ -377,7 +395,12 @@ public class TowerPlacer : MonoBehaviour
             lastPreviewAnchor = anchor;
             previewFootprintInitialized = true;
 
-            UpdateRangeIndicator(CalculatePreviewRange());
+            TileBuffCalculationResult previewBuff =
+                CalculateTileBuff(_footprintTiles);
+
+            previewBuffText = BuildPreviewBuffText(previewBuff);
+
+            UpdateRangeIndicator(CalculatePreviewRange(previewBuff));
         }
 
         Vector3 result;
@@ -398,29 +421,102 @@ public class TowerPlacer : MonoBehaviour
         {
             _rangeCircle.transform.position = result;
 
-            // 커서가 유효 타일 위에 온 첫 스냅부터 표시(원점 잔상 방지).
-            // ⚠ 앵커가 없으면(배치 마스크는 맞혔지만 BattleTile이 아닌 표면) 놓을 자리가 없으므로 숨긴다 —
-            //   무조건 Show하면 타일 아닌 곳에서 원이 커서를 따라다닌다.
-            if (anchor != null) _rangeCircle.Show();
-            else _rangeCircle.Hide();
+            // 배치 마스크는 맞혔지만 BattleTile이 아닌 표면에는 앵커가 없다. 여기서 무조건 Show하면
+            // 실제로 놓을 수 없는 곳에서도 사거리 원이 커서를 따라다니므로 앵커가 있을 때만 표시한다.
+            if (anchor != null)
+            {
+                _rangeCircle.Show();
+            }
+            else
+            {
+                _rangeCircle.Hide();
+            }
         }
+
+        if (tileBuffPreviewView != null)
+        {
+            if (anchor != null &&
+                !string.IsNullOrWhiteSpace(previewBuffText))
+            {
+                tileBuffPreviewView.Show(previewBuffText,result);
+            }
+            else
+            {
+                tileBuffPreviewView.Hide();
+            }
+        }
+
         UpdateCellHighlights();
+
         return result;
     }
 
+    private Vector3 _cachedPreviewTowerTop;
+    private bool _hasCachedPreviewTowerTop;
+
     private void UpdateGhostFoundation(GameObject ghost)
     {
-        if (!_previewFoundationDirty)
+        if (_previewFoundationDirty)
+        {
+            _previewFoundationDirty = false;
+
+            if (ghost != null &&
+                ghost.TryGetComponent(out AdaptiveTowerFoundation foundation))
+            {
+                foundation.Fit(_previewLowestSurfaceY,_previewHighestSurfaceY);
+            }
+
+            CacheBuffPreviewPosition(ghost);
+        }
+
+        if (tileBuffPreviewView != null && tileBuffPreviewView.gameObject.activeSelf && _hasCachedPreviewTowerTop)
+        {
+            // 카메라 이동·줌에 따른 화면 좌표 갱신은 계속 필요하다.
+            tileBuffPreviewView.UpdatePosition(_cachedPreviewTowerTop);
+        }
+    }
+
+    private void CacheBuffPreviewPosition(GameObject ghost)
+    {
+        _hasCachedPreviewTowerTop = false;
+
+        if (ghost == null)
         {
             return;
         }
 
-        _previewFoundationDirty = false;
-
-        if (ghost != null && ghost.TryGetComponent(out AdaptiveTowerFoundation foundation))
+        if (_cachedPreviewGhost != ghost ||_cachedPreviewRenderers == null)
         {
-            foundation.Fit(_previewLowestSurfaceY,_previewHighestSurfaceY);
+            _cachedPreviewGhost = ghost;
+            _cachedPreviewRenderers = ghost.GetComponentsInChildren<Renderer>(true);
         }
+
+        Renderer[] renderers = _cachedPreviewRenderers;
+
+        bool hasBounds = false;
+        Bounds bounds = default;
+
+        foreach (Renderer renderer in renderers)
+        {
+            if (renderer == null || renderer is ParticleSystemRenderer)
+            {
+                continue;
+            }
+
+            if (!hasBounds)
+            {
+                bounds = renderer.bounds;
+                hasBounds = true;
+            }
+            else
+            {
+                bounds.Encapsulate(renderer.bounds);
+            }
+        }
+
+        _cachedPreviewTowerTop = hasBounds ? new Vector3(bounds.center.x,bounds.max.y,bounds.center.z): ghost.transform.position;
+
+        _hasCachedPreviewTowerTop = true;
     }
 
     // ── 유효성: 풋프린트 전 셀이 건설 가능(Grass) & 미점유여야 함 (Docs §4) ────────────
@@ -548,15 +644,25 @@ public class TowerPlacer : MonoBehaviour
     private void RebuildFootprint(BattleTile anchor)
     {
         _footprint.Clear();
-        if (anchor == null) return;
+        _footprintTiles.Clear();
 
-        Vector3 a = anchor.transform.position;
+        if (anchor == null)
+        {
+            return;
+        }
+
+        Vector3 anchorPosition = anchor.transform.position;
+
         for (int i = 0; i < _activeData.GridWidth; i++)
         {
             for (int j = 0; j < _activeData.GridHeight; j++)
             {
-                Vector3 cell = GridStep(a, i, j);
-                _footprint.Add((cell, TileAt(cell)));
+                Vector3 cell = GridStep(anchorPosition, i, j);
+
+                BattleTile tile = TileAt(cell);
+
+                _footprint.Add((cell, tile));
+                _footprintTiles.Add(tile);
             }
         }
     }
@@ -620,6 +726,11 @@ public class TowerPlacer : MonoBehaviour
 
         if (_rangeCircle != null) _rangeCircle.Hide();
 
+        if (tileBuffPreviewView != null)
+        {
+            tileBuffPreviewView.Hide();
+        }
+
         foreach (GameObject q in _cellHighlights)
         {
             if (q != null) q.SetActive(false);
@@ -681,7 +792,17 @@ public class TowerPlacer : MonoBehaviour
         {
             buffTileIconPreview.HideAll();
         }
+
+        if (tileBuffPreviewView != null)
+        {
+            tileBuffPreviewView.Hide();
+        }
+
         _footprint.Clear();
+        _footprintTiles.Clear();
+        previewBuffText = null;
+        previewBuffLines.Clear();
+
         _onConfirmed = null; // 취소로 끝났으면 확정 콜백은 실행하지 않는다(재료 보존).
         _historyOwner = PlacementOwner.Placer; // 콜백과 대칭으로 비운다(#281) — 세션 밖으로 새지 않게.
         // 이번 세션의 대상·비용도 같은 자리에서 비운다. 세션이 끝난 뒤에도 남아 있으면 "지금 무엇을
@@ -693,6 +814,10 @@ public class TowerPlacer : MonoBehaviour
         _activeCost = null;
         lastPreviewAnchor = null;
         previewFootprintInitialized = false;
+        _cachedPreviewTowerTop = default;
+        _hasCachedPreviewTowerTop = false;
+        _cachedPreviewGhost = null;
+        _cachedPreviewRenderers = null;
 
         // 종료 통지는 정리 뒤 마지막에, 먼저 비우고 호출한다 — 구독자가 이 콜백 안에서 새 배치를 시작해도
         // (또는 EndPlacement가 재진입해도) 같은 콜백이 두 번 불리지 않게.
@@ -701,37 +826,25 @@ public class TowerPlacer : MonoBehaviour
         ended?.Invoke();
     }
 
-    private float CalculatePreviewRange()
+    private float CalculatePreviewRange(TileBuffCalculationResult result)
     {
-        previewDefinitions.Clear();
+        // 공격 사거리와 오라 반경을 각자 타일 버프와 합성한 뒤 큰 쪽을 쓴다.
+        // 배치 후 표시의 단일 규칙인 Tower.DisplayRange와 같은 해석이어야 프리뷰가 실제 타워와 어긋나지 않는다.
+        return Mathf.Max(Buffed(_activeData.AttackRange,TileBuffStat.AttackRange),
+            Buffed(_activeData.AuraRadius,TileBuffStat.AuraRadius));
 
-        foreach ((Vector3 _, BattleTile tile) in _footprint)
+        float Buffed(float baseValue,TileBuffStat stat)
         {
-            BuffTileDefinition definition = GetBuffDefinition(tile);
-
-            if (definition != null)
+            // 원래 존재하지 않는 축은 버프 타일에 해당 보정값이 있어도 0으로 남긴다.
+            // 이 가드가 없으면 오라 전용 타워에 공격 사거리 보정만으로 유령 사거리 원이 생긴다.
+            if (baseValue <= 0f)
             {
-                previewDefinitions.Add(definition);
+                return 0f;
             }
-        }
 
-        TileBuffCalculationResult result = previewBuffCalculator.Calculate(previewDefinitions, tileBuffRules);
+            float flat = result.GetValue(stat,TileModifierMode.Flat);
 
-        // 두 축을 각자 합성해 큰 쪽을 쓴다 — 배치 후 `Tower.DisplayRange`가 액션별 값의 최댓값을
-        // 고르는 것과 같은 규칙이라, 프리뷰 원과 배치 후 원이 같은 값을 가리킨다.
-        return Mathf.Max(
-            Buffed(_activeData.AttackRange, TileBuffStat.AttackRange),
-            Buffed(_activeData.AuraRadius, TileBuffStat.AuraRadius));
-
-        float Buffed(float baseValue, TileBuffStat stat)
-        {
-            // 없는 축은 0으로 남긴다. 이 가드가 없으면 오라 전용 타워(사거리 0)가 사거리 타일 위에서
-            // flat 증가분만큼의 유령 원을 그려, 실제 오라 반경보다 큰 값이 Max를 이긴다.
-            if (baseValue <= 0f) return 0f;
-
-            float flat = result.GetValue(stat, TileModifierMode.Flat);
-
-            float percentage = result.GetValue(stat, TileModifierMode.Percentage);
+            float percentage = result.GetValue(stat,TileModifierMode.Percentage);
 
             return (baseValue + flat) * (1f + percentage / 100f);
         }
@@ -834,10 +947,7 @@ public class TowerPlacer : MonoBehaviour
     /// 저장된 TowerAsset과 실제 기준 타일을 이용해 타워를 복원한다.
     /// 스타트맵처럼 자동 생성 그리드 좌표로 조회할 수 없는 타일에서 사용한다.
     /// </summary>
-    public bool TryRestoreTower(
-        TowerAsset asset,
-        BattleTile anchor,
-        out NorthLand.Combat.Tower restoredTower)
+    public bool TryRestoreTower(TowerAsset asset,BattleTile anchor,out NorthLand.Combat.Tower restoredTower)
     {
         restoredTower = null;
 
@@ -853,23 +963,18 @@ public class TowerPlacer : MonoBehaviour
             return false;
         }
 
-        CombatMapTileView tileView =
-            anchor.GetComponentInParent<CombatMapTileView>();
+        CombatMapTileView tileView = anchor.GetComponentInParent<CombatMapTileView>();
 
         if (tileView == null)
         {
-            Debug.LogError(
-                "[TowerPlacer] 기준 타일의 CombatMapTileView를 찾을 수 없습니다.",
-                anchor);
+            Debug.LogError("[TowerPlacer] 기준 타일의 CombatMapTileView를 찾을 수 없습니다.",anchor);
 
             return false;
         }
 
         if (!TryCreateTower(asset,anchor,tileView,out GameObject placed))
         {
-            Debug.LogError(
-                $"[TowerPlacer] 저장된 타워 생성에 실패했습니다: {asset.TowerID}",
-                this);
+            Debug.LogError($"[TowerPlacer] 저장된 타워 생성에 실패했습니다: {asset.TowerID}",this);
 
             return false;
         }
@@ -1000,6 +1105,82 @@ public class TowerPlacer : MonoBehaviour
 
         placedTower.Build(asset);
         return true;
+    }
+
+    private string BuildPreviewBuffText(TileBuffCalculationResult result)
+    {
+        previewBuffLines.Clear();
+
+        bool hasAttack = _activeData.AttackRange > 0f;
+        bool hasAura = _activeData.AuraRadius > 0f;
+
+        string damageLabel = TowerStatsFormatter.StatLabel(TowerStatsFormatter.k_DamageKey);
+
+        string speedLabel = TowerStatsFormatter.StatLabel(TowerStatsFormatter.k_SpeedKey);
+
+        string rangeLabel = TowerStatsFormatter.StatLabel(TowerStatsFormatter.k_RangeKey);
+
+        string auraRadiusLabel = TowerStatsFormatter.StatLabel(TowerStatsFormatter.k_AuraRadiusKey);
+
+        if (hasAttack)
+        {
+            AddNumberModifier(result,TileBuffStat.AttackDamage,damageLabel);
+
+            AddPercentageModifier(result,TileBuffStat.AttackDamage,damageLabel);
+
+            AddPercentageModifier(result,TileBuffStat.AttackSpeed,speedLabel);
+
+            AddRangeModifier(result,TileBuffStat.AttackRange,rangeLabel);
+        }
+
+        if (hasAura)
+        {
+            AddRangeModifier(result,TileBuffStat.AuraRadius,auraRadiusLabel);
+        }
+
+        return previewBuffLines.Count > 0 ? string.Join("\n", previewBuffLines) : string.Empty;
+    }
+
+    private void AddNumberModifier(TileBuffCalculationResult result,TileBuffStat stat,string label)
+    {
+        float value = result.GetValue(stat,TileModifierMode.Flat);
+
+        if (value <= 0f)
+        {
+            return;
+        }
+
+        previewBuffLines.Add(FormatBuffLine(label,$"+{value:0.##}"));
+    }
+
+    private void AddPercentageModifier(TileBuffCalculationResult result,TileBuffStat stat,string label)
+    {
+        float value = result.GetValue(stat,TileModifierMode.Percentage);
+
+        if (value <= 0f)
+        {
+            return;
+        }
+
+        previewBuffLines.Add(FormatBuffLine(label,$"+{value:0.##}%"));
+    }
+
+    private void AddRangeModifier(TileBuffCalculationResult result,TileBuffStat stat,string label)
+    {
+        float flat = result.GetValue(stat,TileModifierMode.Flat);
+
+        if (flat > 0f)
+        {
+            previewBuffLines.Add(FormatBuffLine(label,$"+{flat:0.##}"));
+        }
+
+        AddPercentageModifier(result,stat,label);
+    }
+
+    private static string FormatBuffLine(string label, string value)
+    {
+        return
+            $"{label} <color={NorthLand.UI.UiPalette.PositiveHex}>{value}</color>";
     }
 
 }
