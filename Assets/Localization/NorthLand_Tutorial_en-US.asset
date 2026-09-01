@@ -129,9 +129,12 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 6699782144
-    m_Localized: "Upgrade the Biscuit House, Choco Tree, and Sugar Farm once each.\nYou
-      can also move between them with the 1\u20136 number keys.\nUpgrades are free
-      during the tutorial."
+    m_Localized: 'Upgrade the Biscuit House, Choco Tree, and Sugar Farm once each.
+
+      Each
+      Building''s shortcut keys are 2, 3, 4
+
+      Upgrades are free during the tutorial.'
     m_Metadata:
       m_Items: []
   - m_Id: 7161155584
