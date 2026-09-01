@@ -3,7 +3,6 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 using NorthLand.Core;
 
 public class DisplaySettings : MonoBehaviour
@@ -15,8 +14,6 @@ public class DisplaySettings : MonoBehaviour
 
     [SerializeField] private GameObject resolutionConfirmPanel;
     [SerializeField] private TMP_Text resolutionConfirmText;
-    [SerializeField] private Button keepResolutionButton;
-    [SerializeField] private Button revertResolutionButton;
 
     private CancellationTokenSource resolutionConfirmCts;
 
@@ -26,13 +23,7 @@ public class DisplaySettings : MonoBehaviour
     private int pendingResolutionIndex;
     private FullScreenMode previousScreenMode;
 
-
-    private static readonly Vector2Int[] Resolutions =
-    {
-        new(1920, 1080),
-        new(1600, 900),
-        new(1280, 720)
-    };
+    private static readonly Vector2Int[] Resolutions = GameSettingsConstraints.Resolutions;
 
     private void Awake()
     {
@@ -80,8 +71,6 @@ public class DisplaySettings : MonoBehaviour
         {
             Debug.LogWarning("[DisplaySettings] Resolution Dropdown이 연결되지 않았습니다.",this);
         }
-
-        ApplyScreenMode(savedMode);
     }
 
     private void OnDestroy()

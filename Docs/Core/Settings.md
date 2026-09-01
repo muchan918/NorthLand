@@ -71,6 +71,10 @@
 너비와 높이는 저장하지 않는다. 고정 해상도 목록에서 `resolutionIndex`로 다시 결정한다.
 화면 모드와 확정된 해상도는 설정 패널을 닫을 때 다른 공통 설정과 함께 파일에 저장된다.
 
+저장된 화면 모드와 해상도는 `GameSettingsService`가 설정 파일을 불러온 직후, 첫 씬이
+시작되기 전에 `Screen`에 적용한다. `DisplaySettings`는 설정 UI 표시를 저장값과 동기화하고
+사용자의 화면 모드·해상도 변경을 처리한다.
+
 ### 3.3 그래픽 UI 연결
 
 `DisplaySettings`에는 다음 참조가 모두 필요하다.
@@ -78,10 +82,9 @@
 - 화면 모드 TMP Dropdown
 - 해상도 TMP Dropdown
 - 해상도 확인 패널과 안내 TMP Text
-- 유지 Button과 되돌리기 Button
 
 화면 모드 Dropdown은 `OnScreenModeChanged(int)`를 호출한다. 해상도 Dropdown 리스너는
-`DisplaySettings`가 런타임에 등록한다. 유지/되돌리기 버튼은 각각
+`DisplaySettings`가 런타임에 등록한다. 유지/되돌리기 버튼은 프리팹의 persistent call로 각각
 `ConfirmResolutionChange()`와 `RevertResolutionChange()`에 연결한다.
 
 ## 4. 사운드 설정

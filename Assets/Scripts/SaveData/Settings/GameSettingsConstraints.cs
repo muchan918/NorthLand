@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace NorthLand.Core
 {
     /// <summary>
@@ -13,5 +15,12 @@ namespace NorthLand.Core
         public const int MaxResolutionIndex = 2;
 
         public const int ResolutionOptionCount = MaxResolutionIndex - MinResolutionIndex + 1;
+
+        public static readonly Vector2Int[] Resolutions =
+{
+    new(1920, 1080),
+    new(1600, 900),
+    new(1280, 720)
+};
     }
 }

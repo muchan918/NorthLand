@@ -4092,8 +4092,6 @@ MonoBehaviour:
   resolutionDropdown: {fileID: 5080174944307657050}
   resolutionConfirmPanel: {fileID: 4585914496194128698}
   resolutionConfirmText: {fileID: 8887163769656212390}
-  keepResolutionButton: {fileID: 4310909749466930941}
-  revertResolutionButton: {fileID: 2739092804160358825}
 --- !u!114 &1942109045553091276
 MonoBehaviour:
   m_ObjectHideFlags: 0
