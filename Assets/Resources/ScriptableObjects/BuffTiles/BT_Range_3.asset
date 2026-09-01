@@ -20,5 +20,5 @@ MonoBehaviour:
     ModifierMode: 0
     Value: 15
   - Stat: 3
-    ModifierMode: 1
-    Value: 15
+    ModifierMode: 0
+    Value: 10
