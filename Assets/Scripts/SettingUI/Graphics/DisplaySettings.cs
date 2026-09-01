@@ -143,6 +143,7 @@ public class DisplaySettings : MonoBehaviour
         {
             for (int remainingTime = 15;remainingTime > 0;remainingTime--)
             {
+                // 로케일 변경을 다음 틱에 반영해야 하므로 문자열 조회를 루프 밖으로 옮기지 않는다.
                 resolutionConfirmText.text = LocalizationHelper.Get(
                     LocalizationHelper.k_DefaultTable,
                     ResolutionConfirmationKey,
