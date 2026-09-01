@@ -462,10 +462,13 @@ public class CastlePanelUI : MonoBehaviour, IDisabledClickFeedback
 
     // 본진 업그레이드 쪽. 본진은 자기 요구치로 잠기지 않으므로(Refresh 주석) 비용 null = 진짜 최대이고,
     // BuildingInfoUI와 달리 RequiredCastleLevel을 볼 필요가 없다.
+    // 튜토리얼 건물 제한(UpgradeAllowList)은 BuildingInfoUI와 같은 이유로 본다 — 액션 허용과 다른 축이라
+    // TutorialInputGate만으로는 걸러지지 않고, 본진이 목록 밖인 단계에서 거짓 안내가 된다.
     private bool UpgradeBlockedByCostOnly()
         => _upgradeIndex >= 0
            && _controller.IsDay
            && TutorialInputGate.AllowsForDisplay(TutorialAction.UpgradeBuilding)
+           && _controller.IsUpgradeAllowed(_building)
            && _controller.UpgradeBuildingCost(_upgradeIndex) != null
            && !_controller.CanUpgradeBuilding(_upgradeIndex);
 }

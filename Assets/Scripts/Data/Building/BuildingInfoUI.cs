@@ -195,10 +195,15 @@ public class BuildingInfoUI : MonoBehaviour, IDisabledClickFeedback
     //   · 튜토리얼 제한 — "모으면 된다"가 거짓 안내가 된다
     //   · 최대 레벨 — 비용 조회가 null이다(더 올릴 것이 없다)
     //   · 본진 레벨 미달 — RequiredCastleLevel > 0. 자원이 아니라 본진을 올려야 열린다(#229)
+    //   · 튜토리얼 건물 제한 — UpgradeAllowList 밖. **액션 허용과 다른 축이다**: 그 단계가
+    //     UpgradeBuilding 액션 자체는 허용하면서 특정 건물만 화이트리스트에 넣을 수 있어
+    //     TutorialInputGate만 봐서는 걸러지지 않는다(Step8/SkillUpgrade.asset이 실제로 그렇고,
+    //     그 단계는 freeManagementCost라 **비용이 0인데도** 「자원을 모으라」가 나갔다)
     private bool BlockedByCostOnly()
     {
         if (_controller == null || !_controller.IsDay) return false;
         if (!TutorialInputGate.AllowsForDisplay(TutorialAction.UpgradeBuilding)) return false;
+        if (!_controller.IsUpgradeAllowed(_building)) return false;
 
         if (_lineIndex >= 0)
         {
