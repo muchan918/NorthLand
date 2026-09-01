@@ -120,8 +120,9 @@ MonoBehaviour:
     m_Localized: 'At night, you can attack enemies directly with skills.
 
 
-      Select
-      a skill, then click a target location in the battlefield to cast it there.'
+      Click
+      the skill button or press Q, then click a target location to cast the skill
+      there.'
     m_Metadata:
       m_Items: []
   - m_Id: 5269524482
@@ -142,14 +143,9 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 7161155585
-    m_Localized: 'Click a building shortcut beside the minimap at the top left to
-      move to that building and open its information panel.
-
-      You can also open
-      the panel by clicking the building directly.
-
-      The panel shows the building''s
-      level and upgrade cost.'
+    m_Localized: "Click a building shortcut beside the minimap at the top left to
+      move to that building and open its information panel.\nYou can also open the
+      panel by clicking the building directly.\nThe shortcut keys are 1\u20136."
     m_Metadata:
       m_Items: []
   - m_Id: 7161155586
@@ -191,11 +187,8 @@ MonoBehaviour:
   - m_Id: 8494944256
     m_Localized: 'Drag the newly added villagers to production buildings.
 
-      The
-      tutorial will continue once every villager is assigned.
-
-      You can also
-      assign them using the buttons on the production line.'
+      You
+      can also assign them using the + buttons on the production lines.'
     m_Metadata:
       m_Items: []
   - m_Id: 8964706304
@@ -203,7 +196,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 8964706305
-    m_Localized: 'Spend resources at the Castle to increase the village population.
+    m_Localized: 'Spend Sugar at the Castle to increase the village population.
 
       More
       villagers can be assigned to production buildings, increasing your daily output.'
@@ -228,11 +221,9 @@ MonoBehaviour:
       Upgrades
       increase a skill''s damage and area while reducing its cooldown.
 
-      You
-      receive 10 Star Candy each time you clear a night wave.
 
-      For practice,
-      this upgrade is free during the tutorial.'
+      You
+      receive 10 Star Candy each time you clear a night wave.'
     m_Metadata:
       m_Items: []
   - m_Id: 9430274050
@@ -271,12 +262,10 @@ MonoBehaviour:
   - m_Id: 10348826625
     m_Localized: 'Upgrading the Castle unlocks higher levels for other buildings.
 
-      Production
-      buildings and the Magic Laboratory cannot be upgraded beyond the level allowed
-      by the Castle.
 
-      It also increases the amount of resources received from
-      exchanges at the Alchemist''s House.'
+      It
+      also increases the amount of resources received from exchanges at the Alchemist''s
+      House.'
     m_Metadata:
       m_Items: []
   - m_Id: 10348826626
@@ -370,7 +359,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 615170964885504
-    m_Localized: Cancel a misplaced tower with the Undo button or Ctrl+Z.
+    m_Localized: If you place or fuse a tower by mistake, or spend resources accidentally,
+      you can undo the action with the Undo button or Ctrl+Z.
     m_Metadata:
       m_Items: []
   - m_Id: 759725932580864
@@ -413,8 +403,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 1631492737765376
-    m_Localized: This is where you build towers and use skills to fend off the monsters
-      that attack at night.
+    m_Localized: This is where you defend against the monsters that attack at night.
     m_Metadata:
       m_Items: []
   - m_Id: 2903649488900096
