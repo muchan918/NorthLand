@@ -21,6 +21,8 @@ namespace NorthLand.UI
         private Canvas parentCanvas;
         private Camera worldCamera;
         private bool initialized;
+        private bool initializationAttempted;
+        private static bool s_wiringWarned;
 
         private void Awake()
         {
@@ -106,19 +108,34 @@ namespace NorthLand.UI
             gameObject.SetActive(false);
         }
 
+
+
         private bool Initialize()
         {
-            if (initialized)
+            if (initializationAttempted)
             {
-                return true;
+                return initialized;
             }
+
+            initializationAttempted = true;
 
             rectTransform = transform as RectTransform;
             parentCanvas = GetComponentInParent<Canvas>(true);
 
-            if (rectTransform == null || parentCanvas == null || canvasGroup == null || buffText == null)
+            if (rectTransform == null ||
+                parentCanvas == null ||
+                canvasGroup == null ||
+                buffText == null)
             {
-                Debug.LogError("[TileBuffPreviewView] RectTransform, Canvas, CanvasGroup 또는 Buff Text가 준비되지 않았습니다.",this);
+                if (!s_wiringWarned)
+                {
+                    s_wiringWarned = true;
+
+                    Debug.LogError(
+                        "[TileBuffPreviewView] RectTransform, Canvas, " +
+                        "CanvasGroup 또는 Buff Text가 준비되지 않았습니다.",
+                        this);
+                }
 
                 enabled = false;
                 return false;
