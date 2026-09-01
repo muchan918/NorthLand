@@ -1,3 +1,5 @@
+using UnityEngine.UI;
+
 /// <summary>
 /// <b>비활성 상태로 눌린 버튼이 스스로 낼 피드백.</b> <see cref="UiClickSfx"/>가 찾아 호출한다.
 ///
@@ -40,5 +42,9 @@ public interface IDisabledClickFeedback
     /// 상태를 바꿔야 하는 반응이 필요하면 이 훅이 아니라 <c>MouseManager</c> 라우팅으로 간다.
     /// 구현체가 여럿 생긴 뒤에 되돌리는 것은 훨씬 비싸다.
     /// </summary>
-    void OnDisabledClick();
+    /// <param name="pressed">눌린 <c>Selectable</c> 자신. <b>구현체가 버튼 위에 있지 않을 수 있어서</b> 넘긴다 —
+    /// 훅 탐색은 부모로 올라가므로 패널 하나가 자기 버튼 여럿을 대표해 구현할 수 있고, 그때 어느 버튼이
+    /// 눌렸는지에 따라 낼 소리가 다르다(본진 패널: 주민 증가 · 업그레이드). 버튼 자신이 구현체인 경우는
+    /// 이 인자를 보지 않는다.</param>
+    void OnDisabledClick(Selectable pressed);
 }

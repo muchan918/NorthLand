@@ -285,8 +285,17 @@ public class ManagementController : MonoBehaviour
 
     private IReadOnlyList<BuildingAsset> _upgradeAllowList;
 
-    // 목록이 비어 있으면 제한 없음. 담겨 있으면 그 안에 든 건물만 통과한다.
-    private bool IsUpgradeAllowed(BuildingAsset building)
+    /// <summary>
+    /// 이 건물이 <see cref="UpgradeAllowList"/>를 통과하는가. 목록이 비어 있으면 제한 없음이고,
+    /// 담겨 있으면 그 안에 든 건물만 통과한다.
+    ///
+    /// <b>공개인 이유</b>: <see cref="CanUpgrade"/>·<see cref="CanUpgradeBuilding"/>이 이 게이트를
+    /// 안에 품고 bool 하나로 답하므로, 밖에서 "왜 못 하는지"를 알아야 하는 쪽(반려 안내음)이 나머지
+    /// 사유를 다 걷어내고 남은 것을 비용으로 **추정**하면 이 게이트가 통째로 비용으로 오분류된다 —
+    /// 튜토리얼 무료 구간(freeManagementCost)에서 "자원을 더 모아라"는 거짓 안내가 된다.
+    /// 짐작 대신 직접 물어보라고 열어 둔다.
+    /// </summary>
+    public bool IsUpgradeAllowed(BuildingAsset building)
     {
         if (_upgradeAllowList == null || _upgradeAllowList.Count == 0)
         {

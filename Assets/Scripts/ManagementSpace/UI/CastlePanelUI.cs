@@ -11,7 +11,7 @@ using UnityEngine.UI;
 // BuildingInfoUI(정보 표시) / StorePanelUI(교환 목록)와 같은 계보의 별도 씬 싱글톤이다.
 // 셋은 서로 배타적이며, 어느 것을 열지는 BuildingInfo가 '데이터 존재'로 분기한다(BuildingType이 아니다).
 // (주의) 이 오브젝트는 씬에서 '활성' 상태로 둬야 Awake가 실행되어 Instance가 등록된다. 인스펙터에서 미리 꺼두지 말 것.
-public class CastlePanelUI : MonoBehaviour
+public class CastlePanelUI : MonoBehaviour, IDisabledClickFeedback
 {
     public static CastlePanelUI Instance { get; private set; }
 
@@ -185,11 +185,19 @@ public class CastlePanelUI : MonoBehaviour
         // 구독한다 — 그래야 증축 진입점이 늘어도 소리가 따라온다(파티클이 이미 그 구조다).
         // 실패는 이벤트로 오지 않으므로 거절음만 호출부 몫으로 남는다.
         //
-        // ⚠ 버튼은 **최대 도달일 때만** 비활성화된다(Refresh) — 자원이 모자란 상태에서도 눌린다.
-        //   그 경로가 여태 Debug.Log만 남기고 조용히 반려돼 있었다.
+        // ⚠ 버튼은 **자원이 모자라도 회색이 된다**(Refresh — CanIncreaseVillagers가 CanAfford를 포함한다).
+        //   그래서 「자원 부족」의 정상 경로는 여기가 아니라 OnDisabledClick이다. 이 분기는 회색 판정과
+        //   실행 사이에 상태가 바뀐 경우의 방어이고, 술어를 그쪽과 공유해 두 경로가 같은 소리를 낸다.
         if (!_controller.TryIncreaseVillagers(_building))
         {
-            Sfx.Rejected();
+            if (VillagerBlockedByCostOnly())
+            {
+                Sfx.InsufficientResources();
+            }
+            else
+            {
+                Sfx.Rejected();
+            }
         }
     }
 
@@ -208,9 +216,19 @@ public class CastlePanelUI : MonoBehaviour
         }
 
         // 주민 증가와 같은 규약 — 성공음은 OnBuildingAction 구독자(씬 큐)가 내고 여기는 거절음만(WL-208).
+        // 반려 사유는 BuildingInfoUI와 **같은 규칙으로 가른다** — 본진도 플레이어에게는 「업그레이드 버튼」이라,
+        // 여기만 옛 거절음으로 두면 같은 조작이 어느 패널에서 눌렀는지에 따라 다른 소리를 낸다.
+        // ⚠ 이쪽도 자원 부족이면 버튼이 회색이라(CanUpgradeBuilding ⊃ CanAfford) 정상 경로는 OnDisabledClick이다.
         if (!_controller.TryUpgradeBuilding(_upgradeIndex))
         {
-            Sfx.Rejected();
+            if (UpgradeBlockedByCostOnly())
+            {
+                Sfx.InsufficientResources();
+            }
+            else
+            {
+                Sfx.Rejected();
+            }
         }
     }
 
@@ -404,4 +422,53 @@ public class CastlePanelUI : MonoBehaviour
         TutorialInputGate.Changed -= Refresh;
         _subscribed = false;
     }
+
+    /// <summary>
+    /// 회색이 된 버튼을 눌렀을 때(<see cref="IDisabledClickFeedback"/>). 이 패널은 버튼 위가 아니라
+    /// **패널 루트**에 있고, 훅 탐색이 눌린 <c>Selectable</c>에서 부모로 올라오기 때문에 닿는다.
+    ///
+    /// <b>이 패널에는 회색이 될 수 있는 버튼이 둘</b>(주민 증가 · 업그레이드)이고 막힌 사유가 서로
+    /// 다르므로, <paramref name="pressed"/>로 어느 쪽인지 갈라야 한다 — 그래서 이 훅이 눌린
+    /// <c>Selectable</c>을 받는다.
+    ///
+    /// ⚠ 게임 상태를 바꾸지 않는다 — <see cref="IDisabledClickFeedback"/>의 제약이다.
+    /// </summary>
+    public void OnDisabledClick(Selectable pressed)
+    {
+        if (_controller == null || _building == null) return;
+
+        if (_addVillagerButton != null && pressed == _addVillagerButton)
+        {
+            if (VillagerBlockedByCostOnly()) Sfx.InsufficientResources();
+            return;
+        }
+
+        if (_upgradeButton != null && pressed == _upgradeButton)
+        {
+            if (UpgradeBlockedByCostOnly()) Sfx.InsufficientResources();
+        }
+    }
+
+    // 주민 증가가 막힌 사유가 **비용 하나뿐**인가. 비용 외 사유를 먼저 걷어낸 뒤 CanIncreaseVillagers로
+    // 되묻는다 — 무료 처리(EffectiveCost)가 컨트롤러 안에 있어 CanAfford를 밖에서 재현하면 갈라진다.
+    //   · 최대 도달 — NextVillagerCost가 null이다(상한 필드가 따로 없다, Refresh 주석 참고)
+    //   · 밤 페이즈 — 기다려도 자원이 느는 문제가 아니다
+    //   · 튜토리얼 제한 — "모으면 된다"가 거짓 안내가 된다
+    private bool VillagerBlockedByCostOnly()
+        => _controller.IsDay
+           && TutorialInputGate.AllowsForDisplay(TutorialAction.IncreaseVillager)
+           && _controller.NextVillagerCost(_building) != null
+           && !_controller.CanIncreaseVillagers(_building);
+
+    // 본진 업그레이드 쪽. 본진은 자기 요구치로 잠기지 않으므로(Refresh 주석) 비용 null = 진짜 최대이고,
+    // BuildingInfoUI와 달리 RequiredCastleLevel을 볼 필요가 없다.
+    // 튜토리얼 건물 제한(UpgradeAllowList)은 BuildingInfoUI와 같은 이유로 본다 — 액션 허용과 다른 축이라
+    // TutorialInputGate만으로는 걸러지지 않고, 본진이 목록 밖인 단계에서 거짓 안내가 된다.
+    private bool UpgradeBlockedByCostOnly()
+        => _upgradeIndex >= 0
+           && _controller.IsDay
+           && TutorialInputGate.AllowsForDisplay(TutorialAction.UpgradeBuilding)
+           && _controller.IsUpgradeAllowed(_building)
+           && _controller.UpgradeBuildingCost(_upgradeIndex) != null
+           && !_controller.CanUpgradeBuilding(_upgradeIndex);
 }

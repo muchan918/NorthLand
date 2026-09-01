@@ -40,6 +40,7 @@ public static class Sfx
     {
         bank = null;
         loadAttempted = false;
+        insufficientResourcesLastTime = float.NegativeInfinity;
     }
 
     private static SfxBank Bank
@@ -107,12 +108,59 @@ public static class Sfx
     }
 
     /// <summary>
-    /// 조작이 반려된 순간 — 배치 불가 지점 클릭, 합성 재료·코스트 부족, 주민 증가 실패가 공유한다.
+    /// 조작이 반려된 순간 — 배치 불가 지점 클릭, 합성 재료 불일치, 되돌릴 것 없음, 그리고 <b>자원 문제가
+    /// 아닌</b> 반려(밤 페이즈·최대 레벨·본진 레벨 미달)가 공유한다.
+    ///
+    /// ⚠ <b>자원 부족은 전부 <see cref="InsufficientResources"/>로 갈라져 나갔다</b>(#550 잔여 종결) —
+    /// 타워·합성 코스트, 건물·본진 업그레이드 비용, 주민 증가 비용, 교환 지불. 여기 남은 것은
+    /// <b>기다린다고 풀리지 않는</b> 반려뿐이다.
     /// 이 소리가 없으면 전부 <c>Debug.Log</c>만 남기고 화면에서는 **아무 일도 안 일어난 것처럼 보인다**.
     /// </summary>
     public static void Rejected()
     {
         Play(Bank != null ? Bank.Rejected : null);
+    }
+
+    // 「재료 부족」 안내음의 최소 재생 간격(초). 클립(SFX_Skill_Cooldown, 0.75초)보다 살짝 짧게 잡아
+    // 겹치지 않으면서 "두드리면 반응한다"는 감은 남긴다. 정확히 맞출 필요는 없다 — 겹침을 막는
+    // 가드일 뿐이라 클립 길이가 바뀌어도 조금 겹치거나 조금 더 눌러 먹는 정도로 끝난다.
+    private const float InsufficientResourcesMinInterval = 0.7f;
+
+    private static float insufficientResourcesLastTime = float.NegativeInfinity;
+
+    /// <summary>
+    /// <b>자원이 모자라</b> 조작이 반려된 순간. 타워 배치 코스트·합성 코스트·건물 업그레이드 비용·
+    /// 연금술사의 집 교환 지불이 함께 쓴다.
+    ///
+    /// <b><see cref="Rejected"/>와 나눈 이유</b>: 플레이어가 할 다음 행동이 다르다. 이쪽은
+    /// 「자원을 더 모아라」 하나로 정해져 있고, <see cref="Rejected"/>는 「다른 자리를 고르라」
+    /// (배치 불가 지점)까지 한 소리에 섞여 있다 — 같은 근거로 <see cref="Blocked"/>를 갈랐던 것과
+    /// 같은 판단이다(#550).
+    ///
+    /// ⚠ <b>자원 부족이 유일한 사유일 때만 부른다.</b> 미해금·튜토리얼 제한·밤 페이즈로 함께 막힌
+    /// 상태에서 이 소리를 내면 "모으면 된다"가 거짓 안내가 된다 — <c>SkillOutOfCharges</c>가 낮
+    /// 페이즈를 걸러내는 것과 같은 이유다. 사유 판정은 각 호출부가 소유한다(그쪽이 게이트를 계산한
+    /// 자리이기 때문이다).
+    ///
+    /// ⚠ <b>연타 게이트가 이 메서드 안에 있다.</b> 프레임 래치(<see cref="ClaimFrame"/>)는 같은
+    /// 프레임만 막고 <c>AudioManager.PlaySfx</c>에는 동시재생 상한이 없어(`SystemMap.md` §2) 회색
+    /// 버튼 연타에서 여러 벌이 겹쳐 쌓인다 — 그리고 <b>연타가 정확히 이 기능의 대상 시나리오다</b>.
+    /// <c>SkillButtonView</c>처럼 뷰 로컬로 두지 않은 이유는 소비처가 넷이라, 뷰마다 두면
+    /// <b>버튼을 번갈아 누를 때 겹침이 그대로 새어 나오기 때문</b>이다.
+    /// </summary>
+    public static void InsufficientResources()
+    {
+        // 시간축은 unscaled다 — 안내·피드백은 배속·정지와 무관해야 한다(`SystemMap.md` §6).
+        float now = Time.unscaledTime;
+
+        if (now - insufficientResourcesLastTime < InsufficientResourcesMinInterval)
+        {
+            return;
+        }
+
+        insufficientResourcesLastTime = now;
+
+        Play(Bank != null ? Bank.InsufficientResources : null);
     }
 
     /// <summary>

@@ -89,7 +89,7 @@ public class TowerUndoButtonView : MonoBehaviour, IDisabledClickFeedback
     /// ⚠ **Submit을 부르지 않는다.** 그쪽은 상태를 바꾸는 경로이고, 이 훅은 소리·연출만 허용된다
     /// (`IDisabledClickFeedback`의 제약 — 팀 계약 #1 넷째 예외의 전제). 어차피 비활성 사유가
     /// 「되돌릴 것 없음」이라 되돌릴 것도 없다.
-    public void OnDisabledClick() => Sfx.Rejected();
+    public void OnDisabledClick(Selectable pressed) => Sfx.Rejected();
 
     // ⚠ 이 버튼은 정본 씬에서 **페이즈 패널 밖(UICanvas 직속)**에 있어 밤에도 꺼지지 않는다.
     // 따라서 "밤엔 되돌리기 불가"의 **유일한** 방어선은 CommandHistory.CanUndo의 페이즈 검사다 —

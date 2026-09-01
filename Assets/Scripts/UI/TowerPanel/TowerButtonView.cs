@@ -9,7 +9,7 @@ using UnityEngine.UI;
 /// 클릭 영역이 칸 전체(90x90)가 되고, 거기에 스프라이트를 덮어쓰면 테두리가 지워지기 때문이다.
 /// 그래서 아이콘 슬롯을 별도 참조로 갖는다.
 /// </summary>
-public class TowerButtonView : MonoBehaviour
+public class TowerButtonView : MonoBehaviour, IDisabledClickFeedback
 {
     [Tooltip("타워 아이콘 (Slot/Img_Icon) — 테두리 안쪽에 그려진다.")]
     [SerializeField] Image _icon;
@@ -48,6 +48,10 @@ public class TowerButtonView : MonoBehaviour
     static bool s_selectedEffectWiringWarned;
     // 선택 가능 여부의 **요청값**. 해제 연출이 도는 동안 적용을 미루므로 요청과 적용을 분리해 들고 있는다.
     bool _requestedSelectable = true;
+    // 비활성 사유가 **자원 부족 하나뿐인지**. 요청값과 적용값을 따로 드는 이유는 위와 같다 —
+    // 해제 연출이 도는 동안 표시는 아직 옛 값이므로 소리도 옛 값을 따라야 한다.
+    bool _requestedBlockedByCost;
+    bool _blockedByCost;
 
     /// <summary>
     /// 잠금 오버레이 표시. **해금 여부만** 반영한다 — 자원 부족으로 버튼이 죽은 상태에까지
@@ -100,8 +104,12 @@ public class TowerButtonView : MonoBehaviour
     }
 
     /// <summary>
-    /// 이 칸을 고를 수 있는지(#470). 자원 부족·미해금·튜토리얼 제한 중 무엇이 원인인지는 구분하지
-    /// 않는다 — 호출부가 계산한 AND 결과를 그대로 넘긴다.
+    /// 이 칸을 고를 수 있는지(#470). <paramref name="selectable"/>은 호출부가 계산한 AND 결과 그대로다 —
+    /// <b>표시</b>는 사유를 구분하지 않는다(회색 하나).
+    ///
+    /// <para><paramref name="blockedByCost"/>는 <b>소리 전용</b>이다 — 회색이 된 사유가 자원 부족 하나뿐일 때만
+    /// true이며, 그 칸을 눌렀을 때 무엇을 낼지 <see cref="OnDisabledClick"/>이 이 값으로 판단한다.
+    /// 사유를 이 뷰가 다시 계산하지 않는 이유는 그쪽 주석 참조.</para>
     ///
     /// <para><b>왜 아이콘 색과 <c>interactable</c>을 한 메서드가 갖는가</b>: 둘은 같은 사실의 두 표현인데
     /// 주인이 갈리면 해제 연출 도중 갈라진다. <c>interactable</c>은 Button의 ColorTint를 통해
@@ -115,9 +123,10 @@ public class TowerButtonView : MonoBehaviour
     /// 곧바로 이 메서드를 부른다. 요청값만 기록하고, 실제 적용은 연출이 끝날 때
     /// <see cref="PlayUnlockAsync"/>가 한다.</para>
     /// </summary>
-    public void SetSelectable(bool selectable)
+    public void SetSelectable(bool selectable, bool blockedByCost)
     {
         _requestedSelectable = selectable;
+        _requestedBlockedByCost = blockedByCost;
 
         var effect = ResolveEffect();
         if (effect != null && effect.IsPlaying) return;
@@ -137,6 +146,10 @@ public class TowerButtonView : MonoBehaviour
 
         if (_button == null) _button = GetComponent<Button>();
         if (_button != null) _button.interactable = _requestedSelectable;
+
+        // 소리의 사유도 표시와 같은 시점에 옮긴다. 여기서 미루지 않으면, 해제 연출로 아직 회색인 칸이
+        // 자원 부족 소리를 먼저 낸다 — 플레이어에게는 자물쇠가 보이는 채로 "돈이 없다"는 소리가 난다.
+        _blockedByCost = _requestedBlockedByCost;
     }
 
     /// <summary>
@@ -337,5 +350,24 @@ public class TowerButtonView : MonoBehaviour
 
         if (rootLayout.minHeight > 0f) rootLayout.minHeight -= shrink;
         if (rootLayout.preferredHeight > 0f) rootLayout.preferredHeight -= shrink;
+    }
+
+    /// <summary>
+    /// 회색이 된 칸을 눌렀을 때(<see cref="IDisabledClickFeedback"/>). <b>자원 부족이 유일한 사유일 때만</b>
+    /// 소리를 낸다 — 미해금은 자물쇠 그림이 이미 이유를 말하고 있고, 튜토리얼 제한에 대고
+    /// "자원을 모으라"고 안내하면 거짓말이 된다(<see cref="Sfx.InsufficientResources"/> 주석).
+    ///
+    /// 사유 판정을 여기서 하지 않는 이유: 게이트를 계산한 자리가 호출부다
+    /// (<c>TowerSelectPanelView</c>는 미해금·자원·튜토리얼 셋, <c>TowerMergePanelView</c>는 코스트·튜토리얼 둘).
+    /// 이 뷰가 다시 계산하면 판정이 두 벌이 되고, 게이트가 늘 때 한쪽만 고치면 어긋난다.
+    ///
+    /// ⚠ 게임 상태를 바꾸지 않는다 — <see cref="IDisabledClickFeedback"/>의 제약이다.
+    /// 연타 겹침은 <see cref="Sfx.InsufficientResources"/>가 자기 안에서 막으므로 여기 게이트는 없다.
+    /// </summary>
+    public void OnDisabledClick(Selectable pressed)
+    {
+        if (!_blockedByCost) return;
+
+        Sfx.InsufficientResources();
     }
 }
