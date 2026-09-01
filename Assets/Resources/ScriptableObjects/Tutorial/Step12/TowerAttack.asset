@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
   popupTitleKey: tutorial.tower.attack.title
   popupBodyKey: tutorial.tower.attack.body
-  popupImage: {fileID: 0}
+  popupImage: {fileID: 21300000, guid: 068e96999492a764dabf7e3abc72164e, type: 3}
   bubbleTextKey: 
   highlightMode: 0
   highlightAnchorId: 

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
   popupTitleKey: tutorial.time_speed.title
   popupBodyKey: tutorial.time_speed.body
-  popupImage: {fileID: 0}
+  popupImage: {fileID: 21300000, guid: 7ccb118cf5b389047afa8b411aa2c6a3, type: 3}
   bubbleTextKey: 
   highlightMode: 0
   highlightAnchorId: 

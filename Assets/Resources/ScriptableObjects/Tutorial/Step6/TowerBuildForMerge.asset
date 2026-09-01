@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
   popupTitleKey: tutorial.tower.merge_intro.title
   popupBodyKey: tutorial.tower.merge_intro.body
-  popupImage: {fileID: 21300000, guid: 742e9b4c0f618ed4480b9ad830d60546, type: 3}
+  popupImage: {fileID: 21300000, guid: f74e9e4977c2a1e45b43891b6283af24, type: 3}
   bubbleTextKey: tutorial.tower.merge_intro.bubble
   highlightMode: 0
   highlightAnchorId: 
