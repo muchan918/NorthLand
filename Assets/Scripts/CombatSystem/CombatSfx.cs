@@ -9,16 +9,32 @@ public enum CombatSfxPriority { Low, Normal, High }
 /// 전투 위치 기반 효과음의 공용 진입점. 호출자는 풀과 AudioSource를 알지 않는다.
 public static class CombatSfx
 {
+    /// <param name="minRepeatInterval">
+    /// **같은 클립**이 다시 울릴 수 있기까지의 최소 실시간 간격(초). 0이면 제한 없음.
+    ///
+    /// 소리의 주인이 여러 개체로 흩어진 소비처를 위한 것이다 — 몬스터 평타음처럼 클립 하나를
+    /// 수십 마리가 공유하면, 개체마다 타이머를 둬도 **서로를 모르기 때문에** 성문에 8마리가 붙은
+    /// 순간 8개가 동시에 터진다. 풀은 보이스 상한만 지키므로 청감상 뭉치는 것은 막지 못한다.
+    /// 문서 §7이 "몬스터 평타음에는 풀·디바운스가 먼저"라고 경고한 자리다.
+    ///
+    /// 클립을 키로 잡는 것이 핵심이다. 개체 기준이면 위 문제가 그대로고, 위치 기준이면 같은
+    /// 지점에 몰린 서로 다른 소리까지 함께 잘린다. `SfxBank.Cue.LastPlayedFrame`이 같은 발상을
+    /// 프레임 단위로 이미 쓰고 있고(§5.4), 이쪽은 그것의 초 단위 확장이다.
+    ///
+    /// ⚠ **실시간(`Time.unscaledTime`) 기준이다.** 오디오 뭉침은 배속과 무관한 실시간 현상이라,
+    /// 스케일 시간을 쓰면 2배속에서만 창이 함께 늘어나 그 배속에서 소리가 성기어진다.
+    /// </param>
     public static CombatSfxHandle Play(
         AudioClip clip,
         Vector3 worldPosition,
         bool loop = false,
         float volumeScale = 1f,
-        CombatSfxPriority priority = CombatSfxPriority.Normal)
+        CombatSfxPriority priority = CombatSfxPriority.Normal,
+        float minRepeatInterval = 0f)
     {
         return clip == null
             ? default
-            : CombatSfxPool.Instance.Play(clip, worldPosition, loop, volumeScale, priority);
+            : CombatSfxPool.Instance.Play(clip, worldPosition, loop, volumeScale, priority, minRepeatInterval);
     }
 
     /// 이 위치의 소리가 지금 들리는가(화면 안 + 줌 감쇠 > 0).
@@ -84,6 +100,10 @@ sealed class CombatSfxPool : MonoBehaviour
 
     private static CombatSfxPool instance;
     private readonly List<Voice> voices = new List<Voice>(MaxVoiceCount);
+
+    // 클립 단위 스로틀 장부(`Play`의 minRepeatInterval). 클립을 키로 잡는 근거는 `CombatSfx.Play` 주석.
+    private readonly Dictionary<AudioClip, float> lastClipPlayTime = new Dictionary<AudioClip, float>();
+
     private ulong nextStartedOrder;
 
     public static CombatSfxPool Instance
@@ -132,8 +152,14 @@ sealed class CombatSfxPool : MonoBehaviour
         Vector3 position,
         bool loop,
         float volumeScale,
-        CombatSfxPriority priority)
+        CombatSfxPriority priority,
+        float minRepeatInterval)
     {
+        // ⚠ **보이스를 잡기 전에 거른다.** 뒤에서 거르면 탈취 판정을 이미 돌린 뒤라, 스로틀에
+        // 막힐 요청이 화면 안에서 울리던 소리를 뺏고서 자기는 재생하지 않는 조합이 생긴다.
+        if (!ClaimClipSlot(clip, minRepeatInterval))
+            return default;
+
         int index = AcquireVoice(priority);
         if (index < 0)
             return default;
@@ -220,6 +246,24 @@ sealed class CombatSfxPool : MonoBehaviour
 
             ApplyVolume(voice);
         }
+    }
+
+    /// 클립 단위 스로틀. 통과하면 그 클립의 마지막 재생 시각을 갱신한다.
+    ///
+    /// 딕셔너리가 무한히 자라지 않는다 — 키는 **실제로 울린 클립**이고 그 수는 저작된 클립 수가
+    /// 상한이다(현재 20여 개). 씬 전환에서 비운다.
+    private bool ClaimClipSlot(AudioClip clip, float minRepeatInterval)
+    {
+        if (minRepeatInterval <= 0f)
+            return true;
+
+        float now = Time.unscaledTime;
+
+        if (lastClipPlayTime.TryGetValue(clip, out float last) && now - last < minRepeatInterval)
+            return false;
+
+        lastClipPlayTime[clip] = now;
+        return true;
     }
 
     private int AcquireVoice(CombatSfxPriority requestedPriority)
@@ -333,6 +377,7 @@ sealed class CombatSfxPool : MonoBehaviour
     private void HandleActiveSceneChanged(Scene _, Scene __)
     {
         StopAll();
+        lastClipPlayTime.Clear();   // 새 씬의 첫 소리가 지난 씬의 도장에 막히지 않게
         CombatSfxAudibility.ClearCamera();
     }
 }

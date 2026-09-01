@@ -29,6 +29,38 @@ public class EnemyAsset : ScriptableObject
     // 함께 갈라진다. 자폭은 그 갈림 어디에도 새 분기를 요구하지 않는다.
     public SelfDestructFields SelfDestruct;
 
+    // ── 전투음 ─────────────────────────────────────────────────────────────
+    // **타격음의 주인은 때리는 쪽이다.** 타워가 `TowerAsset.Attack.FireSfx`를 들고, 자폭병이
+    // `SelfDestruct.ExplosionSfx`를 드는 것과 같은 규칙이다(`Docs/Core/AudioManager.md` §5.4).
+    // 예전에는 본진이 「맞았을 때 나는 소리」를 소유했는데, 그러면 고블린 칼질·박쥐 물기·탱크
+    // 주먹이 전부 같은 소리가 되고 소리를 가르려면 받는 쪽에 특례를 얹어야 했다.
+    //
+    // 본진에 남은 것은 **2D 경고음**이다 — 위치음(이쪽)은 화면 밖에서 무음이라, 「본진이 깎였다」를
+    // 알리는 축이 따로 있어야 한다(§6.4).
+    //
+    // 재생은 위치 기반 풀(`CombatSfx`)이 하고, 클립 단위 스로틀이 밤 후반의 겹침을 눌러 준다 —
+    // 문서 §7이 "몬스터 평타음에는 풀·디바운스가 먼저"라고 경고한 자리다.
+    [Tooltip("공격이 닿는 순간 재생할 효과음. 근접은 타격 순간, 원거리는 발사 순간이다. " +
+             "비우면 소리 없이 공격한다. 화면 밖·줌아웃에서는 들리지 않는다(AudioManager.md §6.2).")]
+    public AudioClip AttackSfx;
+
+    [Range(0f, 2f)]
+    [Tooltip("공격음 재생 배율. SFX 채널 볼륨에 곱해진다. " +
+             "1.0을 넘긴 몫은 화면 중앙에서 잘린다 — 헤드룸이 부족하면 클립 자체를 정규화할 것.")]
+    public float AttackSfxVolume = 1f;
+
+    // 돌진 충돌음. 평타와 **다른 사건**이라 축을 가른다 — `EnemyImpactTargetAction`이 내는
+    // `speed × DamagePerSpeedUnit` 단발 대타격이고, 현재 소비처는 `tank`의 P1뿐이다.
+    // 평타를 하지 않는 몬스터에게는 빈 필드로 남는다(`SelfDestruct`가 대부분에게 그런 것과 같다).
+    [Tooltip("돌진(충돌) 피해를 준 순간 재생할 효과음. 돌진 패턴이 있는 보스만 쓴다. " +
+             "평타 공격음과 음색이 갈리도록 묵직한 저역이 좋다.")]
+    public AudioClip ImpactSfx;
+
+    [Range(0f, 2f)]
+    [Tooltip("돌진 충돌음 재생 배율. SFX 채널 볼륨에 곱해진다. " +
+             "1.0을 넘긴 몫은 화면 중앙에서 잘린다 — 헤드룸이 부족하면 클립 자체를 정규화할 것.")]
+    public float ImpactSfxVolume = 1f;
+
         // Melee/Ranged/Boss 공통 기초 전투 스탯. Combat/EnemyData.cs(SUNGSOO)의
         // maxHp/attackDamage/attackRange/attackInterval과 의미 대응되도록 필드명을 맞춘다
         // (실제 Combat 마이그레이션은 아직 미착수, WL-001).
@@ -86,19 +118,20 @@ public class EnemyAsset : ScriptableObject
 
         // 폭발음(#452). **클립을 SfxBank에 넣지 않는다** — 뱅크의 범위는 "주인이 없는 공용 소리"이고
         // (`Docs/Core/AudioManager.md` §5.4) 이 소리의 주인은 이 EnemyAsset이다. 타워 발사음을
-        // 각자의 SO가 들기로 한 것과 같은 규칙이다(같은 문서 §7).
+        // 각자의 SO가 들기로 한 것과 같은 규칙이다(같은 문서 §6.3).
         //
-        // 2D 원샷(`AudioManager.PlaySfx`)으로 낸다. 문서 §7이 그 경로를 "드물게 한 번 울리는 소리
-        // 전용"으로 한정하는데 자폭은 웨이브당 몇 번뿐이라 그 전제 안에 있다.
-        // ⚠ **몬스터 평타음을 같은 방식으로 얹지 말 것** — 후반 웨이브의 빈도를 2D 원샷이 못 받는다.
-        // 그쪽은 문서 §7의 SFX 풀·디바운스가 먼저다.
+        // 재생 경로는 **위치 기반 풀(`CombatSfx`, §6.2)**이다 — 예전 2D 원샷에서 옮겼다.
+        // 2D는 카메라가 본진에 없을 때 그림 없이 폭음만 내보냈다. 「본진이 맞았다」는 통지는
+        // `PlayerBase`의 피격음이 같은 감쇠 규칙으로 맡는다(§6.4).
+        // ⚠ **몬스터 평타음을 여기에 얹지 말 것** — 평타는 본진 피격음이 이미 한 창구에서 낸다.
         [Tooltip("폭발 순간 1회 재생할 효과음. 비우면 소리 없이 폭발한다. " +
-                 "2D로 재생되므로 화면 밖에서 터져도 같은 크기로 들린다.")]
+                 "화면 밖·줌아웃에서는 들리지 않는다(AudioManager.md §6.2).")]
         public AudioClip ExplosionSfx;
 
-        [Range(0f, 1f)]
+        [Range(0f, 2f)]
         [Tooltip("폭발음 재생 배율. SFX 채널 볼륨에 곱해진다. 임포트 설정에는 클립별 게인이 없어 " +
-                 "(AudioManager.md §4.5) 클립 사이의 레벨 차는 여기서만 맞출 수 있다.")]
+                 "(AudioManager.md §4.5) 클립 사이의 레벨 차는 여기서만 맞출 수 있다. " +
+                 "1.0을 넘긴 몫은 화면 중앙에서 잘린다 — 헤드룸이 부족하면 클립 자체를 정규화할 것.")]
         public float ExplosionSfxVolume = 1f;
     }
 
@@ -120,6 +153,16 @@ public class EnemyAsset : ScriptableObject
         {
             Debug.LogWarning($"[EnemyAsset] {name}: ExplosionVfx가 지정됐는데 ExplosionLifetime이 " +
                              $"{SelfDestruct.ExplosionLifetime}입니다 — 폭발이 보이지 않습니다.", this);
+        }
+
+        // 자폭병은 평타 경로를 타지 않으므로 `AttackSfx`도 읽히지 않는다 — 이 클립이 비면
+        // **터지는 연출에 소리가 아예 없다.** 본진 경고음(2D, §6.4)은 계속 울리지만 그것은
+        // 「본진이 깎였다」는 신호이고, 「무언가 폭발했다」를 알리는 소리는 이쪽뿐이다.
+        // 증상이 "본진은 깎이는데 폭발이 조용하다"라 원인에서 멀다.
+        if (SelfDestruct.ExplosionSfx == null)
+        {
+            Debug.LogWarning($"[EnemyAsset] {name}: 자폭이 켜져 있는데 ExplosionSfx가 비어 있습니다 — " +
+                             "자폭병은 평타 경로를 타지 않아 AttackSfx도 읽히지 않으므로 소리 없이 터집니다.", this);
         }
 
         if (SelfDestruct.Damage <= 0f)

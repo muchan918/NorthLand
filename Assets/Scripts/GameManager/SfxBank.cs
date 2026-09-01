@@ -84,6 +84,17 @@ public class SfxBank : ScriptableObject
     [Tooltip("본진에서 주민 수가 늘어난 순간. **전용 소스로 재생된다** — 연타 시 겹치지 않고 처음부터 다시 난다.")]
     [SerializeField] Cue residentIncreased = new Cue();
 
+    // 본진 피격 경고음(§6.4). **뱅크에 두는 것이 의도다** — 2D 전역음이고 클립 주인이 될 SO가
+    // 없다(본진은 런당 하나뿐인 씬 오브젝트다). 위 ⚠가 배제하는 것은 "타워 발사음처럼 각자의
+    // SO가 이미 클립을 드는 소리"이고, 이 소리는 그 경우가 아니다.
+    //
+    // 프리팹 필드로 두지 않은 실무적 이유가 하나 더 있다: 씬의 `PlayerBase`는
+    // `Assets/Imported`(별도 저장소)의 `Gate_02.prefab`이라, 그쪽에 배선하면 **메인 저장소만 받은
+    // 환경에서 경고음이 조용히 사라진다.** 뱅크 에셋은 메인 저장소(Resources)에 있다.
+    [Tooltip("본진이 피해를 받은 순간. **2D로 재생된다** — 화면을 안 보고 있을 때가 가장 알아야 하는 " +
+             "순간이라, 타격음(가해자 소유, 위치 기반)과 달리 카메라와 무관하게 들려야 한다.")]
+    [SerializeField] Cue baseDamaged = new Cue();
+
     [Header("되돌리기")]
     [Tooltip("조작을 되돌린 순간. 되돌리기 버튼과 Ctrl+Z가 같은 소리를 쓴다(UndoRequest 한 곳에서 난다).")]
     [SerializeField] Cue undo = new Cue();
@@ -110,6 +121,8 @@ public class SfxBank : ScriptableObject
     public Cue BuildingUpgrade => buildingUpgrade;
 
     public Cue ResidentIncreased => residentIncreased;
+
+    public Cue BaseDamaged => baseDamaged;
 
     public Cue Undo => undo;
 

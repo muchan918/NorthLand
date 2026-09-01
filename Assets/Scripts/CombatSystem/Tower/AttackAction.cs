@@ -331,7 +331,8 @@ namespace NorthLand.Combat
                     if (!isFresh) return;
                     if (hasVfx) SpawnImpactVfx(vfx, impactPos);
 
-                    // 발사음과 같은 `Low` — 상한에 닿으면 스킬음·경고음보다 먼저 회수되어야 한다.
+                    // 발사음과 같은 `Low` — 상한에 닿으면 스킬음보다 먼저 회수되어야 한다.
+                    // ⚠ 본진 경고음은 비교 대상이 아니다 — 이 풀을 쓰지 않는 2D 경로다(§6.4).
                     if (hasSfx)
                         CombatSfx.Play(sfx, impactPos, volumeScale: sfxVolume, priority: CombatSfxPriority.Low);
                 };

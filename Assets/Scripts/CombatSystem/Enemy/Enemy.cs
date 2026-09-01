@@ -563,23 +563,29 @@ namespace NorthLand.Combat
             SelfDestruct();
         }
 
-        /// 자폭 폭발음(#452). `AudioManager`의 2D 원샷을 쓴다 —
-        /// 전투 위치 효과음은 `CombatSfxPool`이 SFX 실효 볼륨을 반영한다(`Docs/Core/AudioManager.md` §6.2).
+        /// 자폭 폭발음(#452). **위치 기반 풀(`CombatSfx`, §6.2)로 낸다 — 예전에는 2D 원샷이었다.**
         ///
-        /// 자기 `AudioSource`를 달지 않는 이유: 자폭병은 같은 프레임에 제거되므로 소스가 함께 죽어
-        /// 소리가 첫 프레임에 끊긴다. 파티클을 부모 없이 스폰하는 것과 같은 사정이고, 매니저의
-        /// 소스는 씬을 넘어 살아 있으므로 이 축이 아예 없다.
+        /// 바뀐 이유: 2D는 화면 밖·줌아웃에서도 같은 크기로 울려서, 카메라가 본진에 없을 때
+        /// 아무 그림 없이 폭음만 났다. 이제 화면 밖과 오쏘 160 이상에서 무음이다. 「본진이 위험하다」는
+        /// 통지는 본진의 **2D 경고음**이 별도 축으로 맡는다 — 단 그쪽은 매 피격이 아니라 HP 임계를
+        /// 통과할 때만 울리므로, **자폭 한 번이 경고를 부르지 않을 수 있다**(§6.4).
+        /// 그래서 **이 클립이 비면 자폭이 소리 없이 터진다** — 자폭병은 평타 경로를 타지 않아
+        /// `AttackSfx`도 읽히지 않는다. `EnemyAsset.OnValidate`가 그 조합을 저장 시점에 경고한다.
+        ///
+        /// 자기 `AudioSource`를 달지 않는 이유는 그대로다: 자폭병은 같은 프레임에 제거되므로 소스가
+        /// 함께 죽어 소리가 첫 프레임에 끊긴다. 풀은 **위치를 값으로 복사해** 보이스를 씬 밖에서
+        /// 굴리므로 이 축이 아예 없다 — 파티클을 부모 없이 스폰하는 것과 같은 사정이다.
+        ///
+        /// 위치는 파티클과 **같은 `hitPosition`**이다. 갈라 두면 감쇠·팬이 그림과 어긋난다.
+        /// 우선순위 `High`: 본진 HP 10%가 날아가는 사건이라 상한에서 타워 전투음(`Low`)에
+        /// 밀리면 안 된다. 클립이 비면 `CombatSfx.Play`가 조용히 넘긴다.
         void PlayExplosionSfx()
         {
-            AudioClip clip = data.SelfDestruct.ExplosionSfx;
-
-            // 매니저가 없는 씬(전투 테스트 등)에서는 조용히 넘긴다 — SoundCue와 같은 방침.
-            if (clip == null || AudioManager.Instance == null)
-            {
-                return;
-            }
-
-            AudioManager.Instance.PlaySfx(clip, data.SelfDestruct.ExplosionSfxVolume);
+            CombatSfx.Play(
+                data.SelfDestruct.ExplosionSfx,
+                hitPosition.position,
+                volumeScale: data.SelfDestruct.ExplosionSfxVolume,
+                priority: CombatSfxPriority.High);
         }
 
         /// 자폭 폭발 파티클(#452).
@@ -696,6 +702,8 @@ namespace NorthLand.Combat
                 return true;
             }
 
+            PlayAttackSfx();
+
             // Ranged는 투사체 발사, 그 외(Melee/Boss)는 근접 즉시 데미지.
             // (#193: Boss의 BehaviorTree는 속도 가감속·HP 회복 등 상위 패턴을 담당하고,
             //  공격 자체는 이 근접 경로를 그대로 사용한다. 원거리 보스가 필요해지면 확장.)
@@ -705,6 +713,34 @@ namespace NorthLand.Combat
             target.TakeDamage(new DamageInfo(AttackDamage, this));
             return true;
         }
+
+        /// 공격음(`EnemyAsset.AttackSfx`). **소리의 주인이 때리는 쪽인 것이 규약이다** —
+        /// 타워가 `Tower.RaiseFired`에서 자기 발사음을 내는 것과 같은 자리다(§5.4·§6.3).
+        ///
+        /// 이 자리가 `TryAttack` 안인 이유: 와인드업(#452)이 이미 이 호출을 **애니메이션의 타격
+        /// 프레임**으로 밀어 놓았다. 스윙 시작 시점에 내면 모션보다 소리가 앞선다.
+        /// 근접은 타격 순간, 원거리는 발사 순간이 된다 — 한 필드가 "이 몬스터가 공격하는 소리"
+        /// 하나를 뜻하고, 원거리의 착탄음이 필요해지면 그때 축을 가른다(타워 `ImpactSfx`가 선례).
+        ///
+        /// ⚠ **클립 스로틀이 필수다.** 이 소리는 클립 하나를 같은 종족 전체가 공유하므로,
+        /// 성문에 여러 마리가 붙으면 같은 프레임에 여러 요청이 몰린다. 개체마다 타이머를 둬도
+        /// 서로를 모르기 때문에 소용이 없어서, 풀이 클립 단위로 거른다(`CombatSfx.Play` 주석).
+        /// 0.08초는 초당 최대 12회 — 개별 타격은 살아 있고 뭉침만 걷힌다.
+        ///
+        /// 우선순위 `Low`: 상한에 닿으면 스킬음보다 먼저 회수되어야 한다. 타워 전투음과 같은 급이다.
+        /// ⚠ 본진 경고음과는 **비교 대상이 아니다** — 그쪽은 이 풀을 아예 쓰지 않는 2D 경로라
+        /// (`Sfx.BaseDamaged` → `AudioManager.PlaySfx`) 보이스 상한을 두고 경쟁하지 않는다.
+        void PlayAttackSfx()
+        {
+            CombatSfx.Play(
+                data.AttackSfx,
+                hitPosition.position,
+                volumeScale: data.AttackSfxVolume,
+                priority: CombatSfxPriority.Low,
+                minRepeatInterval: AttackSfxThrottle);
+        }
+
+        const float AttackSfxThrottle = 0.08f;
 
         // 원거리 공격: Tower와 동일한 Projectile을 단일 명중(Single)으로 발사한다.
         bool TryRangedAttack(IDamageable target)

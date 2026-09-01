@@ -42,6 +42,9 @@ MonoBehaviour:
   residentIncreased:
     Clip: {fileID: 8300000, guid: b5c64e6e157d55545ac61f1a85dd6a5f, type: 3}
     Volume: 1
+  baseDamaged:
+    Clip: {fileID: 8300000, guid: ca140724282f0784dae7be4a33f13c5b, type: 3}
+    Volume: 0.5
   undo:
     Clip: {fileID: 8300000, guid: 7e19cf98fc5c49e4b87fdfa232045a73, type: 3}
     Volume: 1
