@@ -72,7 +72,13 @@ public class DisplaySettings : MonoBehaviour
             Debug.LogWarning("[DisplaySettings] Resolution Dropdown이 연결되지 않았습니다.",this);
         }
     }
-
+    private void OnDisable()
+    {
+        if (resolutionConfirmCts != null)
+        {
+            RevertResolutionChange();
+        }
+    }
     private void OnDestroy()
     {
         CancelResolutionCountdown();
