@@ -84,8 +84,9 @@ public partial class EnemyImpactTargetAction : Action
         // 소리를 가르기 위해 받는 쪽에 특례를 얹지 않는다. 스로틀은 걸지 않는다: 돌진은 `tank` P1의
         // 1회 한정 패턴이라 자기끼리 겹칠 일이 없고, 걸어 두면 오히려 놓칠 위험만 생긴다.
         //
-        // 우선순위 `Normal`: 평타(`Low`)보다 무거운 단발 대타격이지만, 상한에서 본진 경고음보다
-        // 먼저 회수되는 편이 맞다.
+        // 우선순위 `Normal`: 평타(`Low`)보다 무거운 단발 대타격이지만 스킬음(`High`)보다는 아래다.
+        // ⚠ 본진 경고음과는 **비교 대상이 아니다** — 그쪽은 이 풀을 아예 쓰지 않는 2D 경로라
+        // (`Sfx.BaseDamaged` → `AudioManager.PlaySfx`) 보이스 상한을 두고 경쟁하지 않는다.
         PlayImpactSfx(agent, speed * damagePerUnit);
 
         damageable.TakeDamage(new DamageInfo(speed * damagePerUnit, null));

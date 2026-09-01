@@ -132,15 +132,28 @@ namespace NorthLand.Combat
             int reached = CountReachedThresholds();
 
             // 한 방에 임계 둘을 통과해도 **1회만** 울린다(탱크 램 50 = 25%가 그런 경우다).
-            // 통과한 개수까지 한 번에 올려 두므로 다음 피해가 같은 임계로 다시 울리지 않는다.
             if (reached <= announcedThresholds)
                 return;
 
-            announcedThresholds = reached;
-
+            // ⚠ **겹침 방지 창에 막히면 장부를 올리지 않고 돌아간다 — 순서가 핵심이다.**
+            // 예전에는 여기서 먼저 `announcedThresholds = reached`를 찍고 창을 검사했는데,
+            // 그러면 막힌 통과가 **울리지도 않은 채 알린 것으로 기록돼 영영 사라졌다.**
+            // 위험한 시나리오가 정확히 이것이다: 75% 경보 직후 0.5초 만에 25%·10%로 연쇄 하락하면
+            // (탱크 램 50~90 한 방이면 임계 둘을 건너뛴다) **가장 절박한 경보가 조용히 씹힌다.**
+            //
+            // 장부를 미뤄 두면 다음 피해가 같은 통과를 다시 시도하므로, 창이 지나는 즉시 울린다 —
+            // 최대 `warningMinInterval`만큼 늦을 뿐 잃지 않는다. 연쇄 하락 중에는 다음 피해가
+            // 곧바로 오므로 실질 지연도 거의 없다. 피해가 멎었다면 위급 상황도 지난 것이라
+            // 울리지 않는 편이 맞다.
+            //
+            // 리뷰가 제안한 「새 임계면 창을 무시하고 울린다」로 가지 않은 이유: 이 함수는
+            // 같은 임계로 다시 오지 않으므로(위 가드) 그 조건이 곧 "항상 무시"가 되어 창이 사라진다.
+            // 그러면 사이렌 두 벌이 겹쳐 볼륨이 배로 튄다(`PlaySfx`는 `PlayOneShot`이라 상한이 없고,
+            // 현재 클립 peak가 -0.2dBFS라 두 벌이면 풀스케일에 닿는다).
             if (Time.unscaledTime - lastWarningTime < warningMinInterval)
                 return;
 
+            announcedThresholds = reached;
             lastWarningTime = Time.unscaledTime;
 
             Sfx.BaseDamaged();
