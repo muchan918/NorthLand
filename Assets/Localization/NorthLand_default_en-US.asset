@@ -535,10 +535,15 @@ MonoBehaviour:
   - m_Id: 18490000000000000
     m_Localized: 'Keep these display settings?
 
-      Reverting to the previous settings in {0} seconds.'
+      Reverting to the previous settings
+      in {0} seconds.'
     m_Metadata:
       m_Items:
       - rid: 5763336045537525835
+  - m_Id: 19296849015418880
+    m_Localized: Warning
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds:
