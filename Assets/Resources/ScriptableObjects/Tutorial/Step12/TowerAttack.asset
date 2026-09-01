@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
-  m_Name: SceneLoadDelay
+  m_Name: TowerAttack
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
-  popupTitleKey: 
-  popupBodyKey: 
+  popupTitleKey: tutorial.tower.attack.title
+  popupBodyKey: tutorial.tower.attack.body
   popupImage: {fileID: 0}
   bubbleTextKey: 
   highlightMode: 0
@@ -21,7 +21,7 @@ MonoBehaviour:
   highlightCell: {x: 0, y: 0}
   pauseGameDuringStep: 0
   resumeGameAfterPopup: 0
-  restrictActions: 1
+  restrictActions: 0
   allowedActions: 0
   minimumTowerCountBeforeEndDay: 0
   requiredTowerBeforeEndDay: {fileID: 0}
@@ -32,12 +32,9 @@ MonoBehaviour:
   villagerCap: 0
   upgradeAllowList: []
   completion:
-    rid: 3470830115119693925
+    rid: -2
   references:
     version: 2
     RefIds:
-    - rid: 3470830115119693925
-      type: {class: DelayCondition, ns: , asm: Assembly-CSharp}
-      data:
-        seconds: 3
-        ignoreGameSpeed: 1
+    - rid: -2
+      type: {class: , ns: , asm: }

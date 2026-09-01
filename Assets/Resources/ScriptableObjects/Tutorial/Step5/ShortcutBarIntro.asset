@@ -15,7 +15,7 @@ MonoBehaviour:
   popupTitleKey: tutorial.shortcut.intro.title
   popupBodyKey: tutorial.shortcut.intro.body
   popupImage: {fileID: 21300000, guid: ebf15f2e709a5ea488590cb84d63ee06, type: 3}
-  bubbleTextKey: tutorial.shortcut.intro.bubble
+  bubbleTextKey: 
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
@@ -32,11 +32,9 @@ MonoBehaviour:
   villagerCap: 0
   upgradeAllowList: []
   completion:
-    rid: 3470829977900417134
+    rid: -2
   references:
     version: 2
     RefIds:
-    - rid: 3470829977900417134
-      type: {class: BuildingShortcutUsedCondition, ns: , asm: Assembly-CSharp}
-      data:
-        targetBuilding: {fileID: 11400000, guid: ba79754af9105604892d30cae1799110, type: 2}
+    - rid: -2
+      type: {class: , ns: , asm: }

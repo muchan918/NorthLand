@@ -10,36 +10,31 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
-  m_Name: ProductionUpgrade
+  m_Name: TowerCodex
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
-  popupTitleKey: 
-  popupBodyKey: 
+  popupTitleKey: tutorial.tower.codex.title
+  popupBodyKey: tutorial.tower.codex.body
   popupImage: {fileID: 0}
-  bubbleTextKey: tutorial.production.upgrade.bubble
+  bubbleTextKey: 
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
   pauseGameDuringStep: 0
   resumeGameAfterPopup: 0
-  restrictActions: 1
-  allowedActions: 1584
+  restrictActions: 0
+  allowedActions: 0
   minimumTowerCountBeforeEndDay: 0
   requiredTowerBeforeEndDay: {fileID: 0}
   freeTowerPlacement: 0
   restrictTowerPanelTo: {fileID: 0}
-  freeManagementCost: 1
-  upgradeCap: 1
+  freeManagementCost: 0
+  upgradeCap: 0
   villagerCap: 0
-  upgradeAllowList:
-  - {fileID: 11400000, guid: ba79754af9105604892d30cae1799110, type: 2}
-  - {fileID: 11400000, guid: 8268c334119ef524ea770b364abf1fd5, type: 2}
-  - {fileID: 11400000, guid: 639db89c157d46343837e79b6259f345, type: 2}
+  upgradeAllowList: []
   completion:
-    rid: 3470830054771785826
+    rid: -2
   references:
     version: 2
     RefIds:
-    - rid: 3470830054771785826
-      type: {class: AllProductionLinesUpgradedCondition, ns: , asm: Assembly-CSharp}
-      data:
-        requiredLevel: 1
+    - rid: -2
+      type: {class: , ns: , asm: }

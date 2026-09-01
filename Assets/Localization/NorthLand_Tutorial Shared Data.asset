@@ -291,6 +291,46 @@ MonoBehaviour:
     m_Key: tutorial.battle_map.intro.body
     m_Metadata:
       m_Items: []
+  - m_Id: 2903649488900096
+    m_Key: tutorial.time_speed.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2903649530843136
+    m_Key: tutorial.time_speed.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2903649530843137
+    m_Key: tutorial.tower.attack.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2903649530843138
+    m_Key: tutorial.tower.attack.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2903649530843139
+    m_Key: tutorial.tower.codex.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2903649530843140
+    m_Key: tutorial.tower.codex.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2906405796745216
+    m_Key: tutorial.complete_intro.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2906405826105344
+    m_Key: tutorial.complete_intro.body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2907969739460608
+    m_Key: tutorial.production.upgrade.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2907969764626432
+    m_Key: tutorial.production.upgrade.body
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
