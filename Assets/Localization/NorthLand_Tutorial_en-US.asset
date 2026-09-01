@@ -414,6 +414,60 @@ MonoBehaviour:
       that attack at night.
     m_Metadata:
       m_Items: []
+  - m_Id: 2903649488900096
+    m_Localized: Game Speed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2903649530843136
+    m_Localized: 'Use the shoe icon next to the minimap to set the game speed to
+      2x.
+
+
+      You can also press the Spacebar to switch to 2x speed.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2903649530843137
+    m_Localized: Tower Attack Settings
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2903649530843138
+    m_Localized: 'Select a tower to choose its targeting method.
+
+
+      Try applying
+      different targeting methods to several towers.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2903649530843139
+    m_Localized: Tower Codex
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2903649530843140
+    m_Localized: 'The Tower Codex contains tower stats and fusion recipes.
+
+
+      Use
+      it whenever you need to look up information.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2906405796745216
+    m_Localized: Feature Overview Complete
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2906405826105344
+    m_Localized: "That covers the core features.\n\nLastly, let\u2019s take a look
+      at a few additional features that will help you during the game."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2907969739460608
+    m_Localized: Production Building Upgrades
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2907969764626432
+    m_Localized: Upgrading a production building increases the resources you receive
+      when you clear a wave.
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []
