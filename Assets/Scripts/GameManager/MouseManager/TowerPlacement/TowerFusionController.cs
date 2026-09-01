@@ -106,10 +106,12 @@ public class TowerFusionController : MonoBehaviour
         //    ⚠ 후보 버튼의 표시 조건은 `TowerMergeCoordinator.CanMerge` = **재료 매칭뿐**이라 코스트는 보지 않는다.
         //    즉 자원이 모자라도 버튼은 떠 있고, 눌러도 여기서 반려된다 — 유일하게 자주 도달하는 실패 경로다.
         //    거절음이 없으면 "눌리는 버튼인데 눌러도 아무 일이 없다"로 보인다.
+        //    회색 후보 버튼(TowerMergePanelView)이 내는 소리와 **같은 큐**를 쓴다 — 같은 사건이 어느
+        //    경로로 반려됐는지에 따라 다른 소리를 내면 안 된다.
         if (_management != null && !_management.CanAfford(recipe.ExtraCost))
         {
             Debug.Log("[TowerFusion] 합성 코스트가 부족합니다.");
-            Sfx.Rejected();
+            Sfx.InsufficientResources();
             return false;
         }
 

@@ -154,7 +154,7 @@ public class SkillButtonView : MonoBehaviour, IDisabledClickFeedback
     /// 버튼이 회색(비활성)인 채로 눌렸다 — Update가 `interactable`을 내려 둔 상태라 `onClick`도
     /// 공용 클릭음도 지나지 않으므로, UiClickSfx가 IDisabledClickFeedback으로 여기까지 넘겨준다.
     /// Q와 같은 소리를 내는 것이 의도다: 플레이어가 한 일("지금 스킬을 쓰려 했다")이 같다.
-    public void OnDisabledClick()
+    public void OnDisabledClick(Selectable pressed)
         => PlayUnavailableSfx();
 
     /// 시전 시도가 반려된 뒤의 안내음. **충전 소진일 때만 낸다** — 낮 페이즈나 게임 종료로 막힌 상태는

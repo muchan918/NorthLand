@@ -171,9 +171,12 @@ public class TowerMergePanelView : MonoBehaviour
             // 색 전이가 targetGraphic(테두리)에만 걸려 아이콘은 밝게 남고, 자원이 모자란 후보가
             // 배치 팔레트와 다른 모습이 된다 — 같은 화면에서 "회색"이 두 뜻을 갖는다.
             // 해금 개념이 없어 SetLocked를 부르지 않으므로 SetSelectable의 연출 지연 경로도 타지 않는다.
-            bool affordable = _coordinator.CanAffordMerge(recipe)
-                && TutorialInputGate.AllowsForDisplay(TutorialAction.MergeTower);
-            if (view != null) view.SetSelectable(affordable);
+            bool tutorialAllows = TutorialInputGate.AllowsForDisplay(TutorialAction.MergeTower);
+            bool canAfford = _coordinator.CanAffordMerge(recipe);
+            bool affordable = canAfford && tutorialAllows;
+            // 소리는 「코스트 부족이 유일한 사유」일 때만 낸다(TowerButtonView.OnDisabledClick) —
+            // 튜토리얼 제한에 대고 "자원을 모으라"고 안내하면 거짓말이 된다.
+            if (view != null) view.SetSelectable(affordable, tutorialAllows && !canAfford);
             else button.interactable = affordable;   // 뷰 없는 프리팹 변종 폴백
         }
     }

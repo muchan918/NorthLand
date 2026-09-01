@@ -166,7 +166,9 @@ public class TowerSelectPanelView : MonoBehaviour
             // 회색 처리와 interactable은 셋 전부를 보고, **뷰가 함께 소유한다**. 여기서 interactable을
             // 따로 세우면 Button의 ColorTint가 테두리를 즉시 밝혀, 해제 연출이 끝나기도 전에
             // 칸이 살아난 것처럼 보인다(#470).
-            view.SetSelectable(selectable);
+            // 소리는 「자원 부족이 유일한 사유」일 때만 낸다(TowerButtonView.OnDisabledClick). 미해금은
+            // 자물쇠가 이미 이유를 말하고, 튜토리얼 제한에 대고 "모으면 된다"고 안내하면 거짓말이 된다.
+            view.SetSelectable(selectable, unlocked && IsAllowed(tower) && !CanAfford(tower));
 
             // 선택 표시는 위 세 게이트와 **별개 축**이다 — 배치 도중 자원이 줄어 칸이 회색이 돼도
             // "지금 이걸 놓는 중"은 세션이 끝날 때까지 남아야 한다(TowerButtonView.SetSelected 참조).

@@ -574,7 +574,7 @@ public class TowerPlacer : MonoBehaviour
         {
             // CanPlaceFootprint가 이미 자원 부족을 걸러 여기 도달은 드묾(방어) — 조용한 실패 방지.
             Debug.Log("[TowerPlacer] 자원이 부족해 배치를 취소합니다.");
-            Sfx.Rejected();
+            Sfx.InsufficientResources();
             return;
         }
 

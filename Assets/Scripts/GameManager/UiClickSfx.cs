@@ -109,9 +109,14 @@ public class UiClickSfx : MonoBehaviour
         // 지나지 않는 이유가 그것이다. 자기 소리는 자기 규칙으로 낸다.
         if (!pressed.IsInteractable())
         {
-            if (pressed.TryGetComponent(out IDisabledClickFeedback feedback))
+            // **부모까지 올라간다**(UiClickSfxIgnore와 같은 규칙). 버튼이 위젯의 루트가 아닌 경우가 있다 —
+            // 교환 행(StoreOfferRow)은 행 루트가 상태를 소유하고 Btn_Exchange는 그 자식이라, 버튼
+            // 오브젝트만 보면 구현체를 영영 못 찾는다. 자기 GO의 구현체는 여전히 먼저 잡힌다.
+            var feedback = pressed.GetComponentInParent<IDisabledClickFeedback>();
+
+            if (feedback != null)
             {
-                feedback.OnDisabledClick();
+                feedback.OnDisabledClick(pressed);
             }
 
             return;

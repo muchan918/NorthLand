@@ -220,8 +220,13 @@ public class StorePanelUI : MonoBehaviour
                 continue;
             }
             binding.Row.SetGain(_controller.ExchangeGainAmount(_building, binding.Offer));
-            binding.Row.SetInteractable(_controller.CanExchange(_building, binding.Offer)
-                && TutorialInputGate.AllowsForDisplay(TutorialAction.AlchemyExchange));
+            // 소리는 「지불 자원 부족이 유일한 사유」일 때만 낸다(StoreOfferRow.OnDisabledClick).
+            // 밤 페이즈는 기다려도 자원이 느는 문제가 아니라 제외하고, 튜토리얼 제한도 마찬가지다.
+            // (교환 항목 자체가 미저작이라 CanExchange가 false인 경우도 여기 섞이지만, 그건 저작 결함이고
+            //  BuildingAsset.OnValidate가 에디터에서 잡는다 — 런타임 안내음을 갈라 둘 자리는 아니다.)
+            bool tutorialAllows = TutorialInputGate.AllowsForDisplay(TutorialAction.AlchemyExchange);
+            bool canExchange = _controller.CanExchange(_building, binding.Offer);
+            binding.Row.SetInteractable(canExchange && tutorialAllows, tutorialAllows && _controller.IsDay && !canExchange);
         }
     }
 

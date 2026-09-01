@@ -64,9 +64,17 @@ public class SfxBank : ScriptableObject
     [Tooltip("타워가 실제로 설치된 순간. 일반 배치와 합성 결과 배치가 같은 경로를 쓰므로 둘 다 여기서 울린다.")]
     [SerializeField] Cue towerInstall = new Cue();
 
-    [Tooltip("조작이 반려된 순간 — 배치 불가 지점 클릭, 합성 재료·코스트 부족, 주민 증가 실패 공용. " +
-             "지금은 클립 하나를 셋이 공유한다. 소리를 나누고 싶어지면 항목을 쪼개고 Sfx의 메서드도 함께 가른다.")]
+    [Tooltip("조작이 반려된 순간 — 배치 불가 지점 클릭, 합성 재료 불일치, 되돌릴 것 없음, 그리고 자원 문제가 " +
+             "아닌 반려(밤 페이즈·최대 레벨·본진 레벨 미달) 공용. **자원 부족은 아래 insufficientResources로 " +
+             "전부 갈라져 나갔다(#550 잔여 종결) — 여기 남은 것은 기다린다고 풀리지 않는 반려뿐이다.** " +
+             "더 가르고 싶어지면 항목을 쪼개고 Sfx의 메서드도 함께 가른다.")]
     [SerializeField] Cue rejected = new Cue();
+
+    [Tooltip("자원이 모자라 조작이 반려된 순간 — 타워 배치 코스트·합성 코스트·건물 업그레이드·교환 지불이 공유한다. " +
+             "위 rejected와 다른 칸인 이유는 플레이어가 할 다음 행동이 다르기 때문이다 — 이쪽은 「자원을 더 모아라」 " +
+             "하나로 정해져 있고, rejected는 「다른 자리를 고르라」까지 섞여 있다(Sfx.InsufficientResources 주석 참고). " +
+             "지금은 클립을 skillOutOfCharges와 공유한다(SFX_Skill_Cooldown) — 전용 클립이 생기면 여기만 바꾸면 된다.")]
+    [SerializeField] Cue insufficientResources = new Cue();
 
     [Tooltip("커서가 「안 됨」(CursorKind.Blocked)인 자리를 클릭한 순간 — 대상 표면이 아예 없는 곳(하늘·맵 밖). " +
              "위 rejected와 다른 칸인 이유는 커서 그림이 이미 둘을 구분하고 있기 때문이다(Sfx.Blocked 주석 참고).")]
@@ -113,6 +121,8 @@ public class SfxBank : ScriptableObject
     public Cue TowerInstall => towerInstall;
 
     public Cue Rejected => rejected;
+
+    public Cue InsufficientResources => insufficientResources;
 
     public Cue Blocked => blocked;
 
