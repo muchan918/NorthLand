@@ -520,6 +520,11 @@ MonoBehaviour:
     m_Localized: "\uBCF5\uC0AC\uB428!"
     m_Metadata:
       m_Items: []
+  - m_Id: 18490000000000000
+    m_Localized: "\uC774 \uD654\uBA74 \uC124\uC815\uC744 \uC720\uC9C0\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?\n{0}\uCD08 \uD6C4 \uC774\uC804 \uC124\uC815\uC73C\uB85C \uB3CC\uC544\uAC11\uB2C8\uB2E4."
+    m_Metadata:
+      m_Items:
+      - rid: 5763336045537525836
   references:
     version: 2
     RefIds:
@@ -531,3 +536,4 @@ MonoBehaviour:
         - id: 6894325276794880
         - id: 12023646333251584
         - id: 12023173794574336
+        - id: 18490000000000000

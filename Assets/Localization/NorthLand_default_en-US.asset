@@ -532,6 +532,13 @@ MonoBehaviour:
     m_Localized: Copied!
     m_Metadata:
       m_Items: []
+  - m_Id: 18490000000000000
+    m_Localized: 'Keep these display settings?
+
+      Reverting to the previous settings in {0} seconds.'
+    m_Metadata:
+      m_Items:
+      - rid: 5763336045537525835
   references:
     version: 2
     RefIds:
@@ -543,3 +550,4 @@ MonoBehaviour:
         - id: 6894325276794880
         - id: 12023646333251584
         - id: 12023173794574336
+        - id: 18490000000000000

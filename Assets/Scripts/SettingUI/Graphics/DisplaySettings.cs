@@ -8,6 +8,8 @@ using NorthLand.Core;
 
 public class DisplaySettings : MonoBehaviour
 {
+    private const string ResolutionConfirmationKey = "settings.graphics.resolution_confirmation";
+
     [SerializeField] private TMP_Dropdown screenModeDropdown;
     [SerializeField] private TMP_Dropdown resolutionDropdown;
 
@@ -146,7 +148,10 @@ public class DisplaySettings : MonoBehaviour
         {
             for (int remainingTime = 15;remainingTime > 0;remainingTime--)
             {
-                resolutionConfirmText.text =$"이 화면 설정을 유지하시겠습니까?\n{remainingTime}초 후 이전 설정으로 돌아갑니다.";
+                resolutionConfirmText.text = LocalizationHelper.Get(
+                    LocalizationHelper.k_DefaultTable,
+                    ResolutionConfirmationKey,
+                    remainingTime);
 
                 await UniTask.Delay(TimeSpan.FromSeconds(1),DelayType.UnscaledDeltaTime,PlayerLoopTiming.Update,cancellationToken);
             }
