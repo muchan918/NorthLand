@@ -65,10 +65,8 @@ public class TowerPlacer : MonoBehaviour
     [SerializeField]
     private CombatMapTileSpawner combatMapTileSpawner;
 
-    [Header("배치물")]
-    [SerializeField] private GameObject towerPrefab; // 실제 배치될 타워(Combat)
-    [SerializeField] private GameObject ghostPrefab; // 고스트(Collider 없음)
-    [SerializeField] private bool keepPlacing;       // 연속 배치 여부
+    [Header("배치 설정")]
+    [SerializeField] private bool keepPlacing; // 연속 배치 여부
 
     [Header("그리드")]
     // WL-032: StageBuilder.TileSize와 수동 동기화(단일 출처 아님). 불일치 시 Awake에서 경고한다.
@@ -246,50 +244,58 @@ public class TowerPlacer : MonoBehaviour
     /// false면 onEnded도 영영 오지 않으므로, 호출부가 배치 동안 유지하려던 상태(합성 핑크 고정 등)를
     /// 걸어두면 안 된다는 신호다.
     /// historyOwner에 **기본값이 없는 것은 의도적이다** — PlacementOwner 주석 참고.
-    public bool BeginTowerPlacement(TowerAsset so, IReadOnlyList<ResourceCost> cost,
-        System.Action<TowerPlaceCommand> onConfirmed, System.Action onEnded, PlacementOwner historyOwner)
+    public bool BeginTowerPlacement(TowerAsset so,IReadOnlyList<ResourceCost> cost,System.Action<TowerPlaceCommand> onConfirmed,System.Action onEnded,PlacementOwner historyOwner)
     {
         if (so == null)
         {
             Debug.LogError("[TowerPlacer] null TowerAsset은 배치할 수 없습니다.");
+
             return false;
         }
 
-        // Data는 패널(TowerSelectPanelView)이 SO 주입 시 채운다 — 여기선 방어만.
+        // Data는 패널(TowerSelectPanelView)이 SO 주입 시 채운다 — 여기서는 배치 코어에 들어가기 전
+        // 방어만 한다. 데이터가 없는 요청으로 기존 배치 세션까지 취소하면 정상 세션을 잃으므로 먼저 검증한다.
         if (so.Data == null)
         {
             Debug.LogError($"[TowerPlacer] TowerData 미주입(TowerID={so.TowerID}) — 패널에서 SO 주입 시 Data를 채웠는지 확인하세요.");
+
             return false;
         }
 
-        towerPrefab = so.TowerPrefab;
-        ghostPrefab = so.GhostPrefab;
-        _activeSurfaceLift = towerPrefab != null && towerPrefab.TryGetComponent<AdaptiveTowerFoundation>(out _) ? FoundationSurfaceLift: 0f;
-        _activeCost = cost;
-        _activeAsset = so;
-        // _onConfirmed은 StartPlacement가 BeginPlacement '이후'에 설정한다 — BeginPlacement 내부의
-        // CancelPlacement가 이전 배치의 OnEnded=EndPlacement를 발화해 _onConfirmed을 null로 지우므로,
-        // 여기서 미리 대입하면 합성 재료 소모 콜백이 유실된다(무료 합성 버그).
+        GameObject nextTowerPrefab = so.TowerPrefab;
+        GameObject nextGhostPrefab = so.GhostPrefab;
 
-        // 프리뷰 반경은 **두 축을 따로** 넘긴다. 합친 값 하나(`so.PreviewRadius`)만 주면 타일 버프를 얹을 때
-        // 어느 축의 modifier를 쓸지 알 수 없어 프리뷰가 배치 후와 어긋난다(TowerPlacementData.AuraRadius 참조).
-        // 호출부가 여전히 타워 종류를 모르는 것은 그대로다 — SO가 축별 기본값으로 답한다(#274, WL-056).
-        return StartPlacement(
-            new(so.Data.GridWidth, so.Data.GridHeight, so.AttackSideRadius, so.AuraSideRadius, so.PlacementYaw),
-            onConfirmed, onEnded, historyOwner);
+        float nextSurfaceLift =nextTowerPrefab != null &&nextTowerPrefab.TryGetComponent<AdaptiveTowerFoundation>(out _) ? FoundationSurfaceLift: 0f;
+
+        // 프리뷰 반경은 공격·오라 두 축을 따로 넘긴다. 합친 값 하나(so.PreviewRadius)만 넘기면
+        // 타일 버프를 얹을 때 어느 축의 modifier를 적용해야 하는지 알 수 없어 실제 배치와 어긋난다.
+        // 호출부가 타워 종류를 모르는 구조는 유지하고, SO가 각 축의 기본값으로 답한다(#274, WL-056).
+        var placementData = new TowerPlacementData(so.Data.GridWidth,so.Data.GridHeight,so.AttackSideRadius,so.AuraSideRadius,so.PlacementYaw);
+
+        bool started = StartPlacement(placementData,nextGhostPrefab,nextTowerPrefab,onConfirmed,onEnded,historyOwner);
+
+        if (!started)
+        {
+            return false;
+        }
+
+        // 새 세션의 대상·비용·받침대 값은 반드시 StartPlacement 성공 **이후**에 저장한다.
+        // StartPlacement 안의 MouseManager.BeginPlacement가 기존 세션을 먼저 CancelPlacement하고,
+        // 그 OnEnded=EndPlacement가 _activeAsset/_activeCost를 비운다. 앞에서 새 값을 대입하면
+        // 같은 버튼 더블클릭이나 다른 타워 연속 선택 때 방금 넣은 값이 null로 지워져 생성에 실패한다.
+        // _onConfirmed/_onEnded를 BeginPlacement 뒤에 등록하는 StartPlacement의 순서 계약과 같은 이유다.
+        _activeAsset = so;
+        _activeCost = cost;
+        _activeSurfaceLift = nextSurfaceLift;
+
+        return true;
     }
 
-    // 게이트웨이(예정): tower/ghost 프리팹 + footprint/range를 담은 SO가 생기면 아래 오버로드를 추가한다.
-    //   public void BeginTowerPlacement(TowerXxxSO so) {
-    //       towerPrefab = so.TowerPrefab; ghostPrefab = so.GhostPrefab;                 // SO가 프리팹까지 제공
-    //       StartPlacement(new TowerPlacementData(so.GridWidth, so.GridHeight, so.Range));
-    //   }
-    // 이러면 위 더미 경로를 대체하며, 배치·검증·미리보기 코어(StartPlacement 이하)는 무수정이다.
-
-    // 실제 배치 시작 코어(진입 방식과 무관). 게이트웨이/더미 어느 경로든 이 메서드를 호출한다.
-    // onConfirmed(합성 재료 소모 등)는 BeginPlacement 이후에 설정한다(순서 주의 — 아래 참고).
-    private bool StartPlacement(TowerPlacementData data, System.Action<TowerPlaceCommand> onConfirmed,
-        System.Action onEnded, PlacementOwner historyOwner)
+    // 실제 배치 시작 코어. 프리팹은 세션 필드에 미리 저장하지 않고 현재 요청의 매개변수로 전달한다.
+    // 따라서 프리팹 검증이나 배치 시작이 실패해도 진행 중인 세션의 프리팹 상태를 덮어쓰지 않는다.
+    // onConfirmed/onEnded는 BeginPlacement 이후에 설정한다(순서 주의 — 아래 참고).
+    private bool StartPlacement(TowerPlacementData data, GameObject ghostPrefab, GameObject towerPrefab,
+        System.Action<TowerPlaceCommand> onConfirmed, System.Action onEnded, PlacementOwner historyOwner)
     {
         if (MouseManager.Instance == null)
         {
@@ -299,7 +305,8 @@ public class TowerPlacer : MonoBehaviour
 
         if (ghostPrefab == null || towerPrefab == null)
         {
-            Debug.LogError("[TowerPlacer] ghostPrefab/towerPrefab을 인스펙터에서 지정하세요.");
+            Debug.LogError("[TowerPlacer] 배치에 필요한 ghostPrefab 또는 towerPrefab이 없습니다.",this);
+
             return false;
         }
 
