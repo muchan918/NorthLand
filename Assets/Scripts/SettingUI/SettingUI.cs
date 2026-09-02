@@ -10,9 +10,6 @@ public class SettingUI : MonoBehaviour
     private GameObject settingPanel;
 
     [SerializeField]
-    private GameObject LocalizationPanel;
-
-    [SerializeField]
     private LocalizationManager localizationManager;
 
     [Header("Buttons")]
@@ -71,7 +68,6 @@ public class SettingUI : MonoBehaviour
         SoundPanel.SetActive(false);
         rePlayWarningPanel.SetActive(false);
         QuitGameWarningPanel.SetActive(false);
-        LocalizationPanel.SetActive(false);
     }
 
     private void Update()
@@ -148,7 +144,6 @@ public class SettingUI : MonoBehaviour
         GeneralPanel.SetActive(true);
         GraphicsPanel.SetActive(false);
         SoundPanel.SetActive(false);
-        LocalizationPanel.SetActive(false);
 
         GameSpeedController.Instance?.SetPaused(GamePauseReason.Settings,true);
     }
@@ -171,7 +166,6 @@ public class SettingUI : MonoBehaviour
         settingPanel.SetActive(false);
         QuitGameWarningPanel.SetActive(false);
         rePlayWarningPanel.SetActive(false);
-        LocalizationPanel.SetActive(false);
 
         if (GameSpeedController.Instance != null)
         {
@@ -300,13 +294,7 @@ public class SettingUI : MonoBehaviour
 
     public void CloseLocalizationPanel()
     {
-        if (LocalizationPanel == null)
-        {
-            Debug.LogError($"[{LocalizationPanel}] 패널이 연결되지 않았습니다.", this);
-            return;
-        }
-
-        LocalizationPanel.SetActive(false);
+        localizationManager?.OnClose();
     }
 
 }
