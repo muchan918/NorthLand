@@ -176,7 +176,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 150, y: 150}
+  m_SizeDelta: {x: 130, y: 13}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2672010587744297504
 CanvasRenderer:
@@ -279,7 +279,6 @@ MonoBehaviour:
   rareSprite: {fileID: -558038306, guid: 2ce58d50614fc7541bbd910c54eae9ed, type: 3}
   legendarySprite: {fileID: -460993406, guid: 69fa29edc4b7d7c4585061851501f7f0, type: 3}
   buttonBackground: {fileID: 4904126739011778068}
-  selectedGlow: {fileID: 0}
   selectedScale: 1.12
   unselectedColor: {r: 0.75, g: 0.75, b: 0.75, a: 1}
   animationDuration: 0.12

@@ -55,6 +55,7 @@ namespace NorthLand.Core
             store = new GameSettingsStore(Application.persistentDataPath);
 
             LoadOrCreateSettings();
+            ApplyDisplaySettings();
         }
 
         private void LoadOrCreateSettings()
@@ -91,6 +92,24 @@ namespace NorthLand.Core
             canSaveSettings = true;
         }
 
+        private void ApplyDisplaySettings()
+        {
+            int modeIndex = Mathf.Clamp(CurrentSettings.screenMode,GameSettingsConstraints.MinScreenModeIndex,GameSettingsConstraints.MaxScreenModeIndex);
+
+            int resolutionIndex = Mathf.Clamp(CurrentSettings.resolutionIndex,GameSettingsConstraints.MinResolutionIndex,GameSettingsConstraints.MaxResolutionIndex);
+
+            FullScreenMode mode = modeIndex switch
+            {
+                0 => FullScreenMode.ExclusiveFullScreen,
+                1 => FullScreenMode.FullScreenWindow,
+                _ => FullScreenMode.Windowed
+            };
+
+            Vector2Int resolution = mode == FullScreenMode.FullScreenWindow
+                ? new Vector2Int(Screen.currentResolution.width,Screen.currentResolution.height) : GameSettingsConstraints.Resolutions[resolutionIndex];
+
+            Screen.SetResolution(resolution.x, resolution.y, mode);
+        }
         public bool TrySetLocale(string localeCode, out string error)
         {
             error = null;

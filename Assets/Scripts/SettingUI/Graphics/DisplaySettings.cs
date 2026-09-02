@@ -3,18 +3,17 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 using NorthLand.Core;
 
 public class DisplaySettings : MonoBehaviour
 {
+    private const string ResolutionConfirmationKey = "settings.graphics.resolution_confirmation";
+
     [SerializeField] private TMP_Dropdown screenModeDropdown;
     [SerializeField] private TMP_Dropdown resolutionDropdown;
 
     [SerializeField] private GameObject resolutionConfirmPanel;
     [SerializeField] private TMP_Text resolutionConfirmText;
-    [SerializeField] private Button keepResolutionButton;
-    [SerializeField] private Button revertResolutionButton;
 
     private CancellationTokenSource resolutionConfirmCts;
 
@@ -24,13 +23,7 @@ public class DisplaySettings : MonoBehaviour
     private int pendingResolutionIndex;
     private FullScreenMode previousScreenMode;
 
-
-    private static readonly Vector2Int[] Resolutions =
-    {
-        new(1920, 1080),
-        new(1600, 900),
-        new(1280, 720)
-    };
+    private static readonly Vector2Int[] Resolutions = GameSettingsConstraints.Resolutions;
 
     private void Awake()
     {
@@ -78,10 +71,14 @@ public class DisplaySettings : MonoBehaviour
         {
             Debug.LogWarning("[DisplaySettings] Resolution Dropdown이 연결되지 않았습니다.",this);
         }
-
-        ApplyScreenMode(savedMode);
     }
-
+    private void OnDisable()
+    {
+        if (resolutionConfirmCts != null)
+        {
+            RevertResolutionChange();
+        }
+    }
     private void OnDestroy()
     {
         CancelResolutionCountdown();
@@ -146,7 +143,11 @@ public class DisplaySettings : MonoBehaviour
         {
             for (int remainingTime = 15;remainingTime > 0;remainingTime--)
             {
-                resolutionConfirmText.text =$"이 화면 설정을 유지하시겠습니까?\n{remainingTime}초 후 이전 설정으로 돌아갑니다.";
+                // 로케일 변경을 다음 틱에 반영해야 하므로 문자열 조회를 루프 밖으로 옮기지 않는다.
+                resolutionConfirmText.text = LocalizationHelper.Get(
+                    LocalizationHelper.k_DefaultTable,
+                    ResolutionConfirmationKey,
+                    remainingTime);
 
                 await UniTask.Delay(TimeSpan.FromSeconds(1),DelayType.UnscaledDeltaTime,PlayerLoopTiming.Update,cancellationToken);
             }

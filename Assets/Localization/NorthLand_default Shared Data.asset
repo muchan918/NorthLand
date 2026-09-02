@@ -503,6 +503,14 @@ MonoBehaviour:
     m_Key: game.result.seed_copied
     m_Metadata:
       m_Items: []
+  - m_Id: 18490000000000000
+    m_Key: settings.graphics.resolution_confirmation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 19296849015418880
+    m_Key: common.warning
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
