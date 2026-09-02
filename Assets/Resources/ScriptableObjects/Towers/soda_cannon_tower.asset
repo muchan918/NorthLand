@@ -15,7 +15,7 @@ MonoBehaviour:
   TowerID: soda_cannon_tower
   TowerPrefab: {fileID: 6801833135963741600, guid: e1ed27c1d6fcf2b41ac54d9236f5b0f7, type: 3}
   GhostPrefab: {fileID: 6801833135963741600, guid: 1ddc4f4d9f7b1b942a87d33e8fd0db37, type: 3}
-  Icon: {fileID: 21300000, guid: 6ac9d80bfdf1b104f9d9ea0cdf1caa61, type: 3}
+  Icon: {fileID: 21300000, guid: 5b8798402f9be3f4b821f1fa74b98619, type: 3}
   PlacementYaw: 45
   Cost: []
   Rarity: 2
@@ -61,6 +61,8 @@ MonoBehaviour:
       StackInterval: 0
       DecaySeconds: 0
     VisualStages: []
+    LoopSfx: {fileID: 0}
+    LoopSfxVolume: 1
   GroundZone:
     ZonePrefab: {fileID: 0}
     Radius: 0
