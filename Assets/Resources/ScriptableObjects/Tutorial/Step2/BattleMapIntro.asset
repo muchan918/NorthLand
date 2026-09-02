@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
   popupTitleKey: tutorial.battle_map.intro.title
   popupBodyKey: tutorial.battle_map.intro.body
-  popupImage: {fileID: 0}
+  popupImage: {fileID: 21300000, guid: 7fdacc11c87000346ba926b9f5e11a1e, type: 3}
   bubbleTextKey: 
   highlightMode: 0
   highlightAnchorId: 

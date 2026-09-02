@@ -27,18 +27,22 @@ LocalizationSettings.SelectedLocale =
 
 ## 2. 현재 상태 (실제 생성된 것)
 
-**테이블 컬렉션 8개**, 총 284개 키(2026-08-26 실측 — Shared Data의 `m_Key` 개수). 3개 로케일(`ko-KR`/`en-US`/`ja-JP`) 전부 채워져 있다.
+**테이블 컬렉션 8개**, 총 348개 키(2026-09-02 실측 — Shared Data의 `m_Key` 개수). 3개 로케일(`ko-KR`/`en-US`/`ja-JP`)을 지원한다. `NorthLand_Tutorial` 79개 키는 세 로케일에 모두 채워져 있다.
 
 | 컬렉션 | 키 수 | 용도 | 코드 상수 |
 |---|---|---|---|
-| `NorthLand_default` | 80 | 공통 UI·자원 이름·본진 효과 문구·타워 스탯 라벨 등 | `LocalizationHelper.k_DefaultTable` |
+| `NorthLand_default` | 122 | 공통 UI·자원 이름·본진 효과 문구·타워 스탯 라벨 등 | `LocalizationHelper.k_DefaultTable` |
 | `NorthLand_buildings` | 18 | 건물 이름/역할/설명 (6종 × 3키) | `k_BuildingsTable` |
 | `NorthLand_Towers` | 66 | 타워 이름/역할/설명 | `k_TowersTable` |
 | `NorthLand_Enemies` | 25 | 적 이름/설명 | `k_EnemiesTable` |
 | `NorthLand_Rewards` | 12 | 웨이브 보상 카드 | (상수 없음 — `RewardCardView`가 문자열 직접 사용) |
 | `NorthLand_Skills` | 12 | 스킬 | — |
 | `NorthLand_Territories` | 14 | 영토 (#337로 시스템 제거됨, 테이블만 잔존) | — |
-| `NorthLand_Tutorial` | 57 | 튜토리얼 팝업·말풍선 | `k_TutorialTable` |
+| `NorthLand_Tutorial` | 79 | 튜토리얼 팝업·말풍선 | `k_TutorialTable` |
+
+⚠️ `NorthLand_Towers` Shared Data에는 66개 키가 있지만 각 로케일 테이블에는 64개만 있다.
+`towers.killstack.desc 1`과 `towers.rampup.desc 1`은 세 로케일 모두 값 엔트리가 없으므로, 해당 키를 실제로
+사용할지 정리하거나 문구를 채워야 한다.
 
 ⚠️ **컬렉션명은 대소문자를 구분한다.** `_Towers`/`_Enemies`/`_Rewards`/`_Skills`/`_Territories`는
 대문자로 시작하고 `_default`/`_buildings`는 소문자다 — 통일돼 있지 않으므로 상수를 쓸 것(WL-060).

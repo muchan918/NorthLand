@@ -120,8 +120,9 @@ MonoBehaviour:
     m_Localized: 'At night, you can attack enemies directly with skills.
 
 
-      Select
-      a skill, then click a target location in the battlefield to cast it there.'
+      Click
+      the skill button or press Q, then click a target location to cast the skill
+      there.'
     m_Metadata:
       m_Items: []
   - m_Id: 5269524482
@@ -129,9 +130,12 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 6699782144
-    m_Localized: "Upgrade the Biscuit House, Choco Tree, and Sugar Farm once each.\nYou
-      can also move between them with the 1\u20136 number keys.\nUpgrades are free
-      during the tutorial."
+    m_Localized: 'Upgrade the Biscuit House, Choco Tree, and Sugar Farm once each.
+
+      Each
+      Building''s shortcut keys are 2, 3, 4
+
+      Upgrades are free during the tutorial.'
     m_Metadata:
       m_Items: []
   - m_Id: 7161155584
@@ -139,14 +143,9 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 7161155585
-    m_Localized: 'Click a building shortcut beside the minimap at the top left to
-      move to that building and open its information panel.
-
-      You can also open
-      the panel by clicking the building directly.
-
-      The panel shows the building''s
-      level and upgrade cost.'
+    m_Localized: "Click a building shortcut beside the minimap at the top left to
+      move to that building and open its information panel.\nYou can also open the
+      panel by clicking the building directly.\nThe shortcut keys are 1\u20136."
     m_Metadata:
       m_Items: []
   - m_Id: 7161155586
@@ -188,11 +187,8 @@ MonoBehaviour:
   - m_Id: 8494944256
     m_Localized: 'Drag the newly added villagers to production buildings.
 
-      The
-      tutorial will continue once every villager is assigned.
-
-      You can also
-      assign them using the buttons on the production line.'
+      You
+      can also assign them using the + buttons on the production lines.'
     m_Metadata:
       m_Items: []
   - m_Id: 8964706304
@@ -200,7 +196,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 8964706305
-    m_Localized: 'Spend resources at the Castle to increase the village population.
+    m_Localized: 'Spend Sugar at the Castle to increase the village population.
 
       More
       villagers can be assigned to production buildings, increasing your daily output.'
@@ -225,11 +221,9 @@ MonoBehaviour:
       Upgrades
       increase a skill''s damage and area while reducing its cooldown.
 
-      You
-      receive 10 Star Candy each time you clear a night wave.
 
-      For practice,
-      this upgrade is free during the tutorial.'
+      You
+      receive 10 Star Candy each time you clear a night wave.'
     m_Metadata:
       m_Items: []
   - m_Id: 9430274050
@@ -268,12 +262,10 @@ MonoBehaviour:
   - m_Id: 10348826625
     m_Localized: 'Upgrading the Castle unlocks higher levels for other buildings.
 
-      Production
-      buildings and the Magic Laboratory cannot be upgraded beyond the level allowed
-      by the Castle.
 
-      It also increases the amount of resources received from
-      exchanges at the Alchemist''s House.'
+      It
+      also increases the amount of resources received from exchanges at the Alchemist''s
+      House.'
     m_Metadata:
       m_Items: []
   - m_Id: 10348826626
@@ -367,7 +359,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 615170964885504
-    m_Localized: Cancel a misplaced tower with the Undo button or Ctrl+Z.
+    m_Localized: If you place or fuse a tower by mistake, or spend resources accidentally,
+      you can undo the action with the Undo button or Ctrl+Z.
     m_Metadata:
       m_Items: []
   - m_Id: 759725932580864
@@ -410,8 +403,61 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 1631492737765376
-    m_Localized: This is where you build towers and use skills to fend off the monsters
-      that attack at night.
+    m_Localized: This is where you defend against the monsters that attack at night.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2903649488900096
+    m_Localized: Game Speed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2903649530843136
+    m_Localized: 'Use the shoe icon next to the minimap to set the game speed to
+      2x.
+
+
+      You can also press the Spacebar to switch to 2x speed.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2903649530843137
+    m_Localized: Tower Attack Settings
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2903649530843138
+    m_Localized: 'Select a tower to choose its targeting method.
+
+
+      Try applying
+      different targeting methods to several towers.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2903649530843139
+    m_Localized: Tower Codex
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2903649530843140
+    m_Localized: 'The Tower Codex contains tower stats and fusion recipes.
+
+
+      Use
+      it whenever you need to look up information.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2906405796745216
+    m_Localized: Feature Overview Complete
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2906405826105344
+    m_Localized: "That covers the core features.\n\nLastly, let\u2019s take a look
+      at a few additional features that will help you during the game."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2907969739460608
+    m_Localized: Production Building Upgrades
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2907969764626432
+    m_Localized: Upgrading a production building increases the resources you receive
+      when you clear a wave.
     m_Metadata:
       m_Items: []
   references:

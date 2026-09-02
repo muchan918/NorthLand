@@ -10,18 +10,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a251563ab983bb043b3423002352f1e5, type: 3}
-  m_Name: UndoIntro
+  m_Name: TowerCodex
   m_EditorClassIdentifier: Assembly-CSharp::TutorialStepAsset
-  popupTitleKey: tutorial.undo.title
-  popupBodyKey: tutorial.undo.body
-  popupImage: {fileID: 21300000, guid: 55adfa3a67ed1d9469bbbdf5efd7d198, type: 3}
+  popupTitleKey: tutorial.tower.codex.title
+  popupBodyKey: tutorial.tower.codex.body
+  popupImage: {fileID: 21300000, guid: c6b361a76b53715469def82d8b8fe98c, type: 3}
   bubbleTextKey: 
   highlightMode: 0
   highlightAnchorId: 
   highlightCell: {x: 0, y: 0}
   pauseGameDuringStep: 0
   resumeGameAfterPopup: 0
-  restrictActions: 1
+  restrictActions: 0
   allowedActions: 0
   minimumTowerCountBeforeEndDay: 0
   requiredTowerBeforeEndDay: {fileID: 0}
