@@ -27,7 +27,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 1620480000
-    m_Localized: Hold the right mouse button and drag to move the camera.
+    m_Localized: Hold the right mouse button and drag to move the camera!
     m_Metadata:
       m_Items: []
   - m_Id: 2090242048
@@ -39,7 +39,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2094436353
-    m_Localized: Move the camera with the WASD keys.
+    m_Localized: Use the WASD keys to move the camera!
     m_Metadata:
       m_Items: []
   - m_Id: 2534838272
@@ -54,7 +54,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2534838274
-    m_Localized: Use the mouse wheel to zoom in or out.
+    m_Localized: Use the mouse wheel to zoom in and out!
     m_Metadata:
       m_Items: []
   - m_Id: 2996211712
@@ -62,19 +62,19 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2996211713
-    m_Localized: Use the + buttons on the production lines at the bottom left to
-      assign villagers.
+    m_Localized: "Press the + button \non the production line\nin the bottom-left
+      to \nassign a resident!"
     m_Metadata:
       m_Items: []
   - m_Id: 2996211714
-    m_Localized: Use the + buttons to assign both villagers to production buildings.
+    m_Localized: "Press the + button to assign both residents to \nproduction buildings!"
     m_Metadata:
       m_Items: []
   - m_Id: 3436613632
-    m_Localized: 'Click an empty tile in the battlefield to place the tower.
+    m_Localized: 'Click an empty tile in the battle area to place a tower!
 
-      Placing
-      it on a buff tile grants the displayed effect.'
+      Place
+      it on a Buff Tile to gain a special effect!'
     m_Metadata:
       m_Items: []
   - m_Id: 3877015552
@@ -82,15 +82,12 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 3877015553
-    m_Localized: 'Choose a tower to place from the tower panel.
-
-
-      Each tower
-      has a different placement cost and attack style.'
+    m_Localized: "Choose a tower to place\nfrom the Tower Panel!\n\nEach tower has
+      a different\nplacement cost and \nattack style."
     m_Metadata:
       m_Items: []
   - m_Id: 3877015554
-    m_Localized: Choose one tower from the tower panel.
+    m_Localized: Choose one tower to place from the Tower Panel!
     m_Metadata:
       m_Items: []
   - m_Id: 4334194688
@@ -108,8 +105,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 4334194690
-    m_Localized: Place at least one tower, then press Next in the upper-right corner
-      to begin the night.
+    m_Localized: "Place at least one tower, then press the Next button \nin the top-right
+      to move on to night!"
     m_Metadata:
       m_Items: []
   - m_Id: 5269524480
@@ -347,11 +344,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 606020335734784
-    m_Localized: 'Effect icons appear on buff tiles while you are placing a tower.
-
-
-      Place
-      a tower on a buff tile to receive its stat bonus.'
+    m_Localized: "When placing a tower, effect icons\nappear on Buff Tiles.\n\nPlace
+      a tower on \na Buff Tile\nto gain its stat bonus!"
     m_Metadata:
       m_Items: []
   - m_Id: 615170927136768
@@ -394,8 +388,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 1622860000301056
-    m_Localized: "We\u2019ll guide you through the basic controls and the game\u2019s
-      key features.\nWhen you\u2019re ready, select Complete to begin the tutorial."
+    m_Localized: "Welcome!\n\nLet\u2019s go over how to play,\none step at a time!\n\nWhen
+      you\u2019re ready, press the Confirm button\nand let\u2019s get started!"
     m_Metadata:
       m_Items: []
   - m_Id: 1631492708405248
@@ -403,7 +397,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 1631492737765376
-    m_Localized: This is where you defend against the monsters that attack at night.
+    m_Localized: "This is where you \ndefend against\nthe monsters that attack \nevery
+      night!"
     m_Metadata:
       m_Items: []
   - m_Id: 2903649488900096
