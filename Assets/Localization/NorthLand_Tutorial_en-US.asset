@@ -27,7 +27,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 1620480000
-    m_Localized: Hold the right mouse button and drag to move the camera.
+    m_Localized: Hold the right mouse button and drag to move the camera!
     m_Metadata:
       m_Items: []
   - m_Id: 2090242048
@@ -39,7 +39,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2094436353
-    m_Localized: Move the camera with the WASD keys.
+    m_Localized: Use the WASD keys to move the camera!
     m_Metadata:
       m_Items: []
   - m_Id: 2534838272
@@ -54,7 +54,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2534838274
-    m_Localized: Use the mouse wheel to zoom in or out.
+    m_Localized: Use the mouse wheel to zoom in and out!
     m_Metadata:
       m_Items: []
   - m_Id: 2996211712
@@ -62,19 +62,19 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2996211713
-    m_Localized: Use the + buttons on the production lines at the bottom left to
-      assign villagers.
+    m_Localized: "Press the + button \non the production line\nin the bottom-left
+      to \nassign a resident!"
     m_Metadata:
       m_Items: []
   - m_Id: 2996211714
-    m_Localized: Use the + buttons to assign both villagers to production buildings.
+    m_Localized: "Press the + button to assign both residents to \nproduction buildings!"
     m_Metadata:
       m_Items: []
   - m_Id: 3436613632
-    m_Localized: 'Click an empty tile in the battlefield to place the tower.
+    m_Localized: 'Click an empty tile in the battle area to place a tower!
 
-      Placing
-      it on a buff tile grants the displayed effect.'
+      Place
+      it on a Buff Tile to gain a special effect!'
     m_Metadata:
       m_Items: []
   - m_Id: 3877015552
@@ -82,15 +82,12 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 3877015553
-    m_Localized: 'Choose a tower to place from the tower panel.
-
-
-      Each tower
-      has a different placement cost and attack style.'
+    m_Localized: "Choose a tower to place\nfrom the Tower Panel!\n\nEach tower has
+      a different\nplacement cost and \nattack style."
     m_Metadata:
       m_Items: []
   - m_Id: 3877015554
-    m_Localized: Choose one tower from the tower panel.
+    m_Localized: Choose one tower to place from the Tower Panel!
     m_Metadata:
       m_Items: []
   - m_Id: 4334194688
@@ -108,8 +105,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 4334194690
-    m_Localized: Place at least one tower, then press Next in the upper-right corner
-      to begin the night.
+    m_Localized: "Place at least one tower, then press the Next button \nin the top-right
+      to move on to night!"
     m_Metadata:
       m_Items: []
   - m_Id: 5269524480
@@ -117,25 +114,24 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 5269524481
-    m_Localized: 'At night, you can attack enemies directly with skills.
-
-
-      Click
-      the skill button or press Q, then click a target location to cast the skill
-      there.'
+    m_Localized: "At night, you can use skills\nto attack enemies directly!\n\nPress
+      the Skill \nbutton or Q,\nthen click your target \nlocation to use the skill!"
     m_Metadata:
       m_Items: []
   - m_Id: 5269524482
-    m_Localized: Aim a skill at the enemies and cast it.
+    m_Localized: Aim at an enemy and use your skill!
     m_Metadata:
       m_Items: []
   - m_Id: 6699782144
-    m_Localized: 'Upgrade the Biscuit House, Choco Tree, and Sugar Farm once each.
+    m_Localized: 'Upgrade the Biscuit House, Choco Tree,
 
-      Each
-      Building''s shortcut keys are 2, 3, 4
+      and Sugar Farm once
+      each!
 
-      Upgrades are free during the tutorial.'
+      Their shortcut keys are 2, 3, and 4. Upgrades are
+
+      free
+      during the tutorial!'
     m_Metadata:
       m_Items: []
   - m_Id: 7161155584
@@ -143,9 +139,9 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 7161155585
-    m_Localized: "Click a building shortcut beside the minimap at the top left to
-      move to that building and open its information panel.\nYou can also open the
-      panel by clicking the building directly.\nThe shortcut keys are 1\u20136."
+    m_Localized: "Click a building icon \non the minimap\nin the top-left to move
+      to \nthat building\nand open its info window!\n\nYou can also click \nthe building
+      directly\nor use the 1\u20136 shortcut keys."
     m_Metadata:
       m_Items: []
   - m_Id: 7161155586
@@ -157,21 +153,24 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 7609946113
-    m_Localized: 'Certain towers can be fused into stronger towers.
+    m_Localized: 'Certain towers can be combined
+
+      to create stronger towers!
 
 
       Select
-      the towers you want to use as materials to see a list of towers you can create.'
+      the towers you want to combine
+
+      to see a list of towers you can create.'
     m_Metadata:
       m_Items: []
   - m_Id: 7614140416
-    m_Localized: 'Place more Archer Towers until you have three on the battlefield.
+    m_Localized: 'Place towers until you have 3 Archer Towers!
 
-      Archer
-      Towers are free to place during the tutorial.
+      Placement is
+      free during the tutorial.
 
-      Press 7 to move to the
-      combat area.'
+      Press 7 to move to the battle area.'
     m_Metadata:
       m_Items: []
   - m_Id: 8046153728
@@ -185,10 +184,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 8494944256
-    m_Localized: 'Drag the newly added villagers to production buildings.
-
-      You
-      can also assign them using the + buttons on the production lines.'
+    m_Localized: "Drag the new resident to a production buildingand \nassign them!\nYou
+      can also use the + button on the production line."
     m_Metadata:
       m_Items: []
   - m_Id: 8964706304
@@ -196,19 +193,14 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 8964706305
-    m_Localized: 'Spend Sugar at the Castle to increase the village population.
-
-      More
-      villagers can be assigned to production buildings, increasing your daily output.'
+    m_Localized: "Use Sugar at the Castle\nto increase \nthe number of residents!\n\nMore
+      residents can \nbe assigned\nto production buildings,\nincreasing your daily
+      \nproduction!"
     m_Metadata:
       m_Items: []
   - m_Id: 8964706306
-    m_Localized: 'Select the Castle and add one villager.
-
-      It is free during
-      the tutorial.
-
-      The shortcut key is 1.'
+    m_Localized: "Select the Castle and add one resident!\nIt\u2019s free during
+      the tutorial. The shortcut key is 1."
     m_Metadata:
       m_Items: []
   - m_Id: 9430274048
@@ -216,24 +208,14 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 9430274049
-    m_Localized: 'Use Star Candy at the Magic Laboratory to upgrade your skills.
-
-      Upgrades
-      increase a skill''s damage and area while reducing its cooldown.
-
-
-      You
-      receive 10 Star Candy each time you clear a night wave.'
+    m_Localized: "Use Star Candy at the Magic Lab\nto upgrade your skill!\nUpgrading
+      increases \nits damage\nand range while reducing \nits cooldown.\n\nYou\u2019ll
+      earn 10 Star Candy\neach time you \nclear a night wave!"
     m_Metadata:
       m_Items: []
   - m_Id: 9430274050
-    m_Localized: 'Select the Magic Laboratory and upgrade a skill once.
-
-      It
-      is free during the tutorial.
-
-      The shortcut key for the Magic Laboratory
-      is 5.'
+    m_Localized: "Select the Magic Lab and upgrade your skill once!\nIt\u2019s free
+      during the tutorial.\nThe Magic Lab\u2019s shortcut key is 5."
     m_Metadata:
       m_Items: []
   - m_Id: 9879064576
@@ -241,18 +223,14 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 9879064577
-    m_Localized: 'At the Alchemist''s House, you can exchange Star Candy for other
-      resources.
-
-
-      Use Star Candy to replenish resources you are short on.'
+    m_Localized: "At the Alchemist\u2019s House,\nyou can exchange Star Candy\nfor
+      other resources!\n\nUse Star Candy to \nmake up\nfor any resources \nyou\u2019re
+      short on."
     m_Metadata:
       m_Items: []
   - m_Id: 9879064578
-    m_Localized: 'Exchange Star Candy for any resource at the Alchemist''s House.
-
-      The
-      shortcut key for the Alchemist''s House is 6.'
+    m_Localized: "Exchange Star Candy for the resource you want\nat the Alchemist\u2019s
+      House!\nThe shortcut key for the Alchemist\u2019s House is 6."
     m_Metadata:
       m_Items: []
   - m_Id: 10348826624
@@ -260,21 +238,14 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 10348826625
-    m_Localized: 'Upgrading the Castle unlocks higher levels for other buildings.
-
-
-      It
-      also increases the amount of resources received from exchanges at the Alchemist''s
-      House.'
+    m_Localized: "Upgrade the Castle \nto unlock\nhigher levels for \nother buildings!\n\nIt
+      also increases \nthe amount of resources\nyou can exchange at \nthe Alchemist\u2019s
+      House."
     m_Metadata:
       m_Items: []
   - m_Id: 10348826626
-    m_Localized: 'Select the Castle and upgrade it to Lv. 2.
-
-      It is free during
-      the tutorial.
-
-      The shortcut key is 1.'
+    m_Localized: "Select the Castle and upgrade it to Lv.2!\nIt\u2019s free during
+      the tutorial. The shortcut key is 1."
     m_Metadata:
       m_Items: []
   - m_Id: 10818588672
@@ -290,7 +261,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 10818588674
-    m_Localized: Press Next to begin the night.
+    m_Localized: Press the Next button to move on to night!
     m_Metadata:
       m_Items: []
   - m_Id: 11737141248
@@ -347,11 +318,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 606020335734784
-    m_Localized: 'Effect icons appear on buff tiles while you are placing a tower.
-
-
-      Place
-      a tower on a buff tile to receive its stat bonus.'
+    m_Localized: "When placing a tower, effect icons\nappear on Buff Tiles.\n\nPlace
+      a tower on \na Buff Tile\nto gain its stat bonus!"
     m_Metadata:
       m_Items: []
   - m_Id: 615170927136768
@@ -359,8 +327,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 615170964885504
-    m_Localized: If you place or fuse a tower by mistake, or spend resources accidentally,
-      you can undo the action with the Undo button or Ctrl+Z.
+    m_Localized: "If you place or combine \na tower by mistake,\nor use the wrong\nresources,\nyou
+      can undo it with \nthe Undo button\nor Ctrl+Z!"
     m_Metadata:
       m_Items: []
   - m_Id: 759725932580864
@@ -368,25 +336,18 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 759725970329600
-    m_Localized: 'Zoom in on the village to find the marshmallow villagers.
-
-      You
-      can drag a villager directly onto a production building.
-
-      Drag a villager
-      to the production building where you want to assign them.'
+    m_Localized: "Zoom in on the village \nto find the Marshmallow \nresidents!\n\nDrag
+      a resident directly to\nthe production \nbuilding you want\nto assign them
+      to!"
     m_Metadata:
       m_Items: []
   - m_Id: 951498059452416
-    m_Localized: 'Clear the wave.
-
-      You cannot lose during the tutorial.'
+    m_Localized: "Clear the wave to the end!\nDon\u2019t worry you can\u2019t lose
+      during the tutorial."
     m_Metadata:
       m_Items: []
   - m_Id: 951498101395456
-    m_Localized: 'Tutorial complete.
-
-      The main game will begin shortly.'
+    m_Localized: "You\u2019ve completed the tutorial!\nThe main game will begin shortly."
     m_Metadata:
       m_Items: []
   - m_Id: 1622859966746624
@@ -394,8 +355,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 1622860000301056
-    m_Localized: "We\u2019ll guide you through the basic controls and the game\u2019s
-      key features.\nWhen you\u2019re ready, select Complete to begin the tutorial."
+    m_Localized: "Welcome!\n\nLet\u2019s go over how to play,\none step at a time!\n\nWhen
+      you\u2019re ready, press the Confirm button\nand let\u2019s get started!"
     m_Metadata:
       m_Items: []
   - m_Id: 1631492708405248
@@ -403,7 +364,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 1631492737765376
-    m_Localized: This is where you defend against the monsters that attack at night.
+    m_Localized: "This is where you \ndefend against\nthe monsters that attack \nevery
+      night!"
     m_Metadata:
       m_Items: []
   - m_Id: 2903649488900096
@@ -411,11 +373,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2903649530843136
-    m_Localized: 'Use the shoe icon next to the minimap to set the game speed to
-      2x.
-
-
-      You can also press the Spacebar to switch to 2x speed.'
+    m_Localized: "Press the shoe icon \nnext to the minimap\nto speed up the game
+      \nby 2x!\n\nYou can also press \nthe Spacebar\nto switch to 2x speed."
     m_Metadata:
       m_Items: []
   - m_Id: 2903649530843137
@@ -423,11 +382,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2903649530843138
-    m_Localized: 'Select a tower to choose its targeting method.
-
-
-      Try applying
-      different targeting methods to several towers.'
+    m_Localized: "Select a tower to change\nits attack style!\n\nTry selecting \ndifferent
+      towers\nand using different\nattack styles!"
     m_Metadata:
       m_Items: []
   - m_Id: 2903649530843139
@@ -435,11 +391,9 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2903649530843140
-    m_Localized: 'The Tower Codex contains tower stats and fusion recipes.
-
-
-      Use
-      it whenever you need to look up information.'
+    m_Localized: "There\u2019s an encyclopedia \nwhere you can check\ntower stats
+      and \ncombination info!\n\nIf there\u2019s something \nyou\u2019re curious
+      about,\nlook it up in the \nencyclopedia!"
     m_Metadata:
       m_Items: []
   - m_Id: 2906405796745216
@@ -447,8 +401,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2906405826105344
-    m_Localized: "That covers the core features.\n\nLastly, let\u2019s take a look
-      at a few additional features that will help you during the game."
+    m_Localized: "You\u2019ve learned all the core features!\n\nNow, let\u2019s take
+      a look at\na few extra features\nthat will help you out!"
     m_Metadata:
       m_Items: []
   - m_Id: 2907969739460608
@@ -456,8 +410,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 2907969764626432
-    m_Localized: Upgrading a production building increases the resources you receive
-      when you clear a wave.
+    m_Localized: "Upgrade production \nbuildings to\nincrease the resources \nyou
+      earn\nfrom clearing waves!"
     m_Metadata:
       m_Items: []
   references:

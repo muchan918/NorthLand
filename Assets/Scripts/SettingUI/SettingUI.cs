@@ -292,4 +292,9 @@ public class SettingUI : MonoBehaviour
         QuitGameWarningPanel.SetActive(false);
     }
 
+    public void CloseLocalizationPanel()
+    {
+        localizationManager?.OnClose();
+    }
+
 }
