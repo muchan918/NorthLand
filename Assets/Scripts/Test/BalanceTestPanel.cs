@@ -40,6 +40,18 @@ public class BalanceTestPanel : MonoBehaviour
     // 낮에 미리 켜둔 무적이 나중에 생긴 본진에도 적용돼야 한다.
     bool _invincible;
 
+    private void Awake()
+    {
+#if !UNITY_EDITOR
+        if (Panel != null)
+        {
+            Panel.SetActive(false);
+        }
+
+        enabled = false;
+#endif
+    }
+
     private void Start()
     {
         // 본진이 "이미 있음"과 "앞으로 생김"을 한 경로로 처리한다(PlayerBase.cs의 씬 싱글톤 계약).
@@ -57,6 +69,7 @@ public class BalanceTestPanel : MonoBehaviour
     // 레거시 UnityEngine.Input은 쓰지 않는다 — Active Input Handling이 Input System 단독이다(팀 규약).
     private void Update()
     {
+#if UNITY_EDITOR
         // Keyboard.current는 키보드가 없는 환경(모바일 빌드)에서 null이라 매 프레임 NRE가 된다.
         // 같은 폴더의 BuildingsUpgradeHelper.cs:27-31과 동일한 가드.
         Keyboard keyboard = Keyboard.current;
@@ -69,6 +82,7 @@ public class BalanceTestPanel : MonoBehaviour
         {
             Panel.SetActive(!Panel.activeSelf);
         }
+#endif
     }
 
     // ── 웨이브 ──────────────────────────────────────────────
