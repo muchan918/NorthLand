@@ -209,8 +209,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 5956874363641863
-    m_Localized: Locks onto multiple enemies within range and continuously deals
-      damage.
+    m_Localized: "Targets multiple enemies within range \nand continuously deals
+      damage."
     m_Metadata:
       m_Items: []
   - m_Id: 6166220603301888
