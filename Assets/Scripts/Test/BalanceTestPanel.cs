@@ -40,6 +40,18 @@ public class BalanceTestPanel : MonoBehaviour
     // 낮에 미리 켜둔 무적이 나중에 생긴 본진에도 적용돼야 한다.
     bool _invincible;
 
+    private void Awake()
+    {
+#if !UNITY_EDITOR
+        if (Panel != null)
+        {
+            Panel.SetActive(false);
+        }
+
+        enabled = false;
+#endif
+    }
+
     private void Start()
     {
         // 본진이 "이미 있음"과 "앞으로 생김"을 한 경로로 처리한다(PlayerBase.cs의 씬 싱글톤 계약).
