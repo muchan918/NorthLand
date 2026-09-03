@@ -141,8 +141,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 5373136273580033
-    m_Localized: Attacks the closest enemy in range with fire arrows, burning it
-      for 2 seconds
+    m_Localized: "Attacks the closest enemy in range \nwith fire arrows, burning
+      it for 2 seconds"
     m_Metadata:
       m_Items: []
   - m_Id: 5391670919733248
@@ -209,8 +209,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 5956874363641863
-    m_Localized: Locks onto multiple enemies in range and deals continuous damage
-      to all of them.
+    m_Localized: "Targets multiple enemies within range \nand continuously deals
+      damage."
     m_Metadata:
       m_Items: []
   - m_Id: 6166220603301888
