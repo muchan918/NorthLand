@@ -730,7 +730,7 @@ MonoBehaviour:
   buttons:
   - {fileID: 5409213809669066931}
   - {fileID: 6010258961654728141}
-  confetti: {fileID: 0}
+  confetti: {fileID: 7202039945439392808}
   waveInfo: {fileID: 7953800046293570402}
   seedInfo: {fileID: 5313587950677053290}
   summary: {fileID: 3708699845444775437}
