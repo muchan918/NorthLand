@@ -34,8 +34,8 @@ MonoBehaviour:
     ProjectileSpeed: 0
   Boss:
     Stat:
-      MaxHp: 2600
-      MoveSpeed: 4.8
+      MaxHp: 7000
+      MoveSpeed: 7
       AttackDamage: 50
       AttackRange: 2.4
       AttackInterval: 2.5
